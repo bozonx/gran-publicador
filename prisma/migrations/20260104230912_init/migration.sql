@@ -37,6 +37,7 @@ CREATE TABLE "projects" (
     "updated_at" DATETIME NOT NULL,
     "archived_at" DATETIME,
     "archived_by" TEXT,
+    "preferences" TEXT NOT NULL DEFAULT '{}',
     CONSTRAINT "projects_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -61,6 +62,7 @@ CREATE TABLE "channels" (
     "channel_identifier" TEXT NOT NULL,
     "language" TEXT NOT NULL,
     "credentials" TEXT NOT NULL DEFAULT '{}',
+    "preferences" TEXT NOT NULL DEFAULT '{}',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL,
