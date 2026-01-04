@@ -30,11 +30,14 @@ COPY package.json pnpm-lock.yaml ./
 # However, we need dependencies for prisma and the app itself
 
 # Install dependencies (including better-sqlite3 which needs to be built)
-# Use --ignore-scripts during install to speed up, then rebuild only better-sqlite3
-RUN pnpm install --prod --frozen-lockfile --prefer-offline || pnpm install --prod --prefer-offline
+# First install all dependencies to ensure build tools are available
+RUN pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
 
 # Explicitly rebuild better-sqlite3 to ensure it's compiled for the container's architecture
 RUN pnpm rebuild better-sqlite3
+
+# Now prune dev dependencies
+RUN pnpm prune --prod
 
 # Copy pre-built backend application
 COPY dist ./dist
@@ -58,6 +61,9 @@ RUN chmod +x /entrypoint.sh
 # Generate prisma client inside container to ensure architecture compatibility
 # This will also ensure better-sqlite3 is built for the container's architecture
 RUN npx prisma generate
+
+# Rebuild better-sqlite3 one more time after Prisma generation to ensure compatibility
+RUN pnpm rebuild better-sqlite3
 
 EXPOSE 8080
 
