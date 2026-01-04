@@ -24,9 +24,15 @@ const {
   fetchUserPublications,
 } = usePublications()
 
+// Initialize currentPage from URL query parameter
+const currentPage = ref(
+  route.query.page && typeof route.query.page === 'string' 
+    ? Math.max(1, parseInt(route.query.page, 10) || 1)
+    : 1
+)
+
 // Pagination state
 const limit = ref(DEFAULT_PAGE_SIZE)
-const currentPage = ref(1)
 
 // Filter states
 const selectedStatus = ref<PublicationStatus | null>(null)
@@ -120,67 +126,36 @@ onMounted(async () => {
         selectedStatus.value = route.query.status as PublicationStatus
     }
     
-    // Initialize currentPage from URL query parameter
-    if (route.query.page && typeof route.query.page === 'string') {
-        const pageNum = parseInt(route.query.page, 10)
-        if (!isNaN(pageNum) && pageNum > 0) {
-            currentPage.value = pageNum
-        }
-    }
-    
     await fetchUserPublications({
         limit: 1000,
         includeArchived: true
     })
 })
 
-
-// Watch filters (reset to page 1)
+// Watch filters (reset to page 1 and update URL)
 watch([selectedStatus, selectedChannelId, ownershipFilter, showIssuesOnlyFilter, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
-    currentPage.value = 1
+    updatePage(1)
 })
 
-
-
-// Sync route query with page changes (read from URL)
-watch(() => route.query.page, (newPage) => {
-    console.log('[Pagination] URL changed to page:', newPage)
-    if (newPage && typeof newPage === 'string') {
-        const pageNum = parseInt(newPage, 10)
-        if (!isNaN(pageNum) && pageNum > 0 && pageNum !== currentPage.value) {
-            console.log('[Pagination] Setting currentPage to:', pageNum)
-            currentPage.value = pageNum
-        }
-    } else if (!newPage && currentPage.value !== 1) {
-        console.log('[Pagination] No page param, resetting to 1')
-        currentPage.value = 1
-    }
-})
-
-// Watch currentPage to update URL (write to URL)
-watch(currentPage, (newPage) => {
-    console.log('[Pagination] currentPage changed to:', newPage, 'client?', import.meta.client)
+// Update page and sync with URL
+function updatePage(page: number) {
+    currentPage.value = page
+    
     if (!import.meta.client) return
     
-    // Avoid updates if the page from URL already matches
-    const urlPage = route.query.page ? parseInt(String(route.query.page), 10) : 1
-    console.log('[Pagination] URL page:', urlPage, 'new page:', newPage)
-    if (newPage !== urlPage) {
-        console.log('[Pagination] Updating URL to page:', newPage)
-        const newQuery = { ...route.query }
-        if (newPage > 1) {
-            newQuery.page = String(newPage)
-        } else {
-            delete newQuery.page
-        }
-        console.log('[Pagination] New query:', newQuery)
-        router.replace({ query: newQuery })
+    const newQuery = { ...route.query }
+    if (page > 1) {
+        newQuery.page = String(page)
+    } else {
+        delete newQuery.page
     }
-})
+    
+    router.replace({ query: newQuery })
+}
 
-// No need to watch currentPage for re-fetching since we do client-side pagination now
+// Handle page change from pagination component
 function onPageChange(page: number) {
-    currentPage.value = page
+    updatePage(page)
     
     if (import.meta.client) {
         window.scrollTo({ top: 0, behavior: 'smooth' })
