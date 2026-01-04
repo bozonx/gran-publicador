@@ -1,0 +1,9 @@
+# Gran Publicador Application Configuration
+# This file is copied to DATA_DIR/app-config.yaml on first startup
+
+# Telegram settings
+telegramAdminId: ${TELEGRAM_ADMIN_ID}
+telegramBotToken: ${TELEGRAM_BOT_TOKEN}
+
+# Security and Auth
+jwtSecret: ${JWT_SECRET}

@@ -1,0 +1,255 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id String @id @default(uuid())
+
+  fullName         String?  @map("full_name")
+  // Telegram username without @ symbol
+  telegramUsername String?  @map("telegram_username")
+  avatarUrl        String?  @map("avatar_url")
+  // Unique Telegram user ID for authentication
+  telegramId       BigInt?  @unique @map("telegram_id")
+  // System administrator flag for elevated permissions
+  isAdmin          Boolean  @default(false) @map("is_admin")
+  // User ban status
+  isBanned         Boolean  @default(false) @map("is_banned")
+  banReason        String?  @map("ban_reason")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  // User preferences stored as JSON string (SQLite limitation)
+  preferences      String   @default("{}") // Store as JSON string in SQLite
+
+  ownedProjects  Project[]       @relation("ProjectOwner")
+  projectMembers ProjectMember[]
+  publications       Publication[] @relation("PublicationCreator")
+  apiTokens      ApiToken[]
+
+  @@index([telegramUsername])
+  @@map("users")
+}
+
+model ApiToken {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  // User-friendly name for the token
+  name            String
+  // Hashed token for authentication (bcrypt/argon2)
+  hashedToken     String    @unique @map("hashed_token")
+  // Encrypted token for one-time display to user
+  encryptedToken  String    @map("encrypted_token")
+  // Array of project IDs this token has access to (JSON string)
+  scopeProjectIds String    @default("[]") @map("scope_project_ids")
+  // Last time this token was used for authentication
+  lastUsedAt      DateTime? @map("last_used_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_tokens")
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String    @map("owner_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  // Timestamp when project was archived
+  archivedAt  DateTime? @map("archived_at")
+  // User ID who archived the project
+  archivedBy  String?   @map("archived_by")
+  // Project preferences stored as JSON string (SQLite limitation)
+  preferences String    @default("{}") // Store as JSON string in SQLite
+
+
+  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      ProjectMember[]
+  channels     Channel[]
+  publications Publication[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String      @id @default(uuid())
+  projectId String      @map("project_id")
+  userId    String      @map("user_id")
+  // User's role in the project (OWNER, ADMIN, EDITOR, VIEWER)
+  role      ProjectRole @default(VIEWER)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Channel {
+  id                String      @id @default(uuid())
+  projectId         String      @map("project_id")
+  // Social media platform type (TELEGRAM, INSTAGRAM, etc.)
+  socialMedia       SocialMedia @map("social_media")
+  name              String
+  description       String?
+  // Platform-specific channel identifier (e.g., @channel_name, channel_id)
+  channelIdentifier String      @map("channel_identifier")
+  // Channel language in format like ru-RU, en-US, etc.
+  language          String
+  // Encrypted credentials for channel access stored as JSON string
+  credentials       String      @default("{}") // Store as JSON string in SQLite
+  // Channel preferences stored as JSON string (SQLite limitation)
+  preferences       String      @default("{}") // Store as JSON string in SQLite
+
+  // Whether channel is active for posting
+  isActive          Boolean     @default(true) @map("is_active")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  // Timestamp when channel was archived
+  archivedAt        DateTime?   @map("archived_at")
+  // User ID who archived the channel
+  archivedBy        String?     @map("archived_by")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  posts   Post[]
+
+  @@index([projectId])
+  @@map("channels")
+}
+
+model Publication {
+  id                 String  @id @default(uuid())
+  projectId          String  @map("project_id")
+  // ID for linking translations of the same content
+  translationGroupId String? @map("translation_group_id")
+
+  // User who created the publication (nullable for system-generated)
+  createdBy  String?   @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @default(now()) @map("updated_at")
+  // Timestamp when publication was archived
+  archivedAt DateTime? @map("archived_at")
+  // User ID who archived the publication
+  archivedBy String?   @map("archived_by")
+
+  title         String?
+  description   String?
+  content       String?
+  // Comment from author for post with type NEWS
+  authorComment String?    @map("author_comment")
+  tags          String?
+  // Array of media file URLs stored as JSON string
+  mediaFiles    String     @default("[]") @map("media_files")
+  // Additional metadata stored as JSON string
+  meta          String     @default("{}")
+  // Type of post (POST, ARTICLE, VIDEO, etc.) - master type for distribution
+  postType      PostType   @default(POST) @map("post_type")
+  // Date of the article which the author specified
+  postDate      DateTime?  @map("post_date")
+  // Publication status (DRAFT, READY, SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
+  status        PublicationStatus @default(DRAFT)
+  // Language of the publication (ru-RU, en-US, etc.)
+  language      String     @default("ru-RU")
+  // When the publication is scheduled to be published
+  scheduledAt   DateTime? @map("scheduled_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User?   @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  posts   Post[]
+
+  @@index([translationGroupId])
+  @@index([projectId, status])
+  @@index([projectId, createdAt])
+  @@index([projectId, scheduledAt])
+  @@map("publications")
+}
+
+model Post {
+  id            String    @id @default(uuid())
+  // Link to parent publication
+  publicationId String    @map("publication_id")
+  channelId     String    @map("channel_id")
+  // Social media platform type stored as string for flexibility
+  socialMedia   String    @map("social_media")
+  // Tags specific to this channel (can override publication tags)
+  tags          String?
+  // Post status for tracking publication success (PENDING, FAILED, PUBLISHED)
+  // Note: Status is managed by the system only, not manually editable
+  status        PostStatus @default(PENDING)
+  // Overwrite of publication scheduledAt
+  scheduledAt   DateTime? @map("scheduled_at")
+  // Actual timestamp when post was published to platform
+  publishedAt   DateTime? @map("published_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledAt])
+  @@index([channelId, createdAt])
+  @@index([publicationId])
+  @@map("posts")
+}
+
+enum ProjectRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum SocialMedia {
+  TELEGRAM
+  INSTAGRAM
+  VK
+  YOUTUBE
+  TIKTOK
+  X
+  FACEBOOK
+  LINKEDIN
+  SITE
+}
+
+enum PostType {
+  POST
+  ARTICLE
+  NEWS
+  VIDEO
+  SHORT
+  STORY
+}
+
+// Publication status enum - tracks the lifecycle of a publication
+enum PublicationStatus {
+  DRAFT      // Draft, may be partially filled or incomplete
+  READY      // Ready post, not published (prepared in advance or removed from SCHEDULED)
+  SCHEDULED  // Scheduled for future publication, date is set but not yet reached
+  PROCESSING // Selected by publishing service and being processed
+  PUBLISHED  // All posts successfully published
+  PARTIAL    // Some posts published, some failed
+  FAILED     // All posts failed to publish
+  EXPIRED    // Publication missed the publishing service selection window
+}
+
+// Post status enum - tracks individual post publication status
+// Note: Post status is managed by the system only, not manually editable
+enum PostStatus {
+  PENDING    // Post has not yet been attempted to publish
+  FAILED     // Publication failed
+  PUBLISHED  // Post was successfully published to the channel
+}

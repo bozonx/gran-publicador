@@ -1,0 +1,397 @@
+<script setup lang="ts">
+import { useChannels } from '~/composables/useChannels'
+import type { ChannelWithProject } from '~/composables/useChannels'
+import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
+import { useSorting } from '~/composables/useSorting'
+import ChannelListItem from '~/components/channels/ChannelListItem.vue'
+
+definePageMeta({
+  middleware: 'auth',
+})
+
+const { t } = useI18n()
+const { user } = useAuth()
+const { 
+  channels, 
+  fetchChannels, 
+  isLoading,
+  getSocialMediaIcon,
+  getSocialMediaColor,
+  setFilter,
+} = useChannels()
+
+const searchQuery = ref('')
+
+// Ownership filter
+type OwnershipFilter = 'all' | 'own' | 'guest'
+const ownershipFilter = ref<OwnershipFilter>('all')
+
+// Filter options
+const showArchivedFilter = ref(false) // По умолчанию false - показывает неархивные
+const showInactiveOnlyFilter = ref(false) // По умолчанию false - показывает все (активные и неактивные)
+const showIssuesOnlyFilter = ref(false) // По умолчанию false - показывает все
+
+// Sorting with localStorage persistence
+const sortOptionsComputed = computed(() => [
+  { id: 'alphabetical', label: t('channel.sort.alphabetical'), icon: 'i-heroicons-bars-3-bottom-left' },
+  { id: 'socialMedia', label: t('channel.sort.socialMedia'), icon: 'i-heroicons-share' },
+  { id: 'language', label: t('channel.sort.language'), icon: 'i-heroicons-language' },
+  { id: 'postsCount', label: t('channel.sort.postsCount'), icon: 'i-heroicons-document-text' }
+])
+
+// Sort function
+function sortChannelsFn(list: ChannelWithProject[], sortByValue: string, sortOrderValue: 'asc' | 'desc') {
+  return [...list].sort((a, b) => {
+    let result = 0
+    if (sortByValue === 'alphabetical') {
+      result = a.name.localeCompare(b.name)
+
+    } else if (sortByValue === 'socialMedia') {
+      const weightA = SOCIAL_MEDIA_WEIGHTS[a.socialMedia] || 99
+      const weightB = SOCIAL_MEDIA_WEIGHTS[b.socialMedia] || 99
+      result = weightA - weightB
+      if (result === 0) result = a.name.localeCompare(b.name)
+    } else if (sortByValue === 'language') {
+      const langA = a.language || 'zzz'
+      const langB = b.language || 'zzz'
+      result = langA.localeCompare(langB)
+      if (result === 0) result = a.name.localeCompare(b.name)
+    } else if (sortByValue === 'postsCount') {
+      const postsA = a.postsCount || 0
+      const postsB = b.postsCount || 0
+      result = postsB - postsA
+      if (result === 0) result = a.name.localeCompare(b.name)
+    }
+
+    return sortOrderValue === 'asc' ? result : -result
+  })
+}
+
+const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<ChannelWithProject>({
+  storageKey: 'channels-page',
+  defaultSortBy: 'alphabetical',
+  defaultSortOrder: 'asc',
+  sortOptions: sortOptionsComputed.value,
+  sortFn: sortChannelsFn
+})
+
+// Fetch all user channels on mount (including archived)
+onMounted(async () => {
+    setFilter({ includeArchived: true })
+    await fetchChannels()
+})
+
+
+// Sorting computed props for UI
+const sortOrderIcon = computed(() => 
+  sortOrder.value === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down'
+)
+
+const sortOrderLabel = computed(() => 
+  sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')
+)
+
+// Count for badge - only non-archived channels
+const nonArchivedChannelsCount = computed(() => {
+    return channels.value.filter(c => !c.archivedAt && !c.project?.archivedAt).length
+})
+
+const filteredChannels = computed(() => {
+    let result = channels.value
+
+    // Apply archive filter (checkbox)
+    if (!showArchivedFilter.value) {
+        // Выключено: только активные каналы и проекты
+        result = result.filter(c => !c.archivedAt && !c.project?.archivedAt)
+    } else {
+        // Включено: только архивные каналы или каналы из архивных проектов
+        result = result.filter(c => c.archivedAt || c.project?.archivedAt)
+    }
+
+    // Apply ownership filter (radio buttons)
+    if (ownershipFilter.value === 'own') {
+        // Only channels from projects owned by current user
+        result = result.filter(c => c.project?.ownerId === user.value?.id)
+    } else if (ownershipFilter.value === 'guest') {
+        // Only channels from projects where user is invited (not owner)
+        result = result.filter(c => c.project?.ownerId !== user.value?.id)
+    }
+    // 'all' - no filtering by ownership
+
+    // Apply inactive filter (checkbox)
+    if (showInactiveOnlyFilter.value) {
+        result = result.filter(c => !c.isActive)
+    }
+    // По умолчанию (false) - показываем все (активные и неактивные)
+
+    // Apply issues filter (checkbox)
+    if (showIssuesOnlyFilter.value) {
+        result = result.filter(c => {
+            // Channel has issues if:
+            // 1. Has failed posts
+            const hasFailedPosts = c.failedPostsCount && c.failedPostsCount > 0
+            // 2. Is stale (no recent posts)
+            const isStale = c.isStale
+            // 3. Has no credentials
+            const hasNoCredentials = !c.credentials || Object.keys(c.credentials).length === 0
+            
+            return hasFailedPosts || isStale || hasNoCredentials
+        })
+    }
+    // По умолчанию (false) - показываем все
+
+    // Apply search query
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(c => 
+            c.name.toLowerCase().includes(query) || 
+            c.channelIdentifier.toLowerCase().includes(query) ||
+            c.project?.name?.toLowerCase().includes(query)
+        )
+    }
+
+    return sortChannelsFn(result, sortBy.value, sortOrder.value)
+})
+
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          {{ t('channel.titlePlural') }}
+          <CommonCountBadge :count="nonArchivedChannelsCount" :title="t('channel.filter.badgeCountTooltip')" />
+        </h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {{ t('navigation.channels') }}
+        </p>
+      </div>
+
+      <!-- Sorting controls -->
+      <div class="flex items-center gap-2">
+        <USelectMenu
+          v-model="sortBy"
+          :items="sortOptionsComputed"
+          value-key="id"
+          label-key="label"
+          class="w-56"
+          :searchable="false"
+        >
+          <template #leading>
+            <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
+
+        <UButton
+          :key="sortOrder"
+          :icon="sortOrderIcon"
+          color="neutral"
+          variant="ghost"
+          @click="toggleSortOrder"
+          :title="sortOrderLabel"
+        />
+      </div>
+    </div>
+
+    <!-- Search and filters -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+      <!-- Search -->
+      <div class="flex-1">
+        <UInput
+          v-model="searchQuery"
+          icon="i-heroicons-magnifying-glass"
+          :placeholder="t('common.search')"
+          size="md"
+          class="w-full"
+        />
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <!-- Ownership Filter (Button group) -->
+        <div class="flex items-center gap-2">
+          <div class="flex -space-x-px">
+            <UButton 
+              :color="ownershipFilter === 'all' ? 'primary' : 'neutral'"
+              :variant="ownershipFilter === 'all' ? 'solid' : 'outline'"
+              class="rounded-r-none focus:z-10"
+              size="sm"
+              @click="ownershipFilter = 'all'"
+            >
+              {{ t('channel.filter.ownership.all') }}
+            </UButton>
+            <UButton 
+              :color="ownershipFilter === 'own' ? 'primary' : 'neutral'"
+              :variant="ownershipFilter === 'own' ? 'solid' : 'outline'"
+              class="rounded-none focus:z-10"
+              size="sm"
+              @click="ownershipFilter = 'own'"
+            >
+              {{ t('channel.filter.ownership.own') }}
+            </UButton>
+            <UButton 
+              :color="ownershipFilter === 'guest' ? 'primary' : 'neutral'"
+              :variant="ownershipFilter === 'guest' ? 'solid' : 'outline'"
+              class="rounded-l-none focus:z-10"
+              size="sm"
+              @click="ownershipFilter = 'guest'"
+            >
+              {{ t('channel.filter.ownership.guest') }}
+            </UButton>
+          </div>
+          <UTooltip :text="t('channel.filter.ownership.tooltip')">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help" />
+          </UTooltip>
+        </div>
+
+        <!-- Issues Filter (Checkbox) -->
+        <UCheckbox 
+          v-model="showIssuesOnlyFilter" 
+          :label="t('channel.filter.showIssuesOnly')"
+          :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
+        />
+
+        <!-- Inactive Filter (Checkbox) -->
+        <UCheckbox 
+          v-model="showInactiveOnlyFilter" 
+          :label="t('channel.filter.showInactiveOnly')"
+          :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
+        />
+
+        <!-- Archive Filter (Checkbox) - moved to end -->
+        <div class="flex items-center gap-1.5">
+          <UCheckbox 
+            v-model="showArchivedFilter" 
+            :label="t('channel.filter.showArchived')"
+            :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
+          />
+          <UTooltip :text="t('channel.filter.archiveStatus.tooltip')">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help" />
+          </UTooltip>
+        </div>
+      </div>
+    </div>
+
+    <!-- Channels list -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       <div v-if="isLoading && channels.length === 0" class="col-span-full flex items-center justify-center py-12">
+          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+       </div>
+
+       <div v-else-if="filteredChannels.length === 0" class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            {{ t('channel.noChannelsFound') }}
+          </h3>
+          <p class="text-gray-500 dark:text-gray-400">
+            {{ searchQuery ? t('channel.noChannelsFiltered') : t('channel.noChannelsDescription') }}
+          </p>
+       </div>
+
+       <NuxtLink
+          v-for="channel in filteredChannels"
+          :key="channel.id"
+          :to="`/projects/${channel.projectId}/channels/${channel.id}`"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-all p-6 flex flex-col gap-3 group border border-transparent hover:border-primary-500/10"
+       >
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm relative"
+                :style="{ backgroundColor: getSocialMediaColor(channel.socialMedia) }"
+              >
+                <UIcon :name="getSocialMediaIcon(channel.socialMedia)" class="w-5 h-5" />
+                <!-- Stale indicator dot -->
+                <div 
+                  v-if="channel.isStale" 
+                  class="absolute -top-0.5 -right-0.5 bg-orange-500 border-2 border-white dark:border-gray-800 rounded-full w-2.5 h-2.5"
+                  :title="t('settings.staleChannelsWarning')"
+                ></div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors mb-1">
+                  {{ channel.name }}
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">
+                  {{ channel.channelIdentifier }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <p v-if="channel.description" class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            {{ channel.description }}
+          </p>
+
+          <div class="mt-auto space-y-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+             <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500 dark:text-gray-400">{{ t('project.title') }}</span>
+                <NuxtLink 
+                  v-if="channel.project"
+                  :to="`/projects/${channel.project.id}`"
+                  class="text-gray-900 dark:text-white font-medium truncate ml-2 max-w-[150px] hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dotted border-transparent hover:border-primary-500/50"
+                  @click.stop
+                >
+                  {{ channel.project.name }}
+                </NuxtLink>
+                <span v-else class="text-gray-900 dark:text-white font-medium truncate ml-2 max-w-[150px]">
+                  -
+                </span>
+             </div>
+             <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500 dark:text-gray-400">{{ t('post.titlePlural') }}</span>
+                <NuxtLink
+                  :to="`/publications?channelId=${channel.id}`"
+                  class="text-gray-900 dark:text-white font-medium hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dotted border-transparent hover:border-primary-500/50"
+                  @click.stop
+                >
+                  {{ channel.postsCount || 0 }}
+                </NuxtLink>
+             </div>
+             <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500 dark:text-gray-400">{{ t('common.lastPost') }}</span>
+                <NuxtLink
+                  v-if="channel.lastPostAt && channel.lastPublicationId"
+                  :to="`/projects/${channel.projectId}/publications/${channel.lastPublicationId}`"
+                  class="text-gray-900 dark:text-white font-medium hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dotted border-transparent hover:border-primary-500/50"
+                  @click.stop
+                >
+                  {{ new Date(channel.lastPostAt).toLocaleDateString() }}
+                </NuxtLink>
+                <span v-else class="text-gray-900 dark:text-white font-medium">
+                  {{ channel.lastPostAt ? new Date(channel.lastPostAt).toLocaleDateString() : '-' }}
+                </span>
+             </div>
+             
+             <!-- Warnings and status badges in horizontal list -->
+             <div v-if="!channel.isActive || channel.isStale || (channel.failedPostsCount && channel.failedPostsCount > 0) || (!channel.credentials || Object.keys(channel.credentials).length === 0)" class="flex items-center gap-2 flex-wrap pt-1">
+                <!-- Inactive status -->
+                <UBadge v-if="!channel.isActive" color="neutral" variant="subtle" size="xs">
+                  {{ t('channel.inactive') }}
+                </UBadge>
+                
+                <!-- Stale channel warning -->
+                <UTooltip v-if="channel.isStale" :text="t('settings.staleChannelsWarning')">
+                  <UIcon name="i-heroicons-clock" class="w-4 h-4 text-orange-500 cursor-help" />
+                </UTooltip>
+                
+                <!-- Failed posts warning -->
+                <UTooltip v-if="channel.failedPostsCount && channel.failedPostsCount > 0" :text="`${channel.failedPostsCount} ${t('channel.failedPosts').toLowerCase()}`">
+                  <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 text-red-500 cursor-help" />
+                </UTooltip>
+                
+                <!-- No credentials warning -->
+                <UTooltip v-if="!channel.credentials || Object.keys(channel.credentials).length === 0" :text="t('channel.noCredentials')">
+                  <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-warning-500 cursor-help" />
+                </UTooltip>
+             </div>
+          </div>
+       </NuxtLink>
+    </div>
+  </div>
+</template>
