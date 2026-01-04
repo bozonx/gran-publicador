@@ -16,8 +16,13 @@ WORKDIR /app
 # Enable pnpm
 RUN corepack enable
 
+# Use hoisted node-linker to avoid symlink issues in Docker
+RUN pnpm config set node-linker hoisted
+
 # 1. Install dependencies
-COPY pnpm-lock.yaml package.json ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
+# Copy ui package.json just in case workspace needs it to resolve
+COPY ui/package.json ./ui/package.json
 RUN pnpm fetch
 
 # Install all dependencies (including dev)
@@ -31,14 +36,8 @@ RUN pnpm rebuild better-sqlite3
 # 3. Generate Prisma client
 RUN npx prisma generate
 
-# 4. Prune dev dependencies, BUT keep built binaries
-# We use a trick: prune to a separate location or just copy what we need
-# For simplicity and reliability with native modules, we'll keep node_modules from builder
-# in the final image. To optimize size, we could try to prune, but it risks breaking native deps.
-# Let's try to prune but verify better-sqlite3 is kept correctly.
-# Actually, pruning removes build artifacts often. Safest is to keep node_modules as is 
-# or use pnpm deploy which is cleaner but more complex setup.
-# Let's stick to: use the installed node_modules.
+# 4. Build backend application
+RUN pnpm build
 
 # -----------------------------------------------------------------------------
 # Runtime Stage
@@ -46,8 +45,6 @@ RUN npx prisma generate
 FROM node:${NODE_MAJOR}-bookworm-slim
 
 # Install runtime dependencies
-# openssl is required for Prisma
-# python3/build-essential NOT needed for runtime if native modules are pre-built correctly
 RUN apt-get update && apt-get install -y --no-install-recommends \
   openssl \
   ca-certificates \
@@ -63,12 +60,19 @@ ENV LOG_LEVEL=warn
 ENV DATA_DIR=/data
 
 # Copy built artifacts from builder
+# Since we used hoisted linker, structure is flat and safe to copy
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Copy application code
-COPY dist ./dist
+# Copy built app from builder
+COPY --from=builder /app/dist ./dist
+
+# Copy UI build (assuming it was built externally or exists in context)
+# Note: we are not building UI in Docker to save time/resources,
+# assuming CI or user provides ui/.output
 COPY ui/.output ./ui/.output
+
+# Copy other necessary files
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY src/generated ./src/generated

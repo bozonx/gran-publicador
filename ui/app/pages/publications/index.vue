@@ -132,35 +132,38 @@ onMounted(async () => {
     })
 })
 
-// Watch filters (reset to page 1 and update URL)
+// Watch filters (reset to page 1)
 watch([selectedStatus, selectedChannelId, ownershipFilter, showIssuesOnlyFilter, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
-    updatePage(1)
+    currentPage.value = 1
 })
 
-// Update page and sync with URL
-function updatePage(page: number) {
-    currentPage.value = page
-    
+// Sync URL with page changes
+watch(currentPage, (newPage) => {
     if (!import.meta.client) return
     
-    const newQuery = { ...route.query }
-    if (page > 1) {
-        newQuery.page = String(page)
-    } else {
-        delete newQuery.page
+    // Check if we need to update URL
+    const query = { ...route.query }
+    const urlPage = parseInt(String(query.page || '1'), 10)
+    
+    if (newPage !== urlPage) {
+        if (newPage > 1) {
+            query.page = String(newPage)
+        } else {
+            delete query.page
+        }
+        router.push({ query })
     }
     
-    router.replace({ query: newQuery })
-}
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 
-// Handle page change from pagination component
-function onPageChange(page: number) {
-    updatePage(page)
-    
-    if (import.meta.client) {
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+// Sync page from URL changes
+watch(() => route.query.page, (newPage) => {
+    const pageNum = parseInt(String(newPage || '1'), 10)
+    if (pageNum !== currentPage.value) {
+        currentPage.value = pageNum
     }
-}
+})
 
 function goToPublication(pub: PublicationWithRelations) {
     router.push(`/projects/${pub.projectId}/publications/${pub.id}`)
@@ -482,12 +485,11 @@ const showPagination = computed(() => {
     <!-- Pagination -->
     <div v-if="showPagination" class="mt-8 flex justify-center">
       <UPagination
-        :model-value="currentPage"
+        v-model="currentPage"
         :total="filteredPublications.length"
         :page-count="limit"
         :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
         :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
-        @update:model-value="onPageChange"
       />
     </div>
   </div>
