@@ -2,6 +2,7 @@
 import { usePublications } from '~/composables/usePublications'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
+import { useChannels } from '~/composables/useChannels'
 import { useSorting } from '~/composables/useSorting'
 import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
@@ -121,6 +122,9 @@ const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<Pub
 // Projects
 const { projects, fetchProjects } = useProjects()
 
+// Channels
+const { channels, fetchChannels } = useChannels()
+
 // Fetch on mount
 onMounted(async () => {
     // Check if channelId or status is in query params
@@ -136,7 +140,8 @@ onMounted(async () => {
             limit: 1000,
             includeArchived: true
         }),
-        fetchProjects(true) // включая архивные проекты
+        fetchProjects(true), // включая архивные проекты
+        fetchChannels() // получаем все каналы
     ])
 })
 
@@ -250,6 +255,41 @@ const projectFilterOptions = computed(() => {
     options.push({
       value: project.id,
       label: project.name
+    })
+  })
+  
+  return options
+})
+
+// Channel filter options - all channels that have publications
+const channelFilterOptions = computed(() => {
+  // Get unique channel IDs from publications posts
+  const channelIdsWithPublications = new Set<string>()
+  publications.value.forEach(p => {
+    p.posts?.forEach(post => {
+      if (post.channelId) {
+        channelIdsWithPublications.add(post.channelId)
+      }
+    })
+  })
+  
+  const options: Array<{ value: string | null; label: string }> = [
+    { value: null, label: t('common.all') }
+  ]
+  
+  // Filter and sort channels that have publications
+  const channelsWithPublications = channels.value
+    .filter(channel => channelIdsWithPublications.has(channel.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  
+  channelsWithPublications.forEach(channel => {
+    // Get project name for better context
+    const project = projects.value.find(p => p.id === channel.projectId)
+    const projectName = project ? ` (${project.name})` : ''
+    
+    options.push({
+      value: channel.id,
+      label: `${channel.name}${projectName}`
     })
   })
   
@@ -496,6 +536,20 @@ const showPagination = computed(() => {
         >
           <template #leading>
             <UIcon v-if="selectedProjectId" name="i-heroicons-folder" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
+
+        <!-- Channel Filter (Select) -->
+        <USelectMenu
+          v-model="selectedChannelId"
+          :items="channelFilterOptions"
+          value-key="value"
+          label-key="label"
+          :placeholder="t('publication.filter.channel')"
+          class="w-full sm:w-48"
+        >
+          <template #leading>
+            <UIcon v-if="selectedChannelId" name="i-heroicons-megaphone" class="w-4 h-4" />
           </template>
         </USelectMenu>
 

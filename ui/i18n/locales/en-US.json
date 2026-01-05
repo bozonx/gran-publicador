@@ -417,6 +417,7 @@
       "socialMedia": "Social Media",
       "language": "Language",
       "project": "Project",
+      "channel": "Channel",
       "archiveStatus": {
         "tooltip": "OFF: only non-archived publications. ON: only archived publications."
       },
