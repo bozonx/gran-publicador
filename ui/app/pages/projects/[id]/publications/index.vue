@@ -283,7 +283,7 @@ function resetFilters() {
             variant="ghost"
             icon="i-heroicons-archive-box"
             size="xs"
-            :title="t('common.archive', 'Archive')"
+            :title="t('common.archive')"
             @click.stop="toggleArchive(publication.id, false)"
           />
           <UButton
@@ -292,7 +292,7 @@ function resetFilters() {
             variant="ghost"
             icon="i-heroicons-arrow-uturn-left"
             size="xs"
-            :title="t('common.restore', 'Restore')"
+            :title="t('common.restore')"
             @click.stop="toggleArchive(publication.id, true)"
           />
         </template>
@@ -316,7 +316,7 @@ function resetFilters() {
             variant="ghost"
             icon="i-heroicons-archive-box"
             size="xs"
-            :title="t('common.archive', 'Archive')"
+            :title="t('common.archive')"
             @click.stop="toggleArchive(publication.id, false)"
           />
           <UButton
@@ -325,7 +325,7 @@ function resetFilters() {
             variant="ghost"
             icon="i-heroicons-arrow-uturn-left"
             size="xs"
-            :title="t('common.restore', 'Restore')"
+            :title="t('common.restore')"
             @click.stop="toggleArchive(publication.id, true)"
           />
         </template>
@@ -362,12 +362,12 @@ function resetFilters() {
               />
             </div>
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('post.deletePost', 'Delete Publication') }}
+              {{ t('publication.delete') }}
             </h3>
           </div>
 
           <p class="text-gray-600 dark:text-gray-400 mb-6">
-            {{ t('post.deleteConfirm', 'Are you sure?') }}
+            {{ t('publication.deleteConfirm') }}
           </p>
 
           <div class="flex justify-end gap-3">

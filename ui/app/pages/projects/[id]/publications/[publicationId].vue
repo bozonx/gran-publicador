@@ -350,7 +350,7 @@ function formatDate(dateString: string | null | undefined): string {
           </div>
 
           <p class="text-gray-500 dark:text-gray-400 mb-4">
-            {{ t('publication.changeScheduleInfo', 'This will update the scheduled time for the publication. Posts without their own scheduled time will inherit this value.') }}
+            {{ t('publication.changeScheduleInfo') }}
           </p>
 
           <UFormField :label="t('publication.newScheduleTime')" required class="mb-6">
@@ -514,8 +514,8 @@ function formatDate(dateString: string | null | undefined): string {
         <!-- Archived Status Banner -->
         <CommonArchivedBanner
             v-if="currentPublication.archivedAt"
-            :title="t('publication.archived_notice', 'Publication is archived')"
-            :description="t('publication.archived_info_banner', 'Archived publications are hidden from the main list.')"
+            :title="t('publication.archived_notice')"
+            :description="t('publication.archived_info_banner')"
             :entity-type="ArchiveEntityType.PUBLICATION"
             :entity-id="currentPublication.id"
             @restore="() => fetchPublication(publicationId)"

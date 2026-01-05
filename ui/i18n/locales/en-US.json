@@ -56,7 +56,13 @@
       "cards": "Cards",
       "toggleToList": "Switch to list view",
       "toggleToCards": "Switch to cards view"
-    }
+    },
+    "resetFilters": "Reset filters",
+    "prev": "Prev",
+    "unknown": "Unknown",
+    "unknownChannel": "Unknown channel",
+    "role": "Role",
+    "toggle": "Toggle"
   },
   "navigation": {
     "home": "Home",
@@ -100,7 +106,8 @@
     "miniAppMode": "Telegram Mini App",
     "browserMode": "Browser",
     "devMode": "Development",
-    "authModeHelp": "Shows the current session type (Browser, Telegram Mini App, or Developer Mode)"
+    "authModeHelp": "Shows the current session type (Browser, Telegram Mini App, or Developer Mode)",
+    "loggingIn": "Logging in..."
   },
   "user": {
     "username": "Username",
@@ -158,7 +165,16 @@
       "role": "By role",
       "publicationsCount": "By publications count",
       "lastPublication": "By last created publication"
-    }
+    },
+    "preferences_desc": "Project preferences",
+    "unarchiveProject": "Unarchive project",
+    "archiveProject": "Archive project",
+    "projectIsArchived": "Project is archived",
+    "archive_desc": "Archived projects are hidden.",
+    "unarchive_info": "Restoring project makes it visible again.",
+    "archive_info": "Archive project to save history.",
+    "noArchived": "No archived projects",
+    "noRecentActivity": "No recent activity"
   },
   "projectMember": {
     "title": "Member",
@@ -310,7 +326,19 @@
     "postsCount": "Posts count",
     "project_archived_notice": "This channel belongs to an archived project.",
     "staleWarning": "Channel is stale! No posts for more than {days} days.",
-    "unarchive": "Unarchive"
+    "unarchive": "Unarchive",
+    "notFound": "Channel not found",
+    "deactivated_notice": "Channel deactivated",
+    "credentials_desc": "Manage credentials",
+    "preferences_desc": "Channel preferences",
+    "unarchiveChannel": "Unarchive channel",
+    "archiveChannel": "Archive channel",
+    "channelIsArchived": "Channel is archived",
+    "archive_desc": "Archived channels are hidden from the list but history is preserved.",
+    "unarchive_info": "Restoring channel makes it visible again.",
+    "archive_info": "Archive channel if not used anymore.",
+    "delete_warning": "Channel deletion is irreversible.",
+    "noArchived": "No archived channels"
   },
   "socialMedia": {
     "telegram": "Telegram",
@@ -457,7 +485,9 @@
       "channelsHelp": "Select channels to create posts immediately",
       "createButton": "Create",
       "cancelButton": "Cancel"
-    }
+    },
+    "changeScheduleInfo": "This will change schedule for all linked posts.",
+    "delete": "Delete Publication"
   },
   "postType": {
     "post": "Post",
@@ -469,7 +499,9 @@
   "postStatus": {
     "pending": "Pending",
     "published": "Published",
-    "failed": "Failed"
+    "failed": "Failed",
+    "draft": "Draft",
+    "scheduled": "Scheduled"
   },
   "publicationStatus": {
     "draft": "Draft",
@@ -548,7 +580,9 @@
     "staleChannelsDays": "Stale Channels Warning (Days)",
     "staleChannelsDaysHelp": "Show warning if channel has no published posts for this many days (Default: 3)",
     "defaultFromProject": "Default from Project",
-    "staleChannelsWarning": "Some channels have not posted in a while"
+    "staleChannelsWarning": "Some channels have not posted in a while",
+    "deleteTokenTitle": "Delete Token",
+    "deleteTokenDescription": "Are you sure you want to delete this token? This action cannot be undone."
   },
   "form": {
     "unsavedChanges": "Unsaved changes",
@@ -561,7 +595,8 @@
     "url": "Enter a valid URL",
     "number": "Enter a number",
     "positive": "Number must be positive",
-    "integer": "Enter an integer"
+    "integer": "Enter an integer",
+    "jsonInvalid": "Invalid JSON format"
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
@@ -637,7 +672,8 @@
     },
     "tabs": {
       "users": "Users",
-      "settings": "System Settings"
+      "settings": "System Settings",
+      "config": "Configuration"
     },
     "userManagement": "User Management",
     "searchUsers": "Search users...",
@@ -655,6 +691,19 @@
     "revokeAdminConfirm": "Are you sure you want to revoke admin rights from this user?",
     "adminGranted": "Admin rights granted",
     "adminRevoked": "Admin rights revoked",
-    "userUpdated": "User updated successfully"
+    "userUpdated": "User updated successfully",
+    "config": {
+      "saved": "Configuration saved",
+      "description": "Edit configuration (app-config.yaml)",
+      "placeholder": "Paste YAML here..."
+    },
+    "banned": "BANNED",
+    "unban": "Unban",
+    "ban": "Ban",
+    "unbanUser": "Unban user",
+    "banUser": "Ban user",
+    "banReason": "Ban reason",
+    "userBanned": "User banned",
+    "userUnbanned": "User unbanned"
   }
 }

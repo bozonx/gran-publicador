@@ -141,7 +141,7 @@ function handleClose() {
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            {{ t('publication.createModal.title', 'Create Publication') }}
+            {{ t('publication.create') }}
           </h2>
           <UButton
             color="neutral"
@@ -156,7 +156,7 @@ function handleClose() {
         <form class="space-y-6" @submit.prevent="handleCreate">
           <!-- Language -->
           <UFormField
-            :label="t('publication.createModal.selectLanguage', 'Language')"
+            :label="t('common.language')"
             required
           >
             <USelectMenu
@@ -188,8 +188,8 @@ function handleClose() {
 
           <!-- Channels -->
           <UFormField
-            :label="t('publication.createModal.selectChannels', 'Channels (Optional)')"
-            :help="t('publication.createModal.channelsHelp', 'Select channels to create posts immediately')"
+            :label="t('publication.selectChannels')"
+            :help="t('publication.channelsHelp')"
           >
             <div v-if="channelOptions.length > 0" class="grid grid-cols-1 gap-3 mt-2">
               <div
@@ -239,14 +239,14 @@ function handleClose() {
               :disabled="isLoading"
               @click="handleClose"
             >
-              {{ t('publication.createModal.cancelButton', 'Cancel') }}
+              {{ t('common.cancel') }}
             </UButton>
             <UButton
               type="submit"
               color="primary"
               :loading="isLoading"
             >
-              {{ t('publication.createModal.createButton', 'Create') }}
+              {{ t('common.create') }}
             </UButton>
           </div>
         </form>
