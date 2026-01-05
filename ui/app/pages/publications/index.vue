@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePublications } from '~/composables/usePublications'
 import type { PublicationWithRelations } from '~/composables/usePublications'
+import { useProjects } from '~/composables/useProjects'
 import { useSorting } from '~/composables/useSorting'
 import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
@@ -37,6 +38,7 @@ const limit = ref(DEFAULT_PAGE_SIZE)
 // Filter states
 const selectedStatus = ref<PublicationStatus | null>(null)
 const selectedChannelId = ref<string | null>(null)
+const selectedProjectId = ref<string | null>(null)
 const searchQuery = ref('')
 
 // Ownership filter
@@ -116,6 +118,9 @@ const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<Pub
   sortFn: sortPublicationsFn
 })
 
+// Projects
+const { projects, fetchProjects } = useProjects()
+
 // Fetch on mount
 onMounted(async () => {
     // Check if channelId or status is in query params
@@ -126,14 +131,17 @@ onMounted(async () => {
         selectedStatus.value = route.query.status as PublicationStatus
     }
     
-    await fetchUserPublications({
-        limit: 1000,
-        includeArchived: true
-    })
+    await Promise.all([
+        fetchUserPublications({
+            limit: 1000,
+            includeArchived: true
+        }),
+        fetchProjects(true) // включая архивные проекты
+    ])
 })
 
 // Watch filters (reset to page 1)
-watch([selectedStatus, selectedChannelId, ownershipFilter, showIssuesOnlyFilter, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
+watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, showIssuesOnlyFilter, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
     currentPage.value = 1
 })
 
@@ -219,6 +227,35 @@ const languageFilterOptions = computed(() => {
   return options
 })
 
+// Project filter options - all projects that have publications
+const projectFilterOptions = computed(() => {
+  // Get unique project IDs from publications
+  const projectIdsWithPublications = new Set<string>()
+  publications.value.forEach(p => {
+    if (p.projectId) {
+      projectIdsWithPublications.add(p.projectId)
+    }
+  })
+  
+  const options: Array<{ value: string | null; label: string }> = [
+    { value: null, label: t('common.all') }
+  ]
+  
+  // Filter and sort projects that have publications
+  const projectsWithPublications = projects.value
+    .filter(project => projectIdsWithPublications.has(project.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  
+  projectsWithPublications.forEach(project => {
+    options.push({
+      value: project.id,
+      label: project.name
+    })
+  })
+  
+  return options
+})
+
 // Count for badge - total filtered publications
 const filteredCount = computed(() => filteredPublications.value.length)
 
@@ -236,6 +273,11 @@ const filteredPublications = computed(() => {
         result = result.filter(p => {
             return p.posts?.some(post => post.channelId === selectedChannelId.value)
         })
+    }
+    
+    // Apply project filter
+    if (selectedProjectId.value) {
+        result = result.filter(p => p.projectId === selectedProjectId.value)
     }
     
     // Apply archive filter (checkbox)
@@ -442,6 +484,20 @@ const showPagination = computed(() => {
           :placeholder="t('publication.filter.language')"
           class="w-full sm:w-40"
         />
+
+        <!-- Project Filter (Select) -->
+        <USelectMenu
+          v-model="selectedProjectId"
+          :items="projectFilterOptions"
+          value-key="value"
+          label-key="label"
+          :placeholder="t('publication.filter.project')"
+          class="w-full sm:w-48"
+        >
+          <template #leading>
+            <UIcon v-if="selectedProjectId" name="i-heroicons-folder" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
 
         <!-- Status Filter (Select) -->
         <USelectMenu

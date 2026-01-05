@@ -203,7 +203,8 @@
         "own": "My",
         "guest": "Guest",
         "tooltip": "All Channels: show all available channels. My Projects: only channels from projects I own. Guest Projects: only channels from projects I'm invited to."
-      }
+      },
+      "project": "Project"
     },
     "sort": {
       "alphabetical": "Alphabetical",
@@ -414,6 +415,8 @@
       "showIssuesOnly": "Issues",
       "showArchived": "Archived",
       "socialMedia": "Social Media",
+      "language": "Language",
+      "project": "Project",
       "archiveStatus": {
         "tooltip": "OFF: only non-archived publications. ON: only archived publications."
       },

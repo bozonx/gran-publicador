@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useChannels } from '~/composables/useChannels'
 import type { ChannelWithProject } from '~/composables/useChannels'
+import { useProjects } from '~/composables/useProjects'
 import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
 import { useSorting } from '~/composables/useSorting'
 import ChannelListItem from '~/components/channels/ChannelListItem.vue'
@@ -27,6 +28,7 @@ type OwnershipFilter = 'all' | 'own' | 'guest'
 const ownershipFilter = ref<OwnershipFilter>('all')
 
 // Filter options
+const selectedProjectId = ref<string | null>(null)
 const showArchivedFilter = ref(false) // По умолчанию false - показывает неархивные
 const showInactiveOnlyFilter = ref(false) // По умолчанию false - показывает все (активные и неактивные)
 const showIssuesOnlyFilter = ref(false) // По умолчанию false - показывает все
@@ -75,10 +77,16 @@ const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<Cha
   sortFn: sortChannelsFn
 })
 
+// Projects
+const { projects, fetchProjects } = useProjects()
+
 // Fetch all user channels on mount (including archived)
 onMounted(async () => {
     setFilter({ includeArchived: true })
-    await fetchChannels()
+    await Promise.all([
+        fetchChannels(),
+        fetchProjects(true) // включая архивные проекты
+    ])
 })
 
 
@@ -94,6 +102,42 @@ const sortOrderLabel = computed(() =>
 // Count for badge - only non-archived channels
 const nonArchivedChannelsCount = computed(() => {
     return channels.value.filter(c => !c.archivedAt && !c.project?.archivedAt).length
+})
+
+// Project filter options - only projects present in channels
+const projectFilterOptions = computed(() => {
+  const projectIds = new Set<string>()
+  const projectMap = new Map<string, { id: string; name: string }>()
+  
+  channels.value.forEach(c => {
+    if (c.projectId && c.project) {
+      projectIds.add(c.projectId)
+      if (!projectMap.has(c.projectId)) {
+        projectMap.set(c.projectId, {
+          id: c.project.id,
+          name: c.project.name
+        })
+      }
+    }
+  })
+  
+  const options: Array<{ value: string | null; label: string }> = [
+    { value: null, label: t('common.all') }
+  ]
+  
+  // Sort projects alphabetically
+  const sortedProjects = Array.from(projectMap.values()).sort((a, b) => 
+    a.name.localeCompare(b.name)
+  )
+  
+  sortedProjects.forEach(project => {
+    options.push({
+      value: project.id,
+      label: project.name
+    })
+  })
+  
+  return options
 })
 
 const filteredChannels = computed(() => {
@@ -117,6 +161,11 @@ const filteredChannels = computed(() => {
         result = result.filter(c => c.project?.ownerId !== user.value?.id)
     }
     // 'all' - no filtering by ownership
+    
+    // Apply project filter
+    if (selectedProjectId.value) {
+        result = result.filter(c => c.projectId === selectedProjectId.value)
+    }
 
     // Apply inactive filter (checkbox)
     if (showInactiveOnlyFilter.value) {
@@ -271,6 +320,20 @@ const filteredChannels = computed(() => {
             <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help" />
           </UTooltip>
         </div>
+        
+        <!-- Project Filter (Select) -->
+        <USelectMenu
+          v-model="selectedProjectId"
+          :items="projectFilterOptions"
+          value-key="value"
+          label-key="label"
+          :placeholder="t('channel.filter.project')"
+          class="w-full sm:w-48"
+        >
+          <template #leading>
+            <UIcon v-if="selectedProjectId" name="i-heroicons-folder" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
       </div>
     </div>
 
