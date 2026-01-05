@@ -485,9 +485,9 @@ const showPagination = computed(() => {
     <!-- Pagination -->
     <div v-if="showPagination" class="mt-8 flex justify-center">
       <UPagination
-        v-model="currentPage"
+        v-model:page="currentPage"
         :total="filteredPublications.length"
-        :page-count="limit"
+        :items-per-page="limit"
         :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
         :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
       />

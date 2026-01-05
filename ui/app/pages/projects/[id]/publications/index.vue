@@ -355,9 +355,9 @@ function resetFilters() {
     <!-- Pagination -->
     <div v-if="totalCount > limit" class="mt-8 flex justify-center">
       <UPagination
-        v-model:model-value="currentPage"
+        v-model:page="currentPage"
         :total="totalCount"
-        :page-count="limit"
+        :items-per-page="limit"
         :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
         :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
       />
