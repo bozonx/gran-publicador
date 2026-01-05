@@ -37,6 +37,8 @@ function sortProjectsFn(list: ProjectWithRole[], sortBy: string, sortOrder: 'asc
       const weightA = roleWeights[a.role || 'viewer'] || 0
       const weightB = roleWeights[b.role || 'viewer'] || 0
       result = weightB - weightA
+      // Secondary sort by name alphabetically
+      if (result === 0) result = a.name.localeCompare(b.name)
     } else if (sortBy === 'publicationsCount') {
       result = (a.publicationsCount || 0) - (b.publicationsCount || 0)
     } else if (sortBy === 'lastPublication') {
