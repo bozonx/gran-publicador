@@ -107,8 +107,10 @@ async function toggleProject(projectId: string) {
 async function fetchProjectChannels(projectId: string) {
   areChannelsLoading.value[projectId] = true
   try {
-    const channels = await api.get<ChannelWithProject[]>('/channels', {
-      params: { projectId }
+    const { fetchChannels } = useChannels()
+    const channels = await fetchChannels({ 
+      projectId,
+      limit: 100 // Sidebar shows all active channels for a project usually
     })
     projectChannels.value[projectId] = channels
   } catch (e) {

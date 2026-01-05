@@ -116,7 +116,7 @@ export class ChannelsService {
       
       let isStale = false;
       if (lastPostAt) {
-          const staleDays = channelPreferences.staleChannelsDays || projectPreferences.staleChannelsDays || DEFAULT_STALE_CHANNELS_DAYS;
+          const staleDays = (channelPreferences.staleChannelsDays as number) || (projectPreferences.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
           const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
           isStale = diffDays > staleDays;
@@ -162,6 +162,7 @@ export class ChannelsService {
   ) {
     const MAX_LIMIT = 1000;
     const validatedLimit = Math.min(filters.limit || 50, MAX_LIMIT);
+    const offset = filters.offset || 0;
 
     // Build where clause
     const where: any = {
@@ -173,6 +174,8 @@ export class ChannelsService {
       },
       ...(filters.includeArchived ? {} : { archivedAt: null }),
     };
+
+    const andConditions: any[] = [];
 
     // Filter by project IDs
     if (filters.projectIds && filters.projectIds.length > 0) {
@@ -191,44 +194,110 @@ export class ChannelsService {
 
     // Text search
     if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search } },
-        { channelIdentifier: { contains: filters.search } },
-      ];
+      andConditions.push({
+        OR: [
+          { name: { contains: filters.search } },
+          { channelIdentifier: { contains: filters.search } },
+        ]
+      });
     }
 
-    const publishedPostFilter = { status: 'PUBLISHED' as const };
+    // Ownership filter
+    if (filters.ownership === 'own') {
+      where.project.ownerId = userId;
+    } else if (filters.ownership === 'guest') {
+      where.project.ownerId = { not: userId };
+    }
 
-    // Fetch channels with pagination
-    const channels = await this.prisma.channel.findMany({
-      where,
-      include: {
-        project: {
-          select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true }
-        },
-        posts: {
-          where: publishedPostFilter,
-          take: 1,
-          orderBy: { publishedAt: 'desc' },
-          select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
-        },
-      },
-      take: validatedLimit,
-      skip: filters.offset || 0,
-    });
+    // Issue type filter
+    if (filters.issueType === 'inactive') {
+      where.isActive = false;
+    } else if (filters.issueType === 'noCredentials') {
+      andConditions.push({
+        OR: [
+          { credentials: null },
+          { credentials: '{}' },
+          { credentials: '' }
+        ]
+      });
+    } else if (filters.issueType === 'failedPosts') {
+      where.posts = {
+        some: { status: 'FAILED' }
+      };
+    } else if (filters.issueType === 'stale') {
+      // Heuristic for stale: no published posts in the last 7 days by default
+      const staleDays = DEFAULT_STALE_CHANNELS_DAYS;
+      const staleDate = new Date();
+      staleDate.setDate(staleDate.getDate() - staleDays);
+      
+      where.posts = {
+        none: {
+          status: 'PUBLISHED',
+          publishedAt: { gt: staleDate }
+        }
+      };
+    }
 
-    // Get total count
-    const total = await this.prisma.channel.count({ where });
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    // Build orderBy
+    const orderBy: any[] = [];
+    const sortField = filters.sortBy || 'alphabetical';
+    const sortOrder = filters.sortOrder || 'asc';
+
+    if (sortField === 'alphabetical') {
+      orderBy.push({ name: sortOrder });
+    } else if (sortField === 'socialMedia') {
+      orderBy.push({ socialMedia: sortOrder });
+      orderBy.push({ name: 'asc' });
+    } else if (sortField === 'language') {
+      orderBy.push({ language: sortOrder });
+      orderBy.push({ name: 'asc' });
+    } else if (sortField === 'postsCount') {
+       orderBy.push({
+         posts: {
+           _count: sortOrder
+         }
+       });
+    }
+
+    const [channels, total] = await Promise.all([
+      this.prisma.channel.findMany({
+        where,
+        include: {
+          project: {
+            select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true }
+          },
+          posts: {
+            where: { status: 'PUBLISHED' },
+            take: 1,
+            orderBy: { publishedAt: 'desc' },
+            select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
+          },
+          _count: {
+            select: {
+              posts: { where: { status: 'PUBLISHED' } }
+            }
+          }
+        },
+        orderBy,
+        take: validatedLimit,
+        skip: offset,
+      }),
+      this.prisma.channel.count({ where }),
+    ]);
 
     const channelIds = channels.map(c => c.id);
     
-    // Get post counts
-    const postCounts = channelIds.length > 0 
+    // Get failed post counts separately
+    const failedPostCounts = channelIds.length > 0 
       ? await this.prisma.post.groupBy({
-          by: ['channelId', 'status'],
+          by: ['channelId'],
           where: {
             channelId: { in: channelIds },
-            status: { in: ['PUBLISHED', 'FAILED'] }
+            status: 'FAILED'
           },
           _count: {
             id: true
@@ -236,18 +305,15 @@ export class ChannelsService {
         })
       : [];
 
-    const countsMap = new Map<string, { published: number, failed: number }>();
-    postCounts.forEach(pc => {
-      const current = countsMap.get(pc.channelId) || { published: 0, failed: 0 };
-      if (pc.status === 'PUBLISHED') current.published = pc._count.id;
-      if (pc.status === 'FAILED') current.failed = pc._count.id;
-      countsMap.set(pc.channelId, current);
+    const failedCountsMap = new Map<string, number>();
+    failedPostCounts.forEach(pc => {
+      failedCountsMap.set(pc.channelId, pc._count.id);
     });
 
     // Map channels to response format with computed fields
-    let mappedChannels = channels.map(channel => {
-      const { posts, credentials, ...channelData } = channel;
-      const counts = countsMap.get(channel.id) || { published: 0, failed: 0 };
+    const items = channels.map(channel => {
+      const { posts, credentials, _count, ...channelData } = channel;
+      const failedCount = failedCountsMap.get(channel.id) || 0;
 
       const channelPreferences = channel.preferences ? JSON.parse(channel.preferences) : {};
       const projectPreferences = channel.project.preferences ? JSON.parse(channel.project.preferences) : {};
@@ -255,7 +321,7 @@ export class ChannelsService {
       
       let isStale = false;
       if (lastPostAt) {
-          const staleDays = channelPreferences.staleChannelsDays || projectPreferences.staleChannelsDays || DEFAULT_STALE_CHANNELS_DAYS;
+          const staleDays = (channelPreferences.staleChannelsDays as number) || (projectPreferences.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
           const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
           isStale = diffDays > staleDays;
@@ -264,8 +330,8 @@ export class ChannelsService {
       return {
         ...channelData,
         credentials: credentials ? JSON.parse(credentials) : {},
-        postsCount: counts.published,
-        failedPostsCount: counts.failed,
+        postsCount: _count.posts,
+        failedPostsCount: failedCount,
         lastPostAt,
         lastPostId: posts[0]?.id || null,
         lastPublicationId: posts[0]?.publicationId || null,
@@ -274,76 +340,12 @@ export class ChannelsService {
       };
     });
 
-    // Apply client-side filters (for computed fields)
-    if (filters.ownership && filters.ownership !== 'all') {
-      if (filters.ownership === 'own') {
-        mappedChannels = mappedChannels.filter(c => c.project.ownerId === userId);
-      } else if (filters.ownership === 'guest') {
-        mappedChannels = mappedChannels.filter(c => c.project.ownerId !== userId);
-      }
-    }
-
-    if (filters.issueType && filters.issueType !== 'all') {
-      mappedChannels = mappedChannels.filter(c => {
-        if (filters.issueType === 'noCredentials') {
-          return !c.credentials || Object.keys(c.credentials).length === 0;
-        }
-        if (filters.issueType === 'failedPosts') {
-          return c.failedPostsCount && c.failedPostsCount > 0;
-        }
-        if (filters.issueType === 'stale') {
-          return c.isStale;
-        }
-        if (filters.issueType === 'inactive') {
-          return !c.isActive;
-        }
-        return true;
-      });
-    }
-
-    // Apply sorting
-    const sortBy = filters.sortBy || 'alphabetical';
-    const sortOrder = filters.sortOrder || 'asc';
-
-    mappedChannels.sort((a, b) => {
-      let result = 0;
-      
-      if (sortBy === 'alphabetical') {
-        result = a.name.localeCompare(b.name);
-      } else if (sortBy === 'socialMedia') {
-        const SOCIAL_MEDIA_WEIGHTS: Record<string, number> = {
-          TELEGRAM: 1,
-          VK: 2,
-          OK: 3,
-          FACEBOOK: 4,
-          INSTAGRAM: 5,
-          TIKTOK: 6,
-          YOUTUBE: 7,
-          TWITTER: 8,
-          LINKEDIN: 9,
-        };
-        const weightA = SOCIAL_MEDIA_WEIGHTS[a.socialMedia] || 99;
-        const weightB = SOCIAL_MEDIA_WEIGHTS[b.socialMedia] || 99;
-        result = weightA - weightB;
-        if (result === 0) result = a.name.localeCompare(b.name);
-      } else if (sortBy === 'language') {
-        const langA = a.language || 'zzz';
-        const langB = b.language || 'zzz';
-        result = langA.localeCompare(langB);
-        if (result === 0) result = a.name.localeCompare(b.name);
-      } else if (sortBy === 'postsCount') {
-        result = (b.postsCount || 0) - (a.postsCount || 0);
-        if (result === 0) result = a.name.localeCompare(b.name);
-      }
-
-      return sortOrder === 'asc' ? result : -result;
-    });
-
     return {
-      items: mappedChannels,
+      items,
       total,
     };
   }
+
 
 
   /**
@@ -412,7 +414,7 @@ export class ChannelsService {
       
       let isStale = false;
       if (lastPostAt) {
-          const staleDays = channelPreferences.staleChannelsDays || projectPreferences.staleChannelsDays || DEFAULT_STALE_CHANNELS_DAYS;
+          const staleDays = (channelPreferences.staleChannelsDays as number) || (projectPreferences.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
           const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
           isStale = diffDays > staleDays;
@@ -497,7 +499,7 @@ export class ChannelsService {
       
       let isStale = false;
       if (lastPostAt) {
-          const staleDays = channelPreferences.staleChannelsDays || projectPreferences.staleChannelsDays || DEFAULT_STALE_CHANNELS_DAYS;
+          const staleDays = (channelPreferences.staleChannelsDays as number) || (projectPreferences.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
           const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
           isStale = diffDays > staleDays;
@@ -582,7 +584,7 @@ export class ChannelsService {
 
     let isStale = false;
     if (lastPostAt) {
-        const staleDays = channelPreferences.staleChannelsDays || projectPreferences.staleChannelsDays || DEFAULT_STALE_CHANNELS_DAYS;
+        const staleDays = (channelPreferences.staleChannelsDays as number) || (projectPreferences.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
         const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
         isStale = diffDays > staleDays;

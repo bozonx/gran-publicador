@@ -128,7 +128,7 @@ export class ProjectsService {
       by: ['projectId'],
       where: {
         projectId: { in: projects.map(p => p.id) },
-        status: { in: ['FAILED', 'PARTIAL' as any] },
+        status: { in: ['FAILED', 'PARTIAL'] },
         archivedAt: null,
       },
       _count: { id: true },
@@ -143,8 +143,7 @@ export class ProjectsService {
 
       const lastPublicationAt = project.publications[0]?.createdAt || null;
       const lastPublicationId = project.publications[0]?.id || null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const failedPostsCount = (project.channels as any[] || []).reduce((acc, ch) => acc + (ch._count?.posts || 0), 0);
+      const failedPostsCount = project.channels.reduce((acc, ch) => acc + (ch._count.posts || 0), 0);
       const problemPublicationsCount = problematicCountMap[project.id] || 0;
       const languages = [...new Set((project.channels || []).map(c => c.language))].sort();
 
@@ -153,8 +152,7 @@ export class ProjectsService {
 
       const channels = (project.channels || []).map(c => {
         const channelPreferences = c.preferences ? JSON.parse(c.preferences) : {};
-        // @ts-ignore
-        const lastPostAt = c.posts[0]?.publishedAt || null; 
+        const lastPostAt = (c.posts as any[])[0]?.publishedAt || null; 
         
         let isStale = false;
         if (lastPostAt) {
@@ -263,8 +261,7 @@ export class ProjectsService {
 
       const lastPublicationAt = project.publications[0]?.createdAt || null;
       const lastPublicationId = project.publications[0]?.id || null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const failedPostsCount = (project.channels as any[] || []).reduce((acc, ch) => acc + (ch._count?.posts || 0), 0);
+      const failedPostsCount = project.channels.reduce((acc, ch) => acc + (ch._count.posts || 0), 0);
       const languages = [...new Set((project.channels || []).map(c => c.language))].sort();
       
       const projectPreferences = project.preferences ? JSON.parse(project.preferences) : {};
@@ -272,8 +269,7 @@ export class ProjectsService {
 
       const channels = (project.channels || []).map(c => {
          const channelPreferences = c.preferences ? JSON.parse(c.preferences) : {};
-         // @ts-ignore
-         const lastPostAt = c.posts[0]?.publishedAt || null;
+         const lastPostAt = (c.posts as any[])[0]?.publishedAt || null;
          
          let isStale = false;
          if (lastPostAt) {

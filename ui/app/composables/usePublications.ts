@@ -80,7 +80,7 @@ export function usePublications() {
     const currentPublication = ref<PublicationWithRelations | null>(null)
     const isLoading = ref(false)
     const error = ref<string | null>(null)
-    const totalCount = ref(0) // Note: Backend findAll doesn't seem to return total count yet, just the list
+    const totalCount = ref(0)
 
     const statusOptions = computed(() => [
         { value: 'DRAFT', label: t('publicationStatus.draft') },
