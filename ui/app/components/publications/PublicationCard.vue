@@ -47,14 +47,16 @@ function handleDelete(e: Event) {
         </UBadge>
       </div>
       
-      <UButton
-        color="neutral"
-        variant="ghost"
-        icon="i-heroicons-trash"
-        size="xs"
-        class="opacity-0 group-hover:opacity-100 transition-opacity"
-        @click="handleDelete"
-      />
+      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <slot name="actions" />
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-trash"
+          size="xs"
+          @click="handleDelete"
+        />
+      </div>
     </div>
 
     <!-- Content preview -->

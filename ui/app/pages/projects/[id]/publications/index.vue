@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PublicationStatus } from '~/types/posts'
+import { useViewMode } from '~/composables/useViewMode'
 
 definePageMeta({
   middleware: 'auth',
@@ -24,6 +25,9 @@ const {
   getStatusDisplayName,
   getStatusColor,
 } = usePublications()
+
+// View mode
+const { viewMode, isListView, isCardsView } = useViewMode('project-publications-view', 'list')
 
 // Filter state
 const selectedStatus = ref<PublicationStatus | null>(null)
@@ -171,9 +175,12 @@ function resetFilters() {
            {{ totalCount }} {{ t('publication.titlePlural', 'Publications').toLowerCase() }}
         </p>
       </div>
-      <UButton icon="i-heroicons-plus" color="primary" @click="openCreateModal">
-        {{ t('publication.create') }}
-      </UButton>
+      <div class="flex items-center gap-2">
+        <CommonViewToggle v-model="viewMode" />
+        <UButton icon="i-heroicons-plus" color="primary" @click="openCreateModal">
+          {{ t('publication.create') }}
+        </UButton>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -259,97 +266,70 @@ function resetFilters() {
       </UButton>
     </div>
 
-    <!-- List -->
-    <div v-else class="space-y-4">
-      <div
+    <!-- List View -->
+    <div v-if="isListView" class="space-y-4">
+      <PublicationsPublicationListItem
         v-for="publication in publications"
         :key="publication.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+        :publication="publication"
         :class="{ 'opacity-75 grayscale-[0.5]': publication.archivedAt }"
         @click="goToPublication(publication.id)"
+        @delete="confirmDelete"
       >
-        <div class="p-4 sm:p-6">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-               <!-- Title and status -->
-              <div class="flex items-center gap-3 mb-2">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white truncate">
-                  {{ publication.title || t('post.untitled', 'Untitled') }}
-                </h3>
-                <UBadge :color="getStatusColor(publication.status)" size="xs" variant="subtle">
-                  {{ getStatusDisplayName(publication.status) }}
-                </UBadge>
-              </div>
-              
-              <!-- Content preview -->
-              <p class="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mb-3">
-                {{ truncateContent(publication.content) }}
-              </p>
-              
-               <!-- Meta info -->
-              <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                <!-- Author -->
-                <span v-if="publication.creator" class="flex items-center gap-1">
-                  <UIcon name="i-heroicons-user" class="w-3.5 h-3.5" />
-                  {{ publication.creator.fullName || publication.creator.telegramUsername || 'User' }}
-                </span>
+        <template #actions>
+           <UButton
+            v-if="!publication.archivedAt"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-archive-box"
+            size="xs"
+            :title="t('common.archive', 'Archive')"
+            @click.stop="toggleArchive(publication.id, false)"
+          />
+          <UButton
+            v-else
+            color="primary"
+            variant="ghost"
+            icon="i-heroicons-arrow-uturn-left"
+            size="xs"
+            :title="t('common.restore', 'Restore')"
+            @click.stop="toggleArchive(publication.id, true)"
+          />
+        </template>
+      </PublicationsPublicationListItem>
+    </div>
 
-                <!-- Created date -->
-                <span class="flex items-center gap-1">
-                  <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
-                  {{ formatDate(publication.createdAt) }}
-                </span>
-                
-                <!-- Posts count (if available) -->
-                <span v-if="publication._count?.posts" class="flex items-center gap-1">
-                    <UIcon name="i-heroicons-document-duplicate" class="w-3.5 h-3.5" />
-                    {{ publication._count.posts }} {{ t('post.titlePlural').toLowerCase() }}
-                </span>
-                
-                 <!-- Tags -->
-                <div v-if="publication.tags" class="flex items-center gap-1">
-                  <UIcon name="i-heroicons-tag" class="w-3.5 h-3.5" />
-                  <span>{{ publication.tags }}</span>
-                </div>
-              </div>
-            </div>
-            
-             <!-- Actions -->
-            <div class="flex items-center gap-2" @click.stop>
-               <!-- Archive / Restore -->
-              <UButton
-                v-if="!publication.archivedAt"
-                color="neutral"
-                variant="ghost"
-                icon="i-heroicons-archive-box"
-                size="sm"
-                :title="t('common.archive', 'Archive')"
-                @click="toggleArchive(publication.id, false)"
-              />
-              <UButton
-                v-else
-                color="primary"
-                variant="ghost"
-                icon="i-heroicons-arrow-uturn-left"
-                size="sm"
-                :title="t('common.restore', 'Restore')"
-                @click="toggleArchive(publication.id, true)"
-              />
-
-              <!-- Hard Delete (only if archived) -->
-              <UButton
-                v-if="publication.archivedAt"
-                color="error"
-                variant="ghost"
-                icon="i-heroicons-trash"
-                size="sm"
-                :title="t('common.deletePermanently', 'Delete Permanently')"
-                @click="confirmDelete(publication)"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Cards View -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <PublicationCard
+        v-for="publication in publications"
+        :key="publication.id"
+        :publication="publication"
+        :class="{ 'opacity-75 grayscale-[0.5]': publication.archivedAt }"
+        @click="goToPublication(publication.id)"
+        @delete="confirmDelete"
+      >
+        <template #actions>
+           <UButton
+            v-if="!publication.archivedAt"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-archive-box"
+            size="xs"
+            :title="t('common.archive', 'Archive')"
+            @click.stop="toggleArchive(publication.id, false)"
+          />
+          <UButton
+            v-else
+            color="primary"
+            variant="ghost"
+            icon="i-heroicons-arrow-uturn-left"
+            size="xs"
+            :title="t('common.restore', 'Restore')"
+            @click.stop="toggleArchive(publication.id, true)"
+          />
+        </template>
+      </PublicationCard>
     </div>
 
     <!-- Pagination -->
