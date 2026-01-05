@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { ProjectWithRole } from '~/stores/projects'
+import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 
 interface Props {
   /** Project data for editing, null for creating new */
@@ -142,12 +143,12 @@ function handleReset() {
 </script>
 
 <template>
-  <div :class="[flat ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow p-6']">
-    <div v-if="!hideHeader" class="mb-6">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+  <div :class="[flat ? '' : FORM_STYLES.wrapper]">
+    <div v-if="!hideHeader" :class="FORM_SPACING.headerMargin">
+      <h2 :class="FORM_STYLES.title">
         {{ isEditMode ? t('project.editProject') : t('project.createProject') }}
       </h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p :class="FORM_STYLES.subtitle">
         {{
           isEditMode
             ? t('project.editDescription', 'Update your project information below')
@@ -156,8 +157,8 @@ function handleReset() {
       </p>
     </div>
 
-    <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
-      <div v-if="visibleSections.includes('general')" class="space-y-6">
+    <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit">
+      <div v-if="visibleSections.includes('general')" :class="FORM_SPACING.fields">
         <!-- Created date (read-only, edit mode only) -->
         <CommonFormReadOnlyField
           v-if="isEditMode && project?.createdAt"
@@ -176,8 +177,8 @@ function handleReset() {
           <UInput
             v-model="state.name"
             :placeholder="t('project.namePlaceholder', 'Enter project name')"
-            class="w-full"
-            size="lg"
+            :class="FORM_STYLES.fieldFullWidth"
+            :size="FORM_STYLES.inputSizeLarge"
           />
         </UFormField>
 
@@ -190,16 +191,16 @@ function handleReset() {
           <UTextarea
             v-model="state.description"
             :placeholder="t('project.descriptionPlaceholder', 'Enter project description')"
-            class="w-full"
-            :rows="3"
+            :class="FORM_STYLES.fieldFullWidth"
+            :rows="FORM_STYLES.textareaRows"
           />
         </UFormField>
       </div>
 
       <!-- Preferences -->
-      <div v-if="visibleSections.includes('preferences')" class="space-y-4">
-        <div v-if="!hideHeader && visibleSections.includes('general')" class="border-t border-gray-200 dark:border-gray-700 pt-6">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+      <div v-if="visibleSections.includes('preferences')" :class="FORM_SPACING.fields">
+        <div v-if="!hideHeader && visibleSections.includes('general')" :class="FORM_SPACING.sectionDivider">
+          <h3 :class="FORM_STYLES.sectionTitle">
             {{ t('settings.preferences', 'Preferences') }}
           </h3>
         </div>
@@ -214,7 +215,7 @@ function handleReset() {
             type="number"
             min="1"
             :placeholder="'3'"
-            class="w-full"
+            :class="FORM_STYLES.fieldFullWidth"
           />
         </UFormField>
       </div>

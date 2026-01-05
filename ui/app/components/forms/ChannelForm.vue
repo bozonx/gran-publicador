@@ -7,6 +7,7 @@ import type {
   ChannelUpdateInput,
   SocialMedia,
 } from '~/composables/useChannels'
+import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 
 interface Props {
   /** Project ID for creating new channel */
@@ -309,18 +310,18 @@ const projectOptions = computed(() =>
 </script>
 
 <template>
-  <div :class="[hideHeader ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow p-6']">
-    <div v-if="!hideHeader" class="mb-6">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+  <div :class="[hideHeader ? '' : FORM_STYLES.wrapper]">
+    <div v-if="!hideHeader" :class="FORM_SPACING.headerMargin">
+      <h2 :class="FORM_STYLES.title">
         {{ isEditMode ? t('channel.editChannel') : t('channel.createChannel') }}
       </h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p :class="FORM_STYLES.subtitle">
         {{ isEditMode ? t('channel.editDescription') : t('channel.createDescription') }}
       </p>
     </div>
 
-    <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
-      <div v-if="visibleSections.includes('general')" class="space-y-6">
+    <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit">
+      <div v-if="visibleSections.includes('general')" :class="FORM_SPACING.fields">
         <!-- Created date (read-only, edit mode only) -->
         <CommonFormReadOnlyField
           v-if="isEditMode && channel?.createdAt"
@@ -439,8 +440,8 @@ const projectOptions = computed(() =>
           <UInput
             v-model="state.name"
             :placeholder="t('channel.namePlaceholder')"
-            class="w-full"
-            size="lg"
+            :class="FORM_STYLES.fieldFullWidth"
+            :size="FORM_STYLES.inputSizeLarge"
           />
         </UFormField>
 
@@ -449,8 +450,8 @@ const projectOptions = computed(() =>
           <UTextarea
             v-model="state.description"
             :placeholder="t('channel.descriptionPlaceholder', 'Enter channel description...')"
-            class="w-full"
-            :rows="3"
+            :class="FORM_STYLES.fieldFullWidth"
+            :rows="FORM_STYLES.textareaRows"
           />
         </UFormField>
 
@@ -464,20 +465,20 @@ const projectOptions = computed(() =>
           <UInput
             v-model="state.channelIdentifier"
             :placeholder="getIdentifierPlaceholder(currentSocialMedia)"
-            class="w-full"
+            :class="FORM_STYLES.fieldFullWidth"
           />
         </UFormField>
       </div>
 
       <!-- Telegram credentials -->
-      <div v-if="visibleSections.includes('credentials') && currentSocialMedia === 'TELEGRAM'" class="space-y-4">
-        <div v-if="!hideHeader && visibleSections.includes('general')" class="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+      <div v-if="visibleSections.includes('credentials') && currentSocialMedia === 'TELEGRAM'" :class="FORM_SPACING.fields">
+        <div v-if="!hideHeader && visibleSections.includes('general')" :class="FORM_SPACING.sectionDivider">
+          <h3 :class="FORM_STYLES.sectionTitle">
             {{ t('channel.telegramCredentials', 'Telegram Credentials') }}
           </h3>
         </div>
           
-        <div class="space-y-4">
+        <div :class="FORM_SPACING.nested">
           <UFormField
             name="credentials.telegramChannelId"
             :label="t('channel.telegramChannelId', 'Channel ID')"
@@ -486,7 +487,7 @@ const projectOptions = computed(() =>
             <UInput
               v-model="state.credentials.telegramChannelId"
               :placeholder="t('channel.telegramChannelIdPlaceholder', '-1001234567890')"
-              class="w-full"
+              :class="FORM_STYLES.fieldFullWidth"
             />
           </UFormField>
 
@@ -499,21 +500,21 @@ const projectOptions = computed(() =>
               v-model="state.credentials.telegramBotToken"
               type="password"
               :placeholder="t('channel.telegramBotTokenPlaceholder', '110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw')"
-              class="w-full"
+              :class="FORM_STYLES.fieldFullWidth"
             />
           </UFormField>
         </div>
       </div>
 
       <!-- VK credentials -->
-      <div v-if="visibleSections.includes('credentials') && currentSocialMedia === 'VK'" class="space-y-4">
-        <div v-if="!hideHeader && visibleSections.includes('general')" class="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+      <div v-if="visibleSections.includes('credentials') && currentSocialMedia === 'VK'" :class="FORM_SPACING.fields">
+        <div v-if="!hideHeader && visibleSections.includes('general')" :class="FORM_SPACING.sectionDivider">
+          <h3 :class="FORM_STYLES.sectionTitle">
             {{ t('channel.vkCredentials', 'VK Credentials') }}
           </h3>
         </div>
           
-        <div class="space-y-4">
+        <div :class="FORM_SPACING.nested">
           <UFormField
             name="credentials.vkAccessToken"
             :label="t('channel.vkAccessToken', 'Access Token')"
@@ -523,16 +524,16 @@ const projectOptions = computed(() =>
               v-model="state.credentials.vkAccessToken"
               type="password"
               :placeholder="t('channel.vkAccessTokenPlaceholder', 'vk1.a.abc...')"
-              class="w-full"
+              :class="FORM_STYLES.fieldFullWidth"
             />
           </UFormField>
         </div>
       </div>
 
       <!-- Preferences -->
-      <div v-if="visibleSections.includes('preferences')" class="space-y-4">
-        <div v-if="!hideHeader && (visibleSections.includes('general') || visibleSections.includes('credentials'))" class="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+      <div v-if="visibleSections.includes('preferences')" :class="FORM_SPACING.fields">
+        <div v-if="!hideHeader && (visibleSections.includes('general') || visibleSections.includes('credentials'))" :class="FORM_SPACING.sectionDivider">
+          <h3 :class="FORM_STYLES.sectionTitle">
             {{ t('settings.preferences', 'Preferences') }}
           </h3>
         </div>
@@ -547,7 +548,7 @@ const projectOptions = computed(() =>
             type="number"
             min="1"
             :placeholder="t('settings.defaultFromProject', 'Default from Project')"
-            class="w-full"
+            :class="FORM_STYLES.fieldFullWidth"
           />
         </UFormField>
       </div>

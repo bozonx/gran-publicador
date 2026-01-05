@@ -6,6 +6,7 @@ import type { ChannelWithProject } from '~/composables/useChannels'
 import { usePublications } from '~/composables/usePublications'
 import { usePosts } from '~/composables/usePosts'
 import SocialIcon from '~/components/common/SocialIcon.vue'
+import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 
 import type { PostType, PublicationStatus } from '~/types/posts'
 
@@ -296,10 +297,6 @@ function handleCancel() {
   emit('cancel')
 }
 
-function toggleAdvancedFields() {
-  showAdvancedFields.value = !showAdvancedFields.value
-}
-
 function handleReset() {
   resetToOriginal()
 }
@@ -315,12 +312,12 @@ function toggleChannel(channelId: string) {
 </script>
 
 <template>
-    <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
+    <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit">
       
       <!-- Channels (Multi-select) -->
       <div v-if="!isEditMode">
         <UFormField name="channelIds" :label="t('channel.titlePlural', 'Channels')" :help="t('publication.channelsHelp', 'Select channels to create posts immediately')">
-            <div v-if="channelOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            <div v-if="channelOptions.length > 0" :class="[GRID_LAYOUTS.channelGrid, 'mt-2']">
                 <div 
                     v-for="channel in channelOptions" 
                     :key="channel.value" 
@@ -358,7 +355,7 @@ function toggleChannel(channelId: string) {
         </UFormField>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div :class="GRID_LAYOUTS.twoColumn">
          <!-- Status (Only when creating) -->
          <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
             <USelectMenu
@@ -406,8 +403,8 @@ function toggleChannel(channelId: string) {
         <UInput
           v-model="state.title"
           :placeholder="t('post.titlePlaceholder', 'Enter title')"
-          size="lg"
-          class="w-full"
+          :size="FORM_STYLES.inputSizeLarge"
+          :class="FORM_STYLES.fieldFullWidth"
           type="text"
           @keydown.enter.prevent
         />
@@ -427,6 +424,7 @@ function toggleChannel(channelId: string) {
         <UInput
             v-model="state.tags"
             :placeholder="t('post.tagsPlaceholder', 'tag1, tag2, tag3')"
+            :class="FORM_STYLES.fieldFullWidth"
             icon="i-heroicons-hashtag"
             @keydown.enter.prevent
         />
@@ -441,72 +439,38 @@ function toggleChannel(channelId: string) {
             label-key="label"
             searchable
             :placeholder="state.translationGroupId ? t('publication.linked', 'Linked to a group') : t('publication.selectToLink', 'Select to link...')"
-            class="w-full"
+            :class="FORM_STYLES.fieldFullWidth"
             @update:model-value="handleTranslationLink"
         >
         </USelectMenu>
       </UFormField>
 
-       <!-- Advanced fields toggle -->
-      <div class="flex justify-center">
-        <UButton
-          variant="outline"
-          color="neutral"
-          size="sm"
-          :icon="showAdvancedFields ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-          class="rounded-full"
-          @click="toggleAdvancedFields"
-        >
-          {{
-            showAdvancedFields
-              ? t('post.hideAdvanced', 'Hide advanced options')
-              : t('post.showAdvanced', 'Show advanced options')
-          }}
-        </UButton>
-      </div>
-      
        <!-- Advanced fields -->
-      <Transition
-        enter-active-class="transition duration-100 ease-out"
-        enter-from-class="transform scale-95 opacity-0"
-        enter-to-class="transform scale-100 opacity-100"
-        leave-active-class="transition duration-75 ease-in"
-        leave-from-class="transform scale-100 opacity-100"
-        leave-to-class="transform scale-95 opacity-0"
-      >
-        <div
-          v-if="showAdvancedFields"
-          class="space-y-6 pt-6 mt-2 border-t border-gray-100 dark:border-gray-700"
-        >
+      <UiFormAdvancedSection v-model="showAdvancedFields">
+        <!-- Description -->
+        <UFormField name="description" label="Description" help="Short description">
+           <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" />
+        </UFormField>
 
-          <!-- Description -->
-          <UFormField name="description" label="Description" help="Short description">
-             <UTextarea v-model="state.description" :rows="3" />
-          </UFormField>
+        <!-- Author Comment -->
+        <UFormField name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
+           <UTextarea 
+             v-model="state.authorComment" 
+             :rows="FORM_STYLES.textareaRows" 
+             :placeholder="t('post.authorCommentPlaceholder')"
+           />
+        </UFormField>
 
-          <!-- Author Comment -->
-          <UFormField name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
-             <UTextarea 
-               v-model="state.authorComment" 
-               :rows="3" 
-               :placeholder="t('post.authorCommentPlaceholder')"
-             />
-          </UFormField>
+        <!-- Post Date -->
+        <UFormField name="postDate" label="Post Date" help="Date of the article (optional)">
+          <UInput v-model="state.postDate" type="datetime-local" :class="FORM_STYLES.fieldFullWidth" icon="i-heroicons-calendar" />
+        </UFormField>
 
-          <!-- Post Date -->
-          <UFormField name="postDate" label="Post Date" help="Date of the article (optional)">
-            <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
-          </UFormField>
-
-          <!-- Meta -->
-          <UFormField name="meta" label="Meta (JSON)" help="Additional metadata in JSON format">
-             <UTextarea v-model="state.meta" :rows="4" font-family="mono" />
-          </UFormField>
-
-
-          
-        </div>
-      </Transition>
+        <!-- Meta -->
+        <UFormField name="meta" label="Meta (JSON)" help="Additional metadata in JSON format">
+           <UTextarea v-model="state.meta" :rows="4" font-family="mono" />
+        </UFormField>
+      </UiFormAdvancedSection>
 
       <UiFormActions
         ref="formActionsRef"
