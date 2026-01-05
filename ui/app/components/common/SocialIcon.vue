@@ -7,10 +7,20 @@ const props = defineProps<{
   size?: string
   showBackground?: boolean
   isStale?: boolean
+  problemLevel?: 'critical' | 'warning' | null
 }>()
 
 const iconName = computed(() => getSocialMediaIcon(props.platform))
 const color = computed(() => getSocialMediaColor(props.platform))
+
+// Determine indicator color and visibility
+const showIndicator = computed(() => props.problemLevel || props.isStale)
+const indicatorColor = computed(() => {
+  if (props.problemLevel === 'critical') return 'bg-red-500'
+  if (props.problemLevel === 'warning') return 'bg-orange-500'
+  if (props.isStale) return 'bg-orange-500'
+  return 'bg-orange-500'
+})
 </script>
 
 <template>
@@ -34,11 +44,14 @@ const color = computed(() => getSocialMediaColor(props.platform))
       :style="{ color: color }"
     ></UIcon>
 
-    <!-- Stale Indicator Dot -->
+    <!-- Problem/Stale Indicator Dot -->
     <div 
-      v-if="isStale" 
-      class="absolute -top-0.5 -right-0.5 bg-orange-500 border-2 border-white dark:border-gray-950 rounded-full"
-      :class="[size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5']"
+      v-if="showIndicator" 
+      class="absolute -top-0.5 -right-0.5 border-2 border-white dark:border-gray-950 rounded-full"
+      :class="[
+        indicatorColor,
+        size === 'sm' ? 'w-2.5 h-2.5' : 'w-3 h-3'
+      ]"
     ></div>
   </div>
 </template>

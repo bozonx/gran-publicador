@@ -20,6 +20,9 @@ const hasCredentials = computed(() => {
   if (!props.channel.credentials) return false
   return Object.keys(props.channel.credentials).length > 0
 })
+
+const { getChannelProblemLevel } = useChannels()
+const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel))
 </script>
 
 <template>
@@ -35,6 +38,7 @@ const hasCredentials = computed(() => {
           <SocialIcon 
             :platform="channel.socialMedia" 
             :is-stale="channel.isStale"
+            :problem-level="channelProblemLevel"
             show-background 
           />
           

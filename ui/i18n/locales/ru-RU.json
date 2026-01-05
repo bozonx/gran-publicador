@@ -468,6 +468,31 @@
     "failed": "Ошибка",
     "expired": "Просрочено"
   },
+  "problems": {
+    "critical": "Критические проблемы",
+    "warning": "Требуется внимание",
+    "info": "Информация",
+    "publication": {
+      "allPostsFailed": "Все посты не опубликованы",
+      "somePostsFailed": "{count} постов не опубликовано",
+      "publicationExpired": "Пропущено окно публикации",
+      "channelProblems": "Проблемы с каналами",
+      "failedPosts": "{count} постов не опубликовано"
+    },
+    "channel": {
+      "noCredentials": "Отсутствуют учетные данные",
+      "failedPosts": "{count} постов провалено",
+      "staleChannel": "Канал давно не использовался",
+      "inactiveChannel": "Канал отключен",
+      "hasProblems": "Есть проблемы"
+    },
+    "project": {
+      "criticalProblems": "{count} критических проблем",
+      "warningProblems": "{count} важных проблем",
+      "problemChannels": "{count} каналов с проблемами",
+      "problemPublications": "{count} публикаций с проблемами"
+    }
+  },
   "settings": {
     "title": "Настройки",
     "language": "Язык",

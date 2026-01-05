@@ -12,7 +12,10 @@ const emit = defineEmits<{
 }>()
 
 const { t, d } = useI18n()
-const { getStatusColor, getStatusDisplayName } = usePublications()
+const { getStatusColor, getStatusDisplayName, getPublicationProblems, getPostProblemLevel } = usePublications()
+
+// Compute problems for this publication
+const problems = computed(() => getPublicationProblems(props.publication))
 
 function truncateContent(content: string | null | undefined, maxLength = 150): string {
   if (!content) return ''
@@ -46,6 +49,19 @@ function handleDelete(e: Event) {
           <UBadge :color="getStatusColor(publication.status)" size="xs" variant="subtle" class="capitalize">
             {{ getStatusDisplayName(publication.status) }}
           </UBadge>
+          
+          <!-- Problem indicators -->
+          <UTooltip 
+            v-for="problem in problems" 
+            :key="problem.key"
+            :text="t(`problems.publication.${problem.key}`, problem.count ? { count: problem.count } : {})"
+          >
+            <UIcon 
+              :name="problem.type === 'critical' ? 'i-heroicons-x-circle' : problem.key === 'publicationExpired' ? 'i-heroicons-clock' : 'i-heroicons-exclamation-triangle'" 
+              :class="problem.type === 'critical' ? 'text-red-500' : 'text-orange-500'"
+              class="w-4 h-4"
+            />
+          </UTooltip>
         </div>
         
         <div class="flex items-center gap-1 group-hover:opacity-100 transition-opacity -mt-1 -mr-1">
@@ -106,9 +122,16 @@ function handleDelete(e: Event) {
             :key="post.id"
             class="h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-50 dark:bg-gray-700 flex items-center justify-center"
           >
+            <CommonSocialIcon 
+              v-if="post.channel"
+              :platform="post.channel.socialMedia" 
+              :problem-level="getPostProblemLevel(post)"
+              size="sm"
+            />
             <UIcon 
-              :name="post.channel?.socialMedia === 'TELEGRAM' ? 'i-logos-telegram' : 'i-heroicons-paper-airplane'" 
-              class="w-3.5 h-3.5" 
+              v-else
+              name="i-heroicons-question-mark-circle" 
+              class="w-3.5 h-3.5 text-gray-400" 
             />
           </div>
           <div v-if="publication.posts.length > 8" class="h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[9px] text-gray-500 font-medium">

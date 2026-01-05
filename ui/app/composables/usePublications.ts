@@ -301,6 +301,78 @@ export function usePublications() {
         }
     }
 
+    // Problem detection functions
+    function hasFailedPosts(publication: PublicationWithRelations): boolean {
+        if (!publication.posts || publication.posts.length === 0) return false
+        return publication.posts.some((post: any) => post.status === 'FAILED')
+    }
+
+    function hasChannelProblems(publication: PublicationWithRelations): boolean {
+        if (!publication.posts || publication.posts.length === 0) return false
+        return publication.posts.some((post: any) => {
+            const channel = post.channel
+            if (!channel) return false
+            
+            const hasNoCredentials = !channel.credentials || Object.keys(channel.credentials).length === 0
+            const isStale = channel.isStale === true
+            const isInactive = channel.isActive === false
+            
+            return hasNoCredentials || isStale || isInactive
+        })
+    }
+
+    function getPublicationProblems(publication: PublicationWithRelations) {
+        const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
+        
+        // Check publication status
+        if (publication.status === 'FAILED') {
+            problems.push({ type: 'critical', key: 'allPostsFailed' })
+        }
+        
+        if (publication.status === 'PARTIAL') {
+            const failedCount = publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0
+            problems.push({ type: 'warning', key: 'somePostsFailed', count: failedCount })
+        }
+        
+        if (publication.status === 'EXPIRED') {
+            problems.push({ type: 'warning', key: 'publicationExpired' })
+        }
+        
+        // Check for channel problems
+        if (hasChannelProblems(publication)) {
+            problems.push({ type: 'warning', key: 'channelProblems' })
+        }
+        
+        return problems
+    }
+
+    function getPublicationProblemLevel(publication: PublicationWithRelations): 'critical' | 'warning' | null {
+        const problems = getPublicationProblems(publication)
+        if (problems.some(p => p.type === 'critical')) return 'critical'
+        if (problems.some(p => p.type === 'warning')) return 'warning'
+        return null
+    }
+
+    function getPostProblemLevel(post: any): 'critical' | 'warning' | null {
+        // Check post status
+        if (post.status === 'FAILED') {
+            return 'critical'
+        }
+        
+        // Check channel problems
+        const channel = post.channel
+        if (channel) {
+            const hasNoCredentials = !channel.credentials || Object.keys(channel.credentials).length === 0
+            if (hasNoCredentials) return 'critical'
+            
+            const isStale = channel.isStale === true
+            const isInactive = channel.isActive === false
+            if (isStale || isInactive) return 'warning'
+        }
+        
+        return null
+    }
+
     return {
         publications,
         currentPublication,
@@ -318,6 +390,12 @@ export function usePublications() {
         getStatusDisplayName,
         getStatusColor,
         toggleArchive,
+        // Problem detection
+        hasFailedPosts,
+        hasChannelProblems,
+        getPublicationProblems,
+        getPublicationProblemLevel,
+        getPostProblemLevel,
     }
 }
 

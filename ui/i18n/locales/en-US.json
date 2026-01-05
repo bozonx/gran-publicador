@@ -468,6 +468,31 @@
     "failed": "Failed",
     "expired": "Expired"
   },
+  "problems": {
+    "critical": "Critical Problems",
+    "warning": "Needs Attention",
+    "info": "Information",
+    "publication": {
+      "allPostsFailed": "All posts failed to publish",
+      "somePostsFailed": "{count} posts failed",
+      "publicationExpired": "Publication window missed",
+      "channelProblems": "Channel problems",
+      "failedPosts": "{count} posts failed"
+    },
+    "channel": {
+      "noCredentials": "No credentials provided",
+      "failedPosts": "{count} posts failed",
+      "staleChannel": "Channel hasn't been used recently",
+      "inactiveChannel": "Channel is disabled",
+      "hasProblems": "Has problems"
+    },
+    "project": {
+      "criticalProblems": "{count} critical problems",
+      "warningProblems": "{count} important problems",
+      "problemChannels": "{count} channels with problems",
+      "problemPublications": "{count} publications with problems"
+    }
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

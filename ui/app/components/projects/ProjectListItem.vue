@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const { t, d } = useI18n()
 const router = useRouter()
+const { getChannelProblemLevel } = useChannels()
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return '-'
@@ -159,6 +160,7 @@ const isWarningActive = computed(() => {
                   :platform="channel.socialMedia" 
                   :show-background="true" 
                   :is-stale="channel.isStale"
+                  :problem-level="getChannelProblemLevel(channel)"
                 />
               </NuxtLink>
             </UTooltip>

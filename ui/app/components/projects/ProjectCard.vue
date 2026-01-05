@@ -8,6 +8,7 @@ const props = defineProps<{
 
 const { t, d } = useI18n()
 const router = useRouter()
+const { getChannelProblemLevel } = useChannels()
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return '-'
@@ -120,6 +121,7 @@ const isWarningActive = computed(() => {
               :platform="channel.socialMedia" 
               :show-background="true" 
               :is-stale="channel.isStale"
+              :problem-level="getChannelProblemLevel(channel)"
               class="ring-2 ring-white dark:ring-gray-800 scale-90"
             />
             <div v-if="project.channels.length > 5" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[10px] font-bold text-gray-500 ring-2 ring-white dark:ring-gray-800">

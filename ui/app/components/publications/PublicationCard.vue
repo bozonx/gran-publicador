@@ -12,7 +12,10 @@ const emit = defineEmits<{
 }>()
 
 const { t, d } = useI18n()
-const { getStatusColor, getStatusDisplayName } = usePublications()
+const { getStatusColor, getStatusDisplayName, getPublicationProblems, getPostProblemLevel } = usePublications()
+
+// Compute problems for this publication
+const problems = computed(() => getPublicationProblems(props.publication))
 
 function truncateContent(content: string | null | undefined, maxLength = 100): string {
   if (!content) return ''
@@ -42,9 +45,24 @@ function handleDelete(e: Event) {
         <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1">
           {{ publication.title || t('post.untitled') }}
         </h3>
-        <UBadge :color="getStatusColor(publication.status)" size="xs" variant="subtle" class="capitalize">
-          {{ getStatusDisplayName(publication.status) }}
-        </UBadge>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <UBadge :color="getStatusColor(publication.status)" size="xs" variant="subtle" class="capitalize">
+            {{ getStatusDisplayName(publication.status) }}
+          </UBadge>
+          
+          <!-- Problem indicators -->
+          <UTooltip 
+            v-for="problem in problems" 
+            :key="problem.key"
+            :text="t(`problems.publication.${problem.key}`, problem.count ? { count: problem.count } : {})"
+          >
+            <UIcon 
+              :name="problem.type === 'critical' ? 'i-heroicons-x-circle' : problem.key === 'publicationExpired' ? 'i-heroicons-clock' : 'i-heroicons-exclamation-triangle'" 
+              :class="problem.type === 'critical' ? 'text-red-500' : 'text-orange-500'"
+              class="w-4 h-4"
+            />
+          </UTooltip>
+        </div>
       </div>
       
       <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -93,9 +111,16 @@ function handleDelete(e: Event) {
             :key="post.id"
             class="h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-50 dark:bg-gray-700 flex items-center justify-center"
           >
+            <CommonSocialIcon 
+              v-if="post.channel"
+              :platform="post.channel.socialMedia" 
+              :problem-level="getPostProblemLevel(post)"
+              size="sm"
+            />
             <UIcon 
-              :name="post.channel?.socialMedia === 'TELEGRAM' ? 'i-logos-telegram' : 'i-heroicons-paper-airplane'" 
-              class="w-3 h-3" 
+              v-else
+              name="i-heroicons-question-mark-circle" 
+              class="w-3 h-3 text-gray-400" 
             />
           </div>
           <div v-if="publication.posts.length > 5" class="h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[9px] text-gray-500 font-medium">
