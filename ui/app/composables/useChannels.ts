@@ -3,7 +3,6 @@ import { ArchiveEntityType } from '~/types/archive.types'
 import { getSocialMediaColor as getColorBase, getSocialMediaIcon as getIconBase, getSocialMediaOptions } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
 import type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter } from '~/types/channels'
-import { CHANNELS_FETCH_LIMIT } from '~/constants'
 
 export type { SocialMedia }
 export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter }
@@ -16,42 +15,40 @@ export function useChannels() {
 
     const channels = ref<ChannelWithProject[]>([])
     const currentChannel = ref<ChannelWithProject | null>(null)
+    const totalCount = ref(0)
     const isLoading = ref(false)
     const error = ref<string | null>(null)
-    const filter = ref<ChannelsFilter>({})
 
     const socialMediaOptions = computed(() => getSocialMediaOptions(t))
 
-    async function fetchChannels(projectId?: string): Promise<ChannelWithProject[]> {
+    /**
+     * Fetch channels with server-side pagination, filtering, and sorting
+     */
+    async function fetchChannels(filters?: {
+        projectId?: string;
+        search?: string;
+        ownership?: 'all' | 'own' | 'guest';
+        issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive';
+        socialMedia?: string;
+        language?: string;
+        sortBy?: 'alphabetical' | 'socialMedia' | 'language' | 'postsCount';
+        sortOrder?: 'asc' | 'desc';
+        limit?: number;
+        offset?: number;
+        includeArchived?: boolean;
+    }): Promise<ChannelWithProject[]> {
         isLoading.value = true
         error.value = null
 
         try {
-            // Build params with explicit values
-            const params: any = {}
+            const params: any = { ...filters }
 
-            if (projectId) {
-                params.projectId = projectId
-            }
-
-            // Add filter values if they are defined
-            if (filter.value.isActive !== undefined && filter.value.isActive !== null) {
-                params.isActive = filter.value.isActive
-            }
-
-            // Always include includeArchived parameter
-            params.includeArchived = filter.value.includeArchived || false
-
-            // Add limit parameter
-            params.limit = CHANNELS_FETCH_LIMIT
-
-            console.log('Fetching channels with params:', params)
-            console.log('Filter value:', filter.value)
-
-            const data = await api.get<ChannelWithProject[]>('/channels', { params })
-            console.log('Received channels:', data)
-            channels.value = data
-            return data
+            const response = await api.get<{ items: ChannelWithProject[]; meta: { total: number; limit: number; offset: number } }>('/channels', { params })
+            
+            channels.value = response.items
+            totalCount.value = response.meta.total
+            
+            return response.items
         } catch (err: any) {
             const message = err.message || 'Failed to fetch channels'
             error.value = message
@@ -235,14 +232,6 @@ export function useChannels() {
         return false
     }
 
-    function setFilter(newFilter: Partial<ChannelsFilter>) {
-        filter.value = { ...filter.value, ...newFilter }
-    }
-
-    function clearFilter() {
-        filter.value = {}
-    }
-
     function getSocialMediaColor(socialMedia: SocialMedia): string {
         return getColorBase(socialMedia)
     }
@@ -307,9 +296,9 @@ export function useChannels() {
     return {
         channels,
         currentChannel,
+        totalCount,
         isLoading,
         error,
-        filter,
         socialMediaOptions,
         fetchChannels,
         fetchArchivedChannels,
@@ -320,8 +309,6 @@ export function useChannels() {
         archiveChannel,
         unarchiveChannel,
         toggleChannelActive,
-        setFilter,
-        clearFilter,
         canEdit,
         canDelete,
         getSocialMediaDisplayName,

@@ -2,9 +2,8 @@
 import { useChannels } from '~/composables/useChannels'
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { useProjects } from '~/composables/useProjects'
-import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
-import { useSorting } from '~/composables/useSorting'
 import { useViewMode } from '~/composables/useViewMode'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
 import ChannelListItem from '~/components/channels/ChannelListItem.vue'
 import ChannelCard from '~/components/channels/ChannelCard.vue'
 
@@ -14,16 +13,26 @@ definePageMeta({
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const { user } = useAuth()
 const { 
   channels, 
+  totalCount,
   fetchChannels, 
   isLoading,
   getSocialMediaIcon,
   getSocialMediaColor,
-  setFilter,
 } = useChannels()
 
+// Pagination
+const currentPage = ref(
+  route.query.page && typeof route.query.page === 'string' 
+    ? Math.max(1, parseInt(route.query.page, 10) || 1)
+    : 1
+)
+const limit = ref(DEFAULT_PAGE_SIZE)
+
+// Filter states
 const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, 300)
 
@@ -31,56 +40,20 @@ const debouncedSearch = refDebounced(searchQuery, 300)
 type OwnershipFilter = 'all' | 'own' | 'guest'
 const ownershipFilter = ref<OwnershipFilter>('all')
 
-// Filter options
-const selectedProjectId = ref<string | null>(null)
-const showArchivedFilter = ref(false) // По умолчанию false - показывает неархивные
+// Archive filter
+const showArchivedFilter = ref(false)
 
+// Issue type filter
 type ChannelIssueFilter = 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive'
 const selectedIssueType = ref<ChannelIssueFilter>('all')
 
-// Sorting with localStorage persistence
-const sortOptionsComputed = computed(() => [
-  { id: 'alphabetical', label: t('channel.sort.alphabetical'), icon: 'i-heroicons-bars-3-bottom-left' },
-  { id: 'socialMedia', label: t('channel.sort.socialMedia'), icon: 'i-heroicons-share' },
-  { id: 'language', label: t('channel.sort.language'), icon: 'i-heroicons-language' },
-  { id: 'postsCount', label: t('channel.sort.postsCount'), icon: 'i-heroicons-document-text' }
-])
+// Project filter
+const selectedProjectId = ref<string | null>(null)
 
-// Sort function
-function sortChannelsFn(list: ChannelWithProject[], sortByValue: string, sortOrderValue: 'asc' | 'desc') {
-  return [...list].sort((a, b) => {
-    let result = 0
-    if (sortByValue === 'alphabetical') {
-      result = a.name.localeCompare(b.name)
-
-    } else if (sortByValue === 'socialMedia') {
-      const weightA = SOCIAL_MEDIA_WEIGHTS[a.socialMedia] || 99
-      const weightB = SOCIAL_MEDIA_WEIGHTS[b.socialMedia] || 99
-      result = weightA - weightB
-      if (result === 0) result = a.name.localeCompare(b.name)
-    } else if (sortByValue === 'language') {
-      const langA = a.language || 'zzz'
-      const langB = b.language || 'zzz'
-      result = langA.localeCompare(langB)
-      if (result === 0) result = a.name.localeCompare(b.name)
-    } else if (sortByValue === 'postsCount') {
-      const postsA = a.postsCount || 0
-      const postsB = b.postsCount || 0
-      result = postsB - postsA
-      if (result === 0) result = a.name.localeCompare(b.name)
-    }
-
-    return sortOrderValue === 'asc' ? result : -result
-  })
-}
-
-const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<ChannelWithProject>({
-  storageKey: 'channels-page',
-  defaultSortBy: 'alphabetical',
-  defaultSortOrder: 'asc',
-  sortOptions: sortOptionsComputed.value,
-  sortFn: sortChannelsFn
-})
+// Sorting
+type SortBy = 'alphabetical' | 'socialMedia' | 'language' | 'postsCount'
+const sortBy = ref<SortBy>('alphabetical')
+const sortOrder = ref<'asc' | 'desc'>('asc')
 
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list')
@@ -88,22 +61,82 @@ const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list
 // Projects
 const { projects, fetchProjects } = useProjects()
 
-// Fetch all user channels on mount (including archived)
+// Fetch channels with current filters
+async function loadChannels() {
+  await fetchChannels({
+    search: debouncedSearch.value || undefined,
+    ownership: ownershipFilter.value,
+    issueType: selectedIssueType.value,
+    projectId: selectedProjectId.value || undefined,
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+    limit: limit.value,
+    offset: (currentPage.value - 1) * limit.value,
+    includeArchived: showArchivedFilter.value,
+  })
+}
+
+// Fetch on mount
 onMounted(async () => {
     // Set initial issue filter if provided in query
     if (route.query.issue && typeof route.query.issue === 'string') {
         selectedIssueType.value = route.query.issue as ChannelIssueFilter
     }
 
-    setFilter({ includeArchived: true })
     await Promise.all([
-        fetchChannels(),
+        loadChannels(),
         fetchProjects(true) // включая архивные проекты
     ])
 })
 
+// Watch filters and sorting - reset to page 1 and re-fetch
+watch([ownershipFilter, selectedIssueType, selectedProjectId, debouncedSearch, showArchivedFilter, sortBy, sortOrder], () => {
+    currentPage.value = 1
+    loadChannels()
+})
+
+// Watch page changes - re-fetch with new offset
+watch(currentPage, () => {
+    loadChannels()
+})
+
+// Sync URL with page changes
+watch(currentPage, (newPage) => {
+    if (!import.meta.client) return
+    
+    const query = { ...route.query }
+    const urlPage = parseInt(String(query.page || '1'), 10)
+    
+    if (newPage !== urlPage) {
+        if (newPage > 1) {
+            query.page = String(newPage)
+        } else {
+            delete query.page
+        }
+        router.push({ query })
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
+
+// Sync page from URL changes
+watch(() => route.query.page, (newPage) => {
+    const pageNum = parseInt(String(newPage || '1'), 10)
+    if (pageNum !== currentPage.value) {
+        currentPage.value = pageNum
+    }
+})
 
 // Sorting computed props for UI
+const sortOptionsComputed = computed(() => [
+  { id: 'alphabetical', label: t('channel.sort.alphabetical'), icon: 'i-heroicons-bars-3-bottom-left' },
+  { id: 'socialMedia', label: t('channel.sort.socialMedia'), icon: 'i-heroicons-share' },
+  { id: 'language', label: t('channel.sort.language'), icon: 'i-heroicons-language' },
+  { id: 'postsCount', label: t('channel.sort.postsCount'), icon: 'i-heroicons-document-text' }
+])
+
+const currentSortOption = computed(() => sortOptionsComputed.value.find(opt => opt.id === sortBy.value))
+
 const sortOrderIcon = computed(() => 
   sortOrder.value === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down'
 )
@@ -112,36 +145,22 @@ const sortOrderLabel = computed(() =>
   sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')
 )
 
-// Count for badge - only non-archived channels
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
+
+// Count badge - use server total count
 const nonArchivedChannelsCount = computed(() => {
-    return channels.value.filter(c => !c.archivedAt && !c.project?.archivedAt).length
+    return showArchivedFilter.value ? 0 : totalCount.value
 })
 
-// Project filter options - only projects present in channels
+// Project filter options
 const projectFilterOptions = computed(() => {
-  const projectIds = new Set<string>()
-  const projectMap = new Map<string, { id: string; name: string }>()
-  
-  channels.value.forEach(c => {
-    if (c.projectId && c.project) {
-      projectIds.add(c.projectId)
-      if (!projectMap.has(c.projectId)) {
-        projectMap.set(c.projectId, {
-          id: c.project.id,
-          name: c.project.name
-        })
-      }
-    }
-  })
-  
   const options: Array<{ value: string | null; label: string }> = [
     { value: null, label: t('common.all') }
   ]
   
-  // Sort projects alphabetically
-  const sortedProjects = Array.from(projectMap.values()).sort((a, b) => 
-    a.name.localeCompare(b.name)
-  )
+  const sortedProjects = [...projects.value].sort((a, b) => a.name.localeCompare(b.name))
   
   sortedProjects.forEach(project => {
     options.push({
@@ -162,65 +181,6 @@ const issueFilterOptions = computed(() => [
   { value: 'inactive', label: t('channel.filter.problems.inactive') }
 ])
 
-const filteredChannels = computed(() => {
-    let result = channels.value
-
-    // Apply archive filter (checkbox)
-    if (!showArchivedFilter.value) {
-        // Выключено: только активные каналы и проекты
-        result = result.filter(c => !c.archivedAt && !c.project?.archivedAt)
-    } else {
-        // Включено: только архивные каналы или каналы из архивных проектов
-        result = result.filter(c => c.archivedAt || c.project?.archivedAt)
-    }
-
-    // Apply ownership filter (radio buttons)
-    if (ownershipFilter.value === 'own') {
-        // Only channels from projects owned by current user
-        result = result.filter(c => c.project?.ownerId === user.value?.id)
-    } else if (ownershipFilter.value === 'guest') {
-        // Only channels from projects where user is invited (not owner)
-        result = result.filter(c => c.project?.ownerId !== user.value?.id)
-    }
-    // 'all' - no filtering by ownership
-    
-    // Apply project filter
-    if (selectedProjectId.value) {
-        result = result.filter(c => c.projectId === selectedProjectId.value)
-    }
-
-    // Apply issues filter
-    if (selectedIssueType.value !== 'all') {
-        result = result.filter(c => {
-            if (selectedIssueType.value === 'noCredentials') {
-                return !c.credentials || Object.keys(c.credentials).length === 0
-            }
-            if (selectedIssueType.value === 'failedPosts') {
-                return c.failedPostsCount && c.failedPostsCount > 0
-            }
-            if (selectedIssueType.value === 'stale') {
-                return c.isStale
-            }
-            if (selectedIssueType.value === 'inactive') {
-                return !c.isActive
-            }
-            return true
-        })
-    }
-
-    // Apply search query
-    if (debouncedSearch.value) {
-        const query = debouncedSearch.value.toLowerCase()
-        result = result.filter(c => 
-            c.name.toLowerCase().includes(query) || 
-            c.channelIdentifier.toLowerCase().includes(query) ||
-            c.project?.name?.toLowerCase().includes(query)
-        )
-    }
-
-    return sortChannelsFn(result, sortBy.value, sortOrder.value)
-})
-
 const hasActiveFilters = computed(() => {
     return searchQuery.value || 
            selectedProjectId.value || 
@@ -234,6 +194,10 @@ function resetFilters() {
     ownershipFilter.value = 'all'
     selectedIssueType.value = 'all'
 }
+
+const showPagination = computed(() => {
+    return totalCount.value > limit.value
+})
 
 </script>
 
@@ -390,7 +354,7 @@ function resetFilters() {
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
        </div>
 
-       <div v-else-if="filteredChannels.length === 0" class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+       <div v-else-if="channels.length === 0" class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
           <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
           </div>
@@ -403,7 +367,7 @@ function resetFilters() {
        </div>
 
        <ChannelListItem
-         v-for="channel in filteredChannels"
+         v-for="channel in channels"
          :key="channel.id"
          :channel="channel"
          :show-project="true"
@@ -416,7 +380,7 @@ function resetFilters() {
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
        </div>
 
-       <div v-else-if="filteredChannels.length === 0" class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+       <div v-else-if="channels.length === 0" class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
           <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
           </div>
@@ -429,11 +393,22 @@ function resetFilters() {
        </div>
 
        <ChannelCard
-         v-for="channel in filteredChannels"
+         v-for="channel in channels"
          :key="channel.id"
          :channel="channel"
          :show-project="true"
        />
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="showPagination" class="mt-8 flex justify-center">
+      <UPagination
+        v-model:page="currentPage"
+        :total="totalCount"
+        :items-per-page="limit"
+        :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
+        :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
+      />
     </div>
   </div>
 </template>

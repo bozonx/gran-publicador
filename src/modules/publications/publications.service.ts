@@ -16,6 +16,124 @@ export class PublicationsService {
   ) { }
 
   /**
+   * Build WHERE clause for publication queries with filters.
+   * Extracted to avoid code duplication between findAll and findAllForUser.
+   */
+  private buildWhereClause(
+    filters: {
+      status?: PublicationStatus;
+      includeArchived?: boolean;
+      channelId?: string;
+      socialMedia?: SocialMedia;
+      ownership?: OwnershipType;
+      issueType?: IssueType;
+      search?: string;
+      language?: string;
+    },
+    userId: string,
+    projectId?: string,
+  ): Prisma.PublicationWhereInput {
+    const where: Prisma.PublicationWhereInput = {};
+    const conditions: Prisma.PublicationWhereInput[] = [];
+
+    // Project filter (if provided)
+    if (projectId) {
+      where.projectId = projectId;
+      // Archive filter for project-specific queries
+      if (!filters?.includeArchived) {
+        where.archivedAt = null;
+        where.project = { archivedAt: null };
+      }
+    } else {
+      // For user queries, filter by membership
+      where.project = {
+        members: {
+          some: { userId },
+        },
+        archivedAt: null,
+      };
+      if (!filters?.includeArchived) {
+        where.archivedAt = null;
+      }
+    }
+
+    // Status filter
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    // Filter by channel (publications that have posts in this channel)
+    if (filters?.channelId) {
+      conditions.push({
+        posts: {
+          some: {
+            channelId: filters.channelId,
+          },
+        },
+      });
+    }
+
+    // Filter by Social Media
+    if (filters?.socialMedia) {
+      conditions.push({
+        posts: {
+          some: {
+            channel: {
+              socialMedia: filters.socialMedia,
+            },
+          },
+        },
+      });
+    }
+
+    // Filter by Ownership
+    if (filters?.ownership) {
+      if (filters.ownership === OwnershipType.OWN) {
+        where.createdBy = userId;
+      } else if (filters.ownership === OwnershipType.NOT_OWN) {
+        where.createdBy = { not: userId };
+      }
+    }
+
+    // Filter by Issue Type
+    if (filters?.issueType) {
+      if (filters.issueType === IssueType.FAILED) {
+        conditions.push({
+          OR: [
+            { status: PublicationStatus.FAILED },
+            { posts: { some: { status: PostStatus.FAILED } } }
+          ]
+        });
+      } else if (filters.issueType === IssueType.PARTIAL) {
+        where.status = PublicationStatus.PARTIAL;
+      } else if (filters.issueType === IssueType.EXPIRED) {
+        where.status = PublicationStatus.EXPIRED;
+      }
+    }
+
+    // Text search across title, description, and content
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search } },
+        { description: { contains: filters.search } },
+        { content: { contains: filters.search } },
+      ];
+    }
+
+    // Filter by language
+    if (filters?.language) {
+      where.language = filters.language;
+    }
+
+    // Apply AND conditions
+    if (conditions.length > 0) {
+      where.AND = conditions;
+    }
+
+    return where;
+  }
+
+  /**
    * Create a new publication.
    * If userId is provided, it checks if the user has access to the project.
    * If userId is not provided, it assumes a system call or external integration (skipped permission check).
@@ -133,87 +251,7 @@ export class PublicationsService {
   ) {
     await this.permissions.checkProjectAccess(projectId, userId);
 
-    const where: Prisma.PublicationWhereInput = {
-      projectId,
-      ...(filters?.includeArchived ? {} : { 
-        archivedAt: null,
-        project: { archivedAt: null },
-      }),
-    };
-    
-    // Conditions array to perform AND operation
-    const conditions: Prisma.PublicationWhereInput[] = [];
-
-    if (filters?.status) {
-      where.status = filters.status;
-    }
-
-    // Filter by channel (publications that have posts in this channel)
-    if (filters?.channelId) {
-      conditions.push({
-        posts: {
-          some: {
-            channelId: filters.channelId,
-          },
-        },
-      });
-    }
-
-    // Filter by Social Media
-    if (filters?.socialMedia) {
-      conditions.push({
-        posts: {
-          some: {
-            channel: {
-              socialMedia: filters.socialMedia,
-            },
-          },
-        },
-      });
-    }
-
-    // Filter by Ownership
-    if (filters?.ownership) {
-      if (filters.ownership === OwnershipType.OWN) {
-        where.createdBy = userId;
-      } else if (filters.ownership === OwnershipType.NOT_OWN) {
-        where.createdBy = { not: userId };
-      }
-    }
-
-    // Filter by Issue Type
-    if (filters?.issueType) {
-      if (filters.issueType === IssueType.FAILED) {
-        conditions.push({
-          OR: [
-            { status: PublicationStatus.FAILED },
-            { posts: { some: { status: PostStatus.FAILED } } }
-          ]
-        });
-      } else if (filters.issueType === IssueType.PARTIAL) {
-        where.status = PublicationStatus.PARTIAL;
-      } else if (filters.issueType === IssueType.EXPIRED) {
-        where.status = PublicationStatus.EXPIRED;
-      }
-    }
-
-    // Text search across title, description, and content
-    if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search } },
-        { description: { contains: filters.search } },
-        { content: { contains: filters.search } },
-      ];
-    }
-
-    // Filter by language
-    if (filters?.language) {
-      where.language = filters.language;
-    }
-    
-    if (conditions.length > 0) {
-      where.AND = conditions;
-    }
+    const where = this.buildWhereClause(filters || {}, userId, projectId);
 
     // Dynamic sorting
     const orderBy: Prisma.PublicationOrderByWithRelationInput = {};
@@ -278,89 +316,7 @@ export class PublicationsService {
       issueType?: IssueType;
     },
   ) {
-    const where: Prisma.PublicationWhereInput = {
-      project: {
-        members: {
-          some: { userId },
-        },
-        archivedAt: null,
-      },
-      ...(filters?.includeArchived ? {} : { archivedAt: null }),
-    };
-
-    // Conditions array to perform AND operation
-    const conditions: Prisma.PublicationWhereInput[] = [];
-
-    if (filters?.status) {
-      where.status = filters.status;
-    }
-
-    // Filter by channel (publications that have posts in this channel)
-    if (filters?.channelId) {
-      conditions.push({
-        posts: {
-          some: {
-            channelId: filters.channelId,
-          },
-        },
-      });
-    }
-
-    // Filter by Social Media
-    if (filters?.socialMedia) {
-      conditions.push({
-        posts: {
-          some: {
-            channel: {
-              socialMedia: filters.socialMedia,
-            },
-          },
-        },
-      });
-    }
-
-    // Filter by Ownership
-    if (filters?.ownership) {
-      if (filters.ownership === OwnershipType.OWN) {
-        where.createdBy = userId;
-      } else if (filters.ownership === OwnershipType.NOT_OWN) {
-        where.createdBy = { not: userId };
-      }
-    }
-
-    // Filter by Issue Type
-    if (filters?.issueType) {
-      if (filters.issueType === IssueType.FAILED) {
-        conditions.push({
-          OR: [
-            { status: PublicationStatus.FAILED },
-            { posts: { some: { status: PostStatus.FAILED } } }
-          ]
-        });
-      } else if (filters.issueType === IssueType.PARTIAL) {
-        where.status = PublicationStatus.PARTIAL;
-      } else if (filters.issueType === IssueType.EXPIRED) {
-        where.status = PublicationStatus.EXPIRED;
-      }
-    }
-
-    // Text search across title, description, and content
-    if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search } },
-        { description: { contains: filters.search } },
-        { content: { contains: filters.search } },
-      ];
-    }
-
-    // Filter by language
-    if (filters?.language) {
-      where.language = filters.language;
-    }
-    
-    if (conditions.length > 0) {
-      where.AND = conditions;
-    }
+    const where = this.buildWhereClause(filters || {}, userId);
 
     // Dynamic sorting
     const orderBy: Prisma.PublicationOrderByWithRelationInput = {};

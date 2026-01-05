@@ -16,8 +16,9 @@ import {
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
 import { ChannelsService } from './channels.service.js';
-import { CreateChannelDto, UpdateChannelDto } from './dto/index.js';
+import { CreateChannelDto, UpdateChannelDto, FindChannelsQueryDto } from './dto/index.js';
 
 /**
  * Controller for managing channels within projects.
@@ -25,6 +26,8 @@ import { CreateChannelDto, UpdateChannelDto } from './dto/index.js';
 @Controller('channels')
 @UseGuards(JwtOrApiTokenGuard)
 export class ChannelsController {
+  private readonly MAX_LIMIT = 100;
+
   constructor(private readonly channelsService: ChannelsService) { }
 
   @Post()
@@ -48,15 +51,37 @@ export class ChannelsController {
   @Get()
   public async findAll(
     @Request() req: UnifiedAuthRequest,
-    @Query('projectId') projectId?: string,
-    @Query('isActive') isActive?: string,
-    @Query('includeArchived', new DefaultValuePipe(false), ParseBoolPipe) includeArchived?: boolean,
-    @Query('limit') limit?: number,
-  ) {
-    const options = {
-      isActive: isActive !== undefined ? isActive === 'true' : undefined,
-      allowArchived: includeArchived,
-      limit: limit ? Number(limit) : undefined,
+    @Query() query: FindChannelsQueryDto,
+  ): Promise<PaginatedResponse<any>> {
+    const {
+      projectId,
+      search,
+      ownership,
+      issueType,
+      socialMedia,
+      language,
+      sortBy,
+      sortOrder,
+      limit = 50,
+      offset = 0,
+      includeArchived = false,
+    } = query;
+
+    // Validate and cap limit
+    const validatedLimit = Math.min(limit, this.MAX_LIMIT);
+
+    const filters = {
+      search,
+      ownership,
+      issueType,
+      socialMedia,
+      language,
+      sortBy,
+      sortOrder,
+      limit: validatedLimit,
+      offset,
+      includeArchived,
+      projectIds: req.user.scopeProjectIds,
     };
 
     if (projectId) {
@@ -68,13 +93,21 @@ export class ChannelsController {
         });
       }
 
-      return this.channelsService.findAllForProject(projectId, req.user.userId, options);
+      // Note: For project-specific queries, we could use findAllForProject
+      // but for consistency, we use findAllForUser with projectIds filter
+      filters.projectIds = [projectId];
     }
 
-    // If no projectId, fetch all channels for the user
-    const projectIds = req.user.scopeProjectIds;
-
-    return this.channelsService.findAllForUser(req.user.userId, { ...options, projectIds });
+    const result = await this.channelsService.findAllForUser(req.user.userId, filters);
+    
+    return {
+      items: result.items,
+      meta: {
+        total: result.total,
+        limit: validatedLimit,
+        offset: offset || 0,
+      },
+    };
   }
 
   @Get('archived')

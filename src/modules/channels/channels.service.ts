@@ -138,15 +138,32 @@ export class ChannelsService {
 
   /**
    * Retrieves all channels for a given user across all projects they are members of.
+   * Supports server-side pagination, filtering, and sorting.
    *
    * @param userId - The ID of the user requesting the channels.
-   * @param options - Optional filters (isActive, allowArchived, projectIds).
-   * @returns A list of channels with project info and post counts.
+   * @param filters - Filters and pagination options.
+   * @returns Paginated channels with total count.
    */
   public async findAllForUser(
     userId: string,
-    options: { allowArchived?: boolean, isActive?: boolean, projectIds?: string[], limit?: number } = {}
+    filters: {
+      search?: string;
+      ownership?: 'all' | 'own' | 'guest';
+      issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive';
+      socialMedia?: string;
+      language?: string;
+      sortBy?: 'alphabetical' | 'socialMedia' | 'language' | 'postsCount';
+      sortOrder?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+      includeArchived?: boolean;
+      projectIds?: string[];
+    } = {}
   ) {
+    const MAX_LIMIT = 1000;
+    const validatedLimit = Math.min(filters.limit || 50, MAX_LIMIT);
+
+    // Build where clause
     const where: any = {
       project: {
         members: {
@@ -154,16 +171,35 @@ export class ChannelsService {
         },
         archivedAt: null
       },
-      ...(options.allowArchived ? {} : { archivedAt: null }),
-      ...(options.isActive !== undefined ? { isActive: options.isActive } : {}),
+      ...(filters.includeArchived ? {} : { archivedAt: null }),
     };
 
-    if (options.projectIds && options.projectIds.length > 0) {
-      where.projectId = { in: options.projectIds };
+    // Filter by project IDs
+    if (filters.projectIds && filters.projectIds.length > 0) {
+      where.projectId = { in: filters.projectIds };
+    }
+
+    // Filter by social media
+    if (filters.socialMedia) {
+      where.socialMedia = filters.socialMedia;
+    }
+
+    // Filter by language
+    if (filters.language) {
+      where.language = filters.language;
+    }
+
+    // Text search
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search } },
+        { channelIdentifier: { contains: filters.search } },
+      ];
     }
 
     const publishedPostFilter = { status: 'PUBLISHED' as const };
 
+    // Fetch channels with pagination
     const channels = await this.prisma.channel.findMany({
       where,
       include: {
@@ -177,21 +213,28 @@ export class ChannelsService {
           select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      ...(options.limit ? { take: options.limit } : {}),
+      take: validatedLimit,
+      skip: filters.offset || 0,
     });
 
+    // Get total count
+    const total = await this.prisma.channel.count({ where });
+
     const channelIds = channels.map(c => c.id);
-    const postCounts = await this.prisma.post.groupBy({
-      by: ['channelId', 'status'],
-      where: {
-        channelId: { in: channelIds },
-        status: { in: ['PUBLISHED', 'FAILED'] }
-      },
-      _count: {
-        id: true
-      }
-    });
+    
+    // Get post counts
+    const postCounts = channelIds.length > 0 
+      ? await this.prisma.post.groupBy({
+          by: ['channelId', 'status'],
+          where: {
+            channelId: { in: channelIds },
+            status: { in: ['PUBLISHED', 'FAILED'] }
+          },
+          _count: {
+            id: true
+          }
+        })
+      : [];
 
     const countsMap = new Map<string, { published: number, failed: number }>();
     postCounts.forEach(pc => {
@@ -201,7 +244,8 @@ export class ChannelsService {
       countsMap.set(pc.channelId, current);
     });
 
-    return channels.map(channel => {
+    // Map channels to response format with computed fields
+    let mappedChannels = channels.map(channel => {
       const { posts, credentials, ...channelData } = channel;
       const counts = countsMap.get(channel.id) || { published: 0, failed: 0 };
 
@@ -229,6 +273,76 @@ export class ChannelsService {
         preferences: channelPreferences,
       };
     });
+
+    // Apply client-side filters (for computed fields)
+    if (filters.ownership && filters.ownership !== 'all') {
+      if (filters.ownership === 'own') {
+        mappedChannels = mappedChannels.filter(c => c.project.ownerId === userId);
+      } else if (filters.ownership === 'guest') {
+        mappedChannels = mappedChannels.filter(c => c.project.ownerId !== userId);
+      }
+    }
+
+    if (filters.issueType && filters.issueType !== 'all') {
+      mappedChannels = mappedChannels.filter(c => {
+        if (filters.issueType === 'noCredentials') {
+          return !c.credentials || Object.keys(c.credentials).length === 0;
+        }
+        if (filters.issueType === 'failedPosts') {
+          return c.failedPostsCount && c.failedPostsCount > 0;
+        }
+        if (filters.issueType === 'stale') {
+          return c.isStale;
+        }
+        if (filters.issueType === 'inactive') {
+          return !c.isActive;
+        }
+        return true;
+      });
+    }
+
+    // Apply sorting
+    const sortBy = filters.sortBy || 'alphabetical';
+    const sortOrder = filters.sortOrder || 'asc';
+
+    mappedChannels.sort((a, b) => {
+      let result = 0;
+      
+      if (sortBy === 'alphabetical') {
+        result = a.name.localeCompare(b.name);
+      } else if (sortBy === 'socialMedia') {
+        const SOCIAL_MEDIA_WEIGHTS: Record<string, number> = {
+          TELEGRAM: 1,
+          VK: 2,
+          OK: 3,
+          FACEBOOK: 4,
+          INSTAGRAM: 5,
+          TIKTOK: 6,
+          YOUTUBE: 7,
+          TWITTER: 8,
+          LINKEDIN: 9,
+        };
+        const weightA = SOCIAL_MEDIA_WEIGHTS[a.socialMedia] || 99;
+        const weightB = SOCIAL_MEDIA_WEIGHTS[b.socialMedia] || 99;
+        result = weightA - weightB;
+        if (result === 0) result = a.name.localeCompare(b.name);
+      } else if (sortBy === 'language') {
+        const langA = a.language || 'zzz';
+        const langB = b.language || 'zzz';
+        result = langA.localeCompare(langB);
+        if (result === 0) result = a.name.localeCompare(b.name);
+      } else if (sortBy === 'postsCount') {
+        result = (b.postsCount || 0) - (a.postsCount || 0);
+        if (result === 0) result = a.name.localeCompare(b.name);
+      }
+
+      return sortOrder === 'asc' ? result : -result;
+    });
+
+    return {
+      items: mappedChannels,
+      total,
+    };
   }
 
 
