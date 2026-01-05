@@ -28,6 +28,17 @@ const { canGoBack, goBack } = useNavigation()
 const projectId = computed(() => route.params.id as string)
 const publicationId = computed(() => route.params.publicationId as string)
 
+// Publication problems detection
+const { 
+  getPublicationProblems, 
+  getPublicationProblemLevel 
+} = usePublications()
+
+const publicationProblems = computed(() => {
+  if (!currentPublication.value) return []
+  return getPublicationProblems(currentPublication.value)
+})
+
 const isCreatingPost = ref(false)
 const isFormCollapsed = ref(true)
 const isDeleteModalOpen = ref(false)
@@ -508,6 +519,14 @@ function formatDate(dateString: string | null | undefined): string {
             :entity-type="ArchiveEntityType.PUBLICATION"
             :entity-id="currentPublication.id"
             @restore="() => fetchPublication(publicationId)"
+        />
+
+        <!-- Problems Banner -->
+        <CommonProblemBanner
+          v-if="publicationProblems.length > 0"
+          :problems="publicationProblems"
+          entity-type="publication"
+          class="mb-6"
         />
 
         <!-- Block 1: Publication Info & Actions (Non-collapsible) -->

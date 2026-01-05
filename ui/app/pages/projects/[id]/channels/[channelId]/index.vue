@@ -240,6 +240,17 @@ const daysSinceActivity = computed(() => {
     return Math.floor(diffTime / (1000 * 60 * 60 * 24))
 })
 
+// Channel problems detection
+const { 
+  getChannelProblems, 
+  getChannelProblemLevel 
+} = useChannels()
+
+const channelProblems = computed(() => {
+  if (!channel.value) return []
+  return getChannelProblems(channel.value)
+})
+
 </script>
 
 <template>
@@ -378,10 +389,18 @@ const daysSinceActivity = computed(() => {
                 @restore="() => fetchChannel(channelId)"
             />
 
-            <!-- Deactivated Status Banner -->
+            <!-- Problems Banner -->
+            <CommonProblemBanner
+              v-if="channelProblems.length > 0"
+              :problems="channelProblems"
+              entity-type="channel"
+              class="mb-6"
+            />
+
+            <!-- Deactivated Manual Action Banner (keeping because it has a button) -->
             <div 
                 v-if="!channel.isActive" 
-                class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4"
+                class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6"
             >
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
@@ -391,9 +410,6 @@ const daysSinceActivity = computed(() => {
                         <div>
                             <p class="text-sm font-semibold text-amber-900 dark:text-amber-100">
                                 {{ t('channel.deactivated_notice', 'Channel is deactivated') }}
-                            </p>
-                            <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                                {{ t('channel.deactivate_warning', 'Deactivating the channel will stop all scheduled posts.') }}
                             </p>
                         </div>
                     </div>
@@ -406,73 +422,6 @@ const daysSinceActivity = computed(() => {
                     >
                         {{ t('channel.activate') }}
                     </UButton>
-                </div>
-            </div>
-
-            <!-- Failed Posts Banner -->
-            <div 
-                v-if="channel.failedPostsCount && channel.failedPostsCount > 0"
-                class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4"
-            >
-                <div class="flex items-start gap-3">
-                    <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full shrink-0">
-                        <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-semibold text-red-900 dark:text-red-100 mb-2">
-                            {{ t('channel.failedPostsWarning') }}
-                        </p>
-                        
-                        <!-- List of failed posts -->
-                        <ul class="text-sm text-red-800 dark:text-red-200 space-y-1 mb-3">
-                            <li 
-                                v-for="post in failedPosts" 
-                                :key="post.id"
-                                class="flex items-start gap-2"
-                            >
-                                <span class="mt-1.5 w-1 h-1 bg-red-600 dark:bg-red-400 rounded-full shrink-0" />
-                                <NuxtLink
-                                    :to="`/projects/${projectId}/publications/${post.publicationId}`"
-                                    class="hover:underline flex-1"
-                                >
-                                    {{ getPostTitle(post) || t('post.untitled') }}
-                                    <span class="text-xs text-red-600 dark:text-red-400 ml-1">
-                                        ({{ formatDateTime(post.updatedAt) }})
-                                    </span>
-                                </NuxtLink>
-                            </li>
-                        </ul>
-                        
-                        <!-- View all link if more than 5 failed posts -->
-                        <NuxtLink
-                            v-if="channel.failedPostsCount > 5"
-                            :to="`/publications?channelId=${channelId}&status=FAILED`"
-                            class="text-sm font-medium text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 hover:underline inline-flex items-center gap-1"
-                        >
-                            {{ t('channel.viewAllFailedPosts', { count: channel.failedPostsCount }) }}
-                            <UIcon name="i-heroicons-arrow-right" class="w-4 h-4" />
-                        </NuxtLink>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stale Channel Warning Banner -->
-            <div 
-                v-if="channel.isStale"
-                class="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg p-4"
-            >
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full shrink-0">
-                        <UIcon name="i-heroicons-clock" class="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-orange-900 dark:text-orange-100">
-                             {{ t('settings.staleChannelsWarning') }}
-                        </p>
-                        <p class="text-sm text-orange-800 dark:text-orange-200 mt-1">
-                             {{ t('channel.staleWarning', { days: daysSinceActivity }) }}
-                        </p>
-                    </div>
                 </div>
             </div>
 

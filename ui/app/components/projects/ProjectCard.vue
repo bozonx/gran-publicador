@@ -60,7 +60,19 @@ const isWarningActive = computed(() => {
         </UBadge>
       </div>
       
-      <div class="shrink-0 flex items-center gap-1.5">
+      <div class="shrink-0 flex items-center gap-1.5 text-xs font-bold">
+          <UTooltip v-if="project.failedPostsCount" :text="t('channel.failedPosts')">
+            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-800/30">
+               <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4" />
+               <span>{{ project.failedPostsCount }}</span>
+            </div>
+          </UTooltip>
+          <UTooltip v-if="project.problemPublicationsCount" :text="t('problems.project.problemPublications', { count: project.problemPublicationsCount })">
+            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-100/50 dark:border-orange-800/30">
+               <UIcon name="i-heroicons-document-exclamation" class="w-4 h-4" />
+               <span>{{ project.problemPublicationsCount }}</span>
+            </div>
+          </UTooltip>
           <UTooltip v-if="isWarningActive" :text="t('project.noRecentPostsWarning')">
             <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-amber-500" />
           </UTooltip>

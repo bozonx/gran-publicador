@@ -123,6 +123,21 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Fetch problematic publications count for all projects at once
+    const problematicCounts = await this.prisma.publication.groupBy({
+      by: ['projectId'],
+      where: {
+        projectId: { in: projects.map(p => p.id) },
+        status: { in: ['FAILED', 'PARTIAL' as any] },
+        archivedAt: null,
+      },
+      _count: { id: true },
+    });
+
+    const problematicCountMap = Object.fromEntries(
+      problematicCounts.map(c => [c.projectId, c._count.id]),
+    );
+
     return projects.map(project => {
       const userMember = project.members[0]; // We filtered by userId, so there is at most one
 
@@ -130,6 +145,7 @@ export class ProjectsService {
       const lastPublicationId = project.publications[0]?.id || null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const failedPostsCount = (project.channels as any[] || []).reduce((acc, ch) => acc + (ch._count?.posts || 0), 0);
+      const problemPublicationsCount = problematicCountMap[project.id] || 0;
       const languages = [...new Set((project.channels || []).map(c => c.language))].sort();
 
       const projectPreferences = project.preferences ? JSON.parse(project.preferences) : {};
@@ -172,6 +188,7 @@ export class ProjectsService {
         lastPublicationId,
         languages,
         failedPostsCount,
+        problemPublicationsCount,
         preferences: projectPreferences,
         staleChannelsCount,
       };
@@ -337,7 +354,9 @@ export class ProjectsService {
           where: { archivedAt: null },
           include: {
             _count: {
-              select: { posts: { where: publishedPostFilter } },
+              select: {
+                posts: { where: publishedPostFilter },
+              },
             },
             posts: {
               where: publishedPostFilter,
@@ -365,13 +384,27 @@ export class ProjectsService {
     const projectPreferences = project.preferences ? JSON.parse(project.preferences) : {};
     let staleChannelsCount = 0;
 
+    const channelIds = project.channels.map(c => c.id);
+    const failedPostCounts = await this.prisma.post.groupBy({
+      by: ['channelId'],
+      where: {
+        channelId: { in: channelIds },
+        status: 'FAILED',
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    const failedCountsMap = new Map<string, number>();
+    failedPostCounts.forEach(pc => {
+      failedCountsMap.set(pc.channelId, pc._count.id);
+    });
+
     const mappedChannels = project.channels.map(channel => {
       const channelPreferences = channel.preferences ? JSON.parse(channel.preferences) : {};
       const lastPostAt = channel.posts[0]?.publishedAt || channel.posts[0]?.createdAt || null;
       
-      // Calculate isStale based on publishedAt if available, otherwise createdAt? 
-      // Requirement says "publications with status published". So I should probably look for publishedAt.
-      // But findOne includes posts with status PUBLISHED.
       const lastPublishedAt = channel.posts.find(p => p.publishedAt)?.publishedAt || null;
 
       let isStale = false;
@@ -386,13 +419,27 @@ export class ProjectsService {
           staleChannelsCount++;
       }
 
+      const failedPostsCount = failedCountsMap.get(channel.id) || 0;
+
       return {
         ...channel,
         postsCount: channel._count.posts,
+        failedPostsCount,
         lastPostAt: lastPostAt,
         isStale,
         preferences: channelPreferences,
       };
+    });
+
+    const projectFailedPostsCount = Array.from(failedCountsMap.values()).reduce((acc, count) => acc + count, 0);
+
+    // Also count problematic publications (FAILED or PARTIAL)
+    const problemPublicationsCount = await this.prisma.publication.count({
+      where: {
+        projectId,
+        status: { in: ['FAILED', 'PARTIAL'] },
+        archivedAt: null,
+      },
     });
 
     return {
@@ -406,6 +453,8 @@ export class ProjectsService {
       lastPublicationId,
       preferences: projectPreferences,
       staleChannelsCount,
+      failedPostsCount: projectFailedPostsCount,
+      problemPublicationsCount,
     };
   }
 

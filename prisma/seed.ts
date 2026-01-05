@@ -119,6 +119,12 @@ async function main() {
             name: 'Stale Test Project 🕸️',
             description: 'Project for testing stale channel warnings.',
             ownerId: devUser.id,
+        },
+        {
+            id: '11111111-1111-1111-1111-111111111117',
+            name: 'Problematic Project ⚠️',
+            description: 'Project with various problems regarding activity and channels.',
+            ownerId: devUser.id,
         }
     ];
 
@@ -142,6 +148,7 @@ async function main() {
         { projectId: '11111111-1111-1111-1111-111111111115', userId: devUser.id, role: ProjectRole.OWNER },
         { projectId: '88888888-8888-8888-8888-888888888888', userId: devUser.id, role: ProjectRole.OWNER },
         { projectId: '11111111-1111-1111-1111-111111111116', userId: devUser.id, role: ProjectRole.OWNER },
+        { projectId: '11111111-1111-1111-1111-111111111117', userId: devUser.id, role: ProjectRole.OWNER },
     ];
 
     for (const m of memberships) {
@@ -154,15 +161,19 @@ async function main() {
 
     // 5. CHANNELS
     const channelData = [
-        { id: '22222222-2222-2222-2222-222222222221', projectId: projectData[0].id, socialMedia: SocialMedia.TELEGRAM, name: 'Основной Техно-канал', channelIdentifier: '@tech_main', language: 'ru-RU', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222222', projectId: projectData[0].id, socialMedia: SocialMedia.YOUTUBE, name: 'Техно-Туториалы YT', channelIdentifier: 'UC_TechTuts', language: 'en-US', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Путешествия Ежедневно', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222225', projectId: projectData[2].id, socialMedia: SocialMedia.X, name: 'Финансовые Алертс', channelIdentifier: 'finance_guru', language: 'en-US', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222227', projectId: '11111111-1111-1111-1111-111111111115', socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel with Long Name', channelIdentifier: '@stress_test_long_id', language: 'ru-RU', isActive: true },
-        { id: '99999999-9999-9999-9999-999999999999', projectId: '88888888-8888-8888-8888-888888888888', socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true },
-        { id: '22222222-2222-2222-2222-222222222228', projectId: '11111111-1111-1111-1111-111111111116', socialMedia: SocialMedia.TELEGRAM, name: 'Stale Channel', channelIdentifier: '@stale_channel', language: 'ru-RU', isActive: true },
+        { id: '22222222-2222-2222-2222-222222222221', projectId: projectData[0].id, socialMedia: SocialMedia.TELEGRAM, name: 'Основной Техно-канал', channelIdentifier: '@tech_main', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222222', projectId: projectData[0].id, socialMedia: SocialMedia.YOUTUBE, name: 'Техно-Туториалы YT', channelIdentifier: 'UC_TechTuts', language: 'en-US', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Путешествия Ежедневно', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222225', projectId: projectData[2].id, socialMedia: SocialMedia.X, name: 'Финансовые Алертс', channelIdentifier: 'finance_guru', language: 'en-US', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222227', projectId: '11111111-1111-1111-1111-111111111115', socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel with Long Name', channelIdentifier: '@stress_test_long_id', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '99999999-9999-9999-9999-999999999999', projectId: '88888888-8888-8888-8888-888888888888', socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222228', projectId: '11111111-1111-1111-1111-111111111116', socialMedia: SocialMedia.TELEGRAM, name: 'Stale Channel', channelIdentifier: '@stale_channel', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
+        // Problematic Project Channels
+        { id: '22222222-2222-2222-2222-222222222230', projectId: '11111111-1111-1111-1111-111111111117', socialMedia: SocialMedia.TELEGRAM, name: 'No Credentials Channel', channelIdentifier: '@no_creds', language: 'ru-RU', isActive: true, credentials: '{}' },
+        { id: '22222222-2222-2222-2222-222222222231', projectId: '11111111-1111-1111-1111-111111111117', socialMedia: SocialMedia.TELEGRAM, name: 'Inactive Channel', channelIdentifier: '@inactive_ch', language: 'ru-RU', isActive: false, credentials: '{"token":"valid"}' },
+        { id: '22222222-2222-2222-2222-222222222232', projectId: '11111111-1111-1111-1111-111111111117', socialMedia: SocialMedia.TELEGRAM, name: 'Failed Posts Channel', channelIdentifier: '@failed_posts', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
     ];
 
     for (const c of channelData) {
@@ -346,6 +357,29 @@ async function main() {
             status: PublicationStatus.PUBLISHED,
             postType: PostType.POST,
             language: 'ru-RU',
+        },
+        // Expired Publication
+        {
+            id: '44444444-4444-4444-4444-444444444480',
+            projectId: '11111111-1111-1111-1111-111111111117',
+            createdBy: devUser.id,
+            title: 'Просроченная публикация (Expired)',
+            content: '<p>Эта публикация просрочена.</p>',
+            status: PublicationStatus.EXPIRED,
+            postType: PostType.POST,
+            language: 'ru-RU',
+        },
+         // Failed Publication for Problematic Project
+        {
+            id: '44444444-4444-4444-4444-444444444481',
+            projectId: '11111111-1111-1111-1111-111111111117',
+            createdBy: devUser.id,
+            title: 'Неудачная публикация в проблемном проекте',
+            content: '<p>Ошибка.</p>',
+            status: PublicationStatus.FAILED,
+            postType: PostType.POST,
+            language: 'ru-RU',
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago to trigger "No Recent Activity"
         }
     ];
 
@@ -490,7 +524,15 @@ async function main() {
             channelId: '22222222-2222-2222-2222-222222222228',
             socialMedia: 'TELEGRAM',
             status: PostStatus.PUBLISHED,
-            publishedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+            publishedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000), // 40 days ago to trigger "Stale"
+        },
+        // Failed post for 'Failed Posts Channel'
+        {
+            id: '33333333-3333-3333-3333-333333333380',
+            publicationId: '44444444-4444-4444-4444-444444444481',
+            channelId: '22222222-2222-2222-2222-222222222232', // Failed Posts Channel
+            socialMedia: 'TELEGRAM',
+            status: PostStatus.FAILED,
         }
     ];
 

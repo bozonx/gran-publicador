@@ -202,8 +202,9 @@ const projectsByRole = computed(() => {
         </div>
       </div>
 
-      <!-- Right side: Channels -->
-      <div class="lg:col-span-1">
+      <!-- Right side: Problems and Channels -->
+      <div class="lg:col-span-1 space-y-6">
+        <DashboardProblemsWidget />
         <ChannelsDashboardPanel />
       </div>
     </div>

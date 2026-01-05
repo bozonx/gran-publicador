@@ -312,6 +312,39 @@ export function useProjects() {
         store.setError(null)
     }
 
+    function getProjectProblems(project: Project | any) {
+        const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
+
+        // Check for no recent activity
+        if (project.lastPublicationAt) {
+            const lastDate = new Date(project.lastPublicationAt).getTime()
+            const now = new Date().getTime()
+            const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+            
+            if (diffDays > 3) {
+                problems.push({ type: 'warning', key: 'noRecentActivity' })
+            }
+        }
+
+        // Check for stale channels (if available in project object)
+        if (project.staleChannelsCount > 0) {
+            problems.push({ 
+                type: 'warning', 
+                key: 'staleChannels', 
+                count: project.staleChannelsCount 
+            })
+        }
+
+        return problems
+    }
+
+    function getProjectProblemLevel(project: Project | any): 'critical' | 'warning' | null {
+        const problems = getProjectProblems(project)
+        if (problems.some(p => p.type === 'critical')) return 'critical'
+        if (problems.some(p => p.type === 'warning')) return 'warning'
+        return null
+    }
+
     return {
         projects,
         currentProject,
@@ -335,6 +368,9 @@ export function useProjects() {
         unarchiveProject,
         canManageMembers,
         getRoleDisplayName,
+        // Problem detection
+        getProjectProblems,
+        getProjectProblemLevel,
     }
 
 }

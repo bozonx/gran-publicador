@@ -50,7 +50,10 @@ const ownershipFilter = ref<OwnershipFilter>('all')
 
 // Filter options
 const showArchivedFilter = ref(false) // По умолчанию false - показывает неархивные
-const showIssuesOnlyFilter = ref(false) // По умолчанию false - показывает все
+
+type IssueFilter = 'all' | 'failed' | 'partial' | 'expired'
+const selectedIssueType = ref<IssueFilter>('all')
+
 const selectedSocialMedia = ref<SocialMedia | null>(null) // Фильтр по социальной сети
 const selectedLanguage = ref<string | null>(null) // Фильтр по языку
 
@@ -139,6 +142,9 @@ onMounted(async () => {
     if (route.query.status && typeof route.query.status === 'string') {
         selectedStatus.value = route.query.status as PublicationStatus
     }
+    if (route.query.issue && typeof route.query.issue === 'string') {
+        selectedIssueType.value = route.query.issue as IssueFilter
+    }
     
     await Promise.all([
         fetchUserPublications({
@@ -151,7 +157,7 @@ onMounted(async () => {
 })
 
 // Watch filters (reset to page 1)
-watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, showIssuesOnlyFilter, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
+watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
     currentPage.value = 1
 })
 
@@ -210,6 +216,14 @@ const sortOrderLabel = computed(() =>
 const socialMediaFilterOptions = computed(() => [
   { value: null, label: t('common.all') },
   ...getSocialMediaOptions(t)
+])
+
+// Issue filter options
+const issueFilterOptions = computed(() => [
+  { value: 'all', label: t('publication.filter.problems.all') },
+  { value: 'failed', label: t('publication.filter.problems.failed') },
+  { value: 'partial', label: t('publication.filter.problems.partial') },
+  { value: 'expired', label: t('publication.filter.problems.expired') }
 ])
 
 // Language filter options - only languages present in publications
@@ -344,19 +358,21 @@ const filteredPublications = computed(() => {
     }
     // 'all' - no filtering by ownership
     
-    // Apply issues filter (checkbox)
-    if (showIssuesOnlyFilter.value) {
+    // Apply issues filter
+    if (selectedIssueType.value !== 'all') {
         result = result.filter(p => {
-            // Publication has issues if:
-            // 1. Status is EXPIRED
-            const isExpired = p.status === 'EXPIRED'
-            // 2. Has at least one failed post
-            const hasFailedPosts = p.posts?.some(post => post.status === 'FAILED')
-            
-            return isExpired || hasFailedPosts
+            if (selectedIssueType.value === 'failed') {
+                return p.status === 'FAILED' || p.posts?.some(post => post.status === 'FAILED')
+            }
+            if (selectedIssueType.value === 'partial') {
+                return p.status === 'PARTIAL'
+            }
+            if (selectedIssueType.value === 'expired') {
+                return p.status === 'EXPIRED'
+            }
+            return true
         })
     }
-    // По умолчанию (false) - показываем все
     
     // Apply social media filter
     if (selectedSocialMedia.value) {
@@ -489,12 +505,18 @@ const showPagination = computed(() => {
           </UTooltip>
         </div>
 
-        <!-- Issues Filter (Checkbox) -->
-        <UCheckbox 
-          v-model="showIssuesOnlyFilter" 
-          :label="t('publication.filter.showIssuesOnly')"
-          :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
-        />
+        <!-- Issues Filter (Select) -->
+        <USelectMenu
+          v-model="selectedIssueType"
+          :items="issueFilterOptions"
+          value-key="value"
+          label-key="label"
+          class="w-full sm:w-48"
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-orange-500" />
+          </template>
+        </USelectMenu>
 
         <!-- Archive Filter (Checkbox) - moved to end -->
         <div class="flex items-center gap-1.5">

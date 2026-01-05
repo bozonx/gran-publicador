@@ -184,6 +184,13 @@
     "title": "Channel",
     "titlePlural": "Channels",
     "filter": {
+      "problems": {
+        "all": "All problems",
+        "noCredentials": "No credentials",
+        "failedPosts": "Failed posts",
+        "stale": "Stale",
+        "inactive": "Inactive"
+      },
       "archiveStatus": {
         "unarchived": "Active",
         "archived": "Archived",
@@ -419,6 +426,12 @@
         "tooltip": "All: show all publications. My: only publications created by me. Not Mine: only publications created by other users."
       },
       "showIssuesOnly": "Issues",
+      "problems": {
+        "all": "All problems",
+        "failed": "Failed posts",
+        "partial": "Partial status",
+        "expired": "Expired"
+      },
       "showArchived": "Archived",
       "socialMedia": "Social Media",
       "language": "Language",
@@ -490,7 +503,11 @@
       "criticalProblems": "{count} critical problems",
       "warningProblems": "{count} important problems",
       "problemChannels": "{count} channels with problems",
-      "problemPublications": "{count} publications with problems"
+      "problemPublications": "{count} publications with problems",
+      "criticalChannels": "{count} channels with critical problems",
+      "warningChannels": "{count} channels need attention",
+      "staleChannels": "{count} stale channels",
+      "noRecentActivity": "No activity for more than 3 days"
     }
   },
   "settings": {
@@ -566,6 +583,8 @@
     "recentPosts": "Recent publications",
     "quickActions": "Quick actions",
     "statistics": "Statistics",
+    "problems": "Problems",
+    "noProblems": "All good! No problems detected.",
     "group_owner": "Your projects",
     "group_admin": "Projects where you are an admin",
     "group_editor": "Projects where you are an editor",

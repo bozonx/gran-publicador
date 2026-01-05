@@ -184,6 +184,13 @@
     "title": "Канал",
     "titlePlural": "Каналы",
     "filter": {
+      "problems": {
+        "all": "Все проблемы",
+        "noCredentials": "Без доступов",
+        "failedPosts": "Ошибки постов",
+        "stale": "Неактивные",
+        "inactive": "Выключенные"
+      },
       "archiveStatus": {
         "unarchived": "Активные",
         "archived": "Архивные",
@@ -419,6 +426,12 @@
         "tooltip": "Все: показать все публикации. Мои: только публикации, созданные мной. Не мои: только публикации, созданные другими пользователями."
       },
       "showIssuesOnly": "Проблемные",
+      "problems": {
+        "all": "Все проблемы",
+        "failed": "Ошибки публикации",
+        "partial": "Частичные",
+        "expired": "Просроченно"
+      },
       "showArchived": "Архивные",
       "socialMedia": "Социальная сеть",
       "language": "Язык",
@@ -490,7 +503,11 @@
       "criticalProblems": "{count} критических проблем",
       "warningProblems": "{count} важных проблем",
       "problemChannels": "{count} каналов с проблемами",
-      "problemPublications": "{count} публикаций с проблемами"
+      "problemPublications": "{count} публикаций с проблемами",
+      "criticalChannels": "{count} каналов с критическими проблемами",
+      "warningChannels": "{count} каналов требуют внимания",
+      "staleChannels": "{count} неактивных каналов",
+      "noRecentActivity": "Нет активности более 3 дней"
     }
   },
   "settings": {
@@ -566,6 +583,8 @@
     "recentPosts": "Последние публикации",
     "quickActions": "Быстрые действия",
     "statistics": "Статистика",
+    "problems": "Проблемы",
+    "noProblems": "Все в порядке! Проблем не обнаружено.",
     "group_owner": "Ваши проекты",
     "group_admin": "Проекты, в которых вы администратор",
     "group_editor": "Проекты, в которых вы редактор",

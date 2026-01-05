@@ -108,10 +108,20 @@ const isWarningActive = computed(() => {
 
             <template v-if="project.failedPostsCount">
               <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-              <div class="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-medium" :title="t('channel.failedPosts')">
+              <div class="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-bold" :title="t('channel.failedPosts')">
                 <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 shrink-0" />
                 <span>
-                   {{ project.failedPostsCount }} {{ t('channel.failedPosts').toLowerCase() }}
+                   {{ project.failedPostsCount }}
+                </span>
+              </div>
+            </template>
+
+            <template v-if="project.problemPublicationsCount">
+              <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+              <div class="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-bold" :title="t('problems.project.problemPublications', { count: project.problemPublicationsCount })">
+                <UIcon name="i-heroicons-document-exclamation" class="w-4 h-4 shrink-0" />
+                <span>
+                   {{ project.problemPublicationsCount }}
                 </span>
               </div>
             </template>

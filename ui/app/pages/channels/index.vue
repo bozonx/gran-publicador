@@ -13,6 +13,7 @@ definePageMeta({
 })
 
 const { t } = useI18n()
+const route = useRoute()
 const { user } = useAuth()
 const { 
   channels, 
@@ -32,8 +33,9 @@ const ownershipFilter = ref<OwnershipFilter>('all')
 // Filter options
 const selectedProjectId = ref<string | null>(null)
 const showArchivedFilter = ref(false) // По умолчанию false - показывает неархивные
-const showInactiveOnlyFilter = ref(false) // По умолчанию false - показывает все (активные и неактивные)
-const showIssuesOnlyFilter = ref(false) // По умолчанию false - показывает все
+
+type ChannelIssueFilter = 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive'
+const selectedIssueType = ref<ChannelIssueFilter>('all')
 
 // Sorting with localStorage persistence
 const sortOptionsComputed = computed(() => [
@@ -87,6 +89,11 @@ const { projects, fetchProjects } = useProjects()
 
 // Fetch all user channels on mount (including archived)
 onMounted(async () => {
+    // Set initial issue filter if provided in query
+    if (route.query.issue && typeof route.query.issue === 'string') {
+        selectedIssueType.value = route.query.issue as ChannelIssueFilter
+    }
+
     setFilter({ includeArchived: true })
     await Promise.all([
         fetchChannels(),
@@ -145,6 +152,15 @@ const projectFilterOptions = computed(() => {
   return options
 })
 
+// Issue filter options
+const issueFilterOptions = computed(() => [
+  { value: 'all', label: t('channel.filter.problems.all') },
+  { value: 'noCredentials', label: t('channel.filter.problems.noCredentials') },
+  { value: 'failedPosts', label: t('channel.filter.problems.failedPosts') },
+  { value: 'stale', label: t('channel.filter.problems.stale') },
+  { value: 'inactive', label: t('channel.filter.problems.inactive') }
+])
+
 const filteredChannels = computed(() => {
     let result = channels.value
 
@@ -172,27 +188,24 @@ const filteredChannels = computed(() => {
         result = result.filter(c => c.projectId === selectedProjectId.value)
     }
 
-    // Apply inactive filter (checkbox)
-    if (showInactiveOnlyFilter.value) {
-        result = result.filter(c => !c.isActive)
-    }
-    // По умолчанию (false) - показываем все (активные и неактивные)
-
-    // Apply issues filter (checkbox)
-    if (showIssuesOnlyFilter.value) {
+    // Apply issues filter
+    if (selectedIssueType.value !== 'all') {
         result = result.filter(c => {
-            // Channel has issues if:
-            // 1. Has failed posts
-            const hasFailedPosts = c.failedPostsCount && c.failedPostsCount > 0
-            // 2. Is stale (no recent posts)
-            const isStale = c.isStale
-            // 3. Has no credentials
-            const hasNoCredentials = !c.credentials || Object.keys(c.credentials).length === 0
-            
-            return hasFailedPosts || isStale || hasNoCredentials
+            if (selectedIssueType.value === 'noCredentials') {
+                return !c.credentials || Object.keys(c.credentials).length === 0
+            }
+            if (selectedIssueType.value === 'failedPosts') {
+                return c.failedPostsCount && c.failedPostsCount > 0
+            }
+            if (selectedIssueType.value === 'stale') {
+                return c.isStale
+            }
+            if (selectedIssueType.value === 'inactive') {
+                return !c.isActive
+            }
+            return true
         })
     }
-    // По умолчанию (false) - показываем все
 
     // Apply search query
     if (searchQuery.value) {
@@ -302,19 +315,18 @@ const filteredChannels = computed(() => {
           </UTooltip>
         </div>
 
-        <!-- Issues Filter (Checkbox) -->
-        <UCheckbox 
-          v-model="showIssuesOnlyFilter" 
-          :label="t('channel.filter.showIssuesOnly')"
-          :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
-        />
-
-        <!-- Inactive Filter (Checkbox) -->
-        <UCheckbox 
-          v-model="showInactiveOnlyFilter" 
-          :label="t('channel.filter.showInactiveOnly')"
-          :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
-        />
+        <!-- Issues Filter (Select) -->
+        <USelectMenu
+          v-model="selectedIssueType"
+          :items="issueFilterOptions"
+          value-key="value"
+          label-key="label"
+          class="w-full sm:w-56"
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-orange-500" />
+          </template>
+        </USelectMenu>
 
         <!-- Archive Filter (Checkbox) - moved to end -->
         <div class="flex items-center gap-1.5">

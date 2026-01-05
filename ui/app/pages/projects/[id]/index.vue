@@ -115,6 +115,82 @@ function handleCreateSuccess(publicationId: string) {
     // The user wanted the modal to just work. Navigate to the new publication seems appropriate.
     router.push(`/projects/${projectId.value}/publications/${publicationId}?new=true`)
 }
+
+// Project problems detection
+const { 
+  getPublicationProblems, 
+  getPublicationProblemLevel 
+} = usePublications()
+
+const { 
+  getChannelProblems, 
+  getChannelProblemLevel 
+} = useChannels()
+
+const projectProblems = computed(() => {
+  const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
+  
+  if (!currentProject.value) return problems
+  
+  // Count channels with problems
+  let criticalChannels = 0
+  let warningChannels = 0
+  
+  if (channels.value && Array.isArray(channels.value)) {
+    channels.value.forEach((channel: any) => {
+      const level = getChannelProblemLevel(channel)
+      if (level === 'critical') criticalChannels++
+      if (level === 'warning') warningChannels++
+    })
+  }
+  
+  if (criticalChannels > 0) {
+    problems.push({ 
+      type: 'critical', 
+      key: 'criticalChannels', 
+      count: criticalChannels 
+    })
+  }
+  
+  if (warningChannels > 0) {
+    problems.push({ 
+      type: 'warning', 
+      key: 'warningChannels', 
+      count: warningChannels 
+    })
+  }
+
+  // Check for problematic publications
+  if (currentProject.value.problemPublicationsCount && currentProject.value.problemPublicationsCount > 0) {
+    problems.push({
+      type: 'warning',
+      key: 'problemPublications',
+      count: currentProject.value.problemPublicationsCount
+    })
+  }
+  
+  // Check for stale channels
+  if (currentProject.value.staleChannelsCount && currentProject.value.staleChannelsCount > 0) {
+    problems.push({ 
+      type: 'warning', 
+      key: 'staleChannels', 
+      count: currentProject.value.staleChannelsCount 
+    })
+  }
+  
+  // Check for no recent activity
+  if (currentProject.value.lastPublicationAt) {
+    const lastDate = new Date(currentProject.value.lastPublicationAt).getTime()
+    const now = new Date().getTime()
+    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+    
+    if (diffDays > 3) {
+      problems.push({ type: 'warning', key: 'noRecentActivity' })
+    }
+  }
+  
+  return problems
+})
 </script>
 
 <template>
@@ -251,6 +327,14 @@ function handleCreateSuccess(publicationId: string) {
         :entity-id="currentProject.id"
         @restore="() => fetchProject(projectId)"
       />
+
+      <!-- Problems Banner -->
+      <div v-if="projectProblems.length > 0" class="mt-6">
+        <CommonProblemBanner
+          :problems="projectProblems"
+          entity-type="project"
+        />
+      </div>
 
       <!-- Publications Section -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6 p-6">
