@@ -50,9 +50,8 @@ jobs:
       - name: Run unit tests
         run: pnpm test:unit
 
-      # Мы не собираем бэкенд здесь (pnpm build), 
-      # так как теперь Docker-сборка сама собирает его (multi-stage build).
-      # Это гарантирует правильную линковку нативных модулей внутри контейнера.
+      - name: Build backend
+        run: pnpm build
 
       - name: Build frontend
         working-directory: ui

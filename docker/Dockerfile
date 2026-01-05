@@ -19,14 +19,13 @@ COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY ui/package.json ./ui/package.json
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# 2. Rebuild better-sqlite3 for the target architecture
+# 2. Copy source code (needed for prisma config and build context)
+COPY . .
+
+# 3. Rebuild better-sqlite3 for the target architecture
 RUN pnpm rebuild better-sqlite3
 
-# 3. Generate Prisma client (required for migrations in entrypoint)
-# We need a dummy DATA_DIR for the config import to work
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-COPY src/generated ./src/generated
+# 4. Generate Prisma client (required for migrations in entrypoint)
 ENV DATA_DIR=/tmp
 RUN npx prisma generate
 
