@@ -153,7 +153,7 @@ node prisma-wrapper.mjs migrate deploy
 
 # Генерация Prisma клиента
 npx prisma generate
-  
+
 # Наполнение базы тестовыми данными (опционально)
 node prisma-wrapper.mjs db seed
 ``` 
