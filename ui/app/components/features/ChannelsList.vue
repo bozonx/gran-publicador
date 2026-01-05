@@ -100,6 +100,82 @@ onMounted(async () => {
   }
 })
 
+const isCreateModalOpen = ref(false)
+const isCreating = ref(false)
+const { languageOptions } = useLanguages()
+const { 
+  createChannel, 
+  socialMediaOptions,
+  getSocialMediaIcon,
+  getSocialMediaColor 
+} = useChannels()
+const router = useRouter()
+
+const createFormState = reactive({
+  language: 'ru-RU',
+  socialMedia: 'TELEGRAM' as SocialMedia,
+  name: '',
+  description: '',
+  channelIdentifier: ''
+})
+
+function resetCreateForm() {
+  createFormState.language = 'ru-RU'
+  createFormState.socialMedia = 'TELEGRAM'
+  createFormState.name = ''
+  createFormState.description = ''
+  createFormState.channelIdentifier = ''
+  isCreating.value = false
+}
+
+function openCreateModal() {
+  resetCreateForm()
+  isCreateModalOpen.value = true
+}
+
+async function handleCreateChannel() {
+  if (!createFormState.name || !createFormState.channelIdentifier || !createFormState.language) return
+
+  isCreating.value = true
+  try {
+    const channel = await createChannel({
+      projectId: props.projectId,
+      name: createFormState.name,
+      description: createFormState.description || undefined,
+      socialMedia: createFormState.socialMedia,
+      channelIdentifier: createFormState.channelIdentifier,
+      language: createFormState.language,
+      isActive: true
+    })
+
+    if (channel) {
+      isCreateModalOpen.value = false
+      router.push(`/projects/${props.projectId}/channels/${channel.id}/settings`)
+    }
+  } catch (error: any) {
+    // Error is handled by createChannel toast
+  } finally {
+    isCreating.value = false
+  }
+}
+
+/**
+ * Get identifier placeholder based on selected social media
+ */
+function getIdentifierPlaceholder(socialMedia: SocialMedia): string {
+  const placeholders: Record<SocialMedia, string> = {
+    TELEGRAM: '@channel_name',
+    INSTAGRAM: '@username',
+    VK: 'club123456789',
+    YOUTUBE: '@channelhandle',
+    TIKTOK: '@username',
+    X: '@username',
+    FACEBOOK: 'page_username',
+    SITE: 'https://example.com',
+    LINKEDIN: 'username',
+  }
+  return placeholders[socialMedia] || ''
+}
 function toggleArchivedChannels() {
   showArchived.value = !showArchived.value
 }
@@ -141,7 +217,7 @@ function toggleArchivedChannels() {
         <UButton
           icon="i-heroicons-plus"
           color="primary"
-          :to="`/projects/${projectId}/channels/new`"
+          @click="openCreateModal"
         >
           {{ t('channel.createChannel', 'Create channel') }}
         </UButton>
@@ -174,7 +250,9 @@ function toggleArchivedChannels() {
       <p class="text-gray-500 dark:text-gray-400 mb-6">
         {{ t('channel.noChannelsDescription') }}
       </p>
-
+      <UButton icon="i-heroicons-plus" color="primary" @click="openCreateModal">
+        {{ t('channel.createChannel', 'Create channel') }}
+      </UButton>
     </div>
 
     <!-- Channels List -->
@@ -212,5 +290,68 @@ function toggleArchivedChannels() {
         </div>
       </div>
     </div>
+
+    <!-- Create Channel Modal -->
+    <UModal v-model:open="isCreateModalOpen">
+      <template #content>
+        <div class="p-6 min-w-[500px]">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+              {{ t('channel.createChannel') }}
+            </h2>
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" size="sm" @click="isCreateModalOpen = false" />
+          </div>
+
+          <form @submit.prevent="handleCreateChannel" class="space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+              <UFormField :label="t('channel.language')" required>
+                <USelectMenu
+                  v-model="createFormState.language"
+                  :items="languageOptions"
+                  value-key="value"
+                  label-key="label"
+                  class="w-full"
+                >
+                  <template #leading>
+                    <UIcon name="i-heroicons-language" class="w-4 h-4" />
+                  </template>
+                </USelectMenu>
+              </UFormField>
+
+              <UFormField :label="t('channel.socialMedia')" required>
+                <USelectMenu
+                  v-model="createFormState.socialMedia"
+                  :items="socialMediaOptions"
+                  value-key="value"
+                  label-key="label"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+
+            <UFormField :label="t('channel.name')" required>
+              <UInput v-model="createFormState.name" :placeholder="t('channel.namePlaceholder')" class="w-full" size="lg" />
+            </UFormField>
+
+            <UFormField :label="t('channel.description')" :help="t('common.optional')">
+              <UTextarea v-model="createFormState.description" :placeholder="t('channel.descriptionPlaceholder')" :rows="2" class="w-full" />
+            </UFormField>
+
+            <UFormField :label="t('channel.identifier')" required :help="t('channel.identifierHelp')">
+              <UInput v-model="createFormState.channelIdentifier" :placeholder="getIdentifierPlaceholder(createFormState.socialMedia)" class="w-full" />
+            </UFormField>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+               <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isCreateModalOpen = false">
+                  {{ t('common.cancel') }}
+               </UButton>
+               <UButton color="primary" :loading="isCreating" :disabled="!createFormState.name || !createFormState.channelIdentifier || !createFormState.language" @click="handleCreateChannel">
+                  {{ t('common.create') }}
+               </UButton>
+            </div>
+          </form>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
