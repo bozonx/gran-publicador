@@ -161,6 +161,8 @@ model Publication {
   postDate      DateTime?  @map("post_date")
   // Publication status (DRAFT, READY, SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
   status        PublicationStatus @default(DRAFT)
+  // Error message if publication failed
+  errorMessage  String?    @map("error_message")
   // Language of the publication (ru-RU, en-US, etc.)
   language      String     @default("ru-RU")
   // When the publication is scheduled to be published
@@ -189,6 +191,8 @@ model Post {
   // Post status for tracking publication success (PENDING, FAILED, PUBLISHED)
   // Note: Status is managed by the system only, not manually editable
   status        PostStatus @default(PENDING)
+  // Error message if post failed
+  errorMessage  String?    @map("error_message")
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")
   // Actual timestamp when post was published to platform

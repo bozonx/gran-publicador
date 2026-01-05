@@ -1061,6 +1061,7 @@ export const PublicationScalarFieldEnum = {
   postType: 'postType',
   postDate: 'postDate',
   status: 'status',
+  errorMessage: 'errorMessage',
   language: 'language',
   scheduledAt: 'scheduledAt'
 } as const
@@ -1075,6 +1076,7 @@ export const PostScalarFieldEnum = {
   socialMedia: 'socialMedia',
   tags: 'tags',
   status: 'status',
+  errorMessage: 'errorMessage',
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',

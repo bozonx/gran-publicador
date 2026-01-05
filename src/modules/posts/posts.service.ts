@@ -325,6 +325,7 @@ export class PostsService {
       status?: PostStatus;
       scheduledAt?: Date;
       publishedAt?: Date;
+      errorMessage?: string;
     },
   ) {
     const post = await this.findOne(id, userId);
@@ -349,6 +350,7 @@ export class PostsService {
         status: data.status,
         scheduledAt: data.scheduledAt,
         publishedAt: data.publishedAt,
+        errorMessage: data.errorMessage,
       },
       include: {
         channel: true,

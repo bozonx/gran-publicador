@@ -31,6 +31,7 @@ export type PostMinAggregateOutputType = {
   socialMedia: string | null
   tags: string | null
   status: $Enums.PostStatus | null
+  errorMessage: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date | null
@@ -44,6 +45,7 @@ export type PostMaxAggregateOutputType = {
   socialMedia: string | null
   tags: string | null
   status: $Enums.PostStatus | null
+  errorMessage: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date | null
@@ -57,6 +59,7 @@ export type PostCountAggregateOutputType = {
   socialMedia: number
   tags: number
   status: number
+  errorMessage: number
   scheduledAt: number
   publishedAt: number
   createdAt: number
@@ -72,6 +75,7 @@ export type PostMinAggregateInputType = {
   socialMedia?: true
   tags?: true
   status?: true
+  errorMessage?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -85,6 +89,7 @@ export type PostMaxAggregateInputType = {
   socialMedia?: true
   tags?: true
   status?: true
+  errorMessage?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -98,6 +103,7 @@ export type PostCountAggregateInputType = {
   socialMedia?: true
   tags?: true
   status?: true
+  errorMessage?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -184,6 +190,7 @@ export type PostGroupByOutputType = {
   socialMedia: string
   tags: string | null
   status: $Enums.PostStatus
+  errorMessage: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date
@@ -218,6 +225,7 @@ export type PostWhereInput = {
   socialMedia?: Prisma.StringFilter<"Post"> | string
   tags?: Prisma.StringNullableFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusFilter<"Post"> | $Enums.PostStatus
+  errorMessage?: Prisma.StringNullableFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -233,6 +241,7 @@ export type PostOrderByWithRelationInput = {
   socialMedia?: Prisma.SortOrder
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -251,6 +260,7 @@ export type PostWhereUniqueInput = Prisma.AtLeast<{
   socialMedia?: Prisma.StringFilter<"Post"> | string
   tags?: Prisma.StringNullableFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusFilter<"Post"> | $Enums.PostStatus
+  errorMessage?: Prisma.StringNullableFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -266,6 +276,7 @@ export type PostOrderByWithAggregationInput = {
   socialMedia?: Prisma.SortOrder
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -285,6 +296,7 @@ export type PostScalarWhereWithAggregatesInput = {
   socialMedia?: Prisma.StringWithAggregatesFilter<"Post"> | string
   tags?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusWithAggregatesFilter<"Post"> | $Enums.PostStatus
+  errorMessage?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Post"> | Date | string
@@ -296,6 +308,7 @@ export type PostCreateInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -311,6 +324,7 @@ export type PostUncheckedCreateInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -322,6 +336,7 @@ export type PostUpdateInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -337,6 +352,7 @@ export type PostUncheckedUpdateInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -350,6 +366,7 @@ export type PostCreateManyInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -361,6 +378,7 @@ export type PostUpdateManyMutationInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -374,6 +392,7 @@ export type PostUncheckedUpdateManyInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -397,6 +416,7 @@ export type PostCountOrderByAggregateInput = {
   socialMedia?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -410,6 +430,7 @@ export type PostMaxOrderByAggregateInput = {
   socialMedia?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -423,6 +444,7 @@ export type PostMinOrderByAggregateInput = {
   socialMedia?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  errorMessage?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -522,6 +544,7 @@ export type PostCreateWithoutChannelInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -535,6 +558,7 @@ export type PostUncheckedCreateWithoutChannelInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -576,6 +600,7 @@ export type PostScalarWhereInput = {
   socialMedia?: Prisma.StringFilter<"Post"> | string
   tags?: Prisma.StringNullableFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusFilter<"Post"> | $Enums.PostStatus
+  errorMessage?: Prisma.StringNullableFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -587,6 +612,7 @@ export type PostCreateWithoutPublicationInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -600,6 +626,7 @@ export type PostUncheckedCreateWithoutPublicationInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -637,6 +664,7 @@ export type PostCreateManyChannelInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -648,6 +676,7 @@ export type PostUpdateWithoutChannelInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -661,6 +690,7 @@ export type PostUncheckedUpdateWithoutChannelInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -673,6 +703,7 @@ export type PostUncheckedUpdateManyWithoutChannelInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -685,6 +716,7 @@ export type PostCreateManyPublicationInput = {
   socialMedia: string
   tags?: string | null
   status?: $Enums.PostStatus
+  errorMessage?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -696,6 +728,7 @@ export type PostUpdateWithoutPublicationInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -709,6 +742,7 @@ export type PostUncheckedUpdateWithoutPublicationInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -721,6 +755,7 @@ export type PostUncheckedUpdateManyWithoutPublicationInput = {
   socialMedia?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -736,6 +771,7 @@ export type PostSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   socialMedia?: boolean
   tags?: boolean
   status?: boolean
+  errorMessage?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -751,6 +787,7 @@ export type PostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   socialMedia?: boolean
   tags?: boolean
   status?: boolean
+  errorMessage?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -766,6 +803,7 @@ export type PostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   socialMedia?: boolean
   tags?: boolean
   status?: boolean
+  errorMessage?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -781,13 +819,14 @@ export type PostSelectScalar = {
   socialMedia?: boolean
   tags?: boolean
   status?: boolean
+  errorMessage?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
+export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
 export type PostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
@@ -814,6 +853,7 @@ export type $PostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     socialMedia: string
     tags: string | null
     status: $Enums.PostStatus
+    errorMessage: string | null
     scheduledAt: Date | null
     publishedAt: Date | null
     createdAt: Date
@@ -1249,6 +1289,7 @@ export interface PostFieldRefs {
   readonly socialMedia: Prisma.FieldRef<"Post", 'String'>
   readonly tags: Prisma.FieldRef<"Post", 'String'>
   readonly status: Prisma.FieldRef<"Post", 'PostStatus'>
+  readonly errorMessage: Prisma.FieldRef<"Post", 'String'>
   readonly scheduledAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly publishedAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Post", 'DateTime'>
