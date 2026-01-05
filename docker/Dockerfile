@@ -1,43 +1,34 @@
 ARG NODE_MAJOR=22
 
 # -----------------------------------------------------------------------------
-# Builder Stage
+# Builder Stage (Handles native modules compilation)
 # -----------------------------------------------------------------------------
 FROM node:${NODE_MAJOR}-bookworm AS builder
 
-# Install build dependencies
+# Install build dependencies for better-sqlite3
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   python3 \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Enable pnpm
 RUN corepack enable
-
-# Use hoisted node-linker to avoid symlink issues in Docker
-RUN pnpm config set node-linker hoisted
 
 # 1. Install dependencies
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
-# Copy ui package.json just in case workspace needs it to resolve
 COPY ui/package.json ./ui/package.json
-RUN pnpm fetch
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Install all dependencies (including dev)
-COPY . .
-RUN pnpm install --frozen-lockfile --offline
-
-# 2. Build modules that need compilation
-# Explicitly rebuild better-sqlite3 for the current architecture
+# 2. Rebuild better-sqlite3 for the target architecture
 RUN pnpm rebuild better-sqlite3
 
-# 3. Generate Prisma client
+# 3. Generate Prisma client (required for migrations in entrypoint)
+# We need a dummy DATA_DIR for the config import to work
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY src/generated ./src/generated
+ENV DATA_DIR=/tmp
 RUN npx prisma generate
-
-# 4. Build backend application
-RUN pnpm build
 
 # -----------------------------------------------------------------------------
 # Runtime Stage
@@ -59,20 +50,16 @@ ENV TZ=UTC
 ENV LOG_LEVEL=warn
 ENV DATA_DIR=/data
 
-# Copy built artifacts from builder
-# Since we used hoisted linker, structure is flat and safe to copy
+# Copy pre-compiled dependencies and prisma client
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Copy built app from builder
-COPY --from=builder /app/dist ./dist
-
-# Copy UI build (assuming it was built externally or exists in context)
-# Note: we are not building UI in Docker to save time/resources,
-# assuming CI or user provides ui/.output
+# Copy application code (assumed built on host or in CI)
+# This includes backend (dist) and frontend (ui/.output)
+COPY dist ./dist
 COPY ui/.output ./ui/.output
 
-# Copy other necessary files
+# Copy remaining necessary files
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY src/generated ./src/generated
