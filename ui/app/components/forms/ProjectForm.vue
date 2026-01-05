@@ -53,17 +53,26 @@ function formatDate(date: string | undefined): string {
   return new Date(date).toLocaleString()
 }
 
+// Form state interface
+interface FormState {
+  name: string
+  description: string
+  preferences: {
+    staleChannelsDays?: number
+  }
+}
+
 // Form state
-const state = reactive({
+const state = reactive<FormState>({
   name: props.project?.name || '',
   description: props.project?.description || '',
   preferences: {
-    staleChannelsDays: props.project?.preferences?.staleChannelsDays || undefined as number | undefined,
+    staleChannelsDays: props.project?.preferences?.staleChannelsDays,
   }
 })
 
 // Validation Schema
-const schema = computed(() => z.object({
+const schema = z.object({
   name: z.string()
     .min(2, t('validation.minLength', { min: 2 }))
     .nonempty(t('validation.required')),
@@ -75,7 +84,9 @@ const schema = computed(() => z.object({
       .min(1, t('validation.min', { min: 1 }))
       .optional()
   }).optional()
-}))
+})
+
+type Schema = z.output<typeof schema>
 
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
@@ -85,7 +96,7 @@ watch(() => props.project, () => {
   state.name = props.project?.name || ''
   state.description = props.project?.description || ''
   state.preferences = {
-    staleChannelsDays: props.project?.preferences?.staleChannelsDays || undefined,
+    staleChannelsDays: props.project?.preferences?.staleChannelsDays,
   }
   nextTick(() => {
     saveOriginalState()
@@ -95,13 +106,13 @@ watch(() => props.project, () => {
 /**
  * Form submission handler
  */
-async function handleSubmit(event: FormSubmitEvent<any>) {
+async function handleSubmit(event: FormSubmitEvent<Schema>) {
   try {
     const updateData: Partial<ProjectWithRole> = {}
 
     if (props.visibleSections.includes('general')) {
       updateData.name = event.data.name
-      updateData.description = event.data.description
+      updateData.description = event.data.description || '' // Handle optional description
     }
 
     if (props.visibleSections.includes('preferences')) {
@@ -110,7 +121,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       }
     }
 
-    await emit('submit', updateData as any)
+    await emit('submit', updateData)
     formActionsRef.value?.showSuccess()
     // Update original state after successful save
     saveOriginalState()

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Forced rebuild touch to resolve stale HMR state
 import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { PublicationWithRelations } from '~/composables/usePublications'
@@ -8,7 +7,7 @@ import { usePublications } from '~/composables/usePublications'
 import { usePosts } from '~/composables/usePosts'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 
-import type { PostStatus, PostType, PublicationStatus } from '~/types/posts'
+import type { PostType, PublicationStatus } from '~/types/posts'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -41,12 +40,15 @@ const {
 } = useChannels()
 const { typeOptions, statusOptions: allStatusOptions } = usePosts()
 
+const POST_TYPE_VALUES = ['POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT'] as const
+const STATUS_VALUES = ['DRAFT', 'READY', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'PARTIAL', 'FAILED', 'EXPIRED'] as const
+
 // Get language and channelId from URL query parameters
 const languageParam = computed(() => route.query.language as string | undefined)
 const channelIdParam = computed(() => route.query.channelId as string | undefined)
 
 // Form state
-const formData = reactive({
+const state = reactive({
   title: props.publication?.title || '',
   content: props.publication?.content || '',
   tags: props.publication?.tags || '',
@@ -56,7 +58,7 @@ const formData = reactive({
   language: props.publication?.language || languageParam.value || 'en-US',
   channelIds: props.publication?.posts?.map((p: any) => p.channelId) || [] as string[],
   translationGroupId: props.publication?.translationGroupId || undefined as string | undefined,
-  meta: props.publication?.meta || '{}',
+  meta: props.publication?.meta ? JSON.stringify(props.publication.meta, null, 2) : '{}',
   description: props.publication?.description || '',
   authorComment: props.publication?.authorComment || '',
   postDate: props.publication?.postDate ? new Date(props.publication.postDate).toISOString().slice(0, 16) : '',
@@ -75,8 +77,8 @@ const schema = computed(() => z.object({
     return textContent.length > 0
   }, t('validation.required')),
   tags: z.string().optional(),
-  postType: z.enum(['POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT', 'STORY'] as [string, ...string[]]),
-  status: z.enum(['DRAFT', 'READY', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'PARTIAL', 'FAILED', 'EXPIRED'] as [string, ...string[]]),
+  postType: z.enum(POST_TYPE_VALUES),
+  status: z.enum(STATUS_VALUES),
   scheduledAt: z.string().optional(),
   language: z.string().min(1, t('validation.required')),
   channelIds: z.array(z.string()).optional(),
@@ -102,8 +104,10 @@ const schema = computed(() => z.object({
   }
 }))
 
+type Schema = z.output<typeof schema.value>
+
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formData)
+const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
 
 // Fetch channels and publications on mount
 onMounted(async () => {
@@ -116,8 +120,8 @@ onMounted(async () => {
     if (channelIdParam.value && !isEditMode.value) {
       const selectedChannel = channels.value.find(ch => ch.id === channelIdParam.value)
       if (selectedChannel) {
-        formData.channelIds = [channelIdParam.value]
-        formData.language = selectedChannel.language
+        state.channelIds = [channelIdParam.value]
+        state.language = selectedChannel.language
       }
     }
     // Otherwise, auto-select channels matching the language parameter
@@ -125,7 +129,7 @@ onMounted(async () => {
       const matchingChannels = channels.value
         .filter(ch => ch.language === languageParam.value)
         .map(ch => ch.id)
-      formData.channelIds = matchingChannels
+      state.channelIds = matchingChannels
     }
     
     // Save original state after initialization
@@ -135,22 +139,22 @@ onMounted(async () => {
   }
 })
 
-// Watch for publication changes and update form data
+// Watch for publication changes and update form state
 watch(() => props.publication, (newPub) => {
   if (newPub) {
-    formData.title = newPub.title || ''
-    formData.content = newPub.content || ''
-    formData.tags = newPub.tags || ''
-    formData.postType = (newPub.postType || 'POST') as PostType
-    formData.status = (newPub.status || 'DRAFT') as PublicationStatus
-    formData.language = newPub.language || 'en-US'
-    formData.channelIds = newPub.posts?.map((p: any) => p.channelId) || []
-    formData.translationGroupId = newPub.translationGroupId || undefined
-    formData.meta = newPub.meta || '{}'
-    formData.description = newPub.description || ''
-    formData.authorComment = newPub.authorComment || ''
-    formData.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
-    formData.scheduledAt = newPub.scheduledAt ? new Date(newPub.scheduledAt).toISOString().slice(0, 16) : ''
+    state.title = newPub.title || ''
+    state.content = newPub.content || ''
+    state.tags = newPub.tags || ''
+    state.postType = (newPub.postType || 'POST') as PostType
+    state.status = (newPub.status || 'DRAFT') as PublicationStatus
+    state.language = newPub.language || 'en-US'
+    state.channelIds = newPub.posts?.map((p: any) => p.channelId) || []
+    state.translationGroupId = newPub.translationGroupId || undefined
+    state.meta = newPub.meta ? JSON.stringify(newPub.meta, null, 2) : '{}'
+    state.description = newPub.description || ''
+    state.authorComment = newPub.authorComment || ''
+    state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
+    state.scheduledAt = newPub.scheduledAt ? new Date(newPub.scheduledAt).toISOString().slice(0, 16) : ''
     
     nextTick(() => {
       saveOriginalState()
@@ -173,7 +177,7 @@ const availablePublications = computed(() => {
 // Handle translation group selection
 function handleTranslationLink(publicationId: string) {
     linkedPublicationId.value = publicationId
-    formData.translationGroupId = undefined
+    state.translationGroupId = undefined
 }
 
 // Channel options for select
@@ -197,7 +201,7 @@ const { languageOptions } = useLanguages()
 /**
  * Handle form submission
  */
-async function handleSubmit(event: FormSubmitEvent<any>) {
+async function handleSubmit(event: FormSubmitEvent<Schema>) {
   try {
     if (isEditMode.value && props.publication) {
       // Update existing publication
@@ -221,7 +225,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       
       // Handle post creation for newly selected channels
       const originalChannelIds = props.publication.posts?.map((p: any) => p.channelId) || []
-      const newChannelIds = formData.channelIds.filter(id => !originalChannelIds.includes(id))
+      const newChannelIds = state.channelIds.filter(id => !originalChannelIds.includes(id))
       
       if (newChannelIds.length > 0) {
           await createPostsFromPublication(
@@ -246,7 +250,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
         authorComment: event.data.authorComment || null,
         tags: event.data.tags || undefined,
         // Master status logic: if scheduled and has channels -> scheduled, else draft
-        status: event.data.status === 'SCHEDULED' && formData.channelIds.length > 0 ? 'SCHEDULED' : 'DRAFT', 
+        status: event.data.status === 'SCHEDULED' && state.channelIds.length > 0 ? 'SCHEDULED' : 'DRAFT', 
         language: event.data.language,
         linkToPublicationId: linkedPublicationId.value || undefined,
         postType: event.data.postType,
@@ -259,10 +263,10 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       
       if (publication) {
         // If channels are selected, distribute posts
-        if (formData.channelIds.length > 0) {
+        if (state.channelIds.length > 0) {
           await createPostsFromPublication(
               publication.id, 
-              formData.channelIds, 
+              state.channelIds, 
               event.data.status === 'SCHEDULED' ? event.data.scheduledAt : undefined
           )
         }
@@ -276,6 +280,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       }
     }
   } catch (error) {
+    console.error(error)
     formActionsRef.value?.showError()
     const toast = useToast()
     toast.add({
@@ -300,17 +305,17 @@ function handleReset() {
 }
 
 function toggleChannel(channelId: string) {
-    const index = formData.channelIds.indexOf(channelId)
+    const index = state.channelIds.indexOf(channelId)
     if (index === -1) {
-        formData.channelIds.push(channelId)
+        state.channelIds.push(channelId)
     } else {
-        formData.channelIds.splice(index, 1)
+        state.channelIds.splice(index, 1)
     }
 }
 </script>
 
 <template>
-    <UForm :schema="schema" :state="formData" class="space-y-6" @submit="handleSubmit">
+    <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
       
       <!-- Channels (Multi-select) -->
       <div v-if="!isEditMode">
@@ -324,7 +329,7 @@ function toggleChannel(channelId: string) {
                 >
                     <div class="flex items-center gap-2">
                         <UCheckbox 
-                            :model-value="formData.channelIds.includes(channel.value)"
+                            :model-value="state.channelIds.includes(channel.value)"
                             @update:model-value="toggleChannel(channel.value)"
                             class="pointer-events-none" 
                         />
@@ -338,7 +343,7 @@ function toggleChannel(channelId: string) {
                             <UIcon name="i-heroicons-language" class="w-3 h-3" />
                             {{ channel.language }}
                         </span>
-                        <UTooltip v-if="channel.language !== formData.language" :text="t('publication.languageMismatch', 'Language mismatch! Publication is ' + formData.language)">
+                        <UTooltip v-if="channel.language !== state.language" :text="t('publication.languageMismatch', 'Language mismatch! Publication is ' + state.language)">
                             <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
                         </UTooltip>
                         <UTooltip :text="channel.socialMedia">
@@ -357,7 +362,7 @@ function toggleChannel(channelId: string) {
          <!-- Status (Only when creating) -->
          <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
             <USelectMenu
-                v-model="formData.status"
+                v-model="state.status"
                 :items="statusOptions"
                 value-key="value"
                 label-key="label"
@@ -366,14 +371,14 @@ function toggleChannel(channelId: string) {
          </UFormField>
 
          <!-- Scheduling -->
-        <UFormField v-if="formData.status === 'SCHEDULED'" name="scheduledAt" :label="t('post.scheduledAt')" required>
-            <UInput v-model="formData.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
+        <UFormField v-if="state.status === 'SCHEDULED'" name="scheduledAt" :label="t('post.scheduledAt')" required>
+            <UInput v-model="state.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
         </UFormField>
 
         <!-- Language -->
         <UFormField v-if="!isEditMode" name="language" :label="t('common.language', 'Language')" required>
             <USelectMenu
-                v-model="formData.language"
+                v-model="state.language"
                 :items="languageOptions"
                 value-key="value"
                 label-key="label"
@@ -387,7 +392,7 @@ function toggleChannel(channelId: string) {
 
          <UFormField v-if="!isEditMode" name="postType" :label="t('post.postType', 'Post Type')" required>
             <USelectMenu
-                v-model="formData.postType"
+                v-model="state.postType"
                 :items="typeOptions"
                 value-key="value"
                 label-key="label"
@@ -399,7 +404,7 @@ function toggleChannel(channelId: string) {
       <!-- Title (optional) -->
       <UFormField name="title" :label="t('post.postTitle')" :help="t('common.optional')">
         <UInput
-          v-model="formData.title"
+          v-model="state.title"
           :placeholder="t('post.titlePlaceholder', 'Enter title')"
           size="lg"
           class="w-full"
@@ -411,7 +416,7 @@ function toggleChannel(channelId: string) {
       <!-- Content (required) - Tiptap Editor -->
       <UFormField name="content" :label="t('post.content')" required>
         <EditorTiptapEditor
-          v-model="formData.content"
+          v-model="state.content"
           :placeholder="t('post.contentPlaceholder', 'Write your content here...')"
           :min-height="250"
         />
@@ -420,7 +425,7 @@ function toggleChannel(channelId: string) {
       <!-- Tags -->
        <UFormField name="tags" :label="t('post.tags')" :help="t('post.tagsHint')">
         <UInput
-            v-model="formData.tags"
+            v-model="state.tags"
             :placeholder="t('post.tagsPlaceholder', 'tag1, tag2, tag3')"
             icon="i-heroicons-hashtag"
             @keydown.enter.prevent
@@ -435,7 +440,7 @@ function toggleChannel(channelId: string) {
             value-key="value"
             label-key="label"
             searchable
-            :placeholder="formData.translationGroupId ? t('publication.linked', 'Linked to a group') : t('publication.selectToLink', 'Select to link...')"
+            :placeholder="state.translationGroupId ? t('publication.linked', 'Linked to a group') : t('publication.selectToLink', 'Select to link...')"
             class="w-full"
             @update:model-value="handleTranslationLink"
         >
@@ -476,13 +481,13 @@ function toggleChannel(channelId: string) {
 
           <!-- Description -->
           <UFormField name="description" label="Description" help="Short description">
-             <UTextarea v-model="formData.description" :rows="3" />
+             <UTextarea v-model="state.description" :rows="3" />
           </UFormField>
 
           <!-- Author Comment -->
           <UFormField name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
              <UTextarea 
-               v-model="formData.authorComment" 
+               v-model="state.authorComment" 
                :rows="3" 
                :placeholder="t('post.authorCommentPlaceholder')"
              />
@@ -490,12 +495,12 @@ function toggleChannel(channelId: string) {
 
           <!-- Post Date -->
           <UFormField name="postDate" label="Post Date" help="Date of the article (optional)">
-            <UInput v-model="formData.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
+            <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
           </UFormField>
 
           <!-- Meta -->
           <UFormField name="meta" label="Meta (JSON)" help="Additional metadata in JSON format">
-             <UTextarea v-model="formData.meta" :rows="4" font-family="mono" />
+             <UTextarea v-model="state.meta" :rows="4" font-family="mono" />
           </UFormField>
 
 

@@ -72,6 +72,8 @@ const currentProjectName = computed(() => {
   return project?.name || '-'
 })
 
+const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'INSTAGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'X', 'FACEBOOK', 'LINKEDIN', 'SITE'] as const
+
 const state = reactive({
   name: props.channel?.name || '',
   description: props.channel?.description || '',
@@ -95,7 +97,7 @@ const schema = computed(() => z.object({
   name: z.string().min(1, t('validation.required')),
   channelIdentifier: z.string().min(1, t('validation.required')),
   language: z.string().min(1, t('validation.required')),
-  socialMedia: z.enum(['TELEGRAM', 'INSTAGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'X', 'FACEBOOK', 'LINKEDIN', 'SITE'] as [string, ...string[]]),
+  socialMedia: z.enum(SOCIAL_MEDIA_VALUES),
   credentials: z.object({
     telegramChannelId: z.string().optional(),
     telegramBotToken: z.string().optional(),
@@ -131,6 +133,8 @@ const schema = computed(() => z.object({
   }
 }))
 
+type Schema = z.output<typeof schema.value>
+
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
 
@@ -159,7 +163,7 @@ watch(() => props.channel, () => {
 /**
  * Form submission handler
  */
-async function handleSubmit(event: FormSubmitEvent<any>) {
+async function handleSubmit(event: FormSubmitEvent<Schema>) {
   try {
     const updateData: ChannelUpdateInput = {}
 
@@ -207,7 +211,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
         projectId: props.projectId,
         name: event.data.name,
         description: event.data.description,
-        socialMedia: event.data.socialMedia as SocialMedia,
+        socialMedia: event.data.socialMedia,
         channelIdentifier: event.data.channelIdentifier,
         language: event.data.language,
         isActive: state.isActive,
