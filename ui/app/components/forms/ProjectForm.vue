@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { z } from 'zod'
+import type { FormSubmitEvent } from '@nuxt/ui'
 import type { ProjectWithRole } from '~/stores/projects'
 
 interface Props {
@@ -56,9 +58,24 @@ const state = reactive({
   name: props.project?.name || '',
   description: props.project?.description || '',
   preferences: {
-    staleChannelsDays: props.project?.preferences?.staleChannelsDays || undefined,
+    staleChannelsDays: props.project?.preferences?.staleChannelsDays || undefined as number | undefined,
   }
 })
+
+// Validation Schema
+const schema = computed(() => z.object({
+  name: z.string()
+    .min(2, t('validation.minLength', { min: 2 }))
+    .nonempty(t('validation.required')),
+  description: z.string()
+    .max(500, t('validation.maxLength', { max: 500 }))
+    .optional(),
+  preferences: z.object({
+    staleChannelsDays: z.number({ coerce: true })
+      .min(1, t('validation.min', { min: 1 }))
+      .optional()
+  }).optional()
+}))
 
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
@@ -78,20 +95,18 @@ watch(() => props.project, () => {
 /**
  * Form submission handler
  */
-async function handleSubmit() {
-  if (props.visibleSections.includes('general') && (!state.name || state.name.length < 2)) return
-
+async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     const updateData: Partial<ProjectWithRole> = {}
 
     if (props.visibleSections.includes('general')) {
-      updateData.name = state.name
-      updateData.description = state.description
+      updateData.name = event.data.name
+      updateData.description = event.data.description
     }
 
     if (props.visibleSections.includes('preferences')) {
       updateData.preferences = {
-        staleChannelsDays: state.preferences.staleChannelsDays
+        staleChannelsDays: event.data.preferences?.staleChannelsDays
       }
     }
 
@@ -106,6 +121,7 @@ async function handleSubmit() {
       title: t('common.error'),
       description: t('common.saveError', 'Failed to save'),
       color: 'error',
+      duration: 5000
     })
   }
 }
@@ -134,7 +150,7 @@ function handleReset() {
       </p>
     </div>
 
-    <form class="space-y-6" @submit.prevent="handleSubmit">
+    <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
       <div v-if="visibleSections.includes('general')" class="space-y-6">
         <!-- Created date (read-only, edit mode only) -->
         <div v-if="isEditMode && project?.createdAt" class="space-y-2">
@@ -151,9 +167,9 @@ function handleReset() {
 
         <!-- Project name -->
         <UFormField
+          name="name"
           :label="t('project.name')"
           required
-          :error="state.name && state.name.length < 2 ? t('validation.minLength', { min: 2 }) : undefined"
         >
           <UInput
             v-model="state.name"
@@ -165,9 +181,9 @@ function handleReset() {
 
         <!-- Project description -->
         <UFormField
+          name="description"
           :label="t('project.description')"
           :help="`${t('common.optional')} — ${t('validation.maxLength', { max: 500 })}`"
-          :error="state.description && state.description.length > 500 ? t('validation.maxLength', { max: 500 }) : undefined"
         >
           <UTextarea
             v-model="state.description"
@@ -187,6 +203,7 @@ function handleReset() {
         </div>
         
         <UFormField
+          name="preferences.staleChannelsDays"
           :label="t('settings.staleChannelsDays', 'Stale Channels Warning (Days)')"
           :help="t('settings.staleChannelsDaysHelp', 'Show warning if channel has no published posts for this many days (Default: 3)')"
         >
@@ -204,7 +221,6 @@ function handleReset() {
       <UiFormActions
         ref="formActionsRef"
         :loading="isLoading"
-        :disabled="!state.name || state.name.length < 2 || state.description.length > 500"
         :is-dirty="isDirty"
         :save-label="submitLabel || (isEditMode ? t('common.save') : t('common.create'))"
         :cancel-label="cancelLabel"
@@ -212,6 +228,6 @@ function handleReset() {
         @reset="handleReset"
         @cancel="handleCancel"
       />
-    </form>
+    </UForm>
   </div>
 </template>

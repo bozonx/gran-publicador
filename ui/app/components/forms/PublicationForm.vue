@@ -1,5 +1,7 @@
 <script setup lang="ts">
 // Forced rebuild touch to resolve stale HMR state
+import { z } from 'zod'
+import type { FormSubmitEvent } from '@nuxt/ui'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { usePublications } from '~/composables/usePublications'
@@ -64,6 +66,41 @@ const linkedPublicationId = ref<string | undefined>(undefined)
 
 const isEditMode = computed(() => !!props.publication?.id)
 const showAdvancedFields = ref(false)
+
+// Validation Schema
+const schema = computed(() => z.object({
+  title: z.string().optional(),
+  content: z.string().refine((val) => {
+    const textContent = val.replace(/<[^>]*>/g, '').trim()
+    return textContent.length > 0
+  }, t('validation.required')),
+  tags: z.string().optional(),
+  postType: z.enum(['POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT', 'STORY'] as [string, ...string[]]),
+  status: z.enum(['DRAFT', 'READY', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'PARTIAL', 'FAILED', 'EXPIRED'] as [string, ...string[]]),
+  scheduledAt: z.string().optional(),
+  language: z.string().min(1, t('validation.required')),
+  channelIds: z.array(z.string()).optional(),
+  translationGroupId: z.string().optional(),
+  meta: z.string().refine((val) => {
+    try {
+      JSON.parse(val)
+      return true
+    } catch {
+      return false
+    }
+  }, t('validation.jsonInvalid', 'Invalid JSON format')),
+  description: z.string().optional(),
+  authorComment: z.string().optional(),
+  postDate: z.string().optional(),
+}).superRefine((val, ctx) => {
+  if (val.status === 'SCHEDULED' && !val.scheduledAt) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: t('validation.required'),
+      path: ['scheduledAt']
+    })
+  }
+}))
 
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formData)
@@ -160,23 +197,23 @@ const { languageOptions } = useLanguages()
 /**
  * Handle form submission
  */
-async function handleSubmit() {
+async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     if (isEditMode.value && props.publication) {
       // Update existing publication
       const updateData: any = {
-          title: formData.title || undefined,
-          description: formData.description || undefined,
-          content: formData.content,
-          authorComment: formData.authorComment || null,
-          tags: formData.tags || undefined,
-          status: formData.status,
-          language: formData.language,
+          title: event.data.title || undefined,
+          description: event.data.description || undefined,
+          content: event.data.content,
+          authorComment: event.data.authorComment || null,
+          tags: event.data.tags || undefined,
+          status: event.data.status,
+          language: event.data.language,
           linkToPublicationId: linkedPublicationId.value || undefined, // Send linkToPublicationId
-          postType: formData.postType,
-          meta: JSON.parse(formData.meta),
-          postDate: formData.postDate ? new Date(formData.postDate).toISOString() : undefined,
-          scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
+          postType: event.data.postType,
+          meta: JSON.parse(event.data.meta),
+          postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
+          scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
       
       // Update the publication itself
@@ -190,7 +227,7 @@ async function handleSubmit() {
           await createPostsFromPublication(
               props.publication.id, 
               newChannelIds, 
-              formData.status === 'SCHEDULED' ? formData.scheduledAt : undefined
+              event.data.status === 'SCHEDULED' ? event.data.scheduledAt : undefined
           )
       }
 
@@ -203,18 +240,19 @@ async function handleSubmit() {
       // Create new publication
       const createData: any = {
         projectId: props.projectId,
-        title: formData.title || undefined,
-        description: formData.description || undefined,
-        content: formData.content,
-        authorComment: formData.authorComment || null,
-        tags: formData.tags || undefined,
-        status: formData.status === 'SCHEDULED' && formData.channelIds.length > 0 ? 'SCHEDULED' : 'DRAFT', // Master status
-        language: formData.language,
+        title: event.data.title || undefined,
+        description: event.data.description || undefined,
+        content: event.data.content,
+        authorComment: event.data.authorComment || null,
+        tags: event.data.tags || undefined,
+        // Master status logic: if scheduled and has channels -> scheduled, else draft
+        status: event.data.status === 'SCHEDULED' && formData.channelIds.length > 0 ? 'SCHEDULED' : 'DRAFT', 
+        language: event.data.language,
         linkToPublicationId: linkedPublicationId.value || undefined,
-        postType: formData.postType,
-        meta: JSON.parse(formData.meta),
-        postDate: formData.postDate ? new Date(formData.postDate).toISOString() : undefined,
-        scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
+        postType: event.data.postType,
+        meta: JSON.parse(event.data.meta),
+        postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
+        scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
 
       const publication = await createPublication(createData)
@@ -225,7 +263,7 @@ async function handleSubmit() {
           await createPostsFromPublication(
               publication.id, 
               formData.channelIds, 
-              formData.status === 'SCHEDULED' ? formData.scheduledAt : undefined
+              event.data.status === 'SCHEDULED' ? event.data.scheduledAt : undefined
           )
         }
         
@@ -244,6 +282,7 @@ async function handleSubmit() {
       title: t('common.error'),
       description: t('common.saveError', 'Failed to save'),
       color: 'error',
+      duration: 5000
     })
   }
 }
@@ -260,25 +299,6 @@ function handleReset() {
   resetToOriginal()
 }
 
-const isContentValid = computed(() => {
-  const textContent = formData.content.replace(/<[^>]*>/g, '').trim()
-  return textContent.length > 0
-})
-
-const isFormValid = computed(() => {
-  if (!isContentValid.value) return false
-  if (formData.status === 'SCHEDULED' && !formData.scheduledAt) return false
-  
-  // Validate JSON meta
-  try {
-      JSON.parse(formData.meta)
-  } catch (e) {
-      return false
-  }
-
-  return true
-})
-
 function toggleChannel(channelId: string) {
     const index = formData.channelIds.indexOf(channelId)
     if (index === -1) {
@@ -290,13 +310,11 @@ function toggleChannel(channelId: string) {
 </script>
 
 <template>
-    <form class="space-y-6" @submit.prevent="handleSubmit">
+    <UForm :schema="schema" :state="formData" class="space-y-6" @submit="handleSubmit">
       
-
-
       <!-- Channels (Multi-select) -->
       <div v-if="!isEditMode">
-        <UFormField :label="t('channel.titlePlural', 'Channels')" :help="t('publication.channelsHelp', 'Select channels to create posts immediately')">
+        <UFormField name="channelIds" :label="t('channel.titlePlural', 'Channels')" :help="t('publication.channelsHelp', 'Select channels to create posts immediately')">
             <div v-if="channelOptions.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <div 
                     v-for="channel in channelOptions" 
@@ -337,7 +355,7 @@ function toggleChannel(channelId: string) {
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
          <!-- Status (Only when creating) -->
-         <UFormField v-if="!isEditMode" :label="t('post.status')" required>
+         <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
             <USelectMenu
                 v-model="formData.status"
                 :items="statusOptions"
@@ -348,12 +366,12 @@ function toggleChannel(channelId: string) {
          </UFormField>
 
          <!-- Scheduling -->
-        <UFormField v-if="formData.status === 'SCHEDULED'" :label="t('post.scheduledAt')" required>
+        <UFormField v-if="formData.status === 'SCHEDULED'" name="scheduledAt" :label="t('post.scheduledAt')" required>
             <UInput v-model="formData.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
         </UFormField>
 
         <!-- Language -->
-        <UFormField v-if="!isEditMode" :label="t('common.language', 'Language')" required>
+        <UFormField v-if="!isEditMode" name="language" :label="t('common.language', 'Language')" required>
             <USelectMenu
                 v-model="formData.language"
                 :items="languageOptions"
@@ -367,7 +385,7 @@ function toggleChannel(channelId: string) {
             </USelectMenu>
         </UFormField>
 
-         <UFormField v-if="!isEditMode" :label="t('post.postType', 'Post Type')" required>
+         <UFormField v-if="!isEditMode" name="postType" :label="t('post.postType', 'Post Type')" required>
             <USelectMenu
                 v-model="formData.postType"
                 :items="typeOptions"
@@ -379,7 +397,7 @@ function toggleChannel(channelId: string) {
       </div>
 
       <!-- Title (optional) -->
-      <UFormField :label="t('post.postTitle')" :help="t('common.optional')">
+      <UFormField name="title" :label="t('post.postTitle')" :help="t('common.optional')">
         <UInput
           v-model="formData.title"
           :placeholder="t('post.titlePlaceholder', 'Enter title')"
@@ -391,19 +409,16 @@ function toggleChannel(channelId: string) {
       </UFormField>
 
       <!-- Content (required) - Tiptap Editor -->
-      <UFormField :label="t('post.content')" required>
+      <UFormField name="content" :label="t('post.content')" required>
         <EditorTiptapEditor
           v-model="formData.content"
           :placeholder="t('post.contentPlaceholder', 'Write your content here...')"
           :min-height="250"
         />
-        <template v-if="!isContentValid && formData.content" #error>
-          {{ t('validation.required') }}
-        </template>
       </UFormField>
       
       <!-- Tags -->
-       <UFormField :label="t('post.tags')" :help="t('post.tagsHint')">
+       <UFormField name="tags" :label="t('post.tags')" :help="t('post.tagsHint')">
         <UInput
             v-model="formData.tags"
             :placeholder="t('post.tagsPlaceholder', 'tag1, tag2, tag3')"
@@ -413,7 +428,7 @@ function toggleChannel(channelId: string) {
       </UFormField>
 
       <!-- Translation Group (Link to another publication) - Moved out of Advanced -->
-      <UFormField :label="t('publication.linkTranslation', 'Link as Translation of')" :help="t('publication.linkTranslationHelp', 'Select a publication to link this one as a translation version.')">
+      <UFormField name="translationGroupId" :label="t('publication.linkTranslation', 'Link as Translation of')" :help="t('publication.linkTranslationHelp', 'Select a publication to link this one as a translation version.')">
         <USelectMenu
             :model-value="linkedPublicationId"
             :items="availablePublications"
@@ -460,12 +475,12 @@ function toggleChannel(channelId: string) {
         >
 
           <!-- Description -->
-          <UFormField label="Description" help="Short description">
+          <UFormField name="description" label="Description" help="Short description">
              <UTextarea v-model="formData.description" :rows="3" />
           </UFormField>
 
           <!-- Author Comment -->
-          <UFormField :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
+          <UFormField name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
              <UTextarea 
                v-model="formData.authorComment" 
                :rows="3" 
@@ -474,12 +489,12 @@ function toggleChannel(channelId: string) {
           </UFormField>
 
           <!-- Post Date -->
-          <UFormField label="Post Date" help="Date of the article (optional)">
+          <UFormField name="postDate" label="Post Date" help="Date of the article (optional)">
             <UInput v-model="formData.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
           </UFormField>
 
           <!-- Meta -->
-          <UFormField label="Meta (JSON)" help="Additional metadata in JSON format">
+          <UFormField name="meta" label="Meta (JSON)" help="Additional metadata in JSON format">
              <UTextarea v-model="formData.meta" :rows="4" font-family="mono" />
           </UFormField>
 
@@ -491,11 +506,10 @@ function toggleChannel(channelId: string) {
       <UiFormActions
         ref="formActionsRef"
         :loading="isLoading"
-        :disabled="!isFormValid"
         :is-dirty="isDirty"
         :save-label="isEditMode ? t('common.save') : t('common.create')"
         hide-cancel
         @reset="handleReset"
       />
-    </form>
+    </UForm>
 </template>

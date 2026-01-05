@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { z } from 'zod'
+import type { FormSubmitEvent } from '@nuxt/ui'
 import type {
   ChannelWithProject,
   ChannelCreateInput,
@@ -84,9 +86,50 @@ const state = reactive({
     vkAccessToken: props.channel?.credentials?.vkAccessToken || '',
   },
   preferences: {
-    staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined,
+    staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined as number | undefined,
   }
 })
+
+// Validation Schema
+const schema = computed(() => z.object({
+  name: z.string().min(1, t('validation.required')),
+  channelIdentifier: z.string().min(1, t('validation.required')),
+  language: z.string().min(1, t('validation.required')),
+  socialMedia: z.enum(['TELEGRAM', 'INSTAGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'X', 'FACEBOOK', 'LINKEDIN', 'SITE'] as [string, ...string[]]),
+  credentials: z.object({
+    telegramChannelId: z.string().optional(),
+    telegramBotToken: z.string().optional(),
+    vkAccessToken: z.string().optional(),
+  }),
+  preferences: z.object({
+    staleChannelsDays: z.number({ coerce: true }).min(1, t('validation.min', { min: 1 })).optional()
+  }).optional()
+}).superRefine((val, ctx) => {
+  if (val.socialMedia === 'TELEGRAM') {
+    if (!val.credentials.telegramChannelId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('validation.required'),
+        path: ['credentials', 'telegramChannelId']
+      })
+    }
+    if (!val.credentials.telegramBotToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('validation.required'),
+        path: ['credentials', 'telegramBotToken']
+      })
+    }
+  } else if (val.socialMedia === 'VK') {
+    if (!val.credentials.vkAccessToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('validation.required'),
+        path: ['credentials', 'vkAccessToken']
+      })
+    }
+  }
+}))
 
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
@@ -116,24 +159,22 @@ watch(() => props.channel, () => {
 /**
  * Form submission handler
  */
-async function handleSubmit() {
-  if (!state.name || !state.channelIdentifier || !state.language) return
-
+async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     const updateData: ChannelUpdateInput = {}
 
     if (isEditMode.value && props.channel) {
       // Update existing channel
       if (props.visibleSections.includes('general')) {
-        updateData.name = state.name
-        updateData.description = state.description
-        updateData.channelIdentifier = state.channelIdentifier
+        updateData.name = event.data.name
+        updateData.description = event.data.description
+        updateData.channelIdentifier = event.data.channelIdentifier
       }
 
       // Add preferences
       if (props.visibleSections.includes('preferences')) {
         updateData.preferences = {
-          staleChannelsDays: state.preferences.staleChannelsDays
+          staleChannelsDays: event.data.preferences?.staleChannelsDays
         }
       }
 
@@ -141,12 +182,12 @@ async function handleSubmit() {
       if (props.visibleSections.includes('credentials')) {
         if (props.channel.socialMedia === 'TELEGRAM') {
           updateData.credentials = {
-            telegramChannelId: state.credentials.telegramChannelId,
-            telegramBotToken: state.credentials.telegramBotToken,
+            telegramChannelId: event.data.credentials.telegramChannelId,
+            telegramBotToken: event.data.credentials.telegramBotToken,
           }
         } else if (props.channel.socialMedia === 'VK') {
           updateData.credentials = {
-            vkAccessToken: state.credentials.vkAccessToken,
+            vkAccessToken: event.data.credentials.vkAccessToken,
           }
         }
       }
@@ -164,30 +205,30 @@ async function handleSubmit() {
       // Create new channel
       const createData: ChannelCreateInput = {
         projectId: props.projectId,
-        name: state.name,
-        description: state.description,
-        socialMedia: state.socialMedia,
-        channelIdentifier: state.channelIdentifier,
-        language: state.language,
+        name: event.data.name,
+        description: event.data.description,
+        socialMedia: event.data.socialMedia as SocialMedia,
+        channelIdentifier: event.data.channelIdentifier,
+        language: event.data.language,
         isActive: state.isActive,
       }
 
       // Add credentials for supported channels
-      if (state.socialMedia === 'TELEGRAM') {
+      if (event.data.socialMedia === 'TELEGRAM') {
         createData.credentials = {
-          telegramChannelId: state.credentials.telegramChannelId,
-          telegramBotToken: state.credentials.telegramBotToken,
+          telegramChannelId: event.data.credentials.telegramChannelId,
+          telegramBotToken: event.data.credentials.telegramBotToken,
         }
-      } else if (state.socialMedia === 'VK') {
+      } else if (event.data.socialMedia === 'VK') {
         createData.credentials = {
-          vkAccessToken: state.credentials.vkAccessToken,
+          vkAccessToken: event.data.credentials.vkAccessToken,
         }
       }
 
       // Add preferences
-      if (state.preferences.staleChannelsDays) {
+      if (event.data.preferences?.staleChannelsDays) {
         createData.preferences = {
-          staleChannelsDays: state.preferences.staleChannelsDays
+          staleChannelsDays: event.data.preferences.staleChannelsDays
         }
       }
 
@@ -209,6 +250,7 @@ async function handleSubmit() {
       title: t('common.error'),
       description: t('common.saveError', 'Failed to save'),
       color: 'error',
+      duration: 5000
     })
   }
 }
@@ -278,7 +320,7 @@ const projectOptions = computed(() =>
       </p>
     </div>
 
-    <form class="space-y-6" @submit.prevent="handleSubmit">
+    <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
       <div v-if="visibleSections.includes('general')" class="space-y-6">
         <!-- Created date (read-only, edit mode only) -->
         <div v-if="isEditMode && channel?.createdAt" class="space-y-2">
@@ -309,6 +351,7 @@ const projectOptions = computed(() =>
         <!-- Channel language -->
         <div v-if="!isEditMode">
           <UFormField
+            name="language"
             :label="t('channel.language')"
             required
             :help="t('channel.languageWarningOnCreate')"
@@ -345,6 +388,7 @@ const projectOptions = computed(() =>
         <!-- Social media type (only for create mode) -->
         <div v-if="!isEditMode">
           <UFormField 
+            name="socialMedia"
             :label="t('channel.socialMedia')" 
             required
             :help="t('channel.socialMediaWarningOnCreate')"
@@ -409,7 +453,7 @@ const projectOptions = computed(() =>
         </div>
 
         <!-- Channel name -->
-        <UFormField :label="t('channel.name')" required>
+        <UFormField name="name" :label="t('channel.name')" required>
           <UInput
             v-model="state.name"
             :placeholder="t('channel.namePlaceholder')"
@@ -419,7 +463,7 @@ const projectOptions = computed(() =>
         </UFormField>
 
         <!-- Description -->
-        <UFormField :label="t('channel.description', 'Description')">
+        <UFormField name="description" :label="t('channel.description', 'Description')">
           <UTextarea
             v-model="state.description"
             :placeholder="t('channel.descriptionPlaceholder', 'Enter channel description...')"
@@ -430,6 +474,7 @@ const projectOptions = computed(() =>
 
         <!-- Channel identifier -->
         <UFormField
+          name="channelIdentifier"
           :label="t('channel.identifier')"
           required
           :help="getIdentifierHelp(currentSocialMedia)"
@@ -452,6 +497,7 @@ const projectOptions = computed(() =>
           
         <div class="space-y-4">
           <UFormField
+            name="credentials.telegramChannelId"
             :label="t('channel.telegramChannelId', 'Channel ID')"
             :help="t('channel.telegramChannelIdHelp', 'Telegram channel ID (e.g., -1001234567890)')"
           >
@@ -463,6 +509,7 @@ const projectOptions = computed(() =>
           </UFormField>
 
           <UFormField
+            name="credentials.telegramBotToken"
             :label="t('channel.telegramBotToken', 'Bot Token')"
             :help="t('channel.telegramBotTokenHelp', 'Telegram bot token from @BotFather')"
           >
@@ -486,6 +533,7 @@ const projectOptions = computed(() =>
           
         <div class="space-y-4">
           <UFormField
+            name="credentials.vkAccessToken"
             :label="t('channel.vkAccessToken', 'Access Token')"
             :help="t('channel.vkAccessTokenHelp', 'Service or user access token for VK API')"
           >
@@ -508,6 +556,7 @@ const projectOptions = computed(() =>
         </div>
         
         <UFormField
+          name="preferences.staleChannelsDays"
           :label="t('settings.staleChannelsDays', 'Stale Channels Warning (Days)')"
           :help="t('settings.staleChannelsDaysHelp', 'Show warning if channel has no published posts for this many days')"
         >
@@ -525,7 +574,6 @@ const projectOptions = computed(() =>
       <UiFormActions
         ref="formActionsRef"
         :loading="isLoading"
-        :disabled="!state.name || !state.channelIdentifier || !state.language"
         :is-dirty="isDirty"
         :save-label="isEditMode ? t('common.save') : t('common.create')"
         :hide-cancel="hideCancel"
@@ -533,6 +581,6 @@ const projectOptions = computed(() =>
         @reset="handleReset"
         @cancel="handleCancel"
       />
-    </form>
+    </UForm>
   </div>
 </template>

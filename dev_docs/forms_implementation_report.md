@@ -3,6 +3,8 @@
 ## 1. Executive Summary
 The form implementation in **Gran Publicador** is consistent and features high-quality UX elements, particularly the "Dirty State" management. However, the current approach relies on manual validation and monolithic components, which deviates from the latest Nuxt 4 / Nuxt UI best practices (e.g., Schema-based validation with Zod).
 
+**Update (Current Status):** As of this audit, the recommended migration to Nuxt UI `<UForm>` with Zod schema validation has been **completed** for the core forms (`ProjectForm.vue`, `ChannelForm.vue`, `PublicationForm.vue`).
+
 ## 2. Frontend Analysis (Nuxt 4 / Vue 3)
 
 ### 2.1 State Management & UX
@@ -11,11 +13,12 @@ The form implementation in **Gran Publicador** is consistent and features high-q
 - **Loading States**: `isLoading` props are correctly propagated and handled, disabling buttons during submission.
 
 ### 2.2 Validation Logic
-- **Current Approach**: Manual validation using computed properties (`isFormValid`) and inline checks in `handleSubmit`.
-- **Shortcomings**: 
-    - Validation logic is scattered between templates (`:error` on `UFormField`) and scripts.
-    - No centralized schema (like Zod or Joi) is used, making it harder to maintain complex validation rules.
-    - Error messages are sometimes hardcoded in the template rather than coming from a validator.
+- **Previous Approach**: Manual validation using computed properties (`isFormValid`) and inline checks in `handleSubmit`.
+- **New Approach (Implemented)**: 
+    - **Schema-based**: All core forms now use **Zod** schemas for declarative validation.
+    - **Integration**: Nuxt UI `<UForm>` component automatically handles validation states and error messages.
+    - **Complex Logic**: `ChannelForm` uses `superRefine` to handle conditional credential fields based on `socialMedia` selection.
+    - **JSON Validation**: `PublicationForm` strictly validates the `meta` JSON field via Zod `refine`.
 
 ### 2.3 Component Structure
 - **Monolithic Components**: `PublicationForm.vue` (~500 lines) and `ChannelForm.vue` (~540 lines) are oversized. They handle state, UI, logic, and sub-section rendering simultaneously.
@@ -33,10 +36,9 @@ The form implementation in **Gran Publicador** is consistent and features high-q
 
 ## 4. Identified Issues & Technical Debt
 
-1. **Manual JSON Handling**: In `PublicationForm.vue`, `JSON.parse(formData.meta)` is called directly. If the JSON is invalid, the component crashes. 
-    - *Best Practice*: Move JSON validation to a separate utility or use a schema-based form.
+1. **Manual JSON Handling**: In `PublicationForm.vue`, `JSON.parse(formData.meta)` was called directly. **Fixed**: Zod now prevents submission if JSON is invalid.
 2. **Form Reset Logic**: Relying on `JSON.stringify` for comparison is efficient but doesn't handle complex objects or File objects gracefully if they were added later.
-3. **Missing Cross-Field Validation**: Complex rules (e.g., "if status is SCHEDULED, scheduledAt is required") are implemented as manual `if` statements.
+3. **Missing Cross-Field Validation**: Complex rules (e.g., "if status is SCHEDULED, scheduledAt is required") were implemented as manual `if` statements. **Fixed**: Replaced with Zod `superRefine`.
 4. **DTO Robustness**: Backend DTOs are too permissive for string fields, lacking maximum length constraints that match the UI limits.
 
 ## 5. Recommendations (Best Practices)
@@ -45,6 +47,7 @@ The form implementation in **Gran Publicador** is consistent and features high-q
 Transition from manual `reactive` + `handleSubmit` to Nuxt UI's built-in form handling with **Zod schemas**. 
 - **Benefit**: Define validation rules once, use them for both the form state and the UI error messages.
 - **Benefit**: Automatic type safety for the form state.
+- **Status**: ✅ **Implemented** for Project, Channel, and Publication forms.
 
 ### 5.2 Decompose Large Forms
 Split `ChannelForm.vue` and `PublicationForm.vue` into sub-components:
@@ -69,7 +72,7 @@ If possible, share Zod schemas between Frontend and Backend (using a shared pack
 | :--- | :--- | :--- |
 | **Dirty Tracking** | Custom Composable | ⭐⭐⭐⭐⭐ (Excellent) |
 | **UX / Feedback** | Nuxt UI / Toasts | ⭐⭐⭐⭐ (Good) |
-| **Validation** | Manual Checks | ⭐⭐ (Outdated) |
+| **Validation** | Zod + UForm | ⭐⭐⭐⭐⭐ (Excellent) |
 | **Component Size** | Monolithic | ⭐⭐ (Hard to maintain) |
 | **API Safety** | DTOs | ⭐⭐⭐ (Basic) |
 
