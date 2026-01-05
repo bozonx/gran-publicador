@@ -8,7 +8,7 @@ definePageMeta({
 
 const { t } = useI18n()
 const router = useRouter()
-const { projects, isLoading, error, fetchProjects } = useProjects()
+const { projects, isLoading, error, fetchProjects, createProject } = useProjects()
 
 const allProjects = ref<ProjectWithRole[]>([])
 const showArchived = ref(false)
@@ -92,11 +92,51 @@ function toggleArchivedProjects() {
   showArchived.value = !showArchived.value
 }
 
+const isCreateModalOpen = ref(false)
+const isCreating = ref(false)
+const createFormState = reactive({
+  name: '',
+  description: ''
+})
+
+function resetCreateForm() {
+  createFormState.name = ''
+  createFormState.description = ''
+  isCreating.value = false
+}
+
 /**
- * Navigate to create project page
+ * Navigate to create project page -> Open create modal
  */
 function goToCreateProject() {
-  router.push('/projects/new')
+  resetCreateForm()
+  isCreateModalOpen.value = true
+}
+
+async function handleCreateProject() {
+  if (!createFormState.name || createFormState.name.length < 2) return
+
+  isCreating.value = true
+  try {
+    const project = await createProject({
+      name: createFormState.name,
+      description: createFormState.description || undefined
+    })
+
+    if (project) {
+      isCreateModalOpen.value = false
+      router.push(`/projects/${project.id}/settings`)
+    }
+  } catch (error: any) {
+    const toast = useToast()
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('common.saveError'),
+      color: 'error'
+    })
+  } finally {
+    isCreating.value = false
+  }
 }
 </script>
 
@@ -229,5 +269,37 @@ function goToCreateProject() {
     </div>
 
 
+    <!-- Create Project Modal -->
+    <UModal v-model:open="isCreateModalOpen">
+      <template #content>
+        <div class="p-6 min-w-[500px]">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+              {{ t('project.createProject') }}
+            </h2>
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" size="sm" @click="isCreateModalOpen = false" />
+          </div>
+
+          <form @submit.prevent="handleCreateProject" class="space-y-6">
+            <UFormField :label="t('project.name')" required>
+              <UInput v-model="createFormState.name" :placeholder="t('project.namePlaceholder')" autofocus class="w-full" size="lg" />
+            </UFormField>
+
+            <UFormField :label="t('project.description')" :help="t('common.optional')">
+              <UTextarea v-model="createFormState.description" :placeholder="t('project.descriptionPlaceholder')" :rows="3" class="w-full" />
+            </UFormField>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+               <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isCreateModalOpen = false">
+                  {{ t('common.cancel') }}
+               </UButton>
+               <UButton color="primary" :loading="isCreating" :disabled="!createFormState.name || createFormState.name.length < 2" @click="handleCreateProject">
+                  {{ t('common.create') }}
+               </UButton>
+            </div>
+          </form>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
