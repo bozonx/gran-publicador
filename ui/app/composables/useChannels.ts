@@ -107,7 +107,7 @@ export function useChannels() {
                 color: 'success',
             })
             if (data.projectId) {
-                await fetchChannels(data.projectId)
+                await fetchChannels({ projectId: data.projectId })
             }
             return channel
         } catch (err: any) {

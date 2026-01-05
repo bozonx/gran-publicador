@@ -108,7 +108,7 @@ onMounted(async () => {
     }
     
     if (projectId.value) {
-        await fetchChannels(projectId.value)
+        await fetchChannels({ projectId: projectId.value })
     }
     
     // Fetch publication

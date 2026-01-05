@@ -13,8 +13,7 @@ const { t } = useI18n()
 const {
   channels,
   isLoading,
-  fetchChannels,
-  setFilter
+  fetchChannels
 } = useChannels()
 
 // Store all channels including archived
@@ -132,11 +131,15 @@ const showArchived = ref(false)
 onMounted(async () => {
   if (props.projectId) {
     // Fetch all channels including archived at once
-    setFilter({ isActive: null, includeArchived: true })
-    const fetchedChannels = await fetchChannels(props.projectId)
+    const fetchedChannels = await fetchChannels({ 
+      projectId: props.projectId, 
+      includeArchived: true,
+      limit: 100 // Fetch a reasonable amount for the project view
+    })
     allChannels.value = fetchedChannels
   }
 })
+
 
 const isCreateModalOpen = ref(false)
 const isCreating = ref(false)

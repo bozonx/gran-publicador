@@ -33,7 +33,7 @@ const formData = reactive({
 // Load channels on mount
 onMounted(async () => {
   if (props.projectId) {
-    await fetchChannels(props.projectId)
+    await fetchChannels({ projectId: props.projectId })
   }
 })
 

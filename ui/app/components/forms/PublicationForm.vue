@@ -71,7 +71,7 @@ const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formDa
 // Fetch channels and publications on mount
 onMounted(async () => {
   if (props.projectId) {
-    await fetchChannels(props.projectId)
+    await fetchChannels({ projectId: props.projectId })
     // Fetch recent publications to allow linking (limit 50 for now)
     await fetchPublicationsByProject(props.projectId, { limit: 50 })
     
