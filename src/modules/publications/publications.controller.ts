@@ -13,14 +13,23 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { PublicationStatus } from '../../generated/prisma/client.js';
+import { PublicationStatus, SocialMedia } from '../../generated/prisma/client.js';
 
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ParsePublicationStatusPipe } from '../../common/pipes/parse-publication-status.pipe.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
-import { CreatePostsDto, CreatePublicationDto, UpdatePublicationDto } from './dto/index.js';
+import { 
+  CreatePostsDto, 
+  CreatePublicationDto, 
+  UpdatePublicationDto,
+  FindPublicationsQueryDto,
+  PublicationSortBy,
+  SortOrder,
+  OwnershipType,
+  IssueType,
+} from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 
 /**
@@ -52,27 +61,49 @@ export class PublicationsController {
   }
 
   /**
-   * Get all publications for a project.
+   * Get all publications for a project or user with filtering and sorting.
    */
   @Get()
   public async findAll(
     @Request() req: UnifiedAuthRequest,
-    @Query('projectId') projectId?: string,
-    @Query('status', new ParsePublicationStatusPipe()) status?: PublicationStatus,
-    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
-    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
-    @Query('includeArchived', new DefaultValuePipe(false), ParseBoolPipe) includeArchived?: boolean,
+    @Query() query: FindPublicationsQueryDto,
   ): Promise<PaginatedResponse<any>> {
+    const { 
+      projectId, 
+      status, 
+      limit = 20, 
+      offset = 0, 
+      includeArchived = false,
+      sortBy,
+      sortOrder,
+      channelId,
+      search,
+      language,
+      ownership,
+      socialMedia,
+      issueType
+    } = query;
+
     // Validate and cap limit
-    const validatedLimit = Math.min(limit || 50, this.MAX_LIMIT);
+    const validatedLimit = Math.min(limit, this.MAX_LIMIT);
+
+    const filters = {
+      status,
+      limit: validatedLimit,
+      offset,
+      includeArchived,
+      sortBy,
+      sortOrder,
+      channelId,
+      search,
+      language,
+      ownership,
+      socialMedia,
+      issueType,
+    };
 
     if (projectId) {
-      const result = await this.publicationsService.findAll(projectId, req.user.userId, {
-        status,
-        limit: validatedLimit,
-        offset,
-        includeArchived,
-      });
+      const result = await this.publicationsService.findAll(projectId, req.user.userId, filters);
       return {
         items: result.items,
         meta: {
@@ -83,12 +114,7 @@ export class PublicationsController {
       };
     }
 
-    const result = await this.publicationsService.findAllForUser(req.user.userId, {
-      status,
-      limit: validatedLimit,
-      offset,
-      includeArchived,
-    });
+    const result = await this.publicationsService.findAllForUser(req.user.userId, filters);
     return {
       items: result.items,
       meta: {

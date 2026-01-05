@@ -4,7 +4,8 @@ import { PublicationsService } from '../../src/modules/publications/publications
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { PostStatus, PublicationStatus } from '../../src/generated/prisma/client.js';
+import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/client.js';
+import { CreatePublicationDto, UpdatePublicationDto, IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -133,6 +134,43 @@ describe('PublicationsService (unit)', () => {
           },
         }),
       );
+    });
+
+    it('should apply complex filters (socialMedia, issueType, ownership)', async () => {
+      const userId = 'user-1';
+      const projectId = 'project-1';
+      const filters = {
+        ownership: OwnershipType.OWN,
+        socialMedia: SocialMedia.TELEGRAM,
+        issueType: IssueType.FAILED,
+      };
+
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.publication.findMany.mockResolvedValue([]);
+      mockPrismaService.publication.count.mockResolvedValue(0);
+
+      await service.findAll(projectId, userId, filters);
+
+      const findManyArgs = mockPrismaService.publication.findMany.mock.calls[0][0];
+      const where = findManyArgs.where;
+
+      // Ownership filter
+      expect(where.createdBy).toBe(userId);
+
+      // AND conditions should contain socialMedia and issueType filters
+      expect(where.AND).toBeDefined();
+      expect(where.AND).toHaveLength(2);
+      
+      const andConditions = where.AND as any[];
+      
+      // Social Media check
+      const socialMediaCondition = andConditions.find(c => c.posts?.some?.channel?.socialMedia === SocialMedia.TELEGRAM);
+      expect(socialMediaCondition).toBeDefined();
+
+      // Issue Type check (OR condition)
+      const issueTypeCondition = andConditions.find(c => c.OR?.length === 2);
+      expect(issueTypeCondition).toBeDefined();
+      expect(issueTypeCondition.OR[0].status).toBe(PublicationStatus.FAILED);
     });
   });
 

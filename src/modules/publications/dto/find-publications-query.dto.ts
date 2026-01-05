@@ -1,0 +1,96 @@
+import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client.js';
+
+
+
+/**
+ * Allowed fields for sorting publications
+ */
+export enum PublicationSortBy {
+  CREATED_AT = 'createdAt',
+  SCHEDULED_AT = 'scheduledAt',
+  PUBLISHED_AT = 'publishedAt',
+  POST_DATE = 'postDate',
+}
+
+/**
+ * Sort order
+ */
+export enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
+
+export enum OwnershipType {
+  OWN = 'own',
+  NOT_OWN = 'notOwn',
+}
+
+export enum IssueType {
+  FAILED = 'failed',
+  PARTIAL = 'partial',
+  EXPIRED = 'expired',
+}
+
+/**
+ * DTO for query parameters when fetching publications
+ */
+export class FindPublicationsQueryDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsEnum(PublicationStatus)
+  status?: PublicationStatus;
+
+  @IsOptional()
+  @IsString()
+  channelId?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsEnum(OwnershipType)
+  ownership?: OwnershipType;
+
+  @IsOptional()
+  @IsEnum(IssueType)
+  issueType?: IssueType;
+
+  @IsOptional()
+  @IsEnum(SocialMedia)
+  socialMedia?: SocialMedia;
+
+  @IsOptional()
+  @IsEnum(PublicationSortBy)
+  sortBy?: PublicationSortBy;
+
+  @IsOptional()
+  @IsEnum(SortOrder)
+  sortOrder?: SortOrder;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
+
+  @IsOptional()
+  @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
+  @IsBoolean()
+  includeArchived?: boolean;
+}

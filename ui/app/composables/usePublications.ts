@@ -51,6 +51,13 @@ export interface PublicationsFilter {
     limit?: number
     offset?: number
     includeArchived?: boolean
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    search?: string
+    language?: string
+    ownership?: 'own' | 'notOwn'
+    issueType?: 'failed' | 'partial' | 'expired'
+    socialMedia?: string
 }
 
 export interface PaginatedPublications {
@@ -99,6 +106,13 @@ export function usePublications() {
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset
             if (filters.includeArchived) params.includeArchived = true
+            if (filters.sortBy) params.sortBy = filters.sortBy
+            if (filters.sortOrder) params.sortOrder = filters.sortOrder
+            if (filters.search) params.search = filters.search
+            if (filters.language) params.language = filters.language
+            if (filters.ownership) params.ownership = filters.ownership
+            if (filters.issueType) params.issueType = filters.issueType
+            if (filters.socialMedia) params.socialMedia = filters.socialMedia
 
             const data = await api.get<PaginatedPublications>('/publications', { params })
             publications.value = data.items
@@ -128,6 +142,13 @@ export function usePublications() {
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset
             if (filters.includeArchived) params.includeArchived = true
+            if (filters.sortBy) params.sortBy = filters.sortBy
+            if (filters.sortOrder) params.sortOrder = filters.sortOrder
+            if (filters.search) params.search = filters.search
+            if (filters.language) params.language = filters.language
+            if (filters.ownership) params.ownership = filters.ownership
+            if (filters.issueType) params.issueType = filters.issueType
+            if (filters.socialMedia) params.socialMedia = filters.socialMedia
 
             const data = await api.get<PaginatedPublications>('/publications', { params })
             publications.value = data.items

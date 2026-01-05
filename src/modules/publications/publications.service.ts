@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PublicationStatus, PostStatus, PostType, Prisma, ProjectRole } from '../../generated/prisma/client.js';
+import { PublicationStatus, PostStatus, PostType, Prisma, ProjectRole, SocialMedia } from '../../generated/prisma/client.js';
 import { randomUUID } from 'node:crypto';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreatePublicationDto, UpdatePublicationDto } from './dto/index.js';
+import { CreatePublicationDto, UpdatePublicationDto, IssueType, OwnershipType } from './dto/index.js';
 
 @Injectable()
 export class PublicationsService {
@@ -110,7 +110,7 @@ export class PublicationsService {
    *
    * @param projectId - The ID of the project.
    * @param userId - The ID of the user.
-   * @param filters - Optional filters (status, limit, offset).
+   * @param filters - Optional filters (status, limit, offset, sorting, search, etc.).
    * @returns Publications with total count for pagination.
    */
   public async findAll(
@@ -121,6 +121,14 @@ export class PublicationsService {
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      channelId?: string;
+      search?: string;
+      language?: string;
+      ownership?: OwnershipType;
+      socialMedia?: SocialMedia;
+      issueType?: IssueType;
     },
   ) {
     await this.permissions.checkProjectAccess(projectId, userId);
@@ -132,9 +140,86 @@ export class PublicationsService {
         project: { archivedAt: null },
       }),
     };
+    
+    // Conditions array to perform AND operation
+    const conditions: Prisma.PublicationWhereInput[] = [];
+
     if (filters?.status) {
       where.status = filters.status;
     }
+
+    // Filter by channel (publications that have posts in this channel)
+    if (filters?.channelId) {
+      conditions.push({
+        posts: {
+          some: {
+            channelId: filters.channelId,
+          },
+        },
+      });
+    }
+
+    // Filter by Social Media
+    if (filters?.socialMedia) {
+      conditions.push({
+        posts: {
+          some: {
+            channel: {
+              socialMedia: filters.socialMedia,
+            },
+          },
+        },
+      });
+    }
+
+    // Filter by Ownership
+    if (filters?.ownership) {
+      if (filters.ownership === OwnershipType.OWN) {
+        where.createdBy = userId;
+      } else if (filters.ownership === OwnershipType.NOT_OWN) {
+        where.createdBy = { not: userId };
+      }
+    }
+
+    // Filter by Issue Type
+    if (filters?.issueType) {
+      if (filters.issueType === IssueType.FAILED) {
+        conditions.push({
+          OR: [
+            { status: PublicationStatus.FAILED },
+            { posts: { some: { status: PostStatus.FAILED } } }
+          ]
+        });
+      } else if (filters.issueType === IssueType.PARTIAL) {
+        where.status = PublicationStatus.PARTIAL;
+      } else if (filters.issueType === IssueType.EXPIRED) {
+        where.status = PublicationStatus.EXPIRED;
+      }
+    }
+
+    // Text search across title, description, and content
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search } },
+        { description: { contains: filters.search } },
+        { content: { contains: filters.search } },
+      ];
+    }
+
+    // Filter by language
+    if (filters?.language) {
+      where.language = filters.language;
+    }
+    
+    if (conditions.length > 0) {
+      where.AND = conditions;
+    }
+
+    // Dynamic sorting
+    const orderBy: Prisma.PublicationOrderByWithRelationInput = {};
+    const sortField = filters?.sortBy || 'createdAt';
+    const sortDirection = filters?.sortOrder || 'desc';
+    (orderBy as any)[sortField] = sortDirection;
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -159,7 +244,7 @@ export class PublicationsService {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         take: filters?.limit,
         skip: filters?.offset,
       }),
@@ -173,7 +258,7 @@ export class PublicationsService {
    * Retrieve all publications for a given user across all projects they are members of.
    *
    * @param userId - The ID of the user requesting the publications.
-   * @param filters - Optional filters (status, limit, offset, includeArchived).
+   * @param filters - Optional filters (status, limit, offset, includeArchived, sorting, search, etc.).
    * @returns Publications with total count for pagination.
    */
   public async findAllForUser(
@@ -183,6 +268,14 @@ export class PublicationsService {
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      channelId?: string;
+      search?: string;
+      language?: string;
+      ownership?: OwnershipType;
+      socialMedia?: SocialMedia;
+      issueType?: IssueType;
     },
   ) {
     const where: Prisma.PublicationWhereInput = {
@@ -195,9 +288,85 @@ export class PublicationsService {
       ...(filters?.includeArchived ? {} : { archivedAt: null }),
     };
 
+    // Conditions array to perform AND operation
+    const conditions: Prisma.PublicationWhereInput[] = [];
+
     if (filters?.status) {
       where.status = filters.status;
     }
+
+    // Filter by channel (publications that have posts in this channel)
+    if (filters?.channelId) {
+      conditions.push({
+        posts: {
+          some: {
+            channelId: filters.channelId,
+          },
+        },
+      });
+    }
+
+    // Filter by Social Media
+    if (filters?.socialMedia) {
+      conditions.push({
+        posts: {
+          some: {
+            channel: {
+              socialMedia: filters.socialMedia,
+            },
+          },
+        },
+      });
+    }
+
+    // Filter by Ownership
+    if (filters?.ownership) {
+      if (filters.ownership === OwnershipType.OWN) {
+        where.createdBy = userId;
+      } else if (filters.ownership === OwnershipType.NOT_OWN) {
+        where.createdBy = { not: userId };
+      }
+    }
+
+    // Filter by Issue Type
+    if (filters?.issueType) {
+      if (filters.issueType === IssueType.FAILED) {
+        conditions.push({
+          OR: [
+            { status: PublicationStatus.FAILED },
+            { posts: { some: { status: PostStatus.FAILED } } }
+          ]
+        });
+      } else if (filters.issueType === IssueType.PARTIAL) {
+        where.status = PublicationStatus.PARTIAL;
+      } else if (filters.issueType === IssueType.EXPIRED) {
+        where.status = PublicationStatus.EXPIRED;
+      }
+    }
+
+    // Text search across title, description, and content
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search } },
+        { description: { contains: filters.search } },
+        { content: { contains: filters.search } },
+      ];
+    }
+
+    // Filter by language
+    if (filters?.language) {
+      where.language = filters.language;
+    }
+    
+    if (conditions.length > 0) {
+      where.AND = conditions;
+    }
+
+    // Dynamic sorting
+    const orderBy: Prisma.PublicationOrderByWithRelationInput = {};
+    const sortField = filters?.sortBy || 'createdAt';
+    const sortDirection = filters?.sortOrder || 'desc';
+    (orderBy as any)[sortField] = sortDirection;
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -222,7 +391,7 @@ export class PublicationsService {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         take: filters?.limit,
         skip: filters?.offset,
       }),

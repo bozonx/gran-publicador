@@ -62,66 +62,16 @@ const sortOptionsComputed = computed(() => [
   { id: 'scheduledAt', label: t('publication.sort.scheduledAt'), icon: 'i-heroicons-clock' },
   { id: 'publishedAt', label: t('publication.sort.publishedAt'), icon: 'i-heroicons-check-circle' },
   { id: 'createdAt', label: t('publication.sort.createdAt'), icon: 'i-heroicons-plus-circle' },
-  { id: 'updatedAt', label: t('publication.sort.updatedAt'), icon: 'i-heroicons-arrow-path' },
   { id: 'postDate', label: t('publication.sort.postDate'), icon: 'i-heroicons-calendar' }
 ])
 
-// Sort function
-function sortPublicationsFn(list: PublicationWithRelations[], sortByValue: string, sortOrderValue: 'asc' | 'desc') {
-  return [...list].sort((a, b) => {
-    let result = 0
-    
-    if (sortByValue === 'scheduledAt') {
-      // scheduledAt поста и если нет то смотрится scheduledAt публикации
-      const dateA = a.posts?.[0]?.scheduledAt || a.scheduledAt
-      const dateB = b.posts?.[0]?.scheduledAt || b.scheduledAt
-      
-      if (!dateA && !dateB) result = 0
-      else if (!dateA) result = 1
-      else if (!dateB) result = -1
-      else result = new Date(dateA).getTime() - new Date(dateB).getTime()
-      
-    } else if (sortByValue === 'publishedAt') {
-      // publishedAt у поста
-      const dateA = a.posts?.[0]?.publishedAt
-      const dateB = b.posts?.[0]?.publishedAt
-      
-      if (!dateA && !dateB) result = 0
-      else if (!dateA) result = 1
-      else if (!dateB) result = -1
-      else result = new Date(dateA).getTime() - new Date(dateB).getTime()
-      
-    } else if (sortByValue === 'createdAt') {
-      // createdAt у публикации
-      result = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      
-    } else if (sortByValue === 'updatedAt') {
-      // updatedAt у публикации
-      const dateA = a.updatedAt || a.createdAt
-      const dateB = b.updatedAt || b.createdAt
-      result = new Date(dateA).getTime() - new Date(dateB).getTime()
-      
-    } else if (sortByValue === 'postDate') {
-      // postDate
-      const dateA = a.postDate
-      const dateB = b.postDate
-      
-      if (!dateA && !dateB) result = 0
-      else if (!dateA) result = 1
-      else if (!dateB) result = -1
-      else result = new Date(dateA).getTime() - new Date(dateB).getTime()
-    }
-
-    return sortOrderValue === 'asc' ? result : -result
-  })
-}
-
 const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<PublicationWithRelations>({
   storageKey: 'publications-page',
-  defaultSortBy: 'scheduledAt',
+  defaultSortBy: 'createdAt',
   defaultSortOrder: 'desc',
   sortOptions: sortOptionsComputed.value,
-  sortFn: sortPublicationsFn
+  // Server-side sorting - no client-side sort function needed
+  sortFn: (list) => list,
 })
 
 // View mode (list or cards)
@@ -132,6 +82,38 @@ const { projects, fetchProjects } = useProjects()
 
 // Channels
 const { channels, fetchChannels } = useChannels()
+
+// Fetch publications with current filters
+async function fetchPublications() {
+  const filters: any = {
+    limit: limit.value,
+    offset: (currentPage.value - 1) * limit.value,
+    includeArchived: showArchivedFilter.value,
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+  }
+
+  // Server-side filters
+  if (selectedStatus.value) filters.status = selectedStatus.value
+  if (selectedLanguage.value) filters.language = selectedLanguage.value
+  if (searchQuery.value) filters.search = searchQuery.value
+  
+  if (selectedChannelId.value) filters.channelId = selectedChannelId.value
+  
+  // New backend filters
+  if (selectedProjectId.value) filters.projectId = selectedProjectId.value // Note: fetchUserPublications args usually allow projectId? No, but DTO allows it in query.
+  // Wait, fetchUserPublications calls /publications with query params. Controller accepts projectId in query.
+  // PublicationsService.findAllForUser ignores projectId? No, Controller logic branches.
+  // If projectId is in query, Controller calls service.findAll(projectId).
+  // If no projectId, Controller calls service.findAllForUser.
+  // So passing projectId in filters object to fetchUserPublications (which puts it in params) will work perfectly!
+  
+  if (ownershipFilter.value !== 'all') filters.ownership = ownershipFilter.value
+  if (selectedIssueType.value !== 'all') filters.issueType = selectedIssueType.value
+  if (selectedSocialMedia.value) filters.socialMedia = selectedSocialMedia.value
+
+  await fetchUserPublications(filters)
+}
 
 // Fetch on mount
 onMounted(async () => {
@@ -147,18 +129,21 @@ onMounted(async () => {
     }
     
     await Promise.all([
-        fetchUserPublications({
-            limit: 1000,
-            includeArchived: true
-        }),
+        fetchPublications(),
         fetchProjects(true), // включая архивные проекты
         fetchChannels() // получаем все каналы
     ])
 })
 
-// Watch filters (reset to page 1)
-watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, showArchivedFilter, selectedSocialMedia, selectedLanguage, searchQuery], () => {
+// Watch filters and sorting - reset to page 1 and re-fetch
+watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, searchQuery, showArchivedFilter, sortBy, sortOrder], () => {
     currentPage.value = 1
+    fetchPublications()
+})
+
+// Watch page changes - re-fetch with new offset
+watch(currentPage, () => {
+    fetchPublications()
 })
 
 // Sync URL with page changes
@@ -199,7 +184,7 @@ const statusFilterOptions = computed(() => [
 ])
 
 const hasActiveFilters = computed(() => {
-  return selectedStatus.value || selectedChannelId.value || searchQuery.value
+  return selectedStatus.value || selectedChannelId.value || searchQuery.value || selectedProjectId.value || ownershipFilter.value !== 'all' || selectedIssueType.value !== 'all' || selectedSocialMedia.value
 })
 
 
@@ -315,99 +300,14 @@ const channelFilterOptions = computed(() => {
   return options
 })
 
-// Count for badge - total filtered publications
-const filteredCount = computed(() => filteredPublications.value.length)
+// Count for badge - use server total count
+const filteredCount = computed(() => totalCount.value)
 
-// Client-side search filtering and sorting
-const filteredPublications = computed(() => {
-    let result = publications.value
-    
-    // Apply status filter
-    if (selectedStatus.value) {
-        result = result.filter(p => p.status === selectedStatus.value)
-    }
-    
-    // Apply channel filter
-    if (selectedChannelId.value) {
-        result = result.filter(p => {
-            return p.posts?.some(post => post.channelId === selectedChannelId.value)
-        })
-    }
-    
-    // Apply project filter
-    if (selectedProjectId.value) {
-        result = result.filter(p => p.projectId === selectedProjectId.value)
-    }
-    
-    // Apply archive filter (checkbox)
-    if (!showArchivedFilter.value) {
-        // Выключено: только неархивные публикации
-        result = result.filter(p => !p.archivedAt)
-    } else {
-        // Включено: только архивные публикации
-        result = result.filter(p => p.archivedAt)
-    }
-    
-    // Apply ownership filter (button group)
-    if (ownershipFilter.value === 'own') {
-        // Only publications created by current user
-        result = result.filter(p => p.createdBy === user.value?.id)
-    } else if (ownershipFilter.value === 'notOwn') {
-        // Only publications NOT created by current user
-        result = result.filter(p => p.createdBy !== user.value?.id)
-    }
-    // 'all' - no filtering by ownership
-    
-    // Apply issues filter
-    if (selectedIssueType.value !== 'all') {
-        result = result.filter(p => {
-            if (selectedIssueType.value === 'failed') {
-                return p.status === 'FAILED' || p.posts?.some(post => post.status === 'FAILED')
-            }
-            if (selectedIssueType.value === 'partial') {
-                return p.status === 'PARTIAL'
-            }
-            if (selectedIssueType.value === 'expired') {
-                return p.status === 'EXPIRED'
-            }
-            return true
-        })
-    }
-    
-    // Apply social media filter
-    if (selectedSocialMedia.value) {
-        result = result.filter(p => {
-            // Check if publication has at least one post in a channel with selected social media
-            return p.posts?.some(post => post.channel?.socialMedia === selectedSocialMedia.value)
-        })
-    }
-    
-    // Apply language filter
-    if (selectedLanguage.value) {
-        result = result.filter(p => p.language === selectedLanguage.value)
-    }
-    
-    // Apply search filter
-    if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
-        result = result.filter(p => 
-            (p.title && p.title.toLowerCase().includes(q)) || 
-            (p.content && p.content.toLowerCase().includes(q))
-        )
-    }
-    
-    // Apply sorting
-    return sortPublicationsFn(result, sortBy.value, sortOrder.value)
-})
-
-const paginatedPublications = computed(() => {
-    const start = (currentPage.value - 1) * limit.value
-    const end = start + limit.value
-    return filteredPublications.value.slice(start, end)
-})
+// Client-side filters removed - data comes filtered from backend
+const filteredPublications = computed(() => publications.value)
 
 const showPagination = computed(() => {
-    return filteredPublications.value.length > limit.value
+    return totalCount.value > limit.value
 })
 
 </script>
@@ -614,7 +514,7 @@ const showPagination = computed(() => {
     <!-- Publications list view -->
     <div v-if="isListView" class="space-y-4">
         <PublicationsPublicationListItem
-          v-for="pub in paginatedPublications"
+          v-for="pub in filteredPublications"
           :key="pub.id"
           :publication="pub"
           show-project-info
@@ -625,7 +525,7 @@ const showPagination = computed(() => {
     <!-- Publications cards view -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <PublicationCard
-          v-for="pub in paginatedPublications"
+          v-for="pub in filteredPublications"
           :key="pub.id"
           :publication="pub"
           show-project-info
@@ -637,7 +537,7 @@ const showPagination = computed(() => {
     <div v-if="showPagination" class="mt-8 flex justify-center">
       <UPagination
         v-model:page="currentPage"
-        :total="filteredPublications.length"
+        :total="totalCount"
         :items-per-page="limit"
         :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
         :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
