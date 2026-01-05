@@ -50,7 +50,13 @@
     "saveError": "Failed to save",
     "stay": "Stay",
     "leave": "Leave without saving",
-    "stale": "Stale"
+    "stale": "Stale",
+    "viewMode": {
+      "list": "List",
+      "cards": "Cards",
+      "toggleToList": "Switch to list view",
+      "toggleToCards": "Switch to cards view"
+    }
   },
   "navigation": {
     "home": "Home",

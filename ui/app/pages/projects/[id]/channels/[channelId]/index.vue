@@ -4,6 +4,9 @@ import type { PostWithRelations, PostStatus } from '~/composables/usePosts'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
+import { useViewMode } from '~/composables/useViewMode'
+import PublicationListItem from '~/components/publications/PublicationListItem.vue'
+import PublicationCard from '~/components/publications/PublicationCard.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -61,6 +64,9 @@ const showCreatePublicationModal = ref(false)
 function openCreatePublicationModal() {
   showCreatePublicationModal.value = true
 }
+
+// View mode (list or cards)
+const { viewMode, isListView, isCardsView } = useViewMode('channel-publications-view', 'list')
 
 function handlePublicationCreated(publicationId: string) {
   // Refresh posts list
@@ -478,6 +484,8 @@ const daysSinceActivity = computed(() => {
                         <CommonCountBadge :count="channel.postsCount" :title="t('channel.postsCount')" />
                     </h2>
                      <div class="flex items-center gap-2">
+                        <CommonViewToggle v-model="viewMode" />
+                        
                         <UButton 
                             variant="ghost" 
                             color="neutral"
@@ -504,12 +512,23 @@ const daysSinceActivity = computed(() => {
                     </p>
                 </div>
 
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <PublicationsPublicationDraftCard
+                <!-- Posts List View -->
+                <div v-if="isListView" class="space-y-4">
+                    <PublicationListItem
                         v-for="post in posts"
                         :key="post.id"
-                        :draft="mapPostToPublication(post)"
-                        :project-id="projectId"
+                        :publication="mapPostToPublication(post)"
+                        @click="goToPost(post.id)"
+                    />
+                </div>
+
+                <!-- Posts Cards View -->
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <PublicationCard
+                        v-for="post in posts"
+                        :key="post.id"
+                        :publication="mapPostToPublication(post)"
+                        @click="goToPost(post.id)"
                     />
                 </div>
 

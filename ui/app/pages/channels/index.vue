@@ -4,7 +4,9 @@ import type { ChannelWithProject } from '~/composables/useChannels'
 import { useProjects } from '~/composables/useProjects'
 import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
 import { useSorting } from '~/composables/useSorting'
+import { useViewMode } from '~/composables/useViewMode'
 import ChannelListItem from '~/components/channels/ChannelListItem.vue'
+import ChannelCard from '~/components/channels/ChannelCard.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -76,6 +78,9 @@ const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<Cha
   sortOptions: sortOptionsComputed.value,
   sortFn: sortChannelsFn
 })
+
+// View mode (list or cards)
+const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list')
 
 // Projects
 const { projects, fetchProjects } = useProjects()
@@ -218,8 +223,10 @@ const filteredChannels = computed(() => {
         </p>
       </div>
 
-      <!-- Sorting controls -->
+      <!-- Sorting and view controls -->
       <div class="flex items-center gap-2">
+        <CommonViewToggle v-model="viewMode" />
+
         <USelectMenu
           v-model="sortBy"
           :items="sortOptionsComputed"
@@ -337,8 +344,34 @@ const filteredChannels = computed(() => {
       </div>
     </div>
 
-    <!-- Channels list -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Channels list view -->
+    <div v-if="isListView" class="space-y-4">
+       <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-12">
+          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+       </div>
+
+       <div v-else-if="filteredChannels.length === 0" class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            {{ t('channel.noChannelsFound') }}
+          </h3>
+          <p class="text-gray-500 dark:text-gray-400">
+            {{ searchQuery ? t('channel.noChannelsFiltered') : t('channel.noChannelsDescription') }}
+          </p>
+       </div>
+
+       <ChannelListItem
+         v-for="channel in filteredChannels"
+         :key="channel.id"
+         :channel="channel"
+         :show-project="true"
+       />
+    </div>
+
+    <!-- Channels cards view -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
        <div v-if="isLoading && channels.length === 0" class="col-span-full flex items-center justify-center py-12">
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
        </div>
@@ -355,106 +388,12 @@ const filteredChannels = computed(() => {
           </p>
        </div>
 
-       <NuxtLink
-          v-for="channel in filteredChannels"
-          :key="channel.id"
-          :to="`/projects/${channel.projectId}/channels/${channel.id}`"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-all p-6 flex flex-col gap-3 group border border-transparent hover:border-primary-500/10"
-       >
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-center gap-3 min-w-0">
-              <div 
-                class="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm relative"
-                :style="{ backgroundColor: getSocialMediaColor(channel.socialMedia) }"
-              >
-                <UIcon :name="getSocialMediaIcon(channel.socialMedia)" class="w-5 h-5" />
-                <!-- Stale indicator dot -->
-                <div 
-                  v-if="channel.isStale" 
-                  class="absolute -top-0.5 -right-0.5 bg-orange-500 border-2 border-white dark:border-gray-800 rounded-full w-2.5 h-2.5"
-                  :title="t('settings.staleChannelsWarning')"
-                ></div>
-              </div>
-              <div class="min-w-0 flex-1">
-                <h3 class="font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors mb-1">
-                  {{ channel.name }}
-                </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">
-                  {{ channel.channelIdentifier }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Description -->
-          <p v-if="channel.description" class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-            {{ channel.description }}
-          </p>
-
-          <div class="mt-auto space-y-2 pt-4 border-t border-gray-100 dark:border-gray-700">
-             <div class="flex items-center justify-between text-xs">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('project.title') }}</span>
-                <NuxtLink 
-                  v-if="channel.project"
-                  :to="`/projects/${channel.project.id}`"
-                  class="text-gray-900 dark:text-white font-medium truncate ml-2 max-w-[150px] hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dotted border-transparent hover:border-primary-500/50"
-                  @click.stop
-                >
-                  {{ channel.project.name }}
-                </NuxtLink>
-                <span v-else class="text-gray-900 dark:text-white font-medium truncate ml-2 max-w-[150px]">
-                  -
-                </span>
-             </div>
-             <div class="flex items-center justify-between text-xs">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('post.titlePlural') }}</span>
-                <NuxtLink
-                  :to="`/publications?channelId=${channel.id}`"
-                  class="text-gray-900 dark:text-white font-medium hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dotted border-transparent hover:border-primary-500/50"
-                  @click.stop
-                >
-                  {{ channel.postsCount || 0 }}
-                </NuxtLink>
-             </div>
-             <div class="flex items-center justify-between text-xs">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('common.lastPost') }}</span>
-                <NuxtLink
-                  v-if="channel.lastPostAt && channel.lastPublicationId"
-                  :to="`/projects/${channel.projectId}/publications/${channel.lastPublicationId}`"
-                  class="text-gray-900 dark:text-white font-medium hover:text-primary-600 dark:hover:text-primary-400 transition-colors border-b border-dotted border-transparent hover:border-primary-500/50"
-                  @click.stop
-                >
-                  {{ new Date(channel.lastPostAt).toLocaleDateString() }}
-                </NuxtLink>
-                <span v-else class="text-gray-900 dark:text-white font-medium">
-                  {{ channel.lastPostAt ? new Date(channel.lastPostAt).toLocaleDateString() : '-' }}
-                </span>
-             </div>
-             
-             <!-- Warnings and status badges in horizontal list -->
-             <div v-if="!channel.isActive || channel.isStale || (channel.failedPostsCount && channel.failedPostsCount > 0) || (!channel.credentials || Object.keys(channel.credentials).length === 0)" class="flex items-center gap-2 flex-wrap pt-1">
-                <!-- Inactive status -->
-                <UBadge v-if="!channel.isActive" color="neutral" variant="subtle" size="xs">
-                  {{ t('channel.inactive') }}
-                </UBadge>
-                
-                <!-- Stale channel warning -->
-                <UTooltip v-if="channel.isStale" :text="t('settings.staleChannelsWarning')">
-                  <UIcon name="i-heroicons-clock" class="w-4 h-4 text-orange-500 cursor-help" />
-                </UTooltip>
-                
-                <!-- Failed posts warning -->
-                <UTooltip v-if="channel.failedPostsCount && channel.failedPostsCount > 0" :text="`${channel.failedPostsCount} ${t('channel.failedPosts').toLowerCase()}`">
-                  <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 text-red-500 cursor-help" />
-                </UTooltip>
-                
-                <!-- No credentials warning -->
-                <UTooltip v-if="!channel.credentials || Object.keys(channel.credentials).length === 0" :text="t('channel.noCredentials')">
-                  <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-warning-500 cursor-help" />
-                </UTooltip>
-             </div>
-          </div>
-       </NuxtLink>
+       <ChannelCard
+         v-for="channel in filteredChannels"
+         :key="channel.id"
+         :channel="channel"
+         :show-project="true"
+       />
     </div>
   </div>
 </template>

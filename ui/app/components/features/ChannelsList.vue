@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
+import { useViewMode } from '~/composables/useViewMode'
 import ChannelListItem from '~/components/channels/ChannelListItem.vue'
+import ChannelCard from '~/components/channels/ChannelCard.vue'
 
 const props = defineProps<{
   projectId: string
@@ -64,6 +66,9 @@ const {
   sortOptions: sortOptions.value,
   sortFn: sortChannelsFn
 })
+
+// View mode (list or cards)
+const { viewMode, isListView, isCardsView } = useViewMode('project-channels-view', 'list')
 
 // Use local sortOptions for template to ensure reactivity to language changes
 const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id === sortBy.value))
@@ -193,6 +198,8 @@ function toggleArchivedChannels() {
       </div>
       
       <div class="flex items-center gap-2">
+        <CommonViewToggle v-model="viewMode" />
+        
         <USelectMenu
           v-model="sortBy"
           :items="sortOptions"
@@ -255,8 +262,8 @@ function toggleArchivedChannels() {
       </UButton>
     </div>
 
-    <!-- Channels List -->
-    <div v-else class="space-y-4">
+    <!-- Channels List View -->
+    <div v-if="isListView" class="space-y-4">
       <ChannelListItem
         v-for="channel in sortedChannels"
         :key="channel.id"
@@ -289,6 +296,40 @@ function toggleArchivedChannels() {
           <p class="text-gray-500 dark:text-gray-400">{{ t('channel.noArchived', 'No archived channels') }}</p>
         </div>
       </div>
+    </div>
+
+    <!-- Channels Cards View -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <ChannelCard
+        v-for="channel in sortedChannels"
+        :key="channel.id"
+        :channel="channel"
+      />
+
+      <!-- Show/Hide Archived Button -->
+      <div v-if="hasArchivedChannels" class="col-span-full flex justify-center pt-4">
+        <UButton
+          :icon="showArchived ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+          variant="ghost"
+          color="neutral"
+          @click="toggleArchivedChannels"
+        >
+          {{ showArchived ? t('common.hideArchived', 'Hide Archived') : t('common.showArchived', 'Show Archived') }}
+        </UButton>
+      </div>
+
+      <!-- Archived Channels Section -->
+      <template v-if="showArchived">
+        <ChannelCard
+          v-for="channel in sortedArchivedChannels"
+          :key="channel.id"
+          :channel="channel"
+          is-archived
+        />
+        <div v-if="archivedChannels.length === 0" class="col-span-full text-center py-8">
+          <p class="text-gray-500 dark:text-gray-400">{{ t('channel.noArchived', 'No archived channels') }}</p>
+        </div>
+      </template>
     </div>
 
     <!-- Create Channel Modal -->

@@ -4,10 +4,12 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useChannels } from '~/composables/useChannels'
 import { useSorting } from '~/composables/useSorting'
+import { useViewMode } from '~/composables/useViewMode'
 import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
 import type { PublicationStatus } from '~/types/posts'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import PublicationCard from '~/components/publications/PublicationCard.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -118,6 +120,9 @@ const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<Pub
   sortOptions: sortOptionsComputed.value,
   sortFn: sortPublicationsFn
 })
+
+// View mode (list or cards)
+const { viewMode, isListView, isCardsView } = useViewMode('publications-view', 'list')
 
 // Projects
 const { projects, fetchProjects } = useProjects()
@@ -405,8 +410,10 @@ const showPagination = computed(() => {
         </p>
       </div>
 
-      <!-- Sorting controls -->
+      <!-- Sorting and view controls -->
       <div class="flex items-center gap-2">
+        <CommonViewToggle v-model="viewMode" />
+        
         <USelectMenu
           v-model="sortBy"
           :items="sortOptionsComputed"
@@ -582,8 +589,20 @@ const showPagination = computed(() => {
         </p>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <!-- Publications list view -->
+    <div v-if="isListView" class="space-y-4">
         <PublicationsPublicationListItem
+          v-for="pub in paginatedPublications"
+          :key="pub.id"
+          :publication="pub"
+          show-project-info
+          @click="goToPublication"
+        />
+    </div>
+
+    <!-- Publications cards view -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <PublicationCard
           v-for="pub in paginatedPublications"
           :key="pub.id"
           :publication="pub"
