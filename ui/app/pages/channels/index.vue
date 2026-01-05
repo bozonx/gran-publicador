@@ -25,6 +25,7 @@ const {
 } = useChannels()
 
 const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, 300)
 
 // Ownership filter
 type OwnershipFilter = 'all' | 'own' | 'guest'
@@ -208,8 +209,8 @@ const filteredChannels = computed(() => {
     }
 
     // Apply search query
-    if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
+    if (debouncedSearch.value) {
+        const query = debouncedSearch.value.toLowerCase()
         result = result.filter(c => 
             c.name.toLowerCase().includes(query) || 
             c.channelIdentifier.toLowerCase().includes(query) ||
@@ -219,6 +220,20 @@ const filteredChannels = computed(() => {
 
     return sortChannelsFn(result, sortBy.value, sortOrder.value)
 })
+
+const hasActiveFilters = computed(() => {
+    return searchQuery.value || 
+           selectedProjectId.value || 
+           ownershipFilter.value !== 'all' || 
+           selectedIssueType.value !== 'all'
+})
+
+function resetFilters() {
+    searchQuery.value = ''
+    selectedProjectId.value = null
+    ownershipFilter.value = 'all'
+    selectedIssueType.value = 'all'
+}
 
 </script>
 
@@ -267,14 +282,27 @@ const filteredChannels = computed(() => {
     <!-- Search and filters -->
     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
       <!-- Search -->
-      <div class="flex-1">
-        <UInput
-          v-model="searchQuery"
-          icon="i-heroicons-magnifying-glass"
-          :placeholder="t('common.search')"
-          size="md"
-          class="w-full"
-        />
+      <div class="flex items-center gap-4">
+        <div class="flex-1">
+          <UInput
+            v-model="searchQuery"
+            icon="i-heroicons-magnifying-glass"
+            :placeholder="t('common.search')"
+            size="md"
+            class="w-full"
+            :loading="isLoading && searchQuery !== debouncedSearch"
+          />
+        </div>
+        <UButton
+          v-if="hasActiveFilters"
+          color="neutral"
+          variant="subtle"
+          icon="i-heroicons-x-mark"
+          size="sm"
+          @click="resetFilters"
+        >
+          {{ t('common.resetFilters', 'Сбросить') }}
+        </UButton>
       </div>
 
       <!-- Filters -->

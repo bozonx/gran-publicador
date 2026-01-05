@@ -19,6 +19,8 @@ const {
 
 // Store all channels including archived
 const allChannels = ref<ChannelWithProject[]>([])
+const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, 300)
 
 // Sorting
 const sortOptions = computed(() => [
@@ -90,8 +92,39 @@ const channelCount = computed(() => nonArchivedChannels.value.length)
 const hasArchivedChannels = computed(() => archivedChannels.value.length > 0)
 
 // Final sorted list for display
-const sortedChannels = computed(() => sortList(nonArchivedChannels.value))
-const sortedArchivedChannels = computed(() => sortList(archivedChannels.value))
+const filteredChannels = computed(() => {
+  let result = nonArchivedChannels.value
+  
+  if (debouncedSearch.value) {
+    const query = debouncedSearch.value.toLowerCase()
+    result = result.filter(ch => 
+      ch.name.toLowerCase().includes(query) || 
+      ch.channelIdentifier.toLowerCase().includes(query)
+    )
+  }
+  
+  return sortList(result)
+})
+
+const filteredArchivedChannels = computed(() => {
+  let result = archivedChannels.value
+  
+  if (debouncedSearch.value) {
+    const query = debouncedSearch.value.toLowerCase()
+    result = result.filter(ch => 
+      ch.name.toLowerCase().includes(query) || 
+      ch.channelIdentifier.toLowerCase().includes(query)
+    )
+  }
+  
+  return sortList(result)
+})
+
+const hasActiveFilters = computed(() => !!searchQuery.value)
+
+function resetFilters() {
+  searchQuery.value = ''
+}
 
 // Archived Logic
 const showArchived = ref(false)
@@ -231,6 +264,32 @@ function toggleArchivedChannels() {
       </div>
     </div>
 
+    <!-- Search and filters -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="flex-1">
+          <UInput
+            v-model="searchQuery"
+            icon="i-heroicons-magnifying-glass"
+            :placeholder="t('common.search')"
+            size="md"
+            class="w-full"
+            :loading="isLoading && searchQuery !== debouncedSearch"
+          />
+        </div>
+        <UButton
+          v-if="hasActiveFilters"
+          color="neutral"
+          variant="subtle"
+          icon="i-heroicons-x-mark"
+          size="sm"
+          @click="resetFilters"
+        >
+          {{ t('common.reset') }}
+        </UButton>
+      </div>
+    </div>
+
     <!-- Loading state -->
     <div v-if="isLoading" class="flex items-center justify-center py-12">
       <div class="text-center">
@@ -265,7 +324,7 @@ function toggleArchivedChannels() {
     <!-- Channels List View -->
     <div v-if="isListView" class="space-y-4">
       <ChannelListItem
-        v-for="channel in sortedChannels"
+        v-for="channel in filteredChannels"
         :key="channel.id"
         :channel="channel"
       />
@@ -286,7 +345,7 @@ function toggleArchivedChannels() {
       <div v-if="showArchived" class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div v-if="archivedChannels.length > 0">
            <ChannelListItem
-            v-for="channel in sortedArchivedChannels"
+            v-for="channel in filteredArchivedChannels"
             :key="channel.id"
             :channel="channel"
             is-archived
@@ -301,7 +360,7 @@ function toggleArchivedChannels() {
     <!-- Channels Cards View -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <ChannelCard
-        v-for="channel in sortedChannels"
+        v-for="channel in filteredChannels"
         :key="channel.id"
         :channel="channel"
       />
@@ -321,7 +380,7 @@ function toggleArchivedChannels() {
       <!-- Archived Channels Section -->
       <template v-if="showArchived">
         <ChannelCard
-          v-for="channel in sortedArchivedChannels"
+          v-for="channel in filteredArchivedChannels"
           :key="channel.id"
           :channel="channel"
           is-archived

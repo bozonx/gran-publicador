@@ -11,70 +11,35 @@ const router = useRouter()
 const { viewMode, isListView, isCardsView } = useViewMode('projects-view', 'list')
 const { projects, isLoading, error, fetchProjects, createProject } = useProjects()
 
+const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, 300)
 const allProjects = ref<ProjectWithRole[]>([])
 const showArchived = ref(false)
 
-// Sorting
-const roleWeights: Record<string, number> = {
-  owner: 4,
-  admin: 3,
-  editor: 2,
-  viewer: 1
-}
-
-const sortOptions = computed(() => [
-  { id: 'alphabetical', label: t('project.sort.alphabetical'), icon: 'i-heroicons-bars-3-bottom-left' },
-  { id: 'role', label: t('project.sort.role'), icon: 'i-heroicons-user-circle' },
-  { id: 'publicationsCount', label: t('project.sort.publicationsCount'), icon: 'i-heroicons-document-text' },
-  { id: 'lastPublication', label: t('project.sort.lastPublication'), icon: 'i-heroicons-calendar' }
-])
-
-function sortProjectsFn(list: ProjectWithRole[], sortBy: string, sortOrder: 'asc' | 'desc') {
-  return [...list].sort((a, b) => {
-    let result = 0
-    if (sortBy === 'alphabetical') {
-      result = a.name.localeCompare(b.name)
-    } else if (sortBy === 'role') {
-      const weightA = roleWeights[a.role || 'viewer'] || 0
-      const weightB = roleWeights[b.role || 'viewer'] || 0
-      result = weightB - weightA
-      // Secondary sort by name alphabetically
-      if (result === 0) result = a.name.localeCompare(b.name)
-    } else if (sortBy === 'publicationsCount') {
-      result = (a.publicationsCount || 0) - (b.publicationsCount || 0)
-    } else if (sortBy === 'lastPublication') {
-      const dateA = a.lastPublicationAt ? new Date(a.lastPublicationAt).getTime() : 0
-      const dateB = b.lastPublicationAt ? new Date(b.lastPublicationAt).getTime() : 0
-      result = dateA - dateB
-    }
-
-    return sortOrder === 'asc' ? result : -result
-  })
-}
-
-const { 
-  sortBy, 
-  sortOrder, 
-  toggleSortOrder,
-  sortList
-} = useSorting<ProjectWithRole>({
-  storageKey: 'projects',
-  defaultSortBy: 'alphabetical',
-  sortOptions: sortOptions.value,
-  sortFn: sortProjectsFn
+// Filter projects
+const filteredAllProjects = computed(() => {
+  if (!debouncedSearch.value) return allProjects.value
+  
+  const query = debouncedSearch.value.toLowerCase()
+  return allProjects.value.filter(p => 
+    p.name.toLowerCase().includes(query) || 
+    p.description?.toLowerCase().includes(query)
+  )
 })
 
-// Use local sortOptions for template
-const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id === sortBy.value))
-
-// Filter projects on client side
 const activeProjects = computed(() => 
-  allProjects.value.filter(p => !p.archivedAt)
+  filteredAllProjects.value.filter(p => !p.archivedAt)
 )
 
 const archivedProjects = computed(() => 
-  allProjects.value.filter(p => p.archivedAt)
+  filteredAllProjects.value.filter(p => p.archivedAt)
 )
+
+const hasActiveFilters = computed(() => !!searchQuery.value)
+
+function resetFilters() {
+  searchQuery.value = ''
+}
 
 // Check if there are any archived projects
 const hasArchivedProjects = computed(() => archivedProjects.value.length > 0)
@@ -141,6 +106,58 @@ async function handleCreateProject() {
     isCreating.value = false
   }
 }
+
+// Re-add missing sorting state and logic
+const roleWeights: Record<string, number> = {
+  owner: 4,
+  admin: 3,
+  editor: 2,
+  viewer: 1
+}
+
+const sortOptions = computed(() => [
+  { id: 'alphabetical', label: t('project.sort.alphabetical'), icon: 'i-heroicons-bars-3-bottom-left' },
+  { id: 'role', label: t('project.sort.role'), icon: 'i-heroicons-user-circle' },
+  { id: 'publicationsCount', label: t('project.sort.publicationsCount'), icon: 'i-heroicons-document-text' },
+  { id: 'lastPublication', label: t('project.sort.lastPublication'), icon: 'i-heroicons-calendar' }
+])
+
+function sortProjectsFn(list: ProjectWithRole[], sortBy: string, sortOrder: 'asc' | 'desc') {
+  return [...list].sort((a, b) => {
+    let result = 0
+    if (sortBy === 'alphabetical') {
+      result = a.name.localeCompare(b.name)
+    } else if (sortBy === 'role') {
+      const weightA = roleWeights[a.role || 'viewer'] || 0
+      const weightB = roleWeights[b.role || 'viewer'] || 0
+      result = weightB - weightA
+      // Secondary sort by name alphabetically
+      if (result === 0) result = a.name.localeCompare(b.name)
+    } else if (sortBy === 'publicationsCount') {
+      result = (a.publicationsCount || 0) - (b.publicationsCount || 0)
+    } else if (sortBy === 'lastPublication') {
+      const dateA = a.lastPublicationAt ? new Date(a.lastPublicationAt).getTime() : 0
+      const dateB = b.lastPublicationAt ? new Date(b.lastPublicationAt).getTime() : 0
+      result = dateA - dateB
+    }
+
+    return sortOrder === 'asc' ? result : -result
+  })
+}
+
+const { 
+  sortBy, 
+  sortOrder, 
+  toggleSortOrder,
+  sortList
+} = useSorting<ProjectWithRole>({
+  storageKey: 'projects',
+  defaultSortBy: 'alphabetical',
+  sortOptions: sortOptions.value,
+  sortFn: sortProjectsFn
+})
+
+const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id === sortBy.value))
 </script>
 
 <template>
@@ -185,6 +202,32 @@ async function handleCreateProject() {
 
         <UButton icon="i-heroicons-plus" @click="goToCreateProject" color="primary">
             {{ t('project.createProject') }}
+        </UButton>
+      </div>
+    </div>
+
+    <!-- Search and filters -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6 space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="flex-1">
+          <UInput
+            v-model="searchQuery"
+            icon="i-heroicons-magnifying-glass"
+            :placeholder="t('common.search')"
+            size="md"
+            class="w-full"
+            :loading="isLoading && searchQuery !== debouncedSearch"
+          />
+        </div>
+        <UButton
+          v-if="hasActiveFilters"
+          color="neutral"
+          variant="subtle"
+          icon="i-heroicons-x-mark"
+          size="sm"
+          @click="resetFilters"
+        >
+          {{ t('common.reset') }}
         </UButton>
       </div>
     </div>

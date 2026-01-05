@@ -9,6 +9,7 @@ import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
 import type { PublicationStatus } from '~/types/posts'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { LANGUAGE_OPTIONS } from '~/utils/languages'
 import PublicationCard from '~/components/publications/PublicationCard.vue'
 
 definePageMeta({
@@ -43,6 +44,7 @@ const selectedStatus = ref<PublicationStatus | null>(null)
 const selectedChannelId = ref<string | null>(null)
 const selectedProjectId = ref<string | null>(null)
 const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, 300)
 
 // Ownership filter
 type OwnershipFilter = 'all' | 'own' | 'notOwn'
@@ -96,7 +98,7 @@ async function fetchPublications() {
   // Server-side filters
   if (selectedStatus.value) filters.status = selectedStatus.value
   if (selectedLanguage.value) filters.language = selectedLanguage.value
-  if (searchQuery.value) filters.search = searchQuery.value
+  if (debouncedSearch.value) filters.search = debouncedSearch.value
   
   if (selectedChannelId.value) filters.channelId = selectedChannelId.value
   
@@ -136,7 +138,7 @@ onMounted(async () => {
 })
 
 // Watch filters and sorting - reset to page 1 and re-fetch
-watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, searchQuery, showArchivedFilter, sortBy, sortOrder], () => {
+watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], () => {
     currentPage.value = 1
     fetchPublications()
 })
@@ -184,8 +186,26 @@ const statusFilterOptions = computed(() => [
 ])
 
 const hasActiveFilters = computed(() => {
-  return selectedStatus.value || selectedChannelId.value || searchQuery.value || selectedProjectId.value || ownershipFilter.value !== 'all' || selectedIssueType.value !== 'all' || selectedSocialMedia.value
+  return selectedStatus.value || 
+         selectedChannelId.value || 
+         searchQuery.value || 
+         selectedProjectId.value || 
+         ownershipFilter.value !== 'all' || 
+         selectedIssueType.value !== 'all' || 
+         selectedSocialMedia.value ||
+         selectedLanguage.value
 })
+
+function resetFilters() {
+  selectedStatus.value = null
+  selectedChannelId.value = null
+  selectedProjectId.value = null
+  searchQuery.value = ''
+  ownershipFilter.value = 'all'
+  selectedIssueType.value = 'all'
+  selectedSocialMedia.value = null
+  selectedLanguage.value = null
+}
 
 
 // Sorting computed props for UI
@@ -211,51 +231,32 @@ const issueFilterOptions = computed(() => [
   { value: 'expired', label: t('publication.filter.problems.expired') }
 ])
 
-// Language filter options - only languages present in publications
+// Language filter options
 const languageFilterOptions = computed(() => {
-  const languages = new Set<string>()
-  publications.value.forEach(p => {
-    if (p.language) {
-      languages.add(p.language)
-    }
-  })
-  
   const options: Array<{ value: string | null; label: string }> = [
     { value: null, label: t('common.all') }
   ]
   
-  // Sort languages alphabetically
-  const sortedLanguages = Array.from(languages).sort()
-  sortedLanguages.forEach(lang => {
+  LANGUAGE_OPTIONS.forEach(lang => {
     options.push({
-      value: lang,
-      label: lang
+      value: lang.value,
+      label: lang.label
     })
   })
   
   return options
 })
 
-// Project filter options - all projects that have publications
+// Project filter options
 const projectFilterOptions = computed(() => {
-  // Get unique project IDs from publications
-  const projectIdsWithPublications = new Set<string>()
-  publications.value.forEach(p => {
-    if (p.projectId) {
-      projectIdsWithPublications.add(p.projectId)
-    }
-  })
-  
   const options: Array<{ value: string | null; label: string }> = [
     { value: null, label: t('common.all') }
   ]
   
-  // Filter and sort projects that have publications
-  const projectsWithPublications = projects.value
-    .filter(project => projectIdsWithPublications.has(project.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  // Sort and add all projects
+  const sortedProjects = [...projects.value].sort((a, b) => a.name.localeCompare(b.name))
   
-  projectsWithPublications.forEach(project => {
+  sortedProjects.forEach(project => {
     options.push({
       value: project.id,
       label: project.name
@@ -265,28 +266,16 @@ const projectFilterOptions = computed(() => {
   return options
 })
 
-// Channel filter options - all channels that have publications
+// Channel filter options
 const channelFilterOptions = computed(() => {
-  // Get unique channel IDs from publications posts
-  const channelIdsWithPublications = new Set<string>()
-  publications.value.forEach(p => {
-    p.posts?.forEach(post => {
-      if (post.channelId) {
-        channelIdsWithPublications.add(post.channelId)
-      }
-    })
-  })
-  
   const options: Array<{ value: string | null; label: string }> = [
     { value: null, label: t('common.all') }
   ]
   
-  // Filter and sort channels that have publications
-  const channelsWithPublications = channels.value
-    .filter(channel => channelIdsWithPublications.has(channel.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  // Sort and add all channels
+  const sortedChannels = [...channels.value].sort((a, b) => a.name.localeCompare(b.name))
   
-  channelsWithPublications.forEach(channel => {
+  sortedChannels.forEach(channel => {
     // Get project name for better context
     const project = projects.value.find(p => p.id === channel.projectId)
     const projectName = project ? ` (${project.name})` : ''
@@ -357,14 +346,27 @@ const showPagination = computed(() => {
     <!-- Search and filters -->
     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
       <!-- Search -->
-      <div class="flex-1">
-        <UInput
-          v-model="searchQuery"
-          icon="i-heroicons-magnifying-glass"
-          :placeholder="t('common.search')"
-          size="md"
-          class="w-full"
-        />
+      <div class="flex items-center gap-4">
+        <div class="flex-1">
+          <UInput
+            v-model="searchQuery"
+            icon="i-heroicons-magnifying-glass"
+            :placeholder="t('common.search')"
+            size="md"
+            class="w-full"
+            :loading="isLoading && searchQuery !== debouncedSearch"
+          />
+        </div>
+        <UButton
+          v-if="hasActiveFilters"
+          color="neutral"
+          variant="subtle"
+          icon="i-heroicons-x-mark"
+          size="sm"
+          @click="resetFilters"
+        >
+          {{ t('common.resetFilters', 'Сбросить') }}
+        </UButton>
       </div>
 
       <!-- Filters -->
