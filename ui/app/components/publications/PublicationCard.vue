@@ -11,18 +11,14 @@ const emit = defineEmits<{
   (e: 'delete', publication: PublicationWithRelations): void
 }>()
 
-const { t, d } = useI18n()
+const { t } = useI18n()
 const { getStatusColor, getStatusDisplayName, getPublicationProblems, getPostProblemLevel } = usePublications()
+const { formatDateShort, truncateContent } = useFormatters()
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
 
-function truncateContent(content: string | null | undefined, maxLength = 100): string {
-  if (!content) return ''
-  const text = content.replace(/<[^>]*>/g, '').trim()
-  if (text.length <= maxLength) return text
-  return text.slice(0, maxLength) + '...'
-}
+
 
 function handleClick() {
   emit('click', props.publication)
@@ -78,12 +74,13 @@ function handleDelete(e: Event) {
     </div>
 
     <!-- Content preview -->
-    <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3 grow leading-relaxed">
-      {{ truncateContent(publication.content) }}
-    </p>
+    <CommonCardDescription 
+      :text="truncateContent(publication.content, 100)"
+      :lines="2" 
+    />
 
     <!-- Footer: Author, Date, Posts count, Tags -->
-    <div class="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50 space-y-2">
+    <CommonCardFooter>
       <!-- Author and Date -->
       <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
         <div v-if="publication.creator" class="flex items-center gap-1 min-w-0 flex-1">
@@ -93,7 +90,7 @@ function handleDelete(e: Event) {
 
         <div class="flex items-center gap-1 shrink-0">
           <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
-          <span>{{ d(new Date(publication.createdAt), 'short') }}</span>
+          <span>{{ formatDateShort(publication.createdAt) }}</span>
         </div>
       </div>
 
@@ -134,6 +131,6 @@ function handleDelete(e: Event) {
         <UIcon name="i-heroicons-tag" class="w-3.5 h-3.5 shrink-0" />
         <span class="truncate">{{ publication.tags }}</span>
       </div>
-    </div>
+    </CommonCardFooter>
   </div>
 </template>

@@ -7,25 +7,10 @@ const props = defineProps<{
   showDescription?: boolean
 }>()
 
-const { t, d } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 const { getChannelProblemLevel } = useChannels()
-
-function formatDate(date: string | null | undefined): string {
-  if (!date) return '-'
-  return d(new Date(date), 'short')
-}
-
-function formatDateWithTime(date: string | null | undefined): string {
-  if (!date) return '-'
-  return d(new Date(date), {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+const { formatDateShort, formatDateWithTime } = useFormatters()
 const isWarningActive = computed(() => {
   if (!props.project.lastPublicationAt) return false // Fix: don't show warning if no publications at all, just stale if channels exist
   
@@ -64,21 +49,19 @@ const isWarningActive = computed(() => {
 
           <!-- Stale/Inactivity Warnings -->
           <div v-if="isWarningActive || project.staleChannelsCount" class="flex flex-wrap gap-2 mb-3">
-            <!-- Warning: 3+ days without posts -->
-            <div v-if="isWarningActive" class="flex items-center gap-1.5 text-[10px] sm:text-xs leading-none text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-900/20 px-2 py-1.5 rounded-md w-fit border border-amber-100/50 dark:border-amber-800/30">
-              <UIcon name="i-heroicons-exclamation-triangle" class="w-3.5 h-3.5 shrink-0" />
-              <span class="truncate">
-                  {{ t('project.noRecentPostsWarning') }}
-              </span>
-            </div>
+            <CommonWarningBadge
+              v-if="isWarningActive"
+              icon="i-heroicons-exclamation-triangle"
+              :text="t('project.noRecentPostsWarning')"
+              variant="warning"
+            />
 
-            <!-- Stale Channels Warning -->
-            <div v-if="project.staleChannelsCount" class="flex items-center gap-1.5 text-[10px] sm:text-xs leading-none text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1.5 rounded-md w-fit border border-orange-100/50 dark:border-orange-800/30">
-              <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5 shrink-0" />
-              <span class="truncate">
-                  {{ project.staleChannelsCount }} {{ t('common.stale').toLowerCase() }}
-              </span>
-            </div>
+            <CommonWarningBadge
+              v-if="project.staleChannelsCount"
+              icon="i-heroicons-clock"
+              :text="`${project.staleChannelsCount} ${t('common.stale').toLowerCase()}`"
+              variant="warning"
+            />
           </div>
 
           <!-- Description (optional) -->

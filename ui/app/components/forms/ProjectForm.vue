@@ -43,15 +43,10 @@ const emit = defineEmits<Emits>()
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 
 const { t } = useI18n()
+const { formatDateWithTime } = useFormatters()
 const router = useRouter()
 
 const isEditMode = computed(() => !!props.project?.id)
-
-// Helper function to format date
-function formatDate(date: string | undefined): string {
-  if (!date) return '—'
-  return new Date(date).toLocaleString()
-}
 
 // Form state interface
 interface FormState {
@@ -164,17 +159,13 @@ function handleReset() {
     <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
       <div v-if="visibleSections.includes('general')" class="space-y-6">
         <!-- Created date (read-only, edit mode only) -->
-        <div v-if="isEditMode && project?.createdAt" class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('project.createdAt', 'Created At') }}
-          </label>
-          <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-            <span class="text-gray-900 dark:text-white">{{ formatDate(project.createdAt) }}</span>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('project.createdAtHelp', 'The date when this project was created') }}
-          </p>
-        </div>
+        <CommonFormReadOnlyField
+          v-if="isEditMode && project?.createdAt"
+          :label="t('project.createdAt', 'Created At')"
+          :value="project.createdAt"
+          :help="t('project.createdAtHelp', 'The date when this project was created')"
+          format-as-date
+        />
 
         <!-- Project name -->
         <UFormField

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import type { ChannelWithProject } from '~/composables/useChannels'
-import { getSocialMediaDisplayName } from '~/utils/socialMedia'
-import SocialIcon from '~/components/common/SocialIcon.vue'
 
 const props = defineProps<{
   channel: ChannelWithProject
@@ -9,12 +7,8 @@ const props = defineProps<{
   showProject?: boolean
 }>()
 
-const { t, d } = useI18n()
-
-function formatDate(date: string | null | undefined): string {
-  if (!date) return '-'
-  return d(new Date(date), 'short')
-}
+const { t } = useI18n()
+const { formatDateShort } = useFormatters()
 
 const hasCredentials = computed(() => {
   if (!props.channel.credentials) return false
@@ -54,9 +48,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
     </div>
 
     <!-- Description -->
-    <p v-if="channel.description" class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 grow">
-      {{ channel.description }}
-    </p>
+    <CommonCardDescription :text="channel.description" />
 
     <!-- Status badges and warnings -->
     <div class="flex flex-wrap items-center gap-2 mb-3">
@@ -91,7 +83,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
     </div>
 
     <!-- Footer: Metrics and identifier -->
-    <div class="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50 space-y-2">
+    <CommonCardFooter>
       <!-- Channel ID -->
       <div class="text-xs font-mono text-gray-400 dark:text-gray-500 truncate">
         ID: {{ channel.channelIdentifier }}
@@ -99,21 +91,26 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
 
       <!-- Stats -->
       <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <div class="flex items-center gap-1" :title="t('channel.publishedPosts')">
-          <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
-          <span>{{ channel.postsCount || 0 }}</span>
-        </div>
+        <CommonMetricItem
+          icon="i-heroicons-document-text"
+          :label="t('channel.publishedPosts')"
+          :value="channel.postsCount || 0"
+        />
 
-        <div v-if="channel.failedPostsCount && channel.failedPostsCount > 0" class="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium" :title="t('channel.failedPosts')">
-          <UIcon name="i-heroicons-exclamation-circle" class="w-3.5 h-3.5 shrink-0" />
-          <span>{{ channel.failedPostsCount }}</span>
-        </div>
+        <CommonMetricItem
+          v-if="channel.failedPostsCount && channel.failedPostsCount > 0"
+          icon="i-heroicons-exclamation-circle"
+          :label="t('channel.failedPosts')"
+          :value="channel.failedPostsCount"
+          variant="error"
+          bold
+        />
 
         <div class="flex items-center gap-1 ml-auto" :title="t('channel.lastPublishedPost')">
           <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5" />
-          <span>{{ formatDate(channel.lastPostAt) }}</span>
+          <span>{{ formatDateShort(channel.lastPostAt) }}</span>
         </div>
       </div>
-    </div>
+    </CommonCardFooter>
   </div>
 </template>

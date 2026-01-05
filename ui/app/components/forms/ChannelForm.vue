@@ -38,6 +38,7 @@ const emit = defineEmits<Emits>()
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 
 const { t } = useI18n()
+const { formatDateWithTime } = useFormatters()
 const router = useRouter()
 const {
   createChannel,
@@ -52,12 +53,6 @@ const { languageOptions } = useLanguages()
 const { projects, fetchProjects } = useProjects()
 
 const isEditMode = computed(() => !!props.channel?.id)
-
-// Helper function to format date
-function formatDate(date: string | undefined): string {
-  if (!date) return '—'
-  return new Date(date).toLocaleString()
-}
 
 // Fetch projects for the selector
 onMounted(() => {
@@ -327,30 +322,20 @@ const projectOptions = computed(() =>
     <UForm :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
       <div v-if="visibleSections.includes('general')" class="space-y-6">
         <!-- Created date (read-only, edit mode only) -->
-        <div v-if="isEditMode && channel?.createdAt" class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('channel.createdAt', 'Created At') }}
-          </label>
-          <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-            <span class="text-gray-900 dark:text-white">{{ formatDate(channel.createdAt) }}</span>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('channel.createdAtHelp', 'The date when this channel was created') }}
-          </p>
-        </div>
+        <CommonFormReadOnlyField
+          v-if="isEditMode && channel?.createdAt"
+          :label="t('channel.createdAt', 'Created At')"
+          :value="channel.createdAt"
+          :help="t('channel.createdAtHelp', 'The date when this channel was created')"
+          format-as-date
+        />
 
         <!-- Project (read-only) -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('channel.project', 'Project') }}
-          </label>
-          <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-            <UIcon name="i-heroicons-briefcase" class="w-5 h-5 text-gray-500" />
-            <span class="font-medium text-gray-900 dark:text-white">
-              {{ currentProjectName }}
-            </span>
-          </div>
-        </div>
+        <CommonFormReadOnlyField
+          :label="t('channel.project', 'Project')"
+          :value="currentProjectName"
+          icon="i-heroicons-briefcase"
+        />
 
         <!-- Channel language -->
         <div v-if="!isEditMode">
@@ -374,20 +359,13 @@ const projectOptions = computed(() =>
           </UFormField>
         </div>
         <!-- Display current language for edit mode (read-only) -->
-        <div v-else class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('channel.language') }}
-          </label>
-          <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-            <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-500" />
-            <span class="font-medium text-gray-900 dark:text-white">
-              {{ languageOptions.find(o => o.value === channel?.language)?.label || channel?.language }}
-            </span>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('channel.languageCannotChange', 'Language cannot be changed after channel creation') }}
-          </p>
-        </div>
+        <CommonFormReadOnlyField
+          v-else
+          :label="t('channel.language')"
+          :value="languageOptions.find(o => o.value === channel?.language)?.label || channel?.language"
+          :help="t('channel.languageCannotChange', 'Language cannot be changed after channel creation')"
+          icon="i-heroicons-language"
+        />
 
         <!-- Social media type (only for create mode) -->
         <div v-if="!isEditMode">
