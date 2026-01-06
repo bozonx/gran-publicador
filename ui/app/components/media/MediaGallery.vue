@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { CreateMediaInput } from '~/composables/useMedia'
-import { useMedia } from '~/composables/useMedia'
+import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 
 interface MediaItem {
   id: string
@@ -36,6 +36,7 @@ const sourceType = ref<'URL' | 'TELEGRAM' | 'UPLOAD'>('UPLOAD')
 const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
 const sourceInput = ref('')
 const filenameInput = ref('')
+const imageErrors = ref<Record<string, boolean>>({})
 
 const mediaTypeOptions = [
   { value: 'IMAGE', label: t('media.type.image', 'Image') },
@@ -162,6 +163,10 @@ async function removeMedia(mediaId: string) {
   }
 }
 
+function handleImageError(mediaId: string) {
+  imageErrors.value[mediaId] = true
+}
+
 interface Emits {
   (e: 'refresh'): void
 }
@@ -217,31 +222,35 @@ const emit = defineEmits<Emits>()
             :key="item.media?.id"
             class="shrink-0 w-48 h-48 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50 group relative"
           >
-            <!-- Image preview -->
+            <!-- Image preview with error handling -->
             <div
-              v-if="item.media?.type === 'IMAGE' && item.media?.srcType === 'UPLOAD'"
+              v-if="item.media?.type === 'IMAGE' && !imageErrors[item.media.id]"
               class="w-full h-full"
             >
               <img
-                :src="item.media.src"
+                :src="getMediaFileUrl(item.media.id)"
                 :alt="item.media.filename || 'Media'"
                 class="w-full h-full object-cover"
+                @error="handleImageError(item.media.id)"
               />
             </div>
             
-            <!-- Icon for other types -->
+            <!-- Icon for other types or failed images -->
             <div
               v-else
               class="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
             >
               <UIcon
-                :name="getMediaIcon(item.media?.type || '')"
-                class="w-12 h-12 text-gray-400"
+                :name="imageErrors[item.media?.id || ''] ? 'i-heroicons-exclamation-triangle' : getMediaIcon(item.media?.type || '')"
+                :class="[
+                  'w-12 h-12',
+                  imageErrors[item.media?.id || ''] ? 'text-red-500' : 'text-gray-400'
+                ]"
               ></UIcon>
-              <p class="text-xs text-gray-600 dark:text-gray-400 text-center truncate w-full px-2">
-                {{ item.media?.filename || 'Untitled' }}
+              <p class="text-xs text-center truncate w-full px-2" :class="imageErrors[item.media?.id || ''] ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'">
+                {{ imageErrors[item.media?.id || ''] ? t('media.loadError', 'Файл недоступен') : (item.media?.filename || 'Untitled') }}
               </p>
-              <div class="flex flex-col gap-1">
+              <div v-if="!imageErrors[item.media?.id || '']" class="flex flex-col gap-1">
                 <UBadge size="xs" color="neutral">
                   {{ item.media?.type }}
                 </UBadge>

@@ -51,6 +51,11 @@ export class MediaController {
       return this.mediaService.findAll();
   }
 
+  @Get(':id/file')
+  async getFile(@Param('id') id: string, @Req() req: any) {
+    return this.mediaService.streamMediaFile(id, req.raw.res);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.mediaService.findOne(id);

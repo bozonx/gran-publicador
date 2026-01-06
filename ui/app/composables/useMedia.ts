@@ -125,3 +125,10 @@ export function useMedia() {
     removeMediaFromPublication,
   }
 }
+
+/**
+ * Get URL for media file
+ */
+export function getMediaFileUrl(mediaId: string): string {
+  return `/api/v1/media/${mediaId}/file`;
+}
