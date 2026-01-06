@@ -39,7 +39,7 @@ async function performSearch(query: string) {
   try {
     // Search projects
     const projectsResponse = await api.get<any>('/projects', {
-      params: { 
+      query: { 
         search: query,
         limit: 10
       }
@@ -60,7 +60,7 @@ async function performSearch(query: string) {
 
     // Search channels
     const channelsResponse = await api.get<any>('/channels', {
-      params: { 
+      query: { 
         search: query,
         limit: 10 
       }
@@ -81,7 +81,7 @@ async function performSearch(query: string) {
 
     // Search publications
     const publicationsResponse = await api.get<any>('/publications', {
-      params: { 
+      query: { 
         search: query,
         limit: 10 
       }

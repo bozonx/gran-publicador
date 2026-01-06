@@ -16,6 +16,7 @@ const items = computed(() => [
     label: t('publication.create'),
     icon: 'i-heroicons-document-text',
     click: () => {
+      console.log('GlobalCreateButton: Create Publication clicked')
       isPublicationModalOpen.value = true
     }
   }],
@@ -23,12 +24,14 @@ const items = computed(() => [
     label: t('project.createProject'),
     icon: 'i-heroicons-briefcase',
     click: () => {
+      console.log('GlobalCreateButton: Create Project clicked')
       isProjectModalOpen.value = true
     }
   }, {
     label: t('channel.createChannel'),
     icon: 'i-heroicons-hashtag',
     click: () => {
+      console.log('GlobalCreateButton: Create Channel clicked')
       isChannelModalOpen.value = true
     }
   }]

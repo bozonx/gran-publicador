@@ -325,6 +325,7 @@ export class PublicationsService {
       issueType?: IssueType;
     },
   ) {
+    this.logger.log(`findAllForUser called for user ${userId} with search: "${filters?.search || ''}"`);
     // 1. Get all projects where user is a member
     const userProjects = await this.prisma.projectMember.findMany({
       where: { userId },
