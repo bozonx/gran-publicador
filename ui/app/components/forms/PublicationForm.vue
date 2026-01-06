@@ -217,7 +217,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           language: event.data.language,
           linkToPublicationId: linkedPublicationId.value || undefined, // Send linkToPublicationId
           postType: event.data.postType,
-          meta: JSON.parse(event.data.meta),
+          meta: (() => { try { return JSON.parse(event.data.meta) } catch { return {} } })(),
           postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
           scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
@@ -252,11 +252,11 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         authorComment: event.data.authorComment || null,
         tags: event.data.tags || undefined,
         // Master status logic: if scheduled and has channels -> scheduled, else draft
-        status: event.data.status === 'SCHEDULED' && state.channelIds.length > 0 ? 'SCHEDULED' : 'DRAFT', 
+        status: event.data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : event.data.status,
         language: event.data.language,
         linkToPublicationId: linkedPublicationId.value || undefined,
         postType: event.data.postType,
-        meta: JSON.parse(event.data.meta),
+        meta: (() => { try { return JSON.parse(event.data.meta) } catch { return {} } })(),
         postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
         scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }

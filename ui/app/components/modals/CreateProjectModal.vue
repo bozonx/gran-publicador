@@ -32,11 +32,7 @@ async function handleCreate() {
     })
 
     if (project) {
-      toast.add({
-        title: t('common.success'),
-        description: t('project.createSuccess'),
-        color: 'success'
-      })
+
       
       resetForm()
       isOpen.value = false
