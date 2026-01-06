@@ -501,6 +501,11 @@ function toggleChannel(channelId: string) {
         />
       </UFormField>
 
+       <!-- Media Files -->
+       <UFormField name="media" :label="t('publication.media', 'Media Files')">
+         <MediaInput v-model="state.media" />
+       </UFormField>
+
       <!-- Translation Group (Link to another publication) - Moved out of Advanced -->
       <UFormField name="translationGroupId" :label="t('publication.linkTranslation', 'Link as Translation of')" :help="t('publication.linkTranslationHelp', 'Select a publication to link this one as a translation version.')">
         <USelectMenu
