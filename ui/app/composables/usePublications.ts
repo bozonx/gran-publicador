@@ -11,7 +11,6 @@ export interface Publication {
     title: string | null
     description: string | null
     content: string | null
-    mediaFiles: string
     tags: string | null
     status: PublicationStatus
     meta: string
@@ -40,6 +39,20 @@ export interface PublicationWithRelations extends Publication {
     } | null
     posts?: any[]
     translations?: { id: string; language: string }[]
+    media?: Array<{
+        id: string
+        order: number
+        media?: {
+            id: string
+            type: string
+            srcType: string
+            src: string
+            filename?: string
+            mimeType?: string
+            sizeBytes?: number
+        }
+        mediaGroup?: any
+    }>
     _count?: {
         posts: number
     }
