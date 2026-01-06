@@ -10,6 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const route = useRoute()
 
 // Group problems by type
 const criticalProblems = computed(() => 
@@ -57,7 +58,18 @@ function getProblemText(problem: { key: string, count?: number }) {
         <template #description>
           <ul class="list-disc list-inside space-y-1 mt-2">
             <li v-for="problem in criticalProblems" :key="problem.key" class="text-sm">
-              {{ getProblemText(problem) }}
+              <div class="flex items-center gap-2">
+                <span>{{ getProblemText(problem) }}</span>
+                <UButton
+                  v-if="problem.key === 'missingCredentials' && route.params.channelId"
+                  size="xs"
+                  color="error" 
+                  variant="soft"
+                  :to="`/projects/${route.params.id}/channels/${route.params.channelId}/settings#credentials`"
+                >
+                  {{ t('common.add') }}
+                </UButton>
+              </div>
             </li>
           </ul>
         </template>

@@ -71,10 +71,15 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
           </UTooltip>
 
           <UTooltip v-if="!hasCredentials" :text="t('channel.noCredentials')">
-            <UIcon 
-              name="i-heroicons-exclamation-triangle" 
-              class="w-5 h-5 text-warning-500" 
-            />
+             <NuxtLink 
+               :to="`/projects/${channel.projectId}/channels/${channel.id}/settings#credentials`"
+               @click.stop
+             >
+              <UIcon 
+                name="i-heroicons-exclamation-triangle" 
+                class="w-5 h-5 text-warning-500 hover:text-warning-600 transition-colors" 
+              />
+             </NuxtLink>
           </UTooltip>
         </div>
 

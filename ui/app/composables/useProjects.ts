@@ -19,7 +19,7 @@ export function useProjects() {
         store.setError(null)
 
         try {
-            const params = { includeArchived }
+            const params = { includeArchived, limit: 1000 }
             const data = await api.get<ProjectWithRole[]>('/projects', { params })
             store.setProjects(data)
             return data
