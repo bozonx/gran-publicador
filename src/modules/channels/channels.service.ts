@@ -144,6 +144,14 @@ export class ChannelsService {
    * @param filters - Filters and pagination options.
    * @returns Paginated channels with total count.
    */
+  /**
+   * Retrieves all channels for a given user across all projects they are members of.
+   * Supports server-side pagination, filtering, and sorting.
+   *
+   * @param userId - The ID of the user requesting the channels.
+   * @param filters - Filters and pagination options.
+   * @returns Paginated channels with total count.
+   */
   public async findAllForUser(
     userId: string,
     filters: {
@@ -164,23 +172,35 @@ export class ChannelsService {
     const validatedLimit = Math.min(filters.limit || 50, MAX_LIMIT);
     const offset = filters.offset || 0;
 
+    // 1. Get all projects where user is a member
+    const userProjects = await this.prisma.projectMember.findMany({
+      where: { userId },
+      select: { projectId: true },
+    });
+    const userAllowedProjectIds = userProjects.map(p => p.projectId);
+
+    if (userAllowedProjectIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+
+    let searchProjectIds = userAllowedProjectIds;
+    // Intersect with requested filters if present
+    if (filters.projectIds && filters.projectIds.length > 0) {
+        searchProjectIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
+        if (searchProjectIds.length === 0) return { items: [], total: 0 };
+    }
+
     // Build where clause
     const where: any = {
-      project: {
-        members: {
-          some: { userId }
-        },
-        archivedAt: null
-      },
+      projectId: { in: searchProjectIds },
       ...(filters.includeArchived ? {} : { archivedAt: null }),
     };
 
-    const andConditions: any[] = [];
-
-    // Filter by project IDs
-    if (filters.projectIds && filters.projectIds.length > 0) {
-      where.projectId = { in: filters.projectIds };
+    if (!filters.includeArchived) {
+        where.project = { archivedAt: null };
     }
+
+    const andConditions: any[] = [];
 
     // Filter by social media
     if (filters.socialMedia) {
@@ -204,9 +224,9 @@ export class ChannelsService {
 
     // Ownership filter
     if (filters.ownership === 'own') {
-      where.project.ownerId = userId;
+      where.project = { ...where.project, ownerId: userId };
     } else if (filters.ownership === 'guest') {
-      where.project.ownerId = { not: userId };
+      where.project = { ...where.project, ownerId: { not: userId } };
     }
 
     // Issue type filter
