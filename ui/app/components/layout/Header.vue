@@ -27,10 +27,12 @@ const emit = defineEmits<{
         </NuxtLink>
       </div>
 
-      <!-- Center: Global search -->
-      <div class="flex-1 max-w-md mx-4">
+      <!-- Search: Left aligned (after logo/sidebar) -->
+      <div class="hidden sm:block w-[32rem] ml-8">
         <CommonGlobalSearch />
       </div>
+
+      <div class="flex-1"></div>
 
       <!-- Right side: Create button and User avatar -->
       <div class="flex items-center gap-3">

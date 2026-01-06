@@ -38,15 +38,15 @@ async function performSearch(query: string) {
 
   try {
     // Search projects
-    const projectsResponse = await api.get<any>('/projects', {
+    const projectsResponse = await api.get<any[]>('/projects', {
       query: { 
         search: query,
-        limit: 10
+        limit: 20
       }
     })
-    const projects = projectsResponse?.data || []
+    const projects = projectsResponse || []
     projects
-      .slice(0, 5)
+      .slice(0, 10)
       .forEach((p: any) => {
         results.push({
           type: 'project',
@@ -62,12 +62,12 @@ async function performSearch(query: string) {
     const channelsResponse = await api.get<any>('/channels', {
       query: { 
         search: query,
-        limit: 10 
+        limit: 20 
       }
     })
-    const channels = channelsResponse?.data?.items || []
+    const channels = channelsResponse?.items || []
     channels
-      .slice(0, 5)
+      .slice(0, 10)
       .forEach((c: any) => {
         results.push({
           type: 'channel',
@@ -83,12 +83,12 @@ async function performSearch(query: string) {
     const publicationsResponse = await api.get<any>('/publications', {
       query: { 
         search: query,
-        limit: 10 
+        limit: 20 
       }
     })
-    const publications = publicationsResponse?.data?.items || []
+    const publications = publicationsResponse?.items || []
     publications
-      .slice(0, 5)
+      .slice(0, 10)
       .forEach((p: any) => {
         results.push({
           type: 'publication',
@@ -121,7 +121,7 @@ function closeSearch() {
 // Keyboard shortcut: Cmd+K or Ctrl+K
 onMounted(() => {
   const handleKeydown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.code === 'KeyK')) {
       e.preventDefault()
       isOpen.value = !isOpen.value
     }
@@ -143,8 +143,9 @@ const groupedResults = computed(() => {
   }
   
   searchResults.value.forEach(result => {
-    if (groups[result.type]) {
-      groups[result.type].push(result)
+    const group = groups[result.type] // Fix for lint error
+    if (group) {
+      group.push(result)
     }
   })
   
@@ -158,12 +159,17 @@ const groupedResults = computed(() => {
     <UButton
       variant="outline"
       color="neutral"
-      icon="i-heroicons-magnifying-glass"
-      class="hidden sm:flex"
+      class="hidden sm:flex w-full items-center justify-between"
       @click="isOpen = true"
     >
-      <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('common.search') }}</span>
-      <UKbd class="ml-auto">⌘K</UKbd>
+      <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+        <UIcon name="i-heroicons-magnifying-glass" class="w-5 h-5" />
+        <span class="text-sm">{{ t('common.search') }}</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <UKbd>Ctrl</UKbd>
+        <UKbd>K</UKbd>
+      </div>
     </UButton>
 
     <!-- Mobile search icon -->
@@ -176,18 +182,41 @@ const groupedResults = computed(() => {
     />
 
     <!-- Search modal -->
-    <UModal v-model:open="isOpen">
+    <UModal
+      v-model:open="isOpen"
+      :ui="{
+        wrapper: 'flex items-start justify-center min-h-screen pt-4 px-4 sm:pt-4',
+        content: 'my-0 sm:my-0 w-full sm:max-w-2xl'
+      }"
+    >
       <template #content>
         <div class="p-4">
           <!-- Search input -->
           <UInput
             v-model="searchQuery"
-            icon="i-heroicons-magnifying-glass"
             :placeholder="t('common.search')"
-            size="lg"
+            size="xl"
             autofocus
-            :loading="isSearching"
-          />
+            class="w-full"
+          >
+            <template #leading>
+              <UIcon 
+                :name="isSearching ? 'i-heroicons-arrow-path' : 'i-heroicons-magnifying-glass'" 
+                class="w-5 h-5 text-gray-400"
+                :class="{ 'animate-spin': isSearching }"
+              />
+            </template>
+            <template #trailing>
+              <UButton
+                v-if="searchQuery"
+                color="neutral"
+                variant="link"
+                icon="i-heroicons-x-mark"
+                :padded="false"
+                @click="searchQuery = ''"
+              />
+            </template>
+          </UInput>
 
           <!-- Search results -->
           <div v-if="searchQuery.length >= 2" class="mt-4 max-h-96 overflow-y-auto">
@@ -197,10 +226,7 @@ const groupedResults = computed(() => {
               <p class="text-gray-500 dark:text-gray-400">{{ t('common.noData') }}</p>
             </div>
 
-            <!-- Loading -->
-            <div v-if="isSearching" class="text-center py-8">
-              <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 mx-auto text-gray-400 animate-spin" />
-            </div>
+            <!-- Loading removed -->
 
             <!-- Results grouped by type -->
             <div v-if="searchResults.length > 0" class="space-y-4">

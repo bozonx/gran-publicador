@@ -11,29 +11,34 @@ const isProjectModalOpen = ref(false)
 const isChannelModalOpen = ref(false)
 
 // Dropdown items
+const openPublicationModal = () => {
+  isPublicationModalOpen.value = true
+}
+
+const openProjectModal = () => {
+  isProjectModalOpen.value = true
+}
+
+const openChannelModal = () => {
+  isChannelModalOpen.value = true
+}
+
+
+// Dropdown items
 const items = computed(() => [
   [{
     label: t('publication.create'),
     icon: 'i-heroicons-document-text',
-    click: () => {
-      console.log('GlobalCreateButton: Create Publication clicked')
-      isPublicationModalOpen.value = true
-    }
+    click: openPublicationModal
   }],
   [{
     label: t('project.createProject'),
     icon: 'i-heroicons-briefcase',
-    click: () => {
-      console.log('GlobalCreateButton: Create Project clicked')
-      isProjectModalOpen.value = true
-    }
+    click: openProjectModal
   }, {
     label: t('channel.createChannel'),
     icon: 'i-heroicons-hashtag',
-    click: () => {
-      console.log('GlobalCreateButton: Create Channel clicked')
-      isChannelModalOpen.value = true
-    }
+    click: openChannelModal
   }]
 ])
 
@@ -185,6 +190,13 @@ function closePublicationModal() {
           square
           class="rounded-l-none"
         />
+
+        <template #item="{ item }">
+          <div class="flex items-center gap-2 w-full" @click="item.click && item.click()">
+            <UIcon v-if="item.icon" :name="item.icon" class="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <span class="truncate">{{ item.label }}</span>
+          </div>
+        </template>
       </UDropdownMenu>
     </div>
 
