@@ -76,11 +76,8 @@ export function useMedia() {
       const formData = new FormData()
       formData.append('file', file)
 
-      return await api.post<MediaItem>('/media/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
+      // Don't set Content-Type manually - let the browser set it with the correct boundary
+      return await api.post<MediaItem>('/media/upload', formData)
     } catch (err: any) {
       error.value = err.message || 'Failed to upload media'
       throw err
