@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, Res, BadRequestException } from '@nestjs/common';
 import { MediaService } from './media.service.js';
 import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
 // import { FastifyRequest } from 'fastify'; // Need to import this type if using it.
@@ -52,8 +52,9 @@ export class MediaController {
   }
 
   @Get(':id/file')
-  async getFile(@Param('id') id: string, @Req() req: any) {
-    return this.mediaService.streamMediaFile(id, req.raw.res);
+  async getFile(@Param('id') id: string, @Res() res: any) {
+    // In Fastify, res is a FastifyReply, res.raw is the native Node.js ServerResponse
+    return this.mediaService.streamMediaFile(id, res.raw || res);
   }
 
   @Get(':id')

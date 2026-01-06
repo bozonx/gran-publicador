@@ -175,11 +175,8 @@ export class MediaService {
   /**
    * Stream file from local filesystem
    */
-  private async streamFromFileSystem(media: any, res: any) {
+  private async streamFromFileSystem(media: any, res: any): Promise<void> {
     const filePath = join(this.mediaDir, media.src);
-    
-    this.logger.log(`Attempting to stream file: ${filePath}`);
-    this.logger.log(`Media dir: ${this.mediaDir}, Media src: ${media.src}`);
     
     if (!existsSync(filePath)) {
       this.logger.error(`File not found: ${filePath}`);
@@ -197,8 +194,12 @@ export class MediaService {
     }
 
     // Stream file to response
-    const fileStream = createReadStream(filePath);
-    fileStream.pipe(res);
+    return new Promise((resolve, reject) => {
+      const fileStream = createReadStream(filePath);
+      fileStream.pipe(res);
+      fileStream.on('end', () => resolve());
+      fileStream.on('error', (err) => reject(err));
+    });
   }
 
   /**
