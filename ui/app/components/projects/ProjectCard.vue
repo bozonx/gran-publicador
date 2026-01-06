@@ -9,14 +9,55 @@ const props = defineProps<{
 const { t } = useI18n()
 const { formatDateShort } = useFormatters()
 
-const isWarningActive = computed(() => {
-  if (!props.project.lastPublicationAt) return false
+// Errors category (critical issues)
+const errorsCount = computed(() => {
+  return (props.project.failedPostsCount || 0)
+})
+
+// Warnings category (non-critical issues)
+const warningsCount = computed(() => {
+  let count = 0
+  count += (props.project.problemPublicationsCount || 0)
+  count += (props.project.staleChannelsCount || 0)
   
-  const lastDate = new Date(props.project.lastPublicationAt).getTime()
-  const now = new Date().getTime()
-  const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+  // Check if no posts for more than 3 days
+  if (props.project.lastPublicationAt) {
+    const lastDate = new Date(props.project.lastPublicationAt).getTime()
+    const now = new Date().getTime()
+    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+    if (diffDays > 3) count += 1
+  }
   
-  return diffDays > 3
+  return count
+})
+
+// Tooltip text for errors
+const errorsTooltip = computed(() => {
+  const parts: string[] = []
+  if (props.project.failedPostsCount) {
+    parts.push(t('channel.failedPosts'))
+  }
+  return parts.join(', ')
+})
+
+// Tooltip text for warnings
+const warningsTooltip = computed(() => {
+  const parts: string[] = []
+  if (props.project.problemPublicationsCount) {
+    parts.push(t('problems.project.problemPublications', { count: props.project.problemPublicationsCount }))
+  }
+  if (props.project.staleChannelsCount) {
+    parts.push(`${props.project.staleChannelsCount} ${t('common.stale').toLowerCase()}`)
+  }
+  if (props.project.lastPublicationAt) {
+    const lastDate = new Date(props.project.lastPublicationAt).getTime()
+    const now = new Date().getTime()
+    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+    if (diffDays > 3) {
+      parts.push(t('project.noRecentPostsWarning'))
+    }
+  }
+  return parts.join(', ')
 })
 </script>
 
@@ -33,23 +74,32 @@ const isWarningActive = computed(() => {
       :badge-color="project.role ? getRoleBadgeColor(project.role) : undefined"
     >
       <template #actions>
-        <UTooltip v-if="project.failedPostsCount" :text="t('channel.failedPosts')">
-          <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-800/30 text-xs font-bold">
-            <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4" />
-            <span>{{ project.failedPostsCount }}</span>
-          </div>
+        <!-- Mini Error Badge -->
+        <UTooltip v-if="errorsCount > 0" :text="errorsTooltip">
+          <UBadge 
+            color="error" 
+            variant="soft" 
+            size="xs"
+          >
+            <span class="flex items-center gap-0.5">
+              <UIcon name="i-heroicons-x-circle-solid" class="w-3.5 h-3.5" />
+              <span class="font-bold text-[10px]">{{ errorsCount }}</span>
+            </span>
+          </UBadge>
         </UTooltip>
-        <UTooltip v-if="project.problemPublicationsCount" :text="t('problems.project.problemPublications', { count: project.problemPublicationsCount })">
-          <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-100/50 dark:border-orange-800/30 text-xs font-bold">
-            <UIcon name="i-heroicons-document-exclamation" class="w-4 h-4" />
-            <span>{{ project.problemPublicationsCount }}</span>
-          </div>
-        </UTooltip>
-        <UTooltip v-if="isWarningActive" :text="t('project.noRecentPostsWarning')">
-          <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-amber-500" />
-        </UTooltip>
-        <UTooltip v-if="project.staleChannelsCount" :text="`${project.staleChannelsCount} ${t('common.stale').toLowerCase()}`">
-          <UIcon name="i-heroicons-clock" class="w-5 h-5 text-orange-500" />
+
+        <!-- Mini Warning Badge -->
+        <UTooltip v-if="warningsCount > 0" :text="warningsTooltip">
+          <UBadge 
+            color="warning" 
+            variant="soft" 
+            size="xs"
+          >
+            <span class="flex items-center gap-0.5">
+              <UIcon name="i-heroicons-exclamation-triangle-solid" class="w-3.5 h-3.5" />
+              <span class="font-bold text-[10px]">{{ warningsCount }}</span>
+            </span>
+          </UBadge>
         </UTooltip>
       </template>
     </CommonEntityCardHeader>

@@ -14,15 +14,59 @@ function formatDate(date: string | null | undefined): string {
   return d(new Date(date), 'short')
 }
 
-// Warning if no new posts for more than 3 days
-const isWarningActive = computed(() => {
-  if (!props.project.lastPublicationAt) return true // No posts ever is also a warning
+// Errors category (critical issues)
+const errorsCount = computed(() => {
+  return (props.project.failedPostsCount || 0)
+})
+
+// Warnings category (non-critical issues)
+const warningsCount = computed(() => {
+  let count = 0
+  count += (props.project.problemPublicationsCount || 0)
+  count += (props.project.staleChannelsCount || 0)
   
-  const lastDate = new Date(props.project.lastPublicationAt).getTime()
-  const now = new Date().getTime()
-  const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+  // Check if no posts for more than 3 days
+  if (props.project.lastPublicationAt) {
+    const lastDate = new Date(props.project.lastPublicationAt).getTime()
+    const now = new Date().getTime()
+    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+    if (diffDays > 3) count += 1
+  } else {
+    count += 1 // No posts ever is also a warning
+  }
   
-  return diffDays > 3
+  return count
+})
+
+// Tooltip text for errors
+const errorsTooltip = computed(() => {
+  const parts: string[] = []
+  if (props.project.failedPostsCount) {
+    parts.push(t('channel.failedPosts'))
+  }
+  return parts.join(', ')
+})
+
+// Tooltip text for warnings
+const warningsTooltip = computed(() => {
+  const parts: string[] = []
+  if (props.project.problemPublicationsCount) {
+    parts.push(t('problems.project.problemPublications', { count: props.project.problemPublicationsCount }))
+  }
+  if (props.project.staleChannelsCount) {
+    parts.push(`${props.project.staleChannelsCount} ${t('common.stale').toLowerCase()}`)
+  }
+  if (props.project.lastPublicationAt) {
+    const lastDate = new Date(props.project.lastPublicationAt).getTime()
+    const now = new Date().getTime()
+    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+    if (diffDays > 3) {
+      parts.push(t('project.noRecentPostsWarning'))
+    }
+  } else {
+    parts.push(t('project.noRecentPostsWarning'))
+  }
+  return parts.join(', ')
 })
 </script>
 
@@ -33,42 +77,58 @@ const isWarningActive = computed(() => {
     :class="{ 'opacity-75 grayscale': project.archivedAt }"
   >
     <div class="p-3 sm:p-3.5">
-      <div class="flex items-start justify-between gap-6">
-        <div class="flex-1 min-w-0">
-          <!-- Project Title -->
+      <div class="flex items-center justify-between gap-3">
+        <!-- Left: Project Title + Problem Badges -->
+        <div class="flex-1 min-w-0 flex items-center gap-2">
           <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate leading-6">
             {{ project.name }}
           </h3>
+          
+          <!-- Mini Error Badge -->
+          <UTooltip v-if="errorsCount > 0" :text="errorsTooltip">
+            <UBadge 
+              color="error" 
+              variant="soft" 
+              size="xs"
+              class="shrink-0"
+            >
+              <span class="flex items-center gap-0.5">
+                <UIcon name="i-heroicons-x-circle-solid" class="w-3 h-3" />
+                <span class="font-bold text-[10px]">{{ errorsCount }}</span>
+              </span>
+            </UBadge>
+          </UTooltip>
 
-          <!-- Warning: 3+ days without posts -->
-          <div v-if="isWarningActive" class="mt-2 flex items-center gap-1.5 text-xs leading-none text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-900/20 px-2 py-1.5 rounded-md w-fit border border-amber-100/50 dark:border-amber-800/30">
-             <UIcon name="i-heroicons-exclamation-triangle" class="w-3.5 h-3.5 shrink-0" />
-             <span class="truncate">
-                {{ t('project.noRecentPostsWarning') }}
-             </span>
-          </div>
-
-          <!-- Stale Channels Warning -->
-          <div v-if="project.staleChannelsCount" class="mt-2 flex items-center gap-1.5 text-xs leading-none text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20 px-2 py-1.5 rounded-md w-fit border border-orange-100/50 dark:border-orange-800/30">
-             <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5 shrink-0" />
-             <span class="truncate">
-                {{ project.staleChannelsCount }} {{ t('common.stale').toLowerCase() }}
-             </span>
-          </div>
+          <!-- Mini Warning Badge -->
+          <UTooltip v-if="warningsCount > 0" :text="warningsTooltip">
+            <UBadge 
+              color="warning" 
+              variant="soft" 
+              size="xs"
+              class="shrink-0"
+            >
+              <span class="flex items-center gap-0.5">
+                <UIcon name="i-heroicons-exclamation-triangle-solid" class="w-3 h-3" />
+                <span class="font-bold text-[10px]">{{ warningsCount }}</span>
+              </span>
+            </UBadge>
+          </UTooltip>
         </div>
 
-        <!-- Right Side: Publications Count -->
-        <div class="shrink-0 pt-0.5">
+        <!-- Right: Publications Display -->
+        <UTooltip :text="t('publication.titlePlural')">
           <UBadge 
             color="neutral" 
             variant="soft" 
             size="sm"
-            class="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-700/50 shadow-sm"
+            class="shrink-0"
           >
-            <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <span class="font-bold text-xs text-gray-700 dark:text-gray-200">{{ project.publicationsCount || 0 }}</span>
+            <span class="flex items-center gap-1">
+              <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
+              <span class="font-bold text-xs">{{ project.publicationsCount || 0 }}</span>
+            </span>
           </UBadge>
-        </div>
+        </UTooltip>
       </div>
     </div>
   </NuxtLink>
