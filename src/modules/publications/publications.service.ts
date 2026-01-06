@@ -112,13 +112,13 @@ export class PublicationsService {
     }
 
     // Text search across title, description, and content
-    // Note: Using 'any' type assertion because SQLite types don't include 'mode' parameter,
-    // but Prisma runtime supports it for case-insensitive search
+    // Note: SQLite LIKE is case-sensitive for non-ASCII (Cyrillic) characters
+    // For true case-insensitive search, would need LOWER() in raw SQL
     if (filters?.search) {
-      (where as any).OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { content: { contains: filters.search, mode: 'insensitive' } },
+      where.OR = [
+        { title: { contains: filters.search } },
+        { description: { contains: filters.search } },
+        { content: { contains: filters.search } },
       ];
     }
 

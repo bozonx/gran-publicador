@@ -11,6 +11,7 @@ describe('ProjectsService (unit)', () => {
 
   const mockPrismaService = {
     $transaction: jest.fn() as any,
+    $queryRaw: jest.fn() as any,
     project: {
       create: jest.fn() as any,
       findMany: jest.fn() as any,
@@ -21,6 +22,16 @@ describe('ProjectsService (unit)', () => {
     projectMember: {
       create: jest.fn() as any,
       findUnique: jest.fn() as any,
+    },
+    publication: {
+      groupBy: jest.fn() as any,
+      count: jest.fn() as any,
+    },
+    post: {
+      groupBy: jest.fn() as any,
+    },
+    channel: {
+      findMany: jest.fn() as any,
     },
   };
 
@@ -123,6 +134,9 @@ describe('ProjectsService (unit)', () => {
       ];
 
       mockPrismaService.project.findMany.mockResolvedValue(mockProjects);
+      mockPrismaService.publication.groupBy.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      mockPrismaService.channel.findMany.mockResolvedValue([]);
 
       const result = await service.findAllForUser(userId);
 
@@ -160,6 +174,8 @@ describe('ProjectsService (unit)', () => {
 
       mockPermissionsService.getUserProjectRole.mockResolvedValue('EDITOR');
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
+      mockPrismaService.post.groupBy.mockResolvedValue([]);
+      mockPrismaService.publication.count.mockResolvedValue(0);
 
       const result = await service.findOne(projectId, userId);
 
@@ -173,6 +189,8 @@ describe('ProjectsService (unit)', () => {
         lastPublicationId: null,
         staleChannelsCount: 0,
         preferences: {},
+        failedPostsCount: 0,
+        problemPublicationsCount: 0,
       });
     });
 
