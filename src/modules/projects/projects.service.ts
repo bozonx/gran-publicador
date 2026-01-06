@@ -69,12 +69,14 @@ export class ProjectsService {
    */
   public async findAllForUser(
     userId: string,
-    options?: { includeArchived?: boolean },
+    options?: { includeArchived?: boolean; limit?: number },
   ) {
     const includeArchived = options?.includeArchived ?? false;
+    const limit = options?.limit;
 
     // 1. Fetch projects without heavy channel data
     const projects = await this.prisma.project.findMany({
+      take: limit,
       where: {
         ...(includeArchived ? {} : { archivedAt: null }),
         members: {

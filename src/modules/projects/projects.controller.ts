@@ -52,9 +52,11 @@ export class ProjectsController {
   public async findAll(
     @Request() req: UnifiedAuthRequest,
     @Query('includeArchived', new DefaultValuePipe(false), ParseBoolPipe) includeArchived?: boolean,
+    @Query('limit', new DefaultValuePipe(0), ParseIntPipe) limit?: number,
   ) {
     const projects = await this.projectsService.findAllForUser(req.user.userId, {
-      includeArchived
+      includeArchived,
+      limit: limit || undefined
     });
 
     // Filter projects based on token scope

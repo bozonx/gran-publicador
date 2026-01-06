@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChannels } from '~/composables/useChannels'
 import { ArchiveEntityType } from '~/types/archive.types'
@@ -37,6 +37,17 @@ const deleteConfirmationInput = ref('')
 onMounted(async () => {
   if (channelId.value) {
     await fetchChannel(channelId.value)
+    
+    // Scroll to hash anchor after data is loaded and rendered
+    await nextTick()
+    
+    const hash = route.hash
+    if (hash) {
+      const element = document.querySelector(hash)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
   }
 })
 
