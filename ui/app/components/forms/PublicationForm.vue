@@ -67,6 +67,12 @@ const state = reactive({
         const parsed = typeof props.publication.meta === 'string' 
             ? JSON.parse(props.publication.meta) 
             : props.publication.meta
+            
+        // If parsed is empty object, return empty string
+        if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) {
+            return ''
+        }
+        
         return yaml.dump(parsed)
     } catch (e) {
         return props.publication.meta
@@ -97,13 +103,14 @@ const schema = computed(() => z.object({
   channelIds: z.array(z.string()).optional(),
   translationGroupId: z.string().optional(),
   meta: z.string().refine((val) => {
+    if (!val || val.trim() === '') return true
     try {
       const parsed = yaml.load(val)
       return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
     } catch {
       return false
     }
-  }, t('validation.invalidYaml', 'Must be a valid YAML object')),
+  }, t('validation.invalidYaml', 'Must be a valid YAML object (key-value pairs), not a list or value')),
   description: z.string().optional(),
   authorComment: z.string().optional(),
   postDate: z.string().optional(),
@@ -169,6 +176,12 @@ watch(() => props.publication, (newPub) => {
             const parsed = typeof newPub.meta === 'string' 
                 ? JSON.parse(newPub.meta) 
                 : newPub.meta
+                
+            // If parsed is empty object, return empty string
+            if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) {
+                return ''
+            }
+
             return yaml.dump(parsed)
         } catch (e) {
             return newPub.meta
@@ -238,7 +251,13 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           language: event.data.language,
           linkToPublicationId: linkedPublicationId.value || undefined, // Send linkToPublicationId
           postType: event.data.postType,
-          meta: (() => { try { return yaml.load(event.data.meta) } catch { return {} } })(),
+          meta: (() => { 
+            try { 
+                if (!event.data.meta || event.data.meta.trim() === '') return {} // Return empty object for empty string
+                const parsed = yaml.load(event.data.meta)
+                return parsed === null ? {} : parsed // Return empty object for null
+            } catch { return {} } 
+          })(),
           postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
           scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
@@ -277,7 +296,13 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         language: event.data.language,
         linkToPublicationId: linkedPublicationId.value || undefined,
         postType: event.data.postType,
-        meta: (() => { try { return yaml.load(event.data.meta) } catch { return {} } })(),
+        meta: (() => { 
+            try { 
+                if (!event.data.meta || event.data.meta.trim() === '') return {} // Return empty object for empty string
+                const parsed = yaml.load(event.data.meta)
+                return parsed === null ? {} : parsed // Return empty object for null
+            } catch { return {} } 
+        })(),
         postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
         scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
