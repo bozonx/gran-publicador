@@ -117,19 +117,12 @@ const warningsTooltip = computed(() => {
           </UTooltip>
           
           <!-- Publications Count Badge (Capsule) -->
-          <UTooltip :text="t('project.publicationsCountTooltip')">
-            <UBadge 
-              color="primary" 
-              variant="subtle" 
-              size="xs"
-              class="shrink-0 rounded-full"
-            >
-              <span class="flex items-center gap-1 px-0.5">
-                <UIcon name="i-heroicons-document-text" class="w-3 h-3" />
-                <span class="font-bold text-[10px]">{{ project.publicationsCount || 0 }}</span>
-              </span>
-            </UBadge>
-          </UTooltip>
+          <CommonCountBadge 
+            :count="project.publicationsCount" 
+            :title="t('project.publicationsCountTooltip')" 
+            color="neutral"
+            variant="solid"
+          />
 
         </div>
       </div>

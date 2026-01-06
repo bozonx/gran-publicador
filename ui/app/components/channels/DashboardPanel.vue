@@ -91,9 +91,11 @@ const groupedChannels = computed(() => {
                             {{ getSocialMediaDisplayName(group.socialMedia) }}
                         </span>
                     </div>
-                    <UBadge color="neutral" variant="solid" size="sm" class="rounded-full px-2.5">
-                        {{ group.count }}
-                    </UBadge>
+                    <CommonCountBadge 
+                        :count="group.count" 
+                        color="neutral" 
+                        variant="solid" 
+                    />
                 </div>
             </div>
         </div>
