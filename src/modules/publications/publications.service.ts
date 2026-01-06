@@ -112,6 +112,7 @@ export class PublicationsService {
     }
 
     // Text search across title, description, and content
+    // Note: SQLite contains is case-insensitive by default with NOCASE collation
     if (filters?.search) {
       where.OR = [
         { title: { contains: filters.search } },

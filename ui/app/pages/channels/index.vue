@@ -33,22 +33,31 @@ const currentPage = ref(
 const limit = ref(DEFAULT_PAGE_SIZE)
 
 // Filter states
-const searchQuery = ref('')
+// Initialize filters from URL
+const searchQuery = ref(
+  (route.query.search as string) || ''
+)
 const debouncedSearch = refDebounced(searchQuery, 300)
 
 // Ownership filter
 type OwnershipFilter = 'all' | 'own' | 'guest'
-const ownershipFilter = ref<OwnershipFilter>('all')
+const ownershipFilter = ref<OwnershipFilter>(
+  (route.query.ownership as OwnershipFilter) || 'all'
+)
 
 // Archive filter
-const showArchivedFilter = ref(false)
+const showArchivedFilter = ref(route.query.archived === 'true')
 
 // Issue type filter
 type ChannelIssueFilter = 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive'
-const selectedIssueType = ref<ChannelIssueFilter>('all')
+const selectedIssueType = ref<ChannelIssueFilter>(
+  (route.query.issue as ChannelIssueFilter) || 'all'
+)
 
 // Project filter
-const selectedProjectId = ref<string | null>(null)
+const selectedProjectId = ref<string | null>(
+  (route.query.projectId as string) || null
+)
 
 // Sorting
 type SortBy = 'alphabetical' | 'socialMedia' | 'language' | 'postsCount'
@@ -78,16 +87,47 @@ async function loadChannels() {
 
 // Fetch on mount
 onMounted(async () => {
-    // Set initial issue filter if provided in query
-    if (route.query.issue && typeof route.query.issue === 'string') {
-        selectedIssueType.value = route.query.issue as ChannelIssueFilter
-    }
-
     await Promise.all([
         loadChannels(),
         fetchProjects(true) // включая архивные проекты
     ])
 })
+
+// Update URL when filters change
+watch(
+  [
+    ownershipFilter, 
+    selectedIssueType, 
+    selectedProjectId, 
+    debouncedSearch, 
+    showArchivedFilter
+  ], 
+  () => {
+    if (!import.meta.client) return
+
+    const query: any = { ...route.query }
+    
+    // Helper to set or delete query param
+    const updateQuery = (key: string, value: any, defaultValue: any = null) => {
+      if (value && value !== defaultValue) {
+        query[key] = String(value)
+      } else {
+        delete query[key]
+      }
+    }
+
+    updateQuery('search', debouncedSearch.value, '')
+    updateQuery('ownership', ownershipFilter.value, 'all')
+    updateQuery('issue', selectedIssueType.value, 'all')
+    updateQuery('projectId', selectedProjectId.value)
+    updateQuery('archived', showArchivedFilter.value, false)
+    
+    // Remove page when filters change
+    delete query.page
+
+    router.replace({ query })
+  }
+)
 
 // Watch filters and sorting - reset to page 1 and re-fetch
 watch([ownershipFilter, selectedIssueType, selectedProjectId, debouncedSearch, showArchivedFilter, sortBy, sortOrder], () => {

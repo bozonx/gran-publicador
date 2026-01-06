@@ -175,14 +175,14 @@ function closePublicationModal() {
       </UButton>
 
       <!-- Dropdown menu -->
-      <UDropdown :items="items" :popper="{ placement: 'bottom-end' }">
+      <UDropdownMenu :items="items" :popper="{ placement: 'bottom-end' }">
         <UButton
           icon="i-heroicons-chevron-down"
           color="primary"
           square
           class="rounded-l-none"
         />
-      </UDropdown>
+      </UDropdownMenu>
     </div>
 
     <!-- Create Publication Modal -->

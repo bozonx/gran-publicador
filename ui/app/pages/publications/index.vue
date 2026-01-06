@@ -40,24 +40,41 @@ const currentPage = ref(
 const limit = ref(DEFAULT_PAGE_SIZE)
 
 // Filter states
-const selectedStatus = ref<PublicationStatus | null>(null)
-const selectedChannelId = ref<string | null>(null)
-const selectedProjectId = ref<string | null>(null)
-const searchQuery = ref('')
+// Initialize filters from URL
+const selectedStatus = ref<PublicationStatus | null>(
+  (route.query.status as PublicationStatus) || null
+)
+const selectedChannelId = ref<string | null>(
+  (route.query.channelId as string) || null
+)
+const selectedProjectId = ref<string | null>(
+  (route.query.projectId as string) || null
+)
+const searchQuery = ref(
+  (route.query.search as string) || ''
+)
 const debouncedSearch = refDebounced(searchQuery, 300)
 
 // Ownership filter
 type OwnershipFilter = 'all' | 'own' | 'notOwn'
-const ownershipFilter = ref<OwnershipFilter>('all')
+const ownershipFilter = ref<OwnershipFilter>(
+  (route.query.ownership as OwnershipFilter) || 'all'
+)
 
 // Filter options
-const showArchivedFilter = ref(false) // По умолчанию false - показывает неархивные
+const showArchivedFilter = ref(route.query.archived === 'true') 
 
 type IssueFilter = 'all' | 'failed' | 'partial' | 'expired'
-const selectedIssueType = ref<IssueFilter>('all')
+const selectedIssueType = ref<IssueFilter>(
+  (route.query.issue as IssueFilter) || 'all'
+)
 
-const selectedSocialMedia = ref<SocialMedia | null>(null) // Фильтр по социальной сети
-const selectedLanguage = ref<string | null>(null) // Фильтр по языку
+const selectedSocialMedia = ref<SocialMedia | null>(
+  (route.query.socialMedia as SocialMedia) || null
+)
+const selectedLanguage = ref<string | null>(
+  (route.query.language as string) || null
+)
 
 // Sorting options
 const sortOptionsComputed = computed(() => [
@@ -102,12 +119,7 @@ async function fetchPublications() {
   if (selectedChannelId.value) filters.channelId = selectedChannelId.value
   
   // New backend filters
-  if (selectedProjectId.value) filters.projectId = selectedProjectId.value // Note: fetchUserPublications args usually allow projectId? No, but DTO allows it in query.
-  // Wait, fetchUserPublications calls /publications with query params. Controller accepts projectId in query.
-  // PublicationsService.findAllForUser ignores projectId? No, Controller logic branches.
-  // If projectId is in query, Controller calls service.findAll(projectId).
-  // If no projectId, Controller calls service.findAllForUser.
-  // So passing projectId in filters object to fetchUserPublications (which puts it in params) will work perfectly!
+  if (selectedProjectId.value) filters.projectId = selectedProjectId.value
   
   if (ownershipFilter.value !== 'all') filters.ownership = ownershipFilter.value
   if (selectedIssueType.value !== 'all') filters.issueType = selectedIssueType.value
@@ -118,23 +130,56 @@ async function fetchPublications() {
 
 // Fetch on mount
 onMounted(async () => {
-    // Check if channelId or status is in query params
-    if (route.query.channelId && typeof route.query.channelId === 'string') {
-        selectedChannelId.value = route.query.channelId
-    }
-    if (route.query.status && typeof route.query.status === 'string') {
-        selectedStatus.value = route.query.status as PublicationStatus
-    }
-    if (route.query.issue && typeof route.query.issue === 'string') {
-        selectedIssueType.value = route.query.issue as IssueFilter
-    }
-    
     await Promise.all([
         fetchPublications(),
         fetchProjects(true), // включая архивные проекты
         fetchChannels() // получаем все каналы
     ])
 })
+
+// Update URL when filters change
+watch(
+  [
+    selectedStatus, 
+    selectedChannelId, 
+    selectedProjectId, 
+    ownershipFilter, 
+    selectedIssueType, 
+    selectedSocialMedia, 
+    selectedLanguage, 
+    debouncedSearch, 
+    showArchivedFilter
+  ], 
+  () => {
+    if (!import.meta.client) return
+
+    const query: any = { ...route.query }
+    
+    // Helper to set or delete query param
+    const updateQuery = (key: string, value: any, defaultValue: any = null) => {
+      if (value && value !== defaultValue) {
+        query[key] = String(value)
+      } else {
+        delete query[key]
+      }
+    }
+
+    updateQuery('status', selectedStatus.value)
+    updateQuery('channelId', selectedChannelId.value)
+    updateQuery('projectId', selectedProjectId.value)
+    updateQuery('search', debouncedSearch.value, '')
+    updateQuery('ownership', ownershipFilter.value, 'all')
+    updateQuery('issue', selectedIssueType.value, 'all')
+    updateQuery('socialMedia', selectedSocialMedia.value)
+    updateQuery('language', selectedLanguage.value)
+    updateQuery('archived', showArchivedFilter.value, false)
+    
+    // Remove page when filters change (reset to 1 happen in the other watcher)
+    delete query.page
+
+    router.replace({ query })
+  }
+)
 
 // Watch filters and sorting - reset to page 1 and re-fetch
 watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], () => {
