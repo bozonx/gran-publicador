@@ -27,6 +27,7 @@
     "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' dotenv -e .env.development -- jest --selectProjects e2e"
   },
   "dependencies": {
+    "@fastify/multipart": "^9.3.0",
     "@fastify/static": "^9.0.0",
     "@nestjs/common": "^11.1.11",
     "@nestjs/config": "^4.0.2",

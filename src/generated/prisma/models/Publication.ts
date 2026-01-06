@@ -38,7 +38,6 @@ export type PublicationMinAggregateOutputType = {
   content: string | null
   authorComment: string | null
   tags: string | null
-  mediaFiles: string | null
   meta: string | null
   postType: $Enums.PostType | null
   postDate: Date | null
@@ -62,7 +61,6 @@ export type PublicationMaxAggregateOutputType = {
   content: string | null
   authorComment: string | null
   tags: string | null
-  mediaFiles: string | null
   meta: string | null
   postType: $Enums.PostType | null
   postDate: Date | null
@@ -86,7 +84,6 @@ export type PublicationCountAggregateOutputType = {
   content: number
   authorComment: number
   tags: number
-  mediaFiles: number
   meta: number
   postType: number
   postDate: number
@@ -112,7 +109,6 @@ export type PublicationMinAggregateInputType = {
   content?: true
   authorComment?: true
   tags?: true
-  mediaFiles?: true
   meta?: true
   postType?: true
   postDate?: true
@@ -136,7 +132,6 @@ export type PublicationMaxAggregateInputType = {
   content?: true
   authorComment?: true
   tags?: true
-  mediaFiles?: true
   meta?: true
   postType?: true
   postDate?: true
@@ -160,7 +155,6 @@ export type PublicationCountAggregateInputType = {
   content?: true
   authorComment?: true
   tags?: true
-  mediaFiles?: true
   meta?: true
   postType?: true
   postDate?: true
@@ -257,7 +251,6 @@ export type PublicationGroupByOutputType = {
   content: string | null
   authorComment: string | null
   tags: string | null
-  mediaFiles: string
   meta: string
   postType: $Enums.PostType
   postDate: Date | null
@@ -302,7 +295,6 @@ export type PublicationWhereInput = {
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
-  mediaFiles?: Prisma.StringFilter<"Publication"> | string
   meta?: Prisma.StringFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeFilter<"Publication"> | $Enums.PostType
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
@@ -313,6 +305,7 @@ export type PublicationWhereInput = {
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   posts?: Prisma.PostListRelationFilter
+  media?: Prisma.PublicationMediaListRelationFilter
 }
 
 export type PublicationOrderByWithRelationInput = {
@@ -329,7 +322,6 @@ export type PublicationOrderByWithRelationInput = {
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   authorComment?: Prisma.SortOrderInput | Prisma.SortOrder
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
-  mediaFiles?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
   postDate?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -340,6 +332,7 @@ export type PublicationOrderByWithRelationInput = {
   project?: Prisma.ProjectOrderByWithRelationInput
   creator?: Prisma.UserOrderByWithRelationInput
   posts?: Prisma.PostOrderByRelationAggregateInput
+  media?: Prisma.PublicationMediaOrderByRelationAggregateInput
 }
 
 export type PublicationWhereUniqueInput = Prisma.AtLeast<{
@@ -359,7 +352,6 @@ export type PublicationWhereUniqueInput = Prisma.AtLeast<{
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
-  mediaFiles?: Prisma.StringFilter<"Publication"> | string
   meta?: Prisma.StringFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeFilter<"Publication"> | $Enums.PostType
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
@@ -370,6 +362,7 @@ export type PublicationWhereUniqueInput = Prisma.AtLeast<{
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   posts?: Prisma.PostListRelationFilter
+  media?: Prisma.PublicationMediaListRelationFilter
 }, "id">
 
 export type PublicationOrderByWithAggregationInput = {
@@ -386,7 +379,6 @@ export type PublicationOrderByWithAggregationInput = {
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   authorComment?: Prisma.SortOrderInput | Prisma.SortOrder
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
-  mediaFiles?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
   postDate?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -416,7 +408,6 @@ export type PublicationScalarWhereWithAggregatesInput = {
   content?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
-  mediaFiles?: Prisma.StringWithAggregatesFilter<"Publication"> | string
   meta?: Prisma.StringWithAggregatesFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeWithAggregatesFilter<"Publication"> | $Enums.PostType
   postDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Publication"> | Date | string | null
@@ -438,7 +429,6 @@ export type PublicationCreateInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -449,6 +439,7 @@ export type PublicationCreateInput = {
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
+  media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationUncheckedCreateInput = {
@@ -465,7 +456,6 @@ export type PublicationUncheckedCreateInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -474,6 +464,7 @@ export type PublicationUncheckedCreateInput = {
   language?: string
   scheduledAt?: Date | string | null
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
+  media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationUpdateInput = {
@@ -488,7 +479,6 @@ export type PublicationUpdateInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -499,6 +489,7 @@ export type PublicationUpdateInput = {
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
+  media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationUncheckedUpdateInput = {
@@ -515,7 +506,6 @@ export type PublicationUncheckedUpdateInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -524,6 +514,7 @@ export type PublicationUncheckedUpdateInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
+  media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationCreateManyInput = {
@@ -540,7 +531,6 @@ export type PublicationCreateManyInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -562,7 +552,6 @@ export type PublicationUpdateManyMutationInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -586,7 +575,6 @@ export type PublicationUncheckedUpdateManyInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -620,7 +608,6 @@ export type PublicationCountOrderByAggregateInput = {
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  mediaFiles?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
@@ -644,7 +631,6 @@ export type PublicationMaxOrderByAggregateInput = {
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  mediaFiles?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
@@ -668,7 +654,6 @@ export type PublicationMinOrderByAggregateInput = {
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  mediaFiles?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
@@ -775,6 +760,20 @@ export type EnumPublicationStatusFieldUpdateOperationsInput = {
   set?: $Enums.PublicationStatus
 }
 
+export type PublicationCreateNestedOneWithoutMediaInput = {
+  create?: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+  connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutMediaInput
+  connect?: Prisma.PublicationWhereUniqueInput
+}
+
+export type PublicationUpdateOneRequiredWithoutMediaNestedInput = {
+  create?: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+  connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutMediaInput
+  upsert?: Prisma.PublicationUpsertWithoutMediaInput
+  connect?: Prisma.PublicationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PublicationUpdateToOneWithWhereWithoutMediaInput, Prisma.PublicationUpdateWithoutMediaInput>, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
+}
+
 export type PublicationCreateNestedOneWithoutPostsInput = {
   create?: Prisma.XOR<Prisma.PublicationCreateWithoutPostsInput, Prisma.PublicationUncheckedCreateWithoutPostsInput>
   connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutPostsInput
@@ -801,7 +800,6 @@ export type PublicationCreateWithoutCreatorInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -811,6 +809,7 @@ export type PublicationCreateWithoutCreatorInput = {
   scheduledAt?: Date | string | null
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
+  media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationUncheckedCreateWithoutCreatorInput = {
@@ -826,7 +825,6 @@ export type PublicationUncheckedCreateWithoutCreatorInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -835,6 +833,7 @@ export type PublicationUncheckedCreateWithoutCreatorInput = {
   language?: string
   scheduledAt?: Date | string | null
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
+  media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationCreateOrConnectWithoutCreatorInput = {
@@ -879,7 +878,6 @@ export type PublicationScalarWhereInput = {
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
-  mediaFiles?: Prisma.StringFilter<"Publication"> | string
   meta?: Prisma.StringFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeFilter<"Publication"> | $Enums.PostType
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
@@ -901,7 +899,6 @@ export type PublicationCreateWithoutProjectInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -911,6 +908,7 @@ export type PublicationCreateWithoutProjectInput = {
   scheduledAt?: Date | string | null
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
+  media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationUncheckedCreateWithoutProjectInput = {
@@ -926,7 +924,6 @@ export type PublicationUncheckedCreateWithoutProjectInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -935,6 +932,7 @@ export type PublicationUncheckedCreateWithoutProjectInput = {
   language?: string
   scheduledAt?: Date | string | null
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
+  media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationCreateOrConnectWithoutProjectInput = {
@@ -962,6 +960,118 @@ export type PublicationUpdateManyWithWhereWithoutProjectInput = {
   data: Prisma.XOR<Prisma.PublicationUpdateManyMutationInput, Prisma.PublicationUncheckedUpdateManyWithoutProjectInput>
 }
 
+export type PublicationCreateWithoutMediaInput = {
+  id?: string
+  translationGroupId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  title?: string | null
+  description?: string | null
+  content?: string | null
+  authorComment?: string | null
+  tags?: string | null
+  meta?: string
+  postType?: $Enums.PostType
+  postDate?: Date | string | null
+  status?: $Enums.PublicationStatus
+  errorMessage?: string | null
+  language?: string
+  scheduledAt?: Date | string | null
+  project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
+  creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
+  posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
+}
+
+export type PublicationUncheckedCreateWithoutMediaInput = {
+  id?: string
+  projectId: string
+  translationGroupId?: string | null
+  createdBy?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  title?: string | null
+  description?: string | null
+  content?: string | null
+  authorComment?: string | null
+  tags?: string | null
+  meta?: string
+  postType?: $Enums.PostType
+  postDate?: Date | string | null
+  status?: $Enums.PublicationStatus
+  errorMessage?: string | null
+  language?: string
+  scheduledAt?: Date | string | null
+  posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
+}
+
+export type PublicationCreateOrConnectWithoutMediaInput = {
+  where: Prisma.PublicationWhereUniqueInput
+  create: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+}
+
+export type PublicationUpsertWithoutMediaInput = {
+  update: Prisma.XOR<Prisma.PublicationUpdateWithoutMediaInput, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
+  create: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+  where?: Prisma.PublicationWhereInput
+}
+
+export type PublicationUpdateToOneWithWhereWithoutMediaInput = {
+  where?: Prisma.PublicationWhereInput
+  data: Prisma.XOR<Prisma.PublicationUpdateWithoutMediaInput, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
+}
+
+export type PublicationUpdateWithoutMediaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  translationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
+  postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumPublicationStatusFieldUpdateOperationsInput | $Enums.PublicationStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
+  creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
+  posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
+}
+
+export type PublicationUncheckedUpdateWithoutMediaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  translationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
+  postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumPublicationStatusFieldUpdateOperationsInput | $Enums.PublicationStatus
+  errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
+}
+
 export type PublicationCreateWithoutPostsInput = {
   id?: string
   translationGroupId?: string | null
@@ -974,7 +1084,6 @@ export type PublicationCreateWithoutPostsInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -984,6 +1093,7 @@ export type PublicationCreateWithoutPostsInput = {
   scheduledAt?: Date | string | null
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
+  media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationUncheckedCreateWithoutPostsInput = {
@@ -1000,7 +1110,6 @@ export type PublicationUncheckedCreateWithoutPostsInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -1008,6 +1117,7 @@ export type PublicationUncheckedCreateWithoutPostsInput = {
   errorMessage?: string | null
   language?: string
   scheduledAt?: Date | string | null
+  media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
 
 export type PublicationCreateOrConnectWithoutPostsInput = {
@@ -1038,7 +1148,6 @@ export type PublicationUpdateWithoutPostsInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1048,6 +1157,7 @@ export type PublicationUpdateWithoutPostsInput = {
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
+  media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationUncheckedUpdateWithoutPostsInput = {
@@ -1064,7 +1174,6 @@ export type PublicationUncheckedUpdateWithoutPostsInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1072,6 +1181,7 @@ export type PublicationUncheckedUpdateWithoutPostsInput = {
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   language?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationCreateManyCreatorInput = {
@@ -1087,7 +1197,6 @@ export type PublicationCreateManyCreatorInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -1109,7 +1218,6 @@ export type PublicationUpdateWithoutCreatorInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1119,6 +1227,7 @@ export type PublicationUpdateWithoutCreatorInput = {
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
+  media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationUncheckedUpdateWithoutCreatorInput = {
@@ -1134,7 +1243,6 @@ export type PublicationUncheckedUpdateWithoutCreatorInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1143,6 +1251,7 @@ export type PublicationUncheckedUpdateWithoutCreatorInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
+  media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationUncheckedUpdateManyWithoutCreatorInput = {
@@ -1158,7 +1267,6 @@ export type PublicationUncheckedUpdateManyWithoutCreatorInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1181,7 +1289,6 @@ export type PublicationCreateManyProjectInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  mediaFiles?: string
   meta?: string
   postType?: $Enums.PostType
   postDate?: Date | string | null
@@ -1203,7 +1310,6 @@ export type PublicationUpdateWithoutProjectInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1213,6 +1319,7 @@ export type PublicationUpdateWithoutProjectInput = {
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
+  media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationUncheckedUpdateWithoutProjectInput = {
@@ -1228,7 +1335,6 @@ export type PublicationUncheckedUpdateWithoutProjectInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1237,6 +1343,7 @@ export type PublicationUncheckedUpdateWithoutProjectInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
+  media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationUncheckedUpdateManyWithoutProjectInput = {
@@ -1252,7 +1359,6 @@ export type PublicationUncheckedUpdateManyWithoutProjectInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mediaFiles?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1269,10 +1375,12 @@ export type PublicationUncheckedUpdateManyWithoutProjectInput = {
 
 export type PublicationCountOutputType = {
   posts: number
+  media: number
 }
 
 export type PublicationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   posts?: boolean | PublicationCountOutputTypeCountPostsArgs
+  media?: boolean | PublicationCountOutputTypeCountMediaArgs
 }
 
 /**
@@ -1292,6 +1400,13 @@ export type PublicationCountOutputTypeCountPostsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.PostWhereInput
 }
 
+/**
+ * PublicationCountOutputType without action
+ */
+export type PublicationCountOutputTypeCountMediaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PublicationMediaWhereInput
+}
+
 
 export type PublicationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1307,7 +1422,6 @@ export type PublicationSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   content?: boolean
   authorComment?: boolean
   tags?: boolean
-  mediaFiles?: boolean
   meta?: boolean
   postType?: boolean
   postDate?: boolean
@@ -1318,6 +1432,7 @@ export type PublicationSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
   posts?: boolean | Prisma.Publication$postsArgs<ExtArgs>
+  media?: boolean | Prisma.Publication$mediaArgs<ExtArgs>
   _count?: boolean | Prisma.PublicationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["publication"]>
 
@@ -1335,7 +1450,6 @@ export type PublicationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   content?: boolean
   authorComment?: boolean
   tags?: boolean
-  mediaFiles?: boolean
   meta?: boolean
   postType?: boolean
   postDate?: boolean
@@ -1361,7 +1475,6 @@ export type PublicationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   content?: boolean
   authorComment?: boolean
   tags?: boolean
-  mediaFiles?: boolean
   meta?: boolean
   postType?: boolean
   postDate?: boolean
@@ -1387,7 +1500,6 @@ export type PublicationSelectScalar = {
   content?: boolean
   authorComment?: boolean
   tags?: boolean
-  mediaFiles?: boolean
   meta?: boolean
   postType?: boolean
   postDate?: boolean
@@ -1397,11 +1509,12 @@ export type PublicationSelectScalar = {
   scheduledAt?: boolean
 }
 
-export type PublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "translationGroupId" | "createdBy" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy" | "title" | "description" | "content" | "authorComment" | "tags" | "mediaFiles" | "meta" | "postType" | "postDate" | "status" | "errorMessage" | "language" | "scheduledAt", ExtArgs["result"]["publication"]>
+export type PublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "translationGroupId" | "createdBy" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy" | "title" | "description" | "content" | "authorComment" | "tags" | "meta" | "postType" | "postDate" | "status" | "errorMessage" | "language" | "scheduledAt", ExtArgs["result"]["publication"]>
 export type PublicationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
   posts?: boolean | Prisma.Publication$postsArgs<ExtArgs>
+  media?: boolean | Prisma.Publication$mediaArgs<ExtArgs>
   _count?: boolean | Prisma.PublicationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PublicationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1419,6 +1532,7 @@ export type $PublicationPayload<ExtArgs extends runtime.Types.Extensions.Interna
     project: Prisma.$ProjectPayload<ExtArgs>
     creator: Prisma.$UserPayload<ExtArgs> | null
     posts: Prisma.$PostPayload<ExtArgs>[]
+    media: Prisma.$PublicationMediaPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1434,7 +1548,6 @@ export type $PublicationPayload<ExtArgs extends runtime.Types.Extensions.Interna
     content: string | null
     authorComment: string | null
     tags: string | null
-    mediaFiles: string
     meta: string
     postType: $Enums.PostType
     postDate: Date | null
@@ -1839,6 +1952,7 @@ export interface Prisma__PublicationClient<T, Null = never, ExtArgs extends runt
   project<T extends Prisma.ProjectDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProjectDefaultArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   creator<T extends Prisma.Publication$creatorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Publication$creatorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   posts<T extends Prisma.Publication$postsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Publication$postsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  media<T extends Prisma.Publication$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Publication$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PublicationMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1881,7 +1995,6 @@ export interface PublicationFieldRefs {
   readonly content: Prisma.FieldRef<"Publication", 'String'>
   readonly authorComment: Prisma.FieldRef<"Publication", 'String'>
   readonly tags: Prisma.FieldRef<"Publication", 'String'>
-  readonly mediaFiles: Prisma.FieldRef<"Publication", 'String'>
   readonly meta: Prisma.FieldRef<"Publication", 'String'>
   readonly postType: Prisma.FieldRef<"Publication", 'PostType'>
   readonly postDate: Prisma.FieldRef<"Publication", 'DateTime'>
@@ -2323,6 +2436,30 @@ export type Publication$postsArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.PostScalarFieldEnum | Prisma.PostScalarFieldEnum[]
+}
+
+/**
+ * Publication.media
+ */
+export type Publication$mediaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PublicationMedia
+   */
+  select?: Prisma.PublicationMediaSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PublicationMedia
+   */
+  omit?: Prisma.PublicationMediaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PublicationMediaInclude<ExtArgs> | null
+  where?: Prisma.PublicationMediaWhereInput
+  orderBy?: Prisma.PublicationMediaOrderByWithRelationInput | Prisma.PublicationMediaOrderByWithRelationInput[]
+  cursor?: Prisma.PublicationMediaWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PublicationMediaScalarFieldEnum | Prisma.PublicationMediaScalarFieldEnum[]
 }
 
 /**

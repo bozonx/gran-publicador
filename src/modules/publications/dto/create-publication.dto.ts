@@ -1,6 +1,8 @@
 import { IsArray, IsDate, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
+import { CreateMediaDto, CreateMediaGroupDto } from '../../media/dto/index.js';
+import { ValidateNested } from 'class-validator';
 
 /**
  * DTO for creating a new publication.
@@ -27,8 +29,26 @@ export class CreatePublicationDto {
   public authorComment?: string;
 
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateMediaDto)
   @IsOptional()
-  public mediaFiles?: string[];
+  public media?: CreateMediaDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateMediaGroupDto)
+  @IsOptional()
+  public mediaGroups?: CreateMediaGroupDto[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  public existingMediaIds?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  public existingMediaGroupIds?: string[];
 
   @IsString()
   @IsOptional()

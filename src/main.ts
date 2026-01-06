@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
@@ -90,6 +91,13 @@ async function bootstrap() {
     root: staticRoot,
     prefix: '/',
     wildcard: false, // Disable wildcard, we handle SPA fallback via exception filter
+  });
+
+  // Register multipart support for file uploads
+  await app.register(multipart, {
+    limits: {
+      fileSize: 52428800, // 50MB (matches implementation plan)
+    },
   });
 
   // Enable graceful shutdown hooks to handle signals (SIGINT, SIGTERM) correctly

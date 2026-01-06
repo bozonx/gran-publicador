@@ -18,6 +18,7 @@ import { PublicationsModule } from './modules/publications/publications.module.j
 import { SystemConfigModule } from './modules/system-config/system-config.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { ArchiveModule } from './modules/archive/archive.module.js';
+import { MediaModule } from './modules/media/media.module.js';
 
 @Module({
   imports: [
@@ -115,6 +116,7 @@ import { ArchiveModule } from './modules/archive/archive.module.js';
     SystemConfigModule,
     ApiTokensModule,
     ArchiveModule,
+    MediaModule,
   ],
   controllers: [],
   providers: [

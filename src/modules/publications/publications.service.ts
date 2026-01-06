@@ -191,7 +191,43 @@ export class PublicationsService {
         description: data.description,
         content: data.content,
         authorComment: data.authorComment,
-        mediaFiles: JSON.stringify(data.mediaFiles ?? []),
+        
+        media: {
+          create: [
+            // New Media
+            ...(data.media || []).map((m, i) => ({
+              order: i,
+              media: { create: { ...m, meta: JSON.stringify(m.meta || {}) } }
+            })),
+            // Existing Media
+            ...(data.existingMediaIds || []).map((id, i) => ({
+              order: (data.media?.length || 0) + i,
+              media: { connect: { id } }
+            })),
+            // New Groups
+            ...(data.mediaGroups || []).map((g, i) => ({
+              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + i,
+              mediaGroup: {
+                create: {
+                  name: g.name,
+                  description: g.description,
+                  items: {
+                    create: g.items.map(gi => ({
+                      media: { connect: { id: gi.mediaId } },
+                      order: gi.order
+                    }))
+                  }
+                }
+              }
+            })),
+            // Existing Groups
+            ...(data.existingMediaGroupIds || []).map((id, i) => ({
+              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + (data.mediaGroups?.length || 0) + i,
+              mediaGroup: { connect: { id } }
+            }))
+          ]
+        },
+
         tags: data.tags,
         status: data.status ?? PublicationStatus.DRAFT,
         language: data.language,
@@ -470,6 +506,24 @@ export class PublicationsService {
             channel: true,
           },
         },
+        media: {
+          include: {
+            media: true,
+            mediaGroup: {
+              include: {
+                items: {
+                  include: {
+                    media: true
+                  },
+                  orderBy: { order: 'asc' }
+                }
+              }
+            }
+          },
+          orderBy: {
+            order: 'asc'
+          }
+        }
       },
     });
 
@@ -545,7 +599,46 @@ export class PublicationsService {
         description: data.description,
         content: data.content,
         authorComment: data.authorComment,
-        mediaFiles: data.mediaFiles ? JSON.stringify(data.mediaFiles) : undefined,
+        // Update Media: Replace all existing with new list if any media field is provided
+        // Logic: if any media DTO field is present, we assume full replace.
+        // If all are undefined, we touch nothing.
+        // Note: This logic assumes that the client sends the FULL state of media.
+        media: (data.media || data.existingMediaIds || data.mediaGroups || data.existingMediaGroupIds) ? {
+          deleteMany: {}, // Clear existing
+          create: [
+             // New Media
+             ...(data.media || []).map((m, i) => ({
+              order: i,
+              media: { create: { ...m, meta: JSON.stringify(m.meta || {}) } }
+            })),
+            // Existing Media
+            ...(data.existingMediaIds || []).map((id, i) => ({
+              order: (data.media?.length || 0) + i,
+              media: { connect: { id } }
+            })),
+            // New Groups
+            ...(data.mediaGroups || []).map((g, i) => ({
+              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + i,
+              mediaGroup: {
+                create: {
+                  name: g.name,
+                  description: g.description,
+                  items: {
+                    create: g.items.map(gi => ({
+                      media: { connect: { id: gi.mediaId } },
+                      order: gi.order
+                    }))
+                  }
+                }
+              }
+            })),
+            // Existing Groups
+            ...(data.existingMediaGroupIds || []).map((id, i) => ({
+              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + (data.mediaGroups?.length || 0) + i,
+              mediaGroup: { connect: { id } }
+            }))
+          ]
+        } : undefined,
         tags: data.tags,
         status: data.status,
         language: data.language,

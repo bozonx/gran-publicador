@@ -57,6 +57,10 @@ export const ModelName = {
   ProjectMember: 'ProjectMember',
   Channel: 'Channel',
   Publication: 'Publication',
+  Media: 'Media',
+  MediaGroup: 'MediaGroup',
+  MediaGroupItem: 'MediaGroupItem',
+  PublicationMedia: 'PublicationMedia',
   Post: 'Post'
 } as const
 
@@ -165,7 +169,6 @@ export const PublicationScalarFieldEnum = {
   content: 'content',
   authorComment: 'authorComment',
   tags: 'tags',
-  mediaFiles: 'mediaFiles',
   meta: 'meta',
   postType: 'postType',
   postDate: 'postDate',
@@ -176,6 +179,55 @@ export const PublicationScalarFieldEnum = {
 } as const
 
 export type PublicationScalarFieldEnum = (typeof PublicationScalarFieldEnum)[keyof typeof PublicationScalarFieldEnum]
+
+
+export const MediaScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  srcType: 'srcType',
+  src: 'src',
+  filename: 'filename',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  meta: 'meta',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MediaScalarFieldEnum = (typeof MediaScalarFieldEnum)[keyof typeof MediaScalarFieldEnum]
+
+
+export const MediaGroupScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MediaGroupScalarFieldEnum = (typeof MediaGroupScalarFieldEnum)[keyof typeof MediaGroupScalarFieldEnum]
+
+
+export const MediaGroupItemScalarFieldEnum = {
+  id: 'id',
+  mediaGroupId: 'mediaGroupId',
+  mediaId: 'mediaId',
+  order: 'order'
+} as const
+
+export type MediaGroupItemScalarFieldEnum = (typeof MediaGroupItemScalarFieldEnum)[keyof typeof MediaGroupItemScalarFieldEnum]
+
+
+export const PublicationMediaScalarFieldEnum = {
+  id: 'id',
+  publicationId: 'publicationId',
+  mediaId: 'mediaId',
+  mediaGroupId: 'mediaGroupId',
+  order: 'order',
+  createdAt: 'createdAt'
+} as const
+
+export type PublicationMediaScalarFieldEnum = (typeof PublicationMediaScalarFieldEnum)[keyof typeof PublicationMediaScalarFieldEnum]
 
 
 export const PostScalarFieldEnum = {
