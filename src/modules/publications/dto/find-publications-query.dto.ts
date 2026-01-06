@@ -10,7 +10,6 @@ import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client
 export enum PublicationSortBy {
   CREATED_AT = 'createdAt',
   SCHEDULED_AT = 'scheduledAt',
-  PUBLISHED_AT = 'publishedAt',
   POST_DATE = 'postDate',
 }
 

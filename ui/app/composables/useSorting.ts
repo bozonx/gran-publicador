@@ -25,7 +25,9 @@ export function useSorting<T>(options: UseSortingOptions<T>) {
             const storedSortBy = localStorage.getItem(`${storageKey}-sort-by`)
             const storedSortOrder = localStorage.getItem(`${storageKey}-sort-order`)
 
-            if (storedSortBy) sortBy.value = storedSortBy
+            if (storedSortBy && sortOptions.some(opt => opt.id === storedSortBy)) {
+                sortBy.value = storedSortBy
+            }
             if (storedSortOrder && (storedSortOrder === 'asc' || storedSortOrder === 'desc')) {
                 sortOrder.value = storedSortOrder as 'asc' | 'desc'
             }

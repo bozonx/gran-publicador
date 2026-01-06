@@ -62,7 +62,6 @@ const selectedLanguage = ref<string | null>(null) // Фильтр по язык�
 // Sorting options
 const sortOptionsComputed = computed(() => [
   { id: 'scheduledAt', label: t('publication.sort.scheduledAt'), icon: 'i-heroicons-clock' },
-  { id: 'publishedAt', label: t('publication.sort.publishedAt'), icon: 'i-heroicons-check-circle' },
   { id: 'createdAt', label: t('publication.sort.createdAt'), icon: 'i-heroicons-plus-circle' },
   { id: 'postDate', label: t('publication.sort.postDate'), icon: 'i-heroicons-calendar' }
 ])
