@@ -39,15 +39,14 @@ async function performSearch(query: string) {
   try {
     // Search projects
     const projectsResponse = await api.get<any>('/projects', {
-      params: { limit: 5 }
+      params: { 
+        search: query,
+        limit: 10
+      }
     })
     const projects = projectsResponse?.data || []
     projects
-      .filter((p: any) => 
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.description?.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, 3)
+      .slice(0, 5)
       .forEach((p: any) => {
         results.push({
           type: 'project',
@@ -61,14 +60,14 @@ async function performSearch(query: string) {
 
     // Search channels
     const channelsResponse = await api.get<any>('/channels', {
-      params: { limit: 5 }
+      params: { 
+        search: query,
+        limit: 10 
+      }
     })
     const channels = channelsResponse?.data?.items || []
     channels
-      .filter((c: any) => 
-        c.name.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, 3)
+      .slice(0, 5)
       .forEach((c: any) => {
         results.push({
           type: 'channel',
@@ -82,15 +81,14 @@ async function performSearch(query: string) {
 
     // Search publications
     const publicationsResponse = await api.get<any>('/publications', {
-      params: { limit: 5 }
+      params: { 
+        search: query,
+        limit: 10 
+      }
     })
     const publications = publicationsResponse?.data?.items || []
     publications
-      .filter((p: any) => 
-        p.title?.toLowerCase().includes(query.toLowerCase()) ||
-        p.content?.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, 3)
+      .slice(0, 5)
       .forEach((p: any) => {
         results.push({
           type: 'publication',

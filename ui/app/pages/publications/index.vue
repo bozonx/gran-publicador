@@ -368,7 +368,7 @@ const showPagination = computed(() => {
       <!-- Filters -->
       <div class="flex flex-wrap items-center gap-4">
         <!-- Ownership Filter (Button group) -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2" :title="t('publication.filter.ownership.title')">
           <div class="flex -space-x-px">
             <UButton 
               :color="ownershipFilter === 'all' ? 'primary' : 'neutral'"
@@ -398,34 +398,55 @@ const showPagination = computed(() => {
               {{ t('publication.filter.ownership.notOwn') }}
             </UButton>
           </div>
-          <UTooltip :text="t('publication.filter.ownership.tooltip')">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help" />
-          </UTooltip>
+          <UPopover :popper="{ placement: 'top' }">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+            <template #content>
+              <div class="p-4 max-w-xs">
+                <p class="text-sm whitespace-pre-line">{{ t('publication.filter.ownership.tooltip') }}</p>
+              </div>
+            </template>
+          </UPopover>
         </div>
 
         <!-- Issues Filter (Select) -->
-        <USelectMenu
-          v-model="selectedIssueType"
-          :items="issueFilterOptions"
-          value-key="value"
-          label-key="label"
-          class="w-full sm:w-48"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-orange-500" />
-          </template>
-        </USelectMenu>
+        <div class="flex items-center gap-2">
+          <USelectMenu
+            v-model="selectedIssueType"
+            :items="issueFilterOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full sm:w-48"
+            :title="t('publication.filter.problems.title')"
+          >
+            <template #leading>
+              <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-orange-500" />
+            </template>
+          </USelectMenu>
+          <UPopover :popper="{ placement: 'top' }">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+            <template #content>
+              <div class="p-4 max-w-xs">
+                <p class="text-sm whitespace-pre-line">{{ t('publication.filter.problems.tooltip') }}</p>
+              </div>
+            </template>
+          </UPopover>
+        </div>
 
         <!-- Archive Filter (Checkbox) - moved to end -->
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5" :title="t('publication.filter.archiveStatus.tooltip')">
           <UCheckbox 
             v-model="showArchivedFilter" 
             :label="t('publication.filter.showArchived')"
             :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
           />
-          <UTooltip :text="t('publication.filter.archiveStatus.tooltip')">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help" />
-          </UTooltip>
+          <UPopover :popper="{ placement: 'top' }">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+            <template #content>
+              <div class="p-4 max-w-xs">
+                <p class="text-sm">{{ t('publication.filter.archiveStatus.tooltip') }}</p>
+              </div>
+            </template>
+          </UPopover>
         </div>
 
         <!-- Social Media Filter (Select) -->
@@ -435,6 +456,7 @@ const showPagination = computed(() => {
           value-key="value"
           label-key="label"
           :placeholder="t('publication.filter.socialMedia')"
+          :title="t('publication.filter.socialMediaTitle')"
           class="w-full sm:w-48"
         >
           <template #leading>
@@ -449,6 +471,7 @@ const showPagination = computed(() => {
           value-key="value"
           label-key="label"
           :placeholder="t('publication.filter.language')"
+          :title="t('publication.filter.languageTitle')"
           class="w-full sm:w-40"
         />
 
@@ -459,6 +482,7 @@ const showPagination = computed(() => {
           value-key="value"
           label-key="label"
           :placeholder="t('publication.filter.project')"
+          :title="t('publication.filter.projectTitle')"
           class="w-full sm:w-48"
         >
           <template #leading>
@@ -473,6 +497,7 @@ const showPagination = computed(() => {
           value-key="value"
           label-key="label"
           :placeholder="t('publication.filter.channel')"
+          :title="t('publication.filter.channelTitle')"
           class="w-full sm:w-48"
         >
           <template #leading>
@@ -487,6 +512,7 @@ const showPagination = computed(() => {
           value-key="value"
           label-key="label"
           :placeholder="t('post.status')"
+          :title="t('publication.filter.statusTitle')"
           class="w-full sm:w-48"
         />
       </div>

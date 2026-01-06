@@ -67,13 +67,72 @@ export class ProjectsService {
    * @param options - Pagination and filtering options.
    * @returns A list of projects including member count and channel count.
    */
+  /**
+   * Returns all projects available to the user.
+   * Filters projects where the user is a member (including owner).
+   *
+   * @param userId - The ID of the user.
+   * @param options - Pagination and filtering options.
+   * @returns A list of projects including member count and channel count.
+   */
   public async findAllForUser(
     userId: string,
-    options?: { includeArchived?: boolean; limit?: number },
+    options?: { search?: string; includeArchived?: boolean; limit?: number },
   ) {
-    const includeArchived = options?.includeArchived ?? false;
-    const limit = options?.limit;
+    const { search, includeArchived, limit } = options || {};
 
+    // Lightweight Search Query
+    if (search) {
+      // Remove explicit type to avoid potential strictness issues with 'mode' if type definitions mismatch
+      const where: any = {
+        members: {
+          some: { userId },
+        },
+        ...(includeArchived ? {} : { archivedAt: null }),
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+
+      const projects = await this.prisma.project.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              members: true,
+              channels: true,
+            },
+          },
+          // Include minimal member info to satisfy return mapping
+          members: {
+            where: { userId },
+            select: { role: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      });
+
+      return projects.map((project) => ({
+        ...project,
+        memberCount: project._count.members,
+        channelCount: project._count.channels,
+        // Default values for metrics not needed in search
+        role: project.members[0]?.role?.toLowerCase(),
+        channels: [],
+        publicationsCount: 0,
+        lastPublicationAt: null,
+        lastPublicationId: null,
+        languages: [],
+        failedPostsCount: 0,
+        problemPublicationsCount: 0,
+        preferences: project.preferences ? JSON.parse(project.preferences) : {},
+        staleChannelsCount: 0,
+      }));
+    }
+
+    // Dashboard Heavy Query (No search)
     // 1. Fetch projects without heavy channel data
     const projects = await this.prisma.project.findMany({
       take: limit,
@@ -93,8 +152,8 @@ export class ProjectsService {
         _count: {
           select: {
             channels: { where: { archivedAt: null } },
-            publications: { 
-              where: { 
+            publications: {
+              where: {
                 archivedAt: null,
                 OR: [
                   { posts: { none: {} } },

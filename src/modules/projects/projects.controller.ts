@@ -19,7 +19,7 @@ import {
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
-import { CreateProjectDto, UpdateProjectDto } from './dto/index.js';
+import { CreateProjectDto, FindProjectsQueryDto, UpdateProjectDto } from './dto/index.js';
 import { ProjectsService } from './projects.service.js';
 
 /**
@@ -51,12 +51,12 @@ export class ProjectsController {
   @Get()
   public async findAll(
     @Request() req: UnifiedAuthRequest,
-    @Query('includeArchived', new DefaultValuePipe(false), ParseBoolPipe) includeArchived?: boolean,
-    @Query('limit', new DefaultValuePipe(0), ParseIntPipe) limit?: number,
+    @Query() query: FindProjectsQueryDto,
   ) {
     const projects = await this.projectsService.findAllForUser(req.user.userId, {
-      includeArchived,
-      limit: limit || undefined
+      search: query.search,
+      includeArchived: query.includeArchived,
+      limit: query.limit || undefined
     });
 
     // Filter projects based on token scope
