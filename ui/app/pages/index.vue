@@ -107,15 +107,12 @@ const projectsByRole = computed(() => {
         <!-- My Projects -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div
-            class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
+            class="px-6 py-4 border-b border-gray-200 dark:border-gray-700"
           >
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               {{ t('project.titlePlural') }}
               <CommonCountBadge :count="totalProjects" :title="t('project.projectsCount')" />
             </h2>
-            <UButton variant="ghost" color="primary" size="sm" to="/projects">
-              {{ t('common.viewAll') }}
-            </UButton>
           </div>
           <div class="p-4 sm:p-5">
             <!-- Loading -->

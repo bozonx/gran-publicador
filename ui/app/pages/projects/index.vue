@@ -8,7 +8,6 @@ definePageMeta({
 
 const { t } = useI18n()
 const router = useRouter()
-const { viewMode, isListView, isCardsView } = useViewMode('projects-view', 'list')
 const { projects, isLoading, error, fetchProjects, createProject } = useProjects()
 
 const searchQuery = ref('')
@@ -175,8 +174,6 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
       </div>
       
       <div class="flex items-center gap-2">
-        <CommonViewToggle v-model="viewMode" />
-        
         <template v-if="projects.length > 0">
           <USelectMenu
             v-model="sortBy"
@@ -261,19 +258,12 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
     <!-- Projects list -->
     <div v-else-if="projects.length > 0" class="space-y-6">
       <!-- Active Projects -->
-      <div v-if="isListView" class="space-y-4">
+      <div class="space-y-4">
         <ProjectsProjectListItem
           v-for="project in sortedProjects"
           :key="project.id"
           :project="project"
           :show-description="true"
-        />
-      </div>
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ProjectsProjectCard
-          v-for="project in sortedProjects"
-          :key="project.id"
-          :project="project"
         />
       </div>
       
@@ -294,19 +284,12 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
       <!-- Archived Projects Section -->
       <div v-if="showArchived" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div v-if="archivedProjects.length > 0">
-          <div v-if="isListView" class="space-y-4">
+          <div class="space-y-4">
             <ProjectsProjectListItem
               v-for="project in sortedArchivedProjects"
               :key="project.id"
               :project="project"
               :show-description="true"
-            />
-          </div>
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ProjectsProjectCard
-              v-for="project in sortedArchivedProjects"
-              :key="project.id"
-              :project="project"
             />
           </div>
         </div>
