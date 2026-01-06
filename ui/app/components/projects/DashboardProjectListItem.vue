@@ -78,28 +78,16 @@ const warningsTooltip = computed(() => {
   >
     <div class="p-3 sm:p-3.5">
       <div class="flex items-center justify-between gap-3">
-        <!-- Left: Project Title + Publications Count -->
+        <!-- Left: Project Title -->
         <div class="flex-1 min-w-0 flex items-center gap-2">
           <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate leading-6">
             {{ project.name }}
           </h3>
-          
-          <!-- Publications Count Badge (green like CommonCountBadge) -->
-          <UBadge 
-            color="primary" 
-            variant="subtle" 
-            size="xs"
-            class="shrink-0"
-          >
-            <span class="flex items-center gap-1">
-              <UIcon name="i-heroicons-document-text" class="w-3 h-3" />
-              <span class="font-semibold text-[10px]">{{ project.publicationsCount || 0 }}</span>
-            </span>
-          </UBadge>
         </div>
 
-        <!-- Right: Problem Badges -->
+        <!-- Right: Icons & Badges -->
         <div class="shrink-0 flex items-center gap-1.5">
+
           <!-- Mini Error Badge -->
           <UTooltip v-if="errorsCount > 0" :text="errorsTooltip">
             <UBadge 
@@ -127,6 +115,22 @@ const warningsTooltip = computed(() => {
               </span>
             </UBadge>
           </UTooltip>
+          
+          <!-- Publications Count Badge (Capsule) -->
+          <UTooltip :text="t('project.publicationsCountTooltip')">
+            <UBadge 
+              color="primary" 
+              variant="subtle" 
+              size="xs"
+              class="shrink-0 rounded-full"
+            >
+              <span class="flex items-center gap-1 px-0.5">
+                <UIcon name="i-heroicons-document-text" class="w-3 h-3" />
+                <span class="font-bold text-[10px]">{{ project.publicationsCount || 0 }}</span>
+              </span>
+            </UBadge>
+          </UTooltip>
+
         </div>
       </div>
     </div>

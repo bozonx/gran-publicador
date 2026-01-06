@@ -158,6 +158,7 @@
     "archived_notice": "Project is archived",
     "archived_info_banner": "Archived projects are hidden from the main list but their data is preserved.",
     "projectsCount": "Projects count",
+    "publicationsCountTooltip": "Number of active publications (excluding archived and those not related to active channels)",
     "unarchive": "Unarchive",
     "noRecentPostsWarning": "No new posts for more than 3 days!",
     "sort": {

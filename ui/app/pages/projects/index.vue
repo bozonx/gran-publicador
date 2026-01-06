@@ -92,7 +92,7 @@ async function handleCreateProject() {
 
     if (project) {
       isCreateModalOpen.value = false
-      router.push(`/projects/${project.id}/settings`)
+      router.push(`/projects/${project.id}`)
     }
   } catch (error: any) {
     const toast = useToast()

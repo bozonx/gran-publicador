@@ -91,7 +91,15 @@ export class ProjectsService {
         _count: {
           select: {
             channels: { where: { archivedAt: null } },
-            publications: { where: { archivedAt: null } },
+            publications: { 
+              where: { 
+                archivedAt: null,
+                OR: [
+                  { posts: { none: {} } },
+                  { posts: { some: { channel: { archivedAt: null } } } },
+                ],
+              },
+            },
           },
         },
         publications: {
@@ -397,7 +405,15 @@ export class ProjectsService {
         _count: {
           select: {
             channels: { where: { archivedAt: null } },
-            publications: { where: { archivedAt: null } },
+            publications: { 
+              where: { 
+                archivedAt: null,
+                OR: [
+                  { posts: { none: {} } },
+                  { posts: { some: { channel: { archivedAt: null } } } },
+                ],
+              },
+            },
           },
         },
         publications: {

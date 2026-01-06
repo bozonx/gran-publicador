@@ -191,7 +191,7 @@ async function handleCreateChannel() {
 
     if (channel) {
       isCreateModalOpen.value = false
-      router.push(`/projects/${props.projectId}/channels/${channel.id}/settings`)
+      router.push(`/projects/${props.projectId}/channels/${channel.id}`)
     }
   } catch (error: any) {
     // Error is handled by createChannel toast

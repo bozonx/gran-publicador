@@ -126,7 +126,7 @@ const warningsTooltip = computed(() => {
           </p>
           <!-- Metrics / Stats -->
           <div class="flex items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 flex-wrap">
-            <div class="flex items-center gap-1.5" :title="t('publication.titlePlural')">
+            <div class="flex items-center gap-1.5" :title="t('project.publicationsCountTooltip')">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4 shrink-0" />
               <span>
                 {{ project.publicationsCount || 0 }} {{ t('publication.titlePlural').toLowerCase() }}
