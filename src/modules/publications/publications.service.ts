@@ -747,4 +747,101 @@ export class PublicationsService {
 
     return posts;
   }
+
+  /**
+   * Add media files to an existing publication.
+   * Appends new media to the end of the existing media list.
+   *
+   * @param publicationId - The ID of the publication.
+   * @param userId - The ID of the user.
+   * @param media - Array of media items to add.
+   * @returns The updated publication.
+   */
+  public async addMedia(publicationId: string, userId: string, media: any[]) {
+    const publication = await this.findOne(publicationId, userId);
+
+    // Check if user is author or has admin rights
+    if (publication.createdBy !== userId) {
+      await this.permissions.checkProjectPermission(publication.projectId, userId, [
+        ProjectRole.OWNER,
+        ProjectRole.ADMIN,
+      ]);
+    }
+
+    // Get the current max order
+    const existingMedia = await this.prisma.publicationMedia.findMany({
+      where: { publicationId },
+      orderBy: { order: 'desc' },
+      take: 1,
+    });
+
+    const startOrder = existingMedia.length > 0 ? existingMedia[0].order + 1 : 0;
+
+    // Create media items and link them to the publication
+    await Promise.all(
+      media.map(async (m, i) => {
+        const mediaItem = await this.prisma.media.create({
+          data: {
+            type: m.type,
+            srcType: m.srcType,
+            src: m.src,
+            filename: m.filename,
+            mimeType: m.mimeType,
+            sizeBytes: m.sizeBytes,
+            meta: JSON.stringify(m.meta || {}),
+          },
+        });
+
+        return this.prisma.publicationMedia.create({
+          data: {
+            publicationId,
+            mediaId: mediaItem.id,
+            order: startOrder + i,
+          },
+        });
+      })
+    );
+
+    return this.findOne(publicationId, userId);
+  }
+
+  /**
+   * Remove a media file from a publication.
+   *
+   * @param publicationId - The ID of the publication.
+   * @param userId - The ID of the user.
+   * @param mediaId - The ID of the media to remove.
+   * @returns Success status.
+   */
+  public async removeMedia(publicationId: string, userId: string, mediaId: string) {
+    const publication = await this.findOne(publicationId, userId);
+
+    // Check if user is author or has admin rights
+    if (publication.createdBy !== userId) {
+      await this.permissions.checkProjectPermission(publication.projectId, userId, [
+        ProjectRole.OWNER,
+        ProjectRole.ADMIN,
+      ]);
+    }
+
+    // Find the publication media entry
+    const pubMedia = await this.prisma.publicationMedia.findFirst({
+      where: {
+        publicationId,
+        mediaId,
+      },
+    });
+
+    if (!pubMedia) {
+      throw new NotFoundException('Media not found in this publication');
+    }
+
+    // Delete the publication media link
+    await this.prisma.publicationMedia.delete({
+      where: { id: pubMedia.id },
+    });
+
+    return { success: true };
+  }
 }
+

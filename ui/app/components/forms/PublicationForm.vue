@@ -7,9 +7,7 @@ import type { ChannelWithProject } from '~/composables/useChannels'
 import { usePublications } from '~/composables/usePublications'
 import { usePosts } from '~/composables/usePosts'
 import SocialIcon from '~/components/common/SocialIcon.vue'
-import MediaInput from '~/components/media/MediaInput.vue'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
-import type { CreateMediaInput } from '~/composables/useMedia'
 
 import type { PostType, PublicationStatus } from '~/types/posts'
 
@@ -83,7 +81,6 @@ const state = reactive({
   description: props.publication?.description || '',
   authorComment: props.publication?.authorComment || '',
   postDate: props.publication?.postDate ? new Date(props.publication.postDate).toISOString().slice(0, 16) : '',
-  media: [] as CreateMediaInput[],
 })
 
 const linkedPublicationId = ref<string | undefined>(undefined)
@@ -263,7 +260,6 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           })(),
           postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
           scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
-          media: state.media.length > 0 ? state.media : undefined,
       }
       
       // Update the publication itself
@@ -309,7 +305,6 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         })(),
         postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
         scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
-        media: state.media.length > 0 ? state.media : undefined,
       }
 
       const publication = await createPublication(createData)
@@ -500,11 +495,6 @@ function toggleChannel(channelId: string) {
             @keydown.enter.prevent
         />
       </UFormField>
-
-       <!-- Media Files -->
-       <UFormField name="media" :label="t('publication.media', 'Media Files')">
-         <MediaInput v-model="state.media" />
-       </UFormField>
 
       <!-- Translation Group (Link to another publication) - Moved out of Advanced -->
       <UFormField name="translationGroupId" :label="t('publication.linkTranslation', 'Link as Translation of')" :help="t('publication.linkTranslationHelp', 'Select a publication to link this one as a translation version.')">

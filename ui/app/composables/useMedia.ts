@@ -86,6 +86,34 @@ export function useMedia() {
     }
   }
 
+  async function addMediaToPublication(publicationId: string, media: CreateMediaInput[]): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+    try {
+      await api.post(`/publications/${publicationId}/media`, { media })
+      return true
+    } catch (err: any) {
+      error.value = err.message || 'Failed to add media to publication'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function removeMediaFromPublication(publicationId: string, mediaId: string): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+    try {
+      await api.delete(`/publications/${publicationId}/media/${mediaId}`)
+      return true
+    } catch (err: any) {
+      error.value = err.message || 'Failed to remove media from publication'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     isLoading,
     error,
@@ -93,5 +121,7 @@ export function useMedia() {
     fetchMedia,
     deleteMedia,
     uploadMedia,
+    addMediaToPublication,
+    removeMediaFromPublication,
   }
 }

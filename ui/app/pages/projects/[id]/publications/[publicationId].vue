@@ -5,7 +5,7 @@ import { useChannels } from '~/composables/useChannels'
 import { usePosts } from '~/composables/usePosts'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
-import MediaDisplay from '~/components/media/MediaDisplay.vue'
+import MediaGallery from '~/components/media/MediaGallery.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -683,6 +683,15 @@ function formatDate(dateString: string | null | undefined): string {
             </div>
         </div>
 
+        <!-- Media Gallery (always expanded, horizontal scroll) -->
+        <MediaGallery
+          v-if="currentPublication"
+          :media="currentPublication.media || []"
+          :publication-id="currentPublication.id"
+          :editable="true"
+          @refresh="() => fetchPublication(publicationId)"
+        />
+
         <!-- Block 2: Collapsible Publication Form (styled like PostEditBlock) -->
         <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
             <!-- Header -->
@@ -765,19 +774,6 @@ function formatDate(dateString: string | null | undefined): string {
                   @cancel="handleCancel"
                 ></FormsPublicationForm>
             </div>
-        </div>
-
-        <!-- Media Files Section -->
-        <div v-if="currentPublication.media && currentPublication.media.length > 0" class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
-          <div class="p-6">
-            <div class="flex items-center gap-2 mb-4">
-              <UIcon name="i-heroicons-photo" class="w-5 h-5 text-gray-500"></UIcon>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ t('publication.media', 'Media Files') }}
-              </h3>
-            </div>
-            <MediaDisplay :media="currentPublication.media" />
-          </div>
         </div>
 
         <!-- Linked Posts Section -->

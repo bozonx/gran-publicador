@@ -178,4 +178,28 @@ export class PublicationsController {
       createPostsDto.scheduledAt,
     );
   }
+
+  /**
+   * Add media files to a publication.
+   */
+  @Post(':id/media')
+  public async addMedia(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() body: { media: any[] },
+  ) {
+    return this.publicationsService.addMedia(id, req.user.userId, body.media);
+  }
+
+  /**
+   * Remove a media file from a publication.
+   */
+  @Delete(':id/media/:mediaId')
+  public async removeMedia(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Param('mediaId') mediaId: string,
+  ) {
+    return this.publicationsService.removeMedia(id, req.user.userId, mediaId);
+  }
 }
