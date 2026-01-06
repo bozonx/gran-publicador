@@ -210,9 +210,6 @@ const showPagination = computed(() => {
           {{ t('channel.titlePlural') }}
           <CommonCountBadge :count="nonArchivedChannelsCount" :title="t('channel.filter.badgeCountTooltip')" />
         </h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('navigation.channels') }}
-        </p>
       </div>
 
       <!-- Sorting and view controls -->
@@ -362,7 +359,7 @@ const showPagination = computed(() => {
             {{ t('channel.noChannelsFound') }}
           </h3>
           <p class="text-gray-500 dark:text-gray-400">
-            {{ searchQuery ? t('channel.noChannelsFiltered') : t('channel.noChannelsDescription') }}
+            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Попробуйте сделать фильтры менее строгими') : t('channel.noChannelsDescription') }}
           </p>
        </div>
 
@@ -388,7 +385,7 @@ const showPagination = computed(() => {
             {{ t('channel.noChannelsFound') }}
           </h3>
           <p class="text-gray-500 dark:text-gray-400">
-            {{ searchQuery ? t('channel.noChannelsFiltered') : t('channel.noChannelsDescription') }}
+            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Попробуйте сделать фильтры менее строгими') : t('channel.noChannelsDescription') }}
           </p>
        </div>
 

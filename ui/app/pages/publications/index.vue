@@ -309,9 +309,6 @@ const showPagination = computed(() => {
           {{ t('publication.titlePlural') }}
           <CommonCountBadge :count="filteredCount" :title="t('publication.filter.badgeCountTooltip')" />
         </h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('navigation.publications', 'Все публикации проекта') }}
-        </p>
       </div>
 
       <!-- Sorting and view controls -->

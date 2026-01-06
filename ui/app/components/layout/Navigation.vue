@@ -46,7 +46,7 @@ const bottomNavItems = computed<NavItem[]>(() => [
   {
     label: t('navigation.admin'),
     to: '/admin',
-    icon: 'i-heroicons-cog-8-tooth',
+    icon: 'i-heroicons-shield-check',
     adminOnly: true,
   },
   {
@@ -167,7 +167,7 @@ function getChannelLink(projectId: string, channelId: string) {
               :to="`/projects/${project.id}`"
               class="flex items-center gap-3 flex-1 min-w-0"
             >
-              <UIcon name="i-heroicons-briefcase" class="w-5 h-5 shrink-0" />
+              <div class="w-2 h-2 rounded-full bg-primary-500 shrink-0"></div>
               <span class="truncate">{{ project.name }}</span>
             </NuxtLink>
             

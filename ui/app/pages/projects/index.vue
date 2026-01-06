@@ -168,9 +168,6 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
           {{ t('project.titlePlural') }}
           <CommonCountBadge :count="activeProjects.length" :title="t('project.projectsCount')" />
         </h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('project.myProjects') }}
-        </p>
       </div>
       
       <div class="flex items-center gap-2">

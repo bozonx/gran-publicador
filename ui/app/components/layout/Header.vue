@@ -27,8 +27,15 @@ const emit = defineEmits<{
         </NuxtLink>
       </div>
 
-      <!-- Right side: User avatar -->
-      <div class="flex items-center">
+      <!-- Center: Global search -->
+      <div class="flex-1 max-w-md mx-4">
+        <CommonGlobalSearch />
+      </div>
+
+      <!-- Right side: Create button and User avatar -->
+      <div class="flex items-center gap-3">
+        <CommonGlobalCreateButton />
+        
         <UTooltip :text="t('navigation.settings')">
           <UButton
             to="/settings"
@@ -37,6 +44,7 @@ const emit = defineEmits<{
             class="p-0.5 rounded-full"
           >
             <UAvatar
+              :src="user?.avatarUrl || undefined"
               :alt="displayName"
               size="sm"
               :ui="{

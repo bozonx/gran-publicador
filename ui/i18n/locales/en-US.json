@@ -302,6 +302,7 @@
     "deleteWithPostsConfirm": "This channel has {count} posts. Are you sure you want to delete it along with all posts?",
     "noChannelsFound": "No channels found",
     "noChannelsFiltered": "No channels match the filter",
+    "adjustFilters": "Try making the filters less strict",
     "noChannelsDescription": "Create your first channel to publish content",
     "noPostsDescription": "Create your first post to get started",
     "socialMediaCannotChange": "Social media cannot be changed after channel creation",
@@ -404,6 +405,7 @@
     "languageMismatchWarning": "Warning: Channel language differs from publication language"
   },
   "publication": {
+    "title": "Publication",
     "titlePlural": "Publications",
     "create": "Create Publication",
     "edit": "Edit Publication",
