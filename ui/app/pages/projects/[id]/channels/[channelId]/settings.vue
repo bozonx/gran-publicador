@@ -165,7 +165,7 @@ async function handleDelete() {
         </UCard>
 
         <!-- Credentials -->
-        <UCard v-if="canEdit(channel) && (channel.socialMedia === 'TELEGRAM' || channel.socialMedia === 'VK')">
+        <UCard id="credentials" v-if="canEdit(channel) && (channel.socialMedia === 'TELEGRAM' || channel.socialMedia === 'VK')">
           <template #header>
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
               {{ channel.socialMedia === 'TELEGRAM' ? t('channel.telegramCredentials', 'Telegram Credentials') : t('channel.vkCredentials', 'VK Credentials') }}

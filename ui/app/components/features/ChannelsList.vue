@@ -18,8 +18,6 @@ const {
 
 // Store all channels including archived
 const allChannels = ref<ChannelWithProject[]>([])
-const searchQuery = ref('')
-const debouncedSearch = refDebounced(searchQuery, 300)
 
 // Sorting
 const sortOptions = computed(() => [
@@ -92,38 +90,12 @@ const hasArchivedChannels = computed(() => archivedChannels.value.length > 0)
 
 // Final sorted list for display
 const filteredChannels = computed(() => {
-  let result = nonArchivedChannels.value
-  
-  if (debouncedSearch.value) {
-    const query = debouncedSearch.value.toLowerCase()
-    result = result.filter(ch => 
-      ch.name.toLowerCase().includes(query) || 
-      ch.channelIdentifier.toLowerCase().includes(query)
-    )
-  }
-  
-  return sortList(result)
+  return sortList(nonArchivedChannels.value)
 })
 
 const filteredArchivedChannels = computed(() => {
-  let result = archivedChannels.value
-  
-  if (debouncedSearch.value) {
-    const query = debouncedSearch.value.toLowerCase()
-    result = result.filter(ch => 
-      ch.name.toLowerCase().includes(query) || 
-      ch.channelIdentifier.toLowerCase().includes(query)
-    )
-  }
-  
-  return sortList(result)
+  return sortList(archivedChannels.value)
 })
-
-const hasActiveFilters = computed(() => !!searchQuery.value)
-
-function resetFilters() {
-  searchQuery.value = ''
-}
 
 // Archived Logic
 const showArchived = ref(false)
@@ -134,7 +106,7 @@ onMounted(async () => {
     const fetchedChannels = await fetchChannels({ 
       projectId: props.projectId, 
       includeArchived: true,
-      limit: 100 // Fetch a reasonable amount for the project view
+      limit: 1000 // Fetch all (max 1000) channels for the project view
     })
     allChannels.value = fetchedChannels
   }
@@ -267,31 +239,7 @@ function toggleArchivedChannels() {
       </div>
     </div>
 
-    <!-- Search and filters -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
-      <div class="flex items-center gap-4">
-        <div class="flex-1">
-          <UInput
-            v-model="searchQuery"
-            icon="i-heroicons-magnifying-glass"
-            :placeholder="t('common.search')"
-            size="md"
-            class="w-full"
-            :loading="isLoading && searchQuery !== debouncedSearch"
-          />
-        </div>
-        <UButton
-          v-if="hasActiveFilters"
-          color="neutral"
-          variant="subtle"
-          icon="i-heroicons-x-mark"
-          size="sm"
-          @click="resetFilters"
-        >
-          {{ t('common.reset') }}
-        </UButton>
-      </div>
-    </div>
+
 
     <!-- Loading state -->
     <div v-if="isLoading" class="flex items-center justify-center py-12">

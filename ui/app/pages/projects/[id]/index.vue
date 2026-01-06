@@ -45,7 +45,7 @@ onMounted(async () => {
     await Promise.all([
       fetchProject(projectId.value),
       fetchPublicationsByProject(projectId.value, { status: 'DRAFT', limit: 5 }),
-      fetchChannels({ projectId: projectId.value })
+      fetchChannels({ projectId: projectId.value, limit: 1000 })
     ])
   }
 })
