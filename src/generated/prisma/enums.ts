@@ -9,25 +9,6 @@
 * 🟢 You can import this file directly.
 */
 
-export const MediaType = {
-  IMAGE: 'IMAGE',
-  VIDEO: 'VIDEO',
-  AUDIO: 'AUDIO',
-  DOCUMENT: 'DOCUMENT'
-} as const
-
-export type MediaType = (typeof MediaType)[keyof typeof MediaType]
-
-
-export const MediaSourceType = {
-  TELEGRAM: 'TELEGRAM',
-  FS: 'FS',
-  URL: 'URL'
-} as const
-
-export type MediaSourceType = (typeof MediaSourceType)[keyof typeof MediaSourceType]
-
-
 export const ProjectRole = {
   OWNER: 'OWNER',
   ADMIN: 'ADMIN',
@@ -86,3 +67,22 @@ export const PostStatus = {
 } as const
 
 export type PostStatus = (typeof PostStatus)[keyof typeof PostStatus]
+
+
+export const MediaType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  AUDIO: 'AUDIO',
+  DOCUMENT: 'DOCUMENT'
+} as const
+
+export type MediaType = (typeof MediaType)[keyof typeof MediaType]
+
+
+export const MediaSourceType = {
+  TELEGRAM: 'TELEGRAM',
+  FS: 'FS',
+  URL: 'URL'
+} as const
+
+export type MediaSourceType = (typeof MediaSourceType)[keyof typeof MediaSourceType]

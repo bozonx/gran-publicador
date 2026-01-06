@@ -13,8 +13,8 @@ export class CreateMediaDto {
   src!: string;
 
   @IsString()
-  @IsNotEmpty()
-  filename!: string;
+  @IsOptional()
+  filename?: string;
 
   @IsString()
   @IsOptional()

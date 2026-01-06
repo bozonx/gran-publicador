@@ -184,7 +184,7 @@ model Media {
   type      MediaType
   srcType   MediaSourceType @map("src_type")
   src       String
-  filename  String
+  filename  String?
   mimeType  String?  @map("mime_type")
   sizeBytes Int?     @map("size_bytes")
   meta      String   @default("{}") // JSON: {width, height, duration, thumbnail, ...}

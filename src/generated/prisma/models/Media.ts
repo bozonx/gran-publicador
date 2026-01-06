@@ -214,7 +214,7 @@ export type MediaGroupByOutputType = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename: string | null
   mimeType: string | null
   sizeBytes: number | null
   meta: string
@@ -250,7 +250,7 @@ export type MediaWhereInput = {
   type?: Prisma.EnumMediaTypeFilter<"Media"> | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFilter<"Media"> | $Enums.MediaSourceType
   src?: Prisma.StringFilter<"Media"> | string
-  filename?: Prisma.StringFilter<"Media"> | string
+  filename?: Prisma.StringNullableFilter<"Media"> | string | null
   mimeType?: Prisma.StringNullableFilter<"Media"> | string | null
   sizeBytes?: Prisma.IntNullableFilter<"Media"> | number | null
   meta?: Prisma.StringFilter<"Media"> | string
@@ -265,7 +265,7 @@ export type MediaOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   srcType?: Prisma.SortOrder
   src?: Prisma.SortOrder
-  filename?: Prisma.SortOrder
+  filename?: Prisma.SortOrderInput | Prisma.SortOrder
   mimeType?: Prisma.SortOrderInput | Prisma.SortOrder
   sizeBytes?: Prisma.SortOrderInput | Prisma.SortOrder
   meta?: Prisma.SortOrder
@@ -283,7 +283,7 @@ export type MediaWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.EnumMediaTypeFilter<"Media"> | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFilter<"Media"> | $Enums.MediaSourceType
   src?: Prisma.StringFilter<"Media"> | string
-  filename?: Prisma.StringFilter<"Media"> | string
+  filename?: Prisma.StringNullableFilter<"Media"> | string | null
   mimeType?: Prisma.StringNullableFilter<"Media"> | string | null
   sizeBytes?: Prisma.IntNullableFilter<"Media"> | number | null
   meta?: Prisma.StringFilter<"Media"> | string
@@ -298,7 +298,7 @@ export type MediaOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   srcType?: Prisma.SortOrder
   src?: Prisma.SortOrder
-  filename?: Prisma.SortOrder
+  filename?: Prisma.SortOrderInput | Prisma.SortOrder
   mimeType?: Prisma.SortOrderInput | Prisma.SortOrder
   sizeBytes?: Prisma.SortOrderInput | Prisma.SortOrder
   meta?: Prisma.SortOrder
@@ -319,7 +319,7 @@ export type MediaScalarWhereWithAggregatesInput = {
   type?: Prisma.EnumMediaTypeWithAggregatesFilter<"Media"> | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeWithAggregatesFilter<"Media"> | $Enums.MediaSourceType
   src?: Prisma.StringWithAggregatesFilter<"Media"> | string
-  filename?: Prisma.StringWithAggregatesFilter<"Media"> | string
+  filename?: Prisma.StringNullableWithAggregatesFilter<"Media"> | string | null
   mimeType?: Prisma.StringNullableWithAggregatesFilter<"Media"> | string | null
   sizeBytes?: Prisma.IntNullableWithAggregatesFilter<"Media"> | number | null
   meta?: Prisma.StringWithAggregatesFilter<"Media"> | string
@@ -332,7 +332,7 @@ export type MediaCreateInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -347,7 +347,7 @@ export type MediaUncheckedCreateInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -362,7 +362,7 @@ export type MediaUpdateInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -377,7 +377,7 @@ export type MediaUncheckedUpdateInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -392,7 +392,7 @@ export type MediaCreateManyInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -405,7 +405,7 @@ export type MediaUpdateManyMutationInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -418,7 +418,7 @@ export type MediaUncheckedUpdateManyInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -534,7 +534,7 @@ export type MediaCreateWithoutMediaGroupItemsInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -548,7 +548,7 @@ export type MediaUncheckedCreateWithoutMediaGroupItemsInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -578,7 +578,7 @@ export type MediaUpdateWithoutMediaGroupItemsInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -592,7 +592,7 @@ export type MediaUncheckedUpdateWithoutMediaGroupItemsInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -606,7 +606,7 @@ export type MediaCreateWithoutPublicationMediaInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -620,7 +620,7 @@ export type MediaUncheckedCreateWithoutPublicationMediaInput = {
   type: $Enums.MediaType
   srcType: $Enums.MediaSourceType
   src: string
-  filename: string
+  filename?: string | null
   mimeType?: string | null
   sizeBytes?: number | null
   meta?: string
@@ -650,7 +650,7 @@ export type MediaUpdateWithoutPublicationMediaInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -664,7 +664,7 @@ export type MediaUncheckedUpdateWithoutPublicationMediaInput = {
   type?: Prisma.EnumMediaTypeFieldUpdateOperationsInput | $Enums.MediaType
   srcType?: Prisma.EnumMediaSourceTypeFieldUpdateOperationsInput | $Enums.MediaSourceType
   src?: Prisma.StringFieldUpdateOperationsInput | string
-  filename?: Prisma.StringFieldUpdateOperationsInput | string
+  filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sizeBytes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
@@ -788,7 +788,7 @@ export type $MediaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     type: $Enums.MediaType
     srcType: $Enums.MediaSourceType
     src: string
-    filename: string
+    filename: string | null
     mimeType: string | null
     sizeBytes: number | null
     meta: string
