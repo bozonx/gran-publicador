@@ -112,12 +112,13 @@ export class PublicationsService {
     }
 
     // Text search across title, description, and content
-    // Note: SQLite contains is case-insensitive by default with NOCASE collation
+    // Note: Using 'any' type assertion because SQLite types don't include 'mode' parameter,
+    // but Prisma runtime supports it for case-insensitive search
     if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search } },
-        { description: { contains: filters.search } },
-        { content: { contains: filters.search } },
+      (where as any).OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+        { content: { contains: filters.search, mode: 'insensitive' } },
       ];
     }
 

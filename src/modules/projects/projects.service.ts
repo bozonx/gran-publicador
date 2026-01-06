@@ -90,8 +90,8 @@ export class ProjectsService {
         },
         ...(includeArchived ? {} : { archivedAt: null }),
         OR: [
-          { name: { contains: search } },
-          { description: { contains: search } },
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
         ],
       };
 
