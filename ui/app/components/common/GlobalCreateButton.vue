@@ -162,12 +162,13 @@ function closePublicationModal() {
 </script>
 
 <template>
-  <div class="flex items-center">
-    <UButtonGroup>
+  <div>
+    <div class="inline-flex -space-x-px">
       <!-- Quick create button -->
       <UButton
         icon="i-heroicons-plus"
         color="primary"
+        class="rounded-r-none"
         @click="quickCreatePublication"
       >
         {{ t('publication.title') }}
@@ -179,9 +180,10 @@ function closePublicationModal() {
           icon="i-heroicons-chevron-down"
           color="primary"
           square
+          class="rounded-l-none"
         />
       </UDropdown>
-    </UButtonGroup>
+    </div>
 
     <!-- Create Publication Modal -->
     <UModal v-model:open="isPublicationModalOpen">
@@ -323,4 +325,5 @@ function closePublicationModal() {
     />
   </div>
 </template>
+
 
