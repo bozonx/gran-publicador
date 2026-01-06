@@ -8,6 +8,8 @@ const emit = defineEmits<{
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
+const { projects, fetchProjects, createProject } = useProjects()
+
 const isCreating = ref(false)
 const formState = reactive({
   name: '',
@@ -24,7 +26,6 @@ async function handleCreate() {
 
   isCreating.value = true
   try {
-    const { createProject } = useProjects()
     const project = await createProject({
       name: formState.name,
       description: formState.description || undefined

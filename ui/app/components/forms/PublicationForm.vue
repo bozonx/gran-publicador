@@ -33,6 +33,7 @@ const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const { createPublication, updatePublication, createPostsFromPublication, isLoading, getStatusDisplayName, fetchPublicationsByProject, publications } = usePublications()
 const { 
   channels, 
@@ -283,7 +284,6 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
   } catch (error) {
     console.error(error)
     formActionsRef.value?.showError()
-    const toast = useToast()
     toast.add({
       title: t('common.error'),
       description: t('common.saveError', 'Failed to save'),

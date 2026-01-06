@@ -75,22 +75,12 @@ async function handleCreate() {
     })
 
     if (channel) {
-      toast.add({
-        title: t('common.success'),
-        description: t('channel.createSuccess'),
-        color: 'success'
-      })
-      
       resetForm()
       isOpen.value = false
       emit('created', channel.id, formState.projectId)
     }
   } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: error.message || t('common.saveError'),
-      color: 'error'
-    })
+    // Error handled by useChannels
   }
 }
 

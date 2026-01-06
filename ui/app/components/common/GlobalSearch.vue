@@ -188,10 +188,9 @@ const groupedResults = computed(() => {
     <!-- Search modal -->
     <UModal
       v-model:open="isOpen"
+      class="global-search-modal"
       :ui="{
-        wrapper: 'flex !items-start justify-center min-h-full pt-4 px-4 sm:pt-[12px]',
         content: 'w-full sm:max-w-2xl gap-0',
-        body: 'p-0',
         overlay: 'bg-gray-900/50 dark:bg-gray-900/80 backdrop-blur-sm'
       }"
     >
@@ -315,3 +314,11 @@ const groupedResults = computed(() => {
     </UModal>
   </div>
 </template>
+
+<style scoped>
+/* Target the specific flex container responsible for modal centering */
+:global(.global-search-modal .flex.min-h-full) {
+  align-items: flex-start !important;
+  padding-top: 5rem !important; /* Adjust this value to match top bar height/spacing */
+}
+</style>
