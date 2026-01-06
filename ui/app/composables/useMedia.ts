@@ -130,5 +130,9 @@ export function useMedia() {
  * Get URL for media file
  */
 export function getMediaFileUrl(mediaId: string): string {
-  return `/api/v1/media/${mediaId}/file`;
+  const config = useRuntimeConfig();
+  const apiBase = config.public.apiBase
+    ? `${config.public.apiBase}/api/v1`
+    : '/api/v1';
+  return `${apiBase}/media/${mediaId}/file`;
 }
