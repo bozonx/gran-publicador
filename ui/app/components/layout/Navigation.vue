@@ -63,6 +63,9 @@ const visibleBottomNavItems = computed(() =>
 
 // Projects fetching
 const { projects, fetchProjects, isLoading: isProjectsLoading } = useProjects()
+// Instantiate useChannels at the top level
+const { fetchChannels: fetchChannelsApi } = useChannels()
+
 const activeProjects = computed(() => projects.value.filter(p => !p.archivedAt))
 const expandedProjects = ref<Set<string>>(new Set())
 const projectChannels = ref<Record<string, ChannelWithProject[]>>({})
@@ -107,8 +110,8 @@ async function toggleProject(projectId: string) {
 async function fetchProjectChannels(projectId: string) {
   areChannelsLoading.value[projectId] = true
   try {
-    const { fetchChannels } = useChannels()
-    const channels = await fetchChannels({ 
+    // Use the top-level fetchChannelsApi
+    const channels = await fetchChannelsApi({ 
       projectId,
       limit: 100 // Sidebar shows all active channels for a project usually
     })

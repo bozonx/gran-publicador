@@ -42,7 +42,7 @@ export function useChannels() {
 
         try {
             const params: any = { ...filters }
-
+            
             const response = await api.get<{ items: ChannelWithProject[]; meta: { total: number; limit: number; offset: number } }>('/channels', { params })
             
             channels.value = response.items
