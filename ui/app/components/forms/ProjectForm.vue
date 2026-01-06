@@ -46,6 +46,7 @@ const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | 
 const { t } = useI18n()
 const { formatDateWithTime } = useFormatters()
 const router = useRouter()
+const toast = useToast()
 
 const isEditMode = computed(() => !!props.project?.id)
 
@@ -76,7 +77,7 @@ const schema = z.object({
     .max(500, t('validation.maxLength', { max: 500 }))
     .optional(),
   preferences: z.object({
-    staleChannelsDays: z.number({ coerce: true })
+    staleChannelsDays: z.coerce.number()
       .min(1, t('validation.min', { min: 1 }))
       .optional()
   }).optional()
@@ -123,7 +124,6 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
     saveOriginalState()
   } catch (error) {
     formActionsRef.value?.showError()
-    const toast = useToast()
     toast.add({
       title: t('common.error'),
       description: t('common.saveError', 'Failed to save'),

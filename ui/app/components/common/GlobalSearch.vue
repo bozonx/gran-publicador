@@ -5,6 +5,7 @@ const isOpen = ref(false)
 const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, 300)
 const isSearching = ref(false)
+const hasPerformedSearch = ref(false)
 
 interface SearchResult {
   type: 'project' | 'channel' | 'publication'
@@ -21,6 +22,7 @@ const searchResults = ref<SearchResult[]>([])
 watch(debouncedSearch, async (query) => {
   if (!query || query.length < 2) {
     searchResults.value = []
+    hasPerformedSearch.value = false
     return
   }
 
@@ -101,9 +103,11 @@ async function performSearch(query: string) {
       })
 
     searchResults.value = results
+    hasPerformedSearch.value = true
   } catch (error) {
     console.error('Search error:', error)
     searchResults.value = []
+    hasPerformedSearch.value = true
   }
 }
 
@@ -185,8 +189,10 @@ const groupedResults = computed(() => {
     <UModal
       v-model:open="isOpen"
       :ui="{
-        wrapper: 'flex items-start justify-center min-h-screen pt-4 px-4 sm:pt-4',
-        content: 'my-0 sm:my-0 w-full sm:max-w-2xl'
+        wrapper: 'flex !items-start justify-center min-h-full pt-4 px-4 sm:pt-[12px]',
+        content: 'w-full sm:max-w-2xl gap-0',
+        body: 'p-0',
+        overlay: 'bg-gray-900/50 dark:bg-gray-900/80 backdrop-blur-sm'
       }"
     >
       <template #content>
@@ -218,17 +224,10 @@ const groupedResults = computed(() => {
             </template>
           </UInput>
 
-          <!-- Search results -->
-          <div v-if="searchQuery.length >= 2" class="mt-4 max-h-96 overflow-y-auto">
-            <!-- No results -->
-            <div v-if="searchResults.length === 0 && !isSearching" class="text-center py-8">
-              <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 mx-auto text-gray-400 mb-2" />
-              <p class="text-gray-500 dark:text-gray-400">{{ t('common.noData') }}</p>
-            </div>
-
-            <!-- Loading removed -->
-
-            <!-- Results grouped by type -->
+          <!-- Search results area -->
+          <div class="mt-4 max-h-96 overflow-y-auto min-h-[100px]">
+            
+            <!-- Case 1: Has Results (Always show if available, even if reloading) -->
             <div v-if="searchResults.length > 0" class="space-y-4">
               <!-- Projects -->
               <div v-if="groupedResults.project && groupedResults.project.length > 0">
@@ -299,11 +298,17 @@ const groupedResults = computed(() => {
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Helper text -->
-          <div v-if="searchQuery.length < 2" class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            {{ t('common.search') }}...
+            <!-- Case 2: No Results Found (Show only if search was performed and list is empty) -->
+            <div v-else-if="hasPerformedSearch" class="text-center py-8">
+              <UIcon name="i-heroicons-magnifying-glass" class="w-12 h-12 mx-auto text-gray-400 mb-2" />
+              <p class="text-gray-500 dark:text-gray-400">{{ t('common.noData') }}</p>
+            </div>
+
+            <!-- Case 3: Initial State / Helper (Before any search) -->
+            <div v-else class="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('common.search') }}...
+            </div>
           </div>
         </div>
       </template>

@@ -41,6 +41,7 @@ const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | 
 const { t } = useI18n()
 const { formatDateWithTime } = useFormatters()
 const router = useRouter()
+const toast = useToast()
 const {
   createChannel,
   updateChannel,
@@ -91,6 +92,7 @@ const state = reactive({
 // Validation Schema
 const schema = computed(() => z.object({
   name: z.string().min(1, t('validation.required')),
+  description: z.string().optional(),
   channelIdentifier: z.string().min(1, t('validation.required')),
   language: z.string().min(1, t('validation.required')),
   socialMedia: z.enum(SOCIAL_MEDIA_VALUES),
@@ -100,7 +102,7 @@ const schema = computed(() => z.object({
     vkAccessToken: z.string().optional(),
   }),
   preferences: z.object({
-    staleChannelsDays: z.number({ coerce: true }).min(1, t('validation.min', { min: 1 })).optional()
+    staleChannelsDays: z.coerce.number().min(1, t('validation.min', { min: 1 })).optional()
   }).optional()
 }).superRefine((val, ctx) => {
   if (val.socialMedia === 'TELEGRAM') {
@@ -245,7 +247,6 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
     }
   } catch (error) {
     formActionsRef.value?.showError()
-    const toast = useToast()
     toast.add({
       title: t('common.error'),
       description: t('common.saveError', 'Failed to save'),

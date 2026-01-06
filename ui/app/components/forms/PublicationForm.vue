@@ -86,12 +86,12 @@ const schema = computed(() => z.object({
   translationGroupId: z.string().optional(),
   meta: z.string().refine((val) => {
     try {
-      JSON.parse(val)
-      return true
+      const parsed = JSON.parse(val)
+      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
     } catch {
       return false
     }
-  }, t('validation.jsonInvalid', 'Invalid JSON format')),
+  }, t('validation.jsonInvalidObject', 'Must be a valid JSON object')),
   description: z.string().optional(),
   authorComment: z.string().optional(),
   postDate: z.string().optional(),

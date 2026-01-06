@@ -173,12 +173,21 @@ function handleClose() {
             </USelectMenu>
           </UFormField>
 
-<!-- Description -->
+          <!-- Description -->
           <UFormField :label="t('channel.description')" :help="t('common.optional')">
             <UTextarea 
               v-model="formState.description" 
               :placeholder="t('channel.descriptionPlaceholder')" 
               :rows="3" 
+              class="w-full" 
+            />
+          </UFormField>
+
+          <!-- Channel Identifier -->
+          <UFormField :label="t('channel.identifier')" required :help="t('channel.identifierHelp')">
+             <UInput 
+              v-model="formState.channelIdentifier" 
+              :placeholder="t('channel.identifierPlaceholder')" 
               class="w-full" 
             />
           </UFormField>
@@ -195,7 +204,7 @@ function handleClose() {
             <UButton 
               color="primary" 
               :loading="isLoading" 
-              :disabled="!formState.name || !formState.projectId || !formState.socialMedia" 
+              :disabled="!formState.name || !formState.projectId || !formState.socialMedia || !formState.channelIdentifier" 
               type="submit"
             >
               {{ t('common.create') }}
