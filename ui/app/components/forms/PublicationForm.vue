@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import yaml from 'js-yaml'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { ChannelWithProject } from '~/composables/useChannels'
@@ -60,7 +61,17 @@ const state = reactive({
   language: props.publication?.language || languageParam.value || 'en-US',
   channelIds: props.publication?.posts?.map((p: any) => p.channelId) || [] as string[],
   translationGroupId: props.publication?.translationGroupId || undefined as string | undefined,
-  meta: props.publication?.meta ? JSON.stringify(props.publication.meta, null, 2) : '{}',
+  meta: (() => {
+    if (!props.publication?.meta) return ''
+    try {
+        const parsed = typeof props.publication.meta === 'string' 
+            ? JSON.parse(props.publication.meta) 
+            : props.publication.meta
+        return yaml.dump(parsed)
+    } catch (e) {
+        return props.publication.meta
+    }
+  })(),
   description: props.publication?.description || '',
   authorComment: props.publication?.authorComment || '',
   postDate: props.publication?.postDate ? new Date(props.publication.postDate).toISOString().slice(0, 16) : '',
@@ -87,12 +98,12 @@ const schema = computed(() => z.object({
   translationGroupId: z.string().optional(),
   meta: z.string().refine((val) => {
     try {
-      const parsed = JSON.parse(val)
+      const parsed = yaml.load(val)
       return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
     } catch {
       return false
     }
-  }, t('validation.jsonInvalidObject', 'Must be a valid JSON object')),
+  }, t('validation.invalidYaml', 'Must be a valid YAML object')),
   description: z.string().optional(),
   authorComment: z.string().optional(),
   postDate: z.string().optional(),
@@ -152,7 +163,17 @@ watch(() => props.publication, (newPub) => {
     state.language = newPub.language || 'en-US'
     state.channelIds = newPub.posts?.map((p: any) => p.channelId) || []
     state.translationGroupId = newPub.translationGroupId || undefined
-    state.meta = newPub.meta ? JSON.stringify(newPub.meta, null, 2) : '{}'
+    state.meta = (() => {
+        if (!newPub.meta) return ''
+        try {
+            const parsed = typeof newPub.meta === 'string' 
+                ? JSON.parse(newPub.meta) 
+                : newPub.meta
+            return yaml.dump(parsed)
+        } catch (e) {
+            return newPub.meta
+        }
+    })()
     state.description = newPub.description || ''
     state.authorComment = newPub.authorComment || ''
     state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
@@ -217,7 +238,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           language: event.data.language,
           linkToPublicationId: linkedPublicationId.value || undefined, // Send linkToPublicationId
           postType: event.data.postType,
-          meta: (() => { try { return JSON.parse(event.data.meta) } catch { return {} } })(),
+          meta: (() => { try { return yaml.load(event.data.meta) } catch { return {} } })(),
           postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
           scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
@@ -256,7 +277,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         language: event.data.language,
         linkToPublicationId: linkedPublicationId.value || undefined,
         postType: event.data.postType,
-        meta: (() => { try { return JSON.parse(event.data.meta) } catch { return {} } })(),
+        meta: (() => { try { return yaml.load(event.data.meta) } catch { return {} } })(),
         postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
         scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
@@ -301,6 +322,26 @@ function handleReset() {
   resetToOriginal()
 }
 
+function handleError(event: any) {
+    console.error('Form validation errors:', event.errors)
+    
+    // Expand advanced section if errors are there
+    const advancedFields = ['description', 'authorComment', 'postDate', 'meta']
+    const hasAdvancedErrors = event.errors.some((e: any) => advancedFields.includes(e.path))
+    
+    if (hasAdvancedErrors) {
+        showAdvancedFields.value = true
+    }
+
+    toast.add({
+        title: t('common.error'),
+        description: t('validation.checkFormErrors', 'Please check the form for errors'),
+        color: 'error'
+    })
+    
+    formActionsRef.value?.showError()
+}
+
 function toggleChannel(channelId: string) {
     const index = state.channelIds.indexOf(channelId)
     if (index === -1) {
@@ -312,7 +353,7 @@ function toggleChannel(channelId: string) {
 </script>
 
 <template>
-    <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit">
+    <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit" @error="handleError">
       
       <!-- Channels (Multi-select) -->
       <div v-if="!isEditMode">
@@ -467,7 +508,7 @@ function toggleChannel(channelId: string) {
         </UFormField>
 
         <!-- Meta -->
-        <UFormField name="meta" label="Meta (JSON)" help="Additional metadata in JSON format">
+        <UFormField name="meta" label="Meta (YAML)" help="Additional metadata in YAML format">
            <UTextarea v-model="state.meta" :rows="4" font-family="mono" />
         </UFormField>
       </UiFormAdvancedSection>
