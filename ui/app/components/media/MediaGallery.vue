@@ -280,6 +280,20 @@ async function handleDrop(event: DragEvent) {
   }
 }
 
+// Computed property to get current media index
+const currentMediaIndex = computed(() => {
+  if (!selectedMedia.value) return -1
+  return localMedia.value.findIndex(item => item.media?.id === selectedMedia.value?.id)
+})
+
+// Check if there's a previous media item
+const hasPreviousMedia = computed(() => currentMediaIndex.value > 0)
+
+// Check if there's a next media item
+const hasNextMedia = computed(() => {
+  return currentMediaIndex.value >= 0 && currentMediaIndex.value < localMedia.value.length - 1
+})
+
 function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
   isModalOpen.value = true
@@ -289,6 +303,52 @@ function closeMediaModal() {
   isModalOpen.value = false
   selectedMedia.value = null
 }
+
+function navigateToPreviousMedia() {
+  if (!hasPreviousMedia.value) return
+  const prevItem = localMedia.value[currentMediaIndex.value - 1]
+  if (prevItem?.media) {
+    selectedMedia.value = prevItem.media
+  }
+}
+
+function navigateToNextMedia() {
+  if (!hasNextMedia.value) return
+  const nextItem = localMedia.value[currentMediaIndex.value + 1]
+  if (nextItem?.media) {
+    selectedMedia.value = nextItem.media
+  }
+}
+
+// Keyboard navigation
+function handleKeydown(event: KeyboardEvent) {
+  if (!isModalOpen.value) return
+  
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    navigateToPreviousMedia()
+  } else if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    navigateToNextMedia()
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    closeMediaModal()
+  }
+}
+
+// Add keyboard listener when modal is open
+watch(isModalOpen, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener('keydown', handleKeydown)
+  } else {
+    window.removeEventListener('keydown', handleKeydown)
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 function formatMetadataAsYaml(media: MediaItem): string {
   const metadata: Record<string, any> = {
@@ -588,29 +648,60 @@ const emit = defineEmits<Emits>()
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
           </h3>
-          <UButton
-            icon="i-heroicons-x-mark"
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            @click="closeMediaModal"
-          />
-        </div>
-
-        <!-- Image preview -->
-        <div v-if="selectedMedia" class="mb-6 flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden">
-          <img
-            v-if="selectedMedia.type === 'IMAGE'"
-            :src="getMediaFileUrl(selectedMedia.id)"
-            :alt="selectedMedia.filename || 'Media'"
-            class="max-w-full max-h-[70vh] object-contain"
-          />
-          <div v-else class="flex items-center justify-center h-64 w-full">
-            <UIcon
-              :name="getMediaIcon(selectedMedia.type)"
-              class="w-24 h-24 text-gray-400"
+          <div class="flex items-center gap-2">
+            <!-- Position indicator -->
+            <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400">
+              {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
+            </span>
+            <UButton
+              icon="i-heroicons-x-mark"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              @click="closeMediaModal"
             />
           </div>
+        </div>
+
+        <!-- Image preview with navigation buttons -->
+        <div v-if="selectedMedia" class="mb-6 relative">
+          <!-- Previous button -->
+          <UButton
+            v-if="hasPreviousMedia"
+            icon="i-heroicons-chevron-left"
+            variant="solid"
+            color="neutral"
+            size="lg"
+            class="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
+            @click="navigateToPreviousMedia"
+          />
+          
+          <!-- Media content -->
+          <div class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden">
+            <img
+              v-if="selectedMedia.type === 'IMAGE'"
+              :src="getMediaFileUrl(selectedMedia.id)"
+              :alt="selectedMedia.filename || 'Media'"
+              class="max-w-full max-h-[70vh] object-contain"
+            />
+            <div v-else class="flex items-center justify-center h-64 w-full">
+              <UIcon
+                :name="getMediaIcon(selectedMedia.type)"
+                class="w-24 h-24 text-gray-400"
+              />
+            </div>
+          </div>
+
+          <!-- Next button -->
+          <UButton
+            v-if="hasNextMedia"
+            icon="i-heroicons-chevron-right"
+            variant="solid"
+            color="neutral"
+            size="lg"
+            class="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
+            @click="navigateToNextMedia"
+          />
         </div>
 
         <!-- Metadata -->
