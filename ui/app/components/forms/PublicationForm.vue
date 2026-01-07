@@ -661,9 +661,12 @@ function toggleChannel(channelId: string) {
         </UFormField>
 
         <!-- Meta -->
-        <UFormField name="meta" label="Meta (YAML)" help="Additional metadata in YAML format">
-           <UTextarea v-model="state.meta" :rows="8" autoresize class="w-full font-mono" />
-        </UFormField>
+        <CommonYamlEditor
+          v-model="state.meta"
+          label="Meta (YAML)"
+          help="Additional metadata in YAML format"
+          :rows="8"
+        />
 
         <!-- Note (Internal) -->
         <UFormField name="note" :label="t('post.note')" :help="t('post.noteHint')">

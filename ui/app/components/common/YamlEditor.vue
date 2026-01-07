@@ -37,9 +37,16 @@ const displayValue = computed({
 <template>
   <UFormField 
     :label="label" 
-    :help="help || t('media.yamlHelp', 'Additional metadata in YAML format')"
     class="w-full"
   >
+    <template #help>
+      <div class="flex items-center justify-between w-full">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+          {{ help || t('media.yamlHelp', 'Additional metadata in YAML format') }}
+        </span>
+        <slot name="actions" />
+      </div>
+    </template>
     <UTextarea
       v-model="displayValue"
       :rows="rows"

@@ -341,7 +341,8 @@ const hasNextMedia = computed(() => {
 
 function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
-  editableMetadata.value = formatMetadataAsYaml(media)
+  const formatted = formatMetadataAsYaml(media)
+  editableMetadata.value = formatted === '{}\n' ? '' : formatted
   isModalOpen.value = true
 }
 
@@ -676,28 +677,34 @@ const emit = defineEmits<Emits>()
   <!-- Media viewer modal -->
   <UModal v-model:open="isModalOpen">
     <template #content>
-      <div class="p-6 min-w-[500px] max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between gap-4 mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
-            {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
-          </h3>
-          <div class="flex items-center gap-2 shrink-0">
-            <!-- Position indicator -->
-            <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-              {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
-            </span>
-            <UButton
-              icon="i-heroicons-x-mark"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              @click="closeMediaModal"
-            />
+      <div class="flex flex-col min-w-[500px] max-w-4xl max-h-[90vh]">
+        <!-- Fixed header -->
+        <div class="p-6 pb-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
+              {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
+            </h3>
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- Position indicator -->
+              <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
+              </span>
+              <UButton
+                icon="i-heroicons-x-mark"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                @click="closeMediaModal"
+              />
+            </div>
           </div>
         </div>
 
-        <!-- Image preview with navigation buttons -->
-        <div v-if="selectedMedia" class="mb-6 relative">
+        <!-- Scrollable content -->
+        <div class="p-6 pt-4 overflow-y-auto flex-1">
+
+          <!-- Image preview with navigation buttons -->
+          <div v-if="selectedMedia" class="mb-6 relative">
           <!-- Previous button -->
           <UButton
             v-if="hasPreviousMedia"
@@ -735,65 +742,68 @@ const emit = defineEmits<Emits>()
             class="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
             @click="navigateToNextMedia"
           />
-        </div>
-
-        <!-- Metadata -->
-        <div v-if="selectedMedia" class="w-full">
-          <!-- Read-only fields -->
-          <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono overflow-x-auto">
-            <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-              <span class="text-gray-500 shrink-0">type:</span>
-              <span class="text-gray-900 dark:text-gray-200">
-                {{ selectedMedia.srcType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
-              </span>
-            </div>
-            <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-              <span class="text-gray-500 shrink-0">size:</span>
-              <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
-            </div>
-            <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-              <span class="text-gray-500 shrink-0">src:</span>
-              <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.src }}</span>
-            </div>
-            <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-              <span class="text-gray-500 shrink-0">filename:</span>
-              <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.filename }}</span>
-            </div>
-            <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-              <span class="text-gray-500 shrink-0">id:</span>
-              <span class="text-gray-900 dark:text-gray-200 truncate">{{ selectedMedia.id }}</span>
-            </div>
           </div>
 
-          <!-- Metadata Editor buttons -->
-          <div class="flex justify-end gap-2 mb-2 px-1">
-            <UButton
-              icon="i-heroicons-arrow-down-tray"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              @click="downloadMediaFile(selectedMedia)"
+          <!-- Metadata -->
+          <div v-if="selectedMedia" class="w-full">
+            <!-- Read-only fields -->
+            <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono overflow-x-auto">
+              <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+                <span class="text-gray-500 shrink-0">type:</span>
+                <span class="text-gray-900 dark:text-gray-200">
+                  {{ selectedMedia.srcType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
+                </span>
+              </div>
+              <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+                <span class="text-gray-500 shrink-0">size:</span>
+                <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
+              </div>
+              <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+                <span class="text-gray-500 shrink-0">src:</span>
+                <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.src }}</span>
+              </div>
+              <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+                <span class="text-gray-500 shrink-0">filename:</span>
+                <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.filename }}</span>
+              </div>
+              <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+                <span class="text-gray-500 shrink-0">id:</span>
+                <div class="flex items-center gap-2">
+                  <span 
+                    class="text-gray-900 dark:text-gray-200 truncate cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    @click="downloadMediaFile(selectedMedia)"
+                  >
+                    {{ selectedMedia.id }}
+                  </span>
+                  <UIcon 
+                    name="i-heroicons-arrow-down-tray" 
+                    class="w-4 h-4 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors shrink-0"
+                    @click="downloadMediaFile(selectedMedia)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <CommonYamlEditor
+              v-model="editableMetadata"
+              :disabled="!editable"
+              :rows="8"
             >
-              {{ t('media.download', 'Download') }}
-            </UButton>
-            <UButton
-              v-if="editable"
-              icon="i-heroicons-check"
-              variant="solid"
-              color="primary"
-              size="sm"
-              :loading="isSavingMeta"
-              @click="saveMediaMeta"
-            >
-              {{ t('common.save', 'Save') }}
-            </UButton>
+              <template #actions>
+                <UButton
+                  v-if="editable"
+                  icon="i-heroicons-check"
+                  variant="solid"
+                  color="primary"
+                  size="sm"
+                  :loading="isSavingMeta"
+                  @click="saveMediaMeta"
+                >
+                  {{ t('common.save', 'Save') }}
+                </UButton>
+              </template>
+            </CommonYamlEditor>
           </div>
-          
-          <CommonYamlEditor
-            v-model="editableMetadata"
-            :disabled="!editable"
-            :rows="8"
-          />
         </div>
       </div>
     </template>
