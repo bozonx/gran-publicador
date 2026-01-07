@@ -11,6 +11,7 @@ config();
 
 // getDatabaseUrl() will throw if DATA_DIR is not set
 const url = getDatabaseUrl();
+console.log('Using DB URL:', url);
 
 const adapter = new PrismaBetterSqlite3({ url });
 

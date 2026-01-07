@@ -21,13 +21,10 @@ export type ProjectRole = (typeof ProjectRole)[keyof typeof ProjectRole]
 
 export const SocialMedia = {
   TELEGRAM: 'TELEGRAM',
-  INSTAGRAM: 'INSTAGRAM',
   VK: 'VK',
   YOUTUBE: 'YOUTUBE',
   TIKTOK: 'TIKTOK',
-  X: 'X',
   FACEBOOK: 'FACEBOOK',
-  LINKEDIN: 'LINKEDIN',
   SITE: 'SITE'
 } as const
 
