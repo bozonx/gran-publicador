@@ -114,6 +114,23 @@ export function useMedia() {
     }
   }
 
+  async function reorderMediaInPublication(
+    publicationId: string, 
+    media: Array<{ id: string; order: number }>
+  ): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+    try {
+      await api.patch(`/publications/${publicationId}/media/reorder`, { media })
+      return true
+    } catch (err: any) {
+      error.value = err.message || 'Failed to reorder media'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     isLoading,
     error,
@@ -123,6 +140,7 @@ export function useMedia() {
     uploadMedia,
     addMediaToPublication,
     removeMediaFromPublication,
+    reorderMediaInPublication,
   }
 }
 

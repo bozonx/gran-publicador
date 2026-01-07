@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 
@@ -14,6 +15,7 @@ interface MediaItem {
 
 interface Props {
   media: Array<{
+    id?: string
     media?: MediaItem
     order: number
   }>
@@ -26,7 +28,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const { t } = useI18n()
-const { uploadMedia, isLoading: isUploading, addMediaToPublication, removeMediaFromPublication } = useMedia()
+const { uploadMedia, isLoading: isUploading, addMediaToPublication, removeMediaFromPublication, reorderMediaInPublication } = useMedia()
 const toast = useToast()
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -37,6 +39,15 @@ const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
 const sourceInput = ref('')
 const filenameInput = ref('')
 const imageErrors = ref<Record<string, boolean>>({})
+const isDragging = ref(false)
+
+// Create a local reactive copy of media for drag and drop
+const localMedia = ref([...props.media])
+
+// Watch for changes in props.media to update localMedia
+watch(() => props.media, (newMedia) => {
+  localMedia.value = [...newMedia]
+}, { deep: true })
 
 const mediaTypeOptions = [
   { value: 'IMAGE', label: t('media.type.image', 'Image') },
@@ -167,6 +178,44 @@ function handleImageError(mediaId: string) {
   imageErrors.value[mediaId] = true
 }
 
+async function handleDragEnd() {
+  isDragging.value = false
+  
+  // Prepare the reorder data
+  const reorderData = localMedia.value
+    .filter(item => item.id) // Only include items with IDs
+    .map((item, index) => ({
+      id: item.id!,
+      order: index,
+    }))
+
+  try {
+    await reorderMediaInPublication(props.publicationId, reorderData)
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('media.reorderSuccess', 'Media reordered successfully'),
+      color: 'success',
+    })
+    
+    // Emit event to refresh publication data
+    emit('refresh')
+  } catch (error: any) {
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('media.reorderError', 'Failed to reorder media'),
+      color: 'error',
+    })
+    
+    // Revert to original order on error
+    localMedia.value = [...props.media]
+  }
+}
+
+function handleDragStart() {
+  isDragging.value = true
+}
+
 interface Emits {
   (e: 'refresh'): void
 }
@@ -216,77 +265,101 @@ const emit = defineEmits<Emits>()
             </UButton>
           </div>
 
-          <!-- Media items -->
-          <div
-            v-for="item in media"
-            :key="item.media?.id"
-            class="shrink-0 w-48 h-48 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50 group relative"
+          <!-- Draggable Media items -->
+          <VueDraggable
+            v-if="localMedia.length > 0"
+            v-model="localMedia"
+            :disabled="!editable"
+            :animation="200"
+            class="flex gap-4"
+            @start="handleDragStart"
+            @end="handleDragEnd"
           >
-            <!-- Image preview with error handling -->
             <div
-              v-if="item.media?.type === 'IMAGE' && !imageErrors[item.media.id]"
-              class="w-full h-full"
+              v-for="item in localMedia"
+              :key="item.media?.id"
+              :class="[
+                'shrink-0 w-48 h-48 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50 group relative',
+                editable && 'cursor-move'
+              ]"
             >
-              <img
-                :src="getMediaFileUrl(item.media.id)"
-                :alt="item.media.filename || 'Media'"
-                class="w-full h-full object-cover"
-                @error="handleImageError(item.media.id)"
-              />
-            </div>
-            
-            <!-- Icon for other types or failed images -->
-            <div
-              v-else
-              class="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
-            >
-              <UIcon
-                :name="imageErrors[item.media?.id || ''] ? 'i-heroicons-exclamation-triangle' : getMediaIcon(item.media?.type || '')"
-                :class="[
-                  'w-12 h-12',
-                  imageErrors[item.media?.id || ''] ? 'text-red-500' : 'text-gray-400'
-                ]"
-              ></UIcon>
-              <p class="text-xs text-center truncate w-full px-2" :class="imageErrors[item.media?.id || ''] ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'">
-                {{ imageErrors[item.media?.id || ''] ? t('media.loadError', 'Файл недоступен') : (item.media?.filename || 'Untitled') }}
-              </p>
-              <div v-if="!imageErrors[item.media?.id || '']" class="flex flex-col gap-1">
-                <UBadge size="xs" color="neutral">
-                  {{ item.media?.type }}
-                </UBadge>
-                <UBadge
+              <!-- Image preview with error handling -->
+              <div
+                v-if="item.media?.type === 'IMAGE' && !imageErrors[item.media.id]"
+                class="w-full h-full"
+              >
+                <img
+                  :src="getMediaFileUrl(item.media.id)"
+                  :alt="item.media.filename || 'Media'"
+                  class="w-full h-full object-cover"
+                  @error="handleImageError(item.media.id)"
+                />
+              </div>
+              
+              <!-- Icon for other types or failed images -->
+              <div
+                v-else
+                class="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
+              >
+                <UIcon
+                  :name="imageErrors[item.media?.id || ''] ? 'i-heroicons-exclamation-triangle' : getMediaIcon(item.media?.type || '')"
+                  :class="[
+                    'w-12 h-12',
+                    imageErrors[item.media?.id || ''] ? 'text-red-500' : 'text-gray-400'
+                  ]"
+                ></UIcon>
+                <p class="text-xs text-center truncate w-full px-2" :class="imageErrors[item.media?.id || ''] ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'">
+                  {{ imageErrors[item.media?.id || ''] ? t('media.loadError', 'Файл недоступен') : (item.media?.filename || 'Untitled') }}
+                </p>
+                <div v-if="!imageErrors[item.media?.id || '']" class="flex flex-col gap-1">
+                  <UBadge size="xs" color="neutral">
+                    {{ item.media?.type }}
+                  </UBadge>
+                  <UBadge
+                    size="xs"
+                    :color="item.media?.srcType === 'URL' ? 'primary' : item.media?.srcType === 'TELEGRAM' ? 'secondary' : 'success'"
+                  >
+                    {{ item.media?.srcType }}
+                  </UBadge>
+                </div>
+              </div>
+
+              <!-- Delete button overlay -->
+              <div
+                v-if="editable"
+                class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <UButton
+                  icon="i-heroicons-trash"
+                  color="error"
+                  variant="solid"
                   size="xs"
-                  :color="item.media?.srcType === 'URL' ? 'primary' : item.media?.srcType === 'TELEGRAM' ? 'secondary' : 'success'"
-                >
-                  {{ item.media?.srcType }}
-                </UBadge>
+                  @click="removeMedia(item.media?.id || '')"
+                />
+              </div>
+
+              <!-- Drag handle indicator -->
+              <div
+                v-if="editable"
+                class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <UIcon
+                  name="i-heroicons-bars-3"
+                  class="w-5 h-5 text-gray-400"
+                />
+              </div>
+
+              <!-- Filename overlay for images -->
+              <div
+                v-if="item.media?.type === 'IMAGE' && item.media?.filename"
+                class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <p class="text-xs text-white truncate">
+                  {{ item.media.filename }}
+                </p>
               </div>
             </div>
-
-            <!-- Delete button overlay -->
-            <div
-              v-if="editable"
-              class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <UButton
-                icon="i-heroicons-trash"
-                color="error"
-                variant="solid"
-                size="xs"
-                @click="removeMedia(item.media?.id || '')"
-              />
-            </div>
-
-            <!-- Filename overlay for images -->
-            <div
-              v-if="item.media?.type === 'IMAGE' && item.media?.filename"
-              class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <p class="text-xs text-white truncate">
-                {{ item.media.filename }}
-              </p>
-            </div>
-          </div>
+          </VueDraggable>
 
           <!-- Empty state when no media -->
           <div

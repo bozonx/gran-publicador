@@ -29,6 +29,7 @@ import {
   SortOrder,
   OwnershipType,
   IssueType,
+  ReorderMediaDto,
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 
@@ -201,5 +202,17 @@ export class PublicationsController {
     @Param('mediaId') mediaId: string,
   ) {
     return this.publicationsService.removeMedia(id, req.user.userId, mediaId);
+  }
+
+  /**
+   * Reorder media files in a publication.
+   */
+  @Patch(':id/media/reorder')
+  public async reorderMedia(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() body: ReorderMediaDto,
+  ) {
+    return this.publicationsService.reorderMedia(id, req.user.userId, body.media);
   }
 }

@@ -529,7 +529,18 @@
     "noMedia": "Нет медиа-файлов",
     "chooseFile": "Выбрать файл",
     "uploadSuccess": "Файл успешно загружен",
-    "uploadError": "Ошибка загрузки файла"
+    "uploadError": "Ошибка загрузки файла",
+    "uploading": "Загрузка...",
+    "uploadFile": "Загрузить файл",
+    "orAddUrl": "или добавить URL",
+    "addSuccess": "Медиа успешно добавлено",
+    "addError": "Ошибка добавления медиа",
+    "removeSuccess": "Медиа успешно удалено",
+    "removeError": "Ошибка удаления медиа",
+    "reorderSuccess": "Порядок медиа успешно изменен",
+    "reorderError": "Ошибка изменения порядка медиа",
+    "loadError": "Файл недоступен",
+    "addFromUrl": "Добавить из URL или Telegram"
   },
   "postType": {
     "post": "Пост",

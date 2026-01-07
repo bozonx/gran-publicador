@@ -973,5 +973,43 @@ export class PublicationsService {
 
     return { success: true };
   }
+
+  /**
+   * Reorder media files in a publication.
+   *
+   * @param publicationId - The ID of the publication.
+   * @param userId - The ID of the user.
+   * @param mediaOrder - Array of media IDs with their new order.
+   * @returns Success status.
+   */
+  public async reorderMedia(publicationId: string, userId: string, mediaOrder: Array<{ id: string; order: number }>) {
+    const publication = await this.findOne(publicationId, userId);
+
+    // Check if user is author or has admin rights
+    if (publication.createdBy !== userId) {
+      await this.permissions.checkProjectPermission(publication.projectId, userId, [
+        ProjectRole.OWNER,
+        ProjectRole.ADMIN,
+      ]);
+    }
+
+    // Update order for each media item in a transaction
+    await this.prisma.$transaction(
+      mediaOrder.map(({ id, order }) =>
+        this.prisma.publicationMedia.updateMany({
+          where: {
+            publicationId,
+            id,
+          },
+          data: {
+            order,
+          },
+        })
+      )
+    );
+
+    this.logger.log(`Reordered ${mediaOrder.length} media items in publication ${publicationId}`);
+    return { success: true };
+  }
 }
 
