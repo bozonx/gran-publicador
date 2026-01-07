@@ -2,7 +2,6 @@
 import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
-import yaml from 'js-yaml'
 
 interface MediaItem {
   id: string
@@ -36,6 +35,7 @@ const toast = useToast()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadProgress = ref(false)
+const uploadProgressPercent = ref(0)
 const isAddingMedia = ref(false)
 const sourceType = ref<'URL' | 'TELEGRAM'>('URL')
 const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
@@ -57,7 +57,7 @@ const addMediaButtonLabel = computed(() => {
 const isDragging = ref(false)
 const selectedMedia = ref<MediaItem | null>(null)
 const isModalOpen = ref(false)
-const editableMetadata = ref('')
+const editableMetadata = ref<Record<string, any> | null>(null)
 const isSavingMeta = ref(false)
 
 // Create a local reactive copy of media for drag and drop
@@ -100,8 +100,11 @@ async function handleFileUpload(event: Event) {
   if (!file) return
 
   uploadProgress.value = true
+  uploadProgressPercent.value = 0
   try {
-    const uploadedMedia = await uploadMedia(file)
+    const uploadedMedia = await uploadMedia(file, (progress) => {
+      uploadProgressPercent.value = progress
+    })
     
     const newMedia: CreateMediaInput = {
       type: uploadedMedia.type,
@@ -134,6 +137,7 @@ async function handleFileUpload(event: Event) {
     })
   } finally {
     uploadProgress.value = false
+    uploadProgressPercent.value = 0
   }
 }
 
@@ -144,21 +148,11 @@ async function saveMediaMeta() {
 
   isSavingMeta.value = true
   try {
-    let parsedMeta: Record<string, any> = {}
-    
-    if (editableMetadata.value && editableMetadata.value.trim() !== '') {
-      parsedMeta = yaml.load(editableMetadata.value) as Record<string, any>
-    }
-    
-    if (parsedMeta && (typeof parsedMeta !== 'object' || Array.isArray(parsedMeta))) {
-      throw new Error(t('validation.invalidYaml', 'Must be a valid YAML object'))
-    }
-    
-    // Ensure we save at least an empty object if null/undefined
-    if (!parsedMeta) parsedMeta = {}
+    // editableMetadata is already a JSON object from CommonYamlEditor
+    const metaToSave = editableMetadata.value || {}
 
     const updated = await updateMedia(selectedMedia.value.id, {
-      meta: parsedMeta
+      meta: metaToSave
     })
 
     // Update local state
@@ -180,10 +174,6 @@ async function saveMediaMeta() {
   } finally {
     isSavingMeta.value = false
   }
-}
-
-function handleMetadataChange(newValue: string) {
-  editableMetadata.value = newValue
 }
 
 async function addMedia() {
@@ -348,8 +338,11 @@ async function handleDrop(event: DragEvent) {
   if (!file) return
   
   uploadProgress.value = true
+  uploadProgressPercent.value = 0
   try {
-    const uploadedMedia = await uploadMedia(file)
+    const uploadedMedia = await uploadMedia(file, (progress) => {
+      uploadProgressPercent.value = progress
+    })
     
     const newMedia: CreateMediaInput = {
       type: uploadedMedia.type,
@@ -378,6 +371,7 @@ async function handleDrop(event: DragEvent) {
     })
   } finally {
     uploadProgress.value = false
+    uploadProgressPercent.value = 0
   }
 }
 
@@ -397,7 +391,8 @@ const hasNextMedia = computed(() => {
 
 function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
-  editableMetadata.value = formatMetadataAsYaml(media)
+  // editableMetadata is now a JSON object, not a YAML string
+  editableMetadata.value = media.meta || {}
   isModalOpen.value = true
 }
 
@@ -452,27 +447,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-function formatMetadataAsYaml(media: MediaItem): string {
-  if (!media.meta) return ''
-  
-  let metadata = media.meta
-  
-  // Try to parse string metadata if it's a JSON string
-  if (typeof metadata === 'string') {
-    try {
-      metadata = JSON.parse(metadata)
-    } catch {
-      // If parsing fails, it might be just a string
-    }
-  }
-  
-  // If it's an object and empty, return empty string
-  if (typeof metadata === 'object' && metadata !== null && Object.keys(metadata).length === 0) {
-    return ''
-  }
-  
-  return yaml.dump(metadata)
-}
+
 
 function formatSizeMB(bytes?: number): string {
   if (!bytes) return '0 MB'
@@ -517,7 +492,7 @@ const emit = defineEmits<Emits>()
           <div
             v-if="editable"
             :class="[
-              'shrink-0 w-48 h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group',
+              'shrink-0 w-48 h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group relative overflow-hidden',
               isDropZoneActive 
                 ? 'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20' 
                 : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -527,6 +502,13 @@ const emit = defineEmits<Emits>()
             @dragleave="handleDragLeave"
             @drop="handleDrop"
           >
+            <!-- Progress bar background -->
+            <div
+              v-if="uploadProgress"
+              class="absolute bottom-0 left-0 h-1 bg-primary-500 dark:bg-primary-400 transition-all duration-300"
+              :style="{ width: `${uploadProgressPercent}%` }"
+            ></div>
+            
             <input
               ref="fileInput"
               type="file"
@@ -552,14 +534,14 @@ const emit = defineEmits<Emits>()
             >
               {{ 
                 uploadProgress || isUploading 
-                  ? t('media.uploading', 'Uploading...') 
+                  ? `${t('media.uploading', 'Uploading...')} ${uploadProgressPercent}%`
                   : isDropZoneActive
                     ? t('media.dropHere', 'Drop file here')
                     : t('media.uploadFile', 'Upload File') 
               }}
             </span>
             <UButton
-              v-if="!isDropZoneActive"
+              v-if="!isDropZoneActive && !uploadProgress"
               variant="ghost"
               size="xs"
               color="neutral"

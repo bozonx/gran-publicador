@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { z } from 'zod'
-import yaml from 'js-yaml'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { ChannelWithProject } from '~/composables/useChannels'
@@ -63,20 +62,16 @@ const state = reactive({
   channelIds: props.publication?.posts?.map((p: any) => p.channelId) || [] as string[],
   translationGroupId: (props.publication?.translationGroupId || undefined) as string | undefined | null,
   meta: (() => {
-    if (!props.publication?.meta) return ''
+    if (!props.publication?.meta) return {}
     try {
-        const parsed = typeof props.publication.meta === 'string' 
-            ? JSON.parse(props.publication.meta) 
-            : props.publication.meta
-            
-        // If parsed is empty object, return empty string
-        if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) {
-            return ''
-        }
-        
-        return yaml.dump(parsed)
+      const parsed = typeof props.publication.meta === 'string' 
+        ? JSON.parse(props.publication.meta) 
+        : props.publication.meta
+      
+      // Return parsed object or empty object
+      return (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : {}
     } catch (e) {
-        return props.publication.meta
+      return {}
     }
   })(),
   description: props.publication?.description || '',
@@ -101,15 +96,7 @@ const schema = computed(() => z.object({
   language: z.string().min(1, t('validation.required')),
   channelIds: z.array(z.string()).optional(),
   translationGroupId: z.string().nullable().optional(),
-  meta: z.string().refine((val) => {
-    if (!val || val.trim() === '') return true
-    try {
-      const parsed = yaml.load(val)
-      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-    } catch {
-      return false
-    }
-  }, t('validation.invalidYaml', 'Must be a valid YAML object (key-value pairs), not a list or value')),
+  meta: z.any().optional(), // Will be validated by CommonYamlEditor
   description: z.string().optional(),
   authorComment: z.string().optional(),
   note: z.string().optional(),
@@ -179,21 +166,17 @@ watch(() => props.publication, (newPub) => {
     state.channelIds = newPub.posts?.map((p: any) => p.channelId) || []
     state.translationGroupId = newPub.translationGroupId || undefined
     state.meta = (() => {
-        if (!newPub.meta) return ''
-        try {
-            const parsed = typeof newPub.meta === 'string' 
-                ? JSON.parse(newPub.meta) 
-                : newPub.meta
-                
-            // If parsed is empty object, return empty string
-            if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) {
-                return ''
-            }
-
-            return yaml.dump(parsed)
-        } catch (e) {
-            return newPub.meta
-        }
+      if (!newPub.meta) return {}
+      try {
+        const parsed = typeof newPub.meta === 'string' 
+          ? JSON.parse(newPub.meta) 
+          : newPub.meta
+        
+        // Return parsed object or empty object
+        return (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : {}
+      } catch (e) {
+        return {}
+      }
     })()
     state.description = newPub.description || ''
     state.authorComment = newPub.authorComment || ''
@@ -276,13 +259,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           // Explicitly send translationGroupId if it was cleared (set to null)
           translationGroupId: state.translationGroupId === null ? null : undefined,
           postType: event.data.postType,
-          meta: (() => { 
-            try { 
-                if (!event.data.meta || event.data.meta.trim() === '') return {} // Return empty object for empty string
-                const parsed = yaml.load(event.data.meta)
-                return parsed === null ? {} : parsed // Return empty object for null
-            } catch { return {} } 
-          })(),
+          meta: event.data.meta || {}, // Already a JSON object from CommonYamlEditor
           postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
           scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }
@@ -322,13 +299,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         language: event.data.language,
         linkToPublicationId: linkedPublicationId.value || undefined,
         postType: event.data.postType,
-        meta: (() => { 
-            try { 
-                if (!event.data.meta || event.data.meta.trim() === '') return {} // Return empty object for empty string
-                const parsed = yaml.load(event.data.meta)
-                return parsed === null ? {} : parsed // Return empty object for null
-            } catch { return {} } 
-        })(),
+        meta: event.data.meta || {}, // Already a JSON object from CommonYamlEditor
         postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
         scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
       }

@@ -69,7 +69,10 @@ export function useMedia() {
     }
   }
 
-  async function uploadMedia(file: File): Promise<MediaItem> {
+  async function uploadMedia(
+    file: File, 
+    onUploadProgress?: (progress: number) => void
+  ): Promise<MediaItem> {
     isLoading.value = true
     error.value = null
     try {
@@ -77,7 +80,9 @@ export function useMedia() {
       formData.append('file', file)
 
       // Don't set Content-Type manually - let the browser set it with the correct boundary
-      return await api.post<MediaItem>('/media/upload', formData)
+      return await api.post<MediaItem>('/media/upload', formData, {
+        onUploadProgress
+      })
     } catch (err: any) {
       error.value = err.message || 'Failed to upload media'
       throw err

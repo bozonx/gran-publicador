@@ -1,3 +1,9 @@
+export interface ApiOptions {
+    headers?: Record<string, string>
+    onUploadProgress?: (progress: number) => void
+    [key: string]: any
+}
+
 export const useApi = () => {
     const config = useRuntimeConfig();
     const token = useCookie('auth_token');
@@ -9,7 +15,76 @@ export const useApi = () => {
         ? `${config.public.apiBase}/api/v1`
         : '/api/v1';
 
-    const request = async <T>(url: string, options: any = {}) => {
+    // XMLHttpRequest-based upload with progress tracking
+    const uploadWithProgress = async <T>(
+        url: string,
+        body: FormData,
+        options: ApiOptions = {}
+    ): Promise<T> => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            // Track upload progress
+            if (options.onUploadProgress) {
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const progress = Math.round((event.loaded / event.total) * 100);
+                        options.onUploadProgress!(progress);
+                    }
+                });
+            }
+
+            // Handle completion
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response);
+                    } catch (error) {
+                        reject(new Error('Failed to parse response'));
+                    }
+                } else if (xhr.status === 401) {
+                    token.value = null;
+                    reject(new Error('Unauthorized'));
+                } else {
+                    try {
+                        const error = JSON.parse(xhr.responseText);
+                        reject(new Error(error.message || `Request failed with status ${xhr.status}`));
+                    } catch {
+                        reject(new Error(`Request failed with status ${xhr.status}`));
+                    }
+                }
+            });
+
+            // Handle errors
+            xhr.addEventListener('error', () => {
+                reject(new Error('Network error'));
+            });
+
+            xhr.addEventListener('abort', () => {
+                reject(new Error('Upload aborted'));
+            });
+
+            // Open request
+            xhr.open('POST', `${apiBase}${url}`);
+
+            // Set authorization header
+            if (token.value) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token.value}`);
+            }
+
+            // Send request
+            xhr.send(body);
+        });
+    };
+
+    const request = async <T>(url: string, options: ApiOptions = {}) => {
+        // Use XMLHttpRequest for FormData with progress tracking
+        if (options.body instanceof FormData && options.onUploadProgress) {
+            return uploadWithProgress<T>(url, options.body, options);
+        }
+
+        // Use $fetch for regular requests
         const headers = {
             ...options.headers,
         };
@@ -33,10 +108,10 @@ export const useApi = () => {
     };
 
     return {
-        get: <T>(url: string, options: any = {}) => request<T>(url, { ...options, method: 'GET' }),
-        post: <T>(url: string, body?: any, options: any = {}) => request<T>(url, { ...options, method: 'POST', body }),
-        patch: <T>(url: string, body?: any, options: any = {}) => request<T>(url, { ...options, method: 'PATCH', body }),
-        put: <T>(url: string, body?: any, options: any = {}) => request<T>(url, { ...options, method: 'PUT', body }),
-        delete: <T>(url: string, options: any = {}) => request<T>(url, { ...options, method: 'DELETE' }),
+        get: <T>(url: string, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'GET' }),
+        post: <T>(url: string, body?: any, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'POST', body }),
+        patch: <T>(url: string, body?: any, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'PATCH', body }),
+        put: <T>(url: string, body?: any, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'PUT', body }),
+        delete: <T>(url: string, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'DELETE' }),
     };
 };
