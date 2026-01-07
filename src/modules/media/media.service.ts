@@ -40,7 +40,7 @@ export class MediaService {
   ) {
     this.mediaDir = getMediaDir();
     const appConfig = this.configService.get<AppConfig>('app');
-    this.maxFileSize = appConfig?.media.maxFileSize ?? 52428800; // 50MB fallback
+    this.maxFileSize = appConfig?.media?.maxFileSize ?? 52428800; // 50MB fallback
     this.ensureMediaDir();
   }
 
@@ -180,7 +180,7 @@ export class MediaService {
     });
   }
 
-  async findOne(id: string): Promise<Media> {
+  async findOne(id: string): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) {
       this.logger.warn(`Media not found: ${id}`);

@@ -42,6 +42,9 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
             jwtSecret: 'test-secret-key-for-e2e-tests-minimum-32-chars',
             telegramBotToken: 'test-bot-token',
             adminTelegramId: '123456789',
+            media: {
+              maxFileSize: 52428800,
+            },
           },
         };
         // Flatten keys manually for the mock or handle simple dot notation
