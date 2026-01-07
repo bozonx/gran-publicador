@@ -160,8 +160,7 @@ model Publication {
   postDate      DateTime?  @map("post_date")
   // Publication status (DRAFT, READY, SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
   status        PublicationStatus @default(DRAFT)
-  // Error message if publication failed
-  errorMessage  String?    @map("error_message")
+
   // Language of the publication (ru-RU, en-US, etc.)
   language      String     @default("ru-RU")
   // When the publication is scheduled to be published

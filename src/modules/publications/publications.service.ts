@@ -647,7 +647,7 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         meta: data.meta ? JSON.stringify(data.meta) : undefined,
-        errorMessage: data.errorMessage,
+
       },
     });
 

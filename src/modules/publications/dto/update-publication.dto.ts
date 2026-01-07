@@ -84,7 +84,5 @@ export class UpdatePublicationDto {
   @IsOptional()
   public linkToPublicationId?: string;
 
-  @IsString()
-  @IsOptional()
-  public errorMessage?: string;
+
 }
