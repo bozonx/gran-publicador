@@ -4,6 +4,7 @@ import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
 import { useViewMode } from '~/composables/useViewMode'
 import ChannelListItem from '~/components/channels/ChannelListItem.vue'
 import ChannelCard from '~/components/channels/ChannelCard.vue'
+import { FORM_STYLES } from '~/utils/design-tokens'
 
 const props = defineProps<{
   projectId: string
@@ -385,7 +386,7 @@ function toggleArchivedChannels() {
             </UFormField>
 
             <UFormField :label="t('channel.description')" :help="t('common.optional')">
-              <UTextarea v-model="createFormState.description" :placeholder="t('channel.descriptionPlaceholder')" :rows="2" class="w-full" />
+              <UTextarea v-model="createFormState.description" :placeholder="t('channel.descriptionPlaceholder')" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
             </UFormField>
 
             <UFormField :label="t('channel.identifier')" required :help="t('channel.identifierHelp')">

@@ -794,7 +794,7 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
     "postType": "POST",
     "title": "Заголовок",
     "description": "Описание",
-    "authorComment": "Комментарий автора",
+    "authorComment": "Комментарий автора (публикуется после текста новости)",
     "tags": "технологии,AI",
     "mediaFiles": [
       "https://example.com/image.jpg"
@@ -847,7 +847,7 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
 - `postType` (PostType, required) - тип поста
 - `title` (string, optional) - заголовок
 - `description` (string, optional) - описание
-- `authorComment` (string, optional) - комментарий автора
+- `authorComment` (string, optional) - авторский комментарий к новости (публикуется вместе с контентом)
 - `tags` (string, optional) - теги через запятую
 - `mediaFiles` (string[], optional) - массив URL медиафайлов
 - `postDate` (string, optional) - дата поста (ISO 8601)

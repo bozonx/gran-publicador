@@ -26,6 +26,7 @@ export function getPostTypeOptions(t: (key: string) => string) {
         { value: 'NEWS', label: t('postType.news') },
         { value: 'VIDEO', label: t('postType.video') },
         { value: 'SHORT', label: t('postType.short') },
+        { value: 'STORY', label: t('postType.story') },
     ]
 }
 

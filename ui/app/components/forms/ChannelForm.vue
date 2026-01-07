@@ -453,6 +453,7 @@ const projectOptions = computed(() =>
             :placeholder="t('channel.descriptionPlaceholder', 'Enter channel description...')"
             :class="FORM_STYLES.fieldFullWidth"
             :rows="FORM_STYLES.textareaRows"
+            autoresize
           />
         </UFormField>
 

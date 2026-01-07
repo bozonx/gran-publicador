@@ -43,7 +43,7 @@ const {
 } = useChannels()
 const { typeOptions, statusOptions: allStatusOptions } = usePosts()
 
-const POST_TYPE_VALUES = ['POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT'] as const
+const POST_TYPE_VALUES = ['POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT', 'STORY'] as const
 const STATUS_VALUES = ['DRAFT', 'READY', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'PARTIAL', 'FAILED', 'EXPIRED'] as const
 
 // Get language and channelId from URL query parameters
@@ -434,7 +434,7 @@ function toggleChannel(channelId: string) {
          </UFormField>
 
          <!-- Scheduling -->
-        <UFormField v-if="state.status === 'SCHEDULED'" name="scheduledAt" :label="t('post.scheduledAt')" required>
+        <UFormField v-if="state.status === 'SCHEDULED' && !isEditMode" name="scheduledAt" :label="t('post.scheduledAt')" required>
             <UInput v-model="state.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
         </UFormField>
 
@@ -514,8 +514,8 @@ function toggleChannel(channelId: string) {
        <!-- Advanced fields -->
       <UiFormAdvancedSection v-model="showAdvancedFields">
         <!-- Description -->
-        <UFormField name="description" label="Description" help="Short description">
-           <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" />
+        <UFormField name="description" :label="t('post.description')" :help="t('post.descriptionPlaceholder')">
+           <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
         </UFormField>
 
         <!-- Author Comment -->
@@ -523,18 +523,20 @@ function toggleChannel(channelId: string) {
            <UTextarea 
              v-model="state.authorComment" 
              :rows="FORM_STYLES.textareaRows" 
+             autoresize
+             class="w-full"
              :placeholder="t('post.authorCommentPlaceholder')"
            />
         </UFormField>
 
         <!-- Post Date -->
-        <UFormField name="postDate" label="Post Date" help="Date of the article (optional)">
+        <UFormField name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
           <UInput v-model="state.postDate" type="datetime-local" :class="FORM_STYLES.fieldFullWidth" icon="i-heroicons-calendar" />
         </UFormField>
 
         <!-- Meta -->
         <UFormField name="meta" label="Meta (YAML)" help="Additional metadata in YAML format">
-           <UTextarea v-model="state.meta" :rows="4" font-family="mono" />
+           <UTextarea v-model="state.meta" :rows="8" autoresize class="w-full font-mono" />
         </UFormField>
       </UiFormAdvancedSection>
 

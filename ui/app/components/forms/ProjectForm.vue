@@ -193,6 +193,7 @@ function handleReset() {
             :placeholder="t('project.descriptionPlaceholder', 'Enter project description')"
             :class="FORM_STYLES.fieldFullWidth"
             :rows="FORM_STYLES.textareaRows"
+            autoresize
           />
         </UFormField>
       </div>

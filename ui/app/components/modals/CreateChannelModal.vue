@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SocialMedia } from '~/types/socialMedia'
+import { FORM_STYLES } from '~/utils/design-tokens'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -168,7 +169,8 @@ function handleClose() {
             <UTextarea 
               v-model="formState.description" 
               :placeholder="t('channel.descriptionPlaceholder')" 
-              :rows="3" 
+              :rows="FORM_STYLES.textareaRows" 
+              autoresize
               class="w-full" 
             />
           </UFormField>

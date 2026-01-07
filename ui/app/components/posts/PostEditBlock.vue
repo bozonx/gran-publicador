@@ -408,14 +408,6 @@ const isValid = computed(() => {
                 />
             </UFormField>
 
-            <!-- Scheduled At -->
-            <UFormField :label="t('post.scheduledAt')" :disabled="!!props.post?.publishedAt" :help="formData.scheduledAt ? t('post.scheduledAtHint', 'Specific time for this channel') : (props.publication?.scheduledAt ? t('post.inheritedTimeHint', 'Using time from publication: ') + formatPublishedAt(props.publication.scheduledAt) : '')">
-                <UInput 
-                  v-model="formData.scheduledAt" 
-                  type="datetime-local" 
-                  icon="i-heroicons-clock" 
-                />
-            </UFormField>
 
        </div>
 

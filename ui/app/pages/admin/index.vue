@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UserWithStats } from '~/stores/users'
 import type { TableColumn } from '@nuxt/ui'
+import { FORM_STYLES } from '~/utils/design-tokens'
 
 definePageMeta({
   middleware: ['auth', 'admin'],
@@ -492,6 +493,7 @@ const hasActiveFilters = computed(() => {
             <UTextarea
               v-model="yamlContent"
               :rows="20"
+              autoresize
               class="font-mono text-sm w-full"
               :placeholder="t('admin.config.placeholder', 'Paste your YAML config here...')"
             />
@@ -645,7 +647,8 @@ const hasActiveFilters = computed(() => {
              <UTextarea
                v-model="banReason"
                :placeholder="t('admin.banReason', 'Reason for blocking (optional)...')"
-               :rows="3"
+               :rows="FORM_STYLES.textareaRows"
+               autoresize
              />
           </div>
 

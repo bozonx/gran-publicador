@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FORM_STYLES } from '~/utils/design-tokens'
 const { t } = useI18n()
 const toast = useToast()
 
@@ -94,7 +95,8 @@ watch(isOpen, (open) => {
             <UTextarea 
               v-model="formState.description" 
               :placeholder="t('project.descriptionPlaceholder')" 
-              :rows="3" 
+              :rows="FORM_STYLES.textareaRows" 
+              autoresize
               class="w-full" 
             />
           </UFormField>

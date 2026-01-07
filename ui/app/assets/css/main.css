@@ -75,3 +75,19 @@ body {
     line-height: 1rem;
   }
 }
+
+/* Base Form Styling Overrides */
+textarea {
+  @apply py-3 px-4 transition-all duration-200;
+  line-height: 1.6;
+}
+
+textarea:focus {
+  @apply ring-2 ring-primary-500/20 border-primary-500/50;
+}
+
+/* Make textareas feel more premium with better font and spacing */
+.font-mono textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  @apply text-[13px] leading-relaxed;
+}

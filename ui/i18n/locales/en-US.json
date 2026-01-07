@@ -385,8 +385,8 @@
     "titlePlaceholder": "Enter post title",
     "contentPlaceholder": "Write your post content here...",
     "descriptionPlaceholder": "Short description of your post",
-    "authorCommentPlaceholder": "Internal comment (not published)",
-    "authorCommentHint": "This comment is for internal use only and will not be published.",
+    "authorCommentPlaceholder": "Author's comment text...",
+    "authorCommentHint": "This comment will be published in the post below the main news text.",
     "tagsPlaceholder": "tag1, tag2, tag3",
     "tagsHint": "Separate tags with commas",
     "postDateHint": "The date associated with the content (not publication date)",
@@ -497,7 +497,8 @@
     "article": "Article",
     "news": "News",
     "video": "Video",
-    "short": "Short video"
+    "short": "Short video",
+    "story": "Story"
   },
   "postStatus": {
     "pending": "Pending",

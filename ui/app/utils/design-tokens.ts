@@ -42,7 +42,7 @@ export const FORM_STYLES = {
   fieldFullWidth: 'w-full',
   
   // Textarea default rows
-  textareaRows: 3,
+  textareaRows: 6,
 } as const
 
 export const GRID_LAYOUTS = {
