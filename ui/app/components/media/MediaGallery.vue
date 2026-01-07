@@ -341,8 +341,7 @@ const hasNextMedia = computed(() => {
 
 function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
-  const formatted = formatMetadataAsYaml(media)
-  editableMetadata.value = formatted === '{}\n' ? '' : formatted
+  editableMetadata.value = formatMetadataAsYaml(media)
   isModalOpen.value = true
 }
 

@@ -20,15 +20,35 @@ const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
 
+// Validation state
+const validationError = ref<string | undefined>(undefined)
+
 const displayValue = computed({
   get: () => {
     const val = props.modelValue
-    if (!val || val === '{}' || (typeof val === 'string' && val.trim() === '')) {
+    // Don't show '{}' for empty objects
+    if (!val || val.trim() === '' || val.trim() === '{}') {
       return ''
     }
     return val
   },
   set: (val: string) => {
+    // Validate YAML on input
+    if (val && val.trim() !== '') {
+      try {
+        const parsed = yaml.load(val)
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          validationError.value = t('validation.invalidYaml', 'Must be a valid YAML object (key-value pairs), not a list or value')
+        } else {
+          validationError.value = undefined
+        }
+      } catch (e: any) {
+        validationError.value = e.message || t('validation.invalidYaml', 'Invalid YAML syntax')
+      }
+    } else {
+      validationError.value = undefined
+    }
+    
     emit('update:modelValue', val)
   }
 })
@@ -37,6 +57,7 @@ const displayValue = computed({
 <template>
   <UFormField 
     :label="label" 
+    :error="validationError"
     class="w-full"
   >
     <template #help>
