@@ -60,6 +60,30 @@ export class MediaController {
     });
   }
 
+  // Upload from URL endpoint
+  @Post('upload-from-url')
+  @UseGuards(JwtOrApiTokenGuard)
+  async uploadFromUrl(@Body() body: { url: string; filename?: string }) {
+    if (!body.url) {
+      throw new BadRequestException('URL is required');
+    }
+
+    const fileInfo = await this.mediaService.downloadAndSaveFromUrl(body.url, body.filename);
+
+    // Create the media record with original URL in meta
+    return this.mediaService.create({
+      type: fileInfo.type,
+      srcType: 'FS',
+      src: fileInfo.path,
+      filename: fileInfo.filename,
+      mimeType: fileInfo.mimetype,
+      sizeBytes: fileInfo.size,
+      meta: {
+        originalUrl: fileInfo.originalUrl
+      }
+    });
+  }
+
   @Get()
   @UseGuards(JwtOrApiTokenGuard)
   findAll() {

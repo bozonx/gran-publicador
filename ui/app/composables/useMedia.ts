@@ -86,6 +86,19 @@ export function useMedia() {
     }
   }
 
+  async function uploadMediaFromUrl(url: string, filename?: string): Promise<MediaItem> {
+    isLoading.value = true
+    error.value = null
+    try {
+      return await api.post<MediaItem>('/media/upload-from-url', { url, filename })
+    } catch (err: any) {
+      error.value = err.message || 'Failed to upload media from URL'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function addMediaToPublication(publicationId: string, media: CreateMediaInput[]): Promise<boolean> {
     isLoading.value = true
     error.value = null
@@ -151,6 +164,7 @@ export function useMedia() {
     fetchMedia,
     deleteMedia,
     uploadMedia,
+    uploadMediaFromUrl,
     updateMedia,
     addMediaToPublication,
     removeMediaFromPublication,

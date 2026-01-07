@@ -310,6 +310,84 @@ export class MediaService {
   }
 
   /**
+   * Download file from URL and save to filesystem.
+   */
+  async downloadAndSaveFromUrl(url: string, filename?: string): Promise<SavedFileInfo & { originalUrl: string }> {
+    this.logger.debug(`Downloading file from URL: ${url}`);
+
+    try {
+      // Download file from URL
+      const response = await request(url, {
+        method: 'GET',
+      });
+
+      if (response.statusCode !== 200) {
+        this.logger.warn(`URL returned status ${response.statusCode}: ${url}`);
+        throw new BadRequestException(`Failed to download file from URL (status: ${response.statusCode})`);
+      }
+
+      // Get content type and length
+      const contentType = response.headers['content-type'] as string || 'application/octet-stream';
+      const contentLength = response.headers['content-length'];
+
+      // Check file size before downloading
+      if (contentLength && parseInt(contentLength as string) > this.maxFileSize) {
+        throw new BadRequestException(
+          `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
+        );
+      }
+
+      // Download file to buffer
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+
+      for await (const chunk of response.body) {
+        chunks.push(chunk as Buffer);
+        totalSize += (chunk as Buffer).length;
+
+        // Check size during download
+        if (totalSize > this.maxFileSize) {
+          throw new BadRequestException(
+            `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
+          );
+        }
+      }
+
+      const buffer = Buffer.concat(chunks);
+
+      // Determine filename from URL or use provided one
+      let finalFilename = filename;
+      if (!finalFilename) {
+        const urlPath = new URL(url).pathname;
+        finalFilename = basename(urlPath) || 'download';
+      }
+
+      // Save file using existing saveFile method
+      const savedFileInfo = await this.saveFile({
+        filename: finalFilename,
+        buffer,
+        mimetype: contentType,
+      });
+
+      this.logger.log(`File downloaded and saved from URL: ${url}`);
+
+      return {
+        ...savedFileInfo,
+        originalUrl: url,
+      };
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to download file from URL ${url}: ${err.message}`);
+      
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      throw new BadRequestException(`Failed to download file from URL: ${err.message}`);
+    }
+  }
+
+  /**
    * Create media group.
    */
   async createGroup(data: CreateMediaGroupDto) {

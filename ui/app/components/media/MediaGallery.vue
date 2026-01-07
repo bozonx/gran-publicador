@@ -31,13 +31,13 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const { t } = useI18n()
-const { uploadMedia, isLoading: isUploading, addMediaToPublication, removeMediaFromPublication, reorderMediaInPublication } = useMedia()
+const { uploadMedia, uploadMediaFromUrl, isLoading: isUploading, addMediaToPublication, removeMediaFromPublication, reorderMediaInPublication } = useMedia()
 const toast = useToast()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadProgress = ref(false)
 const isAddingMedia = ref(false)
-const sourceType = ref<'URL' | 'TELEGRAM' | 'UPLOAD'>('UPLOAD')
+const sourceType = ref<'URL' | 'TELEGRAM'>('URL')
 const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
 const sourceInput = ref('')
 const filenameInput = ref('')
@@ -64,7 +64,6 @@ const mediaTypeOptions = [
 ]
 
 const sourceTypeOptions = [
-  { value: 'UPLOAD', label: t('media.sourceType.upload', 'Upload File') },
   { value: 'URL', label: 'URL' },
   { value: 'TELEGRAM', label: 'Telegram File ID' },
 ]
@@ -178,14 +177,51 @@ function handleMetadataChange(newValue: string) {
 async function addMedia() {
   if (!sourceInput.value.trim()) return
 
-  const newMedia: CreateMediaInput = {
-    type: mediaType.value,
-    srcType: sourceType.value as 'URL' | 'TELEGRAM',
-    src: sourceInput.value.trim(),
-    filename: filenameInput.value.trim() || undefined,
-  }
-
+  uploadProgress.value = true
   try {
+    let uploadedMedia: MediaItem
+
+    if (sourceType.value === 'URL') {
+      // For URL type: download file and save to filesystem with original URL in meta
+      uploadedMedia = await uploadMediaFromUrl(
+        sourceInput.value.trim(),
+        filenameInput.value.trim() || undefined
+      )
+    } else {
+      // For TELEGRAM type: create media record directly
+      const newMedia: CreateMediaInput = {
+        type: mediaType.value,
+        srcType: 'TELEGRAM',
+        src: sourceInput.value.trim(),
+        filename: filenameInput.value.trim() || undefined,
+      }
+      
+      await addMediaToPublication(props.publicationId, [newMedia])
+      
+      toast.add({
+        title: t('common.success'),
+        description: t('media.addSuccess', 'Media added successfully'),
+        color: 'success',
+      })
+      
+      sourceInput.value = ''
+      filenameInput.value = ''
+      isAddingMedia.value = false
+      emit('refresh')
+      return
+    }
+
+    // For URL: add the downloaded media to publication
+    const newMedia: CreateMediaInput = {
+      type: uploadedMedia.type as 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT',
+      srcType: uploadedMedia.srcType as 'URL' | 'TELEGRAM' | 'FS',
+      src: uploadedMedia.src,
+      filename: uploadedMedia.filename,
+      mimeType: uploadedMedia.mimeType,
+      sizeBytes: uploadedMedia.sizeBytes,
+      meta: uploadedMedia.meta,
+    }
+
     await addMediaToPublication(props.publicationId, [newMedia])
     
     toast.add({
@@ -198,7 +234,6 @@ async function addMedia() {
     filenameInput.value = ''
     isAddingMedia.value = false
     
-    // Emit event to refresh publication data
     emit('refresh')
   } catch (error: any) {
     toast.add({
@@ -206,6 +241,8 @@ async function addMedia() {
       description: error.message || t('media.addError', 'Failed to add media'),
       color: 'error',
     })
+  } finally {
+    uploadProgress.value = false
   }
 }
 
@@ -631,74 +668,88 @@ const emit = defineEmits<Emits>()
       </div>
 
       <!-- Add media form (URL/Telegram) -->
-      <div v-if="isAddingMedia && editable" class="mt-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/20">
-        <div class="flex items-center justify-between mb-3">
-          <h4 class="text-sm font-medium text-gray-900 dark:text-white">
-            {{ t('media.addFromUrl', 'Add from URL or Telegram') }}
-          </h4>
+      <div v-if="isAddingMedia && editable" class="mt-6 p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/50 shadow-sm">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h4 class="text-base font-semibold text-gray-900 dark:text-white">
+              {{ t('media.addFromUrl', 'Добавить из URL или Telegram') }}
+            </h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {{ sourceType === 'URL' ? 'Файл будет скачан и сохранён в хранилище' : 'Укажите Telegram File ID' }}
+            </p>
+          </div>
           <UButton
             icon="i-heroicons-x-mark"
             variant="ghost"
             color="neutral"
-            size="xs"
+            size="sm"
             @click="isAddingMedia = false"
           />
         </div>
         
-        <div class="space-y-3">
-          <div class="grid grid-cols-2 gap-3">
-            <UFormGroup :label="t('media.sourceType', 'Source Type')">
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UFormGroup :label="t('media.sourceType', 'Тип источника')" required>
               <USelectMenu
                 v-model="sourceType"
                 :items="sourceTypeOptions"
                 value-key="value"
                 label-key="label"
+                size="lg"
               />
             </UFormGroup>
 
-            <UFormGroup :label="t('media.mediaType', 'Media Type')">
+            <UFormGroup :label="t('media.mediaType', 'Тип медиа')" required>
               <USelectMenu
                 v-model="mediaType"
                 :items="mediaTypeOptions"
                 value-key="value"
                 label-key="label"
+                size="lg"
               />
             </UFormGroup>
           </div>
 
           <UFormGroup 
             :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
+            required
           >
             <UInput
               v-model="sourceInput"
               :placeholder="sourceType === 'URL' ? 'https://example.com/image.jpg' : 'AgACAgIAAxkBAAI...'"
+              size="lg"
               @keydown.enter.prevent="addMedia"
             />
           </UFormGroup>
 
-          <UFormGroup :label="t('media.filename', 'Filename (optional)')">
+          <UFormGroup :label="t('media.filename', 'Имя файла (необязательно)')">
             <UInput
               v-model="filenameInput"
               placeholder="image.jpg"
+              size="lg"
               @keydown.enter.prevent="addMedia"
             />
           </UFormGroup>
 
-          <UButton
-            @click="addMedia"
-            :disabled="!sourceInput.trim()"
-            block
-            icon="i-heroicons-plus"
-          >
-            {{ t('media.add', 'Add Media') }}
-          </UButton>
+          <div class="flex gap-3 pt-2">
+            <UButton
+              @click="addMedia"
+              :disabled="!sourceInput.trim() || uploadProgress"
+              :loading="uploadProgress"
+              block
+              size="lg"
+              icon="i-heroicons-plus"
+            >
+              {{ uploadProgress ? t('media.uploading', 'Загрузка...') : t('media.add', 'Добавить медиа') }}
+            </UButton>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Media viewer modal -->
-  <UModal v-model:open="isModalOpen">
+  <UModal v-model:open="isModalOpen" :ui="{ content: 'sm:max-w-6xl' }">
     <template #content>
       <div class="flex flex-col min-w-[500px] max-w-7xl max-h-[90vh]">
         <!-- Fixed header -->
