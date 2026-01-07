@@ -193,8 +193,7 @@ async function handleBulkSchedule() {
     try {
         // Update only the publication's scheduledAt
         await updatePublication(currentPublication.value.id, {
-            scheduledAt: new Date(newScheduledDate.value).toISOString(),
-            status: 'SCHEDULED'
+            scheduledAt: new Date(newScheduledDate.value).toISOString()
         })
         
         toast.add({
@@ -208,6 +207,13 @@ async function handleBulkSchedule() {
         if (currentPublication.value) {
             await fetchPublication(currentPublication.value.id)
         }
+    } catch (err: any) {
+        console.error('Failed to schedule publication:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
     } finally {
         isBulkScheduling.value = false
     }

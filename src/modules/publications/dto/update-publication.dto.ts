@@ -17,7 +17,7 @@ export class UpdatePublicationDto {
   @IsOptional()
   public description?: string;
 
-  @ValidateIf((o) => (o.status !== undefined && o.status !== PublicationStatus.DRAFT) || o.scheduledAt !== undefined)
+  @ValidateIf((o) => ((o.status !== undefined && o.status !== PublicationStatus.DRAFT) || o.scheduledAt !== undefined) && o.content !== undefined)
   @IsNotEmpty({ message: 'Content is required for non-draft publications' })
   @IsString()
   @IsOptional()

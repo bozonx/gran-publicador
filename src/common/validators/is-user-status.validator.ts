@@ -18,7 +18,11 @@ export class IsUserStatusConstraint implements ValidatorConstraintInterface {
     }
 
     // Only DRAFT and READY are allowed for user input
-    const allowedStatuses = [PublicationStatus.DRAFT, PublicationStatus.READY];
+    const allowedStatuses = [
+      PublicationStatus.DRAFT,
+      PublicationStatus.READY,
+      PublicationStatus.SCHEDULED,
+    ];
     return allowedStatuses.includes(value);
   }
 
