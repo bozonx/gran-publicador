@@ -552,18 +552,6 @@ function formatDate(dateString: string | null | undefined): string {
                     
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2">
-                        <UTooltip :text="isContentEmpty ? t('publication.validation.contentRequired') : ''">
-                            <UButton
-                                :label="t('publication.changeSchedule')"
-                                icon="i-heroicons-clock"
-                                variant="soft"
-                                size="sm"
-                                color="primary"
-                                :disabled="allPostsPublished || isContentEmpty"
-                                @click="openScheduleModal"
-                            ></UButton>
-                        </UTooltip>
-
                         <UiArchiveButton
                             :key="currentPublication.archivedAt ? 'archived' : 'active'"
                             :entity-type="ArchiveEntityType.PUBLICATION"
@@ -612,14 +600,29 @@ function formatDate(dateString: string | null | undefined): string {
                             {{ currentPublication.creator.fullName || currentPublication.creator.telegramUsername || t('common.unknown') }}
                         </div>
                         
-                        <div v-if="currentPublication.scheduledAt" class="mt-2 border-t border-gray-100 dark:border-gray-700/50 pt-2">
-                             <div class="text-gray-500 dark:text-gray-400 text-xs mb-0.5">
+                        <div v-if="!allPostsPublished || currentPublication.scheduledAt" class="mt-2 border-t border-gray-100 dark:border-gray-700/50 pt-2">
+                             <div class="text-gray-500 dark:text-gray-400 text-xs mb-1">
                                 {{ t('post.scheduledAt') }}
                              </div>
-                             <div class="flex items-center gap-2">
-                                 <span class="text-gray-900 dark:text-white font-medium">
+                             <div class="flex flex-col gap-2 items-start">
+                                 <div v-if="currentPublication.scheduledAt" class="text-gray-900 dark:text-white font-medium">
                                       {{ formatDate(currentPublication.scheduledAt) }}
-                                 </span>
+                                 </div>
+                                 <div v-else class="text-gray-400 italic text-xs">
+                                      {{ t('common.noData') }}
+                                 </div>
+
+                                 <UTooltip :text="isContentEmpty ? t('publication.validation.contentRequired') : ''">
+                                    <UButton
+                                        :label="t('publication.changeSchedule')"
+                                        icon="i-heroicons-clock"
+                                        variant="soft"
+                                        size="xs"
+                                        color="primary"
+                                        :disabled="allPostsPublished || isContentEmpty"
+                                        @click="openScheduleModal"
+                                    ></UButton>
+                                </UTooltip>
                              </div>
                         </div>
                     </div>
