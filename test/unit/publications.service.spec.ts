@@ -74,7 +74,6 @@ describe('PublicationsService (unit)', () => {
         projectId,
         title: 'Test Publication',
         content: 'Test content',
-        mediaFiles: ['image1.jpg'],
         tags: 'test,demo',
         status: PublicationStatus.DRAFT,
         language: 'ru-RU',
@@ -86,7 +85,6 @@ describe('PublicationsService (unit)', () => {
         id: 'pub-1',
         ...createDto,
         createdBy: userId,
-        mediaFiles: JSON.stringify(createDto.mediaFiles),
         meta: '{}',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -220,7 +218,6 @@ describe('PublicationsService (unit)', () => {
         id: publicationId,
         projectId: 'project-1',
         content: 'Test',
-        mediaFiles: '[]',
         meta: '{}',
       };
 
@@ -255,7 +252,6 @@ describe('PublicationsService (unit)', () => {
         id: publicationId,
         projectId: 'project-1',
         content: 'Test',
-        mediaFiles: '[]',
         meta: '{}',
         scheduledAt: pubScheduledAt,
       };

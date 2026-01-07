@@ -1,35 +1,110 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { join } from 'path';
+import { join, normalize, basename } from 'path';
 import { mkdir, writeFile, unlink } from 'fs/promises';
 import { createReadStream, existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { request } from 'undici';
+import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
-import { MediaType, MediaSourceType } from '../../generated/prisma/client.js';
+import { MediaType, MediaSourceType, Media } from '../../generated/prisma/client.js';
 import { getMediaDir } from '../../config/media.config.js';
+import type { AppConfig } from '../../config/app.config.js';
+
+interface FileUpload {
+  filename: string;
+  buffer: Buffer;
+  mimetype: string;
+}
+
+interface SavedFileInfo {
+  path: string;
+  size: number;
+  mimetype: string;
+  type: MediaType;
+  filename: string;
+}
 
 @Injectable()
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
   private readonly mediaDir: string;
+  private readonly maxFileSize: number;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
     this.mediaDir = getMediaDir();
+    const appConfig = this.configService.get<AppConfig>('app');
+    this.maxFileSize = appConfig?.media.maxFileSize ?? 52428800; // 50MB fallback
     this.ensureMediaDir();
   }
 
-  private async ensureMediaDir() {
-      if (!existsSync(this.mediaDir)) {
-          await mkdir(this.mediaDir, { recursive: true });
-      }
+  private async ensureMediaDir(): Promise<void> {
+    if (!existsSync(this.mediaDir)) {
+      await mkdir(this.mediaDir, { recursive: true });
+      this.logger.log(`Created media directory: ${this.mediaDir}`);
+    }
   }
 
-  async create(data: CreateMediaDto) {
+  /**
+   * Sanitize filename to prevent path traversal and other security issues.
+   * Removes: ../, ./, ~/, ${}, and any path separators
+   */
+  private sanitizeFilename(filename: string): string {
+    // Remove path separators, parent directory references, home directory, and variable substitutions
+    let sanitized = filename
+      .replace(/\.\./g, '')  // Remove ..
+      .replace(/\//g, '')    // Remove /
+      .replace(/\\/g, '')    // Remove \
+      .replace(/~/g, '')     // Remove ~
+      .replace(/\${.*?}/g, '') // Remove ${...}
+      .replace(/[<>:"|?*]/g, ''); // Remove invalid filename chars
+
+    // Allow only safe characters: alphanumeric, dash, underscore, dot
+    sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    // Ensure filename is not empty
+    if (!sanitized || sanitized.length === 0) {
+      sanitized = 'file';
+    }
+
+    // Limit length
+    if (sanitized.length > 255) {
+      const ext = sanitized.substring(sanitized.lastIndexOf('.'));
+      sanitized = sanitized.substring(0, 250 - ext.length) + ext;
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Get file extension from filename.
+   */
+  private getFileExtension(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    // Validate extension is safe
+    if (!ext || ext.length > 10) {
+      return 'bin';
+    }
+    return ext.replace(/[^a-z0-9]/g, '');
+  }
+
+  /**
+   * Determine MediaType based on mimetype.
+   */
+  private getMediaType(mimetype: string): MediaType {
+    if (mimetype.startsWith('image/')) return MediaType.IMAGE;
+    if (mimetype.startsWith('video/')) return MediaType.VIDEO;
+    if (mimetype.startsWith('audio/')) return MediaType.AUDIO;
+    return MediaType.DOCUMENT;
+  }
+
+  async create(data: CreateMediaDto): Promise<Media> {
+    this.logger.debug(`Creating media record: type=${data.type}, srcType=${data.srcType}`);
+    
     return this.prisma.media.create({
       data: {
         ...data,
@@ -38,87 +113,142 @@ export class MediaService {
     });
   }
 
-  async findAll() {
-      return this.prisma.media.findMany({
-          orderBy: { createdAt: 'desc' }
-      });
+  async findAll(): Promise<Media[]> {
+    return this.prisma.media.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Media> {
     const media = await this.prisma.media.findUnique({ where: { id } });
-    if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
+    if (!media) {
+      this.logger.warn(`Media not found: ${id}`);
+      throw new NotFoundException(`Media with ID ${id} not found`);
+    }
     return {
-        ...media,
-        meta: JSON.parse(media.meta)
+      ...media,
+      meta: JSON.parse(media.meta) as Record<string, any>,
     };
   }
 
-  async update(id: string, data: UpdateMediaDto) {
-      const media = await this.prisma.media.findUnique({ where: { id } });
-      if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-
-      return this.prisma.media.update({
-          where: { id },
-          data: {
-              ...data,
-              meta: data.meta ? JSON.stringify(data.meta) : undefined
-          }
-      });
-  }
-
-  async remove(id: string) {
+  async update(id: string, data: UpdateMediaDto): Promise<Media> {
     const media = await this.prisma.media.findUnique({ where: { id } });
-    if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-
-    // If it's a local file, we might want to delete it
-    if (media.srcType === MediaSourceType.FS) {
-        try {
-            const filePath = join(this.mediaDir, media.src);
-            if (existsSync(filePath)) {
-                await unlink(filePath);
-            }
-        } catch (e) {
-            this.logger.error(`Failed to delete file for media ${id}: ${e}`);
-        }
+    if (!media) {
+      this.logger.warn(`Media not found for update: ${id}`);
+      throw new NotFoundException(`Media with ID ${id} not found`);
     }
 
-    return this.prisma.media.delete({ where: { id } });
+    this.logger.debug(`Updating media: ${id}`);
+    return this.prisma.media.update({
+      where: { id },
+      data: {
+        ...data,
+        meta: data.meta ? JSON.stringify(data.meta) : undefined
+      }
+    });
   }
 
-  // File System Operations
-  async saveFile(file: { filename: string, buffer: Buffer, mimetype: string }) {
-     const date = new Date();
-     const year = date.getFullYear().toString();
-     const month = (date.getMonth() + 1).toString().padStart(2, '0');
-     const subfolder = join(year, month);
-     const fullDir = join(this.mediaDir, subfolder);
-     
-     await mkdir(fullDir, { recursive: true });
-     
-     const ext = file.filename.split('.').pop() || 'bin';
-     const uniqueFilename = `${randomUUID()}.${ext}`;
-     const relativePath = join(subfolder, uniqueFilename);
-     const filePath = join(fullDir, uniqueFilename);
-     
-     await writeFile(filePath, file.buffer);
-     
-     // Determine MediaType based on mimetype
-     let type: MediaType = MediaType.DOCUMENT;
-     if (file.mimetype.startsWith('image/')) type = MediaType.IMAGE;
-     else if (file.mimetype.startsWith('video/')) type = MediaType.VIDEO;
-     else if (file.mimetype.startsWith('audio/')) type = MediaType.AUDIO;
+  async remove(id: string): Promise<Media> {
+    const media = await this.prisma.media.findUnique({ where: { id } });
+    if (!media) {
+      this.logger.warn(`Media not found for deletion: ${id}`);
+      throw new NotFoundException(`Media with ID ${id} not found`);
+    }
 
-     return {
-        path: relativePath,
-        size: file.buffer.length,
-        mimetype: file.mimetype,
-        type,
-        filename: file.filename
-     };
+    // Use transaction to ensure both DB and file deletion
+    try {
+      const deleted = await this.prisma.$transaction(async (tx) => {
+        // Delete the database record first
+        const deletedMedia = await tx.media.delete({ where: { id } });
+
+        // If it's a local file, delete it from filesystem
+        if (media.srcType === MediaSourceType.FS) {
+          try {
+            // Normalize and validate path to prevent traversal
+            const safePath = normalize(join(this.mediaDir, media.src));
+            if (!safePath.startsWith(this.mediaDir)) {
+              this.logger.error(`Path traversal attempt detected: ${media.src}`);
+              throw new Error('Invalid file path');
+            }
+
+            if (existsSync(safePath)) {
+              await unlink(safePath);
+              this.logger.log(`Deleted file: ${safePath}`);
+            } else {
+              this.logger.warn(`File not found during deletion: ${safePath}`);
+            }
+          } catch (e) {
+            this.logger.error(`Failed to delete file for media ${id}: ${(e as Error).message}`);
+            // Don't throw - DB record is already deleted
+          }
+        }
+
+        return deletedMedia;
+      });
+
+      this.logger.log(`Media deleted: ${id}`);
+      return deleted;
+    } catch (error) {
+      this.logger.error(`Failed to delete media ${id}: ${(error as Error).message}`);
+      throw error;
+    }
   }
 
-  // Media Groups
+  /**
+   * Save uploaded file to filesystem.
+   */
+  async saveFile(file: FileUpload): Promise<SavedFileInfo> {
+    // Validate file size
+    if (file.buffer.length > this.maxFileSize) {
+      this.logger.warn(`File too large: ${file.buffer.length} bytes (max: ${this.maxFileSize})`);
+      throw new BadRequestException(
+        `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
+      );
+    }
+
+    const date = new Date();
+    const year = date.getFullYear().toString();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const subfolder = join(year, month);
+    const fullDir = join(this.mediaDir, subfolder);
+
+    await mkdir(fullDir, { recursive: true });
+
+    // Sanitize filename and get extension
+    const sanitizedOriginalName = this.sanitizeFilename(file.filename);
+    const ext = this.getFileExtension(sanitizedOriginalName);
+    const uniqueFilename = `${randomUUID()}.${ext}`;
+    const relativePath = join(subfolder, uniqueFilename);
+    const filePath = join(fullDir, uniqueFilename);
+
+    // Validate final path doesn't escape mediaDir
+    const normalizedPath = normalize(filePath);
+    if (!normalizedPath.startsWith(this.mediaDir)) {
+      this.logger.error(`Path traversal attempt: ${filePath}`);
+      throw new BadRequestException('Invalid file path');
+    }
+
+    await writeFile(filePath, file.buffer);
+
+    const type = this.getMediaType(file.mimetype);
+    
+    this.logger.log(`File saved: ${relativePath} (${file.buffer.length} bytes, type: ${type})`);
+
+    return {
+      path: relativePath,
+      size: file.buffer.length,
+      mimetype: file.mimetype,
+      type,
+      filename: sanitizedOriginalName
+    };
+  }
+
+  /**
+   * Create media group.
+   */
   async createGroup(data: CreateMediaGroupDto) {
+    this.logger.debug(`Creating media group: ${data.name || 'unnamed'}`);
+    
     return this.prisma.mediaGroup.create({
       data: {
         name: data.name,
@@ -140,15 +270,18 @@ export class MediaService {
   }
 
   /**
-   * Stream media file to response based on source type
+   * Stream media file to response based on source type.
    */
-  async streamMediaFile(id: string, res: any) {
+  async streamMediaFile(id: string, res: ServerResponse): Promise<void> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) {
-      throw new NotFoundException('Файл не найден');
+      this.logger.warn(`Media not found for streaming: ${id}`);
+      throw new NotFoundException('Media file not found');
     }
 
     try {
+      this.logger.debug(`Streaming media: ${id}, srcType: ${media.srcType}`);
+
       switch (media.srcType) {
         case MediaSourceType.FS:
           await this.streamFromFileSystem(media, res);
@@ -160,27 +293,33 @@ export class MediaService {
           await this.streamFromTelegram(media, res);
           break;
         default:
-          throw new NotFoundException('Неподдерживаемый тип источника');
+          this.logger.error(`Unsupported source type: ${media.srcType}`);
+          throw new NotFoundException('Unsupported media source type');
       }
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to stream media ${id}: ${err.message}`);
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      throw new NotFoundException('Файл недоступен');
+      throw new NotFoundException('Media file unavailable');
     }
   }
 
   /**
-   * Stream file from local filesystem
+   * Stream file from local filesystem.
    */
-  private async streamFromFileSystem(media: any, res: any): Promise<void> {
-    const filePath = join(this.mediaDir, media.src);
-    
-    if (!existsSync(filePath)) {
-      this.logger.error(`File not found: ${filePath}`);
-      throw new NotFoundException('Файл не найден');
+  private async streamFromFileSystem(media: Media, res: ServerResponse): Promise<void> {
+    // Normalize and validate path to prevent traversal
+    const safePath = normalize(join(this.mediaDir, media.src));
+    if (!safePath.startsWith(this.mediaDir)) {
+      this.logger.error(`Path traversal attempt in streamFromFileSystem: ${media.src}`);
+      throw new BadRequestException('Invalid file path');
+    }
+
+    if (!existsSync(safePath)) {
+      this.logger.error(`File not found: ${safePath}`);
+      throw new NotFoundException('Media file not found on disk');
     }
 
     // Set content type from database
@@ -195,24 +334,28 @@ export class MediaService {
 
     // Stream file to response
     return new Promise((resolve, reject) => {
-      const fileStream = createReadStream(filePath);
+      const fileStream = createReadStream(safePath);
       fileStream.pipe(res);
       fileStream.on('end', () => resolve());
-      fileStream.on('error', (err) => reject(err));
+      fileStream.on('error', (err) => {
+        this.logger.error(`Stream error for ${safePath}: ${err.message}`);
+        reject(err);
+      });
     });
   }
 
   /**
-   * Proxy stream from external URL
+   * Proxy stream from external URL.
    */
-  private async streamFromUrl(media: any, res: any): Promise<void> {
+  private async streamFromUrl(media: Media, res: ServerResponse): Promise<void> {
     try {
       const response = await request(media.src, {
         method: 'GET',
       });
 
       if (response.statusCode !== 200) {
-        throw new NotFoundException('Файл недоступен');
+        this.logger.warn(`URL returned status ${response.statusCode}: ${media.src}`);
+        throw new NotFoundException('Media file unavailable from URL');
       }
 
       // Forward content-type from source
@@ -232,33 +375,35 @@ export class MediaService {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to fetch URL ${media.src}: ${err.message}`);
-      throw new NotFoundException('Файл недоступен');
+      throw new NotFoundException('Media file unavailable from URL');
     }
   }
 
   /**
-   * Stream file from Telegram using Bot API
+   * Stream file from Telegram using Bot API.
    */
-  private async streamFromTelegram(media: any, res: any): Promise<void> {
+  private async streamFromTelegram(media: Media, res: ServerResponse): Promise<void> {
     const telegramBotToken = this.configService.get<string>('app.telegramBotToken');
-    
+
     if (!telegramBotToken) {
       this.logger.error('Telegram bot token not configured');
-      throw new NotFoundException('Файл Telegram недоступен');
+      throw new NotFoundException('Telegram media unavailable');
     }
 
     try {
       // Step 1: Get file path from Telegram
       const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(media.src)}`;
       const getFileResponse = await request(getFileUrl, { method: 'GET' });
-      
+
       if (getFileResponse.statusCode !== 200) {
+        this.logger.warn(`Telegram getFile failed with status ${getFileResponse.statusCode}`);
         throw new Error('Failed to get file info from Telegram');
       }
 
       const fileInfo = await getFileResponse.body.json() as any;
-      
+
       if (!fileInfo.ok || !fileInfo.result?.file_path) {
+        this.logger.warn(`Invalid Telegram file_id or file not found: ${media.src}`);
         throw new Error('Invalid file_id or file not found');
       }
 
@@ -267,6 +412,7 @@ export class MediaService {
       const fileResponse = await request(fileUrl, { method: 'GET' });
 
       if (fileResponse.statusCode !== 200) {
+        this.logger.warn(`Telegram file download failed with status ${fileResponse.statusCode}`);
         throw new Error('Failed to download file from Telegram');
       }
 
@@ -287,21 +433,24 @@ export class MediaService {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to fetch Telegram file ${media.src}: ${err.message}`);
-      throw new NotFoundException('Файл Telegram недоступен');
+      throw new NotFoundException('Telegram media unavailable');
     }
   }
 
   async findGroup(id: string) {
-      const group = await this.prisma.mediaGroup.findUnique({
-          where: { id },
-          include: {
-            items: {
-                include: { media: true },
-                orderBy: { order: 'asc' }
-            }
-          }
-      });
-      if (!group) throw new NotFoundException(`MediaGroup with ID ${id} not found`);
-      return group;
+    const group = await this.prisma.mediaGroup.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: { media: true },
+          orderBy: { order: 'asc' }
+        }
+      }
+    });
+    if (!group) {
+      this.logger.warn(`Media group not found: ${id}`);
+      throw new NotFoundException(`MediaGroup with ID ${id} not found`);
+    }
+    return group;
   }
 }

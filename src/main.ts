@@ -96,7 +96,7 @@ async function bootstrap() {
   // Register multipart support for file uploads
   await app.register(multipart, {
     limits: {
-      fileSize: 52428800, // 50MB (matches implementation plan)
+      fileSize: appConfig.media.maxFileSize,
     },
   });
 

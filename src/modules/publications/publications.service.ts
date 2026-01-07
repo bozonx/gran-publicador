@@ -777,10 +777,11 @@ export class PublicationsService {
 
     const startOrder = existingMedia.length > 0 ? existingMedia[0].order + 1 : 0;
 
-    // Create media items and link them to the publication
-    await Promise.all(
-      media.map(async (m, i) => {
-        const mediaItem = await this.prisma.media.create({
+    // Use transaction to ensure atomicity
+    await this.prisma.$transaction(async (tx) => {
+      for (let i = 0; i < media.length; i++) {
+        const m = media[i];
+        const mediaItem = await tx.media.create({
           data: {
             type: m.type,
             srcType: m.srcType,
@@ -792,16 +793,17 @@ export class PublicationsService {
           },
         });
 
-        return this.prisma.publicationMedia.create({
+        await tx.publicationMedia.create({
           data: {
             publicationId,
             mediaId: mediaItem.id,
             order: startOrder + i,
           },
         });
-      })
-    );
+      }
+    });
 
+    this.logger.log(`Added ${media.length} media items to publication ${publicationId}`);
     return this.findOne(publicationId, userId);
   }
 

@@ -21,7 +21,3 @@ export function getMediaDir(): string {
   // Default to {DATA_DIR}/media
   return join(process.cwd(), dataDir, 'media');
 }
-
-export const MEDIA_LIMITS = {
-    fileSize: 52428800, // 50MB
-};

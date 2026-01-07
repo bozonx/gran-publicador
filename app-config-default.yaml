@@ -7,3 +7,8 @@ telegramBotToken: ${TELEGRAM_BOT_TOKEN}
 
 # Security and Auth
 jwtSecret: ${JWT_SECRET}
+
+# Media settings
+media:
+  # Maximum file size for uploads in bytes (50MB default)
+  maxFileSize: ${MEDIA_MAX_FILE_SIZE:-52428800}

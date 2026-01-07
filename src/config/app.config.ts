@@ -79,6 +79,17 @@ export class AppConfig {
       'JWT_SECRET must be at least 32 characters long for security reasons (AES-256 requirement)',
   })
   public jwtSecret!: string;
+
+  /**
+   * Media configuration.
+   */
+  public media!: {
+    /**
+     * Maximum file size for uploads in bytes.
+     * Default: 52428800 (50MB)
+     */
+    maxFileSize: number;
+  };
 }
 
 export default registerAs('app', (): AppConfig => {
@@ -131,6 +142,11 @@ export default registerAs('app', (): AppConfig => {
     adminTelegramId: fileConfig.telegramAdminId?.toString() ?? process.env.TELEGRAM_ADMIN_ID,
     telegramBotToken: fileConfig.telegramBotToken ?? process.env.TELEGRAM_BOT_TOKEN,
     jwtSecret: fileConfig.jwtSecret ?? process.env.JWT_SECRET,
+
+    // Media Config
+    media: {
+      maxFileSize: parseInt(fileConfig.media?.maxFileSize?.toString() ?? '52428800', 10),
+    },
   });
 
   // Perform synchronous validation of the configuration object
