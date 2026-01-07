@@ -670,7 +670,7 @@ const emit = defineEmits<Emits>()
   <!-- Media viewer modal -->
   <UModal v-model:open="isModalOpen">
     <template #content>
-      <div class="p-6 min-w-[500px] max-w-4xl">
+      <div class="p-6 min-w-[500px] max-w-4xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between gap-4 mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
             {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
