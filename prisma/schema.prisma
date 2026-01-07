@@ -267,7 +267,7 @@ model Post {
   errorMessage  String?    @map("error_message")
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")
-  // Actual timestamp when post was published to platform
+  // Actual timestamp when post was published to platform. Set by the publishing service only.
   publishedAt   DateTime? @map("published_at")
 
   createdAt DateTime @default(now()) @map("created_at")

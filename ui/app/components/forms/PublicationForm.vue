@@ -36,13 +36,13 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const { createPublication, updatePublication, createPostsFromPublication, isLoading, getStatusDisplayName, fetchPublicationsByProject, publications } = usePublications()
+const { createPublication, updatePublication, createPostsFromPublication, isLoading, getStatusDisplayName, fetchPublicationsByProject, publications, statusOptions } = usePublications()
 const { 
   channels, 
   fetchChannels, 
   isLoading: isChannelsLoading
 } = useChannels()
-const { typeOptions, statusOptions: allStatusOptions } = usePosts()
+const { typeOptions } = usePosts()
 
 const POST_TYPE_VALUES = ['POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT', 'STORY'] as const
 const STATUS_VALUES = ['DRAFT', 'READY', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'PARTIAL', 'FAILED', 'EXPIRED'] as const
@@ -249,16 +249,6 @@ const displayStatusOptions = computed(() => {
         { value: 'READY', label: t('publicationStatus.ready') }
     ]
     
-    // If we are in edit mode and the status is some system status, add it as a 3rd option
-    if (isEditMode.value && state.status !== 'DRAFT' && state.status !== 'READY') {
-        const fullOption = statusOptions.value.find(s => s.value === state.status)
-        options.push({
-            value: state.status,
-            label: fullOption?.label || state.status,
-            isSystem: true
-        } as any)
-    }
-    
     return options
 })
 
@@ -458,46 +448,31 @@ function toggleChannel(channelId: string) {
       </div>
 
       <div :class="GRID_LAYOUTS.twoColumn">
-          <!-- Status (Only when creating or read-only badge for scheduled) -->
-          <UFormField v-if="!isEditMode || isScheduledStatus" name="status" :label="t('post.status')" required>
-             <div v-if="isScheduledStatus" class="flex items-center gap-2">
-                 <UTooltip :text="t('publication.status.scheduledAutomatic')">
-                     <UBadge 
-                         color="warning" 
-                         variant="solid" 
-                         size="lg"
-                         class="gap-1 px-3"
-                     >
-                         <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-                         {{ t('publicationStatus.scheduled') }}
-                     </UBadge>
-                 </UTooltip>
-             </div>
-             <div v-else>
-               <div class="flex items-center gap-2">
-                 <UButtonGroup orientation="horizontal" size="sm" class="shadow-sm">
-                     <UButton
-                       v-for="option in displayStatusOptions"
-                       :key="option.value"
-                       :label="option.label"
-                       :color="state.status === option.value ? ((option as any).isSystem ? 'warning' : 'primary') : 'neutral'"
-                       :variant="state.status === option.value ? 'solid' : 'soft'"
-                       :disabled="(option.value === 'READY' && (!state.content || state.content.trim() === '') && state.status === 'DRAFT') || ((option as any).isSystem && state.status === option.value)"
-                       class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
-                       @click="state.status = option.value as any"
-                     />
-                 </UButtonGroup>
-                 
-                 <UPopover :popper="{ placement: 'top' }">
-                    <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-                    <template #content>
-                        <div class="p-3 max-w-xs text-xs whitespace-pre-line">
-                            {{ t('publication.changeStatusWarningReset') }}
-                        </div>
-                    </template>
-                 </UPopover>
-               </div>
-             </div>
+          <!-- Status (Only when creating) -->
+          <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
+                <div class="flex items-center gap-2">
+                  <UButtonGroup orientation="horizontal" size="sm" class="shadow-sm">
+                      <UButton
+                        v-for="option in displayStatusOptions"
+                        :key="option.value"
+                        :label="option.label"
+                        :color="state.status === option.value ? 'primary' : 'neutral'"
+                        :variant="state.status === option.value ? 'solid' : 'soft'"
+                        :disabled="option.value === 'READY' && (!state.content || state.content.trim() === '') && state.status === 'DRAFT'"
+                        class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
+                        @click="state.status = option.value as any"
+                      />
+                  </UButtonGroup>
+                  
+                  <UPopover :popper="{ placement: 'top' }">
+                     <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                     <template #content>
+                         <div class="p-3 max-w-xs text-xs whitespace-pre-line">
+                             {{ t('publication.changeStatusWarningReset') }}
+                         </div>
+                     </template>
+                  </UPopover>
+                </div>
           </UFormField>
 
            <!-- Scheduling -->
