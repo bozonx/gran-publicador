@@ -161,7 +161,7 @@ model Publication {
   meta          String     @default("{}")
   // Type of post (POST, ARTICLE, VIDEO, etc.) - master type for distribution
   postType      PostType   @default(POST) @map("post_type")
-  // Date of the article which the author specified
+  // Content date set by the author (e.g., article date, event date). Not the publication/posting date
   postDate      DateTime?  @map("post_date")
   // Publication status (user can select: DRAFT, READY; system sets: SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
   status        PublicationStatus @default(DRAFT)

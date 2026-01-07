@@ -643,7 +643,6 @@ function formatDate(dateString: string | null | undefined): string {
                                         :variant="currentPublication?.status === option.value ? 'solid' : 'soft'"
                                         :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentEmpty && currentPublication?.status === 'DRAFT')"
                                         class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
-                                        :loading="isUpdatingStatus && newStatus === option.value"
                                         @click="handleUpdateStatusOption(option.value as PublicationStatus)"
                                     />
                                 </UButtonGroup>
