@@ -20,6 +20,7 @@ export interface Post {
   status: PostStatus  // Post-specific status
   scheduledAt: string | null
   publishedAt: string | null
+  errorMessage: string | null
   createdAt: string
   updatedAt: string
 }

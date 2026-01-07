@@ -371,6 +371,12 @@ export function usePublications() {
         if (publication.status === 'EXPIRED') {
             problems.push({ type: 'warning', key: 'publicationExpired' })
         }
+
+        // Check if any post failed regardless of publication status
+        const failedPostsCount = publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0
+        if (failedPostsCount > 0 && publication.status !== 'FAILED' && publication.status !== 'PARTIAL') {
+            problems.push({ type: 'warning', key: 'postsHaveErrors', count: failedPostsCount })
+        }
         
         // Check for channel problems
         if (hasChannelProblems(publication)) {

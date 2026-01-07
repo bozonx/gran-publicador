@@ -552,11 +552,12 @@
     "warning": "Требуется внимание",
     "info": "Информация",
     "publication": {
-      "allPostsFailed": "Все посты не опубликованы",
-      "somePostsFailed": "{count} постов не опубликовано",
+      "allPostsFailed": "Все посты имеют ошибки",
+      "somePostsFailed": "Посты имеют ошибки ({count})",
       "publicationExpired": "Пропущено окно публикации",
       "channelProblems": "Проблемы с каналами",
-      "failedPosts": "{count} постов не опубликовано"
+      "failedPosts": "{count} постов имеют ошибки",
+      "postsHaveErrors": "Посты имеют ошибки"
     },
     "channel": {
       "noCredentials": "Отсутствуют учетные данные",

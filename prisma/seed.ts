@@ -439,6 +439,7 @@ async function main() {
             socialMedia: 'YOUTUBE',
             tags: null,
             status: PostStatus.FAILED,
+            errorMessage: 'Video size too large or invalid format',
         },
         // Post previously known as independent
         {
@@ -492,6 +493,7 @@ async function main() {
             channelId: channelData[0].id, // Telegram
             socialMedia: 'TELEGRAM',
             status: PostStatus.FAILED,
+            errorMessage: 'Chat not found or bot kicked',
         },
         // For Partial Pub (44...72)
         {
@@ -508,6 +510,7 @@ async function main() {
             channelId: channelData[3].id, // Telegram (Index 3 in array)
             socialMedia: 'TELEGRAM',
             status: PostStatus.FAILED,
+            errorMessage: 'Connection timeout while uploading media',
         },
         // For Processing Pub (44...74)
         {
@@ -533,6 +536,7 @@ async function main() {
             channelId: '22222222-2222-2222-2222-222222222232', // Failed Posts Channel
             socialMedia: 'TELEGRAM',
             status: PostStatus.FAILED,
+            errorMessage: 'API token is invalid or expired',
         }
     ];
 

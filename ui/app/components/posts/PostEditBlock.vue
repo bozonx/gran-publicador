@@ -302,10 +302,12 @@ const isValid = computed(() => {
                 <!-- Status Display -->
                 <UBadge 
                   v-if="!isCreating && props.post?.status" 
-                  variant="subtle" 
+                  :variant="props.post.status === 'FAILED' ? 'solid' : 'subtle'" 
                   :color="getStatusColor(props.post.status)" 
                   size="xs"
+                  class="gap-1 px-2 py-0.5"
                 >
+                  <UIcon v-if="props.post.status === 'FAILED'" name="i-heroicons-exclamation-circle" class="w-3.5 h-3.5" />
                   {{ getStatusDisplayName(props.post.status) }}
                 </UBadge>
 
@@ -354,6 +356,16 @@ const isValid = computed(() => {
     <!-- Collapsible Content -->
     <div v-show="!isCollapsed" class="border-t border-gray-200 dark:border-gray-700/50 p-6 space-y-6 bg-gray-50/50 dark:bg-gray-900/20">
        
+       <!-- Error Message -->
+       <UAlert
+          v-if="props.post?.errorMessage"
+          color="error"
+          variant="soft"
+          icon="i-heroicons-exclamation-circle"
+          :title="t('common.error')"
+          :description="props.post.errorMessage"
+          class="mb-4"
+       />
        <!-- Channel Selector (Only if Creating) -->
        <div v-if="isCreating" class="space-y-1">
            <div class="flex items-center gap-1 mb-1">
