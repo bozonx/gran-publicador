@@ -765,40 +765,34 @@ const emit = defineEmits<Emits>()
             </div>
           </div>
 
-          <!-- Description and download button -->
-          <div class="flex items-center justify-between mb-2 px-1">
-            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-              {{ t('media.metadata', 'Metadata') }} (YAML)
-            </h4>
-            <div class="flex items-center gap-2">
-              <UButton
-                icon="i-heroicons-arrow-down-tray"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                @click="downloadMediaFile(selectedMedia)"
-              >
-                {{ t('media.download', 'Download') }}
-              </UButton>
-              <UButton
-                v-if="editable"
-                icon="i-heroicons-check"
-                variant="solid"
-                color="primary"
-                size="sm"
-                :loading="isSavingMeta"
-                @click="saveMediaMeta"
-              >
-                {{ t('common.save', 'Save') }}
-              </UButton>
-            </div>
+          <!-- Metadata Editor buttons -->
+          <div class="flex justify-end gap-2 mb-2 px-1">
+            <UButton
+              icon="i-heroicons-arrow-down-tray"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              @click="downloadMediaFile(selectedMedia)"
+            >
+              {{ t('media.download', 'Download') }}
+            </UButton>
+            <UButton
+              v-if="editable"
+              icon="i-heroicons-check"
+              variant="solid"
+              color="primary"
+              size="sm"
+              :loading="isSavingMeta"
+              @click="saveMediaMeta"
+            >
+              {{ t('common.save', 'Save') }}
+            </UButton>
           </div>
           
           <CommonYamlEditor
             v-model="editableMetadata"
             :disabled="!editable"
-            :rows="6"
+            :rows="8"
           />
         </div>
       </div>

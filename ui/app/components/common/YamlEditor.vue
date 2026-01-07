@@ -5,22 +5,28 @@ interface Props {
   modelValue: string
   disabled?: boolean
   label?: string
+  help?: string
   rows?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
-  rows: 6
+  rows: 8,
+  label: 'Meta (YAML)',
+  help: ''
 })
 
 const emit = defineEmits(['update:modelValue'])
 
+const { t } = useI18n()
+
 const displayValue = computed({
   get: () => {
-    if (props.modelValue === '{}' || props.modelValue.trim() === '') {
+    const val = props.modelValue
+    if (!val || val === '{}' || (typeof val === 'string' && val.trim() === '')) {
       return ''
     }
-    return props.modelValue
+    return val
   },
   set: (val: string) => {
     emit('update:modelValue', val)
@@ -29,23 +35,17 @@ const displayValue = computed({
 </script>
 
 <template>
-  <div class="w-full">
-    <UFormGroup v-if="label" :label="label" class="mb-2">
-      <UTextarea
-        v-model="displayValue"
-        :rows="rows"
-        :disabled="disabled"
-        class="font-mono text-xs w-full"
-        autoresize
-      />
-    </UFormGroup>
+  <UFormField 
+    :label="label" 
+    :help="help || t('media.yamlHelp', 'Additional metadata in YAML format')"
+    class="w-full"
+  >
     <UTextarea
-      v-else
       v-model="displayValue"
       :rows="rows"
       :disabled="disabled"
       class="font-mono text-xs w-full"
       autoresize
     />
-  </div>
+  </UFormField>
 </template>
