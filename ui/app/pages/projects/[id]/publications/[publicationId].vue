@@ -6,6 +6,7 @@ import { usePosts } from '~/composables/usePosts'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
+import { getUserSelectableStatuses } from '~/utils/publications'
 
 definePageMeta({
   middleware: 'auth',
@@ -59,8 +60,12 @@ const availableChannels = computed(() => {
 })
 
 const allPostsPublished = computed(() => {
-    if (!currentPublication.value?.posts?.length) return false
+    if (!currentPublication.value?.posts) return false
     return currentPublication.value.posts.every((p: any) => !!p.publishedAt)
+})
+
+const isContentEmpty = computed(() => {
+    return !currentPublication.value?.content || currentPublication.value.content.trim() === ''
 })
 
 const majoritySchedule = computed(() => {
@@ -221,6 +226,8 @@ const newStatus = ref<PublicationStatus>('DRAFT')
 const isUpdatingLanguage = ref(false)
 const isUpdatingType = ref(false)
 const isUpdatingStatus = ref(false)
+
+const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
 
 function openLanguageModal() {
     if (!currentPublication.value) return
@@ -473,7 +480,7 @@ function formatDate(dateString: string | null | undefined): string {
 
           <div class="space-y-2">
             <UButton
-              v-for="option in statusOptions"
+              v-for="option in userSelectableStatuses"
               :key="option.value"
               :label="option.label"
               :variant="currentPublication?.status === option.value ? 'soft' : 'ghost'"
@@ -530,6 +537,16 @@ function formatDate(dateString: string | null | undefined): string {
           class="mb-6"
         />
 
+        <!-- Content Empty Banner -->
+        <UAlert
+          v-if="isContentEmpty"
+          color="info"
+          variant="soft"
+          icon="i-heroicons-information-circle"
+          :title="t('publication.validation.contentRequired')"
+          class="mb-6"
+        />
+
         <!-- Block 1: Publication Info & Actions (Non-collapsible) -->
         <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
             <div class="p-6">
@@ -542,15 +559,17 @@ function formatDate(dateString: string | null | undefined): string {
                     
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2">
-                        <UButton
-                            :label="t('publication.changeSchedule')"
-                            icon="i-heroicons-clock"
-                            variant="soft"
-                            size="sm"
-                            color="primary"
-                            :disabled="allPostsPublished"
-                            @click="openScheduleModal"
-                        ></UButton>
+                        <UTooltip :text="isContentEmpty ? t('publication.validation.contentRequired') : ''">
+                            <UButton
+                                :label="t('publication.changeSchedule')"
+                                icon="i-heroicons-clock"
+                                variant="soft"
+                                size="sm"
+                                color="primary"
+                                :disabled="allPostsPublished || isContentEmpty"
+                                @click="openScheduleModal"
+                            ></UButton>
+                        </UTooltip>
 
                         <UiArchiveButton
                             :key="currentPublication.archivedAt ? 'archived' : 'active'"

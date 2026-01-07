@@ -408,6 +408,19 @@ const isValid = computed(() => {
                 />
             </UFormField>
 
+            <!-- Scheduled At (Custom for post) -->
+            <UFormField :label="t('post.scheduledAt')">
+                <UTooltip :text="!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : ''">
+                    <UInput 
+                        v-model="formData.scheduledAt" 
+                        type="datetime-local" 
+                        class="w-full" 
+                        icon="i-heroicons-clock" 
+                        :disabled="!props.publication?.scheduledAt"
+                    />
+                </UTooltip>
+            </UFormField>
+
 
        </div>
 

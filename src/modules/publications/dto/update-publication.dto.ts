@@ -1,4 +1,4 @@
-import { IsArray, IsDate, IsEnum, IsObject, IsOptional, IsString, ValidateIf, IsNotEmpty } from 'class-validator';
+import { IsArray, IsDate, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
 import { CreateMediaDto, CreateMediaGroupDto } from '../../media/dto/index.js';

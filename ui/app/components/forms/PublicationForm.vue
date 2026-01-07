@@ -8,6 +8,7 @@ import { usePublications } from '~/composables/usePublications'
 import { usePosts } from '~/composables/usePosts'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
+import { getUserSelectableStatuses } from '~/utils/publications'
 
 import type { PostType, PublicationStatus } from '~/types/posts'
 
@@ -119,6 +120,14 @@ const schema = computed(() => z.object({
       code: z.ZodIssueCode.custom,
       message: t('validation.required'),
       path: ['scheduledAt']
+    })
+  }
+
+  if ((val.status === 'READY' || val.scheduledAt) && (!val.content || val.content.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: t('publication.validation.contentRequired'),
+      path: ['content']
     })
   }
 }))
@@ -234,10 +243,9 @@ const channelOptions = computed(() => {
 })
 
 // Status options
-const statusOptions = computed(() => {
-  // Only allow user-selectable statuses in form
-  return allStatusOptions.value.filter((opt) => ['DRAFT', 'READY', 'SCHEDULED'].includes(opt.value as string))
-})
+const statusOptions = computed(() => getUserSelectableStatuses(t))
+
+const isScheduledStatus = computed(() => state.status === 'SCHEDULED')
 
 const { languageOptions } = useLanguages()
 
@@ -433,21 +441,35 @@ function toggleChannel(channelId: string) {
       </div>
 
       <div :class="GRID_LAYOUTS.twoColumn">
-         <!-- Status (Only when creating) -->
-         <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
-            <USelectMenu
-                v-model="state.status"
-                :items="statusOptions"
-                value-key="value"
-                label-key="label"
-                class="w-full"
-            />
-         </UFormField>
+          <!-- Status (Only when creating or read-only badge for scheduled) -->
+          <UFormField v-if="!isEditMode || isScheduledStatus" name="status" :label="t('post.status')" required>
+             <div v-if="isScheduledStatus" class="flex items-center gap-2">
+                 <UTooltip :text="t('publication.status.scheduledAutomatic')">
+                     <UBadge 
+                         color="warning" 
+                         variant="solid" 
+                         size="lg"
+                         class="gap-1 px-3"
+                     >
+                         <UIcon name="i-heroicons-clock" class="w-4 h-4" />
+                         {{ t('publicationStatus.scheduled') }}
+                     </UBadge>
+                 </UTooltip>
+             </div>
+             <USelectMenu
+                 v-else
+                 v-model="state.status"
+                 :items="statusOptions"
+                 value-key="value"
+                 label-key="label"
+                 class="w-full"
+             />
+          </UFormField>
 
-         <!-- Scheduling -->
-        <UFormField v-if="state.status === 'SCHEDULED' && !isEditMode" name="scheduledAt" :label="t('post.scheduledAt')" required>
-            <UInput v-model="state.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
-        </UFormField>
+           <!-- Scheduling -->
+         <UFormField v-if="(state.status === 'SCHEDULED' || isScheduledStatus) && !isEditMode" name="scheduledAt" :label="t('post.scheduledAt')" required>
+             <UInput v-model="state.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
+         </UFormField>
 
         <!-- Language -->
         <UFormField v-if="!isEditMode" name="language" :label="t('common.language', 'Language')" required>
@@ -515,6 +537,16 @@ function toggleChannel(channelId: string) {
             </UPopover>
           </div>
         </template>
+        
+        <UAlert
+          v-if="!state.content || state.content.trim() === ''"
+          color="info"
+          variant="soft"
+          icon="i-heroicons-information-circle"
+          :title="t('publication.validation.contentRequired')"
+          class="mb-3"
+        />
+
         <EditorTiptapEditor
           v-model="state.content"
           :placeholder="t('post.contentPlaceholder', 'Write your content here...')"

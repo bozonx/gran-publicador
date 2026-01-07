@@ -484,7 +484,14 @@
       "cancelButton": "Cancel"
     },
     "changeScheduleInfo": "This will change schedule for all linked posts.",
-    "delete": "Delete Publication"
+    "delete": "Delete Publication",
+    "validation": {
+      "contentRequired": "Fill content field to schedule publication"
+    },
+    "status": {
+      "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
+      "publicationTimeRequired": "Set publication time first"
+    }
   },
   "postType": {
     "post": "Post",
