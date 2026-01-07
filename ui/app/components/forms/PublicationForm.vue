@@ -80,6 +80,7 @@ const state = reactive({
   })(),
   description: props.publication?.description || '',
   authorComment: props.publication?.authorComment || '',
+  note: props.publication?.note || '',
   postDate: props.publication?.postDate ? new Date(props.publication.postDate).toISOString().slice(0, 16) : '',
 })
 
@@ -91,10 +92,7 @@ const showAdvancedFields = ref(false)
 // Validation Schema
 const schema = computed(() => z.object({
   title: z.string().optional(),
-  content: z.string().refine((val) => {
-    const textContent = val.replace(/<[^>]*>/g, '').trim()
-    return textContent.length > 0
-  }, t('validation.required')),
+  content: z.string().optional(),
   tags: z.string().optional(),
   postType: z.enum(POST_TYPE_VALUES),
   status: z.enum(STATUS_VALUES),
@@ -113,6 +111,7 @@ const schema = computed(() => z.object({
   }, t('validation.invalidYaml', 'Must be a valid YAML object (key-value pairs), not a list or value')),
   description: z.string().optional(),
   authorComment: z.string().optional(),
+  note: z.string().optional(),
   postDate: z.string().optional(),
 }).superRefine((val, ctx) => {
   if (val.status === 'SCHEDULED' && !val.scheduledAt) {
@@ -189,6 +188,7 @@ watch(() => props.publication, (newPub) => {
     })()
     state.description = newPub.description || ''
     state.authorComment = newPub.authorComment || ''
+    state.note = newPub.note || ''
     state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
     state.scheduledAt = newPub.scheduledAt ? new Date(newPub.scheduledAt).toISOString().slice(0, 16) : ''
     
@@ -244,8 +244,9 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       const updateData: any = {
           title: event.data.title || undefined,
           description: event.data.description || undefined,
-          content: event.data.content,
+          content: event.data.content || undefined,
           authorComment: event.data.authorComment || null,
+          note: event.data.note || null,
           tags: event.data.tags || undefined,
           status: event.data.status,
           language: event.data.language,
@@ -288,8 +289,9 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         projectId: props.projectId,
         title: event.data.title || undefined,
         description: event.data.description || undefined,
-        content: event.data.content,
+        content: event.data.content || undefined,
         authorComment: event.data.authorComment || null,
+        note: event.data.note || null,
         tags: event.data.tags || undefined,
         // Master status logic: if scheduled and has channels -> scheduled, else draft
         status: event.data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : event.data.status,
@@ -351,7 +353,7 @@ function handleError(event: any) {
     console.error('Form validation errors:', event.errors)
     
     // Expand advanced section if errors are there
-    const advancedFields = ['description', 'authorComment', 'postDate', 'meta']
+    const advancedFields = ['description', 'authorComment', 'note', 'postDate', 'meta']
     const hasAdvancedErrors = event.errors.some((e: any) => advancedFields.includes(e.path))
     
     if (hasAdvancedErrors) {
@@ -465,7 +467,20 @@ function toggleChannel(channelId: string) {
       </div>
 
       <!-- Title (optional) -->
-      <UFormField name="title" :label="t('post.postTitle')" :help="t('common.optional')">
+      <UFormField name="title" :help="t('common.optional')">
+        <template #label>
+          <div class="flex items-center gap-1.5">
+            <span>{{ t('post.postTitle') }}</span>
+            <UPopover :popper="{ placement: 'top' }">
+              <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+              <template #content>
+                <div class="p-4 max-w-xs">
+                  <p class="text-sm whitespace-pre-line">{{ t('post.postTitleTooltip') }}</p>
+                </div>
+              </template>
+            </UPopover>
+          </div>
+        </template>
         <UInput
           v-model="state.title"
           :placeholder="t('post.titlePlaceholder', 'Enter title')"
@@ -476,8 +491,21 @@ function toggleChannel(channelId: string) {
         />
       </UFormField>
 
-      <!-- Content (required) - Tiptap Editor -->
-      <UFormField name="content" :label="t('post.content')" required>
+      <!-- Content - Tiptap Editor -->
+      <UFormField name="content">
+        <template #label>
+          <div class="flex items-center gap-1.5">
+            <span>{{ t('post.content') }}</span>
+            <UPopover :popper="{ placement: 'top' }">
+              <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+              <template #content>
+                <div class="p-4 max-w-xs">
+                  <p class="text-sm whitespace-pre-line">{{ t('post.contentTooltip') }}</p>
+                </div>
+              </template>
+            </UPopover>
+          </div>
+        </template>
         <EditorTiptapEditor
           v-model="state.content"
           :placeholder="t('post.contentPlaceholder', 'Write your content here...')"
@@ -514,7 +542,20 @@ function toggleChannel(channelId: string) {
        <!-- Advanced fields -->
       <UiFormAdvancedSection v-model="showAdvancedFields">
         <!-- Description -->
-        <UFormField name="description" :label="t('post.description')" :help="t('post.descriptionPlaceholder')">
+        <UFormField name="description" :help="t('post.descriptionPlaceholder')">
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('post.description') }}</span>
+              <UPopover :popper="{ placement: 'top' }">
+                <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                <template #content>
+                  <div class="p-4 max-w-xs">
+                    <p class="text-sm whitespace-pre-line">{{ t('post.descriptionTooltip') }}</p>
+                  </div>
+                </template>
+              </UPopover>
+            </div>
+          </template>
            <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
         </UFormField>
 
@@ -537,6 +578,17 @@ function toggleChannel(channelId: string) {
         <!-- Meta -->
         <UFormField name="meta" label="Meta (YAML)" help="Additional metadata in YAML format">
            <UTextarea v-model="state.meta" :rows="8" autoresize class="w-full font-mono" />
+        </UFormField>
+
+        <!-- Note (Internal) -->
+        <UFormField name="note" :label="t('post.note')" :help="t('post.noteHint')">
+           <UTextarea 
+             v-model="state.note" 
+             :rows="FORM_STYLES.textareaRows" 
+             autoresize
+             class="w-full"
+             :placeholder="t('post.notePlaceholder')"
+           />
         </UFormField>
       </UiFormAdvancedSection>
 

@@ -145,11 +145,16 @@ model Publication {
   // User ID who archived the publication
   archivedBy String?   @map("archived_by")
 
+  // Title for articles and social media posts where title is required. Even if not required, it's recommended to fill it for easier post identification in Gran Publicador
   title         String?
+  // Description for SEO purposes and social media. Can be used when publishing to websites
   description   String?
+  // Main content: post text, article body, or description for video/audio/documents. Should be filled for any publication type
   content       String?
   // Author's commentary for the news (published along with the content)
   authorComment String?    @map("author_comment")
+  // Internal note for author's reference only. Never published to social media
+  note          String?
   tags          String?
 
   // Additional metadata stored as JSON string
@@ -324,7 +329,6 @@ enum PostStatus {
   PUBLISHED  // Post was successfully published to the channel
 }
 
-// New enums
 enum MediaType {
   IMAGE
   VIDEO

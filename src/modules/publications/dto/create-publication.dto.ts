@@ -28,6 +28,10 @@ export class CreatePublicationDto {
   @IsOptional()
   public authorComment?: string;
 
+  @IsString()
+  @IsOptional()
+  public note?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateMediaDto)

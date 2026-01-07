@@ -69,7 +69,7 @@ const currentProjectName = computed(() => {
   return project?.name || '-'
 })
 
-const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'INSTAGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'X', 'FACEBOOK', 'LINKEDIN', 'SITE'] as const
+const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'FACEBOOK', 'SITE'] as const
 
 const state = reactive({
   name: props.channel?.name || '',
@@ -270,14 +270,11 @@ function handleReset() {
 function getIdentifierPlaceholder(socialMedia: SocialMedia | undefined): string {
   const placeholders: Record<SocialMedia, string> = {
     TELEGRAM: '@channel_name',
-    INSTAGRAM: '@username',
     VK: 'club123456789',
     YOUTUBE: '@channelhandle',
     TIKTOK: '@username',
-    X: '@username',
     FACEBOOK: 'page_username',
     SITE: 'https://example.com',
-    LINKEDIN: 'username',
   }
   return socialMedia ? placeholders[socialMedia] : t('channel.identifierPlaceholder')
 }
@@ -288,14 +285,11 @@ function getIdentifierPlaceholder(socialMedia: SocialMedia | undefined): string 
 function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
   const helps: Record<SocialMedia, string> = {
     TELEGRAM: t('channel.identifierHelpTelegram'),
-    INSTAGRAM: t('channel.identifierHelpInstagram'),
     VK: t('channel.identifierHelpVk'),
     YOUTUBE: t('channel.identifierHelpYoutube'),
     TIKTOK: t('channel.identifierHelpTiktok'),
-    X: t('channel.identifierHelpX'),
     FACEBOOK: t('channel.identifierHelpFacebook'),
     SITE: t('channel.identifierHelpSite'),
-    LINKEDIN: t('channel.identifierHelpLinkedin'),
   }
   return socialMedia ? helps[socialMedia] : t('channel.identifierHelp')
 }
