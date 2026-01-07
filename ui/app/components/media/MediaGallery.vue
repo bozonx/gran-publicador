@@ -42,6 +42,18 @@ const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
 const sourceInput = ref('')
 const filenameInput = ref('')
 const imageErrors = ref<Record<string, boolean>>({})
+
+const addMediaButtonLabel = computed(() => {
+  const types = {
+    IMAGE: t('media.type.image'),
+    VIDEO: t('media.type.video'),
+    AUDIO: t('media.type.audio'),
+    DOCUMENT: t('media.type.document'),
+  }
+  const typeText = (types[mediaType.value as keyof typeof types] || t('media.type.image')).toLowerCase()
+  return `${t('common.add', 'Добавить')} ${typeText}`
+})
+
 const isDragging = ref(false)
 const selectedMedia = ref<MediaItem | null>(null)
 const isModalOpen = ref(false)
@@ -670,12 +682,12 @@ const emit = defineEmits<Emits>()
       <!-- Add media form (URL/Telegram) -->
       <div v-if="isAddingMedia && editable" class="mt-6 p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/50 shadow-sm">
         <div class="flex items-center justify-between mb-6">
-          <div>
+          <div class="flex-1">
             <h4 class="text-base font-semibold text-gray-900 dark:text-white">
               {{ t('media.addFromUrl', 'Добавить из URL или Telegram') }}
             </h4>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {{ sourceType === 'URL' ? 'Файл будет скачан и сохранён в хранилище' : 'Укажите Telegram File ID' }}
+              {{ sourceType === 'URL' ? 'Файл будет скачан и сохранён в хранилище' : 'Можно указывать file_id только того медиа файла, который был виден боту Gran Publicador' }}
             </p>
           </div>
           <UButton
@@ -688,48 +700,58 @@ const emit = defineEmits<Emits>()
         </div>
         
         <div class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UFormGroup :label="t('media.sourceType', 'Тип источника')" required>
+          <div class="flex items-end gap-3 w-full">
+            <UFormGroup :label="t('media.sourceType', 'Источник')" required class="flex-none w-48">
               <USelectMenu
                 v-model="sourceType"
                 :items="sourceTypeOptions"
                 value-key="value"
                 label-key="label"
                 size="lg"
+                class="w-full"
+                :ui-menu="{ width: 'w-48' }"
               />
             </UFormGroup>
 
-            <UFormGroup :label="t('media.mediaType', 'Тип медиа')" required>
+            <UFormGroup :label="t('media.mediaType', 'Тип')" required class="flex-none w-48">
               <USelectMenu
                 v-model="mediaType"
                 :items="mediaTypeOptions"
                 value-key="value"
                 label-key="label"
                 size="lg"
+                class="w-full"
+                :ui-menu="{ width: 'w-48' }"
+              />
+            </UFormGroup>
+
+            <UFormGroup :label="t('media.filename', 'Имя файла')" class="flex-1">
+              <UInput
+                v-model="filenameInput"
+                placeholder="image.jpg"
+                size="lg"
+                class="w-full"
+                @keydown.enter.prevent="addMedia"
               />
             </UFormGroup>
           </div>
 
-          <UFormGroup 
-            :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
-            required
-          >
-            <UInput
-              v-model="sourceInput"
-              :placeholder="sourceType === 'URL' ? 'https://example.com/image.jpg' : 'AgACAgIAAxkBAAI...'"
-              size="lg"
-              @keydown.enter.prevent="addMedia"
-            />
-          </UFormGroup>
-
-          <UFormGroup :label="t('media.filename', 'Имя файла (необязательно)')">
-            <UInput
-              v-model="filenameInput"
-              placeholder="image.jpg"
-              size="lg"
-              @keydown.enter.prevent="addMedia"
-            />
-          </UFormGroup>
+          <div class="w-full">
+            <UFormGroup 
+              :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
+              required
+              class="w-full"
+            >
+              <UInput
+                v-model="sourceInput"
+                :placeholder="sourceType === 'URL' ? 'https://example.com/image.jpg' : 'AgACAgIAAxkBAAI...'"
+                size="lg"
+                required
+                class="w-full"
+                @keydown.enter.prevent="addMedia"
+              />
+            </UFormGroup>
+          </div>
 
           <div class="flex gap-3 pt-2">
             <UButton
@@ -740,7 +762,7 @@ const emit = defineEmits<Emits>()
               size="lg"
               icon="i-heroicons-plus"
             >
-              {{ uploadProgress ? t('media.uploading', 'Загрузка...') : t('media.add', 'Добавить медиа') }}
+              {{ uploadProgress ? t('media.uploading', 'Загрузка...') : addMediaButtonLabel }}
             </UButton>
           </div>
         </div>
