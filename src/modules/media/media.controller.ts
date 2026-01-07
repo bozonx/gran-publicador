@@ -71,11 +71,12 @@ export class MediaController {
   @Get(':id/file')
   @UseGuards(JwtOrApiTokenGuard)
   async getFile(
+    @Request() req: UnifiedAuthRequest,
     @Param('id') id: string, 
     @Res() res: FastifyReply
   ) {
     // Stream media file - res.raw is the native Node.js ServerResponse
-    return this.mediaService.streamMediaFile(id, res.raw);
+    return this.mediaService.streamMediaFile(id, res.raw, req.user.userId);
   }
 
   @Get(':id')

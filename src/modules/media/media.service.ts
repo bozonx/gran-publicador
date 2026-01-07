@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { join, normalize, basename } from 'path';
 import { mkdir, writeFile, unlink } from 'fs/promises';
@@ -11,6 +11,7 @@ import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index
 import { MediaType, MediaSourceType, Media } from '../../generated/prisma/client.js';
 import { getMediaDir } from '../../config/media.config.js';
 import type { AppConfig } from '../../config/app.config.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
 
 interface FileUpload {
   filename: string;
@@ -35,6 +36,7 @@ export class MediaService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private permissions: PermissionsService,
   ) {
     this.mediaDir = getMediaDir();
     const appConfig = this.configService.get<AppConfig>('app');
@@ -102,13 +104,72 @@ export class MediaService {
     return MediaType.DOCUMENT;
   }
 
+  /**
+   * Validate MIME types and prevent executable uploads.
+   */
+  private validateMimeType(mimetype: string, filename: string): void {
+    const lowerMime = mimetype.toLowerCase();
+    
+    // Explicit blocklist for executable and dangerous types
+    const blockedMimeTypes = [
+      'application/x-msdownload',
+      'application/x-sh',
+      'application/x-executable',
+      'application/javascript',
+      'application/x-javascript',
+      'text/javascript',
+      'application/x-php',
+      'text/x-php',
+      'application/x-python',
+      'text/x-python',
+      'application/x-perl',
+      'text/x-perl',
+      'application/x-ruby',
+      'text/x-ruby',
+    ];
+
+    if (blockedMimeTypes.includes(lowerMime)) {
+      throw new BadRequestException('Executable or script files are not allowed');
+    }
+
+    // Explicit blocklist for extensions
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const blockedExtensions = [
+      'exe', 'sh', 'bat', 'cmd', 'msi', 'php', 'pl', 'py', 'rb', 'js', 'vbs', 'bin', 'dll'
+    ];
+
+    if (ext && blockedExtensions.includes(ext)) {
+      throw new BadRequestException('Executable or script file extensions are not allowed');
+    }
+
+    // Validate type consistency
+    const inferredType = this.getMediaType(lowerMime);
+    
+    // For specific types, ensure mimetype matches
+    if (lowerMime.startsWith('image/') && inferredType !== MediaType.IMAGE) {
+       // Should not happen with getMediaType logic, but for clarity
+    }
+    
+    // For documents, we allow almost anything not blocked
+  }
+
   async create(data: CreateMediaDto): Promise<Media> {
     this.logger.debug(`Creating media record: type=${data.type}, srcType=${data.srcType}`);
     
+    // Additional validation for URL/Telegram created media?
+    // Not strictly needed for blocking execution unless we download it, but good to have
+    if (data.mimeType) {
+        // Filename might be optional, use src if not present
+        const filenameToCheck = data.filename || basename(data.src);
+        this.validateMimeType(data.mimeType, filenameToCheck);
+    }
+    
+    const { meta, ...rest } = data;
+
     return this.prisma.media.create({
       data: {
-        ...data,
-        meta: JSON.stringify(data.meta || {}),
+        ...rest,
+        meta: JSON.stringify(meta || {}),
       },
     });
   }
@@ -139,11 +200,13 @@ export class MediaService {
     }
 
     this.logger.debug(`Updating media: ${id}`);
+    const { meta, ...rest } = data;
+
     return this.prisma.media.update({
       where: { id },
       data: {
-        ...data,
-        meta: data.meta ? JSON.stringify(data.meta) : undefined
+        ...rest,
+        meta: meta ? JSON.stringify(meta) : undefined
       }
     });
   }
@@ -205,6 +268,9 @@ export class MediaService {
         `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
       );
     }
+
+    // Validate MIME type and Security
+    this.validateMimeType(file.mimetype, file.filename);
 
     const date = new Date();
     const year = date.getFullYear().toString();
@@ -270,9 +336,74 @@ export class MediaService {
   }
 
   /**
+   * Check if user interacts with media.
+   * If media is linked to a project (via publication), user must have access to that project.
+   * If media is orphaned (not linked to any publication), it is considered accessible to any authenticated user (or we could restrict to creator).
+   */
+  private async checkMediaAccess(mediaId: string, userId: string): Promise<void> {
+      // Fetch media with its publication associations
+      const media = await this.prisma.media.findUnique({
+          where: { id: mediaId },
+          include: {
+              publicationMedia: {
+                  include: {
+                      publication: {
+                          select: { projectId: true }
+                      }
+                  }
+              }
+          }
+      });
+
+      if (!media) {
+          throw new NotFoundException('Media not found');
+      }
+
+      // If media is not attached to any publication, we skip project check (orphaned media)
+      // We could add a check if user == creator if we had createdBy field, but we don't.
+      if (!media.publicationMedia || media.publicationMedia.length === 0) {
+          return;
+      }
+
+      // Collect unique project IDs
+      const projectIds = new Set<string>();
+      for (const pm of media.publicationMedia) {
+          if (pm.publication?.projectId) {
+              projectIds.add(pm.publication.projectId);
+          }
+      }
+
+      if (projectIds.size === 0) {
+          return;
+      }
+
+      // Check access for each project
+      // If user has access to AT LEAST ONE project where this media is used, allow access.
+      let hasAccess = false;
+      for (const projectId of projectIds) {
+          try {
+              await this.permissions.checkProjectAccess(projectId, userId);
+              hasAccess = true;
+              break; // Found one valid project
+          } catch (e) {
+              // Access denied for this project, checking next
+          }
+      }
+
+      if (!hasAccess) {
+          throw new ForbiddenException('You do not have permission to access this media file');
+      }
+  }
+
+  /**
    * Stream media file to response based on source type.
    */
-  async streamMediaFile(id: string, res: ServerResponse): Promise<void> {
+  async streamMediaFile(id: string, res: ServerResponse, userId?: string): Promise<void> {
+    // Check access first
+    if (userId) {
+        await this.checkMediaAccess(id, userId);
+    }
+    
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) {
       this.logger.warn(`Media not found for streaming: ${id}`);
@@ -299,7 +430,7 @@ export class MediaService {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to stream media ${id}: ${err.message}`);
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
       }
       throw new NotFoundException('Media file unavailable');

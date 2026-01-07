@@ -5,6 +5,7 @@ import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { jest } from '@jest/globals';
 import { MediaType, MediaSourceType } from '../../src/generated/prisma/client.js';
+import { PermissionsService } from '../../src/common/services/permissions.service.js';
 
 describe('MediaService (unit)', () => {
   let service: MediaService;
@@ -27,6 +28,10 @@ describe('MediaService (unit)', () => {
 
   const mockConfigService = {
     get: jest.fn() as any,
+  };
+
+  const mockPermissionsService = {
+    checkProjectAccess: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeAll(async () => {
@@ -56,6 +61,10 @@ describe('MediaService (unit)', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: PermissionsService,
+          useValue: mockPermissionsService,
         },
       ],
     }).compile();
@@ -364,6 +373,26 @@ describe('MediaService (unit)', () => {
 
       await expect(service.saveFile(file)).rejects.toThrow(BadRequestException);
       await expect(service.saveFile(file)).rejects.toThrow('File size exceeds limit');
+    });
+
+    it('should reject executable files by mime type', async () => {
+      const file = {
+        filename: 'virus.exe',
+        buffer: Buffer.from('bad'),
+        mimetype: 'application/x-msdownload',
+      };
+      await expect(service.saveFile(file)).rejects.toThrow(BadRequestException);
+      await expect(service.saveFile(file)).rejects.toThrow('Executable or script files are not allowed');
+    });
+
+    it('should reject executable files by extension', async () => {
+      const file = {
+        filename: 'script.vbS', // Mixed case check
+        buffer: Buffer.from('bad'),
+        mimetype: 'text/plain', // Mimetype might look innocent
+      };
+      await expect(service.saveFile(file)).rejects.toThrow(BadRequestException);
+      await expect(service.saveFile(file)).rejects.toThrow('Executable or script file extensions are not allowed');
     });
   });
 });
