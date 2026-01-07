@@ -578,10 +578,12 @@ const emit = defineEmits<Emits>()
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Media viewer modal -->
-    <UModal v-model="isModalOpen">
-      <div class="p-6">
+  <!-- Media viewer modal -->
+  <UModal v-model:open="isModalOpen">
+    <template #content>
+      <div class="p-6 min-w-[500px] max-w-4xl">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
@@ -596,29 +598,30 @@ const emit = defineEmits<Emits>()
         </div>
 
         <!-- Image preview -->
-        <div v-if="selectedMedia" class="mb-4">
+        <div v-if="selectedMedia" class="mb-6 flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden">
           <img
             v-if="selectedMedia.type === 'IMAGE'"
             :src="getMediaFileUrl(selectedMedia.id)"
             :alt="selectedMedia.filename || 'Media'"
-            class="w-full rounded-lg"
+            class="max-w-full max-h-[70vh] object-contain"
           />
-          <div v-else class="flex items-center justify-center h-64 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div v-else class="flex items-center justify-center h-64 w-full">
             <UIcon
               :name="getMediaIcon(selectedMedia.type)"
-              class="w-16 h-16 text-gray-400"
+              class="w-24 h-24 text-gray-400"
             />
           </div>
         </div>
 
         <!-- Metadata -->
         <div v-if="selectedMedia">
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
             {{ t('media.metadata', 'Metadata') }}
           </h4>
-          <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs font-mono text-gray-800 dark:text-gray-200">{{ formatMetadataAsYaml(selectedMedia) }}</pre>
+          <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs font-mono text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-800">{{ formatMetadataAsYaml(selectedMedia) }}</pre>
         </div>
       </div>
-    </UModal>
-  </div>
+    </template>
+  </UModal>
 </template>
