@@ -644,13 +644,13 @@ const emit = defineEmits<Emits>()
   <UModal v-model:open="isModalOpen">
     <template #content>
       <div class="p-6 min-w-[500px] max-w-4xl">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
             {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
           </h3>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 shrink-0">
             <!-- Position indicator -->
-            <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400">
+            <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
               {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
             </span>
             <UButton
