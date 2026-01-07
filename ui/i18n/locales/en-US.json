@@ -491,7 +491,8 @@
     "status": {
       "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
       "publicationTimeRequired": "Set publication time first"
-    }
+    },
+    "changeStatusWarningReset": "Warning! When changing status to 'Draft' or 'Ready', all associated posts will be reset to 'Pending' status, and their scheduled time will be cleared."
   },
   "postType": {
     "post": "Post",

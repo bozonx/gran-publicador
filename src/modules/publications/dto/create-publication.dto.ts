@@ -21,8 +21,8 @@ export class CreatePublicationDto {
   @IsOptional()
   public description?: string;
 
-  @ValidateIf((o) => o.status === PublicationStatus.READY || o.scheduledAt !== undefined)
-  @IsNotEmpty({ message: 'Content is required when status is READY or scheduledAt is set' })
+  @ValidateIf((o) => (o.status !== undefined && o.status !== PublicationStatus.DRAFT) || o.scheduledAt !== undefined)
+  @IsNotEmpty({ message: 'Content is required for non-draft publications' })
   @IsString()
   @IsOptional()
   public content?: string;

@@ -478,16 +478,26 @@ function formatDate(dateString: string | null | undefined): string {
             />
           </div>
 
-          <div class="space-y-2">
-            <UButton
-              v-for="option in userSelectableStatuses"
-              :key="option.value"
-              :label="option.label"
-              :variant="currentPublication?.status === option.value ? 'soft' : 'ghost'"
-              :color="currentPublication?.status === option.value ? 'primary' : 'neutral'"
-              class="w-full justify-start"
-              :loading="isUpdatingStatus && newStatus === option.value"
-              @click="handleUpdateStatusOption(option.value as PublicationStatus)"
+          <div class="space-y-4">
+            <div class="space-y-2">
+              <UButton
+                v-for="option in userSelectableStatuses"
+                :key="option.value"
+                :label="option.label"
+                :variant="currentPublication?.status === option.value ? 'soft' : 'ghost'"
+                :color="currentPublication?.status === option.value ? 'primary' : 'neutral'"
+                class="w-full justify-start"
+                :loading="isUpdatingStatus && newStatus === option.value"
+                @click="handleUpdateStatusOption(option.value as PublicationStatus)"
+              />
+            </div>
+            
+            <UAlert
+              color="amber"
+              variant="soft"
+              icon="i-heroicons-exclamation-triangle"
+              :description="t('publication.changeStatusWarningReset')"
+              class="mt-4"
             />
           </div>
         </div>
