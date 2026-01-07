@@ -470,7 +470,7 @@ const emit = defineEmits<Emits>()
             :class="[
               'shrink-0 w-48 h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group',
               isDropZoneActive 
-                ? 'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 scale-105' 
+                ? 'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20' 
                 : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
             ]"
             @click="triggerFileInput"
@@ -608,11 +608,11 @@ const emit = defineEmits<Emits>()
 
               <!-- Filename overlay for images -->
               <div
-                v-if="item.media?.type === 'IMAGE' && item.media?.filename"
+                v-if="item.media?.type === 'IMAGE'"
                 class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <p class="text-xs text-white truncate">
-                  {{ item.media.filename }}
+                  {{ item.media.srcType }} • {{ formatSizeMB(item.media.sizeBytes) }}
                 </p>
               </div>
             </div>
@@ -700,7 +700,7 @@ const emit = defineEmits<Emits>()
   <!-- Media viewer modal -->
   <UModal v-model:open="isModalOpen">
     <template #content>
-      <div class="flex flex-col min-w-[500px] max-w-4xl max-h-[90vh]">
+      <div class="flex flex-col min-w-[500px] max-w-7xl max-h-[90vh]">
         <!-- Fixed header -->
         <div class="p-6 pb-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
           <div class="flex items-center justify-between gap-4">
