@@ -243,7 +243,24 @@ const channelOptions = computed(() => {
 })
 
 // Status options
-const statusOptions = computed(() => getUserSelectableStatuses(t))
+const displayStatusOptions = computed(() => {
+    const options = [
+        { value: 'DRAFT', label: t('publicationStatus.draft') },
+        { value: 'READY', label: t('publicationStatus.ready') }
+    ]
+    
+    // If we are in edit mode and the status is some system status, add it as a 3rd option
+    if (isEditMode.value && state.status !== 'DRAFT' && state.status !== 'READY') {
+        const fullOption = statusOptions.value.find(s => s.value === state.status)
+        options.push({
+            value: state.status,
+            label: fullOption?.label || state.status,
+            isSystem: true
+        } as any)
+    }
+    
+    return options
+})
 
 const isScheduledStatus = computed(() => state.status === 'SCHEDULED')
 
@@ -456,14 +473,31 @@ function toggleChannel(channelId: string) {
                      </UBadge>
                  </UTooltip>
              </div>
-             <USelectMenu
-                 v-else
-                 v-model="state.status"
-                 :items="statusOptions"
-                 value-key="value"
-                 label-key="label"
-                 class="w-full"
-             />
+             <div v-else>
+               <div class="flex items-center gap-2">
+                 <UButtonGroup orientation="horizontal" size="sm" class="shadow-sm">
+                     <UButton
+                       v-for="option in displayStatusOptions"
+                       :key="option.value"
+                       :label="option.label"
+                       :color="state.status === option.value ? ((option as any).isSystem ? 'warning' : 'primary') : 'neutral'"
+                       :variant="state.status === option.value ? 'solid' : 'soft'"
+                       :disabled="(option.value === 'READY' && (!state.content || state.content.trim() === '') && state.status === 'DRAFT') || ((option as any).isSystem && state.status === option.value)"
+                       class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
+                       @click="state.status = option.value as any"
+                     />
+                 </UButtonGroup>
+                 
+                 <UPopover :popper="{ placement: 'top' }">
+                    <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                    <template #content>
+                        <div class="p-3 max-w-xs text-xs whitespace-pre-line">
+                            {{ t('publication.changeStatusWarningReset') }}
+                        </div>
+                    </template>
+                 </UPopover>
+               </div>
+             </div>
           </UFormField>
 
            <!-- Scheduling -->

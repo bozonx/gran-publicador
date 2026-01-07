@@ -5,7 +5,7 @@ export interface StatusOption {
 
 export function getUserSelectableStatuses(t: (key: string) => string): StatusOption[] {
   return [
-    { value: 'DRAFT', label: t('publications.status.draft') },
-    { value: 'READY', label: t('publications.status.ready') }
+    { value: 'DRAFT', label: t('publicationStatus.draft') },
+    { value: 'READY', label: t('publicationStatus.ready') }
   ];
 }

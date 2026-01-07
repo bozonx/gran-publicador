@@ -219,15 +219,29 @@ const { typeOptions } = usePosts()
 
 const isLanguageModalOpen = ref(false)
 const isTypeModalOpen = ref(false)
-const isStatusModalOpen = ref(false)
 const newLanguage = ref('')
 const newPostType = ref<PostType>('POST')
-const newStatus = ref<PublicationStatus>('DRAFT')
 const isUpdatingLanguage = ref(false)
 const isUpdatingType = ref(false)
-const isUpdatingStatus = ref(false)
 
 const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
+
+const displayStatusOptions = computed(() => {
+    const options = [
+        { value: 'DRAFT', label: t('publicationStatus.draft') },
+        { value: 'READY', label: t('publicationStatus.ready') }
+    ]
+    
+    if (currentPublication.value && !['DRAFT', 'READY'].includes(currentPublication.value.status)) {
+        options.push({
+            value: currentPublication.value.status,
+            label: statusOptions.value.find(s => s.value === currentPublication.value?.status)?.label || currentPublication.value.status,
+            isSystem: true
+        } as any)
+    }
+    
+    return options
+})
 
 function openLanguageModal() {
     if (!currentPublication.value) return
@@ -275,17 +289,25 @@ async function handleUpdateTypeOption(type: PostType) {
     }
 }
 
-function openStatusModal() {
-    if (!currentPublication.value) return
-    isStatusModalOpen.value = true
-}
+const newStatus = ref<PublicationStatus>('DRAFT')
+const isUpdatingStatus = ref(false)
 
 async function handleUpdateStatusOption(status: PublicationStatus) {
     if (!currentPublication.value) return
     if (currentPublication.value.status === status) {
-        isStatusModalOpen.value = false
         return
     }
+    
+    // Check content requirement for READY status
+    if (status === 'READY' && isContentEmpty.value) {
+        toast.add({
+            title: t('common.error'),
+            description: t('publication.validation.contentRequired'),
+            color: 'error'
+        })
+        return
+    }
+
     newStatus.value = status
     isUpdatingStatus.value = true
     try {
@@ -293,7 +315,6 @@ async function handleUpdateStatusOption(status: PublicationStatus) {
             status: status
         })
         toast.add({ title: t('common.success'), color: 'success' })
-        isStatusModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
     } finally {
         isUpdatingStatus.value = false
@@ -458,51 +479,7 @@ function formatDate(dateString: string | null | undefined): string {
       </template>
     </UModal>
 
-    <!-- Status Change Modal -->
-    <UModal v-model:open="isStatusModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3 text-gray-900 dark:text-white">
-              <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-primary-500"></UIcon>
-              <h3 class="text-lg font-medium">
-                {{ t('publication.changeStatus') }}
-              </h3>
-            </div>
-            <UButton
-              icon="i-heroicons-x-mark"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              @click="isStatusModalOpen = false"
-            />
-          </div>
-
-          <div class="space-y-4">
-            <div class="space-y-2">
-              <UButton
-                v-for="option in userSelectableStatuses"
-                :key="option.value"
-                :label="option.label"
-                :variant="currentPublication?.status === option.value ? 'soft' : 'ghost'"
-                :color="currentPublication?.status === option.value ? 'primary' : 'neutral'"
-                class="w-full justify-start"
-                :loading="isUpdatingStatus && newStatus === option.value"
-                @click="handleUpdateStatusOption(option.value as PublicationStatus)"
-              />
-            </div>
-            
-            <UAlert
-              color="amber"
-              variant="soft"
-              icon="i-heroicons-exclamation-triangle"
-              :description="t('publication.changeStatusWarningReset')"
-              class="mt-4"
-            />
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <!-- Status Change Modal removed in favor of button group -->
 
     <!-- Back button -->
     <div class="mb-6">
@@ -645,22 +622,31 @@ function formatDate(dateString: string | null | undefined): string {
                     <div class="space-y-4">
                         <!-- Status -->
                         <div>
-                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
                                 {{ t('post.status') }}
+                                <UPopover :popper="{ placement: 'top' }">
+                                    <UIcon name="i-heroicons-information-circle" class="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                                    <template #content>
+                                        <div class="p-3 max-w-xs text-xs whitespace-pre-line">
+                                            {{ t('publication.changeStatusWarningReset') }}
+                                        </div>
+                                    </template>
+                                </UPopover>
                             </div>
                             <div class="flex items-center gap-2">
-                                <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400" />
-                                <span class="text-gray-900 dark:text-white font-medium text-base">
-                                    {{ statusOptions.find(s => s.value === currentPublication?.status)?.label || currentPublication?.status }}
-                                </span>
-                                <UButton
-                                    icon="i-heroicons-pencil-square"
-                                    variant="ghost"
-                                    color="neutral"
-                                    size="xs"
-                                    class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                    @click="openStatusModal"
-                                />
+                                <UButtonGroup orientation="horizontal" size="sm" class="shadow-sm">
+                                    <UButton
+                                        v-for="option in displayStatusOptions"
+                                        :key="option.value"
+                                        :label="option.label"
+                                        :color="currentPublication?.status === option.value ? ((option as any).isSystem ? 'warning' : 'primary') : 'neutral'"
+                                        :variant="currentPublication?.status === option.value ? 'solid' : 'soft'"
+                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentEmpty && currentPublication?.status === 'DRAFT')"
+                                        class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
+                                        :loading="isUpdatingStatus && newStatus === option.value"
+                                        @click="handleUpdateStatusOption(option.value as PublicationStatus)"
+                                    />
+                                </UButtonGroup>
                             </div>
                         </div>
 
