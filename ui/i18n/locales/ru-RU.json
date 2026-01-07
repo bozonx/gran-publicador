@@ -541,7 +541,9 @@
     "reorderError": "Ошибка изменения порядка медиа",
     "loadError": "Файл недоступен",
     "addFromUrl": "Добавить из URL или Telegram",
-    "dropHere": "Перетащите файл сюда"
+    "dropHere": "Перетащите файл сюда",
+    "preview": "Просмотр",
+    "metadata": "Метаданные"
   },
   "postType": {
     "post": "Пост",

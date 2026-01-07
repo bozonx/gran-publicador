@@ -11,7 +11,9 @@ interface MediaItem {
   filename?: string
   mimeType?: string
   sizeBytes?: number
+  meta?: Record<string, any>
 }
+
 
 interface Props {
   media: Array<{
@@ -40,6 +42,8 @@ const sourceInput = ref('')
 const filenameInput = ref('')
 const imageErrors = ref<Record<string, boolean>>({})
 const isDragging = ref(false)
+const selectedMedia = ref<MediaItem | null>(null)
+const isModalOpen = ref(false)
 
 // Create a local reactive copy of media for drag and drop
 const localMedia = ref([...props.media])
@@ -276,6 +280,53 @@ async function handleDrop(event: DragEvent) {
   }
 }
 
+function openMediaModal(media: MediaItem) {
+  selectedMedia.value = media
+  isModalOpen.value = true
+}
+
+function closeMediaModal() {
+  isModalOpen.value = false
+  selectedMedia.value = null
+}
+
+function formatMetadataAsYaml(media: MediaItem): string {
+  const metadata: Record<string, any> = {
+    id: media.id,
+    type: media.type,
+    srcType: media.srcType,
+    src: media.src,
+  }
+  
+  if (media.filename) metadata.filename = media.filename
+  if (media.mimeType) metadata.mimeType = media.mimeType
+  if (media.sizeBytes) metadata.sizeBytes = media.sizeBytes
+  if (media.meta && Object.keys(media.meta).length > 0) metadata.meta = media.meta
+  
+  // Simple YAML formatter
+  const format = (val: any, indent = 0): string => {
+    if (val === null) return 'null'
+    if (val === undefined) return 'undefined'
+    if (typeof val !== 'object') return String(val)
+    
+    const spaces = '  '.repeat(indent)
+    const nextSpaces = '  '.repeat(indent + 1)
+    
+    if (Array.isArray(val)) {
+      if (val.length === 0) return '[]'
+      return val.map(item => `\n${spaces}- ${format(item, indent + 1)}`).join('')
+    }
+    
+    const entries = Object.entries(val)
+    if (entries.length === 0) return '{}'
+    return entries.map(([k, v]) => `\n${nextSpaces}${k}: ${format(v, indent + 1)}`).join('')
+  }
+
+  return Object.entries(metadata)
+    .map(([key, value]) => `${key}: ${format(value, 0)}`)
+    .join('\n')
+}
+
 interface Emits {
   (e: 'refresh'): void
 }
@@ -373,7 +424,8 @@ const emit = defineEmits<Emits>()
               <!-- Image preview with error handling -->
               <div
                 v-if="item.media?.type === 'IMAGE' && !imageErrors[item.media.id]"
-                class="w-full h-full"
+                class="w-full h-full cursor-pointer"
+                @click="openMediaModal(item.media)"
               >
                 <img
                   :src="getMediaFileUrl(item.media.id)"
@@ -386,7 +438,8 @@ const emit = defineEmits<Emits>()
               <!-- Icon for other types or failed images -->
               <div
                 v-else
-                class="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
+                class="w-full h-full flex flex-col items-center justify-center gap-2 p-4 cursor-pointer"
+                @click="item.media && openMediaModal(item.media)"
               >
                 <UIcon
                   :name="imageErrors[item.media?.id || ''] ? 'i-heroicons-exclamation-triangle' : getMediaIcon(item.media?.type || '')"
@@ -525,5 +578,47 @@ const emit = defineEmits<Emits>()
         </div>
       </div>
     </div>
+
+    <!-- Media viewer modal -->
+    <UModal v-model="isModalOpen">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
+          </h3>
+          <UButton
+            icon="i-heroicons-x-mark"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            @click="closeMediaModal"
+          />
+        </div>
+
+        <!-- Image preview -->
+        <div v-if="selectedMedia" class="mb-4">
+          <img
+            v-if="selectedMedia.type === 'IMAGE'"
+            :src="getMediaFileUrl(selectedMedia.id)"
+            :alt="selectedMedia.filename || 'Media'"
+            class="w-full rounded-lg"
+          />
+          <div v-else class="flex items-center justify-center h-64 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <UIcon
+              :name="getMediaIcon(selectedMedia.type)"
+              class="w-16 h-16 text-gray-400"
+            />
+          </div>
+        </div>
+
+        <!-- Metadata -->
+        <div v-if="selectedMedia">
+          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {{ t('media.metadata', 'Metadata') }}
+          </h4>
+          <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs font-mono text-gray-800 dark:text-gray-200">{{ formatMetadataAsYaml(selectedMedia) }}</pre>
+        </div>
+      </div>
+    </UModal>
   </div>
 </template>

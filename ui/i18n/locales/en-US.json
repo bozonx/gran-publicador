@@ -494,6 +494,38 @@
     },
     "changeStatusWarningReset": "Warning! When changing status to 'Draft' or 'Ready', all associated posts will be reset to 'Pending' status, and their scheduled time will be cleared."
   },
+  "media": {
+    "type": {
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio",
+      "document": "Document"
+    },
+    "sourceType": {
+      "upload": "Upload File"
+    },
+    "mediaType": "Media Type",
+    "filename": "Filename (optional)",
+    "add": "Add Media",
+    "noMedia": "No media files",
+    "chooseFile": "Choose File",
+    "uploadSuccess": "File uploaded successfully",
+    "uploadError": "Failed to upload file",
+    "uploading": "Uploading...",
+    "uploadFile": "Upload File",
+    "orAddUrl": "or add URL",
+    "addSuccess": "Media added successfully",
+    "addError": "Failed to add media",
+    "removeSuccess": "Media removed successfully",
+    "removeError": "Failed to remove media",
+    "reorderSuccess": "Media reordered successfully",
+    "reorderError": "Failed to reorder media",
+    "loadError": "File unavailable",
+    "addFromUrl": "Add from URL or Telegram",
+    "dropHere": "Drop file here",
+    "preview": "Preview",
+    "metadata": "Metadata"
+  },
   "postType": {
     "post": "Post",
     "article": "Article",
