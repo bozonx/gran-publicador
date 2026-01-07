@@ -397,7 +397,13 @@ onUnmounted(() => {
 })
 
 function formatMetadataAsYaml(media: MediaItem): string {
-  return yaml.dump(media.meta || {})
+  if (!media.meta || Object.keys(media.meta).length === 0) return ''
+  return yaml.dump(media.meta)
+}
+
+function formatSizeMB(bytes?: number): string {
+  if (!bytes) return '0 MB'
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
 function downloadMediaFile(media: MediaItem) {
@@ -732,36 +738,30 @@ const emit = defineEmits<Emits>()
         </div>
 
         <!-- Metadata -->
-        <div v-if="selectedMedia">
+        <div v-if="selectedMedia" class="w-full">
           <!-- Read-only fields -->
-          <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono">
-            <div class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">id:</span>
+          <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono overflow-x-auto">
+            <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+              <span class="text-gray-500 shrink-0">type:</span>
+              <span class="text-gray-900 dark:text-gray-200">
+                {{ selectedMedia.srcType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
+              </span>
+            </div>
+            <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+              <span class="text-gray-500 shrink-0">size:</span>
+              <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+              <span class="text-gray-500 shrink-0">src:</span>
+              <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.src }}</span>
+            </div>
+            <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+              <span class="text-gray-500 shrink-0">filename:</span>
+              <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.filename }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+              <span class="text-gray-500 shrink-0">id:</span>
               <span class="text-gray-900 dark:text-gray-200 truncate">{{ selectedMedia.id }}</span>
-            </div>
-            <div class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">type:</span>
-              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.type }}</span>
-            </div>
-            <div class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">srcType:</span>
-              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.srcType }}</span>
-            </div>
-            <div class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">src:</span>
-              <span class="text-gray-900 dark:text-gray-200 break-all">{{ selectedMedia.src }}</span>
-            </div>
-            <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">filename:</span>
-              <span class="text-gray-900 dark:text-gray-200 truncate">{{ selectedMedia.filename }}</span>
-            </div>
-            <div v-if="selectedMedia.mimeType" class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">mimeType:</span>
-              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.mimeType }}</span>
-            </div>
-            <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2">
-              <span class="text-gray-500">sizeBytes:</span>
-              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.sizeBytes }}</span>
             </div>
           </div>
 
@@ -794,12 +794,11 @@ const emit = defineEmits<Emits>()
               </UButton>
             </div>
           </div>
-          <UTextarea
+          
+          <CommonYamlEditor
             v-model="editableMetadata"
-            :rows="6"
             :disabled="!editable"
-            class="font-mono text-xs"
-            @input="handleMetadataChange($event.target.value)"
+            :rows="6"
           />
         </div>
       </div>
