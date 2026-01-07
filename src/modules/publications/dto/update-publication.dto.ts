@@ -82,7 +82,7 @@ export class UpdatePublicationDto {
   @Type(() => Date)
   @IsDate()
   @IsOptional()
-  public scheduledAt?: Date;
+  public scheduledAt?: Date | null;
 
   @IsEnum(PostType)
   @IsOptional()

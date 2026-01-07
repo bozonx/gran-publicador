@@ -683,7 +683,7 @@ export class PublicationsService {
       }
 
       // Reset scheduledAt
-      data.scheduledAt = undefined;
+      data.scheduledAt = null;
 
       // Reset all posts to PENDING
       await this.prisma.post.updateMany({
