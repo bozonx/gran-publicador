@@ -136,6 +136,39 @@ export class PublicationsService {
   }
 
   /**
+   * Parse meta JSON string to object, handling nested JSON strings.
+   */
+  private parseMetaJson(meta: string | null | undefined): Record<string, any> {
+    if (!meta) return {};
+    
+    try {
+      let parsed = JSON.parse(meta);
+      
+      // Handle case where meta is double-encoded (e.g., '"{\"key\":\"value\"}"')
+      const maxDepth = 5;
+      let depth = 0;
+      while (typeof parsed === 'string' && depth < maxDepth) {
+        try {
+          const trimmed = parsed.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+              (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            parsed = JSON.parse(parsed);
+            depth++;
+          } else {
+            break;
+          }
+        } catch {
+          break;
+        }
+      }
+      
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Create a new publication.
    * If userId is provided, it checks if the user has access to the project.
    * If userId is not provided, it assumes a system call or external integration (skipped permission check).
@@ -578,7 +611,26 @@ export class PublicationsService {
       });
     }
 
-    return { ...publication, translations };
+    // Parse meta JSON for media items
+    const parsedMedia = publication.media?.map(pm => ({
+      ...pm,
+      media: pm.media ? {
+        ...pm.media,
+        meta: this.parseMetaJson(pm.media.meta),
+      } : pm.media,
+      mediaGroup: pm.mediaGroup ? {
+        ...pm.mediaGroup,
+        items: pm.mediaGroup.items?.map(item => ({
+          ...item,
+          media: item.media ? {
+            ...item.media,
+            meta: this.parseMetaJson(item.media.meta),
+          } : item.media,
+        })),
+      } : pm.mediaGroup,
+    }));
+
+    return { ...publication, media: parsedMedia, translations };
   }
 
   /**

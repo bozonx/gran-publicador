@@ -153,7 +153,7 @@ export class MediaService {
     // For documents, we allow almost anything not blocked
   }
 
-  async create(data: CreateMediaDto): Promise<Media> {
+  async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
     this.logger.debug(`Creating media record: type=${data.type}, srcType=${data.srcType}`);
     
     // Additional validation for URL/Telegram created media?
@@ -166,12 +166,17 @@ export class MediaService {
     
     const { meta, ...rest } = data;
 
-    return this.prisma.media.create({
+    const created = await this.prisma.media.create({
       data: {
         ...rest,
         meta: JSON.stringify(meta || {}),
       },
     });
+    
+    return {
+      ...created,
+      meta: meta || {},
+    };
   }
 
   async findAll(): Promise<Media[]> {
@@ -192,7 +197,7 @@ export class MediaService {
     };
   }
 
-  async update(id: string, data: UpdateMediaDto): Promise<Media> {
+  async update(id: string, data: UpdateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) {
       this.logger.warn(`Media not found for update: ${id}`);
@@ -202,13 +207,18 @@ export class MediaService {
     this.logger.debug(`Updating media: ${id}`);
     const { meta, ...rest } = data;
 
-    return this.prisma.media.update({
+    const updated = await this.prisma.media.update({
       where: { id },
       data: {
         ...rest,
         meta: meta ? JSON.stringify(meta) : undefined
       }
     });
+    
+    return {
+      ...updated,
+      meta: JSON.parse(updated.meta) as Record<string, any>,
+    };
   }
 
   async remove(id: string): Promise<Media> {
