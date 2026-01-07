@@ -2,6 +2,7 @@
 import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
+import yaml from 'js-yaml'
 
 interface MediaItem {
   id: string
@@ -44,6 +45,8 @@ const imageErrors = ref<Record<string, boolean>>({})
 const isDragging = ref(false)
 const selectedMedia = ref<MediaItem | null>(null)
 const isModalOpen = ref(false)
+const editableMetadata = ref('')
+const isSavingMeta = ref(false)
 
 // Create a local reactive copy of media for drag and drop
 const localMedia = ref([...props.media])
@@ -121,6 +124,48 @@ async function handleFileUpload(event: Event) {
   } finally {
     uploadProgress.value = false
   }
+}
+
+const { updateMedia } = useMedia()
+
+async function saveMediaMeta() {
+  if (!selectedMedia.value) return
+
+  isSavingMeta.value = true
+  try {
+    const parsedMeta = yaml.load(editableMetadata.value) as Record<string, any>
+    
+    if (typeof parsedMeta !== 'object' || Array.isArray(parsedMeta)) {
+      throw new Error(t('validation.invalidYaml', 'Must be a valid YAML object'))
+    }
+
+    const updated = await updateMedia(selectedMedia.value.id, {
+      meta: parsedMeta
+    })
+
+    // Update local state
+    selectedMedia.value.meta = updated.meta
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('common.saveSuccess', 'Saved successfully'),
+      color: 'success',
+    })
+    
+    emit('refresh')
+  } catch (error: any) {
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('common.saveError', 'Failed to save'),
+      color: 'error',
+    })
+  } finally {
+    isSavingMeta.value = false
+  }
+}
+
+function handleMetadataChange(newValue: string) {
+  editableMetadata.value = newValue
 }
 
 async function addMedia() {
@@ -296,6 +341,7 @@ const hasNextMedia = computed(() => {
 
 function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
+  editableMetadata.value = formatMetadataAsYaml(media)
   isModalOpen.value = true
 }
 
@@ -351,40 +397,21 @@ onUnmounted(() => {
 })
 
 function formatMetadataAsYaml(media: MediaItem): string {
-  const metadata: Record<string, any> = {
-    id: media.id,
-    type: media.type,
-    srcType: media.srcType,
-    src: media.src,
-  }
-  
-  if (media.filename) metadata.filename = media.filename
-  if (media.mimeType) metadata.mimeType = media.mimeType
-  if (media.sizeBytes) metadata.sizeBytes = media.sizeBytes
-  if (media.meta && Object.keys(media.meta).length > 0) metadata.meta = media.meta
-  
-  // Simple YAML formatter
-  const format = (val: any, indent = 0): string => {
-    if (val === null) return 'null'
-    if (val === undefined) return 'undefined'
-    if (typeof val !== 'object') return String(val)
-    
-    const spaces = '  '.repeat(indent)
-    const nextSpaces = '  '.repeat(indent + 1)
-    
-    if (Array.isArray(val)) {
-      if (val.length === 0) return '[]'
-      return val.map(item => `\n${spaces}- ${format(item, indent + 1)}`).join('')
-    }
-    
-    const entries = Object.entries(val)
-    if (entries.length === 0) return '{}'
-    return entries.map(([k, v]) => `\n${nextSpaces}${k}: ${format(v, indent + 1)}`).join('')
-  }
+  return yaml.dump(media.meta || {})
+}
 
-  return Object.entries(metadata)
-    .map(([key, value]) => `${key}: ${format(value, 0)}`)
-    .join('\n')
+function downloadMediaFile(media: MediaItem) {
+  const url = getMediaFileUrl(media.id)
+  const filename = media.filename || `media_${media.id}`
+  
+  // Create a temporary anchor element to trigger download
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.target = '_blank'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 interface Emits {
@@ -706,11 +733,74 @@ const emit = defineEmits<Emits>()
 
         <!-- Metadata -->
         <div v-if="selectedMedia">
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-            {{ t('media.metadata', 'Metadata') }}
-          </h4>
-          <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs font-mono text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-800">{{ formatMetadataAsYaml(selectedMedia) }}</pre>
+          <!-- Read-only fields -->
+          <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono">
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">id:</span>
+              <span class="text-gray-900 dark:text-gray-200 truncate">{{ selectedMedia.id }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">type:</span>
+              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.type }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">srcType:</span>
+              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.srcType }}</span>
+            </div>
+            <div class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">src:</span>
+              <span class="text-gray-900 dark:text-gray-200 break-all">{{ selectedMedia.src }}</span>
+            </div>
+            <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">filename:</span>
+              <span class="text-gray-900 dark:text-gray-200 truncate">{{ selectedMedia.filename }}</span>
+            </div>
+            <div v-if="selectedMedia.mimeType" class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">mimeType:</span>
+              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.mimeType }}</span>
+            </div>
+            <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2">
+              <span class="text-gray-500">sizeBytes:</span>
+              <span class="text-gray-900 dark:text-gray-200">{{ selectedMedia.sizeBytes }}</span>
+            </div>
+          </div>
+
+          <!-- Description and download button -->
+          <div class="flex items-center justify-between mb-2 px-1">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
+              {{ t('media.metadata', 'Metadata') }} (YAML)
+            </h4>
+            <div class="flex items-center gap-2">
+              <UButton
+                icon="i-heroicons-arrow-down-tray"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                @click="downloadMediaFile(selectedMedia)"
+              >
+                {{ t('media.download', 'Download') }}
+              </UButton>
+              <UButton
+                v-if="editable"
+                icon="i-heroicons-check"
+                variant="solid"
+                color="primary"
+                size="sm"
+                :loading="isSavingMeta"
+                @click="saveMediaMeta"
+              >
+                {{ t('common.save', 'Save') }}
+              </UButton>
+            </div>
+          </div>
+          <UTextarea
+            v-model="editableMetadata"
+            :rows="6"
+            :disabled="!editable"
+            class="font-mono text-xs"
+            @input="handleMetadataChange($event.target.value)"
+          />
         </div>
       </div>
     </template>

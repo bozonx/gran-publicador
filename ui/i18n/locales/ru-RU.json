@@ -47,6 +47,7 @@
     "language": "Язык",
     "showArchived": "Показать архивные",
     "hideArchived": "Скрыть архивные",
+    "saveSuccess": "Успешно сохранено",
     "saveError": "Ошибка сохранения",
     "stay": "Остаться",
     "leave": "Уйти без сохранения",
@@ -543,7 +544,8 @@
     "addFromUrl": "Добавить из URL или Telegram",
     "dropHere": "Перетащите файл сюда",
     "preview": "Просмотр",
-    "metadata": "Метаданные"
+    "metadata": "Метаданные",
+    "download": "Скачать"
   },
   "postType": {
     "post": "Пост",

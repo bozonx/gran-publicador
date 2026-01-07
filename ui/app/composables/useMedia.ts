@@ -114,6 +114,19 @@ export function useMedia() {
     }
   }
 
+  async function updateMedia(id: string, data: Partial<CreateMediaInput>): Promise<MediaItem> {
+    isLoading.value = true
+    error.value = null
+    try {
+      return await api.patch<MediaItem>(`/media/${id}`, data)
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update media'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function reorderMediaInPublication(
     publicationId: string, 
     media: Array<{ id: string; order: number }>
@@ -138,6 +151,7 @@ export function useMedia() {
     fetchMedia,
     deleteMedia,
     uploadMedia,
+    updateMedia,
     addMediaToPublication,
     removeMediaFromPublication,
     reorderMediaInPublication,

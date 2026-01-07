@@ -47,6 +47,7 @@
     "language": "Language",
     "showArchived": "Show Archived",
     "hideArchived": "Hide Archived",
+    "saveSuccess": "Saved successfully",
     "saveError": "Failed to save",
     "stay": "Stay",
     "leave": "Leave without saving",
@@ -524,7 +525,8 @@
     "addFromUrl": "Add from URL or Telegram",
     "dropHere": "Drop file here",
     "preview": "Preview",
-    "metadata": "Metadata"
+    "metadata": "Metadata",
+    "download": "Download"
   },
   "postType": {
     "post": "Post",
