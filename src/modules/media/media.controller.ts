@@ -9,15 +9,13 @@ import {
   Req, 
   Res, 
   BadRequestException,
-  UseGuards,
-  Request
+  UseGuards
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { MultipartFile } from '@fastify/multipart';
 import { MediaService } from './media.service.js';
 import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
-import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 
 @Controller('media')
 export class MediaController {
@@ -69,14 +67,12 @@ export class MediaController {
   }
 
   @Get(':id/file')
-  @UseGuards(JwtOrApiTokenGuard)
   async getFile(
-    @Request() req: UnifiedAuthRequest,
     @Param('id') id: string, 
     @Res() res: FastifyReply
   ) {
     // Stream media file - res.raw is the native Node.js ServerResponse
-    return this.mediaService.streamMediaFile(id, res.raw, req.user.userId);
+    return this.mediaService.streamMediaFile(id, res.raw);
   }
 
   @Get(':id')
