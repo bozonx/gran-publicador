@@ -216,6 +216,66 @@ function handleDragStart() {
   isDragging.value = true
 }
 
+// Drag and drop file upload handlers
+const isDropZoneActive = ref(false)
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  isDropZoneActive.value = true
+}
+
+function handleDragLeave(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  isDropZoneActive.value = false
+}
+
+async function handleDrop(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  isDropZoneActive.value = false
+
+  const files = event.dataTransfer?.files
+  if (!files || files.length === 0) return
+
+  const file = files[0]
+  if (!file) return
+  
+  uploadProgress.value = true
+  try {
+    const uploadedMedia = await uploadMedia(file)
+    
+    const newMedia: CreateMediaInput = {
+      type: uploadedMedia.type,
+      srcType: uploadedMedia.srcType,
+      src: uploadedMedia.src,
+      filename: uploadedMedia.filename,
+      mimeType: uploadedMedia.mimeType,
+      sizeBytes: uploadedMedia.sizeBytes,
+    }
+
+    await addMediaToPublication(props.publicationId, [newMedia])
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('media.uploadSuccess', 'File uploaded successfully'),
+      color: 'success',
+    })
+    
+    // Emit event to refresh publication data
+    emit('refresh')
+  } catch (error: any) {
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('media.uploadError', 'Failed to upload file'),
+      color: 'error',
+    })
+  } finally {
+    uploadProgress.value = false
+  }
+}
+
 interface Emits {
   (e: 'refresh'): void
 }
@@ -239,8 +299,16 @@ const emit = defineEmits<Emits>()
           <!-- Upload button card (always first) -->
           <div
             v-if="editable"
-            class="shrink-0 w-48 h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-3 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
+            :class="[
+              'shrink-0 w-48 h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group',
+              isDropZoneActive 
+                ? 'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 scale-105' 
+                : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+            ]"
             @click="triggerFileInput"
+            @dragover="handleDragOver"
+            @dragleave="handleDragLeave"
+            @drop="handleDrop"
           >
             <input
               ref="fileInput"
@@ -249,13 +317,32 @@ const emit = defineEmits<Emits>()
               @change="handleFileUpload"
             />
             <UIcon
-              name="i-heroicons-arrow-up-tray"
-              class="w-8 h-8 text-gray-400 group-hover:text-primary-500 transition-colors"
+              :name="isDropZoneActive ? 'i-heroicons-arrow-down-tray' : 'i-heroicons-arrow-up-tray'"
+              :class="[
+                'w-8 h-8 transition-colors',
+                isDropZoneActive 
+                  ? 'text-primary-500 dark:text-primary-400' 
+                  : 'text-gray-400 group-hover:text-primary-500'
+              ]"
             ></UIcon>
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-primary-500 transition-colors">
-              {{ uploadProgress || isUploading ? t('media.uploading', 'Uploading...') : t('media.uploadFile', 'Upload File') }}
+            <span 
+              :class="[
+                'text-sm font-medium transition-colors text-center px-2',
+                isDropZoneActive
+                  ? 'text-primary-600 dark:text-primary-400'
+                  : 'text-gray-600 dark:text-gray-400 group-hover:text-primary-500'
+              ]"
+            >
+              {{ 
+                uploadProgress || isUploading 
+                  ? t('media.uploading', 'Uploading...') 
+                  : isDropZoneActive
+                    ? t('media.dropHere', 'Drop file here')
+                    : t('media.uploadFile', 'Upload File') 
+              }}
             </span>
             <UButton
+              v-if="!isDropZoneActive"
               variant="ghost"
               size="xs"
               color="neutral"

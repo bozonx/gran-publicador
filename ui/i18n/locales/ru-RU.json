@@ -540,7 +540,8 @@
     "reorderSuccess": "Порядок медиа успешно изменен",
     "reorderError": "Ошибка изменения порядка медиа",
     "loadError": "Файл недоступен",
-    "addFromUrl": "Добавить из URL или Telegram"
+    "addFromUrl": "Добавить из URL или Telegram",
+    "dropHere": "Перетащите файл сюда"
   },
   "postType": {
     "post": "Пост",
