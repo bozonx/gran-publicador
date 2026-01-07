@@ -152,34 +152,58 @@ export class PublicationsService {
 
     let translationGroupId = data.translationGroupId;
 
+    // Handle linking to an existing publication
     if (data.linkToPublicationId) {
-      // Logic to link to an existing publication
-      // We must verify access to the target publication first
-      // Assuming findOne checks access if userId is provided
-      try {
-        const targetPub = await this.findOne(data.linkToPublicationId, userId || ''); // If no userId, system bypass? findOne requires userId. 
-        // If system call (no userId), we might need a bypass. 
-        // But create says "If userId is provided...". If not provided, skip check.
-        // For simplicity, let's assume if userId provided we assume we can read target.
-        // Actually findOne throws if not found/no access.
+      // 1. Fetch target publication
+      const targetPub = await this.prisma.publication.findUnique({
+        where: { id: data.linkToPublicationId },
+      });
 
-        if (targetPub) {
-          if (targetPub.translationGroupId) {
-            translationGroupId = targetPub.translationGroupId;
-          } else {
-            translationGroupId = randomUUID();
-            // Update target
-            await this.prisma.publication.update({
-              where: { id: targetPub.id },
-              data: { translationGroupId },
-            });
-          }
-        }
-      } catch (e) {
-        // If target not found or no access, ignore linking? or throw?
-        // Let's log and ignore to not break creation, or better throw?
-        // Throwing is safer.
-        throw new NotFoundException(`Target publication for linking not found or inaccessible`);
+      if (!targetPub) {
+        throw new NotFoundException(`Target publication for linking not found`);
+      }
+
+      // 2. Validate Access (if user context provided)
+      if (userId) {
+        await this.permissions.checkProjectAccess(targetPub.projectId, userId);
+      }
+
+      // 3. Validate Project Scope (Issue 2)
+      if (targetPub.projectId !== data.projectId) {
+        throw new BadRequestException('Cannot link publications from different projects');
+      }
+
+      // 4. Validate Post Type Compatibility (User Request)
+      if (data.postType && targetPub.postType !== data.postType) {
+        throw new BadRequestException(`Cannot link publication of type ${data.postType} with ${targetPub.postType}`);
+      }
+
+      // Determine Group ID
+      if (targetPub.translationGroupId) {
+        translationGroupId = targetPub.translationGroupId;
+      } else {
+        // Create new group and assign to target
+        translationGroupId = randomUUID();
+        await this.prisma.publication.update({
+          where: { id: targetPub.id },
+          data: { translationGroupId },
+        });
+        this.logger.log(`Created new translation group ${translationGroupId} for publication ${targetPub.id}`);
+      }
+    }
+
+    // 5. Validate Language Uniqueness in Group (Issue 1)
+    if (translationGroupId) {
+      const existingTranslation = await this.prisma.publication.findFirst({
+        where: {
+          translationGroupId,
+          language: data.language,
+          // No need to exclude current ID as we are creating
+        },
+      });
+
+      if (existingTranslation) {
+        throw new BadRequestException(`A publication with language ${data.language} already exists in this translation group`);
       }
     }
 
@@ -545,6 +569,11 @@ export class PublicationsService {
         select: {
           id: true,
           language: true,
+          postType: true,
+          title: true,
+        },
+        orderBy: {
+          language: 'asc',
         },
       });
     }
@@ -573,23 +602,122 @@ export class PublicationsService {
 
     let translationGroupId = data.translationGroupId;
 
+    // Handle Unlinking: if explicit null is passed, we accept it.
+    // If undefined, we keep current (handled by 'const translationGroupId = data.translationGroupId' -> undefined)
+    // BUT we must check if user wants to change logic.
+    // Prisma update: undefined means "do nothing", null means "set to NULL".
+    
     if (data.linkToPublicationId) {
-      try {
-        const targetPub = await this.findOne(data.linkToPublicationId, userId);
-        if (targetPub) {
-          if (targetPub.translationGroupId) {
-            translationGroupId = targetPub.translationGroupId;
-          } else {
-            translationGroupId = randomUUID();
-            await this.prisma.publication.update({
-              where: { id: targetPub.id },
-              data: { translationGroupId },
-            });
-          }
-        }
-      } catch (e) {
-        throw new NotFoundException(`Target publication for linking not found or inaccessible`);
+      // 1. Self-linking check (Issue 9)
+      if (data.linkToPublicationId === id) {
+         throw new BadRequestException('Cannot link publication to itself');
       }
+
+      // 2. Fetch target
+      const targetPub = await this.prisma.publication.findUnique({
+        where: { id: data.linkToPublicationId },
+      });
+
+      if (!targetPub) {
+        throw new NotFoundException(`Target publication for linking not found`);
+      }
+
+      // 3. Access Check
+      if (publication.createdBy !== userId) { // Use original permission context or check again
+         await this.permissions.checkProjectAccess(targetPub.projectId, userId);
+      }
+
+      // 4. Project Scope
+      if (targetPub.projectId !== publication.projectId) { // Assuming project doesn't change on update
+         throw new BadRequestException('Cannot link publications from different projects');
+      }
+
+      // 5. Post Type Compatibility
+      const newPostType = data.postType || publication.postType;
+      if (targetPub.postType !== newPostType) {
+         throw new BadRequestException(`Cannot link publication of type ${newPostType} with ${targetPub.postType}`);
+      }
+
+      if (targetPub.translationGroupId) {
+        translationGroupId = targetPub.translationGroupId;
+      } else {
+        translationGroupId = randomUUID();
+        await this.prisma.publication.update({
+          where: { id: targetPub.id },
+          data: { translationGroupId },
+        });
+        this.logger.log(`Created new translation group ${translationGroupId} for publication ${targetPub.id}`);
+      }
+    }
+
+    // 6. Validate Language Uniqueness in Group (Issue 1)
+    // Only check if we are setting a NEW group ID or changing language
+    // If translationGroupId is undefined, we use current publication's group (if we are checking language change)
+    // Actually, if we update language OR update group, we must check.
+    
+    const effectiveGroupId = translationGroupId !== undefined ? translationGroupId : publication.translationGroupId;
+    const effectiveLanguage = data.language || publication.language;
+
+    if (effectiveGroupId) {
+       const existingTranslation = await this.prisma.publication.findFirst({
+        where: {
+          translationGroupId: effectiveGroupId,
+          language: effectiveLanguage,
+          id: { not: id }, // Exclude self
+        },
+      });
+
+      if (existingTranslation) {
+        throw new BadRequestException(`A publication with language ${effectiveLanguage} already exists in this translation group`);
+      }
+    }
+
+    // Business Rule: When status changes to DRAFT or READY
+    if (data.status === PublicationStatus.DRAFT || data.status === PublicationStatus.READY) {
+      // Validate content is filled for READY status
+      if (data.status === PublicationStatus.READY) {
+        const contentToCheck = data.content !== undefined ? data.content : publication.content;
+        if (!contentToCheck) {
+          throw new BadRequestException('Content is required when status is READY');
+        }
+      }
+
+      // Reset scheduledAt
+      data.scheduledAt = undefined;
+
+      // Reset all posts to PENDING
+      await this.prisma.post.updateMany({
+        where: { publicationId: id },
+        data: {
+          status: PostStatus.PENDING,
+          scheduledAt: null,
+          errorMessage: null,
+        },
+      });
+    }
+
+    // Business Rule: When scheduledAt is set
+    if (data.scheduledAt !== undefined && data.scheduledAt !== null) {
+      // Validate content is filled
+      const contentToCheck = data.content !== undefined ? data.content : publication.content;
+      if (!contentToCheck) {
+        throw new BadRequestException('Content is required when setting scheduledAt');
+      }
+
+      // Automatically set status to SCHEDULED
+      data.status = PublicationStatus.SCHEDULED;
+
+      // Reset posts without their own scheduledAt
+      await this.prisma.post.updateMany({
+        where: {
+          publicationId: id,
+          scheduledAt: null,
+        },
+        data: {
+          status: PostStatus.PENDING,
+          errorMessage: null,
+        },
+      });
     }
 
     const updated = await this.prisma.publication.update({

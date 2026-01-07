@@ -22,6 +22,7 @@ export interface Publication {
     updatedAt?: string | null
     archivedBy: string | null
     authorComment: string | null
+    note: string | null
     archivedAt?: string | null
     scheduledAt?: string | null
 }
@@ -38,7 +39,7 @@ export interface PublicationWithRelations extends Publication {
         name: string
     } | null
     posts?: any[]
-    translations?: { id: string; language: string }[]
+    translations?: { id: string; language: string; postType: string; title: string | null }[]
     media?: Array<{
         id: string
         order: number

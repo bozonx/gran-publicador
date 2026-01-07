@@ -1,8 +1,9 @@
-import { IsArray, IsDate, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDate, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
 import { CreateMediaDto, CreateMediaGroupDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
+import { IsUserStatus } from '../../../common/validators/index.js';
 
 /**
  * DTO for creating a new publication.
@@ -20,6 +21,8 @@ export class CreatePublicationDto {
   @IsOptional()
   public description?: string;
 
+  @ValidateIf((o) => o.status === PublicationStatus.READY || o.scheduledAt !== undefined)
+  @IsNotEmpty({ message: 'Content is required when status is READY or scheduledAt is set' })
   @IsString()
   @IsOptional()
   public content?: string;
@@ -63,6 +66,7 @@ export class CreatePublicationDto {
   @IsOptional()
   public postDate?: Date;
 
+  @IsUserStatus()
   @IsEnum(PublicationStatus)
   @IsOptional()
   public status?: PublicationStatus;

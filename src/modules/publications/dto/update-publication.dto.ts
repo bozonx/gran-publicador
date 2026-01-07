@@ -1,8 +1,9 @@
-import { IsArray, IsDate, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDate, IsEnum, IsObject, IsOptional, IsString, ValidateIf, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
 import { CreateMediaDto, CreateMediaGroupDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
+import { IsUserStatus } from '../../../common/validators/index.js';
 
 /**
  * DTO for updating an existing publication.
@@ -59,6 +60,7 @@ export class UpdatePublicationDto {
   @IsOptional()
   public postDate?: Date;
 
+  @IsUserStatus()
   @IsEnum(PublicationStatus)
   @IsOptional()
   public status?: PublicationStatus;
@@ -73,7 +75,7 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsOptional()
-  public translationGroupId?: string;
+  public translationGroupId?: string | null;
 
   @Type(() => Date)
   @IsDate()

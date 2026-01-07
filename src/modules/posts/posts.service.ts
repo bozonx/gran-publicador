@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PostStatus, PostType, ProjectRole } from '../../generated/prisma/client.js';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -341,6 +341,28 @@ export class PostsService {
       } else {
         throw new ForbiddenException('Insufficient permissions');
       }
+    }
+
+    // Business Rule: When setting scheduledAt for post
+    if (data.scheduledAt !== undefined && data.scheduledAt !== null) {
+      const publication = await this.prisma.publication.findUnique({
+        where: { id: post.publicationId },
+        select: { scheduledAt: true },
+      });
+
+      if (!publication?.scheduledAt) {
+        throw new BadRequestException(
+          'Cannot set scheduledAt for post when publication has no scheduledAt',
+        );
+      }
+
+      data.status = PostStatus.PENDING;
+      data.errorMessage = undefined;
+    }
+
+    // Business Rule: When removing scheduledAt from post
+    if (data.scheduledAt === null) {
+      data.errorMessage = undefined;
     }
 
     return this.prisma.post.update({

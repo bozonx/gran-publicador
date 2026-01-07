@@ -163,7 +163,7 @@ model Publication {
   postType      PostType   @default(POST) @map("post_type")
   // Date of the article which the author specified
   postDate      DateTime?  @map("post_date")
-  // Publication status (DRAFT, READY, SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
+  // Publication status (user can select: DRAFT, READY; system sets: SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
   status        PublicationStatus @default(DRAFT)
 
   // Language of the publication (ru-RU, en-US, etc.)

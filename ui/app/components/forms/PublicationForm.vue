@@ -60,7 +60,7 @@ const state = reactive({
   scheduledAt: props.publication?.scheduledAt ? new Date(props.publication.scheduledAt).toISOString().slice(0, 16) : '',
   language: props.publication?.language || languageParam.value || 'en-US',
   channelIds: props.publication?.posts?.map((p: any) => p.channelId) || [] as string[],
-  translationGroupId: props.publication?.translationGroupId || undefined as string | undefined,
+  translationGroupId: (props.publication?.translationGroupId || undefined) as string | undefined | null,
   meta: (() => {
     if (!props.publication?.meta) return ''
     try {
@@ -99,7 +99,7 @@ const schema = computed(() => z.object({
   scheduledAt: z.string().optional(),
   language: z.string().min(1, t('validation.required')),
   channelIds: z.array(z.string()).optional(),
-  translationGroupId: z.string().optional(),
+  translationGroupId: z.string().nullable().optional(),
   meta: z.string().refine((val) => {
     if (!val || val.trim() === '') return true
     try {
@@ -198,10 +198,11 @@ watch(() => props.publication, (newPub) => {
   }
 }, { immediate: true })
 
-// Publications available for linking (exclude current)
+// Publications available for linking (exclude current and filter by type)
 const availablePublications = computed(() => {
     return publications.value
         .filter(p => p.id !== props.publication?.id)
+        .filter(p => p.postType === state.postType) // Filter by type
         .map(p => ({
             value: p.id,
             label: p.title ? `${p.title} (${p.language})` : `Untitled (${p.language}) - ${new Date(p.createdAt).toLocaleDateString()}`,
@@ -213,7 +214,13 @@ const availablePublications = computed(() => {
 // Handle translation group selection
 function handleTranslationLink(publicationId: string) {
     linkedPublicationId.value = publicationId
-    state.translationGroupId = undefined
+    state.translationGroupId = undefined // Clear raw ID if linking to new generic pub
+}
+
+// Handle unlinking
+function handleUnlink() {
+    state.translationGroupId = null // Set to null to unlink
+    linkedPublicationId.value = undefined
 }
 
 // Channel options for select
@@ -251,6 +258,8 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           status: event.data.status,
           language: event.data.language,
           linkToPublicationId: linkedPublicationId.value || undefined, // Send linkToPublicationId
+          // Explicitly send translationGroupId if it was cleared (set to null)
+          translationGroupId: state.translationGroupId === null ? null : undefined,
           postType: event.data.postType,
           meta: (() => { 
             try { 
@@ -526,17 +535,52 @@ function toggleChannel(channelId: string) {
 
       <!-- Translation Group (Link to another publication) - Moved out of Advanced -->
       <UFormField name="translationGroupId" :label="t('publication.linkTranslation', 'Link as Translation of')" :help="t('publication.linkTranslationHelp', 'Select a publication to link this one as a translation version.')">
-        <USelectMenu
-            :model-value="linkedPublicationId"
-            :items="availablePublications"
-            value-key="value"
-            label-key="label"
-            searchable
-            :placeholder="state.translationGroupId ? t('publication.linked', 'Linked to a group') : t('publication.selectToLink', 'Select to link...')"
-            :class="FORM_STYLES.fieldFullWidth"
-            @update:model-value="handleTranslationLink"
-        >
-        </USelectMenu>
+        <div class="flex gap-2">
+            <USelectMenu
+                :model-value="linkedPublicationId"
+                :items="availablePublications"
+                value-key="value"
+                label-key="label"
+                searchable
+                :placeholder="state.translationGroupId ? t('publication.linked', 'Linked to a group') : t('publication.selectToLink', 'Select to link...')"
+                class="flex-1"
+                @update:model-value="handleTranslationLink"
+            >
+            </USelectMenu>
+             <UTooltip v-if="state.translationGroupId || linkedPublicationId" :text="t('publication.unlink', 'Unlink from group')">
+                <UButton
+                    icon="i-heroicons-link-slash"
+                    color="neutral"
+                    variant="soft"
+                    @click="handleUnlink"
+                />
+            </UTooltip>
+        </div>
+        
+        <!-- Display Current Translations -->
+        <div v-if="props.publication && props.publication.translations && props.publication.translations.length > 0" class="mt-2 text-sm text-gray-500">
+            <span class="font-medium mr-1">{{ t('publication.currentTranslations', 'In this group:') }}</span>
+            <div class="flex flex-wrap gap-1 mt-1">
+                <UBadge 
+                    v-for="trans in props.publication.translations" 
+                    :key="trans.id"
+                    variant="soft" 
+                    color="neutral"
+                    size="sm"
+                    class="font-mono"
+                >
+                    {{ trans.language }} <span v-if="trans.title" class="ml-1 opacity-70">- {{ trans.title }}</span>
+                </UBadge>
+                 <UBadge 
+                    variant="soft" 
+                    color="primary"
+                    size="sm"
+                    class="font-mono"
+                >
+                    {{ state.language }} (Current)
+                </UBadge>
+            </div>
+        </div>
       </UFormField>
 
        <!-- Advanced fields -->

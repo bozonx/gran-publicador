@@ -31,6 +31,7 @@ describe('PublicationsService (unit)', () => {
     },
     post: {
       create: jest.fn() as any,
+      updateMany: jest.fn() as any,
     },
   };
 
@@ -204,6 +205,178 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.update.mockResolvedValue({});
 
       await expect(service.update('p1', userId, { title: 't' })).resolves.toBeDefined();
+    });
+
+    it('should reset posts when changing status to DRAFT', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const updateDto = { status: PublicationStatus.DRAFT };
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        content: 'Test content',
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.post.updateMany.mockResolvedValue({ count: 2 });
+      mockPrismaService.publication.update.mockResolvedValue({ ...mockPublication, ...updateDto });
+
+      await service.update(publicationId, userId, updateDto);
+
+      expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
+        where: { publicationId },
+        data: {
+          status: PostStatus.PENDING,
+          scheduledAt: null,
+          errorMessage: null,
+        },
+      });
+    });
+
+    it('should reset posts when changing status to READY', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const updateDto = { status: PublicationStatus.READY };
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        content: 'Test content',
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.post.updateMany.mockResolvedValue({ count: 2 });
+      mockPrismaService.publication.update.mockResolvedValue({ ...mockPublication, ...updateDto });
+
+      await service.update(publicationId, userId, updateDto);
+
+      expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
+        where: { publicationId },
+        data: {
+          status: PostStatus.PENDING,
+          scheduledAt: null,
+          errorMessage: null,
+        },
+      });
+    });
+
+    it('should validate content when changing status to READY', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const updateDto = { status: PublicationStatus.READY };
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        content: null, // No content
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+
+      await expect(service.update(publicationId, userId, updateDto)).rejects.toThrow(
+        'Content is required when status is READY',
+      );
+    });
+
+    it('should auto-set SCHEDULED when scheduledAt is set', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const scheduledAt = new Date('2026-12-31');
+      const updateDto = { scheduledAt };
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        content: 'Test content',
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.post.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.publication.update.mockResolvedValue({
+        ...mockPublication,
+        status: PublicationStatus.SCHEDULED,
+        scheduledAt,
+      });
+
+      const result = await service.update(publicationId, userId, updateDto);
+
+      expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
+        where: {
+          publicationId,
+          scheduledAt: null,
+        },
+        data: {
+          status: PostStatus.PENDING,
+          errorMessage: null,
+        },
+      });
+      expect(result.status).toBe(PublicationStatus.SCHEDULED);
+    });
+
+    it('should validate content when setting scheduledAt', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const updateDto = { scheduledAt: new Date('2026-12-31') };
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        content: null, // No content
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+
+      await expect(service.update(publicationId, userId, updateDto)).rejects.toThrow(
+        'Content is required when setting scheduledAt',
+      );
+    });
+
+    it('should reset posts without own scheduledAt when publication scheduledAt changes', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const newScheduledAt = new Date('2026-12-31');
+      const updateDto = { scheduledAt: newScheduledAt };
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        content: 'Test content',
+        scheduledAt: new Date('2026-11-30'), // Old schedule
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.post.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.publication.update.mockResolvedValue({
+        ...mockPublication,
+        scheduledAt: newScheduledAt,
+      });
+
+      await service.update(publicationId, userId, updateDto);
+
+      // Should only update posts without their own scheduledAt
+      expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
+        where: {
+          publicationId,
+          scheduledAt: null,
+        },
+        data: {
+          status: PostStatus.PENDING,
+          errorMessage: null,
+        },
+      });
     });
   });
 
