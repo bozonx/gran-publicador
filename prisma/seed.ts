@@ -165,7 +165,7 @@ async function main() {
         { id: '22222222-2222-2222-2222-222222222222', projectId: projectData[0].id, socialMedia: SocialMedia.YOUTUBE, name: 'Техно-Туториалы YT', channelIdentifier: 'UC_TechTuts', language: 'en-US', isActive: true, credentials: '{"token":"valid"}' },
         { id: '22222222-2222-2222-2222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
         { id: '22222222-2222-2222-2222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Путешествия Ежедневно', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
-        { id: '22222222-2222-2222-2222-222222222225', projectId: projectData[2].id, socialMedia: SocialMedia.X, name: 'Финансовые Алертс', channelIdentifier: 'finance_guru', language: 'en-US', isActive: true, credentials: '{"token":"valid"}' },
+
         { id: '22222222-2222-2222-2222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true, credentials: '{"token":"valid"}' },
         { id: '22222222-2222-2222-2222-222222222227', projectId: '11111111-1111-1111-1111-111111111115', socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel with Long Name', channelIdentifier: '@stress_test_long_id', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
         { id: '99999999-9999-9999-9999-999999999999', projectId: '88888888-8888-8888-8888-888888888888', socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true, credentials: '{"token":"valid"}' },
@@ -422,15 +422,7 @@ async function main() {
             publishedAt: new Date(Date.now() - 7200000), // 2 hours ago
         },
         // Scheduled post
-        {
-            id: '33333333-3333-3333-3333-333333333333',
-            publicationId: publications[3].id,
-            channelId: channelData[4].id,
-            socialMedia: 'X',
-            tags: 'crypto,bitcoin,trading', // Overriding for X platform
-            status: PostStatus.PENDING,
-            scheduledAt: new Date(Date.now() + 86400000), // In 24 hours
-        },
+
         // Failed post
         {
             id: '33333333-3333-3333-3333-333333333334',

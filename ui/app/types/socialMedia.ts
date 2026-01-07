@@ -1,1 +1,1 @@
-export type SocialMedia = 'TELEGRAM' | 'INSTAGRAM' | 'VK' | 'YOUTUBE' | 'TIKTOK' | 'X' | 'FACEBOOK' | 'LINKEDIN' | 'SITE'
+export type SocialMedia = 'TELEGRAM' | 'VK' | 'YOUTUBE' | 'TIKTOK' | 'FACEBOOK' | 'SITE'

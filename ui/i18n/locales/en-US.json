@@ -253,14 +253,11 @@
     "identifierPlaceholder": "Enter identifier",
     "identifierHelp": "Unique channel identifier in the social network",
     "identifierHelpTelegram": "Channel username, e.g. {'@'}channel_name",
-    "identifierHelpInstagram": "Account username, e.g. {'@'}username",
     "identifierHelpVk": "Community ID, e.g. club123456789",
     "identifierHelpYoutube": "Channel handle, e.g. {'@'}channelhandle",
     "identifierHelpTiktok": "Account username, e.g. {'@'}username",
-    "identifierHelpX": "Account username, e.g. {'@'}username",
     "identifierHelpFacebook": "Page username, e.g. page_username",
     "identifierHelpSite": "Website URL, e.g. https://example.com",
-    "identifierHelpLinkedin": "Page username, e.g. company-name",
     "language": "Channel language",
     "languagePlaceholder": "Select or enter language",
     "languageHelp": "Content language of the channel (e.g., ru-RU, en-US)",
@@ -348,10 +345,7 @@
     "vk": "VKontakte",
     "youtube": "YouTube",
     "tiktok": "TikTok",
-    "x": "X (Twitter)",
-    "instagram": "Instagram",
-    "facebook": "Facebook",
-    "linkedin": "LinkedIn"
+    "facebook": "Facebook"
   },
   "post": {
     "title": "Post",

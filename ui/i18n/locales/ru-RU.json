@@ -257,14 +257,11 @@
     "identifierPlaceholder": "Введите идентификатор",
     "identifierHelp": "Уникальный идентификатор канала в социальной сети",
     "identifierHelpTelegram": "Username канала, например {'@'}channel_name",
-    "identifierHelpInstagram": "Username аккаунта, например {'@'}username",
     "identifierHelpVk": "ID сообщества, например club123456789",
     "identifierHelpYoutube": "Handle канала, например {'@'}channelhandle",
     "identifierHelpTiktok": "Username аккаунта, например {'@'}username",
-    "identifierHelpX": "Username аккаунта, например {'@'}username",
     "identifierHelpFacebook": "Username страницы, например page_username",
     "identifierHelpSite": "URL сайта, например https://example.com",
-    "identifierHelpLinkedin": "Username страницы, например company-name",
     "language": "Язык канала",
     "languagePlaceholder": "Выберите или введите язык",
     "languageHelp": "Язык контента канала (например, ru-RU, en-US)",
@@ -352,10 +349,7 @@
     "vk": "ВКонтакте",
     "youtube": "YouTube",
     "tiktok": "TikTok",
-    "x": "X (Twitter)",
-    "instagram": "Instagram",
-    "facebook": "Facebook",
-    "linkedin": "LinkedIn"
+    "facebook": "Facebook"
   },
   "post": {
     "title": "Пост",

@@ -284,13 +284,10 @@ enum ProjectRole {
 
 enum SocialMedia {
   TELEGRAM
-  INSTAGRAM
   VK
   YOUTUBE
   TIKTOK
-  X
   FACEBOOK
-  LINKEDIN
   SITE
 }
 
@@ -298,7 +295,9 @@ enum PostType {
   POST
   ARTICLE
   NEWS
+  // Long horisontal video
   VIDEO
+  // Short vertical video
   SHORT
   STORY
 }
