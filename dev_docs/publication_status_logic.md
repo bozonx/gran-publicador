@@ -6,6 +6,10 @@ Refactor publication status management to separate user-selectable statuses (DRA
 
 ## Business Rules
 
+### Special Fields
+- **post.publishedAt**: Actual timestamp of successful publication. Set **only** by the publishing service. This field must **never** be reset by user actions (Draft/Ready/Schedule) to preserve historical data.
+- **publication.processingStartedAt**: Internal field for timeout detection. Reset when moving back to DRAFT, READY, or SCHEDULED.
+
 ### User-Selectable Statuses
 - **DRAFT**: Draft publication, may be incomplete
 - **READY**: Complete publication, ready but not scheduled
@@ -54,6 +58,7 @@ Refactor publication status management to separate user-selectable statuses (DRA
 - For posts **without** their own `scheduledAt`:
   - `post.status` = `PENDING`
   - `post.errorMessage` = `null`
+  - `post.publishedAt` = *unchanged*
 - Posts **with** their own `scheduledAt` remain unchanged
 
 ### Rule 4: Set/Change Post scheduledAt
@@ -66,6 +71,7 @@ Refactor publication status management to separate user-selectable statuses (DRA
 **Result**:
 - `post.status` = `PENDING`
 - `post.errorMessage` = `null`
+- `post.publishedAt` = *unchanged*
 - `publication.status` remains `SCHEDULED`
 
 ### Rule 5: Remove Post scheduledAt
@@ -76,12 +82,14 @@ Refactor publication status management to separate user-selectable statuses (DRA
 - Post inherits `scheduledAt` from publication (logically, not in DB)
 - `post.status` remains unchanged
 - `post.errorMessage` = `null`
+- `post.publishedAt` = *unchanged*
 
 ### Rule 6: System Status Changes
 **System Action**: Changes status to PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED
 
 **Result**:
-- Post statuses and times **NOT changed**
+- Post `scheduledAt` and `publishedAt` (historical) **NOT changed** by publication status changes
+- `post.publishedAt` is set only upon successful publication by the service
 - Managed only by publishing service
 
 ## Implementation Changes
@@ -112,7 +120,8 @@ Refactor publication status management to separate user-selectable statuses (DRA
 // When status changes to DRAFT or READY
 if (data.status === PublicationStatus.DRAFT || data.status === PublicationStatus.READY) {
   data.scheduledAt = null;
-  
+  data.processingStartedAt = null;
+
   await this.prisma.post.updateMany({
     where: { publicationId: id },
     data: {
@@ -126,6 +135,7 @@ if (data.status === PublicationStatus.DRAFT || data.status === PublicationStatus
 // When scheduledAt is set
 if (data.scheduledAt !== undefined && data.scheduledAt !== null) {
   data.status = PublicationStatus.SCHEDULED;
+  data.processingStartedAt = null;
   
   await this.prisma.post.updateMany({
     where: {
@@ -290,6 +300,7 @@ export function getUserSelectableStatuses(t: (key: string) => string) {
 | `publication.status` | User sets to READY | `content` must be filled |
 | `publication.scheduledAt` | User sets value | `content` must be filled |
 | `post.scheduledAt` | User sets value | `publication.scheduledAt` must be set |
+| `post.publishedAt` | System action | Set only on success; immutable by user |
 
 ## Migration Notes
 
