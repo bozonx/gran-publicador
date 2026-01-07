@@ -133,11 +133,18 @@ async function saveMediaMeta() {
 
   isSavingMeta.value = true
   try {
-    const parsedMeta = yaml.load(editableMetadata.value) as Record<string, any>
+    let parsedMeta: Record<string, any> = {}
     
-    if (typeof parsedMeta !== 'object' || Array.isArray(parsedMeta)) {
+    if (editableMetadata.value && editableMetadata.value.trim() !== '') {
+      parsedMeta = yaml.load(editableMetadata.value) as Record<string, any>
+    }
+    
+    if (parsedMeta && (typeof parsedMeta !== 'object' || Array.isArray(parsedMeta))) {
       throw new Error(t('validation.invalidYaml', 'Must be a valid YAML object'))
     }
+    
+    // Ensure we save at least an empty object if null/undefined
+    if (!parsedMeta) parsedMeta = {}
 
     const updated = await updateMedia(selectedMedia.value.id, {
       meta: parsedMeta
@@ -397,8 +404,25 @@ onUnmounted(() => {
 })
 
 function formatMetadataAsYaml(media: MediaItem): string {
-  if (!media.meta || Object.keys(media.meta).length === 0) return ''
-  return yaml.dump(media.meta)
+  if (!media.meta) return ''
+  
+  let metadata = media.meta
+  
+  // Try to parse string metadata if it's a JSON string
+  if (typeof metadata === 'string') {
+    try {
+      metadata = JSON.parse(metadata)
+    } catch {
+      // If parsing fails, it might be just a string
+    }
+  }
+  
+  // If it's an object and empty, return empty string
+  if (typeof metadata === 'object' && metadata !== null && Object.keys(metadata).length === 0) {
+    return ''
+  }
+  
+  return yaml.dump(metadata)
 }
 
 function formatSizeMB(bytes?: number): string {
