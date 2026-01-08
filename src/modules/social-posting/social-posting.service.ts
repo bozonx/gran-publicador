@@ -16,6 +16,7 @@ import {
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
+import { resolvePlatformParams } from './utils/platform-params-resolver.util.js';
 import { PublishResponseDto } from './dto/publish-response.dto.js';
 
 /**
@@ -89,16 +90,18 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         ? JSON.parse(channel.credentials) 
         : channel.credentials;
 
-      const targetChannelId = (channel.socialMedia === SocialMedia.TELEGRAM && credentials.telegramChannelId)
-        ? credentials.telegramChannelId
-        : channel.channelIdentifier;
+      const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
+        channel.socialMedia,
+        channel.channelIdentifier,
+        credentials
+      );
 
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
         body: 'Test connection message from Gran Publicador',
         channelId: targetChannelId,
         auth: {
-          apiKey: credentials.telegramBotToken || credentials.botToken || credentials.vkAccessToken || credentials.accessToken,
+          apiKey,
         }
       };
 
@@ -272,9 +275,11 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
       const mediaMapping = this.mapMediaToLibraryFormat(publication.media);
 
-      const targetChannelId = (channel.socialMedia === SocialMedia.TELEGRAM && credentials.telegramChannelId)
-        ? credentials.telegramChannelId
-        : channel.channelIdentifier;
+      const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
+        channel.socialMedia,
+        channel.channelIdentifier,
+        credentials
+      );
 
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
@@ -282,7 +287,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         bodyFormat: 'text',
         channelId: targetChannelId,
         auth: {
-          apiKey: credentials.telegramBotToken || credentials.botToken || credentials.vkAccessToken || credentials.accessToken,
+          apiKey,
         },
         type: 'auto',
         idempotencyKey: `post-${post.id}-${post.updatedAt.getTime()}`,
