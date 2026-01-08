@@ -643,7 +643,7 @@ function formatDate(dateString: string | null | undefined): string {
                                 </UPopover>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="inline-flex rounded-md shadow-sm isolate">
+                                <div class="inline-flex gap-px shadow-sm">
                                     <UButton
                                         v-for="option in displayStatusOptions"
                                         :key="option.value"
