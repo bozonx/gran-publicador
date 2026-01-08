@@ -200,17 +200,17 @@ export function usePublications() {
         return t(`publicationStatus.${status.toLowerCase()}`)
     }
 
-    function getStatusColor(status: string): 'neutral' | 'warning' | 'success' | 'error' | 'primary' {
+    function getStatusColor(status: string): string {
         if (!status) return 'neutral'
-        const colors: Record<string, 'neutral' | 'warning' | 'success' | 'error' | 'primary'> = {
-            draft: 'neutral',
-            ready: 'primary',
-            scheduled: 'warning',
-            processing: 'warning',
-            published: 'success',
-            partial: 'warning',
-            failed: 'error',
-            expired: 'neutral',
+        const colors: Record<string, string> = {
+            draft: 'orange',
+            ready: 'yellow',
+            scheduled: 'sky',
+            processing: 'blue',
+            published: 'green',
+            partial: 'red',
+            failed: 'red',
+            expired: 'red',
         }
         return colors[status.toLowerCase()] || 'neutral'
     }

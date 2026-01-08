@@ -6,7 +6,7 @@ import { usePosts } from '~/composables/usePosts'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
-import { getUserSelectableStatuses } from '~/utils/publications'
+import { getUserSelectableStatuses, getStatusColor } from '~/utils/publications'
 
 definePageMeta({
   middleware: 'auth',
@@ -648,10 +648,13 @@ function formatDate(dateString: string | null | undefined): string {
                                         v-for="option in displayStatusOptions"
                                         :key="option.value"
                                         :label="option.label"
-                                        :color="currentPublication?.status === option.value ? ((option as any).isSystem ? 'warning' : 'primary') : 'neutral'"
+                                        :color="(getStatusColor(option.value as PublicationStatus) as any)"
                                         :variant="currentPublication?.status === option.value ? 'solid' : 'soft'"
                                         :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentEmpty && currentPublication?.status === 'DRAFT')"
                                         class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
+                                        :class="{
+                                            'opacity-40': currentPublication?.status !== option.value
+                                        }"
                                         @click="handleUpdateStatusOption(option.value as PublicationStatus)"
                                     />
                                 </UButtonGroup>

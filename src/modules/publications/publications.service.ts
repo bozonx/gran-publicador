@@ -350,6 +350,14 @@ export class PublicationsService {
               channel: true,
             },
           },
+          media: {
+            include: {
+              media: true,
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
           _count: {
             select: {
               posts: true,
@@ -495,6 +503,14 @@ export class PublicationsService {
           posts: {
             include: {
               channel: true,
+            },
+          },
+          media: {
+            include: {
+              media: true,
+            },
+            orderBy: {
+              order: 'asc',
             },
           },
           _count: {
