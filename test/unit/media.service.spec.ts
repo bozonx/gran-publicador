@@ -92,7 +92,7 @@ describe('MediaService (unit)', () => {
         meta: { width: 800, height: 600 },
       };
 
-      const expectedMedia = {
+      const dbResponse = {
         id: 'media-1',
         ...createDto,
         meta: JSON.stringify(createDto.meta),
@@ -100,11 +100,16 @@ describe('MediaService (unit)', () => {
         updatedAt: new Date(),
       };
 
-      mockPrismaService.media.create.mockResolvedValue(expectedMedia);
+      const expectedResult = {
+        ...dbResponse,
+        meta: createDto.meta,
+      };
+
+      mockPrismaService.media.create.mockResolvedValue(dbResponse);
 
       const result = await service.create(createDto);
 
-      expect(result).toEqual(expectedMedia);
+      expect(result).toEqual(expectedResult);
       expect(mockPrismaService.media.create).toHaveBeenCalledWith({
         data: {
           ...createDto,
@@ -210,18 +215,23 @@ describe('MediaService (unit)', () => {
         updatedAt: new Date(),
       };
 
-      const updatedMedia = {
+      const updatedMediaDb = {
         ...existingMedia,
         ...updateDto,
         meta: JSON.stringify(updateDto.meta),
       };
 
+      const expectedResult = {
+        ...updatedMediaDb,
+        meta: updateDto.meta,
+      };
+
       mockPrismaService.media.findUnique.mockResolvedValue(existingMedia);
-      mockPrismaService.media.update.mockResolvedValue(updatedMedia);
+      mockPrismaService.media.update.mockResolvedValue(updatedMediaDb);
 
       const result = await service.update(mediaId, updateDto);
 
-      expect(result).toEqual(updatedMedia);
+      expect(result).toEqual(expectedResult);
       expect(mockPrismaService.media.update).toHaveBeenCalledWith({
         where: { id: mediaId },
         data: {
