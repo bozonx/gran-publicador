@@ -203,7 +203,7 @@ export function usePublications() {
     function getStatusColor(status: string): string {
         if (!status) return 'neutral'
         const colors: Record<string, string> = {
-            draft: 'orange',
+            draft: 'black',
             ready: 'yellow',
             scheduled: 'sky',
             processing: 'blue',

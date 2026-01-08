@@ -24,7 +24,7 @@ export function getUserSelectableStatuses(t: (key: string) => string): StatusOpt
 export function getStatusColor(status: PublicationStatus): string {
   switch (status) {
     case 'DRAFT':
-      return 'orange'
+      return 'black'
     case 'READY':
       return 'yellow'
     case 'SCHEDULED':
@@ -47,8 +47,8 @@ export function getStatusClass(status: PublicationStatus): string {
   // Using !important to ensure override of default button styles if necessary, 
   // and ensuring the colors are picked up by Tailwind JIT by full string usage.
   switch (color) {
-    case 'orange':
-      return '!bg-orange-500 dark:!bg-orange-500 !text-white !ring-0'
+    case 'black':
+      return '!bg-black dark:!bg-white dark:!text-black !text-white !ring-0'
     case 'yellow':
       return '!bg-yellow-500 dark:!bg-yellow-500 !text-white !ring-0'
     case 'sky':
