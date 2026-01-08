@@ -359,6 +359,7 @@
     "postDate": "Content date",
     "postType": "Post type",
     "status": "Status",
+    "publishedPosts": "Published Posts",
     "scheduledAt": "Scheduled at",
     "publishedAt": "Published at",
     "createdAt": "Created",

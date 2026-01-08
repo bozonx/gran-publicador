@@ -154,7 +154,11 @@ export function usePublications() {
 
         try {
             const params: Record<string, any> = {}
-            if (filters.status) params.status = filters.status
+            if (filters.status) {
+                params.status = Array.isArray(filters.status) 
+                    ? filters.status.join(',') 
+                    : filters.status
+            }
             if (filters.channelId) params.channelId = filters.channelId
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset

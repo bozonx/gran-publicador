@@ -369,6 +369,7 @@
     "postDate": "Дата контента",
     "postType": "Тип публикации",
     "status": "Статус",
+    "publishedPosts": "Опубликованные посты",
     "scheduledAt": "Запланировано на",
     "publishedAt": "Опубликовано",
     "createdAt": "Создано",

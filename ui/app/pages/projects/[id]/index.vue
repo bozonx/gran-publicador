@@ -351,8 +351,8 @@ const projectProblems = computed(() => {
                 </div>
               </div>
 
-              <!-- Create publication buttons -->
-              <div v-if="availableLanguages.length > 0" class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <!-- Create publication buttons & Quick filters -->
+              <div v-if="availableLanguages.length > 0" class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
                  <div class="flex flex-wrap gap-2">
                   <UButton
                     v-for="lang in availableLanguages"
@@ -364,6 +364,34 @@ const projectProblems = computed(() => {
                     @click="openCreateModal(lang)"
                   >
                     Публикация {{ lang }}
+                  </UButton>
+                </div>
+
+                <!-- Quick filters -->
+                <div class="flex flex-wrap gap-2">
+                  <UButton
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    :to="`/publications?projectId=${projectId}`"
+                  >
+                    {{ t('common.all') }}
+                  </UButton>
+                  <UButton
+                    variant="ghost"
+                    color="yellow"
+                    size="xs"
+                    :to="`/publications?projectId=${projectId}&status=READY`"
+                  >
+                    {{ t('publicationStatus.ready') }}
+                  </UButton>
+                  <UButton
+                    variant="ghost"
+                    color="green"
+                    size="xs"
+                    :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
+                  >
+                    {{ t('publicationStatus.published') }}
                   </UButton>
                 </div>
               </div>

@@ -37,12 +37,20 @@ const {
   setFilter,
 } = usePosts()
 
-// Separate composable instance for failed posts
+// Separate composable instance for failed posts (Problematic)
 const {
-  posts: failedPosts,
-  isLoading: isFailedPostsLoading,
-  fetchPostsByProject: fetchFailedPostsByProject,
-  setFilter: setFailedFilter,
+  posts: problemPosts,
+  isLoading: isProblemsLoading,
+  fetchPostsByProject: fetchProblemPosts,
+  setFilter: setProblemFilter,
+} = usePosts()
+
+// Separate composable instance for scheduled posts (Pending)
+const {
+  posts: scheduledPosts,
+  isLoading: isScheduledLoading,
+  fetchPostsByProject: fetchScheduledPosts,
+  setFilter: setScheduledFilter,
 } = usePosts()
 
 // Import utility function for getting post title
@@ -109,13 +117,21 @@ onMounted(async () => {
         // Fetch only published posts, latest first, limited to 12
         await resetAndFetchPosts()
         
-        // Fetch failed posts (up to 5) for banner
-        setFailedFilter({ 
-            channelId: channelId.value, 
+        // Fetch failed posts (Problematic)
+        setProblemFilter({
+            channelId: channelId.value,
             status: 'FAILED' as PostStatus,
             limit: 5
         })
-        await fetchFailedPostsByProject(projectId.value)
+        await fetchProblemPosts(projectId.value)
+
+        // Fetch scheduled posts (Pending)
+        setScheduledFilter({
+            channelId: channelId.value,
+            status: 'PENDING' as PostStatus,
+            limit: 5
+        })
+        await fetchScheduledPosts(projectId.value)
     }
 })
 
@@ -207,7 +223,8 @@ function mapPostToPublication(post: PostWithRelations): PublicationWithRelations
      description: null,
      authorComment: null,
      postDate: null,
-     translationGroupId: null
+     translationGroupId: null,
+     note: null
   }
 
   // Create a minimal creator object if ID exists, to avoid errors if component checks it
@@ -220,7 +237,8 @@ function mapPostToPublication(post: PostWithRelations): PublicationWithRelations
       createdAt: post.createdAt,
       posts: [post],
       _count: { posts: 1 },
-      creator
+      creator,
+      note: (basePublication as any).note || null
   } as PublicationWithRelations
 }
 
@@ -424,12 +442,103 @@ const channelProblems = computed(() => {
                 </div>
             </div>
 
+            <!-- Scheduled and Problems Columns -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Scheduled Column -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
+                            {{ t('publicationStatus.scheduled', 'Scheduled') }}
+                            <CommonCountBadge :count="scheduledPosts.length" />
+                        </h3>
+                        <UButton
+                            v-if="scheduledPosts.length > 5"
+                            variant="ghost"
+                            color="neutral"
+                            size="xs"
+                            icon="i-heroicons-arrow-right"
+                            trailing
+                            :to="`/publications?channelId=${channelId}&status=PENDING`"
+                        >
+                            {{ t('common.viewAll') }}
+                        </UButton>
+                    </div>
+
+                    <div v-if="isScheduledLoading && !scheduledPosts.length" class="flex justify-center py-4">
+                        <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+                    </div>
+                    <ul v-else-if="scheduledPosts.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
+                         <li v-for="post in scheduledPosts" :key="post.id" class="py-3">
+                             <!-- Click to go to publication since post view isn't separate usually -->
+                            <NuxtLink 
+                                :to="`/projects/${projectId}/publications/${post.publicationId}`"
+                                class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
+                            >
+                                {{ getPostTitle(post) || t('post.untitled') }}
+                            </NuxtLink>
+                            <span v-if="post.scheduledAt" class="text-xs text-gray-400 block mt-1">
+                                {{ formatDateTime(post.scheduledAt) }}
+                            </span>
+                        </li>
+                    </ul>
+                    <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+                         {{ t('common.noData') }}
+                    </div>
+                </div>
+
+                <!-- Problem Column -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
+                            {{ t('publication.filter.showIssuesOnly', 'Problems') }}
+                            <CommonCountBadge :count="problemPosts.length" color="error" />
+                        </h3>
+                        <UButton
+                            v-if="problemPosts.length > 5"
+                            variant="ghost"
+                            color="neutral"
+                            size="xs"
+                            icon="i-heroicons-arrow-right"
+                            trailing
+                            :to="`/publications?channelId=${channelId}&status=FAILED`"
+                        >
+                            {{ t('common.viewAll') }}
+                        </UButton>
+                    </div>
+
+                    <div v-if="isProblemsLoading && !problemPosts.length" class="flex justify-center py-4">
+                        <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+                    </div>
+                    <ul v-else-if="problemPosts.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
+                         <li v-for="post in problemPosts" :key="post.id" class="py-3 flex items-center gap-3">
+                            <NuxtLink 
+                                :to="`/projects/${projectId}/publications/${post.publicationId}`"
+                                class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
+                            >
+                                {{ getPostTitle(post) || t('post.untitled') }}
+                            </NuxtLink>
+                        </li>
+                    </ul>
+                    <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+                         {{ t('common.noData') }}
+                    </div>
+                </div>
+            </div>
+
             <!-- Posts Panel -->
              <div>
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        {{ t('publication.titlePlural', 'Publications') }}
-                        <CommonCountBadge :count="channel.postsCount" :title="t('channel.postsCount')" />
+                        {{ t('post.status.published_posts', 'Published Posts') }}
+                         <!-- Assuming channel.postsCount is total posts, we might want manual count of displayed posts or check if we have a specific count. 
+                              For now let's use loaded posts length if loading finished, or rely on channel stats if available. 
+                              Since we are filtering, channel.postsCount might include others. 
+                              Let's just show count of *this* list roughly or omit if unreliable. 
+                              Or better, use a computed property if backend sent total count. 
+                              usePosts has totalCount ref. -->
+                        <CommonCountBadge :count="posts.length" :title="t('post.status.published_posts')" />
                     </h2>
                      <div class="flex items-center gap-2">
                         <CommonViewToggle v-model="viewMode" />

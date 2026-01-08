@@ -38,11 +38,15 @@ function handleDelete(e: Event) {
     <!-- Header: Title, Status, Delete -->
     <div class="flex items-start justify-between gap-3 mb-2">
       <div class="flex-1 min-w-0">
+        <div v-if="showProjectInfo && publication.project" class="flex items-center gap-1.5 mb-1 text-xs text-gray-500 dark:text-gray-400">
+          <UIcon name="i-heroicons-briefcase" class="w-3 h-3 text-gray-400" />
+          <span class="truncate">{{ publication.project.name }}</span>
+        </div>
         <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1">
           {{ publication.title || t('post.untitled') }}
         </h3>
         <div class="flex items-center gap-1.5 flex-wrap">
-          <UBadge :color="getStatusColor(publication.status)" size="xs" variant="subtle" class="capitalize">
+          <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize">
             {{ getStatusDisplayName(publication.status) }}
           </UBadge>
           
