@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 /**
  * Database configuration constants and utilities.
@@ -27,9 +27,9 @@ export function getDatabaseUrl(): string {
   }
 
   // Resolve relative paths to absolute paths
-  // If dataDir is already absolute (starts with /), join will return it as-is
+  // If dataDir is already absolute (starts with /), resolve will return it as-is
   // If it's relative (e.g., ./test-data), it will be resolved relative to cwd
-  const absoluteDataDir = join(process.cwd(), dataDir);
+  const absoluteDataDir = resolve(process.cwd(), dataDir);
 
   // Construct the full path to the database file
   const dbPath = join(absoluteDataDir, DB_FILENAME);
