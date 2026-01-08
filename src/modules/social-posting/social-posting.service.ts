@@ -271,7 +271,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
         body: publication.content || '',
-        bodyFormat: 'html',
+        bodyFormat: 'text',
         channelId: channel.channelIdentifier,
         auth: {
           apiKey: credentials.telegramBotToken || credentials.botToken || credentials.vkAccessToken || credentials.accessToken,
