@@ -23,19 +23,18 @@ import { PublishResponseDto } from './dto/publish-response.dto.js';
  * Custom logger adapter to pipe library logs to NestJS Logger
  */
 class LibraryLogger {
-  private logger = new Logger('SocialMediaPostingLib');
-
   debug(message: string, context?: string) {
-    this.logger.debug(`${context ? `[${context}] ` : ''}${message}`);
+    // Using console directly to avoid potential recursion with NestJS logger
+    console.debug(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`);
   }
   log(message: string, context?: string) {
-    this.logger.log(`${context ? `[${context}] ` : ''}${message}`);
+    console.log(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`);
   }
   warn(message: string, context?: string) {
-    this.logger.warn(`${context ? `[${context}] ` : ''}${message}`);
+    console.warn(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`);
   }
   error(message: string, trace?: string, context?: string) {
-    this.logger.error(`${context ? `[${context}] ` : ''}${message}`, trace);
+    console.error(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`, trace);
   }
 }
 
