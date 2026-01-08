@@ -122,9 +122,12 @@ function closeSearch() {
   searchResults.value = []
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   disableShortcut?: boolean
-}>()
+  variant?: 'auto' | 'full' | 'icon'
+}>(), {
+  variant: 'auto'
+})
 
 // Keyboard shortcut: Cmd+K or Ctrl+K
 onMounted(() => {
@@ -167,9 +170,11 @@ const groupedResults = computed(() => {
   <div>
     <!-- Search trigger button -->
     <UButton
+      v-if="variant === 'full' || variant === 'auto'"
       variant="outline"
       color="neutral"
-      class="hidden sm:flex w-full items-center justify-between"
+      class="w-full items-center justify-between"
+      :class="variant === 'auto' ? 'hidden sm:flex' : 'flex'"
       @click="isOpen = true"
     >
       <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
@@ -184,10 +189,11 @@ const groupedResults = computed(() => {
 
     <!-- Mobile search icon -->
     <UButton
+      v-if="variant === 'icon' || variant === 'auto'"
       variant="ghost"
       color="neutral"
       icon="i-heroicons-magnifying-glass"
-      class="sm:hidden"
+      :class="variant === 'auto' ? 'sm:hidden' : ''"
       @click="isOpen = true"
     />
 
