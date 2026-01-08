@@ -29,7 +29,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
   <div
     class="block app-card app-card-hover p-4 sm:p-5 cursor-pointer relative"
     :class="{ 'opacity-60 grayscale': isArchived }"
-    @click="navigateTo(`/projects/${channel.projectId}/channels/${channel.id}`)"
+    @click="navigateTo(`/channels/${channel.id}`)"
   >
     <div class="flex items-start justify-between gap-4">
       <div class="flex-1 min-w-0">
@@ -72,7 +72,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
 
           <UTooltip v-if="!hasCredentials" :text="t('channel.noCredentials')">
              <NuxtLink 
-               :to="`/projects/${channel.projectId}/channels/${channel.id}/settings#credentials`"
+               :to="`/channels/${channel.id}/settings#credentials`"
                @click.stop
              >
               <UIcon 
@@ -126,7 +126,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
               {{ t('channel.lastPublishedPost') }}: 
               <NuxtLink 
                 v-if="channel.lastPublicationId"
-                :to="`/projects/${channel.projectId}/publications/${channel.lastPublicationId}`"
+                :to="`/publications/${channel.lastPublicationId}`"
                 class="hover:underline hover:text-primary-500 font-medium relative z-10"
                 @click.stop
               >

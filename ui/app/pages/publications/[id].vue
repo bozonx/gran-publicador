@@ -27,8 +27,8 @@ const {
 const { fetchChannels, channels } = useChannels()
 const { canGoBack, goBack } = useNavigation()
 
-const projectId = computed(() => route.params.id as string)
-const publicationId = computed(() => route.params.publicationId as string)
+const projectId = computed(() => currentPublication.value?.projectId || '')
+const publicationId = computed(() => route.params.id as string)
 
 // Publication problems detection
 const { 
@@ -116,6 +116,11 @@ onMounted(async () => {
         router.replace({ query: {} })
     }
     
+    // Fetch publication first to get projectId
+    if (publicationId.value) {
+        await fetchPublication(publicationId.value)
+    }
+
     // Fetch project if needed
     if (projectId.value && (!currentProject.value || currentProject.value.id !== projectId.value)) {
         await fetchProject(projectId.value)
@@ -123,11 +128,6 @@ onMounted(async () => {
     
     if (projectId.value) {
         await fetchChannels({ projectId: projectId.value })
-    }
-    
-    // Fetch publication
-    if (publicationId.value) {
-        await fetchPublication(publicationId.value)
     }
 })
 
@@ -176,13 +176,16 @@ async function handleArchiveToggle() {
 
 async function handleDelete() {
     if (!currentPublication.value) return
+    
+    const pid = projectId.value // Capture project ID
+    
     isDeleting.value = true
     const success = await deletePublication(currentPublication.value.id)
     isDeleting.value = false
     if (success) {
         isDeleteModalOpen.value = false
         // Navigate to project page as the parent context
-        router.push(`/projects/${projectId.value}`)
+        router.push(`/projects/${pid}`)
     }
 }
 
@@ -769,7 +772,7 @@ function formatDate(dateString: string | null | undefined): string {
                                  <NuxtLink 
                                     v-for="trans in currentPublication.translations" 
                                     :key="trans.id"
-                                    :to="`/projects/${projectId}/publications/${trans.id}`"
+                                    :to="`/publications/${trans.id}`"
                                     class="hover:opacity-80 transition-opacity"
                                  >
                                      <UBadge 

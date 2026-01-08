@@ -23,7 +23,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
   <div
     class="app-card app-card-hover p-4 cursor-pointer relative flex flex-col h-full"
     :class="{ 'opacity-60 grayscale': isArchived }"
-    @click="navigateTo(`/projects/${channel.projectId}/channels/${channel.id}`)"
+    @click="navigateTo(`/channels/${channel.id}`)"
   >
     <!-- Header with icon and name -->
     <div class="flex items-start gap-3 mb-3">

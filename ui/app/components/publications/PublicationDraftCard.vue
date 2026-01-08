@@ -17,7 +17,7 @@ function truncateContent(content: string | null | undefined, maxLength = 100): s
 }
 
 function goToDraft() {
-    router.push(`/projects/${props.projectId}/publications/${props.draft.id}`)
+    router.push(`/publications/${props.draft.id}`)
 }
 </script>
 

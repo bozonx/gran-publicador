@@ -15,8 +15,8 @@ const route = useRoute()
 const router = useRouter()
 const { canGoBack, goBack: navigateBack } = useNavigation()
 
-const projectId = computed(() => route.params.id as string)
-const channelId = computed(() => route.params.channelId as string)
+const projectId = computed(() => channel.value?.projectId || '')
+const channelId = computed(() => route.params.id as string)
 
 const {
   fetchChannel,
@@ -139,7 +139,7 @@ function goToPost(postId: string) {
   // Find the post to get its publicationId
   const post = posts.value.find(p => p.id === postId)
   if (post?.publicationId) {
-    router.push(`/projects/${projectId.value}/publications/${post.publicationId}`)
+    router.push(`/publications/${post.publicationId}`)
   }
 }
 
@@ -359,7 +359,7 @@ const channelProblems = computed(() => {
 
                                 <NuxtLink
                                     v-if="!hasCredentials" 
-                                    :to="`/projects/${channel.project?.id || projectId}/channels/${channel.id}/settings#credentials`"
+                                    :to="`/channels/${channel.id}/settings#credentials`"
                                     class="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-medium hover:text-amber-600 dark:hover:text-amber-300 transition-colors"
                                     :title="t('channel.noCredentials')"
                                 >
@@ -382,7 +382,7 @@ const channelProblems = computed(() => {
                                 color="neutral"
                                 variant="ghost"
                                 icon="i-heroicons-cog-6-tooth"
-                                :to="`/projects/${projectId}/channels/${channelId}/settings`"
+                                :to="`/channels/${channelId}/settings`"
                             />
                         </div>
                     </div>
@@ -504,7 +504,7 @@ const channelProblems = computed(() => {
                          <li v-for="post in scheduledPosts" :key="post.id" class="py-3">
                              <!-- Click to go to publication since post view isn't separate usually -->
                             <NuxtLink 
-                                :to="`/projects/${projectId}/publications/${post.publicationId}`"
+                                :to="`/publications/${post.publicationId}`"
                                 class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
                             >
                                 {{ getPostTitle(post) || t('post.untitled') }}
@@ -546,7 +546,7 @@ const channelProblems = computed(() => {
                     <ul v-else-if="problemPosts.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
                          <li v-for="post in problemPosts" :key="post.id" class="py-3 flex items-center gap-3">
                             <NuxtLink 
-                                :to="`/projects/${projectId}/publications/${post.publicationId}`"
+                                :to="`/publications/${post.publicationId}`"
                                 class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
                             >
                                 {{ getPostTitle(post) || t('post.untitled') }}

@@ -238,7 +238,7 @@ watch(() => route.query.page, (newPage) => {
 })
 
 function goToPublication(pub: PublicationWithRelations) {
-    router.push(`/projects/${pub.projectId}/publications/${pub.id}`)
+    router.push(`/publications/${pub.id}`)
 }
 
 const statusFilterOptions = computed(() => [

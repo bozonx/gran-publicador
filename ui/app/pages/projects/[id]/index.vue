@@ -145,7 +145,7 @@ function getPublicationDisplayTitle(pub: any): string {
 }
 
 function goToPublication(pub: PublicationWithRelations) {
-    router.push(`/projects/${pub.projectId}/publications/${pub.id}`)
+    router.push(`/publications/${pub.id}`)
 }
 
 // Create Modal State
@@ -161,7 +161,7 @@ function handleCreateSuccess(publicationId: string) {
     isCreateModalOpen.value = false
     // Navigate to the new publication or refresh list
     // The user wanted the modal to just work. Navigate to the new publication seems appropriate.
-    router.push(`/projects/${projectId.value}/publications/${publicationId}?new=true`)
+    router.push(`/publications/${publicationId}?new=true`)
 }
 
 // Project problems detection
@@ -343,7 +343,7 @@ const projectProblems = computed(() => {
                   <UIcon name="i-heroicons-clock" class="w-4 h-4" />
                   <span>{{ t('project.lastPublication', 'Last publication') }}:</span>
                   <NuxtLink 
-                    :to="`/projects/${currentProject.id}/publications/${currentProject.lastPublicationId}`"
+                    :to="`/publications/${currentProject.lastPublicationId}`"
                     class="text-primary-600 dark:text-primary-400 hover:text-primary-500 transition-colors font-medium border-b border-dotted border-primary-500/50"
                   >
                     {{ formatDateWithTime(currentProject.lastPublicationAt) }}
@@ -502,7 +502,7 @@ const projectProblems = computed(() => {
             <ul v-else-if="scheduledPublications.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
               <li v-for="pub in scheduledPublications" :key="pub.id" class="py-3">
                 <NuxtLink 
-                  :to="`/projects/${projectId}/publications/${pub.id}`"
+                  :to="`/publications/${pub.id}`"
                   class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
                 >
                   {{ getPublicationDisplayTitle(pub) }}
@@ -544,7 +544,7 @@ const projectProblems = computed(() => {
                   {{ getStatusDisplayName(pub.status) }}
                 </UBadge>
                 <NuxtLink 
-                  :to="`/projects/${projectId}/publications/${pub.id}`"
+                  :to="`/publications/${pub.id}`"
                   class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
                 >
                   {{ getPublicationDisplayTitle(pub) }}

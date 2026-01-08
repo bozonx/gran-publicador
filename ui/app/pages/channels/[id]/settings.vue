@@ -23,8 +23,8 @@ const {
   canDelete,
 } = useChannels()
 
-const projectId = computed(() => route.params.id as string)
-const channelId = computed(() => route.params.channelId as string)
+const projectId = computed(() => channel.value?.projectId || '')
+const channelId = computed(() => route.params.id as string)
 
 // UI States
 const isSaving = ref(false)
@@ -101,11 +101,14 @@ function confirmDelete() {
  */
 async function handleDelete() {
   if (!channel.value) return
+  
+  const pid = projectId.value // Capture project ID before deletion
+  
   isDeleting.value = true
   try {
     const success = await deleteChannel(channel.value.id)
     if (success) {
-      router.push(`/projects/${projectId.value}`)
+      router.push(`/projects/${pid}`)
     }
   } finally {
     isDeleting.value = false
