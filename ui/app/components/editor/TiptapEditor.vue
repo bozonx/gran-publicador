@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
+import { Markdown } from '@tiptap/markdown'
 
 interface Props {
   /** Initial content (HTML) */
@@ -42,6 +43,7 @@ const extensions = [
       levels: [1, 2, 3],
     },
   }),
+  Markdown,
   Link.configure({
     openOnClick: false,
     HTMLAttributes: {
@@ -61,7 +63,9 @@ const editor = useEditor({
   editable: !props.disabled,
   extensions: extensions,
   onUpdate: ({ editor }) => {
-    emit('update:modelValue', editor.getHTML())
+    // Get content as Markdown instead of HTML
+    const markdown = editor.getMarkdown()
+    emit('update:modelValue', markdown)
   },
   onBlur: () => {
     emit('blur')
@@ -75,8 +79,11 @@ const editor = useEditor({
 watch(
   () => props.modelValue,
   (newValue) => {
-    if (editor.value && newValue !== editor.value.getHTML()) {
-      editor.value.commands.setContent(newValue, { emitUpdate: false })
+    if (editor.value) {
+      const currentMarkdown = editor.value.getMarkdown()
+      if (newValue !== currentMarkdown) {
+        editor.value.commands.setContent(newValue, { emitUpdate: false })
+      }
     }
   }
 )
