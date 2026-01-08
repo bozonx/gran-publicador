@@ -2,9 +2,9 @@ import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenEx
 import { ConfigService } from '@nestjs/config';
 import { join, normalize, basename } from 'path';
 import { mkdir, writeFile, unlink } from 'fs/promises';
+import { Readable } from 'stream';
 import { createReadStream, existsSync } from 'fs';
 import { randomUUID } from 'crypto';
-import { request } from 'undici';
 import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
@@ -517,11 +517,11 @@ export class MediaService {
       }
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Failed to stream media ${id}: ${err.message}`);
+      this.logger.error(`Failed to stream media ${id}: ${err.message}`, err.stack);
       if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
       }
-      throw new NotFoundException('Media file unavailable');
+      throw new NotFoundException(`Media file unavailable: ${err.message}`);
     }
   }
 
@@ -605,9 +605,13 @@ export class MediaService {
     const telegramBotToken = this.configService.get<string>('app.telegramBotToken');
 
     if (!telegramBotToken) {
-      this.logger.error('Telegram bot token not configured');
-      throw new NotFoundException('Telegram media unavailable');
+      this.logger.error('Telegram bot token not configured in app config');
+      throw new NotFoundException('DEBUG_TOKEN_MISSING: Telegram bot token not configured');
     }
+
+    this.logger.debug(`Fetching file path from Telegram for file_id: ${media.src}`);
+
+    this.logger.debug(`Fetching file path from Telegram for file_id: ${media.src}`);
 
     try {
       // Step 1: Get file path from Telegram
@@ -615,8 +619,9 @@ export class MediaService {
       const getFileResponse = await request(getFileUrl, { method: 'GET' });
 
       if (getFileResponse.statusCode !== 200) {
-        this.logger.warn(`Telegram getFile failed with status ${getFileResponse.statusCode}`);
-        throw new Error('Failed to get file info from Telegram');
+        const errorBody = await getFileResponse.body.text();
+        this.logger.warn(`Telegram getFile failed with status ${getFileResponse.statusCode}: ${errorBody}`);
+        throw new Error(`Failed to get file info from Telegram (status ${getFileResponse.statusCode})`);
       }
 
       const fileInfo = await getFileResponse.body.json() as any;
@@ -628,11 +633,13 @@ export class MediaService {
 
       // Step 2: Download file from Telegram
       const fileUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${fileInfo.result.file_path}`;
+      this.logger.debug(`Downloading file from Telegram: ${fileUrl.replace(telegramBotToken, 'TOKEN_HIDDEN')}`);
+      
       const fileResponse = await request(fileUrl, { method: 'GET' });
 
       if (fileResponse.statusCode !== 200) {
         this.logger.warn(`Telegram file download failed with status ${fileResponse.statusCode}`);
-        throw new Error('Failed to download file from Telegram');
+        throw new Error(`Failed to download file from Telegram (status ${fileResponse.statusCode})`);
       }
 
       // Set content type from database or response
@@ -651,8 +658,8 @@ export class MediaService {
       fileResponse.body.pipe(res);
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`Failed to fetch Telegram file ${media.src}: ${err.message}`);
-      throw new NotFoundException('Telegram media unavailable');
+      this.logger.error(`DEBUG_STREAM_ERROR: Failed to fetch Telegram file ${media.src}: ${err.message}`, err.stack);
+      throw new NotFoundException(`DEBUG_ERR_FETCH: ${err.message}`);
     }
   }
 

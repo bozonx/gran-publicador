@@ -3,7 +3,7 @@ import { usePublications } from '~/composables/usePublications'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useChannels } from '~/composables/useChannels'
-import { useSorting } from '~/composables/useSorting'
+
 import { useViewMode } from '~/composables/useViewMode'
 import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
@@ -83,14 +83,24 @@ const sortOptionsComputed = computed(() => [
   { id: 'postDate', label: t('publication.sort.postDate'), icon: 'i-heroicons-calendar' }
 ])
 
-const { sortBy, sortOrder, currentSortOption, toggleSortOrder } = useSorting<PublicationWithRelations>({
-  storageKey: 'publications-page',
-  defaultSortBy: 'createdAt',
-  defaultSortOrder: 'desc',
-  sortOptions: sortOptionsComputed.value,
-  // Server-side sorting - no client-side sort function needed
-  sortFn: (list) => list,
-})
+
+
+// Manual sorting state synced with URL
+type SortField = 'scheduledAt' | 'createdAt' | 'postDate'
+const sortBy = ref<SortField>(
+  (route.query.sortBy as SortField) || 'createdAt'
+)
+const sortOrder = ref<'asc' | 'desc'>(
+  (route.query.sortOrder as 'asc' | 'desc') || 'desc'
+)
+
+const currentSortOption = computed(() => 
+  sortOptionsComputed.value.find(opt => opt.id === sortBy.value)
+)
+
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
 
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('publications-view', 'list')
@@ -148,7 +158,9 @@ watch(
     selectedSocialMedia, 
     selectedLanguage, 
     debouncedSearch, 
-    showArchivedFilter
+    showArchivedFilter,
+    sortBy,
+    sortOrder
   ], 
   () => {
     if (!import.meta.client) return
@@ -173,6 +185,8 @@ watch(
     updateQuery('socialMedia', selectedSocialMedia.value)
     updateQuery('language', selectedLanguage.value)
     updateQuery('archived', showArchivedFilter.value, false)
+    updateQuery('sortBy', sortBy.value, 'createdAt')
+    updateQuery('sortOrder', sortOrder.value, 'desc')
     
     // Remove page when filters change (reset to 1 happen in the other watcher)
     delete query.page

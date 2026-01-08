@@ -61,8 +61,12 @@ const selectedProjectId = ref<string | null>(
 
 // Sorting
 type SortBy = 'alphabetical' | 'socialMedia' | 'language' | 'postsCount'
-const sortBy = ref<SortBy>('alphabetical')
-const sortOrder = ref<'asc' | 'desc'>('asc')
+const sortBy = ref<SortBy>(
+  (route.query.sortBy as SortBy) || 'alphabetical'
+)
+const sortOrder = ref<'asc' | 'desc'>(
+  (route.query.sortOrder as 'asc' | 'desc') || 'asc'
+)
 
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list')
@@ -100,7 +104,9 @@ watch(
     selectedIssueType, 
     selectedProjectId, 
     debouncedSearch, 
-    showArchivedFilter
+    showArchivedFilter,
+    sortBy,
+    sortOrder
   ], 
   () => {
     if (!import.meta.client) return
@@ -121,6 +127,8 @@ watch(
     updateQuery('issue', selectedIssueType.value, 'all')
     updateQuery('projectId', selectedProjectId.value)
     updateQuery('archived', showArchivedFilter.value, false)
+    updateQuery('sortBy', sortBy.value, 'alphabetical')
+    updateQuery('sortOrder', sortOrder.value, 'asc')
     
     // Remove page when filters change
     delete query.page
