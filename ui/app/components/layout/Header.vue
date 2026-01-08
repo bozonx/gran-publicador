@@ -36,7 +36,7 @@ const emit = defineEmits<{
 
       <!-- Right side: Create button and User avatar -->
       <div class="flex items-center gap-3">
-        <CommonGlobalCreateButton />
+        <CommonGlobalCreateButton class="hidden lg:block" />
         
         <UTooltip :text="t('navigation.settings')">
           <UButton

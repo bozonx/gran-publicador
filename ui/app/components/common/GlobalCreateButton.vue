@@ -5,6 +5,12 @@ const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
 
+const props = withDefaults(defineProps<{
+  mode?: 'header' | 'fab'
+}>(), {
+  mode: 'header'
+})
+
 // Modals state
 const isPublicationModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
@@ -171,7 +177,7 @@ function closePublicationModal() {
 
 <template>
   <div>
-    <div class="inline-flex -space-x-px">
+    <div v-if="mode === 'header'" class="inline-flex -space-x-px">
       <!-- Quick create button -->
       <UButton
         icon="i-heroicons-plus"
@@ -189,6 +195,28 @@ function closePublicationModal() {
           color="primary"
           square
           class="rounded-l-none"
+        />
+
+        <template #item="{ item }">
+          <div class="flex items-center gap-2 w-full" @click="item.click && item.click()">
+            <UIcon v-if="item.icon" :name="item.icon" class="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <span class="truncate">{{ item.label }}</span>
+          </div>
+        </template>
+      </UDropdownMenu>
+    </div>
+
+    <!-- FAB Mode -->
+    <div v-else class="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30">
+      <UDropdownMenu 
+        :items="items" 
+        :popper="{ placement: 'top-end' }"
+      >
+        <UButton
+          icon="i-heroicons-plus"
+          color="primary"
+          size="xl"
+          class="rounded-full shadow-xl w-14 h-14 flex items-center justify-center p-0"
         />
 
         <template #item="{ item }">

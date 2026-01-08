@@ -64,6 +64,9 @@ function closeSidebar() {
       </main>
     </div>
 
+    <!-- FAB (mobile/tablet) -->
+    <CommonGlobalCreateButton mode="fab" class="lg:hidden" />
+
     <!-- Bottom Navigation (mobile/tablet) -->
     <LayoutBottomNavigation />
 
