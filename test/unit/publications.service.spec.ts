@@ -281,7 +281,7 @@ describe('PublicationsService (unit)', () => {
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
 
       await expect(service.update(publicationId, userId, updateDto)).rejects.toThrow(
-        'Content is required when status is READY',
+        'Content or Media is required when status is READY',
       );
     });
 
@@ -338,7 +338,7 @@ describe('PublicationsService (unit)', () => {
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
 
       await expect(service.update(publicationId, userId, updateDto)).rejects.toThrow(
-        'Content is required when setting scheduledAt',
+        'Content or Media is required when setting scheduledAt',
       );
     });
 
