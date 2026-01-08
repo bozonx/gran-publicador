@@ -58,6 +58,14 @@ const searchQuery = ref(
 )
 const debouncedSearch = refDebounced(searchQuery, 300)
 
+// Computed model for status to handle type casting for USelectMenu
+const selectedStatusModel = computed({
+  get: () => selectedStatus.value as any,
+  set: (value: any) => {
+    selectedStatus.value = value
+  }
+})
+
 // Ownership filter
 type OwnershipFilter = 'all' | 'own' | 'notOwn'
 const ownershipFilter = ref<OwnershipFilter>(
@@ -569,7 +577,7 @@ const showPagination = computed(() => {
 
         <!-- Status Filter (Select) -->
         <USelectMenu
-          v-model="selectedStatus as any"
+          v-model="selectedStatusModel"
           :items="statusFilterOptions"
           value-key="value"
           label-key="label"
