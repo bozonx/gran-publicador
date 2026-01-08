@@ -301,7 +301,7 @@ function resetFilters() {
 
     <!-- Cards View -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <PublicationCard
+      <PublicationsPublicationCard
         v-for="publication in publications"
         :key="publication.id"
         :publication="publication"
@@ -329,7 +329,7 @@ function resetFilters() {
             @click.stop="toggleArchive(publication.id, true)"
           />
         </template>
-      </PublicationCard>
+      </PublicationsPublicationCard>
     </div>
 
     <!-- Pagination -->

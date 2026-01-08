@@ -10,7 +10,6 @@ import type { SocialMedia } from '~/types/socialMedia'
 import type { PublicationStatus } from '~/types/posts'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
-import PublicationCard from '~/components/publications/PublicationCard.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -607,7 +606,7 @@ const showPagination = computed(() => {
 
     <!-- Publications cards view -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <PublicationCard
+        <PublicationsPublicationCard
           v-for="pub in filteredPublications"
           :key="pub.id"
           :publication="pub"

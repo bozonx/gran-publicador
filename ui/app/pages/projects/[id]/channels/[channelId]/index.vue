@@ -5,8 +5,6 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { useViewMode } from '~/composables/useViewMode'
-import PublicationListItem from '~/components/publications/PublicationListItem.vue'
-import PublicationCard from '~/components/publications/PublicationCard.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -464,7 +462,7 @@ const channelProblems = computed(() => {
 
                 <!-- Posts List View -->
                 <div v-if="isListView" class="space-y-4">
-                    <PublicationListItem
+                    <PublicationsPublicationListItem
                         v-for="post in posts"
                         :key="post.id"
                         :publication="mapPostToPublication(post)"
@@ -474,7 +472,7 @@ const channelProblems = computed(() => {
 
                 <!-- Posts Cards View -->
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <PublicationCard
+                    <PublicationsPublicationCard
                         v-for="post in posts"
                         :key="post.id"
                         :publication="mapPostToPublication(post)"

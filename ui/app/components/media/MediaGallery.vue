@@ -41,7 +41,6 @@ const sourceType = ref<'URL' | 'TELEGRAM'>('URL')
 const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
 const sourceInput = ref('')
 const filenameInput = ref('')
-const imageErrors = ref<Record<string, boolean>>({})
 
 const addMediaButtonLabel = computed(() => {
   const types = {
@@ -89,6 +88,7 @@ function getMediaIcon(type: string) {
   }
   return icons[type] || 'i-heroicons-document'
 }
+
 
 function triggerFileInput() {
   fileInput.value?.click()
@@ -269,9 +269,7 @@ async function removeMedia(mediaId: string) {
   }
 }
 
-function handleImageError(mediaId: string) {
-  imageErrors.value[mediaId] = true
-}
+
 
 async function handleDragEnd() {
   isDragging.value = false
@@ -565,87 +563,43 @@ const emit = defineEmits<Emits>()
               v-for="item in localMedia"
               :key="item.media?.id"
               :class="[
-                'shrink-0 w-48 h-48 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50 group relative',
+                'shrink-0 relative',
                 editable && 'cursor-move'
               ]"
             >
-              <!-- Image preview with error handling -->
-              <div
-                v-if="item.media?.type === 'IMAGE' && !imageErrors[item.media.id]"
-                class="w-full h-full cursor-pointer"
+              <MediaCard
+                v-if="item.media"
+                :media="item.media"
+                size="md"
                 @click="openMediaModal(item.media)"
               >
-                <img
-                  :src="getMediaFileUrl(item.media.id)"
-                  :alt="item.media.filename || 'Media'"
-                  class="w-full h-full object-cover"
-                  @error="handleImageError(item.media.id)"
-                />
-              </div>
-              
-              <!-- Icon for other types or failed images -->
-              <div
-                v-else
-                class="w-full h-full flex flex-col items-center justify-center gap-2 p-4 cursor-pointer"
-                @click="item.media && openMediaModal(item.media)"
-              >
-                <UIcon
-                  :name="imageErrors[item.media?.id || ''] ? 'i-heroicons-exclamation-triangle' : getMediaIcon(item.media?.type || '')"
-                  :class="[
-                    'w-12 h-12',
-                    imageErrors[item.media?.id || ''] ? 'text-red-500' : 'text-gray-400'
-                  ]"
-                ></UIcon>
-                <p class="text-xs text-center truncate w-full px-2" :class="imageErrors[item.media?.id || ''] ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'">
-                  {{ imageErrors[item.media?.id || ''] ? t('media.loadError', 'Файл недоступен') : (item.media?.filename || 'Untitled') }}
-                </p>
-                <div v-if="!imageErrors[item.media?.id || '']" class="flex flex-col gap-1">
-                  <UBadge size="xs" color="neutral">
-                    {{ item.media?.type }}
-                  </UBadge>
-                  <UBadge
-                    size="xs"
-                    :color="item.media?.storageType === 'TELEGRAM' ? 'secondary' : 'success'"
+                <template #actions>
+                  <!-- Delete button overlay -->
+                  <div
+                    v-if="editable"
+                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    {{ item.media?.storageType }}
-                  </UBadge>
-                </div>
-              </div>
+                    <UButton
+                      icon="i-heroicons-trash"
+                      color="error"
+                      variant="solid"
+                      size="xs"
+                      @click.stop="removeMedia(item.media.id)"
+                    />
+                  </div>
 
-              <!-- Delete button overlay -->
-              <div
-                v-if="editable"
-                class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <UButton
-                  icon="i-heroicons-trash"
-                  color="error"
-                  variant="solid"
-                  size="xs"
-                  @click="removeMedia(item.media?.id || '')"
-                />
-              </div>
-
-              <!-- Drag handle indicator -->
-              <div
-                v-if="editable"
-                class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <UIcon
-                  name="i-heroicons-bars-3"
-                  class="w-5 h-5 text-gray-400"
-                />
-              </div>
-
-              <!-- Filename overlay for images -->
-              <div
-                v-if="item.media?.type === 'IMAGE'"
-                class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <p class="text-xs text-white truncate">
-                  {{ item.media.storageType }} • {{ formatSizeMB(item.media.sizeBytes) }}
-                </p>
-              </div>
+                  <!-- Drag handle indicator -->
+                  <div
+                    v-if="editable"
+                    class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <UIcon
+                      name="i-heroicons-bars-3"
+                      class="w-5 h-5 text-gray-400"
+                    />
+                  </div>
+                </template>
+              </MediaCard>
             </div>
           </VueDraggable>
 

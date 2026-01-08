@@ -76,6 +76,15 @@ function handleDelete(e: Event) {
         </div>
       </div>
 
+      <!-- Media preview -->
+      <div v-if="publication.media && publication.media.length > 0" class="mb-3 flex justify-center">
+        <MediaStack
+          :media="publication.media"
+          size="sm"
+          :clickable="false"
+        />
+      </div>
+
       <!-- Content Snippet -->
       <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 grow leading-relaxed">
         {{ truncateContent(publication.content) }}
