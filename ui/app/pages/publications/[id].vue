@@ -3,11 +3,13 @@ import { useProjects } from '~/composables/useProjects'
 import { usePublications } from '~/composables/usePublications'
 import { useChannels } from '~/composables/useChannels'
 import { usePosts } from '~/composables/usePosts'
+import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 import { getUserSelectableStatuses, getStatusColor, getStatusClass } from '~/utils/publications'
+
 
 definePageMeta({
   middleware: 'auth',
@@ -82,6 +84,17 @@ const hasMedia = computed(() => {
 
 const isContentOrMediaMissing = computed(() => {
     return isContentEmpty.value && !hasMedia.value
+})
+
+const displayTitle = computed(() => {
+  if (currentPublication.value?.title) {
+    return stripHtmlAndSpecialChars(currentPublication.value.title)
+  }
+  if (currentPublication.value?.content) {
+    const cleaned = stripHtmlAndSpecialChars(currentPublication.value.content)
+    if (cleaned) return cleaned
+  }
+  return t('post.untitled')
 })
 
 const majoritySchedule = computed(() => {
@@ -791,17 +804,14 @@ async function handlePublishNow() {
                     <div class="flex-1 space-y-2">
                         <div class="flex items-center gap-2">
                              <UIcon name="i-heroicons-pencil-square" class="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors"></UIcon>
-                             <h3 v-if="currentPublication.title" class="font-semibold text-gray-900 dark:text-white">
-                                {{ currentPublication.title }}
+                             <h3 class="font-semibold text-gray-900 dark:text-white" :class="{ 'italic text-gray-500 font-medium': !currentPublication.title && !stripHtmlAndSpecialChars(currentPublication.content) }">
+                                {{ displayTitle }}
                              </h3>
-                             <span v-else class="font-medium text-gray-500 italic">
-                                {{ t('post.untitled') }}
-                             </span>
                         </div>
                         
                         <!-- Content Preview -->
                         <p v-if="currentPublication.content" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                            {{ currentPublication.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() }}
+                            {{ stripHtmlAndSpecialChars(currentPublication.content) }}
                         </p>
 
                         <!-- Tags -->

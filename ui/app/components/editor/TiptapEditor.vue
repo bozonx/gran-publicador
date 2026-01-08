@@ -5,9 +5,10 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
+import MarkdownIt from 'markdown-it'
 
 interface Props {
-  /** Initial content (HTML) */
+  /** Initial content (Markdown) */
   modelValue?: string
   /** Placeholder text */
   placeholder?: string
@@ -35,6 +36,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
+const md = new MarkdownIt({
+  html: false,
+  breaks: true,
+  linkify: true,
+})
 
 // Extensions defined outside to avoid duplication issues during ref initialization
 const extensions = [
@@ -59,7 +65,7 @@ const extensions = [
 ]
 
 const editor = useEditor({
-  content: props.modelValue,
+  content: props.modelValue ? md.render(props.modelValue) : '',
   editable: !props.disabled,
   extensions: extensions,
   onUpdate: ({ editor }) => {
@@ -82,7 +88,8 @@ watch(
     if (editor.value) {
       const currentMarkdown = editor.value.getMarkdown()
       if (newValue !== currentMarkdown) {
-        editor.value.commands.setContent(newValue, { emitUpdate: false })
+        const html = md.render(newValue || '')
+        editor.value.commands.setContent(html, { emitUpdate: false })
       }
     }
   }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublicationWithRelations } from '~/composables/usePublications'
+import { stripHtmlAndSpecialChars } from '~/utils/text'
 
 const props = defineProps<{
   publication: PublicationWithRelations
@@ -12,19 +13,25 @@ const emit = defineEmits<{
 }>()
 
 const { t, d } = useI18n()
+const { formatDateShort, truncateContent } = useFormatters()
 const { getStatusColor, getStatusDisplayName, getPublicationProblems, getPostProblemLevel } = usePublications()
+
+const displayTitle = computed(() => {
+  if (props.publication.title) {
+    return stripHtmlAndSpecialChars(props.publication.title)
+  }
+  if (props.publication.content) {
+    const cleaned = stripHtmlAndSpecialChars(props.publication.content)
+    if (cleaned) return cleaned
+  }
+  return t('post.untitled')
+})
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
 
-function truncateContent(content: string | null | undefined, maxLength = 150): string {
-  if (!content) return ''
-  const text = content.replace(/<[^>]*>/g, '').trim()
-  if (text.length <= maxLength) return text
-  return text.slice(0, maxLength) + '...'
-}
-
 function handleClick() {
+
   emit('click', props.publication)
 }
 
@@ -43,10 +50,10 @@ function handleDelete(e: Event) {
       <!-- Title and Actions -->
       <div class="flex items-start justify-between gap-4 mb-2">
         <div class="flex flex-wrap items-center gap-2 min-w-0">
-          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-lg leading-snug">
-            {{ publication.title || t('post.untitled') }}
+          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-lg leading-snug" :class="{ 'italic text-gray-500 font-medium': !publication.title && !stripHtmlAndSpecialChars(publication.content) }">
+            {{ displayTitle }}
           </h3>
-          <UBadge :color="getStatusColor(publication.status)" size="xs" variant="subtle" class="capitalize">
+          <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize">
             {{ getStatusDisplayName(publication.status) }}
           </UBadge>
           

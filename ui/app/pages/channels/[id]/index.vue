@@ -5,6 +5,7 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { useViewMode } from '~/composables/useViewMode'
+import { stripHtmlAndSpecialChars } from '~/utils/text'
 
 definePageMeta({
   middleware: 'auth',
@@ -198,9 +199,15 @@ function formatDateTime(date: string | null): string {
 
 function truncateContent(content: string | null | undefined, maxLength = 150): string {
   if (!content) return ''
-  const text = content.replace(/<[^>]*>/g, '').trim()
+  const text = stripHtmlAndSpecialChars(content)
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'
+}
+
+function getDisplayPostTitle(post: PostWithRelations): string {
+  if (post.publication?.title) return stripHtmlAndSpecialChars(post.publication.title)
+  if (post.publication?.content) return stripHtmlAndSpecialChars(post.publication.content)
+  return ''
 }
 
 function mapPostToPublication(post: PostWithRelations): PublicationWithRelations {
@@ -507,7 +514,7 @@ const channelProblems = computed(() => {
                                 :to="`/publications/${post.publicationId}`"
                                 class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
                             >
-                                {{ getPostTitle(post) || t('post.untitled') }}
+                                {{ getDisplayPostTitle(post) || t('post.untitled') }}
                             </NuxtLink>
                             <span v-if="post.scheduledAt" class="text-xs text-gray-400 block mt-1">
                                 {{ formatDateTime(post.scheduledAt) }}
@@ -549,7 +556,7 @@ const channelProblems = computed(() => {
                                 :to="`/publications/${post.publicationId}`"
                                 class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
                             >
-                                {{ getPostTitle(post) || t('post.untitled') }}
+                                {{ getDisplayPostTitle(post) || t('post.untitled') }}
                             </NuxtLink>
                         </li>
                     </ul>

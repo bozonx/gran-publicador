@@ -1,34 +1,36 @@
-export function stripHtmlAndSpecialChars(html: string | null | undefined): string {
-  if (!html) return ''
+export function stripHtmlAndSpecialChars(content: string | null | undefined): string {
+  if (!content) return ''
 
-  // 1. Remove HTML tags
-  const withoutTags = html.replace(/<[^>]*>/g, ' ')
+  // 1. Remove Markdown syntax
+  let text = content
+    // Remove headers
+    .replace(/^#+\s+/gm, '')
+    // Remove bold/italic
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    // Remove links [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove blockquotes
+    .replace(/^\s*>\s+/gm, '')
+    // Remove HTML tags (just in case some remain or for safety)
+    .replace(/<[^>]*>/g, ' ')
 
-  // 2. Decode HTML entities (basic ones) if needed, or rely on browser?
-  // For a simple util, we might want to handle &nbsp; etc.
-  // let's just do a basic replace for common entities if this runs in node/ssr?
-  // But this runs in Vue, so we could use a DOM parser, but regex is safer for SSR/Universal.
-  const decoded = withoutTags
+  // 2. Decode basic HTML entities that might come from Tiptap or legacy
+  text = text
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
 
-  // 3. Keep only allowed characters: letters, numbers, punctuation
-  // Allowed: letters (unicode properties \p{L}), numbers (\p{N}), spaces, .,?!-
-  // We want to remove *formatting* chars but keep text.
-  // The user said: "оставляет в тексте буквы (на любых языках), цифры, и симолы .,?!- (может еще какие)"
-  // Let's interpret "formattting" as weird symbols?
-  // Actually, mostly just want to remove HTML. Semicolons, colons, parens might be useful in text.
-  // User says "only basic symbols which relate to text not formatting".
-  // Let's keep: \p{L}, \p{N}, \s, ., ?, !, -, ,, :, (, ), ', "
-  
-  // Regex to match allowed characters. We negate it to find what to remove.
-  // [^\p{L}\p{N}\s.,?!:;'"()[\]\-] 
-  // Note: - needs escaping or placed at end.
-  const clean = decoded.replace(/[^\p{L}\p{N}\s.,?!:;'"()[\]\-]/gu, '')
+  // 3. Keep only allowed characters: letters, numbers, spaces and basic punctuation
+  // Extended to include more common punctuation symbols useful in text
+  const clean = text.replace(/[^\p{L}\p{N}\s.,?!:;'"()[\]\-#@]/gu, '')
 
-  // 4. Collapse multiple spaces
+  // 4. Collapse multiple spaces and newlines
   return clean.replace(/\s+/g, ' ').trim()
 }
+

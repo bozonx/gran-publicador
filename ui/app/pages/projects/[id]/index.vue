@@ -129,7 +129,7 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 function getPublicationDisplayTitle(pub: any): string {
   let text = ''
   if (pub.title && pub.title.trim()) {
-    text = pub.title
+    text = stripHtmlAndSpecialChars(pub.title)
   } else if (pub.content) {
     text = stripHtmlAndSpecialChars(pub.content)
   } else if (pub.tags && pub.tags.trim()) {

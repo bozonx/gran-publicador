@@ -1,3 +1,5 @@
+import { stripHtmlAndSpecialChars } from '~/utils/text'
+
 /**
  * Composable for consistent formatting utilities across the application
  */
@@ -34,7 +36,7 @@ export function useFormatters() {
     maxLength = 100
   ): string {
     if (!content) return ''
-    const text = content.replace(/<[^>]*>/g, '').trim()
+    const text = stripHtmlAndSpecialChars(content)
     if (text.length <= maxLength) return text
     return text.slice(0, maxLength) + '...'
   }

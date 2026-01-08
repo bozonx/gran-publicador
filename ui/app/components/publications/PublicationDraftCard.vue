@@ -8,13 +8,7 @@ const props = defineProps<{
 
 const { t, d } = useI18n()
 const router = useRouter()
-
-function truncateContent(content: string | null | undefined, maxLength = 100): string {
-  if (!content) return ''
-  const text = content.replace(/<[^>]*>/g, '').trim()
-  if (text.length <= maxLength) return text
-  return text.slice(0, maxLength) + '...'
-}
+const { truncateContent } = useFormatters()
 
 function goToDraft() {
     router.push(`/publications/${props.draft.id}`)

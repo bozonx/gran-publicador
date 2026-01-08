@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublicationWithRelations } from '~/composables/usePublications'
+import { stripHtmlAndSpecialChars } from '~/utils/text'
 
 const props = defineProps<{
   publication: PublicationWithRelations
@@ -17,6 +18,17 @@ const { formatDateShort, truncateContent } = useFormatters()
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
+
+const displayTitle = computed(() => {
+  if (props.publication.title) {
+    return stripHtmlAndSpecialChars(props.publication.title)
+  }
+  if (props.publication.content) {
+    const cleaned = stripHtmlAndSpecialChars(props.publication.content)
+    if (cleaned) return cleaned
+  }
+  return t('post.untitled')
+})
 
 
 
@@ -42,8 +54,8 @@ function handleDelete(e: Event) {
           <UIcon name="i-heroicons-briefcase" class="w-3 h-3 text-gray-400" />
           <span class="truncate">{{ publication.project.name }}</span>
         </div>
-        <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1">
-          {{ publication.title || t('post.untitled') }}
+        <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1" :class="{ 'italic text-gray-500 font-medium': !publication.title && !stripHtmlAndSpecialChars(publication.content) }">
+          {{ displayTitle }}
         </h3>
         <div class="flex items-center gap-1.5 flex-wrap">
           <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize">
