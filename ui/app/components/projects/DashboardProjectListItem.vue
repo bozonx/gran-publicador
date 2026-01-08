@@ -7,67 +7,57 @@ const props = defineProps<{
   showDescription?: boolean
 }>()
 
-const { t, d } = useI18n()
+const { getProjectProblemLevel, getProjectProblems } = useProjects()
+
+// Problem detection
+const problems = computed(() => getProjectProblems(props.project))
+const problemLevel = computed(() => getProjectProblemLevel(props.project))
+
+function getIndicatorColor(level: 'critical' | 'warning' | null) {
+  if (level === 'critical') return 'bg-red-500'
+  if (level === 'warning') return 'bg-yellow-500'
+  return 'bg-emerald-500'
+}
+
+// Errors category (critical issues)
+const errorsCount = computed(() => {
+  const p = problems.value.find(p => p.type === 'critical')
+  return p ? (p.count || 1) : 0
+})
+
+// Warnings category (non-critical issues)
+const warningsCount = computed(() => {
+  return problems.value.filter(p => p.type === 'warning').length
+})
+
+// Tooltip text for errors
+const errorsTooltip = computed(() => {
+  return problems.value
+    .filter(p => p.type === 'critical')
+    .map(p => {
+      if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
+      return p.key
+    })
+    .join(', ')
+})
+
+// Tooltip text for warnings
+const warningsTooltip = computed(() => {
+  return problems.value
+    .filter(p => p.type === 'warning')
+    .map(p => {
+      if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
+      if (p.key === 'staleChannels') return `${p.count} ` + t('common.stale').toLowerCase()
+      if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
+      return p.key
+    })
+    .join(', ')
+})
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return '-'
   return d(new Date(date), 'short')
 }
-
-// Errors category (critical issues)
-const errorsCount = computed(() => {
-  return (props.project.failedPostsCount || 0)
-})
-
-// Warnings category (non-critical issues)
-const warningsCount = computed(() => {
-  let count = 0
-  count += (props.project.problemPublicationsCount || 0)
-  count += (props.project.staleChannelsCount || 0)
-  
-  // Check if no posts for more than 3 days
-  if (props.project.lastPublicationAt) {
-    const lastDate = new Date(props.project.lastPublicationAt).getTime()
-    const now = new Date().getTime()
-    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
-    if (diffDays > 3) count += 1
-  } else {
-    count += 1 // No posts ever is also a warning
-  }
-  
-  return count
-})
-
-// Tooltip text for errors
-const errorsTooltip = computed(() => {
-  const parts: string[] = []
-  if (props.project.failedPostsCount) {
-    parts.push(t('channel.failedPosts'))
-  }
-  return parts.join(', ')
-})
-
-// Tooltip text for warnings
-const warningsTooltip = computed(() => {
-  const parts: string[] = []
-  if (props.project.problemPublicationsCount) {
-    parts.push(t('problems.project.problemPublications', { count: props.project.problemPublicationsCount }))
-  }
-  if (props.project.staleChannelsCount) {
-    parts.push(`${props.project.staleChannelsCount} ${t('common.stale').toLowerCase()}`)
-  }
-  if (props.project.lastPublicationAt) {
-    const lastDate = new Date(props.project.lastPublicationAt).getTime()
-    const now = new Date().getTime()
-    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
-    if (diffDays > 3) {
-      parts.push(t('project.noRecentPostsWarning'))
-    }
-  } else {
-    parts.push(t('project.noRecentPostsWarning'))
-  }
-  return parts.join(', ')
-})
 </script>
 
 <template>
@@ -80,6 +70,10 @@ const warningsTooltip = computed(() => {
       <div class="flex items-center justify-between gap-3">
         <!-- Left: Project Title -->
         <div class="flex-1 min-w-0 flex items-center gap-2">
+          <div 
+            class="w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300"
+            :class="getIndicatorColor(problemLevel)"
+          ></div>
           <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate leading-6">
             {{ project.name }}
           </h3>

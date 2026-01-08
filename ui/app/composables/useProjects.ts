@@ -315,18 +315,25 @@ export function useProjects() {
     function getProjectProblems(project: Project | any) {
         const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
 
-        // Check for no recent activity
-        if (project.lastPublicationAt) {
-            const lastDate = new Date(project.lastPublicationAt).getTime()
-            const now = new Date().getTime()
-            const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
-            
-            if (diffDays > 3) {
-                problems.push({ type: 'warning', key: 'noRecentActivity' })
-            }
+        // Check for critical failures (failed posts)
+        if (project.failedPostsCount > 0) {
+            problems.push({ 
+                type: 'critical', 
+                key: 'failedPosts', 
+                count: project.failedPostsCount 
+            })
         }
 
-        // Check for stale channels (if available in project object)
+        // Check for problem publications (warnings)
+        if (project.problemPublicationsCount > 0) {
+            problems.push({ 
+                type: 'warning', 
+                key: 'problemPublications', 
+                count: project.problemPublicationsCount 
+            })
+        }
+
+        // Check for stale channels (warnings)
         if (project.staleChannelsCount > 0) {
             problems.push({ 
                 type: 'warning', 
@@ -335,10 +342,25 @@ export function useProjects() {
             })
         }
 
+        // Check for no recent activity (warnings)
+        if (project.lastPublicationAt) {
+            const lastDate = new Date(project.lastPublicationAt).getTime()
+            const now = new Date().getTime()
+            const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
+            
+            if (diffDays > 3) {
+                problems.push({ type: 'warning', key: 'noRecentActivity' })
+            }
+        } else {
+            // No publications ever is also a warning
+            problems.push({ type: 'warning', key: 'noRecentActivity' })
+        }
+
         return problems
     }
 
     function getProjectProblemLevel(project: Project | any): 'critical' | 'warning' | null {
+        if (!project) return null
         const problems = getProjectProblems(project)
         if (problems.some(p => p.type === 'critical')) return 'critical'
         if (problems.some(p => p.type === 'warning')) return 'warning'

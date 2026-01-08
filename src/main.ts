@@ -112,7 +112,37 @@ async function bootstrap() {
   logger.log(`📊 Environment: ${appConfig.nodeEnv}`, 'Bootstrap');
   logger.log(`📝 Log level: ${appConfig.logLevel}`, 'Bootstrap');
 
-  // Rely on enableShutdownHooks for graceful shutdown
+  // Setup explicit graceful shutdown handlers
+  const gracefulShutdown = async (signal: string) => {
+    logger.log(`Received ${signal}, starting graceful shutdown...`, 'Bootstrap');
+
+    try {
+      // Close the application gracefully
+      // This will trigger OnModuleDestroy and OnApplicationShutdown hooks
+      await app.close();
+      logger.log('✅ Application closed successfully', 'Bootstrap');
+      process.exit(0);
+    } catch (error: any) {
+      logger.error(`❌ Error during shutdown: ${error.message}`, error.stack, 'Bootstrap');
+      process.exit(1);
+    }
+  };
+
+  // Handle shutdown signals
+  process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
+
+  // Handle uncaught errors during shutdown
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error.stack, 'Bootstrap');
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`, 'Bootstrap');
+    process.exit(1);
+  });
 }
 
 void bootstrap();
+

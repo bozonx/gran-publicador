@@ -61,8 +61,15 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.postingClient) {
-      await this.postingClient.destroy();
+    this.logger.log('Cleaning up social posting client...');
+    try {
+      if (this.postingClient) {
+        await this.postingClient.destroy();
+        this.logger.log('✅ Social posting client destroyed');
+      }
+    } catch (error: any) {
+      this.logger.error(`❌ Error destroying posting client: ${error.message}`, error.stack);
+      // Don't throw - allow other services to cleanup
     }
   }
 

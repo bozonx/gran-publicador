@@ -9,58 +9,53 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const { getProjectProblemLevel, getProjectProblems } = useProjects()
 const { getChannelProblemLevel } = useChannels()
 const { formatDateShort, formatDateWithTime } = useFormatters()
 
+// Problem detection
+const problems = computed(() => getProjectProblems(props.project))
+const problemLevel = computed(() => getProjectProblemLevel(props.project))
+
+function getIndicatorColor(level: 'critical' | 'warning' | null) {
+  if (level === 'critical') return 'bg-red-500'
+  if (level === 'warning') return 'bg-yellow-500'
+  return 'bg-emerald-500'
+}
+
 // Errors category (critical issues)
 const errorsCount = computed(() => {
-  return (props.project.failedPostsCount || 0)
+  const p = problems.value.find(p => p.type === 'critical')
+  return p ? (p.count || 1) : 0
 })
 
 // Warnings category (non-critical issues)
 const warningsCount = computed(() => {
-  let count = 0
-  count += (props.project.problemPublicationsCount || 0)
-  count += (props.project.staleChannelsCount || 0)
-  
-  // Check if no posts for more than 3 days
-  if (props.project.lastPublicationAt) {
-    const lastDate = new Date(props.project.lastPublicationAt).getTime()
-    const now = new Date().getTime()
-    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
-    if (diffDays > 3) count += 1
-  }
-  
-  return count
+  return problems.value.filter(p => p.type === 'warning').length
 })
 
 // Tooltip text for errors
 const errorsTooltip = computed(() => {
-  const parts: string[] = []
-  if (props.project.failedPostsCount) {
-    parts.push(t('channel.failedPosts'))
-  }
-  return parts.join(', ')
+  return problems.value
+    .filter(p => p.type === 'critical')
+    .map(p => {
+      if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
+      return p.key
+    })
+    .join(', ')
 })
 
 // Tooltip text for warnings
 const warningsTooltip = computed(() => {
-  const parts: string[] = []
-  if (props.project.problemPublicationsCount) {
-    parts.push(t('problems.project.problemPublications', { count: props.project.problemPublicationsCount }))
-  }
-  if (props.project.staleChannelsCount) {
-    parts.push(`${props.project.staleChannelsCount} ${t('common.stale').toLowerCase()}`)
-  }
-  if (props.project.lastPublicationAt) {
-    const lastDate = new Date(props.project.lastPublicationAt).getTime()
-    const now = new Date().getTime()
-    const diffDays = (now - lastDate) / (1000 * 60 * 60 * 24)
-    if (diffDays > 3) {
-      parts.push(t('project.noRecentPostsWarning'))
-    }
-  }
-  return parts.join(', ')
+  return problems.value
+    .filter(p => p.type === 'warning')
+    .map(p => {
+      if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
+      if (p.key === 'staleChannels') return `${p.count} ` + t('common.stale').toLowerCase()
+      if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
+      return p.key
+    })
+    .join(', ')
 })
 </script>
 
@@ -75,6 +70,10 @@ const warningsTooltip = computed(() => {
         <div class="flex-1 min-w-0">
           <!-- Header: Name + Role + Problem Badges -->
           <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <div 
+              class="w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300"
+              :class="getIndicatorColor(problemLevel)"
+            ></div>
             <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate max-w-full">
               {{ project.name }}
             </h3>

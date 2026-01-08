@@ -62,7 +62,7 @@ const visibleBottomNavItems = computed(() =>
 )
 
 // Projects fetching
-const { projects, fetchProjects, isLoading: isProjectsLoading } = useProjects()
+const { projects, fetchProjects, isLoading: isProjectsLoading, getProjectProblemLevel, getProjectProblems } = useProjects()
 // Instantiate useChannels at the top level
 const { fetchChannels: fetchChannelsApi } = useChannels()
 
@@ -126,6 +126,26 @@ async function fetchProjectChannels(projectId: string) {
 function getChannelLink(projectId: string, channelId: string) {
   return `/channels/${channelId}`
 }
+
+function getIndicatorColor(project: ProjectWithRole) {
+  const level = getProjectProblemLevel(project)
+  if (level === 'critical') return 'bg-red-500'
+  if (level === 'warning') return 'bg-yellow-500'
+  return 'bg-emerald-500' // Changed from bg-primary-500 to specifically green
+}
+
+function getProjectTooltip(project: ProjectWithRole) {
+  const problems = getProjectProblems(project)
+  if (problems.length === 0) return project.name
+  
+  return problems.map(p => {
+    if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
+    if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
+    if (p.key === 'staleChannels') return `${p.count} ` + t('common.stale').toLowerCase()
+    if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
+    return p.key
+  }).join(', ')
+}
 </script>
 
 <template>
@@ -163,13 +183,18 @@ function getChannelLink(projectId: string, channelId: string) {
             class="group flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
             :class="{ 'bg-gray-100 dark:bg-gray-800': expandedProjects.has(project.id) || route.path.includes(`/projects/${project.id}`) }"
           > 
-            <NuxtLink 
-              :to="`/projects/${project.id}`"
-              class="flex items-center gap-3 flex-1 min-w-0"
-            >
-              <div class="w-2 h-2 rounded-full bg-primary-500 shrink-0"></div>
-              <span class="truncate">{{ project.name }}</span>
-            </NuxtLink>
+            <UTooltip :text="getProjectTooltip(project)" :popper="{ placement: 'right' }">
+              <NuxtLink 
+                :to="`/projects/${project.id}`"
+                class="flex items-center gap-3 flex-1 min-w-0"
+              >
+                <div 
+                  class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
+                  :class="getIndicatorColor(project)"
+                ></div>
+                <span class="truncate">{{ project.name }}</span>
+              </NuxtLink>
+            </UTooltip>
             
             <button
               class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"

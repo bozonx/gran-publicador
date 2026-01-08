@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { getDatabaseUrl } from '../../config/database.config.js';
@@ -12,6 +12,7 @@ import { getDatabaseUrl } from '../../config/database.config.js';
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PrismaService.name);
   constructor() {
     // getDatabaseUrl() will throw if DATA_DIR is not set
     const url = getDatabaseUrl();
@@ -26,6 +27,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   public async onModuleDestroy() {
-    await this.$disconnect();
+    this.logger.log('Closing database connection...');
+    try {
+      await this.$disconnect();
+      this.logger.log('✅ Database connection closed');
+    } catch (error: any) {
+      this.logger.error(`❌ Error closing database connection: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 }
