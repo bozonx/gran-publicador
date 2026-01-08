@@ -28,7 +28,7 @@ const emit = defineEmits<{
       </div>
 
       <!-- Search: Left aligned (after logo/sidebar) -->
-      <div class="hidden sm:block w-[32rem] ml-8">
+      <div class="hidden sm:block w-lg ml-8">
         <CommonGlobalSearch />
       </div>
 
@@ -38,6 +38,8 @@ const emit = defineEmits<{
       <div class="flex items-center gap-3">
         <CommonGlobalCreateButton class="hidden lg:block" />
         
+        <CommonGlobalSearch :disable-shortcut="true" class="sm:hidden" />
+
         <UTooltip :text="t('navigation.settings')">
           <UButton
             to="/settings"

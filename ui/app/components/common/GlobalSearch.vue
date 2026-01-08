@@ -122,8 +122,14 @@ function closeSearch() {
   searchResults.value = []
 }
 
+const props = defineProps<{
+  disableShortcut?: boolean
+}>()
+
 // Keyboard shortcut: Cmd+K or Ctrl+K
 onMounted(() => {
+  if (props.disableShortcut) return
+
   const handleKeydown = (e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.code === 'KeyK')) {
       e.preventDefault()
