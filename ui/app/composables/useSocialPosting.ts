@@ -20,6 +20,7 @@ interface PublishResponse {
 }
 
 export const useSocialPosting = () => {
+  const api = useApi();
   const isPublishing = ref(false);
   const publishError = ref<string | null>(null);
 
@@ -31,9 +32,7 @@ export const useSocialPosting = () => {
     publishError.value = null;
 
     try {
-      const response = await $fetch<PublishResponse>(`/api/publications/${publicationId}/publish`, {
-        method: 'POST',
-      });
+      const response = await api.post<PublishResponse>(`/publications/${publicationId}/publish`);
 
       return response;
     } catch (error: any) {
@@ -52,9 +51,7 @@ export const useSocialPosting = () => {
     publishError.value = null;
 
     try {
-      const response = await $fetch<PublishResponse>(`/api/posts/${postId}/publish`, {
-        method: 'POST',
-      });
+      const response = await api.post<PublishResponse>(`/posts/${postId}/publish`);
 
       return response;
     } catch (error: any) {

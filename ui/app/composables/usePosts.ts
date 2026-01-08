@@ -21,6 +21,7 @@ export interface Post {
   scheduledAt: string | null
   publishedAt: string | null
   errorMessage: string | null
+  meta: any
   createdAt: string
   updatedAt: string
 }

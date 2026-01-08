@@ -408,7 +408,8 @@
     "tagsOverrideHint": "Оставьте пустым для использования тегов из публикации",
     "newPostInChannel": "Новый пост в канал",
     "languageMismatch": "Язык канала отличается от публикации",
-    "languageMismatchWarning": "Внимание: Язык канала отличается от языка публикации"
+    "languageMismatchWarning": "Внимание: Язык канала отличается от языка публикации",
+    "metadata": "Метаданные"
   },
   "publication": {
     "title": "Публикация",

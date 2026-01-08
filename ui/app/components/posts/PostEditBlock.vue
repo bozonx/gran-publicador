@@ -12,6 +12,7 @@ import {
     getPostLanguage 
 } from '~/composables/usePosts'
 import { useSocialPosting } from '~/composables/useSocialPosting'
+import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 
 interface Props {
@@ -247,6 +248,20 @@ async function handlePublishPost() {
     })
   }
 }
+const metaYaml = computed(() => {
+  if (!props.post?.meta) return null
+  try {
+    const metaObj = typeof props.post.meta === 'string' 
+      ? JSON.parse(props.post.meta) 
+      : props.post.meta
+    
+    if (Object.keys(metaObj).length === 0) return null
+    return yaml.dump(metaObj)
+  } catch (e) {
+    console.error('Failed to dump meta to YAML', e)
+    return typeof props.post.meta === 'string' ? props.post.meta : JSON.stringify(props.post.meta, null, 2)
+  }
+})
 </script>
 
 <template>
@@ -527,6 +542,17 @@ async function handlePublishPost() {
               :label="isCreating ? t('common.create') : t('common.save')"
               @click="handleSave"
             />
+        </div>
+      </div>
+
+      <!-- Meta Data YAML -->
+      <div v-if="metaYaml" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
+        <div class="flex items-center gap-2 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <UIcon name="i-heroicons-code-bracket" class="w-4 h-4" />
+          {{ t('post.metadata', 'Metadata') }}
+        </div>
+        <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-4 overflow-x-auto border border-gray-200 dark:border-gray-700">
+          <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre">{{ metaYaml }}</pre>
         </div>
       </div>
 
