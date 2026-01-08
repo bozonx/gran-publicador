@@ -32,4 +32,8 @@ export class CreatePostDto {
   @IsDate()
   @IsOptional()
   public scheduledAt?: Date;
+
+  @IsString()
+  @IsOptional()
+  public content?: string | null;
 }

@@ -100,9 +100,6 @@ async function bootstrap() {
     },
   });
 
-  // Enable graceful shutdown hooks to handle signals (SIGINT, SIGTERM) correctly
-  app.enableShutdownHooks();
-
   await app.listen(appConfig.port, appConfig.host);
 
   logger.log(
@@ -118,7 +115,7 @@ async function bootstrap() {
 
     try {
       // Close the application gracefully
-      // This will trigger OnModuleDestroy and OnApplicationShutdown hooks
+      // This will trigger OnModuleDestroy, beforeApplicationShutdown and OnApplicationShutdown hooks
       await app.close();
       logger.log('✅ Application closed successfully', 'Bootstrap');
       process.exit(0);
@@ -129,8 +126,9 @@ async function bootstrap() {
   };
 
   // Handle shutdown signals
-  process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
+  // Use once to ensure we only try to shutdown once
+  process.once('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+  process.once('SIGINT', () => void gracefulShutdown('SIGINT'));
 
   // Handle uncaught errors during shutdown
   process.on('uncaughtException', (error) => {

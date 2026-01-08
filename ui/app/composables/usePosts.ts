@@ -22,6 +22,7 @@ export interface Post {
   publishedAt: string | null
   errorMessage: string | null
   meta: any
+  content: string | null
   createdAt: string
   updatedAt: string
 }
@@ -57,6 +58,7 @@ export interface PostCreateInput {
   tags?: string | null  // Override publication tags
   status?: PostStatus | null
   scheduledAt?: string | null
+  content?: string | null
 }
 
 export interface PostUpdateInput {
@@ -64,6 +66,7 @@ export interface PostUpdateInput {
   status?: PostStatus  // Update status
   scheduledAt?: string | null
   publishedAt?: string | null
+  content?: string | null
 }
 
 export interface PostsFilter {
@@ -340,7 +343,7 @@ export function getPostTitle(post: PostWithRelations): string | null {
 }
 
 export function getPostContent(post: PostWithRelations): string {
-  return post.publication?.content ?? ''
+  return post.content ?? post.publication?.content ?? ''
 }
 
 export function getPostTags(post: PostWithRelations): string | null {

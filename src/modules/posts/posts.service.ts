@@ -32,6 +32,7 @@ export class PostsService {
       tags?: string;
       status?: PostStatus;
       scheduledAt?: Date;
+      content?: string | null;
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
@@ -61,6 +62,7 @@ export class PostsService {
         tags: data.tags,
         status: data.status ?? PostStatus.PENDING,
         scheduledAt: data.scheduledAt,
+        content: data.content,
       },
       include: {
         channel: true,
@@ -326,6 +328,7 @@ export class PostsService {
       scheduledAt?: Date;
       publishedAt?: Date;
       errorMessage?: string;
+      content?: string | null;
     },
   ) {
     const post = await this.findOne(id, userId);
@@ -373,6 +376,7 @@ export class PostsService {
         scheduledAt: data.scheduledAt,
         publishedAt: data.publishedAt,
         errorMessage: data.errorMessage,
+        content: data.content,
       },
       include: {
         channel: true,

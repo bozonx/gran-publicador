@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
 import { resolvePlatformParams } from './utils/platform-params-resolver.util.js';
 import { PublishResponseDto } from './dto/publish-response.dto.js';
+import { ShutdownService } from '../../common/services/shutdown.service.js';
 
 /**
  * Custom logger adapter to pipe library logs to NestJS Logger
@@ -43,7 +44,10 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SocialPostingService.name);
   private postingClient: PostingClient | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shutdownService: ShutdownService,
+  ) {}
 
   async onModuleInit() {
     try {
@@ -188,6 +192,17 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     }> = [];
 
     for (const post of publication.posts) {
+      if (this.shutdownService.isShutdownInProgress()) {
+        this.logger.warn(`[publishPublication] Shutdown in progress, aborting remaining posts for publication ${publicationId}`);
+        results.push({
+          postId: post.id,
+          channelId: post.channelId,
+          success: false,
+          error: 'Publication aborted due to system shutdown',
+        });
+        continue;
+      }
+
       try {
         const channelValidation = this.validateChannelReady(post.channel);
         if (!channelValidation.valid) {
@@ -289,7 +304,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
-        body: publication.content || '',
+        body: (post.content || publication.content) || '',
         bodyFormat: 'md',
         channelId: targetChannelId,
         auth: {

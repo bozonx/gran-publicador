@@ -90,6 +90,15 @@ export class AppConfig {
      */
     maxFileSize: number;
   };
+
+  /**
+   * Timeout for graceful shutdown in milliseconds.
+   * Defined by SHUTDOWN_TIMEOUT_MS environment variable.
+   * Default: 30000
+   */
+  @IsInt()
+  @Min(1000)
+  public shutdownTimeoutMs!: number;
 }
 
 export default registerAs('app', (): AppConfig => {
@@ -147,6 +156,12 @@ export default registerAs('app', (): AppConfig => {
     media: {
       maxFileSize: parseInt(fileConfig.media?.maxFileSize?.toString() ?? '52428800', 10),
     },
+
+    // Shutdown Config
+    shutdownTimeoutMs: parseInt(
+      fileConfig.shutdownTimeoutMs?.toString() ?? process.env.SHUTDOWN_TIMEOUT_MS ?? '30000',
+      10,
+    ),
   });
 
   // Perform synchronous validation of the configuration object

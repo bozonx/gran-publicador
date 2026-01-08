@@ -232,6 +232,8 @@ model Post {
   errorMessage  String?    @map("error_message")
   // Data received after publication (usually url or message id). Not editable by user.
   meta          String    @default("{}")
+  // Overwrite of publication content for this specific post
+  content       String?
 
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")

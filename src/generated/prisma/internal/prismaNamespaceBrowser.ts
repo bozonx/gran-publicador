@@ -216,6 +216,7 @@ export const PostScalarFieldEnum = {
   status: 'status',
   errorMessage: 'errorMessage',
   meta: 'meta',
+  content: 'content',
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',

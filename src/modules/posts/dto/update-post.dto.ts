@@ -11,9 +11,12 @@ export class UpdatePostDto {
   public tags?: string; // Can override publication tags
 
   @Type(() => Date)
-  @IsDate()
   @IsOptional()
   public scheduledAt?: Date;
+
+  @IsString()
+  @IsOptional()
+  public content?: string | null;
 
   @Type(() => Date)
   @IsDate()

@@ -14,6 +14,7 @@ import {
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
+import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 
 interface Props {
   post?: PostWithRelations
@@ -82,12 +83,12 @@ const overriddenTags = computed(() => {
     return props.post.tags.split(',').filter(t => t.trim())
 })
 
-// Form Data - Only post-specific fields
 const formData = reactive({
   channelId: '', 
   tags: props.post?.tags || '', // Null or empty means use publication tags
   scheduledAt: toDatetimeLocal(props.post?.scheduledAt),
-  status: (props.post?.status || 'PENDING') as PostStatus
+  status: (props.post?.status || 'PENDING') as PostStatus,
+  content: props.post?.content || ''
 })
 
 // Dirty state tracking
@@ -137,6 +138,7 @@ async function handleSave() {
             publicationId: props.publication.id,
             tags: formData.tags || null,
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
+            content: formData.content || null,
         }, { silent: true })
 
         if (newPost) {
@@ -149,10 +151,14 @@ async function handleSave() {
 
     } else {
         if (!props.post) return
-        await updatePost(props.post.id, {
+        const updatedPost = await updatePost(props.post.id, {
           tags: formData.tags || null,
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
+          content: formData.content || null,
         }, { silent: true })
+
+        if (!updatedPost) throw new Error('Failed to update post')
+
         saveButtonRef.value?.showSuccess()
         saveOriginalState() // Clear dirty state
         emit('success')
@@ -189,7 +195,11 @@ async function confirmDelete() {
 
 // Accessors for inherited content
 const displayTitle = computed(() => props.post ? getPostTitle(props.post) : props.publication?.title)
-const displayContent = computed(() => props.post ? getPostContent(props.post) : props.publication?.content)
+const displayContent = computed(() => {
+    if (props.post?.content) return props.post.content
+    if (formData.content) return formData.content
+    return props.publication?.content
+})
 const displayDescription = computed(() => props.post ? getPostDescription(props.post) : props.publication?.description)
 const displayLanguage = computed(() => props.post ? getPostLanguage(props.post) : props.publication?.language)
 const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
@@ -200,6 +210,7 @@ watch(() => props.post, (newPost) => {
     formData.tags = newPost.tags || ''
     formData.scheduledAt = toDatetimeLocal(newPost.scheduledAt)
     formData.status = newPost.status
+    formData.content = newPost.content || ''
     
     // Save original state after update
     nextTick(() => {
@@ -465,6 +476,31 @@ const metaYaml = computed(() => {
             </UFormField>
 
 
+       </div>
+       
+       <!-- Post Content (Override) -->
+       <div class="space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.content') }}</span>
+                <UButton 
+                    v-if="formData.content" 
+                    variant="ghost" 
+                    color="neutral" 
+                    size="xs" 
+                    icon="i-heroicons-x-mark"
+                    @click="formData.content = ''"
+                >
+                    {{ t('common.reset') }}
+                </UButton>
+            </div>
+            <TiptapEditor 
+                v-model="formData.content" 
+                :placeholder="t('post.contentTooltip')"
+                :min-height="150"
+            />
+            <p v-if="!formData.content" class="text-xs text-gray-500 dark:text-gray-400 italic">
+                {{ t('post.contentInheritedFromPublication') }}
+            </p>
        </div>
 
       <!-- Actions -->
