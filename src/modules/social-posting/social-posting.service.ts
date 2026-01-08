@@ -89,10 +89,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         ? JSON.parse(channel.credentials) 
         : channel.credentials;
 
+      const targetChannelId = (channel.socialMedia === SocialMedia.TELEGRAM && credentials.telegramChannelId)
+        ? credentials.telegramChannelId
+        : channel.channelIdentifier;
+
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
         body: 'Test connection message from Gran Publicador',
-        channelId: channel.channelIdentifier,
+        channelId: targetChannelId,
         auth: {
           apiKey: credentials.telegramBotToken || credentials.botToken || credentials.vkAccessToken || credentials.accessToken,
         }
@@ -268,11 +272,15 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
       const mediaMapping = this.mapMediaToLibraryFormat(publication.media);
 
+      const targetChannelId = (channel.socialMedia === SocialMedia.TELEGRAM && credentials.telegramChannelId)
+        ? credentials.telegramChannelId
+        : channel.channelIdentifier;
+
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
         body: publication.content || '',
         bodyFormat: 'text',
-        channelId: channel.channelIdentifier,
+        channelId: targetChannelId,
         auth: {
           apiKey: credentials.telegramBotToken || credentials.botToken || credentials.vkAccessToken || credentials.accessToken,
         },
