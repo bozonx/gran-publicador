@@ -68,6 +68,14 @@ const isContentEmpty = computed(() => {
     return !currentPublication.value?.content || currentPublication.value.content.trim() === ''
 })
 
+const hasMedia = computed(() => {
+    return currentPublication.value?.media && currentPublication.value.media.length > 0
+})
+
+const isContentOrMediaMissing = computed(() => {
+    return isContentEmpty.value && !hasMedia.value
+})
+
 const majoritySchedule = computed(() => {
     if (!currentPublication.value?.posts?.length) return { date: null, conflict: false }
     
@@ -304,11 +312,11 @@ async function handleUpdateStatusOption(status: PublicationStatus) {
         return
     }
     
-    // Check content requirement for READY status
-    if (status === 'READY' && isContentEmpty.value) {
+    // Check content or media requirement for READY status
+    if (status === 'READY' && isContentOrMediaMissing.value) {
         toast.add({
             title: t('common.error'),
-            description: t('publication.validation.contentRequired'),
+            description: t('publication.validation.contentOrMediaRequired'),
             color: 'error'
         })
         return
@@ -532,11 +540,11 @@ function formatDate(dateString: string | null | undefined): string {
 
         <!-- Content Empty Banner -->
         <UAlert
-          v-if="isContentEmpty"
+          v-if="isContentOrMediaMissing"
           color="info"
           variant="soft"
           icon="i-heroicons-information-circle"
-          :title="t('publication.validation.contentRequired')"
+          :title="t('publication.validation.contentOrMediaRequired')"
           class="mb-6"
         />
 
@@ -612,14 +620,14 @@ function formatDate(dateString: string | null | undefined): string {
                                       {{ t('common.noData') }}
                                  </div>
 
-                                 <UTooltip :text="isContentEmpty ? t('publication.validation.contentRequired') : ''">
+                                 <UTooltip :text="isContentOrMediaMissing ? t('publication.validation.contentOrMediaRequired') : ''">
                                     <UButton
                                         :label="t('publication.changeSchedule')"
                                         icon="i-heroicons-clock"
                                         variant="soft"
                                         size="xs"
                                         color="primary"
-                                        :disabled="allPostsPublished || isContentEmpty"
+                                        :disabled="allPostsPublished || isContentOrMediaMissing"
                                         @click="openScheduleModal"
                                     ></UButton>
                                 </UTooltip>
@@ -649,7 +657,7 @@ function formatDate(dateString: string | null | undefined): string {
                                         :key="option.value"
                                         :label="option.label"
                                         color="neutral"
-                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentEmpty && currentPublication?.status === 'DRAFT')"
+                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentOrMediaMissing && currentPublication?.status === 'DRAFT')"
                                         class="rounded-none first:rounded-l-md last:rounded-r-md transition-opacity"
                                         :class="[
                                             getStatusClass(option.value as PublicationStatus),
