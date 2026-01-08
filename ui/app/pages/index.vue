@@ -141,8 +141,8 @@ const projectsByRole = computed(() => {
 })
 
 function goToPublication(pub: PublicationWithRelations) {
-    if (pub.project) {
-        router.push(`/projects/${pub.project.id}/publications/${pub.id}`)
+    if (pub.id) {
+        router.push(`/publications/${pub.id}`)
     }
 }
 </script>
@@ -219,7 +219,7 @@ function goToPublication(pub: PublicationWithRelations) {
               <ul class="divide-y divide-gray-100 dark:divide-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
                 <li v-for="pub in group.publications" :key="pub.id" class="p-3 hover:bg-white dark:hover:bg-gray-700/50 transition-colors first:rounded-t-lg last:rounded-b-lg">
                   <NuxtLink 
-                    :to="`/projects/${group.project.id}/publications/${pub.id}`"
+                    :to="`/publications/${pub.id}`"
                     class="block"
                   >
                     <div class="text-sm text-gray-700 dark:text-gray-200 line-clamp-1 mb-1">
@@ -266,7 +266,7 @@ function goToPublication(pub: PublicationWithRelations) {
               <ul class="divide-y divide-gray-100 dark:divide-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
                 <li v-for="pub in group.publications" :key="pub.id" class="p-3 hover:bg-white dark:hover:bg-gray-700/50 transition-colors first:rounded-t-lg last:rounded-b-lg">
                    <NuxtLink 
-                    :to="`/projects/${group.project.id}/publications/${pub.id}`"
+                    :to="`/publications/${pub.id}`"
                     class="block"
                   >
                     <div class="flex items-start gap-2 mb-1">

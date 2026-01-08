@@ -61,7 +61,7 @@ function handleProjectCreated(projectId: string) {
 
 function handleChannelCreated(channelId: string, projectId: string) {
   isChannelModalOpen.value = false
-  router.push(`/projects/${projectId}/channels/${channelId}`)
+  router.push(`/channels/${channelId}`)
 }
 
 // Publication creation
@@ -158,7 +158,7 @@ async function handleCreatePublication() {
       })
       
       isPublicationModalOpen.value = false
-      router.push(`/projects/${publicationForm.projectId}/publications/${publication.id}?new=true`)
+      router.push(`/publications/${publication.id}?new=true`)
     }
   } catch (error) {
     console.error('Failed to create publication:', error)

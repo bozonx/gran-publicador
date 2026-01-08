@@ -115,7 +115,7 @@ async function handleCreate() {
       emit('success', publication.id)
       
       // Navigate to edit page with query param to expand form
-      router.push(`/projects/${props.projectId}/publications/${publication.id}?new=true`)
+      router.push(`/publications/${publication.id}?new=true`)
     }
   } catch (error) {
     console.error('Failed to create publication:', error)

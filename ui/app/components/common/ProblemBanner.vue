@@ -65,7 +65,7 @@ function getProblemText(problem: { key: string, count?: number }) {
                   size="xs"
                   color="error" 
                   variant="soft"
-                  :to="`/projects/${route.params.id}/channels/${route.params.channelId}/settings#credentials`"
+                  :to="`/channels/${route.params.channelId}/settings#credentials`"
                 >
                   {{ t('common.add') }}
                 </UButton>

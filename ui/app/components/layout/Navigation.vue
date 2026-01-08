@@ -124,7 +124,7 @@ async function fetchProjectChannels(projectId: string) {
 }
 
 function getChannelLink(projectId: string, channelId: string) {
-  return `/projects/${projectId}/channels/${channelId}`
+  return `/channels/${channelId}`
 }
 </script>
 

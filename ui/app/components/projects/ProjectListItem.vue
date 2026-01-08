@@ -161,7 +161,7 @@ const warningsTooltip = computed(() => {
                    {{ t('project.lastPublication') }}:
                    <span 
                      class="text-primary-500 hover:text-primary-400 transition-colors cursor-pointer font-medium underline decoration-dotted decoration-primary-500/30 underline-offset-2"
-                     @click.stop.prevent="router.push(`/projects/${project.id}/publications/${project.lastPublicationId}`)"
+                     @click.stop.prevent="router.push(`/publications/${project.lastPublicationId}`)"
                    >
                      {{ formatDateWithTime(project.lastPublicationAt) }}
                    </span>
@@ -178,7 +178,7 @@ const warningsTooltip = computed(() => {
               :text="channel.name"
             >
               <NuxtLink 
-                :to="`/projects/${project.id}/channels/${channel.id}`"
+                :to="`/channels/${channel.id}`"
                 class="hover:opacity-80 transition-opacity"
                 @click.stop
               >

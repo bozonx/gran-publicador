@@ -76,7 +76,7 @@ async function performSearch(query: string) {
           id: c.id,
           title: c.name,
           subtitle: c.project?.name,
-          link: `/projects/${c.projectId}/channels/${c.id}`,
+          link: `/channels/${c.id}`,
           icon: 'i-heroicons-hashtag'
         })
       })
@@ -97,7 +97,7 @@ async function performSearch(query: string) {
           id: p.id,
           title: p.title || t('post.untitled'),
           subtitle: p.project?.name,
-          link: `/projects/${p.projectId}/publications/${p.id}`,
+          link: `/publications/${p.id}`,
           icon: 'i-heroicons-document-text'
         })
       })
