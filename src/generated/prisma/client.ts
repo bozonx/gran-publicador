@@ -75,16 +75,6 @@ export type Publication = Prisma.PublicationModel
  */
 export type Media = Prisma.MediaModel
 /**
- * Model MediaGroup
- * 
- */
-export type MediaGroup = Prisma.MediaGroupModel
-/**
- * Model MediaGroupItem
- * 
- */
-export type MediaGroupItem = Prisma.MediaGroupItemModel
-/**
  * Model PublicationMedia
  * 
  */

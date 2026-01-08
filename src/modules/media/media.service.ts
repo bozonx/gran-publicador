@@ -7,7 +7,7 @@ import { createReadStream, existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
+import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
 import { getMediaDir } from '../../config/media.config.js';
 import type { AppConfig } from '../../config/app.config.js';
@@ -389,31 +389,6 @@ export class MediaService {
     }
   }
 
-  /**
-   * Create media group.
-   */
-  async createGroup(data: CreateMediaGroupDto) {
-    this.logger.debug(`Creating media group: ${data.name || 'unnamed'}`);
-    
-    return this.prisma.mediaGroup.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        items: {
-          create: data.items.map(item => ({
-            media: { connect: { id: item.mediaId } },
-            order: item.order ?? 0
-          }))
-        }
-      },
-      include: {
-        items: {
-          include: { media: true },
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
-  }
 
   /**
    * Check if user interacts with media.
@@ -631,20 +606,4 @@ export class MediaService {
     }
   }
 
-  async findGroup(id: string) {
-    const group = await this.prisma.mediaGroup.findUnique({
-      where: { id },
-      include: {
-        items: {
-          include: { media: true },
-          orderBy: { order: 'asc' }
-        }
-      }
-    });
-    if (!group) {
-      this.logger.warn(`Media group not found: ${id}`);
-      throw new NotFoundException(`MediaGroup with ID ${id} not found`);
-    }
-    return group;
-  }
 }

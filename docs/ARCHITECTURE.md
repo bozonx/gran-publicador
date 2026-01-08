@@ -635,11 +635,6 @@ Media (Медиафайлы)
   ├── sizeBytes: Int
   └── meta: JSON
 
-MediaGroup (Группы медиа)
-  ├── id: UUID
-  ├── name: String
-  └── description: String
-
 Post (Посты)
   ├── id: UUID
   ├── publicationId: UUID → Publication

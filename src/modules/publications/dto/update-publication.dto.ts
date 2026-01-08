@@ -1,7 +1,7 @@
 import { IsArray, IsDate, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
-import { CreateMediaDto, CreateMediaGroupDto } from '../../media/dto/index.js';
+import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
 
@@ -38,20 +38,9 @@ export class UpdatePublicationDto {
   public media?: CreateMediaDto[];
 
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateMediaGroupDto)
-  @IsOptional()
-  public mediaGroups?: CreateMediaGroupDto[];
-
-  @IsArray()
   @IsString({ each: true })
   @IsOptional()
   public existingMediaIds?: string[];
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  public existingMediaGroupIds?: string[];
 
   @IsString()
   @IsOptional()

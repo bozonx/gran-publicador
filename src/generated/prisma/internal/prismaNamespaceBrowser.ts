@@ -58,8 +58,6 @@ export const ModelName = {
   Channel: 'Channel',
   Publication: 'Publication',
   Media: 'Media',
-  MediaGroup: 'MediaGroup',
-  MediaGroupItem: 'MediaGroupItem',
   PublicationMedia: 'PublicationMedia',
   Post: 'Post'
 } as const
@@ -198,32 +196,10 @@ export const MediaScalarFieldEnum = {
 export type MediaScalarFieldEnum = (typeof MediaScalarFieldEnum)[keyof typeof MediaScalarFieldEnum]
 
 
-export const MediaGroupScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type MediaGroupScalarFieldEnum = (typeof MediaGroupScalarFieldEnum)[keyof typeof MediaGroupScalarFieldEnum]
-
-
-export const MediaGroupItemScalarFieldEnum = {
-  id: 'id',
-  mediaGroupId: 'mediaGroupId',
-  mediaId: 'mediaId',
-  order: 'order'
-} as const
-
-export type MediaGroupItemScalarFieldEnum = (typeof MediaGroupItemScalarFieldEnum)[keyof typeof MediaGroupItemScalarFieldEnum]
-
-
 export const PublicationMediaScalarFieldEnum = {
   id: 'id',
   publicationId: 'publicationId',
   mediaId: 'mediaId',
-  mediaGroupId: 'mediaGroupId',
   order: 'order',
   createdAt: 'createdAt'
 } as const

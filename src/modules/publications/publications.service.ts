@@ -261,27 +261,6 @@ export class PublicationsService {
               order: (data.media?.length || 0) + i,
               media: { connect: { id } }
             })),
-            // New Groups
-            ...(data.mediaGroups || []).map((g, i) => ({
-              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + i,
-              mediaGroup: {
-                create: {
-                  name: g.name,
-                  description: g.description,
-                  items: {
-                    create: g.items.map(gi => ({
-                      media: { connect: { id: gi.mediaId } },
-                      order: gi.order
-                    }))
-                  }
-                }
-              }
-            })),
-            // Existing Groups
-            ...(data.existingMediaGroupIds || []).map((id, i) => ({
-              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + (data.mediaGroups?.length || 0) + i,
-              mediaGroup: { connect: { id } }
-            }))
           ]
         },
 
@@ -566,16 +545,6 @@ export class PublicationsService {
         media: {
           include: {
             media: true,
-            mediaGroup: {
-              include: {
-                items: {
-                  include: {
-                    media: true
-                  },
-                  orderBy: { order: 'asc' }
-                }
-              }
-            }
           },
           orderBy: {
             order: 'asc'
@@ -618,16 +587,6 @@ export class PublicationsService {
         ...pm.media,
         meta: this.parseMetaJson(pm.media.meta),
       } : pm.media,
-      mediaGroup: pm.mediaGroup ? {
-        ...pm.mediaGroup,
-        items: pm.mediaGroup.items?.map(item => ({
-          ...item,
-          media: item.media ? {
-            ...item.media,
-            meta: this.parseMetaJson(item.media.meta),
-          } : item.media,
-        })),
-      } : pm.mediaGroup,
     }));
 
     return { ...publication, media: parsedMedia, translations };
@@ -783,7 +742,7 @@ export class PublicationsService {
         // Logic: if any media DTO field is present, we assume full replace.
         // If all are undefined, we touch nothing.
         // Note: This logic assumes that the client sends the FULL state of media.
-        media: (data.media || data.existingMediaIds || data.mediaGroups || data.existingMediaGroupIds) ? {
+        media: (data.media || data.existingMediaIds) ? {
           deleteMany: {}, // Clear existing
           create: [
              // New Media
@@ -796,27 +755,6 @@ export class PublicationsService {
               order: (data.media?.length || 0) + i,
               media: { connect: { id } }
             })),
-            // New Groups
-            ...(data.mediaGroups || []).map((g, i) => ({
-              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + i,
-              mediaGroup: {
-                create: {
-                  name: g.name,
-                  description: g.description,
-                  items: {
-                    create: g.items.map(gi => ({
-                      media: { connect: { id: gi.mediaId } },
-                      order: gi.order
-                    }))
-                  }
-                }
-              }
-            })),
-            // Existing Groups
-            ...(data.existingMediaGroupIds || []).map((id, i) => ({
-              order: (data.media?.length || 0) + (data.existingMediaIds?.length || 0) + (data.mediaGroups?.length || 0) + i,
-              mediaGroup: { connect: { id } }
-            }))
           ]
         } : undefined,
         tags: data.tags,

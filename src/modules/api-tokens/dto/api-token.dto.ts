@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsArray } from 'class-validator';
-import { Expose, Transform } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 
 export class CreateApiTokenDto {
   @IsString()
@@ -37,9 +37,11 @@ export class ApiTokenDto {
 
   @Expose()
   @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
+    if (Array.isArray(value)) return value;
+    if (typeof value !== 'string') return [];
     try {
-      return JSON.parse(value);
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -47,11 +49,14 @@ export class ApiTokenDto {
   public scopeProjectIds!: string[];
 
   @Expose()
+  @Type(() => Date)
   public lastUsedAt?: Date | null;
 
   @Expose()
+  @Type(() => Date)
   public createdAt!: Date;
 
   @Expose()
+  @Type(() => Date)
   public updatedAt!: Date;
 }

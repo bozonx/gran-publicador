@@ -130,10 +130,14 @@ export class ApiTokensService {
         },
       });
 
-      return plainToInstance(ApiTokenDto, {
-        ...apiToken,
-        plainToken,
-      });
+      return plainToInstance(
+        ApiTokenDto,
+        {
+          ...apiToken,
+          plainToken,
+        },
+        { excludeExtraneousValues: true },
+      );
     } catch (error: any) {
       if (error.code === 'P2002') {
         // Unique constraint violation - extremely rare but possible
@@ -153,10 +157,14 @@ export class ApiTokensService {
     });
 
     return tokens.map(token =>
-      plainToInstance(ApiTokenDto, {
-        ...token,
-        plainToken: this.decryptToken(token.encryptedToken),
-      }),
+      plainToInstance(
+        ApiTokenDto,
+        {
+          ...token,
+          plainToken: this.decryptToken(token.encryptedToken),
+        },
+        { excludeExtraneousValues: true },
+      ),
     );
   }
 
@@ -209,10 +217,14 @@ export class ApiTokensService {
       data: updateData,
     });
 
-    return plainToInstance(ApiTokenDto, {
-      ...updated,
-      plainToken: this.decryptToken(updated.encryptedToken),
-    });
+    return plainToInstance(
+      ApiTokenDto,
+      {
+        ...updated,
+        plainToken: this.decryptToken(updated.encryptedToken),
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 
   /**

@@ -19,10 +19,6 @@ describe('MediaService (unit)', () => {
       update: jest.fn() as any,
       delete: jest.fn() as any,
     },
-    mediaGroup: {
-      create: jest.fn() as any,
-      findUnique: jest.fn() as any,
-    },
     $transaction: jest.fn() as any,
   };
 
@@ -285,92 +281,6 @@ describe('MediaService (unit)', () => {
     });
   });
 
-  describe('createGroup', () => {
-    it('should create media group with items', async () => {
-      const createDto = {
-        name: 'Test Gallery',
-        description: 'Test description',
-        items: [
-          { mediaId: 'media-1', order: 0 },
-          { mediaId: 'media-2', order: 1 },
-        ],
-      };
-
-      const expectedGroup = {
-        id: 'group-1',
-        name: createDto.name,
-        description: createDto.description,
-        items: [
-          { id: 'item-1', mediaGroupId: 'group-1', mediaId: 'media-1', order: 0, media: { id: 'media-1' } },
-          { id: 'item-2', mediaGroupId: 'group-1', mediaId: 'media-2', order: 1, media: { id: 'media-2' } },
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrismaService.mediaGroup.create.mockResolvedValue(expectedGroup);
-
-      const result = await service.createGroup(createDto);
-
-      expect(result).toEqual(expectedGroup);
-      expect(mockPrismaService.mediaGroup.create).toHaveBeenCalledWith({
-        data: {
-          name: createDto.name,
-          description: createDto.description,
-          items: {
-            create: [
-              { media: { connect: { id: 'media-1' } }, order: 0 },
-              { media: { connect: { id: 'media-2' } }, order: 1 },
-            ],
-          },
-        },
-        include: {
-          items: {
-            include: { media: true },
-            orderBy: { order: 'asc' },
-          },
-        },
-      });
-    });
-  });
-
-  describe('findGroup', () => {
-    it('should return media group with items', async () => {
-      const groupId = 'group-1';
-      const mockGroup = {
-        id: groupId,
-        name: 'Test Group',
-        description: 'Test description',
-        items: [
-          { id: 'item-1', mediaId: 'media-1', order: 0, media: { id: 'media-1' } },
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPrismaService.mediaGroup.findUnique.mockResolvedValue(mockGroup);
-
-      const result = await service.findGroup(groupId);
-
-      expect(result).toEqual(mockGroup);
-      expect(mockPrismaService.mediaGroup.findUnique).toHaveBeenCalledWith({
-        where: { id: groupId },
-        include: {
-          items: {
-            include: { media: true },
-            orderBy: { order: 'asc' },
-          },
-        },
-      });
-    });
-
-    it('should throw NotFoundException if group not found', async () => {
-      mockPrismaService.mediaGroup.findUnique.mockResolvedValue(null);
-
-      await expect(service.findGroup('non-existent')).rejects.toThrow(NotFoundException);
-      await expect(service.findGroup('non-existent')).rejects.toThrow('MediaGroup with ID non-existent not found');
-    });
-  });
 
   describe('validation', () => {
     it('should validate max file size in saveFile', async () => {

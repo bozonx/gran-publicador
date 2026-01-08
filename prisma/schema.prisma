@@ -198,56 +198,25 @@ model Media {
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   publicationMedia PublicationMedia[]
-  mediaGroupItems  MediaGroupItem[]
 
   @@index([type])
   @@index([storageType])
   @@map("media")
 }
 
-model MediaGroup {
-  id          String   @id @default(uuid())
-  name        String?
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  items            MediaGroupItem[]
-  publicationMedia PublicationMedia[]
-
-  @@map("media_groups")
-}
-
-model MediaGroupItem {
-  id           String @id @default(uuid())
-  mediaGroupId String @map("media_group_id")
-  mediaId      String @map("media_id")
-  order        Int    @default(0)
-
-  mediaGroup MediaGroup @relation(fields: [mediaGroupId], references: [id], onDelete: Cascade)
-  media      Media      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-
-  @@unique([mediaGroupId, mediaId])
-  @@index([mediaGroupId])
-  @@index([mediaId])
-  @@map("media_group_items")
-}
 
 model PublicationMedia {
   id             String   @id @default(uuid())
   publicationId  String   @map("publication_id")
   mediaId        String?  @map("media_id")
-  mediaGroupId   String?  @map("media_group_id")
   order          Int      @default(0)
   createdAt      DateTime @default(now()) @map("created_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   media       Media?      @relation(fields: [mediaId], references: [id], onDelete: SetNull)
-  mediaGroup  MediaGroup? @relation(fields: [mediaGroupId], references: [id], onDelete: SetNull)
 
   @@index([publicationId])
   @@index([mediaId])
-  @@index([mediaGroupId])
   @@map("publication_media")
 }
 

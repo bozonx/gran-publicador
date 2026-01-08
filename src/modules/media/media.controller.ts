@@ -14,7 +14,7 @@ import {
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { MultipartFile } from '@fastify/multipart';
 import { MediaService } from './media.service.js';
-import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
+import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 
 @Controller('media')
@@ -117,15 +117,4 @@ export class MediaController {
     return this.mediaService.remove(id);
   }
 
-  @Post('groups')
-  @UseGuards(JwtOrApiTokenGuard)
-  createGroup(@Body() createGroupDto: CreateMediaGroupDto) {
-    return this.mediaService.createGroup(createGroupDto);
-  }
-
-  @Get('groups/:id')
-  @UseGuards(JwtOrApiTokenGuard)
-  findGroup(@Param('id') id: string) {
-    return this.mediaService.findGroup(id);
-  }
 }

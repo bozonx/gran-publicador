@@ -36,7 +36,7 @@ Media is served through `GET /api/v1/media/:id/file`. The backend handles:
 
 ### Publications Integration
 
-Publications relate to media through the `PublicationMedia` table, allowing for ordered media attachments. Media can also be grouped using `MediaGroup` for more complex structures (e.g., albums).
+Publications relate to media through the `PublicationMedia` table, allowing for ordered media attachments.
 
 ## Directory Structure
 

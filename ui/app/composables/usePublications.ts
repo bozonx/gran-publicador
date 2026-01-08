@@ -52,7 +52,6 @@ export interface PublicationWithRelations extends Publication {
             mimeType?: string
             sizeBytes?: number
         }
-        mediaGroup?: any
     }>
     _count?: {
         posts: number

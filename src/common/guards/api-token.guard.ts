@@ -44,10 +44,12 @@ export class ApiTokenGuard implements CanActivate {
       tokenId: tokenData.tokenId,
     };
 
-    // Update last used timestamp asynchronously (don't block the request)
-    this.apiTokensService.updateLastUsed(tokenData.tokenId).catch(() => {
-      // Silently fail - this is not critical
-    });
+    // Update last used timestamp (awaited to ensure it's saved correctly)
+    try {
+      await this.apiTokensService.updateLastUsed(tokenData.tokenId);
+    } catch (err) {
+      this.logger.error(`Failed to update last used timestamp for token ${tokenData.tokenId}`, err);
+    }
 
     return true;
   }

@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { ClassSerializerInterceptor, Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import pkg from '../package.json' with { type: 'json' };
@@ -123,6 +123,10 @@ import { MediaModule } from './modules/media/media.module.js';
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClassSerializerInterceptor,
     },
   ],
 })
