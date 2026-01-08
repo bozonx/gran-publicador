@@ -720,8 +720,14 @@ export class PublicationsService {
       // Validate content is filled for READY status
       if (data.status === PublicationStatus.READY) {
         const contentToCheck = data.content !== undefined ? data.content : publication.content;
-        if (!contentToCheck) {
-          throw new BadRequestException('Content is required when status is READY');
+        
+        // Check for media presence (either in update data or existing)
+        const isMediaUpdating = data.media !== undefined || data.existingMediaIds !== undefined;
+        const newMediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
+        const hasMedia = isMediaUpdating ? newMediaCount > 0 : (publication.media && publication.media.length > 0);
+
+        if (!contentToCheck && !hasMedia) {
+          throw new BadRequestException('Content or Media is required when status is READY');
         }
       }
 
@@ -743,8 +749,14 @@ export class PublicationsService {
     if (data.scheduledAt !== undefined && data.scheduledAt !== null) {
       // Validate content is filled
       const contentToCheck = data.content !== undefined ? data.content : publication.content;
-      if (!contentToCheck) {
-        throw new BadRequestException('Content is required when setting scheduledAt');
+      
+      // Check for media presence (either in update data or existing)
+      const isMediaUpdating = data.media !== undefined || data.existingMediaIds !== undefined;
+      const newMediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
+      const hasMedia = isMediaUpdating ? newMediaCount > 0 : (publication.media && publication.media.length > 0);
+
+      if (!contentToCheck && !hasMedia) {
+        throw new BadRequestException('Content or Media is required when setting scheduledAt');
       }
 
       // Automatically set status to SCHEDULED

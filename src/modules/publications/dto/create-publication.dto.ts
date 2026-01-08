@@ -21,8 +21,8 @@ export class CreatePublicationDto {
   @IsOptional()
   public description?: string;
 
-  @ValidateIf((o) => (o.status !== undefined && o.status !== PublicationStatus.DRAFT) || o.scheduledAt !== undefined)
-  @IsNotEmpty({ message: 'Content is required for non-draft publications' })
+  @ValidateIf((o) => (o.status !== undefined && o.status !== PublicationStatus.DRAFT || o.scheduledAt !== undefined) && (!o.media?.length && !o.existingMediaIds?.length))
+  @IsNotEmpty({ message: 'Content is required for non-draft publications when no media is attached' })
   @IsString()
   @IsOptional()
   public content?: string;

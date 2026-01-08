@@ -85,6 +85,10 @@ const linkedPublicationId = ref<string | undefined>(undefined)
 const isEditMode = computed(() => !!props.publication?.id)
 const showAdvancedFields = ref(false)
 
+const hasMedia = computed(() => {
+    return props.publication?.media && props.publication.media.length > 0
+})
+
 // Validation Schema
 const schema = computed(() => z.object({
   title: z.string().optional(),
@@ -110,10 +114,10 @@ const schema = computed(() => z.object({
     })
   }
 
-  if ((val.status === 'READY' || val.scheduledAt) && (!val.content || val.content.trim() === '')) {
+  if ((val.status === 'READY' || val.scheduledAt) && (!val.content || val.content.trim() === '') && !hasMedia.value) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: t('publication.validation.contentRequired'),
+      message: t('publication.validation.contentOrMediaRequired', 'Content or Media is required'),
       path: ['content']
     })
   }
@@ -429,7 +433,7 @@ function toggleChannel(channelId: string) {
                         :label="option.label"
                         :color="state.status === option.value ? 'primary' : 'neutral'"
                         :variant="state.status === option.value ? 'solid' : 'soft'"
-                        :disabled="option.value === 'READY' && (!state.content || state.content.trim() === '') && state.status === 'DRAFT'"
+                        :disabled="option.value === 'READY' && (!state.content || state.content.trim() === '') && !hasMedia && state.status === 'DRAFT'"
                         class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
                         @click="state.status = option.value as any"
                       />
@@ -519,11 +523,11 @@ function toggleChannel(channelId: string) {
         </template>
         
         <UAlert
-          v-if="!state.content || state.content.trim() === ''"
+          v-if="(!state.content || state.content.trim() === '') && !hasMedia"
           color="info"
           variant="soft"
           icon="i-heroicons-information-circle"
-          :title="t('publication.validation.contentRequired')"
+          :title="t('publication.validation.contentOrMediaRequired', 'Content or Media is required')"
           class="mb-3"
         />
 

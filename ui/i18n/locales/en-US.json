@@ -488,7 +488,8 @@
     "changeScheduleInfo": "This will change schedule for all linked posts.",
     "delete": "Delete Publication",
     "validation": {
-      "contentRequired": "Fill content field to schedule publication"
+      "contentRequired": "Fill content field to schedule publication",
+      "contentOrMediaRequired": "Content or Media is required"
     },
     "status": {
       "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
