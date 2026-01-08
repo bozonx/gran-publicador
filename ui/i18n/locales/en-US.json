@@ -495,7 +495,13 @@
       "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
       "publicationTimeRequired": "Set publication time first"
     },
-    "changeStatusWarningReset": "Warning! When changing status to 'Draft' or 'Ready', all associated posts will be reset to 'Pending' status, and their scheduled time will be cleared."
+    "changeStatusWarningReset": "Warning! When changing status to 'Draft' or 'Ready', all associated posts will be reset to 'Pending' status, and their scheduled time will be cleared.",
+    "publishNow": "Publish Now",
+    "publishing": "Publishing...",
+    "publishSuccess": "Publication published successfully",
+    "publishSuccessPartial": "Publication partially published",
+    "publishError": "Publication error",
+    "cannotPublish": "Cannot publish: missing content or media, or channel not configured"
   },
   "media": {
     "type": {

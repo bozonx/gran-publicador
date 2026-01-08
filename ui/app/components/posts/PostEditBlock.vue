@@ -11,6 +11,7 @@ import {
     getPostType,
     getPostLanguage 
 } from '~/composables/usePosts'
+import { useSocialPosting } from '~/composables/useSocialPosting'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 
 interface Props {
@@ -28,6 +29,7 @@ const saveButtonRef = ref<{ showSuccess: () => void; showError: () => void } | n
 const { t } = useI18n()
 const { updatePost, deletePost, createPost, isLoading, statusOptions: postStatusOptions } = usePosts()
 const { getStatusColor, getStatusDisplayName } = usePosts()
+const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -219,6 +221,32 @@ const isValid = computed(() => {
     if (props.isCreating) return !!formData.channelId
     return true
 })
+
+async function handlePublishPost() {
+  if (!props.post) return
+  
+  const toast = useToast()
+  try {
+    const result = await publishPost(props.post.id)
+    
+    if (result.success) {
+      toast.add({
+        title: t('common.success'),
+        description: t('publication.publishSuccess'),
+        color: 'success'
+      })
+      
+      // Refresh post
+      emit('success')
+    }
+  } catch (error: any) {
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('publication.publishError'),
+      color: 'error'
+    })
+  }
+}
 </script>
 
 <template>
@@ -476,6 +504,21 @@ const isValid = computed(() => {
             >
               {{ t('common.cancel') }}
             </UButton>
+            
+            <UTooltip 
+              v-if="!isCreating" 
+              :text="!canPublishPost(props.post, props.publication) ? t('publication.cannotPublish') : ''"
+            >
+              <UButton
+                :label="t('publication.publishNow')"
+                icon="i-heroicons-paper-airplane"
+                variant="soft"
+                color="success"
+                :disabled="!canPublishPost(props.post, props.publication)"
+                :loading="isPublishing"
+                @click="handlePublishPost"
+              ></UButton>
+            </UTooltip>
 
             <UiSaveButton
               ref="saveButtonRef"

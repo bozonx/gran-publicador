@@ -3,6 +3,7 @@ import { useProjects } from '~/composables/useProjects'
 import { usePublications } from '~/composables/usePublications'
 import { useChannels } from '~/composables/useChannels'
 import { usePosts } from '~/composables/usePosts'
+import { useSocialPosting } from '~/composables/useSocialPosting'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
@@ -51,6 +52,13 @@ const toast = useToast()
 const isScheduleModalOpen = ref(false)
 const newScheduledDate = ref('')
 const isBulkScheduling = ref(false)
+
+// Social posting
+const { 
+  publishPublication, 
+  isPublishing, 
+  canPublishPublication 
+} = useSocialPosting()
 
 // Determine available channels (in project but not yet in publication)
 const availableChannels = computed(() => {
@@ -346,6 +354,36 @@ function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '-'
   return new Date(dateString).toLocaleString()
 }
+
+async function handlePublishNow() {
+  if (!currentPublication.value) return
+  
+  try {
+    const result = await publishPublication(currentPublication.value.id)
+    
+    if (result.success) {
+      const totalPosts = (result.data?.publishedCount || 0) + (result.data?.failedCount || 0)
+      const isPartial = result.data?.failedCount && result.data.failedCount > 0
+      
+      toast.add({
+        title: t('common.success'),
+        description: isPartial 
+          ? t('publication.publishSuccessPartial')
+          : t('publication.publishSuccess'),
+        color: isPartial ? 'warning' : 'success'
+      })
+      
+      // Refresh publication
+      await fetchPublication(currentPublication.value.id)
+    }
+  } catch (error: any) {
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('publication.publishError'),
+      color: 'error'
+    })
+  }
+}
 </script>
 
 
@@ -632,6 +670,19 @@ function formatDate(dateString: string | null | undefined): string {
                                         color="primary"
                                         :disabled="allPostsPublished || isContentOrMediaMissing"
                                         @click="openScheduleModal"
+                                    ></UButton>
+                                </UTooltip>
+                                
+                                <UTooltip :text="!canPublishPublication(currentPublication) ? t('publication.cannotPublish') : ''">
+                                    <UButton
+                                        :label="t('publication.publishNow')"
+                                        icon="i-heroicons-paper-airplane"
+                                        variant="soft"
+                                        size="xs"
+                                        color="success"
+                                        :disabled="!canPublishPublication(currentPublication)"
+                                        :loading="isPublishing"
+                                        @click="handlePublishNow"
                                     ></UButton>
                                 </UTooltip>
                              </div>
