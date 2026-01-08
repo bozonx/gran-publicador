@@ -387,6 +387,38 @@ const channelProblems = computed(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- Actions Footer -->
+                <div class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                    <UButton 
+                        icon="i-heroicons-plus" 
+                        color="primary" 
+                        @click="openCreatePublicationModal"
+                    >
+                        {{ t('post.createPost') }}
+                    </UButton>
+
+                    <div class="flex items-center gap-4 text-sm font-medium">
+                        <NuxtLink 
+                            :to="`/publications?channelId=${channelId}`"
+                            class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                        >
+                            {{ t('common.all', 'All') }}
+                        </NuxtLink>
+                        <NuxtLink 
+                            :to="`/publications?channelId=${channelId}&status=READY`"
+                            class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                        >
+                            {{ t('publication.status.ready', 'Ready') }}
+                        </NuxtLink>
+                        <NuxtLink 
+                            :to="`/publications?channelId=${channelId}&status=PUBLISHED`"
+                            class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                        >
+                            {{ t('publication.status.published', 'Published') }}
+                        </NuxtLink>
+                    </div>
+                </div>
             </div>
 
             <!-- Project Archived Status Banner -->
@@ -551,9 +583,7 @@ const channelProblems = computed(() => {
                         >
                             {{ t('common.viewAll') }}
                         </UButton>
-                        <UButton icon="i-heroicons-plus" color="primary" @click="openCreatePublicationModal">
-                            {{ t('post.createPost') }}
-                        </UButton>
+
                     </div>
                 </div>
 
