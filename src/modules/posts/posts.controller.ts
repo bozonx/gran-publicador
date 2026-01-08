@@ -20,6 +20,7 @@ import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request
 import { ParsePostStatusPipe } from '../../common/pipes/parse-post-status.pipe.js';
 import { ParsePostTypePipe } from '../../common/pipes/parse-post-type.pipe.js';
 import { ChannelsService } from '../channels/channels.service.js';
+import { SocialPostingService } from '../social-posting/social-posting.service.js';
 import { CreatePostDto, UpdatePostDto } from './dto/index.js';
 import { PostsService } from './posts.service.js';
 
@@ -32,7 +33,8 @@ export class PostsController {
   constructor(
     private readonly postsService: PostsService,
     private readonly channelsService: ChannelsService,
-  ) { }
+    private readonly socialPostingService: SocialPostingService,
+  ) {}
 
   @Post()
   public async create(@Request() req: UnifiedAuthRequest, @Body() createPostDto: CreatePostDto) {
@@ -150,5 +152,27 @@ export class PostsController {
     }
 
     return this.postsService.remove(id, req.user.userId);
+  }
+
+  /**
+   * Publish a single post to its channel.
+   */
+  @Post(':id/publish')
+  public async publish(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    const post = await this.postsService.findOne(id, req.user.userId);
+
+    // Validate project scope for API token users
+    if (req.user.scopeProjectIds) {
+      // @ts-ignore - post returned from findOne includes channel
+      const projectId = post.channel?.projectId;
+      if (projectId) {
+        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        });
+      }
+    }
+
+    return this.socialPostingService.publishPost(id);
   }
 }

@@ -32,6 +32,7 @@ export type PostMinAggregateOutputType = {
   tags: string | null
   status: $Enums.PostStatus | null
   errorMessage: string | null
+  meta: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date | null
@@ -46,6 +47,7 @@ export type PostMaxAggregateOutputType = {
   tags: string | null
   status: $Enums.PostStatus | null
   errorMessage: string | null
+  meta: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date | null
@@ -60,6 +62,7 @@ export type PostCountAggregateOutputType = {
   tags: number
   status: number
   errorMessage: number
+  meta: number
   scheduledAt: number
   publishedAt: number
   createdAt: number
@@ -76,6 +79,7 @@ export type PostMinAggregateInputType = {
   tags?: true
   status?: true
   errorMessage?: true
+  meta?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -90,6 +94,7 @@ export type PostMaxAggregateInputType = {
   tags?: true
   status?: true
   errorMessage?: true
+  meta?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -104,6 +109,7 @@ export type PostCountAggregateInputType = {
   tags?: true
   status?: true
   errorMessage?: true
+  meta?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -191,6 +197,7 @@ export type PostGroupByOutputType = {
   tags: string | null
   status: $Enums.PostStatus
   errorMessage: string | null
+  meta: string
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date
@@ -226,6 +233,7 @@ export type PostWhereInput = {
   tags?: Prisma.StringNullableFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusFilter<"Post"> | $Enums.PostStatus
   errorMessage?: Prisma.StringNullableFilter<"Post"> | string | null
+  meta?: Prisma.StringFilter<"Post"> | string
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -242,6 +250,7 @@ export type PostOrderByWithRelationInput = {
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
+  meta?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -261,6 +270,7 @@ export type PostWhereUniqueInput = Prisma.AtLeast<{
   tags?: Prisma.StringNullableFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusFilter<"Post"> | $Enums.PostStatus
   errorMessage?: Prisma.StringNullableFilter<"Post"> | string | null
+  meta?: Prisma.StringFilter<"Post"> | string
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -277,6 +287,7 @@ export type PostOrderByWithAggregationInput = {
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrderInput | Prisma.SortOrder
+  meta?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -297,6 +308,7 @@ export type PostScalarWhereWithAggregatesInput = {
   tags?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusWithAggregatesFilter<"Post"> | $Enums.PostStatus
   errorMessage?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
+  meta?: Prisma.StringWithAggregatesFilter<"Post"> | string
   scheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Post"> | Date | string
@@ -309,6 +321,7 @@ export type PostCreateInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -325,6 +338,7 @@ export type PostUncheckedCreateInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -337,6 +351,7 @@ export type PostUpdateInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -353,6 +368,7 @@ export type PostUncheckedUpdateInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -367,6 +383,7 @@ export type PostCreateManyInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -379,6 +396,7 @@ export type PostUpdateManyMutationInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -393,6 +411,7 @@ export type PostUncheckedUpdateManyInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -417,6 +436,7 @@ export type PostCountOrderByAggregateInput = {
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
+  meta?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -431,6 +451,7 @@ export type PostMaxOrderByAggregateInput = {
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
+  meta?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -445,6 +466,7 @@ export type PostMinOrderByAggregateInput = {
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
+  meta?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -545,6 +567,7 @@ export type PostCreateWithoutChannelInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -559,6 +582,7 @@ export type PostUncheckedCreateWithoutChannelInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -601,6 +625,7 @@ export type PostScalarWhereInput = {
   tags?: Prisma.StringNullableFilter<"Post"> | string | null
   status?: Prisma.EnumPostStatusFilter<"Post"> | $Enums.PostStatus
   errorMessage?: Prisma.StringNullableFilter<"Post"> | string | null
+  meta?: Prisma.StringFilter<"Post"> | string
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -613,6 +638,7 @@ export type PostCreateWithoutPublicationInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -627,6 +653,7 @@ export type PostUncheckedCreateWithoutPublicationInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -665,6 +692,7 @@ export type PostCreateManyChannelInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -677,6 +705,7 @@ export type PostUpdateWithoutChannelInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -691,6 +720,7 @@ export type PostUncheckedUpdateWithoutChannelInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -704,6 +734,7 @@ export type PostUncheckedUpdateManyWithoutChannelInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -717,6 +748,7 @@ export type PostCreateManyPublicationInput = {
   tags?: string | null
   status?: $Enums.PostStatus
   errorMessage?: string | null
+  meta?: string
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -729,6 +761,7 @@ export type PostUpdateWithoutPublicationInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -743,6 +776,7 @@ export type PostUncheckedUpdateWithoutPublicationInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -756,6 +790,7 @@ export type PostUncheckedUpdateManyWithoutPublicationInput = {
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumPostStatusFieldUpdateOperationsInput | $Enums.PostStatus
   errorMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -772,6 +807,7 @@ export type PostSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   tags?: boolean
   status?: boolean
   errorMessage?: boolean
+  meta?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -788,6 +824,7 @@ export type PostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   tags?: boolean
   status?: boolean
   errorMessage?: boolean
+  meta?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -804,6 +841,7 @@ export type PostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   tags?: boolean
   status?: boolean
   errorMessage?: boolean
+  meta?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -820,13 +858,14 @@ export type PostSelectScalar = {
   tags?: boolean
   status?: boolean
   errorMessage?: boolean
+  meta?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
+export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
 export type PostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
@@ -854,6 +893,7 @@ export type $PostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     tags: string | null
     status: $Enums.PostStatus
     errorMessage: string | null
+    meta: string
     scheduledAt: Date | null
     publishedAt: Date | null
     createdAt: Date
@@ -1290,6 +1330,7 @@ export interface PostFieldRefs {
   readonly tags: Prisma.FieldRef<"Post", 'String'>
   readonly status: Prisma.FieldRef<"Post", 'PostStatus'>
   readonly errorMessage: Prisma.FieldRef<"Post", 'String'>
+  readonly meta: Prisma.FieldRef<"Post", 'String'>
   readonly scheduledAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly publishedAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Post", 'DateTime'>

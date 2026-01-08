@@ -32,6 +32,7 @@ import {
   ReorderMediaDto,
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
+import { SocialPostingService } from '../social-posting/social-posting.service.js';
 
 /**
  * Controller for managing publications (content that can be distributed to multiple channels).
@@ -41,7 +42,10 @@ import { PublicationsService } from './publications.service.js';
 export class PublicationsController {
   private readonly MAX_LIMIT = 100;
 
-  constructor(private readonly publicationsService: PublicationsService) { }
+  constructor(
+    private readonly publicationsService: PublicationsService,
+    private readonly socialPostingService: SocialPostingService,
+  ) {}
 
   /**
    * Create a new publication.
@@ -214,5 +218,22 @@ export class PublicationsController {
     @Body() body: ReorderMediaDto,
   ) {
     return this.publicationsService.reorderMedia(id, req.user.userId, body.media);
+  }
+
+  /**
+   * Publish all posts of a publication to their respective channels.
+   */
+  @Post(':id/publish')
+  public async publish(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    // Validate project scope for API token users
+    const publication = await this.publicationsService.findOne(id, req.user.userId);
+    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
+      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.scopeProjectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.socialPostingService.publishPublication(id);
   }
 }
