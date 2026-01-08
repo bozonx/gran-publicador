@@ -283,7 +283,7 @@ export class SocialPostingService {
         bodyFormat: 'html',
         channelId: channel.channelIdentifier,
         auth: {
-          apiKey: credentials.botToken, // Map botToken to apiKey
+          apiKey: credentials.telegramBotToken || credentials.botToken || credentials.vkAccessToken || credentials.accessToken,
         },
         type: 'auto',
         ...mediaMapping,

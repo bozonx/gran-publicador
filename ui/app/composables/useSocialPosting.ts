@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { PublicationStatus, PostStatus } from '@prisma/client';
+import type { PublicationStatus, PostStatus } from '~/types/posts';
 
 interface PublishResponse {
   success: boolean;
@@ -141,9 +141,15 @@ export const useSocialPosting = () => {
         ? JSON.parse(channel.credentials) 
         : channel.credentials;
 
-      // For Telegram, check botToken
+      // For Telegram, check telegramBotToken
       if (channel.socialMedia === 'TELEGRAM') {
-        return !!(credentials.botToken && credentials.botToken.includes(':'));
+        const token = credentials.telegramBotToken || credentials.botToken;
+        return !!(token && token.includes(':'));
+      }
+
+      // For VK, check vkAccessToken
+      if (channel.socialMedia === 'VK') {
+        return !!(credentials.vkAccessToken || credentials.accessToken);
       }
 
       // For other platforms, just check if credentials exist

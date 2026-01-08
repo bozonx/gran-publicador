@@ -52,20 +52,21 @@ function validateTelegramCredentials(
 ): CredentialsValidationResult {
   const errors: string[] = [];
 
-  // Check for botToken
-  if (!credentials.botToken) {
-    errors.push('Telegram credentials must include botToken');
-  } else if (typeof credentials.botToken !== 'string') {
-    errors.push('botToken must be a string');
+  // Check for telegramBotToken
+  const botToken = credentials.telegramBotToken || credentials.botToken;
+  if (!botToken) {
+    errors.push('Telegram credentials must include telegramBotToken');
+  } else if (typeof botToken !== 'string') {
+    errors.push('telegramBotToken must be a string');
   } else {
     // Validate botToken format (should contain ':')
-    if (!credentials.botToken.includes(':')) {
-      errors.push('botToken must be in format "bot_id:token"');
+    if (!botToken.includes(':')) {
+      errors.push('telegramBotToken must be in format "bot_id:token"');
     }
 
     // Check minimum length
-    if (credentials.botToken.length < 20) {
-      errors.push('botToken appears to be too short');
+    if (botToken.length < 20) {
+      errors.push('telegramBotToken appears to be too short');
     }
   }
 

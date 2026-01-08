@@ -379,7 +379,7 @@ const projectProblems = computed(() => {
                   </UButton>
                   <UButton
                     variant="ghost"
-                    color="yellow"
+                    color="warning"
                     size="xs"
                     :to="`/publications?projectId=${projectId}&status=READY`"
                   >
@@ -387,7 +387,7 @@ const projectProblems = computed(() => {
                   </UButton>
                   <UButton
                     variant="ghost"
-                    color="green"
+                    color="success"
                     size="xs"
                     :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
                   >
