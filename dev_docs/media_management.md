@@ -2,48 +2,44 @@
 
 ## Overview
 
-The `gran-publicador` currently does not have a dedicated internal microservice or module for handling file uploads (images, videos, documents). Verification of the codebase confirms that `Publications` and `Posts` handle media via external URLs or simple string references stored in the database.
+The `gran-publicador` has a dedicated `MediaModule` for handling media files (images, videos, audio, documents). The system distinguishes between how a file is uploaded and where it is physically stored.
 
-## Current Implementation
+## Core Concepts
 
-### Database Schema
-In `prisma/schema.prisma`, media is handled as follows:
+### StorageType
 
-*   **Publications**: The `Publication` model has a `mediaFiles` field.
-    ```prisma
-    model Publication {
-      ...
-      // Array of media file URLs stored as JSON string
-      mediaFiles    String     @default("[]") @map("media_files")
-      ...
-    }
-    ```
-    This field stores a JSON stringified array of URLs (strings).
+The `StorageType` enum represents the physical location of the media file:
+*   **`FS`**: Stored on the local filesystem (or a mounted object storage like S3).
+*   **`TELEGRAM`**: Stored on Telegram servers (referenced by `file_id`).
 
-### Frontend Handling
-The frontend (`PublicationForm.vue` and related components) allows users to input URLs for media. There is no file picker that uploads to the backend.
+### Media Model
 
-### Backend Handling
-The backend (`PublicationsService`, `PostsService`) blindly creates/updates these fields. It does not validate if the URL is reachable or verify the content type, relying on the client or the publishing service (Telegram/etc.) to handle the actual media retrieval during the publishing phase.
+Media entries are stored in the `Media` table with the following key fields:
+*   `type`: `MediaType` (IMAGE, VIDEO, AUDIO, DOCUMENT)
+*   `storageType`: `StorageType` (FS, TELEGRAM)
+*   `storagePath`: The path to the file on disk or the Telegram `file_id`.
+*   `meta`: JSON string containing metadata (dimensions, duration, etc.).
 
-## Recommendations for Future
+## Implementation Details
 
-To support direct file uploads, the following architecture is recommended:
+### File Upload Logic
 
-1.  **File Storage Service**:
-    *   Integrate an object storage solution (e.g., AWS S3, MinIO, or Google Cloud Storage).
-    *   Avoid storing binary data directly in the SQLite/Postgres database.
+1.  **Direct Upload**: Files are uploaded via `POST /api/v1/media/upload`. They are saved to the filesystem, and a `Media` record with `storageType: FS` is created.
+2.  **URL Upload**: When a user provides a URL (`POST /api/v1/media/upload-from-url`), the backend downloads the file, saves it locally, and creates a `Media` record with `storageType: FS`. The original URL is stored in the `meta` field.
+3.  **Telegram ID**: Users can provide a Telegram `file_id`. This creates a `Media` record with `storageType: TELEGRAM`. The file remains on Telegram servers and is streamed through the backend when requested.
 
-2.  **Upload Endpoint**:
-    *   Create a new module `FilesModule`.
-    *   Implement an endpoint `POST /api/v1/files/upload`.
-    *   This endpoint should accept `multipart/form-data`.
+### Media Streaming
 
-3.  **Processing**:
-    *   Validate file types (MIME types) and sizes.
-    *   Generate a unique filename (UUID).
-    *   Upload to the storage provider.
-    *   Return the public (or signed) URL to the frontend.
+Media is served through `GET /api/v1/media/:id/file`. The backend handles:
+*   Streaming local files from disk (`FS`).
+*   Proxying streams from Telegram servers (`TELEGRAM`).
 
-4.  **Integration**:
-    *   The frontend would upload the file first, get the URL, and then send the URL as part of the `createPublication` or `updatePublication` payload.
+### Publications Integration
+
+Publications relate to media through the `PublicationMedia` table, allowing for ordered media attachments. Media can also be grouped using `MediaGroup` for more complex structures (e.g., albums).
+
+## Directory Structure
+
+*   **`src/modules/media/`**: Backend module for media handling.
+*   **`ui/app/components/media/`**: Frontend components for media display and management.
+*   **`storage/`**: Default local directory for media files (configurable via `DATA_DIR`).

@@ -63,7 +63,7 @@ Gran Publicador построен по принципу **монолитной а
 
 - **NestJS 11** - модульный фреймворк
 - **Fastify** - HTTP сервер (быстрее Express)
-- **Prisma 6** - ORM с типобезопасностью
+- **Prisma 7** - ORM с типобезопасностью
 - **SQLite** - встроенная БД
 - **Passport + JWT** - аутентификация
 - **Pino** - структурированное логирование
@@ -149,9 +149,11 @@ src/
 │   │   ├── publications.service.ts
 │   │   └── publications.module.ts
 │   │
-│   ├── system-config/           # Системная конфигурация
-│   │   ├── system-config.service.ts
-│   │   └── system-config.module.ts
+│   ├── media/                   # Управление медиафайлами
+│   │   ├── dto/
+│   │   ├── media.controller.ts
+│   │   ├── media.service.ts
+│   │   └── media.module.ts
 │   │
 │   └── users/                   # Управление пользователями
 │       ├── dto/
@@ -614,27 +616,39 @@ Channel (Каналы)
 Publication (Публикации)
   ├── id: UUID
   ├── projectId: UUID → Project
-  ├── authorId: UUID → User
+  ├── createdBy: UUID → User
   ├── title: String
+  ├── description: String
   ├── content: String
-  ├── mediaFiles: JSON
+  ├── authorComment: String
   ├── tags: String
-  ├── status: PostStatus
+  ├── status: PublicationStatus
   ├── archivedAt: DateTime?
   └── archivedBy: UUID?
 
+Media (Медиафайлы)
+  ├── id: UUID
+  ├── type: MediaType
+  ├── storageType: StorageType (FS, TELEGRAM)
+  ├── storagePath: String
+  ├── filename: String
+  ├── sizeBytes: Int
+  └── meta: JSON
+
+MediaGroup (Группы медиа)
+  ├── id: UUID
+  ├── name: String
+  └── description: String
+
 Post (Посты)
   ├── id: UUID
-  ├── publicationId: UUID? → Publication
+  ├── publicationId: UUID → Publication
   ├── channelId: UUID → Channel
-  ├── authorId: UUID → User
-  ├── content: String
-  ├── postType: PostType
+  ├── socialMedia: String
   ├── status: PostStatus
   ├── scheduledAt: DateTime?
-  ├── publishedAt: DateTime?
-  ├── archivedAt: DateTime?
-  └── archivedBy: UUID?
+  └── publishedAt: DateTime?
+
 
 ApiToken (API токены)
   ├── id: UUID

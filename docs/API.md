@@ -13,6 +13,7 @@
 - [API Tokens](#api-tokens)
 - [Archive API](#archive-api)
 - [Users API](#users-api)
+- [Media API](#media-api)
 - [Health Check](#health-check)
 - [Коды ошибок](#коды-ошибок)
 
@@ -107,13 +108,10 @@ GET /api/v1/projects?limit=20&offset=40
 
 #### SocialMedia
 - `TELEGRAM`
-- `INSTAGRAM`
 - `VK`
 - `YOUTUBE`
 - `TIKTOK`
-- `X`
 - `FACEBOOK`
-- `LINKEDIN`
 - `SITE`
 
 #### PostType
@@ -124,12 +122,30 @@ GET /api/v1/projects?limit=20&offset=40
 - `SHORT` - короткое видео
 - `STORY` - история
 
-#### PostStatus
+#### PublicationStatus
 - `DRAFT` - черновик
+- `READY` - готов к публикации
 - `SCHEDULED` - запланировано
+- `PROCESSING` - в процессе публикации
 - `PUBLISHED` - опубликовано
+- `PARTIAL` - опубликовано частично
 - `FAILED` - ошибка публикации
-- `EXPIRED` - истекло
+- `EXPIRED` - истекло (время вышло)
+
+#### PostStatus
+- `PENDING` - ожидает очереди
+- `FAILED` - ошибка публикации в конкретный канал
+- `PUBLISHED` - успешно опубликовано в канал
+
+#### MediaType
+- `IMAGE`
+- `VIDEO`
+- `AUDIO`
+- `DOCUMENT`
+
+#### StorageType
+- `FS` - локальная файловая система (или S3)
+- `TELEGRAM` - серверы Telegram (через file_id)
 
 ---
 
@@ -593,9 +609,16 @@ GET /api/v1/publications?projectId=550e8400-e29b-41d4-a716-446655440000&status=D
     "authorId": "660e8400-e29b-41d4-a716-446655440001",
     "title": "Новая статья",
     "content": "Содержание публикации...",
-    "mediaFiles": [
-      "https://example.com/image1.jpg",
-      "https://example.com/image2.jpg"
+    "media": [
+      {
+        "id": "cc0e8400-e29b-41d4-a716-446655440007",
+        "order": 0,
+        "media": {
+          "id": "dd0e8400-e29b-41d4-a716-444455440008",
+          "storageType": "FS",
+          "storagePath": "uploads/image.jpg"
+        }
+      }
     ],
     "tags": "технологии,программирование",
     "status": "DRAFT",
@@ -664,12 +687,8 @@ GET /api/v1/publications?projectId=550e8400-e29b-41d4-a716-446655440000&status=D
 {
   "projectId": "550e8400-e29b-41d4-a716-446655440000",
   "title": "Новая публикация",
-  "content": "Текст публикации...",
-  "mediaFiles": [
-    "https://example.com/image.jpg"
-  ],
-  "tags": "технологии,AI",
-  "status": "DRAFT"
+    "content": "Текст публикации...",
+    "status": "DRAFT"
 }
 ```
 
@@ -677,23 +696,18 @@ GET /api/v1/publications?projectId=550e8400-e29b-41d4-a716-446655440000&status=D
 - `projectId` (string, required) - ID проекта
 - `title` (string, optional) - заголовок
 - `content` (string, required) - содержание
-- `mediaFiles` (string[], optional) - массив URL медиафайлов
 - `tags` (string, optional) - теги через запятую
-- `status` (PostStatus, optional) - статус (по умолчанию: DRAFT)
+- `status` (PublicationStatus, optional) - статус (по умолчанию: DRAFT)
 - `meta` (object, optional) - дополнительные метаданные
 
 #### Ответ
 
 ```json
-{
   "id": "aa0e8400-e29b-41d4-a716-446655440005",
   "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "authorId": "660e8400-e29b-41d4-a716-446655440001",
+  "createdBy": "660e8400-e29b-41d4-a716-446655440001",
   "title": "Новая публикация",
   "content": "Текст публикации...",
-  "mediaFiles": [
-    "https://example.com/image.jpg"
-  ],
   "tags": "технологии,AI",
   "status": "DRAFT",
   "meta": {},
@@ -796,8 +810,16 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
     "description": "Описание",
     "authorComment": "Комментарий автора (публикуется после текста новости)",
     "tags": "технологии,AI",
-    "mediaFiles": [
-      "https://example.com/image.jpg"
+    "media": [
+      {
+        "id": "cc0e8400-e29b-41d4-a716-446655440007",
+        "order": 0,
+        "media": {
+          "id": "dd0e8400-e29b-41d4-a716-444455440008",
+          "storageType": "FS",
+          "storagePath": "uploads/image.jpg"
+        }
+      }
     ],
     "postDate": "2024-01-20T12:00:00.000Z",
     "status": "SCHEDULED",
@@ -833,9 +855,6 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
   "content": "Текст поста...",
   "postType": "POST",
   "title": "Заголовок",
-  "mediaFiles": [
-    "https://example.com/image.jpg"
-  ],
   "scheduledAt": "2024-01-20T12:00:00.000Z",
   "status": "SCHEDULED"
 }
@@ -849,7 +868,6 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
 - `description` (string, optional) - описание
 - `authorComment` (string, optional) - авторский комментарий к новости (публикуется вместе с контентом)
 - `tags` (string, optional) - теги через запятую
-- `mediaFiles` (string[], optional) - массив URL медиафайлов
 - `postDate` (string, optional) - дата поста (ISO 8601)
 - `scheduledAt` (string, optional) - дата публикации (ISO 8601)
 - `status` (PostStatus, optional) - статус (по умолчанию: DRAFT)
@@ -870,9 +888,7 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
   "description": null,
   "authorComment": null,
   "tags": null,
-  "mediaFiles": [
-    "https://example.com/image.jpg"
-  ],
+  "media": [],
   "postDate": null,
   "status": "SCHEDULED",
   "scheduledAt": "2024-01-20T12:00:00.000Z",
@@ -1192,6 +1208,68 @@ GET /api/v1/users?limit=50&offset=0
 
 ---
 
+## Media API
+
+### POST /media/upload
+
+Загрузить файл на сервер.
+
+**Content-Type:** `multipart/form-data`
+
+#### Запрос
+
+- `file` (multipart/field) — загружаемый файл.
+
+#### Ответ
+
+```json
+{
+  "id": "dd0e8400-e29b-41d4-a716-444455440008",
+  "type": "IMAGE",
+  "storageType": "FS",
+  "storagePath": "uploads/2026/01/uuid.jpg",
+  "filename": "original.jpg",
+  "mimeType": "image/jpeg",
+  "sizeBytes": 102400,
+  "meta": {}
+}
+```
+
+### POST /media/upload-from-url
+
+Загрузить файл с внешнего URL (сервер скачает его себе).
+
+#### Запрос
+
+```json
+{
+  "url": "https://example.com/image.jpg",
+  "filename": "custom_name.jpg"
+}
+```
+
+#### Ответ
+
+Тот же, что и при `/media/upload`, но в `meta.originalUrl` сохраняется исходная ссылка.
+
+### GET /media/:id/file
+
+Получить файл (стриминг).
+
+#### Ответ
+
+Бинарные данные файла с соответствующим `Content-Type`.
+
+### GET /media/:id
+
+Получить информацию о медиафайле.
+
+### DELETE /media/:id
+
+Удалить медиафайл (удаляет также физический файл, если `storageType: FS`).
+
+---
+
 ## Health Check
 
 ### GET /health
@@ -1341,7 +1419,6 @@ curl -X POST http://localhost:8080/api/v1/publications \
     "projectId": "550e8400-...",
     "title": "Новая статья",
     "content": "Текст статьи...",
-    "mediaFiles": ["https://example.com/image.jpg"],
     "tags": "технологии,AI"
   }'
 
