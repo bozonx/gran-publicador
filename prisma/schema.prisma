@@ -186,22 +186,22 @@ model Publication {
 }
 
 model Media {
-  id        String   @id @default(uuid())
-  type      MediaType
-  srcType   MediaSourceType @map("src_type")
-  src       String
-  filename  String?
-  mimeType  String?  @map("mime_type")
-  sizeBytes Int?     @map("size_bytes")
-  meta      String   @default("{}") // JSON: {width, height, duration, thumbnail, ...}
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String      @id @default(uuid())
+  type        MediaType
+  storageType StorageType @map("storage_type")
+  storagePath String      @map("storage_path")
+  filename    String?
+  mimeType    String?     @map("mime_type")
+  sizeBytes   Int?        @map("size_bytes")
+  meta        String      @default("{}") // JSON: {width, height, duration, thumbnail, ...}
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   publicationMedia PublicationMedia[]
   mediaGroupItems  MediaGroupItem[]
 
   @@index([type])
-  @@index([srcType])
+  @@index([storageType])
   @@map("media")
 }
 
@@ -336,8 +336,8 @@ enum MediaType {
   DOCUMENT
 }
 
-enum MediaSourceType {
-  TELEGRAM
-  FS
-  URL
+// Storage type enum - defines where the media file is physically stored
+enum StorageType {
+  FS       // File system (local or mounted S3)
+  TELEGRAM // Telegram servers (not stored locally)
 }

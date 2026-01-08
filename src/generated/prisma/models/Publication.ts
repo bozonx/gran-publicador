@@ -37,6 +37,7 @@ export type PublicationMinAggregateOutputType = {
   description: string | null
   content: string | null
   authorComment: string | null
+  note: string | null
   tags: string | null
   meta: string | null
   postType: $Enums.PostType | null
@@ -60,6 +61,7 @@ export type PublicationMaxAggregateOutputType = {
   description: string | null
   content: string | null
   authorComment: string | null
+  note: string | null
   tags: string | null
   meta: string | null
   postType: $Enums.PostType | null
@@ -83,6 +85,7 @@ export type PublicationCountAggregateOutputType = {
   description: number
   content: number
   authorComment: number
+  note: number
   tags: number
   meta: number
   postType: number
@@ -108,6 +111,7 @@ export type PublicationMinAggregateInputType = {
   description?: true
   content?: true
   authorComment?: true
+  note?: true
   tags?: true
   meta?: true
   postType?: true
@@ -131,6 +135,7 @@ export type PublicationMaxAggregateInputType = {
   description?: true
   content?: true
   authorComment?: true
+  note?: true
   tags?: true
   meta?: true
   postType?: true
@@ -154,6 +159,7 @@ export type PublicationCountAggregateInputType = {
   description?: true
   content?: true
   authorComment?: true
+  note?: true
   tags?: true
   meta?: true
   postType?: true
@@ -250,6 +256,7 @@ export type PublicationGroupByOutputType = {
   description: string | null
   content: string | null
   authorComment: string | null
+  note: string | null
   tags: string | null
   meta: string
   postType: $Enums.PostType
@@ -294,6 +301,7 @@ export type PublicationWhereInput = {
   description?: Prisma.StringNullableFilter<"Publication"> | string | null
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
+  note?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
   meta?: Prisma.StringFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeFilter<"Publication"> | $Enums.PostType
@@ -321,6 +329,7 @@ export type PublicationOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   authorComment?: Prisma.SortOrderInput | Prisma.SortOrder
+  note?: Prisma.SortOrderInput | Prisma.SortOrder
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
@@ -351,6 +360,7 @@ export type PublicationWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"Publication"> | string | null
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
+  note?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
   meta?: Prisma.StringFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeFilter<"Publication"> | $Enums.PostType
@@ -378,6 +388,7 @@ export type PublicationOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   authorComment?: Prisma.SortOrderInput | Prisma.SortOrder
+  note?: Prisma.SortOrderInput | Prisma.SortOrder
   tags?: Prisma.SortOrderInput | Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
@@ -407,6 +418,7 @@ export type PublicationScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   content?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
+  note?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   meta?: Prisma.StringWithAggregatesFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeWithAggregatesFilter<"Publication"> | $Enums.PostType
@@ -428,6 +440,7 @@ export type PublicationCreateInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -455,6 +468,7 @@ export type PublicationUncheckedCreateInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -478,6 +492,7 @@ export type PublicationUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -505,6 +520,7 @@ export type PublicationUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -530,6 +546,7 @@ export type PublicationCreateManyInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -551,6 +568,7 @@ export type PublicationUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -574,6 +592,7 @@ export type PublicationUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -607,6 +626,7 @@ export type PublicationCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
+  note?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
@@ -630,6 +650,7 @@ export type PublicationMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
+  note?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
@@ -653,6 +674,7 @@ export type PublicationMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
+  note?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   postType?: Prisma.SortOrder
@@ -799,6 +821,7 @@ export type PublicationCreateWithoutCreatorInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -824,6 +847,7 @@ export type PublicationUncheckedCreateWithoutCreatorInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -877,6 +901,7 @@ export type PublicationScalarWhereInput = {
   description?: Prisma.StringNullableFilter<"Publication"> | string | null
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
+  note?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
   meta?: Prisma.StringFilter<"Publication"> | string
   postType?: Prisma.EnumPostTypeFilter<"Publication"> | $Enums.PostType
@@ -898,6 +923,7 @@ export type PublicationCreateWithoutProjectInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -923,6 +949,7 @@ export type PublicationUncheckedCreateWithoutProjectInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -971,6 +998,7 @@ export type PublicationCreateWithoutMediaInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -997,6 +1025,7 @@ export type PublicationUncheckedCreateWithoutMediaInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -1035,6 +1064,7 @@ export type PublicationUpdateWithoutMediaInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1061,6 +1091,7 @@ export type PublicationUncheckedUpdateWithoutMediaInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1083,6 +1114,7 @@ export type PublicationCreateWithoutPostsInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -1109,6 +1141,7 @@ export type PublicationUncheckedCreateWithoutPostsInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -1147,6 +1180,7 @@ export type PublicationUpdateWithoutPostsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1173,6 +1207,7 @@ export type PublicationUncheckedUpdateWithoutPostsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1196,6 +1231,7 @@ export type PublicationCreateManyCreatorInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -1217,6 +1253,7 @@ export type PublicationUpdateWithoutCreatorInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1242,6 +1279,7 @@ export type PublicationUncheckedUpdateWithoutCreatorInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1266,6 +1304,7 @@ export type PublicationUncheckedUpdateManyWithoutCreatorInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1288,6 +1327,7 @@ export type PublicationCreateManyProjectInput = {
   description?: string | null
   content?: string | null
   authorComment?: string | null
+  note?: string | null
   tags?: string | null
   meta?: string
   postType?: $Enums.PostType
@@ -1309,6 +1349,7 @@ export type PublicationUpdateWithoutProjectInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1334,6 +1375,7 @@ export type PublicationUncheckedUpdateWithoutProjectInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1358,6 +1400,7 @@ export type PublicationUncheckedUpdateManyWithoutProjectInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
@@ -1421,6 +1464,7 @@ export type PublicationSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   description?: boolean
   content?: boolean
   authorComment?: boolean
+  note?: boolean
   tags?: boolean
   meta?: boolean
   postType?: boolean
@@ -1449,6 +1493,7 @@ export type PublicationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   description?: boolean
   content?: boolean
   authorComment?: boolean
+  note?: boolean
   tags?: boolean
   meta?: boolean
   postType?: boolean
@@ -1474,6 +1519,7 @@ export type PublicationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   description?: boolean
   content?: boolean
   authorComment?: boolean
+  note?: boolean
   tags?: boolean
   meta?: boolean
   postType?: boolean
@@ -1499,6 +1545,7 @@ export type PublicationSelectScalar = {
   description?: boolean
   content?: boolean
   authorComment?: boolean
+  note?: boolean
   tags?: boolean
   meta?: boolean
   postType?: boolean
@@ -1509,7 +1556,7 @@ export type PublicationSelectScalar = {
   processingStartedAt?: boolean
 }
 
-export type PublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "translationGroupId" | "createdBy" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy" | "title" | "description" | "content" | "authorComment" | "tags" | "meta" | "postType" | "postDate" | "status" | "language" | "scheduledAt" | "processingStartedAt", ExtArgs["result"]["publication"]>
+export type PublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "translationGroupId" | "createdBy" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy" | "title" | "description" | "content" | "authorComment" | "note" | "tags" | "meta" | "postType" | "postDate" | "status" | "language" | "scheduledAt" | "processingStartedAt", ExtArgs["result"]["publication"]>
 export type PublicationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
@@ -1547,6 +1594,7 @@ export type $PublicationPayload<ExtArgs extends runtime.Types.Extensions.Interna
     description: string | null
     content: string | null
     authorComment: string | null
+    note: string | null
     tags: string | null
     meta: string
     postType: $Enums.PostType
@@ -1994,6 +2042,7 @@ export interface PublicationFieldRefs {
   readonly description: Prisma.FieldRef<"Publication", 'String'>
   readonly content: Prisma.FieldRef<"Publication", 'String'>
   readonly authorComment: Prisma.FieldRef<"Publication", 'String'>
+  readonly note: Prisma.FieldRef<"Publication", 'String'>
   readonly tags: Prisma.FieldRef<"Publication", 'String'>
   readonly meta: Prisma.FieldRef<"Publication", 'String'>
   readonly postType: Prisma.FieldRef<"Publication", 'PostType'>

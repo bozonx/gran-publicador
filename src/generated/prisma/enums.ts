@@ -76,10 +76,9 @@ export const MediaType = {
 export type MediaType = (typeof MediaType)[keyof typeof MediaType]
 
 
-export const MediaSourceType = {
-  TELEGRAM: 'TELEGRAM',
+export const StorageType = {
   FS: 'FS',
-  URL: 'URL'
+  TELEGRAM: 'TELEGRAM'
 } as const
 
-export type MediaSourceType = (typeof MediaSourceType)[keyof typeof MediaSourceType]
+export type StorageType = (typeof StorageType)[keyof typeof StorageType]

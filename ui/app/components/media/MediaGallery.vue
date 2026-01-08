@@ -6,8 +6,8 @@ import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 interface MediaItem {
   id: string
   type: string
-  srcType: string
-  src: string
+  storageType: string
+  storagePath: string
   filename?: string
   mimeType?: string
   sizeBytes?: number
@@ -108,8 +108,8 @@ async function handleFileUpload(event: Event) {
     
     const newMedia: CreateMediaInput = {
       type: uploadedMedia.type,
-      srcType: uploadedMedia.srcType,
-      src: uploadedMedia.src,
+      storageType: uploadedMedia.storageType,
+      storagePath: uploadedMedia.storagePath,
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
@@ -193,8 +193,8 @@ async function addMedia() {
       // For TELEGRAM type: create media record directly
       const newMedia: CreateMediaInput = {
         type: mediaType.value,
-        srcType: 'TELEGRAM',
-        src: sourceInput.value.trim(),
+        storageType: 'TELEGRAM',
+        storagePath: sourceInput.value.trim(),
         filename: filenameInput.value.trim() || undefined,
       }
       
@@ -216,8 +216,8 @@ async function addMedia() {
     // For URL: add the downloaded media to publication
     const newMedia: CreateMediaInput = {
       type: uploadedMedia.type as 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT',
-      srcType: uploadedMedia.srcType as 'URL' | 'TELEGRAM' | 'FS',
-      src: uploadedMedia.src,
+      storageType: uploadedMedia.storageType as 'TELEGRAM' | 'FS',
+      storagePath: uploadedMedia.storagePath,
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
@@ -346,8 +346,8 @@ async function handleDrop(event: DragEvent) {
     
     const newMedia: CreateMediaInput = {
       type: uploadedMedia.type,
-      srcType: uploadedMedia.srcType,
-      src: uploadedMedia.src,
+      storageType: uploadedMedia.storageType,
+      storagePath: uploadedMedia.storagePath,
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
@@ -605,9 +605,9 @@ const emit = defineEmits<Emits>()
                   </UBadge>
                   <UBadge
                     size="xs"
-                    :color="item.media?.srcType === 'URL' ? 'primary' : item.media?.srcType === 'TELEGRAM' ? 'secondary' : 'success'"
+                    :color="item.media?.storageType === 'TELEGRAM' ? 'secondary' : 'success'"
                   >
-                    {{ item.media?.srcType }}
+                    {{ item.media?.storageType }}
                   </UBadge>
                 </div>
               </div>
@@ -643,7 +643,7 @@ const emit = defineEmits<Emits>()
                 class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <p class="text-xs text-white truncate">
-                  {{ item.media.srcType }} • {{ formatSizeMB(item.media.sizeBytes) }}
+                  {{ item.media.storageType }} • {{ formatSizeMB(item.media.sizeBytes) }}
                 </p>
               </div>
             </div>
@@ -829,7 +829,7 @@ const emit = defineEmits<Emits>()
               <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
                 <span class="text-gray-500 shrink-0">type:</span>
                 <span class="text-gray-900 dark:text-gray-200">
-                  {{ selectedMedia.srcType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
+                  {{ selectedMedia.storageType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
                 </span>
               </div>
               <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
@@ -837,8 +837,8 @@ const emit = defineEmits<Emits>()
                 <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
               </div>
               <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-                <span class="text-gray-500 shrink-0">src:</span>
-                <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.src }}</span>
+                <span class="text-gray-500 shrink-0">path:</span>
+                <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.storagePath }}</span>
               </div>
               <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
                 <span class="text-gray-500 shrink-0">filename:</span>

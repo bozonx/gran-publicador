@@ -4,8 +4,8 @@ import { useApi } from './useApi'
 export interface MediaItem {
   id: string
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
-  srcType: 'TELEGRAM' | 'FS' | 'URL'
-  src: string
+  storageType: 'TELEGRAM' | 'FS'
+  storagePath: string
   filename?: string
   mimeType?: string
   sizeBytes?: number
@@ -16,8 +16,8 @@ export interface MediaItem {
 
 export interface CreateMediaInput {
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
-  srcType: 'TELEGRAM' | 'FS' | 'URL'
-  src: string
+  storageType: 'TELEGRAM' | 'FS'
+  storagePath: string
   filename?: string
   mimeType?: string
   sizeBytes?: number

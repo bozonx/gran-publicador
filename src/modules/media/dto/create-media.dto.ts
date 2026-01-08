@@ -1,16 +1,16 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
-import { MediaType, MediaSourceType } from '../../../generated/prisma/client.js';
+import { MediaType, StorageType } from '../../../generated/prisma/client.js';
 
 export class CreateMediaDto {
   @IsEnum(MediaType)
   type!: MediaType;
 
-  @IsEnum(MediaSourceType)
-  srcType!: MediaSourceType;
+  @IsEnum(StorageType)
+  storageType!: StorageType;
 
   @IsString()
   @IsNotEmpty()
-  src!: string;
+  storagePath!: string;
 
   @IsString()
   @IsOptional()

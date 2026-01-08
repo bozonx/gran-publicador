@@ -1355,6 +1355,7 @@ export const PublicationScalarFieldEnum = {
   description: 'description',
   content: 'content',
   authorComment: 'authorComment',
+  note: 'note',
   tags: 'tags',
   meta: 'meta',
   postType: 'postType',
@@ -1371,8 +1372,8 @@ export type PublicationScalarFieldEnum = (typeof PublicationScalarFieldEnum)[key
 export const MediaScalarFieldEnum = {
   id: 'id',
   type: 'type',
-  srcType: 'srcType',
-  src: 'src',
+  storageType: 'storageType',
+  storagePath: 'storagePath',
   filename: 'filename',
   mimeType: 'mimeType',
   sizeBytes: 'sizeBytes',
@@ -1520,9 +1521,9 @@ export type EnumMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
- * Reference to a field of type 'MediaSourceType'
+ * Reference to a field of type 'StorageType'
  */
-export type EnumMediaSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MediaSourceType'>
+export type EnumStorageTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StorageType'>
     
 
 

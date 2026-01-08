@@ -8,7 +8,7 @@ import { randomUUID } from 'crypto';
 import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, CreateMediaGroupDto, UpdateMediaDto } from './dto/index.js';
-import { MediaType, MediaSourceType, Media } from '../../generated/prisma/client.js';
+import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
 import { getMediaDir } from '../../config/media.config.js';
 import type { AppConfig } from '../../config/app.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -154,13 +154,13 @@ export class MediaService {
   }
 
   async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
-    this.logger.debug(`Creating media record: type=${data.type}, srcType=${data.srcType}`);
+    this.logger.debug(`Creating media record: type=${data.type}, storageType=${data.storageType}`);
     
     // Additional validation for URL/Telegram created media?
     // Not strictly needed for blocking execution unless we download it, but good to have
     if (data.mimeType) {
-        // Filename might be optional, use src if not present
-        const filenameToCheck = data.filename || basename(data.src);
+        // Filename might be optional, use storagePath if not present
+        const filenameToCheck = data.filename || basename(data.storagePath);
         this.validateMimeType(data.mimeType, filenameToCheck);
     }
     
@@ -235,12 +235,12 @@ export class MediaService {
         const deletedMedia = await tx.media.delete({ where: { id } });
 
         // If it's a local file, delete it from filesystem
-        if (media.srcType === MediaSourceType.FS) {
+        if (media.storageType === StorageType.FS) {
           try {
             // Normalize and validate path to prevent traversal
-            const safePath = normalize(join(this.mediaDir, media.src));
+            const safePath = normalize(join(this.mediaDir, media.storagePath));
             if (!safePath.startsWith(this.mediaDir)) {
-              this.logger.error(`Path traversal attempt detected: ${media.src}`);
+              this.logger.error(`Path traversal attempt detected: ${media.storagePath}`);
               throw new Error('Invalid file path');
             }
 
@@ -491,21 +491,18 @@ export class MediaService {
     }
 
     try {
-      this.logger.debug(`Streaming media: ${id}, srcType: ${media.srcType}`);
+      this.logger.debug(`Streaming media: ${id}, storageType: ${media.storageType}`);
 
-      switch (media.srcType) {
-        case MediaSourceType.FS:
+      switch (media.storageType) {
+        case StorageType.FS:
           await this.streamFromFileSystem(media, res);
           break;
-        case MediaSourceType.URL:
-          await this.streamFromUrl(media, res);
-          break;
-        case MediaSourceType.TELEGRAM:
+        case StorageType.TELEGRAM:
           await this.streamFromTelegram(media, res);
           break;
         default:
-          this.logger.error(`Unsupported source type: ${media.srcType}`);
-          throw new NotFoundException('Unsupported media source type');
+          this.logger.error(`Unsupported storage type: ${media.storageType}`);
+          throw new NotFoundException('Unsupported media storage type');
       }
     } catch (error) {
       const err = error as Error;
@@ -522,9 +519,9 @@ export class MediaService {
    */
   private async streamFromFileSystem(media: Media, res: ServerResponse): Promise<void> {
     // Normalize and validate path to prevent traversal
-    const safePath = normalize(join(this.mediaDir, media.src));
+    const safePath = normalize(join(this.mediaDir, media.storagePath));
     if (!safePath.startsWith(this.mediaDir)) {
-      this.logger.error(`Path traversal attempt in streamFromFileSystem: ${media.src}`);
+      this.logger.error(`Path traversal attempt in streamFromFileSystem: ${media.storagePath}`);
       throw new BadRequestException('Invalid file path');
     }
 
@@ -556,46 +553,8 @@ export class MediaService {
   }
 
   /**
-   * Proxy stream from external URL.
-   */
-  private async streamFromUrl(media: Media, res: ServerResponse): Promise<void> {
-    try {
-      const response = await fetch(media.src);
-
-      if (!response.ok) {
-        this.logger.warn(`URL returned status ${response.status}: ${media.src}`);
-        throw new NotFoundException('Media file unavailable from URL');
-      }
-
-      // Forward content-type from source
-      const contentType = response.headers.get('content-type');
-      if (contentType) {
-        res.setHeader('Content-Type', contentType);
-      }
-
-      // Forward content-length if available
-      const contentLength = response.headers.get('content-length');
-      if (contentLength) {
-        res.setHeader('Content-Length', contentLength);
-      }
-
-      // Stream response body to client
-      if (response.body) {
-        // @ts-ignore - response.body is Web ReadableStream, Readable.fromWeb handles it
-        const reader = Readable.fromWeb(response.body);
-        reader.pipe(res);
-      } else {
-         res.end();
-      }
-    } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Failed to fetch URL ${media.src}: ${err.message}`);
-      throw new NotFoundException('Media file unavailable from URL');
-    }
-  }
-
-  /**
    * Stream file from Telegram using Bot API.
+   * The storagePath contains the Telegram file_id.
    */
   private async streamFromTelegram(media: Media, res: ServerResponse): Promise<void> {
     const telegramBotToken = this.configService.get<string>('app.telegramBotToken');
@@ -607,7 +566,7 @@ export class MediaService {
 
     try {
       // Step 1: Get file path from Telegram
-      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(media.src)}`;
+      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(media.storagePath)}`;
       
       const getFileResponse = await fetch(getFileUrl, { 
         signal: AbortSignal.timeout(10000) 
@@ -622,7 +581,7 @@ export class MediaService {
       const fileInfo = await getFileResponse.json() as any;
 
       if (!fileInfo.ok || !fileInfo.result?.file_path) {
-        this.logger.warn(`Invalid Telegram file_id or file not found: ${media.src}`);
+        this.logger.warn(`Invalid Telegram file_id or file not found: ${media.storagePath}`);
         throw new Error('Invalid file_id or file not found');
       }
 
@@ -663,9 +622,9 @@ export class MediaService {
       const isConnectionError = err.message.includes('fetch') || err.name === 'TimeoutError' || err.message.includes('ETIMEDOUT');
       
       if (isConnectionError) {
-         this.logger.error(`Connection error fetching Telegram file ${media.src}: ${err.message}`, err.stack);
+         this.logger.error(`Connection error fetching Telegram file ${media.storagePath}: ${err.message}`, err.stack);
       } else {
-         this.logger.error(`Failed to fetch Telegram file ${media.src}: ${err.message}`);
+         this.logger.error(`Failed to fetch Telegram file ${media.storagePath}: ${err.message}`);
       }
       
       throw new NotFoundException(`Telegram media unavailable: ${err.message}`);

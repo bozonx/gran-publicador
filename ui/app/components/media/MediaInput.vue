@@ -49,8 +49,8 @@ async function handleFileUpload(event: Event) {
     
     const newMedia: CreateMediaInput = {
       type: uploadedMedia.type,
-      srcType: uploadedMedia.srcType,
-      src: uploadedMedia.src,
+      storageType: uploadedMedia.storageType,
+      storagePath: uploadedMedia.storagePath,
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
@@ -83,8 +83,8 @@ function addMedia() {
 
   const newMedia: CreateMediaInput = {
     type: mediaType.value,
-    srcType: sourceType.value as 'URL' | 'TELEGRAM',
-    src: sourceInput.value.trim(),
+    storageType: sourceType.value === 'TELEGRAM' ? 'TELEGRAM' : 'FS', // URL downloads result in FS storage
+    storagePath: sourceInput.value.trim(),
     filename: filenameInput.value.trim() || undefined,
   }
 
@@ -188,15 +188,15 @@ function triggerFileInput() {
       >
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <UBadge :color="media.srcType === 'URL' ? 'primary' : media.srcType === 'TELEGRAM' ? 'secondary' : 'success'" size="xs">
-              {{ media.srcType }}
+            <UBadge :color="media.storageType === 'TELEGRAM' ? 'secondary' : 'success'" size="xs">
+              {{ media.storageType }}
             </UBadge>
             <UBadge color="neutral" size="xs">
               {{ media.type }}
             </UBadge>
           </div>
           <p class="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">
-            {{ media.filename || media.src }}
+            {{ media.filename || media.storagePath }}
           </p>
         </div>
         <UButton

@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { jest } from '@jest/globals';
-import { MediaType, MediaSourceType } from '../../src/generated/prisma/client.js';
+import { MediaType, StorageType } from '../../src/generated/prisma/client.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 
 describe('MediaService (unit)', () => {
@@ -84,8 +84,8 @@ describe('MediaService (unit)', () => {
     it('should create a media record', async () => {
       const createDto = {
         type: MediaType.IMAGE,
-        srcType: MediaSourceType.FS,
-        src: '2026/01/test.jpg',
+        storageType: StorageType.FS,
+        storagePath: '2026/01/test.jpg',
         filename: 'test.jpg',
         mimeType: 'image/jpeg',
         sizeBytes: 1024,
@@ -121,8 +121,8 @@ describe('MediaService (unit)', () => {
     it('should handle empty meta object', async () => {
       const createDto = {
         type: MediaType.DOCUMENT,
-        srcType: MediaSourceType.URL,
-        src: 'https://example.com/doc.pdf',
+        storageType: StorageType.FS,
+        storagePath: 'https://example.com/doc.pdf',
         filename: 'document.pdf',
       };
 
@@ -152,8 +152,8 @@ describe('MediaService (unit)', () => {
       const mockMedia = {
         id: mediaId,
         type: MediaType.IMAGE,
-        srcType: MediaSourceType.FS,
-        src: 'test.jpg',
+        storageType: StorageType.FS,
+        storagePath: 'test.jpg',
         filename: 'test.jpg',
         mimeType: 'image/jpeg',
         sizeBytes: 1024,
@@ -209,8 +209,8 @@ describe('MediaService (unit)', () => {
       const existingMedia = {
         id: mediaId,
         type: MediaType.IMAGE,
-        srcType: MediaSourceType.FS,
-        src: 'test.jpg',
+        storageType: StorageType.FS,
+        storagePath: 'test.jpg',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -254,8 +254,8 @@ describe('MediaService (unit)', () => {
       const mockMedia = {
         id: mediaId,
         type: MediaType.IMAGE,
-        srcType: MediaSourceType.URL,
-        src: 'https://example.com/image.jpg',
+        storageType: StorageType.FS,
+        storagePath: 'https://example.com/image.jpg',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

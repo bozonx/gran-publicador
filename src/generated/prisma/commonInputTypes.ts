@@ -246,11 +246,11 @@ export type EnumMediaTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumMediaTypeFilter<$PrismaModel> | $Enums.MediaType
 }
 
-export type EnumMediaSourceTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.MediaSourceType[]
-  notIn?: $Enums.MediaSourceType[]
-  not?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel> | $Enums.MediaSourceType
+export type EnumStorageTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageType | Prisma.EnumStorageTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageType[]
+  notIn?: $Enums.StorageType[]
+  not?: Prisma.NestedEnumStorageTypeFilter<$PrismaModel> | $Enums.StorageType
 }
 
 export type IntNullableFilter<$PrismaModel = never> = {
@@ -274,14 +274,14 @@ export type EnumMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumMediaTypeFilter<$PrismaModel>
 }
 
-export type EnumMediaSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.MediaSourceType[]
-  notIn?: $Enums.MediaSourceType[]
-  not?: Prisma.NestedEnumMediaSourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.MediaSourceType
+export type EnumStorageTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageType | Prisma.EnumStorageTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageType[]
+  notIn?: $Enums.StorageType[]
+  not?: Prisma.NestedEnumStorageTypeWithAggregatesFilter<$PrismaModel> | $Enums.StorageType
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStorageTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStorageTypeFilter<$PrismaModel>
 }
 
 export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -604,11 +604,11 @@ export type NestedEnumMediaTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumMediaTypeFilter<$PrismaModel> | $Enums.MediaType
 }
 
-export type NestedEnumMediaSourceTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.MediaSourceType[]
-  notIn?: $Enums.MediaSourceType[]
-  not?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel> | $Enums.MediaSourceType
+export type NestedEnumStorageTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageType | Prisma.EnumStorageTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageType[]
+  notIn?: $Enums.StorageType[]
+  not?: Prisma.NestedEnumStorageTypeFilter<$PrismaModel> | $Enums.StorageType
 }
 
 export type NestedEnumMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -621,14 +621,14 @@ export type NestedEnumMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumMediaTypeFilter<$PrismaModel>
 }
 
-export type NestedEnumMediaSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.MediaSourceType[]
-  notIn?: $Enums.MediaSourceType[]
-  not?: Prisma.NestedEnumMediaSourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.MediaSourceType
+export type NestedEnumStorageTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageType | Prisma.EnumStorageTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageType[]
+  notIn?: $Enums.StorageType[]
+  not?: Prisma.NestedEnumStorageTypeWithAggregatesFilter<$PrismaModel> | $Enums.StorageType
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStorageTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStorageTypeFilter<$PrismaModel>
 }
 
 export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {

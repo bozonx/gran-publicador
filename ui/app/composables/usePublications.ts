@@ -46,8 +46,8 @@ export interface PublicationWithRelations extends Publication {
         media?: {
             id: string
             type: string
-            srcType: string
-            src: string
+            storageType: string
+            storagePath: string
             filename?: string
             mimeType?: string
             sizeBytes?: number

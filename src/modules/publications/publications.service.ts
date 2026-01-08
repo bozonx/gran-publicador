@@ -964,8 +964,8 @@ export class PublicationsService {
         const mediaItem = await tx.media.create({
           data: {
             type: m.type,
-            srcType: m.srcType,
-            src: m.src,
+            storageType: m.storageType,
+            storagePath: m.storagePath,
             filename: m.filename,
             mimeType: m.mimeType,
             sizeBytes: m.sizeBytes,

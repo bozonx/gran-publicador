@@ -2,8 +2,8 @@
 interface MediaItem {
   id: string
   type: string
-  srcType: string
-  src: string
+  storageType: string
+  storagePath: string
   filename?: string
 }
 
@@ -48,8 +48,8 @@ function getMediaIcon(type: string) {
           <UBadge size="xs" color="neutral">
             {{ item.media?.type }}
           </UBadge>
-          <UBadge size="xs" :color="item.media?.srcType === 'URL' ? 'primary' : item.media?.srcType === 'TELEGRAM' ? 'secondary' : 'success'">
-            {{ item.media?.srcType }}
+          <UBadge size="xs" :color="item.media?.storageType === 'TELEGRAM' ? 'secondary' : 'success'">
+            {{ item.media?.storageType }}
           </UBadge>
         </div>
       </div>
