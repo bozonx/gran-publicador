@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import Database from 'better-sqlite3';
 import { getDatabaseUrl } from '../../config/database.config.js';
 
 /**
@@ -16,10 +17,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     // getDatabaseUrl() will throw if DATA_DIR is not set
     const url = getDatabaseUrl();
+    // Remove 'file:' prefix to get the actual file path
+    const filePath = url.replace('file:', '');
     
-    const adapter = new PrismaBetterSqlite3({ url });
+    // Explicitly create better-sqlite3 instance
+    // This ensures we have full control over the database file location
+    const db = new Database(filePath);
+    
+    const adapter = new PrismaBetterSqlite3(db);
     
     super({ adapter });
+    
+    this.logger.log(`🔌 Database initialized at: ${filePath}`);
   }
 
   public async onModuleInit() {
