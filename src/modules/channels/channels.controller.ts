@@ -19,6 +19,7 @@ import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
 import { ChannelsService } from './channels.service.js';
 import { CreateChannelDto, UpdateChannelDto, FindChannelsQueryDto } from './dto/index.js';
+import { SocialPostingService } from '../social-posting/social-posting.service.js';
 
 /**
  * Controller for managing channels within projects.
@@ -28,7 +29,10 @@ import { CreateChannelDto, UpdateChannelDto, FindChannelsQueryDto } from './dto/
 export class ChannelsController {
   private readonly MAX_LIMIT = 100;
 
-  constructor(private readonly channelsService: ChannelsService) { }
+  constructor(
+    private readonly channelsService: ChannelsService,
+    private readonly socialPostingService: SocialPostingService,
+  ) { }
 
   @Post()
   public async create(
@@ -188,5 +192,21 @@ export class ChannelsController {
     return this.channelsService.remove(id, req.user.userId);
   }
 
+  /**
+   * Test channel connection and credentials.
+   */
+  @Post(':id/test')
+  public async test(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
+    // Validate project scope for API token users
+    if (req.user.scopeProjectIds) {
+      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.socialPostingService.testChannel(id);
+  }
 }
