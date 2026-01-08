@@ -15,6 +15,7 @@ import { useSocialPosting } from '~/composables/useSocialPosting'
 import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
+import { stripHtmlAndSpecialChars } from '~/utils/text'
 
 interface Props {
   post?: PostWithRelations
@@ -196,9 +197,7 @@ async function confirmDelete() {
 // Accessors for inherited content
 const displayTitle = computed(() => props.post ? getPostTitle(props.post) : props.publication?.title)
 const displayContent = computed(() => {
-    if (props.post?.content) return props.post.content
-    if (formData.content) return formData.content
-    return props.publication?.content
+    return formData.content || props.publication?.content
 })
 const displayDescription = computed(() => props.post ? getPostDescription(props.post) : props.publication?.description)
 const displayLanguage = computed(() => props.post ? getPostLanguage(props.post) : props.publication?.language)
@@ -393,6 +392,11 @@ const metaYaml = computed(() => {
                     #{{ tag.trim() }}
                 </UBadge>
             </div>
+
+            <!-- Content Preview -->
+            <p v-if="displayContent" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                {{ stripHtmlAndSpecialChars(displayContent) }}
+            </p>
         </div>
 
         <!-- Expand/Collapse Button -->
