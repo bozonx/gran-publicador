@@ -74,7 +74,6 @@ model Project {
   // Project preferences stored as JSON string (SQLite limitation)
   preferences String    @default("{}") // Store as JSON string in SQLite
 
-
   owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      ProjectMember[]
   channels     Channel[]
@@ -144,7 +143,17 @@ model Publication {
   archivedAt DateTime? @map("archived_at")
   // User ID who archived the publication
   archivedBy String?   @map("archived_by")
+  // When the publication is scheduled to be published
+  scheduledAt   DateTime? @map("scheduled_at")
+  // Timestamp when processing started (to detect timeouts)
+  processingStartedAt DateTime? @map("processing_started_at")
 
+  // Type of post (POST, ARTICLE, VIDEO, etc.) - master type for distribution
+  postType      PostType   @default(POST) @map("post_type")
+  // Language of the publication (ru-RU, en-US, etc.)
+  language      String     @default("ru-RU")
+  // Publication status (user can select: DRAFT, READY; system sets: SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
+  status        PublicationStatus @default(DRAFT)
   // Title for articles and social media posts where title is required. Even if not required, it's recommended to fill it for easier post identification in Gran Publicador
   title         String?
   // Description for SEO purposes and social media. Can be used when publishing to websites
@@ -153,25 +162,13 @@ model Publication {
   content       String?
   // Author's commentary for the news (published along with the content)
   authorComment String?    @map("author_comment")
-  // Internal note for author's reference only. Never published to social media
-  note          String?
   tags          String?
-
   // Additional metadata stored as JSON string
   meta          String     @default("{}")
-  // Type of post (POST, ARTICLE, VIDEO, etc.) - master type for distribution
-  postType      PostType   @default(POST) @map("post_type")
   // Content date set by the author (e.g., article date, event date). Not the publication/posting date
   postDate      DateTime?  @map("post_date")
-  // Publication status (user can select: DRAFT, READY; system sets: SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
-  status        PublicationStatus @default(DRAFT)
-
-  // Language of the publication (ru-RU, en-US, etc.)
-  language      String     @default("ru-RU")
-  // When the publication is scheduled to be published
-  scheduledAt   DateTime? @map("scheduled_at")
-  // Timestamp when processing started (to detect timeouts)
-  processingStartedAt DateTime? @map("processing_started_at")
+  // Internal note for author's reference only. Never published to social media
+  note          String?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   creator User?   @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
@@ -204,7 +201,6 @@ model Media {
   @@map("media")
 }
 
-
 model PublicationMedia {
   id             String   @id @default(uuid())
   publicationId  String   @map("publication_id")
@@ -234,11 +230,13 @@ model Post {
   status        PostStatus @default(PENDING)
   // Error message if post failed
   errorMessage  String?    @map("error_message")
+  // Data received after publication (usually url or message id). Not editable by user.
+  meta          String    @default("{}")
+
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")
   // Actual timestamp when post was published to platform. Set by the publishing service only.
   publishedAt   DateTime? @map("published_at")
-
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
 
@@ -270,6 +268,7 @@ enum SocialMedia {
 enum PostType {
   POST
   ARTICLE
+  // News post, usually from automatic news collector
   NEWS
   // Long horisontal video
   VIDEO
