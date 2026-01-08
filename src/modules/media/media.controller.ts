@@ -95,17 +95,8 @@ export class MediaController {
     @Param('id') id: string, 
     @Res() res: FastifyReply
   ) {
-    console.log(`[DEBUG] Controller getFile: id=${id}`);
-    
-    // Instead of res.raw.pipe, we can return the result of streamMediaFile
-    // but we need to modify streamMediaFile to returning the stream or meta
-    // For now, let's keep it as is but ensure we handle errors
-    try {
-      await this.mediaService.streamMediaFile(id, res.raw);
-    } catch (e) {
-      console.error(`[DEBUG] Error in getFile controller:`, e);
-      throw e;
-    }
+    // Stream media file - res.raw is the native Node.js ServerResponse
+    return this.mediaService.streamMediaFile(id, res.raw);
   }
 
   @Get(':id')

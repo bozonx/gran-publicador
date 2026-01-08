@@ -326,44 +326,36 @@ export class MediaService {
     this.logger.debug(`Downloading file from URL: ${url}`);
 
     try {
-      // Download file from URL
-      const response = await request(url, {
-        method: 'GET',
-      });
+      // Download file from URL using global fetch
+      const response = await fetch(url);
 
-      if (response.statusCode !== 200) {
-        this.logger.warn(`URL returned status ${response.statusCode}: ${url}`);
-        throw new BadRequestException(`Failed to download file from URL (status: ${response.statusCode})`);
+      if (!response.ok) {
+        this.logger.warn(`URL returned status ${response.status}: ${url}`);
+        throw new BadRequestException(`Failed to download file from URL (status: ${response.status})`);
       }
 
       // Get content type and length
-      const contentType = response.headers['content-type'] as string || 'application/octet-stream';
-      const contentLength = response.headers['content-length'];
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      const contentLength = response.headers.get('content-length');
 
       // Check file size before downloading
-      if (contentLength && parseInt(contentLength as string) > this.maxFileSize) {
+      if (contentLength && parseInt(contentLength) > this.maxFileSize) {
         throw new BadRequestException(
           `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
         );
       }
 
       // Download file to buffer
-      const chunks: Buffer[] = [];
-      let totalSize = 0;
+      // Note: response.arrayBuffer() is easier but loads everything in memory. 
+      // Given maxFileSize is 50MB, it's acceptable.
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-      for await (const chunk of response.body) {
-        chunks.push(chunk as Buffer);
-        totalSize += (chunk as Buffer).length;
-
-        // Check size during download
-        if (totalSize > this.maxFileSize) {
-          throw new BadRequestException(
-            `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
-          );
-        }
+      if (buffer.length > this.maxFileSize) {
+         throw new BadRequestException(
+          `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
+        );
       }
-
-      const buffer = Buffer.concat(chunks);
 
       // Determine filename from URL or use provided one
       let finalFilename = filename;
@@ -568,29 +560,33 @@ export class MediaService {
    */
   private async streamFromUrl(media: Media, res: ServerResponse): Promise<void> {
     try {
-      const response = await request(media.src, {
-        method: 'GET',
-      });
+      const response = await fetch(media.src);
 
-      if (response.statusCode !== 200) {
-        this.logger.warn(`URL returned status ${response.statusCode}: ${media.src}`);
+      if (!response.ok) {
+        this.logger.warn(`URL returned status ${response.status}: ${media.src}`);
         throw new NotFoundException('Media file unavailable from URL');
       }
 
       // Forward content-type from source
-      const contentType = response.headers['content-type'];
+      const contentType = response.headers.get('content-type');
       if (contentType) {
         res.setHeader('Content-Type', contentType);
       }
 
       // Forward content-length if available
-      const contentLength = response.headers['content-length'];
+      const contentLength = response.headers.get('content-length');
       if (contentLength) {
         res.setHeader('Content-Length', contentLength);
       }
 
       // Stream response body to client
-      response.body.pipe(res);
+      if (response.body) {
+        // @ts-ignore - response.body is Web ReadableStream, Readable.fromWeb handles it
+        const reader = Readable.fromWeb(response.body);
+        reader.pipe(res);
+      } else {
+         res.end();
+      }
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to fetch URL ${media.src}: ${err.message}`);
@@ -606,25 +602,24 @@ export class MediaService {
 
     if (!telegramBotToken) {
       this.logger.error('Telegram bot token not configured in app config');
-      throw new NotFoundException('DEBUG_TOKEN_MISSING: Telegram bot token not configured');
+      throw new NotFoundException('Telegram media unavailable: bot token not configured');
     }
-
-    this.logger.debug(`Fetching file path from Telegram for file_id: ${media.src}`);
-
-    this.logger.debug(`Fetching file path from Telegram for file_id: ${media.src}`);
 
     try {
       // Step 1: Get file path from Telegram
       const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(media.src)}`;
-      const getFileResponse = await request(getFileUrl, { method: 'GET' });
+      
+      const getFileResponse = await fetch(getFileUrl, { 
+        signal: AbortSignal.timeout(10000) 
+      });
 
-      if (getFileResponse.statusCode !== 200) {
-        const errorBody = await getFileResponse.body.text();
-        this.logger.warn(`Telegram getFile failed with status ${getFileResponse.statusCode}: ${errorBody}`);
-        throw new Error(`Failed to get file info from Telegram (status ${getFileResponse.statusCode})`);
+      if (!getFileResponse.ok) {
+        const errorBody = await getFileResponse.text();
+        this.logger.warn(`Telegram getFile failed with status ${getFileResponse.status}: ${errorBody}`);
+        throw new Error(`Failed to get file info (status ${getFileResponse.status})`);
       }
 
-      const fileInfo = await getFileResponse.body.json() as any;
+      const fileInfo = await getFileResponse.json() as any;
 
       if (!fileInfo.ok || !fileInfo.result?.file_path) {
         this.logger.warn(`Invalid Telegram file_id or file not found: ${media.src}`);
@@ -633,33 +628,47 @@ export class MediaService {
 
       // Step 2: Download file from Telegram
       const fileUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${fileInfo.result.file_path}`;
-      this.logger.debug(`Downloading file from Telegram: ${fileUrl.replace(telegramBotToken, 'TOKEN_HIDDEN')}`);
       
-      const fileResponse = await request(fileUrl, { method: 'GET' });
+      const fileResponse = await fetch(fileUrl, {
+         signal: AbortSignal.timeout(60000)
+      });
 
-      if (fileResponse.statusCode !== 200) {
-        this.logger.warn(`Telegram file download failed with status ${fileResponse.statusCode}`);
-        throw new Error(`Failed to download file from Telegram (status ${fileResponse.statusCode})`);
+      if (!fileResponse.ok) {
+        this.logger.warn(`Telegram file download failed with status ${fileResponse.status}`);
+        throw new Error(`Failed to download file (status ${fileResponse.status})`);
       }
 
       // Set content type from database or response
-      const contentType = media.mimeType || fileResponse.headers['content-type'];
+      const contentType = media.mimeType || fileResponse.headers.get('content-type');
       if (contentType) {
         res.setHeader('Content-Type', contentType);
       }
 
       // Set content length if available
-      const contentLength = fileResponse.headers['content-length'];
+      const contentLength = fileResponse.headers.get('content-length');
       if (contentLength) {
         res.setHeader('Content-Length', contentLength);
       }
 
       // Stream file to client
-      fileResponse.body.pipe(res);
+      if (fileResponse.body) {
+        // @ts-ignore
+        const reader = Readable.fromWeb(fileResponse.body);
+        reader.pipe(res);
+      } else {
+        res.end();
+      }
     } catch (error) {
       const err = error as Error;
-      this.logger.error(`DEBUG_STREAM_ERROR: Failed to fetch Telegram file ${media.src}: ${err.message}`, err.stack);
-      throw new NotFoundException(`DEBUG_ERR_FETCH: ${err.message}`);
+      const isConnectionError = err.message.includes('fetch') || err.name === 'TimeoutError' || err.message.includes('ETIMEDOUT');
+      
+      if (isConnectionError) {
+         this.logger.error(`Connection error fetching Telegram file ${media.src}: ${err.message}`, err.stack);
+      } else {
+         this.logger.error(`Failed to fetch Telegram file ${media.src}: ${err.message}`);
+      }
+      
+      throw new NotFoundException(`Telegram media unavailable: ${err.message}`);
     }
   }
 
