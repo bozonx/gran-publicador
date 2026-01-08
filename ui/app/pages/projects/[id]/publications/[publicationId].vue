@@ -6,7 +6,7 @@ import { usePosts } from '~/composables/usePosts'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
-import { getUserSelectableStatuses, getStatusColor } from '~/utils/publications'
+import { getUserSelectableStatuses, getStatusColor, getStatusClass } from '~/utils/publications'
 
 definePageMeta({
   middleware: 'auth',
@@ -643,21 +643,21 @@ function formatDate(dateString: string | null | undefined): string {
                                 </UPopover>
                             </div>
                             <div class="flex items-center gap-2">
-                                <UButtonGroup orientation="horizontal" size="sm" class="shadow-sm">
+                                <div class="inline-flex rounded-md shadow-sm isolate">
                                     <UButton
                                         v-for="option in displayStatusOptions"
                                         :key="option.value"
                                         :label="option.label"
-                                        :color="(getStatusColor(option.value as PublicationStatus) as any)"
-                                        :variant="currentPublication?.status === option.value ? 'solid' : 'soft'"
+                                        color="neutral"
                                         :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentEmpty && currentPublication?.status === 'DRAFT')"
-                                        class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
-                                        :class="{
-                                            'opacity-40': currentPublication?.status !== option.value
-                                        }"
+                                        class="rounded-none first:rounded-l-md last:rounded-r-md transition-opacity"
+                                        :class="[
+                                            getStatusClass(option.value as PublicationStatus),
+                                            currentPublication?.status !== option.value ? 'opacity-40 hover:opacity-100' : ''
+                                        ]"
                                         @click="handleUpdateStatusOption(option.value as PublicationStatus)"
                                     />
-                                </UButtonGroup>
+                                </div>
                             </div>
                         </div>
 

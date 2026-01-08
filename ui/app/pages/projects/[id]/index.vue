@@ -344,16 +344,34 @@ const projectProblems = computed(() => {
             {{ t('publication.publicationsBlock') }}
             <CommonCountBadge :count="currentProject.publicationsCount" :title="t('publication.publicationsCount')" />
           </h2>
-          <UButton
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            icon="i-heroicons-arrow-right"
-            trailing
-            :to="`/projects/${projectId}/publications`"
-          >
-            {{ t('common.viewAll') }}
-          </UButton>
+          <div class="flex items-center gap-2">
+            <UButton
+              variant="soft"
+              color="warning"
+              size="xs"
+              :to="`/publications?projectId=${projectId}&status=READY`"
+            >
+              {{ t('postStatus.ready') }}
+            </UButton>
+            <UButton
+              variant="soft"
+              color="success"
+              size="xs"
+              :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
+            >
+              {{ t('postStatus.published') }}
+            </UButton>
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-heroicons-arrow-right"
+              trailing
+              :to="`/publications?projectId=${projectId}`"
+            >
+              {{ t('common.viewAll') }}
+            </UButton>
+          </div>
         </div>
 
         <!-- Create publication buttons by language -->
