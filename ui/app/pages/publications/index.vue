@@ -40,8 +40,12 @@ const limit = ref(DEFAULT_PAGE_SIZE)
 
 // Filter states
 // Initialize filters from URL
-const selectedStatus = ref<PublicationStatus | null>(
-  (route.query.status as PublicationStatus) || null
+const selectedStatus = ref<PublicationStatus | PublicationStatus[] | null>(
+  route.query.status 
+    ? (typeof route.query.status === 'string' && route.query.status.includes(',') 
+        ? route.query.status.split(',') as PublicationStatus[]
+        : route.query.status as PublicationStatus)
+    : null
 )
 const selectedChannelId = ref<string | null>(
   (route.query.channelId as string) || null
@@ -175,7 +179,7 @@ watch(
       }
     }
 
-    updateQuery('status', selectedStatus.value)
+    updateQuery('status', Array.isArray(selectedStatus.value) ? selectedStatus.value.join(',') : selectedStatus.value)
     updateQuery('channelId', selectedChannelId.value)
     updateQuery('projectId', selectedProjectId.value)
     updateQuery('search', debouncedSearch.value, '')
@@ -565,7 +569,7 @@ const showPagination = computed(() => {
 
         <!-- Status Filter (Select) -->
         <USelectMenu
-          v-model="selectedStatus"
+          v-model="selectedStatus as any"
           :items="statusFilterOptions"
           value-key="value"
           label-key="label"

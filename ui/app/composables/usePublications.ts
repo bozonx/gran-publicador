@@ -59,7 +59,7 @@ export interface PublicationWithRelations extends Publication {
 }
 
 export interface PublicationsFilter {
-    status?: PublicationStatus | null
+    status?: PublicationStatus | PublicationStatus[] | null;
     channelId?: string | null
     limit?: number
     offset?: number
@@ -115,7 +115,11 @@ export function usePublications() {
 
         try {
             const params: Record<string, any> = { projectId }
-            if (filters.status) params.status = filters.status
+            if (filters.status) {
+                params.status = Array.isArray(filters.status) 
+                    ? filters.status.join(',') 
+                    : filters.status
+            }
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset
             if (filters.includeArchived) params.includeArchived = true
@@ -203,14 +207,14 @@ export function usePublications() {
     function getStatusColor(status: string): string {
         if (!status) return 'neutral'
         const colors: Record<string, string> = {
-            draft: 'black',
-            ready: 'yellow',
-            scheduled: 'sky',
-            processing: 'blue',
-            published: 'green',
-            partial: 'red',
-            failed: 'red',
-            expired: 'red',
+            draft: 'neutral',
+            ready: 'warning',
+            scheduled: 'info',
+            processing: 'primary',
+            published: 'success',
+            partial: 'error',
+            failed: 'error',
+            expired: 'error',
         }
         return colors[status.toLowerCase()] || 'neutral'
     }

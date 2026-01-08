@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useProjects } from '~/composables/useProjects'
 import { useChannels } from '~/composables/useChannels'
 import { ArchiveEntityType } from '~/types/archive.types'
+import { stripHtmlAndSpecialChars } from '~/utils/text'
 
 definePageMeta({
   middleware: 'auth',
@@ -28,7 +29,24 @@ const {
 const {
   publications: draftPublications,
   isLoading: isDraftsLoading,
-  fetchPublicationsByProject,
+  totalCount: draftTotal,
+  fetchPublicationsByProject: fetchDrafts,
+} = usePublications()
+
+const {
+  publications: scheduledPublications,
+  isLoading: isScheduledLoading,
+  totalCount: scheduledTotal,
+  fetchPublicationsByProject: fetchScheduled,
+} = usePublications()
+
+const {
+  publications: problemPublications,
+  isLoading: isProblemsLoading,
+  totalCount: problemsTotal,
+  fetchPublicationsByProject: fetchProblems,
+  getStatusDisplayName,
+  getStatusColor,
 } = usePublications()
 
 const {
@@ -44,7 +62,9 @@ onMounted(async () => {
   if (projectId.value) {
     await Promise.all([
       fetchProject(projectId.value),
-      fetchPublicationsByProject(projectId.value, { status: 'DRAFT', limit: 5 }),
+      fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
+      fetchScheduled(projectId.value, { status: 'SCHEDULED', limit: 5 }),
+      fetchProblems(projectId.value, { status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 5 }),
       fetchChannels({ projectId: projectId.value, limit: 1000 })
     ])
   }
@@ -98,6 +118,34 @@ function formatDateWithTime(date: string | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+// 123
+import type { PublicationWithRelations } from '~/composables/usePublications'
+
+/**
+ * Get display title for publication list fallback
+ */
+function getPublicationDisplayTitle(pub: any): string {
+  let text = ''
+  if (pub.title && pub.title.trim()) {
+    text = pub.title
+  } else if (pub.content) {
+    text = stripHtmlAndSpecialChars(pub.content)
+  } else if (pub.tags && pub.tags.trim()) {
+    text = pub.tags
+  } else if (pub.createdAt) {
+    text = formatDateWithTime(pub.createdAt)
+  } else {
+    text = 'Untitled'
+  }
+  
+  // Collapse whitespace and trim
+  return text.replace(/\s+/g, ' ').trim().substring(0, 100)
+}
+
+function goToPublication(pub: PublicationWithRelations) {
+    router.push(`/projects/${pub.projectId}/publications/${pub.id}`)
 }
 
 // Create Modal State
@@ -302,6 +350,23 @@ const projectProblems = computed(() => {
                   </NuxtLink>
                 </div>
               </div>
+
+              <!-- Create publication buttons -->
+              <div v-if="availableLanguages.length > 0" class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+                 <div class="flex flex-wrap gap-2">
+                  <UButton
+                    v-for="lang in availableLanguages"
+                    :key="lang"
+                    color="primary"
+                    variant="soft"
+                    size="xs"
+                    icon="i-heroicons-plus"
+                    @click="openCreateModal(lang)"
+                  >
+                    Публикация {{ lang }}
+                  </UButton>
+                </div>
+              </div>
             </div>
 
             <!-- Actions -->
@@ -337,83 +402,140 @@ const projectProblems = computed(() => {
       </div>
 
       <!-- Publications Section -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6 p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <UIcon name="i-heroicons-document-duplicate" class="w-5 h-5 text-gray-400" />
-            {{ t('publication.publicationsBlock') }}
-            <CommonCountBadge :count="currentProject.publicationsCount" :title="t('publication.publicationsCount')" />
-          </h2>
-          <div class="flex items-center gap-2">
-            <UButton
-              variant="soft"
-              color="warning"
-              size="xs"
-              :to="`/publications?projectId=${projectId}&status=READY`"
-            >
-              {{ t('postStatus.ready') }}
-            </UButton>
-            <UButton
-              variant="soft"
-              color="success"
-              size="xs"
-              :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
-            >
-              {{ t('postStatus.published') }}
-            </UButton>
-            <UButton
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              icon="i-heroicons-arrow-right"
-              trailing
-              :to="`/publications?projectId=${projectId}`"
-            >
-              {{ t('common.viewAll') }}
-            </UButton>
+      <div class="space-y-6 mt-6">
+        <!-- Drafts Block (Only visible if has drafts) -->
+        <div v-if="draftTotal > 0 || isDraftsLoading" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
+              {{ t('publicationStatus.draft') }}
+              <CommonCountBadge :count="draftTotal" :title="t('publicationStatus.draft')" />
+            </h2>
+            <div class="flex items-center gap-2">
+              <UButton
+                v-if="draftTotal > 5"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                icon="i-heroicons-arrow-right"
+                trailing
+                :to="`/publications?projectId=${projectId}&status=DRAFT`"
+              >
+                {{ t('common.viewAll') }}
+              </UButton>
+            </div>
+          </div>
+
+          <!-- Create buttons moved to header -->
+
+          <div v-if="isDraftsLoading && !draftPublications.length" class="flex justify-center py-8">
+            <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
+          </div>
+          <div v-else-if="draftPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <PublicationsPublicationCard
+              v-for="draft in draftPublications"
+              :key="draft.id"
+              :publication="draft"
+              :show-project-info="false"
+              @click="goToPublication"
+            />
+          </div>
+          <div v-else class="text-center py-8 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-lg">
+             <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('publication.noPublicationsDescription') }}</p>
           </div>
         </div>
 
-        <!-- Create publication buttons by language -->
-        <div v-if="availableLanguages.length > 0" class="mb-6">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            {{ t('publication.createInLanguage') }}
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-for="lang in availableLanguages"
-              :key="lang"
-              color="primary"
-              icon="i-heroicons-plus"
-              @click="openCreateModal(lang)"
-            >
-              {{ lang }}
-            </UButton>
+        <!-- Scheduled and Problems Columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Scheduled Column -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
+                {{ t('publicationStatus.scheduled') }}
+                <CommonCountBadge :count="scheduledTotal" />
+              </h3>
+              <UButton
+                v-if="scheduledTotal > 5"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                icon="i-heroicons-arrow-right"
+                trailing
+                :to="`/publications?projectId=${projectId}&status=SCHEDULED`"
+              >
+                {{ t('common.viewAll') }}
+              </UButton>
+            </div>
+
+            <div v-if="isScheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
+              <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+            </div>
+            <ul v-else-if="scheduledPublications.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <li v-for="pub in scheduledPublications" :key="pub.id" class="py-3">
+                <NuxtLink 
+                  :to="`/projects/${projectId}/publications/${pub.id}`"
+                  class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
+                >
+                  {{ getPublicationDisplayTitle(pub) }}
+                </NuxtLink>
+              </li>
+            </ul>
+            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+              {{ t('common.noData') }}
+            </div>
+          </div>
+
+          <!-- Problem Column -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
+                {{ t('publication.filter.showIssuesOnly') }}
+                <CommonCountBadge :count="problemsTotal" color="error" />
+              </h3>
+              <UButton
+                v-if="problemsTotal > 5"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                icon="i-heroicons-arrow-right"
+                trailing
+                :to="`/publications?projectId=${projectId}&status=PARTIAL,FAILED,EXPIRED`"
+              >
+                {{ t('common.viewAll') }}
+              </UButton>
+            </div>
+
+            <div v-if="isProblemsLoading && !problemPublications.length" class="flex justify-center py-4">
+              <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+            </div>
+            <ul v-else-if="problemPublications.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
+              <li v-for="pub in problemPublications" :key="pub.id" class="py-3 flex items-center gap-3">
+                <UBadge :color="getStatusColor(pub.status) as any" variant="subtle" size="xs" class="shrink-0">
+                  {{ getStatusDisplayName(pub.status) }}
+                </UBadge>
+                <NuxtLink 
+                  :to="`/projects/${projectId}/publications/${pub.id}`"
+                  class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
+                >
+                  {{ getPublicationDisplayTitle(pub) }}
+                </NuxtLink>
+              </li>
+            </ul>
+            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+              {{ t('common.noData') }}
+            </div>
           </div>
         </div>
 
-        <!-- Create Publication Modal -->
+        <!-- Create Publication Modal (reused) -->
         <ModalsCreatePublicationModal
           v-model:open="isCreateModalOpen"
           :project-id="projectId"
           :preselected-language="selectedLanguage"
           @success="handleCreateSuccess"
         />
-
-        <!-- Draft publications list -->
-        <div v-if="draftPublications.length > 0" class="mt-6">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            {{ t('postStatus.draft') }}
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <PublicationsPublicationDraftCard
-              v-for="draft in draftPublications"
-              :key="draft.id"
-              :draft="draft"
-              :project-id="projectId"
-            />
-          </div>
-        </div>
       </div>
 
       <!-- Channels Section -->

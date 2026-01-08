@@ -21,7 +21,7 @@ export class PublicationsService {
    */
   private buildWhereClause(
     filters: {
-      status?: PublicationStatus;
+      status?: PublicationStatus | PublicationStatus[];
       includeArchived?: boolean;
       channelId?: string;
       socialMedia?: SocialMedia;
@@ -59,7 +59,11 @@ export class PublicationsService {
 
     // Status filter
     if (filters?.status) {
-      where.status = filters.status;
+      if (Array.isArray(filters.status)) {
+        where.status = { in: filters.status };
+      } else {
+        where.status = filters.status;
+      }
     }
 
     // Filter by channel (publications that have posts in this channel)

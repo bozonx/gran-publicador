@@ -41,8 +41,13 @@ export class FindPublicationsQueryDto {
   projectId?: string;
 
   @IsOptional()
-  @IsEnum(PublicationStatus)
-  status?: PublicationStatus;
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.split(',').filter(v => v.length > 0);
+    }
+    return value;
+  })
+  status?: PublicationStatus | PublicationStatus[];
 
   @IsOptional()
   @IsString()
