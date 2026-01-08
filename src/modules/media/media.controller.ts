@@ -51,8 +51,8 @@ export class MediaController {
     // Create the media record
     return this.mediaService.create({
       type: fileInfo.type,
-      srcType: 'FS',
-      src: fileInfo.path,
+      storageType: 'FS',
+      storagePath: fileInfo.path,
       filename: fileInfo.filename,
       mimeType: fileInfo.mimetype,
       sizeBytes: fileInfo.size,
@@ -73,8 +73,8 @@ export class MediaController {
     // Create the media record with original URL in meta
     return this.mediaService.create({
       type: fileInfo.type,
-      srcType: 'FS',
-      src: fileInfo.path,
+      storageType: 'FS',
+      storagePath: fileInfo.path,
       filename: fileInfo.filename,
       mimeType: fileInfo.mimetype,
       sizeBytes: fileInfo.size,
