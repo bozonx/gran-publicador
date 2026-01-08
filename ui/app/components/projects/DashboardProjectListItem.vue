@@ -8,6 +8,7 @@ const props = defineProps<{
 }>()
 
 const { getProjectProblemLevel, getProjectProblems } = useProjects()
+const { t, d } = useI18n()
 
 // Problem detection
 const problems = computed(() => getProjectProblems(props.project))
