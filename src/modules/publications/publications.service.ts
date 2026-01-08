@@ -313,7 +313,7 @@ export class PublicationsService {
     projectId: string,
     userId: string,
     filters?: {
-      status?: PublicationStatus;
+      status?: PublicationStatus | PublicationStatus[];
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
@@ -401,7 +401,7 @@ export class PublicationsService {
   public async findAllForUser(
     userId: string,
     filters?: {
-      status?: PublicationStatus;
+      status?: PublicationStatus | PublicationStatus[];
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
