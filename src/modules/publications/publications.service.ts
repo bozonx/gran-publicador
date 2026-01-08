@@ -367,6 +367,12 @@ export class PublicationsService {
               posts: true,
             },
           },
+          project: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy,
         take: filters?.limit,
@@ -520,6 +526,12 @@ export class PublicationsService {
           _count: {
             select: {
               posts: true,
+            },
+          },
+          project: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },
