@@ -143,6 +143,14 @@ GET /api/v1/projects?limit=20&offset=40
 - `AUDIO`
 - `DOCUMENT`
 
+#### SortingFields (для публикаций)
+- `createdAt` (по умолчанию)
+- `chronology` — комбинированный режим (сначала запланированные, затем опубликованные)
+- `byScheduled` — приоритет запланированным по дате
+- `byPublished` — приоритет опубликованным по дате
+- `title`
+- `status`
+
 #### StorageType
 - `FS` - локальная файловая система (или S3)
 - `TELEGRAM` - серверы Telegram (через file_id)
@@ -595,7 +603,14 @@ GET /api/v1/publications?projectId=550e8400-e29b-41d4-a716-446655440000&status=D
 
 **Query параметры:**
 - `projectId` (string, optional) - фильтр по проекту
-- `status` (PostStatus, optional) - фильтр по статусу
+- `status` (PublicationStatus, optional) - фильтр по статусу
+- `language` (string, optional) - фильтр по языку (ru-RU, en-US и др.)
+- `ownership` (string, optional) - `OWN` (мои), `NOT_OWN` (чужие)
+- `socialMedia` (SocialMedia, optional) - фильтр по соцсети
+- `issueType` (string, optional) - фильтр проблем: `FAILED`, `PARTIAL`, `EXPIRED`
+- `sortBy` (string, optional) - поле сортировки (см. `SortingFields`)
+- `sortOrder` (string, optional) - `asc` или `desc`
+- `search` (string, optional) - текстовый поиск по заголовку и контенту
 - `limit` (number, optional) - количество (по умолчанию: 50)
 - `offset` (number, optional) - смещение (по умолчанию: 0)
 
@@ -698,6 +713,7 @@ GET /api/v1/publications?projectId=550e8400-e29b-41d4-a716-446655440000&status=D
 - `content` (string, required) - содержание
 - `tags` (string, optional) - теги через запятую
 - `status` (PublicationStatus, optional) - статус (по умолчанию: DRAFT)
+- `sourceTexts` (array, optional) - исходные тексты `[{ content, order, source? }]`
 - `meta` (object, optional) - дополнительные метаданные
 
 #### Ответ
@@ -922,6 +938,10 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
 
 ## API Tokens
 
+---
+
+## API Tokens
+
 ### GET /api-tokens
 
 Получить список API токенов текущего пользователя.
@@ -1032,6 +1052,15 @@ POST /api/v1/archive/project/550e8400-e29b-41d4-a716-446655440000
 ```
 
 **Примечание:** При архивации проекта автоматически архивируются все связанные каналы, публикации и посты (виртуальное каскадирование).
+
+#### Вариант 1: Прямая публикация (standalone)
+1. Создается пост напрямую для канала.
+2. **Автоматическое создание публикации**: Система автоматически создает родительскую публикацию-контейнер для обеспечения целостности данных (все посты должны принадлежать публикации).
+3. Указывается контент, медиафайлы, дата публикации.
+4. Устанавливается статус `SCHEDULED`.
+5. Пост ожидает публикации в соответствии с расписанием.
+
+#### Вариант 2: Через публикацию
 
 ### POST /archive/:type/:id/restore
 

@@ -180,15 +180,20 @@ describe('MediaService (unit)', () => {
   describe('findAll', () => {
     it('should return all media ordered by createdAt desc', async () => {
       const mockMedia = [
-        { id: 'media-1', createdAt: new Date('2026-01-02') },
-        { id: 'media-2', createdAt: new Date('2026-01-01') },
+        { id: 'media-1', createdAt: new Date('2026-01-02'), meta: '{}' },
+        { id: 'media-2', createdAt: new Date('2026-01-01'), meta: '{}' },
       ];
 
       mockPrismaService.media.findMany.mockResolvedValue(mockMedia);
 
       const result = await service.findAll();
+      
+      const expected = mockMedia.map(m => ({
+        ...m,
+        meta: JSON.parse(m.meta)
+      }));
 
-      expect(result).toEqual(mockMedia);
+      expect(result).toEqual(expected);
       expect(mockPrismaService.media.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'desc' },
       });

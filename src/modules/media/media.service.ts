@@ -177,16 +177,22 @@ export class MediaService {
       },
     });
     
+    this.logger.debug(`Created media record in DB: id=${created.id}, meta=${created.meta}`);
+    
     return {
       ...created,
       meta: meta || {},
     };
   }
 
-  async findAll(): Promise<Media[]> {
-    return this.prisma.media.findMany({
+  async findAll(): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any> }>> {
+    const list = await this.prisma.media.findMany({
       orderBy: { createdAt: 'desc' }
     });
+    return list.map(media => ({
+      ...media,
+      meta: JSON.parse(media.meta || '{}') as Record<string, any>,
+    }));
   }
 
   async findOne(id: string): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
@@ -197,7 +203,7 @@ export class MediaService {
     }
     return {
       ...media,
-      meta: JSON.parse(media.meta) as Record<string, any>,
+      meta: JSON.parse(media.meta || '{}') as Record<string, any>,
     };
   }
 
@@ -221,7 +227,7 @@ export class MediaService {
     
     return {
       ...updated,
-      meta: JSON.parse(updated.meta) as Record<string, any>,
+      meta: JSON.parse(updated.meta || '{}') as Record<string, any>,
     };
   }
 
@@ -316,9 +322,11 @@ export class MediaService {
     let metadata: Record<string, any> | undefined;
     if (type === MediaType.IMAGE) {
       try {
+        this.logger.debug(`Extracting metadata for image: ${file.filename} (${file.mimetype})`);
         metadata = await this.extractImageMetadata(file.buffer);
+        this.logger.debug(`Extracted metadata: ${JSON.stringify(metadata)}`);
       } catch (e) {
-        this.logger.warn(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`);
+        this.logger.error(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`, (e as Error).stack);
       }
     }
     
@@ -338,9 +346,12 @@ export class MediaService {
    * Extract image metadata using sharp.
    */
   private async extractImageMetadata(buffer: Buffer): Promise<Record<string, any>> {
+    this.logger.debug(`sharp versions: ${JSON.stringify(sharp.versions)}`);
     const image = sharp(buffer);
     const metadata = await image.metadata();
     
+    this.logger.debug(`sharp metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}, hasExif=${!!metadata.exif}`);
+
     const result: Record<string, any> = {
       width: metadata.width,
       height: metadata.height,
