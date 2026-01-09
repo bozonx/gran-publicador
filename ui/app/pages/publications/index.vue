@@ -89,7 +89,9 @@ const selectedLanguage = ref<string | null>(
 
 // Sorting options
 const sortOptionsComputed = computed(() => [
-  { id: 'scheduledAt', label: t('publication.sort.scheduledAt'), icon: 'i-heroicons-clock' },
+  { id: 'chronology', label: t('publication.sort.chronology'), icon: 'i-heroicons-calendar-days' },
+  { id: 'scheduledOnly', label: t('publication.sort.scheduledOnly'), icon: 'i-heroicons-clock' },
+  { id: 'publishedOnly', label: t('publication.sort.publishedOnly'), icon: 'i-heroicons-check-circle' },
   { id: 'createdAt', label: t('publication.sort.createdAt'), icon: 'i-heroicons-plus-circle' },
   { id: 'postDate', label: t('publication.sort.postDate'), icon: 'i-heroicons-calendar' }
 ])
@@ -97,9 +99,9 @@ const sortOptionsComputed = computed(() => [
 
 
 // Manual sorting state synced with URL
-type SortField = 'scheduledAt' | 'createdAt' | 'postDate'
+type SortField = 'chronology' | 'scheduledOnly' | 'publishedOnly' | 'scheduledAt' | 'createdAt' | 'postDate' | 'publishedAt'
 const sortBy = ref<SortField>(
-  (route.query.sortBy as SortField) || 'createdAt'
+  (route.query.sortBy as SortField) || 'chronology'
 )
 const sortOrder = ref<'asc' | 'desc'>(
   (route.query.sortOrder as 'asc' | 'desc') || 'desc'
@@ -196,7 +198,7 @@ watch(
     updateQuery('socialMedia', selectedSocialMedia.value)
     updateQuery('language', selectedLanguage.value)
     updateQuery('archived', showArchivedFilter.value, false)
-    updateQuery('sortBy', sortBy.value, 'createdAt')
+    updateQuery('sortBy', sortBy.value, 'chronology')
     updateQuery('sortOrder', sortOrder.value, 'desc')
     
     // Remove page when filters change (reset to 1 happen in the other watcher)

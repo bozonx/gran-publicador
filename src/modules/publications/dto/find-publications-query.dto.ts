@@ -8,8 +8,12 @@ import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client
  * Allowed fields for sorting publications
  */
 export enum PublicationSortBy {
+  CHRONOLOGY = 'chronology',
+  SCHEDULED_ONLY = 'scheduledOnly',
+  PUBLISHED_ONLY = 'publishedOnly',
   CREATED_AT = 'createdAt',
   SCHEDULED_AT = 'scheduledAt',
+  PUBLISHED_AT = 'publishedAt',
   POST_DATE = 'postDate',
 }
 

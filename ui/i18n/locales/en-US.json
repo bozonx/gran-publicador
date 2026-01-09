@@ -473,9 +473,12 @@
       "badgeCountTooltip": "Number of non-archived publications (excluding filters)"
     },
     "sort": {
+      "chronology": "Chronology (future → past)",
+      "scheduledOnly": "Scheduled Only",
+      "publishedOnly": "Published Only",
+      "createdAt": "By Created Date",
       "scheduledAt": "By Scheduled Time",
       "publishedAt": "By Published Date",
-      "createdAt": "By Created Date",
       "updatedAt": "By Updated Date",
       "postDate": "By Content Date"
     },

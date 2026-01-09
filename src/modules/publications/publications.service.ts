@@ -332,10 +332,22 @@ export class PublicationsService {
     const where = this.buildWhereClause(filters || {}, userId, projectId);
 
     // Dynamic sorting
-    const orderBy: Prisma.PublicationOrderByWithRelationInput = {};
-    const sortField = filters?.sortBy || 'createdAt';
+    const sortField = filters?.sortBy || 'chronology';
     const sortDirection = filters?.sortOrder || 'desc';
-    (orderBy as any)[sortField] = sortDirection;
+    
+    // Handle special sorting modes
+    let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
+    let customSort = false;
+    
+    // For chronology, scheduledOnly, and publishedOnly, we need custom sorting
+    if (sortField === 'chronology' || sortField === 'scheduledOnly' || sortField === 'publishedOnly') {
+      customSort = true;
+      // We'll sort after fetching
+      orderBy = { createdAt: 'desc' }; // Default order for fetching
+    } else {
+      // Standard sorting
+      (orderBy as any)[sortField] = sortDirection;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -375,13 +387,106 @@ export class PublicationsService {
           },
         },
         orderBy,
-        take: filters?.limit,
-        skip: filters?.offset,
+        take: customSort ? undefined : filters?.limit,
+        skip: customSort ? undefined : filters?.offset,
       }),
       this.prisma.publication.count({ where }),
     ]);
 
-    return { items, total };
+    // Apply custom sorting if needed
+    let sortedItems = items;
+    
+    if (customSort) {
+      if (sortField === 'chronology') {
+        // Chronology: scheduled (latest to nearest) → published (recent to old)
+        sortedItems = items.sort((a, b) => {
+          const aScheduled = a.scheduledAt;
+          const bScheduled = b.scheduledAt;
+          
+          // Get the latest publishedAt from posts
+          const getLatestPublishedAt = (pub: any) => {
+            const publishedDates = pub.posts
+              .map((p: any) => p.publishedAt)
+              .filter((d: any) => d !== null);
+            if (publishedDates.length === 0) return null;
+            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
+          };
+          
+          const aPublishedAt = getLatestPublishedAt(a);
+          const bPublishedAt = getLatestPublishedAt(b);
+          
+          // Both scheduled: sort by scheduledAt DESC (latest first)
+          if (aScheduled && bScheduled) {
+            return new Date(bScheduled).getTime() - new Date(aScheduled).getTime();
+          }
+          
+          // Both published: sort by publishedAt DESC (recent first)
+          if (aPublishedAt && bPublishedAt) {
+            return bPublishedAt.getTime() - aPublishedAt.getTime();
+          }
+          
+          // One scheduled, one published: scheduled comes first
+          if (aScheduled && !bScheduled) return -1;
+          if (!aScheduled && bScheduled) return 1;
+          
+          // Fallback to createdAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      } else if (sortField === 'scheduledOnly') {
+        // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
+        sortedItems = items.sort((a, b) => {
+          const aScheduled = a.scheduledAt;
+          const bScheduled = b.scheduledAt;
+          
+          // Both have scheduledAt: sort by scheduledAt
+          if (aScheduled && bScheduled) {
+            const aTime = new Date(aScheduled).getTime();
+            const bTime = new Date(bScheduled).getTime();
+            return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
+          }
+          
+          // One has scheduledAt, one doesn't: scheduled comes first
+          if (aScheduled && !bScheduled) return -1;
+          if (!aScheduled && bScheduled) return 1;
+          
+          // Neither has scheduledAt: sort by createdAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      } else if (sortField === 'publishedOnly') {
+        // Published first (sorted by publishedAt), then others (sorted by createdAt)
+        sortedItems = items.sort((a, b) => {
+          const getLatestPublishedAt = (pub: any) => {
+            const publishedDates = pub.posts
+              .map((p: any) => p.publishedAt)
+              .filter((d: any) => d !== null);
+            if (publishedDates.length === 0) return null;
+            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
+          };
+          
+          const aPublishedAt = getLatestPublishedAt(a);
+          const bPublishedAt = getLatestPublishedAt(b);
+          
+          // Both have publishedAt: sort by publishedAt
+          if (aPublishedAt && bPublishedAt) {
+            return sortDirection === 'desc' ? bPublishedAt.getTime() - aPublishedAt.getTime() : aPublishedAt.getTime() - bPublishedAt.getTime();
+          }
+          
+          // One has publishedAt, one doesn't: published comes first
+          if (aPublishedAt && !bPublishedAt) return -1;
+          if (!aPublishedAt && bPublishedAt) return 1;
+          
+          // Neither has publishedAt: sort by createdAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      }
+      
+      // Apply pagination after custom sorting
+      const offset = filters?.offset || 0;
+      const limit = filters?.limit || sortedItems.length;
+      sortedItems = sortedItems.slice(offset, offset + limit);
+    }
+
+    return { items: sortedItems, total };
   }
 
   /**
@@ -493,10 +598,22 @@ export class PublicationsService {
     // So we must restore it.
      
     // Dynamic sorting
-    const orderBy: Prisma.PublicationOrderByWithRelationInput = {};
-    const sortField = filters?.sortBy || 'createdAt';
+    const sortField = filters?.sortBy || 'chronology';
     const sortDirection = filters?.sortOrder || 'desc';
-    (orderBy as any)[sortField] = sortDirection;
+    
+    // Handle special sorting modes
+    let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
+    let customSort = false;
+    
+    // For chronology, scheduledOnly, and publishedOnly, we need custom sorting
+    if (sortField === 'chronology' || sortField === 'scheduledOnly' || sortField === 'publishedOnly') {
+      customSort = true;
+      // We'll sort after fetching
+      orderBy = { createdAt: 'desc' }; // Default order for fetching
+    } else {
+      // Standard sorting
+      (orderBy as any)[sortField] = sortDirection;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -536,13 +653,108 @@ export class PublicationsService {
           },
         },
         orderBy,
-        take: filters?.limit,
-        skip: filters?.offset,
+        take: customSort ? undefined : filters?.limit,
+        skip: customSort ? undefined : filters?.offset,
       }),
       this.prisma.publication.count({ where }),
     ]);
 
-    return { items, total };
+    // Apply custom sorting if needed
+    let sortedItems = items;
+    
+    if (customSort) {
+      if (sortField === 'chronology') {
+        // Chronology: scheduled (latest to nearest) → published (recent to old)
+        sortedItems = items.sort((a, b) => {
+          const aScheduled = a.scheduledAt;
+          const bScheduled = b.scheduledAt;
+          const aPublished = a.posts.some(p => p.publishedAt);
+          const bPublished = b.posts.some(p => p.publishedAt);
+          
+          // Get the latest publishedAt from posts
+          const getLatestPublishedAt = (pub: any) => {
+            const publishedDates = pub.posts
+              .map((p: any) => p.publishedAt)
+              .filter((d: any) => d !== null);
+            if (publishedDates.length === 0) return null;
+            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
+          };
+          
+          const aPublishedAt = getLatestPublishedAt(a);
+          const bPublishedAt = getLatestPublishedAt(b);
+          
+          // Both scheduled: sort by scheduledAt DESC (latest first)
+          if (aScheduled && bScheduled) {
+            return new Date(bScheduled).getTime() - new Date(aScheduled).getTime();
+          }
+          
+          // Both published: sort by publishedAt DESC (recent first)
+          if (aPublishedAt && bPublishedAt) {
+            return bPublishedAt.getTime() - aPublishedAt.getTime();
+          }
+          
+          // One scheduled, one published: scheduled comes first
+          if (aScheduled && !bScheduled) return -1;
+          if (!aScheduled && bScheduled) return 1;
+          
+          // Fallback to createdAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      } else if (sortField === 'scheduledOnly') {
+        // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
+        sortedItems = items.sort((a, b) => {
+          const aScheduled = a.scheduledAt;
+          const bScheduled = b.scheduledAt;
+          
+          // Both have scheduledAt: sort by scheduledAt
+          if (aScheduled && bScheduled) {
+            const aTime = new Date(aScheduled).getTime();
+            const bTime = new Date(bScheduled).getTime();
+            return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
+          }
+          
+          // One has scheduledAt, one doesn't: scheduled comes first
+          if (aScheduled && !bScheduled) return -1;
+          if (!aScheduled && bScheduled) return 1;
+          
+          // Neither has scheduledAt: sort by createdAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      } else if (sortField === 'publishedOnly') {
+        // Published first (sorted by publishedAt), then others (sorted by createdAt)
+        sortedItems = items.sort((a, b) => {
+          const getLatestPublishedAt = (pub: any) => {
+            const publishedDates = pub.posts
+              .map((p: any) => p.publishedAt)
+              .filter((d: any) => d !== null);
+            if (publishedDates.length === 0) return null;
+            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
+          };
+          
+          const aPublishedAt = getLatestPublishedAt(a);
+          const bPublishedAt = getLatestPublishedAt(b);
+          
+          // Both have publishedAt: sort by publishedAt
+          if (aPublishedAt && bPublishedAt) {
+            return sortDirection === 'desc' ? bPublishedAt.getTime() - aPublishedAt.getTime() : aPublishedAt.getTime() - bPublishedAt.getTime();
+          }
+          
+          // One has publishedAt, one doesn't: published comes first
+          if (aPublishedAt && !bPublishedAt) return -1;
+          if (!aPublishedAt && bPublishedAt) return 1;
+          
+          // Neither has publishedAt: sort by createdAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      }
+      
+      // Apply pagination after custom sorting
+      const offset = filters?.offset || 0;
+      const limit = filters?.limit || sortedItems.length;
+      sortedItems = sortedItems.slice(offset, offset + limit);
+    }
+
+    return { items: sortedItems, total };
   }
 
   /**
