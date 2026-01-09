@@ -26,7 +26,9 @@ COPY . .
 RUN pnpm rebuild better-sqlite3
 
 # 4. Generate Prisma client (required for migrations in entrypoint)
-ENV DATA_DIR=/tmp
+# 4. Generate Prisma client (required for migrations in entrypoint)
+# Prisma generate doesn't typically need a real DB connection, but we set a dummy URL to suppress warnings
+ENV DATABASE_URL="file:/tmp/db.db"
 RUN npx prisma generate
 
 # -----------------------------------------------------------------------------
@@ -47,7 +49,10 @@ ENV LISTEN_HOST=0.0.0.0
 ENV LISTEN_PORT=8080
 ENV TZ=UTC
 ENV LOG_LEVEL=warn
-ENV DATA_DIR=/data
+# Default configuration for Docker
+ENV DATABASE_URL="file:/data/db/db.db"
+ENV MEDIA_DIR="/data/media"
+ENV THUMBNAILS_DIR="/data/thumbnails"
 
 # Copy pre-compiled dependencies and prisma client
 COPY --from=builder /app/node_modules ./node_modules

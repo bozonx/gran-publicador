@@ -18,7 +18,9 @@ services:
       - LOG_LEVEL=warn
       - JWT_SECRET=test_secret_key_change_me_in_prod
       - TELEGRAM_BOT_TOKEN=your_token_here
-      - DATA_DIR=/data
+      - DATABASE_URL=file:/data/db/db.db
+      - MEDIA_DIR=/data/media
+      - THUMBNAILS_DIR=/data/thumbnails
     volumes:
       - ./data:/data
     healthcheck:

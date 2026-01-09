@@ -1,19 +1,13 @@
 #!/bin/sh
 set -e
 
-# Ensure DATA_DIR is set
-if [ -z "$DATA_DIR" ]; then
-    echo "❌ ERROR: DATA_DIR environment variable is not set!"
-    exit 1
+# Ensure DATABASE_URL is available (optional check, prisma will fail otherwise)
+if [ -z "$DATABASE_URL" ]; then
+    echo "⚠️  WARNING: DATABASE_URL is not set. Prisma might fail if not configured elsewhere."
 fi
 
-echo "📊 Data directory: $DATA_DIR"
-
-# Ensure data and database directories exist
-mkdir -p "${DATA_DIR}/db"
-
 # Run database migrations
-# DATABASE_URL is automatically constructed from DATA_DIR by prisma.config.ts
+# DATABASE_URL should be passed via environment variables
 echo "🔄 Running database migrations..."
 if npx prisma migrate deploy; then
     echo "✅ Migrations applied successfully"

@@ -2,7 +2,9 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { getDatabaseDirectory, getDatabaseUrl } from '../../config/database.config.js';
+import { getDatabaseUrl } from '../../config/database.config.js';
+import { dirname } from 'path';
+
 
 /**
  * Service that extends PrismaClient to handle database connections.
@@ -15,27 +17,34 @@ import { getDatabaseDirectory, getDatabaseUrl } from '../../config/database.conf
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   constructor() {
-    // Ensure the database directory exists
-    const dbDir = getDatabaseDirectory();
-    const dbDirExists = existsSync(dbDir);
-    if (!dbDirExists) {
-      mkdirSync(dbDir, { recursive: true });
-    }
-
-    // getDatabaseUrl() will throw if DATA_DIR is not set
+    // getDatabaseUrl() will throw if DATABASE_URL is not set
     const url = getDatabaseUrl();
+
+    // Create a local logger instance for use before super()
+    const internalLogger = new Logger(PrismaService.name);
+
+    // Ensure the database directory exists if it's a file URL
+    if (url.startsWith('file:')) {
+      try {
+        // Handle explicit file path or relative path
+        // Remove file: prefix (and potentially // if present)
+        const filePath = url.replace(/^file:\/\//, '').replace(/^file:/, '');
+        const dbDir = dirname(filePath);
+        if (!existsSync(dbDir)) {
+           mkdirSync(dbDir, { recursive: true });
+           internalLogger.log(`📁 Created database directory: ${dbDir}`);
+        }
+      } catch (err: any) {
+        internalLogger.warn(`Could not ensure database directory exists: ${err.message}`);
+      }
+    }
     
     const adapter = new PrismaBetterSqlite3({ url });
     
     super({ adapter });
 
-    if (!dbDirExists) {
-       this.logger.log(`📁 Created database directory: ${dbDir}`);
-    }
-    
     // Log after super()
     this.logger.log(`🔌 Database URL: ${url}`);
-    this.logger.log(`📁 DATA_DIR: ${process.env.DATA_DIR}`);
   }
 
   public async onModuleInit() {
