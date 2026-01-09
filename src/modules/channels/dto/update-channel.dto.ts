@@ -27,4 +27,8 @@ export class UpdateChannelDto {
   @IsObject()
   @IsOptional()
   public preferences?: Record<string, any>;
+
+  @IsString()
+  @IsOptional()
+  public tags?: string;
 }

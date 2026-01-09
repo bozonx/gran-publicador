@@ -652,6 +652,7 @@ export class ChannelsService {
         credentials: data.credentials ? JSON.stringify(data.credentials) : undefined,
         preferences: data.preferences ? JSON.stringify(data.preferences) : undefined,
         isActive: data.isActive,
+        tags: data.tags,
       },
     });
   }

@@ -86,7 +86,8 @@ const state = reactive({
   },
   preferences: {
     staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined as number | undefined,
-  }
+  },
+  tags: props.channel?.tags || '',
 })
 
 // Validation Schema
@@ -96,6 +97,7 @@ const schema = computed(() => z.object({
   channelIdentifier: z.string().min(1, t('validation.required')),
   language: z.string().min(1, t('validation.required')),
   socialMedia: z.enum(SOCIAL_MEDIA_VALUES),
+  tags: z.string().optional(),
   credentials: z.object({
     telegramChannelId: z.string().optional(),
     telegramBotToken: z.string().optional(),
@@ -153,6 +155,7 @@ watch(() => props.channel, () => {
   state.preferences = {
     staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined,
   }
+  state.tags = props.channel?.tags || ''
   nextTick(() => {
     saveOriginalState()
   })
@@ -171,6 +174,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         updateData.name = event.data.name
         updateData.description = event.data.description
         updateData.channelIdentifier = event.data.channelIdentifier
+        updateData.tags = event.data.tags
       }
 
       // Add preferences
@@ -461,6 +465,20 @@ const projectOptions = computed(() =>
           <UInput
             v-model="state.channelIdentifier"
             :placeholder="getIdentifierPlaceholder(currentSocialMedia)"
+            :class="FORM_STYLES.fieldFullWidth"
+          />
+        </UFormField>
+
+        <!-- Channel tags (only for edit mode) -->
+        <UFormField
+          v-if="isEditMode"
+          name="tags"
+          :label="t('channel.tags', 'Tags')"
+          :help="t('channel.tagsHelp', 'Channel tags for publication orientation')"
+        >
+          <UInput
+            v-model="state.tags"
+            :placeholder="t('channel.tagsPlaceholder', 'tag1, tag2, tag3')"
             :class="FORM_STYLES.fieldFullWidth"
           />
         </UFormField>

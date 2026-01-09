@@ -1182,6 +1182,7 @@ export const ChannelScalarFieldEnum = {
   language: 'language',
   credentials: 'credentials',
   preferences: 'preferences',
+  tags: 'tags',
   isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',

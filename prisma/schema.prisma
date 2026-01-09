@@ -112,6 +112,8 @@ model Channel {
   credentials       String      @default("{}") // Store as JSON string in SQLite
   // Channel preferences stored as JSON string (SQLite limitation)
   preferences       String      @default("{}") // Store as JSON string in SQLite
+  // Tags for navigation and publication orientation
+  tags              String?
 
   // Whether channel is active for posting
   isActive          Boolean     @default(true) @map("is_active")

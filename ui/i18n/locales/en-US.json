@@ -348,8 +348,11 @@
     "archive_desc": "Archived channels are hidden from the list but history is preserved.",
     "unarchive_info": "Restoring channel makes it visible again.",
     "archive_info": "Archive channel if not used anymore.",
-    "delete_warning": "Channel deletion is irreversible.",
-    "noArchived": "No archived channels"
+    "delete_warning": "Deleting a channel is irreversible.",
+    "noArchived": "No archived channels",
+    "tags": "Tags",
+    "tagsPlaceholder": "tag1, tag2, tag3",
+    "tagsHelp": "Channel tags serve as a guide for finding publications"
   },
   "socialMedia": {
     "telegram": "Telegram",
