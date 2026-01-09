@@ -181,7 +181,23 @@ const {
 
 const projectProblems = computed(() => {
   if (!currentProject.value) return []
-  return getProjectProblems(currentProject.value)
+  const problems = getProjectProblems(currentProject.value)
+
+  // Enrich with locally loaded channels data if available
+  // This ensures missing credentials problems are shown even if project stats are incomplete
+  if (channels.value && channels.value.length > 0) {
+     const noCredsCount = channels.value.filter(c => !c.credentials || Object.keys(c.credentials).length === 0).length
+     
+     // Update or add 'noCredentials' problem
+     const existingProblem = problems.find(p => p.key === 'noCredentials')
+     if (existingProblem) {
+         existingProblem.count = noCredsCount
+     } else if (noCredsCount > 0) {
+         problems.push({ type: 'critical', key: 'noCredentials', count: noCredsCount })
+     }
+  }
+
+  return problems
 })
 </script>
 

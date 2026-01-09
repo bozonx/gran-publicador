@@ -401,7 +401,7 @@ async function handlePublishNow() {
 
 
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="w-full">
     <!-- Delete Confirmation Modal (Moved to top level for better portal handling) -->
     <UModal v-model:open="isDeleteModalOpen">
       <template #content>

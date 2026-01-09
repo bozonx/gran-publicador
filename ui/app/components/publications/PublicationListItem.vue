@@ -56,6 +56,10 @@ function handleDelete(e: Event) {
           <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize">
             {{ getStatusDisplayName(publication.status) }}
           </UBadge>
+
+          <UBadge v-if="publication.archivedAt" color="neutral" size="xs" variant="solid">
+            {{ t('common.archived') }}
+          </UBadge>
           
           <!-- Problem indicators -->
           <UTooltip 

@@ -370,6 +370,32 @@ const showPagination = computed(() => {
     return totalCount.value > limit.value
 })
 
+const showDeleteModal = ref(false)
+const publicationToDelete = ref<PublicationWithRelations | null>(null)
+const isDeleting = ref(false)
+
+const { deletePublication } = usePublications() // get delete action
+
+function confirmDelete(pub: PublicationWithRelations) {
+  publicationToDelete.value = pub
+  showDeleteModal.value = true
+}
+
+async function handleDelete() {
+  if (!publicationToDelete.value) return
+  
+  isDeleting.value = true
+  const success = await deletePublication(publicationToDelete.value.id)
+  isDeleting.value = false
+  
+  if (success) {
+    showDeleteModal.value = false
+    publicationToDelete.value = null
+    // Refresh list (handled by reactivity or manual fetch if needed, 
+    // depending on usePublications implementation. 
+    // usePublications 'deletePublication' updates local state 'publications.value', so it should be fine.)
+  }
+}
 </script>
 
 <template>
@@ -615,6 +641,7 @@ const showPagination = computed(() => {
           :publication="pub"
           show-project-info
           @click="goToPublication"
+          @delete="confirmDelete"
         />
     </div>
 
@@ -626,6 +653,7 @@ const showPagination = computed(() => {
           :publication="pub"
           show-project-info
           @click="goToPublication"
+          @delete="confirmDelete"
         />
     </div>
 
@@ -640,4 +668,37 @@ const showPagination = computed(() => {
       />
     </div>
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  <UModal v-model:open="showDeleteModal">
+    <template #content>
+      <div class="p-6">
+        <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
+          <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6" />
+          <h3 class="text-lg font-medium">
+            {{ t('publication.deleteConfirm') }}
+          </h3>
+        </div>
+
+        <p class="text-gray-500 dark:text-gray-400 mb-6">
+          {{ t('publication.deleteCascadeWarning') }}
+        </p>
+
+        <div class="flex justify-end gap-3">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :label="t('common.cancel')"
+            @click="showDeleteModal = false"
+          />
+          <UButton
+            color="error"
+            :label="t('common.delete')"
+            :loading="isDeleting"
+            @click="handleDelete"
+          />
+        </div>
+      </div>
+    </template>
+  </UModal>
 </template>

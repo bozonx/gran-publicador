@@ -329,7 +329,7 @@ function goToPublication(pub: PublicationWithRelations) {
 
          <!-- Widgets Sidebar -->
          <div class="lg:col-span-1 space-y-6">
-           <DashboardProblemsWidget />
+
            <ChannelsDashboardPanel />
          </div>
       </div>
