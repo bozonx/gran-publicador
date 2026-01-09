@@ -322,12 +322,17 @@ export class MediaService {
     let metadata: Record<string, any> | undefined;
     if (type === MediaType.IMAGE) {
       try {
+        console.log(`[DEBUG] Extracting metadata for image: ${file.filename} (${file.mimetype})`);
         this.logger.debug(`Extracting metadata for image: ${file.filename} (${file.mimetype})`);
         metadata = await this.extractImageMetadata(file.buffer);
+        console.log(`[DEBUG] Extracted metadata: ${JSON.stringify(metadata)}`);
         this.logger.debug(`Extracted metadata: ${JSON.stringify(metadata)}`);
       } catch (e) {
+        console.error(`[DEBUG] Failed to extract metadata: ${(e as Error).message}`);
         this.logger.error(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`, (e as Error).stack);
       }
+    } else {
+      console.log(`[DEBUG] Skipping metadata extraction for type: ${type}`);
     }
     
     this.logger.log(`File saved: ${relativePath} (${file.buffer.length} bytes, type: ${type})`);
@@ -346,61 +351,79 @@ export class MediaService {
    * Extract image metadata using sharp.
    */
   private async extractImageMetadata(buffer: Buffer): Promise<Record<string, any>> {
-    this.logger.debug(`sharp versions: ${JSON.stringify(sharp.versions)}`);
-    const image = sharp(buffer);
-    const metadata = await image.metadata();
-    
-    this.logger.debug(`sharp metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}, hasExif=${!!metadata.exif}`);
+    try {
+      // console.log(`[DEBUG] sharp versions: ${JSON.stringify(sharp.versions)}`);
+      // this.logger.debug(`sharp versions: ${JSON.stringify(sharp.versions)}`);
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+      
+      // console.log(`[DEBUG] sharp metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}, hasExif=${!!metadata.exif}`);
+      // this.logger.debug(`sharp metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}, hasExif=${!!metadata.exif}`);
 
-    const result: Record<string, any> = {
-      width: metadata.width,
-      height: metadata.height,
-      format: metadata.format,
-      orientation: metadata.orientation,
-    };
+      const result: Record<string, any> = {
+        width: metadata.width,
+        height: metadata.height,
+        format: metadata.format,
+        orientation: metadata.orientation,
+      };
 
-    // Extract EXIF data if present
-    if (metadata.exif) {
-      try {
-        const exif = exifReader(metadata.exif) as any;
-        
-        if (exif) {
-          if (exif.image) {
-            result.orientation = exif.image.Orientation || result.orientation;
-            if (exif.image.ModifyDate) {
-              result.capturedAt = exif.image.ModifyDate.toISOString();
-            }
+      // Extract EXIF data if present
+      if (metadata.exif) {
+        try {
+          // Handle potential ESM/CJS interop issues with exif-reader
+          let reader = exifReader as any;
+          if (typeof reader !== 'function' && typeof reader.default === 'function') {
+            reader = reader.default;
           }
-          
-          if (exif.exif) {
-            if (exif.exif.DateTimeOriginal) {
-              result.capturedAt = exif.exif.DateTimeOriginal.toISOString();
-            }
-          }
-          
-          if (exif.gps) {
-            // Convert GPS coordinates to decimal
-            const convertGps = (coords: number[], ref: string) => {
-              let decimal = coords[0] + coords[1] / 60 + coords[2] / 3600;
-              if (ref === 'S' || ref === 'W') decimal = -decimal;
-              return decimal;
-            };
 
-            if (exif.gps.GPSLatitude && exif.gps.GPSLatitudeRef && 
-                exif.gps.GPSLongitude && exif.gps.GPSLongitudeRef) {
-              result.location = {
-                lat: convertGps(exif.gps.GPSLatitude, exif.gps.GPSLatitudeRef),
-                lng: convertGps(exif.gps.GPSLongitude, exif.gps.GPSLongitudeRef)
-              };
+          if (typeof reader === 'function') {
+            const exif = reader(metadata.exif);
+            
+            if (exif) {
+              if (exif.image) {
+                result.orientation = exif.image.Orientation || result.orientation;
+                if (exif.image.ModifyDate) {
+                  result.capturedAt = exif.image.ModifyDate.toISOString();
+                }
+              }
+              
+              if (exif.exif) {
+                if (exif.exif.DateTimeOriginal) {
+                  result.capturedAt = exif.exif.DateTimeOriginal.toISOString();
+                }
+              }
+              
+              const gps = exif.gps || exif.GPSInfo; // Handle different casing if needed
+              if (gps) {
+                // Convert GPS coordinates to decimal
+                const convertGps = (coords: number[], ref: string) => {
+                  let decimal = coords[0] + coords[1] / 60 + coords[2] / 3600;
+                  if (ref === 'S' || ref === 'W') decimal = -decimal;
+                  return decimal;
+                };
+
+                if (gps.GPSLatitude && gps.GPSLatitudeRef && 
+                    gps.GPSLongitude && gps.GPSLongitudeRef) {
+                  result.location = {
+                    lat: convertGps(gps.GPSLatitude, gps.GPSLatitudeRef),
+                    lng: convertGps(gps.GPSLongitude, gps.GPSLongitudeRef)
+                  };
+                }
+              }
             }
+          } else {
+             this.logger.warn(`exif-reader is not a function: ${typeof reader}`);
           }
+        } catch (e) {
+          this.logger.warn(`Error parsing EXIF: ${(e as Error).message}`);
         }
-      } catch (e) {
-        this.logger.warn(`Error parsing EXIF: ${(e as Error).message}`);
       }
-    }
 
-    return result;
+      return result;
+    } catch (error) {
+       this.logger.error(`Error in extractImageMetadata: ${(error as Error).message}`);
+       throw error;
+    }
   }
 
   /**
