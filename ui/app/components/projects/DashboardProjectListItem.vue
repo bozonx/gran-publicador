@@ -72,10 +72,6 @@ function formatDate(date: string | null | undefined): string {
       <div class="flex items-center justify-between gap-3">
         <!-- Left: Project Title -->
         <div class="flex-1 min-w-0 flex items-center gap-2">
-          <div 
-            class="w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300"
-            :class="getIndicatorColor(problemLevel)"
-          ></div>
           <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate leading-6">
             {{ project.name }}
           </h3>

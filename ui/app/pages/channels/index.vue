@@ -388,14 +388,6 @@ const showPagination = computed(() => {
             :label="t('channel.filter.showArchived')"
             :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
           />
-          <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm">{{ t('channel.filter.archiveStatus.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
         </div>
         
         <!-- Project Filter (Select) -->

@@ -64,7 +64,7 @@ const visibleBottomNavItems = computed(() =>
 // Projects fetching
 const { projects, fetchProjects, isLoading: isProjectsLoading, getProjectProblemLevel, getProjectProblems } = useProjects()
 // Instantiate useChannels at the top level
-const { fetchChannels: fetchChannelsApi } = useChannels()
+const { fetchChannels: fetchChannelsApi, getChannelProblemLevel } = useChannels()
 
 const activeProjects = computed(() => projects.value.filter(p => !p.archivedAt))
 const expandedProjects = ref<Set<string>>(new Set())
@@ -195,12 +195,6 @@ function getProjectTooltip(project: ProjectWithRole) {
                   :class="getIndicatorColor(project)"
                 ></div>
                 <span class="truncate flex-1">{{ project.name }}</span>
-                <UIcon 
-                  v-if="getProjectProblemLevel(project)" 
-                  name="i-heroicons-exclamation-triangle" 
-                  class="w-4 h-4 shrink-0 transition-colors"
-                  :class="getProjectProblemLevel(project) === 'critical' ? 'text-red-500' : 'text-yellow-500'"
-                />
               </NuxtLink>
             </UTooltip>
             
@@ -238,7 +232,7 @@ function getProjectTooltip(project: ProjectWithRole) {
                 >
                   <CommonSocialIcon 
                     :platform="channel.socialMedia" 
-                    :is-stale="channel.isStale"
+                    :problem-level="getChannelProblemLevel(channel)"
                   />
                 </NuxtLink>
               </UTooltip>

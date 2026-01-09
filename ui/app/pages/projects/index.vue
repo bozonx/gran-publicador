@@ -161,7 +161,7 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="space-y-6">
     <!-- Page header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>

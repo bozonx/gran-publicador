@@ -37,8 +37,6 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
         <div class="flex items-center gap-3 mb-2 flex-wrap">
           <SocialIcon 
             :platform="channel.socialMedia" 
-            :is-stale="channel.isStale"
-            :problem-level="channelProblemLevel"
             show-background 
           />
           

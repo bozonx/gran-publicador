@@ -386,11 +386,6 @@ export function usePublications() {
             problems.push({ type: 'warning', key: 'postsHaveErrors', count: failedPostsCount })
         }
         
-        // Check for channel problems
-        if (hasChannelProblems(publication)) {
-            problems.push({ type: 'warning', key: 'channelProblems' })
-        }
-        
         return problems
     }
 
