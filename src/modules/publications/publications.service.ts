@@ -1210,22 +1210,27 @@ export class PublicationsService {
     await this.prisma.$transaction(async (tx) => {
       for (let i = 0; i < media.length; i++) {
         const m = media[i];
-        const mediaItem = await tx.media.create({
-          data: {
-            type: m.type,
-            storageType: m.storageType,
-            storagePath: m.storagePath,
-            filename: m.filename,
-            mimeType: m.mimeType,
-            sizeBytes: m.sizeBytes,
-            meta: JSON.stringify(m.meta || {}),
-          },
-        });
+        let mediaId = m.id;
+
+        if (!mediaId) {
+          const mediaItem = await tx.media.create({
+            data: {
+              type: m.type,
+              storageType: m.storageType,
+              storagePath: m.storagePath,
+              filename: m.filename,
+              mimeType: m.mimeType,
+              sizeBytes: m.sizeBytes,
+              meta: JSON.stringify(m.meta || {}),
+            },
+          });
+          mediaId = mediaItem.id;
+        }
 
         await tx.publicationMedia.create({
           data: {
             publicationId,
-            mediaId: mediaItem.id,
+            mediaId,
             order: startOrder + i,
           },
         });

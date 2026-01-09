@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getMediaFileUrl, getThumbnailUrl } from '~/composables/useMedia'
+import { useAuthStore } from '~/stores/auth'
 
 interface MediaItem {
   id: string
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 const imageError = ref(false)
 
 const sizeClasses = computed(() => {
@@ -82,15 +84,15 @@ function handleClick() {
     >
       <img
         v-if="media.storageType === 'FS'"
-        :src="getThumbnailUrl(media.id, 400, 400)"
-        :srcset="`${getThumbnailUrl(media.id, 400, 400)} 1x, ${getThumbnailUrl(media.id, 800, 800)} 2x`"
+        :src="getThumbnailUrl(media.id, 400, 400, authStore.token || undefined)"
+        :srcset="`${getThumbnailUrl(media.id, 400, 400, authStore.token || undefined)} 1x, ${getThumbnailUrl(media.id, 800, 800, authStore.token || undefined)} 2x`"
         :alt="media.filename || 'Media'"
         class="w-full h-full object-cover"
         @error="handleImageError"
       />
       <img
         v-else
-        :src="getMediaFileUrl(media.id)"
+        :src="getMediaFileUrl(media.id, authStore.token || undefined)"
         :alt="media.filename || 'Media'"
         class="w-full h-full object-cover"
         @error="handleImageError"

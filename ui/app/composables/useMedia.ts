@@ -194,18 +194,24 @@ export function useMedia() {
 /**
  * Get URL for media file
  */
-export function getMediaFileUrl(mediaId: string): string {
+export function getMediaFileUrl(mediaId: string, token?: string): string {
   const config = useRuntimeConfig();
   const apiBase = config.public.apiBase
     ? `${config.public.apiBase}/api/v1`
     : '/api/v1';
-  return `${apiBase}/media/${mediaId}/file`;
+  let url = `${apiBase}/media/${mediaId}/file`;
+  
+  if (token) {
+    url += `?token=${token}`;
+  }
+  
+  return url;
 }
 
 /**
  * Get URL for media thumbnail
  */
-export function getThumbnailUrl(mediaId: string, width?: number, height?: number): string {
+export function getThumbnailUrl(mediaId: string, width?: number, height?: number, token?: string): string {
   const config = useRuntimeConfig();
   const apiBase = config.public.apiBase
     ? `${config.public.apiBase}/api/v1`
@@ -215,6 +221,7 @@ export function getThumbnailUrl(mediaId: string, width?: number, height?: number
   const params = [];
   if (width) params.push(`w=${width}`);
   if (height) params.push(`h=${height}`);
+  if (token) params.push(`token=${token}`);
   
   if (params.length > 0) {
     url += `?${params.join('&')}`;

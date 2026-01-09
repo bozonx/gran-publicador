@@ -2,6 +2,7 @@
 import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
+import { useAuthStore } from '~/stores/auth'
 
 interface MediaItem {
   id: string
@@ -30,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 const { 
   uploadMedia, 
   uploadMediaFromUrl, 
@@ -804,7 +806,7 @@ const emit = defineEmits<Emits>()
           <div class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden">
             <img
               v-if="selectedMedia.type === 'IMAGE'"
-              :src="getMediaFileUrl(selectedMedia.id)"
+              :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
               :alt="selectedMedia.filename || 'Media'"
               class="max-w-full max-h-[70vh] object-contain"
             />
