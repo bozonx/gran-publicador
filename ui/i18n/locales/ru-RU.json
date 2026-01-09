@@ -368,7 +368,7 @@
     "tags": "Теги",
     "postDate": "Дата контента",
     "postType": "Тип публикации",
-    "status": "Статус",
+    "statusLabel": "Статус",
     "publishedPosts": "Опубликованные посты",
     "scheduledAt": "Запланировано на",
     "publishedAt": "Опубликовано",
@@ -409,7 +409,15 @@
     "newPostInChannel": "Новый пост в канал",
     "languageMismatch": "Язык канала отличается от публикации",
     "languageMismatchWarning": "Внимание: Язык канала отличается от языка публикации",
-    "metadata": "Метаданные"
+    "metadata": "Метаданные",
+    "status": {
+      "pending": "Ожидает",
+      "published": "Опубликовано",
+      "failed": "Ошибка",
+      "draft": "Черновик",
+      "scheduled": "Запланировано",
+      "published_posts": "Опубликованные посты"
+    }
   },
   "publication": {
     "title": "Публикация",
@@ -512,6 +520,14 @@
       "contentOrMediaRequired": "Требуется контент или медиа"
     },
     "status": {
+      "draft": "Черновик",
+      "ready": "Готово",
+      "scheduled": "Запланировано",
+      "processing": "В обработке",
+      "published": "Опубликовано",
+      "partial": "Частично",
+      "failed": "Ошибка",
+      "expired": "Просрочено",
       "scheduledAutomatic": "Статус SCHEDULED устанавливается автоматически при планировании",
       "publicationTimeRequired": "Сначала установите время публикации"
     },
@@ -569,7 +585,8 @@
     "published": "Опубликовано",
     "failed": "Ошибка",
     "draft": "Черновик",
-    "scheduled": "Запланировано"
+    "scheduled": "Запланировано",
+    "published_posts": "Опубликованные посты"
   },
   "publicationStatus": {
     "draft": "Черновик",

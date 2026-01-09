@@ -581,7 +581,7 @@ const showPagination = computed(() => {
           :items="statusFilterOptions"
           value-key="value"
           label-key="label"
-          :placeholder="t('post.status')"
+          :placeholder="t('post.statusLabel')"
           :title="t('publication.filter.statusTitle')"
           class="w-full sm:w-48"
         />

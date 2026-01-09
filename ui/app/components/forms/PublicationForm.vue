@@ -424,7 +424,7 @@ function toggleChannel(channelId: string) {
 
       <div :class="GRID_LAYOUTS.twoColumn">
           <!-- Status (Only when creating) -->
-          <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
+          <UFormField v-if="!isEditMode" name="status" :label="t('post.statusLabel')" required>
                 <div class="flex items-center gap-2">
                   <div class="inline-flex -space-x-px rounded-lg shadow-sm isolate">
                       <UButton

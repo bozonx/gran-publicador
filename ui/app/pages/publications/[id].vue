@@ -707,7 +707,7 @@ async function handlePublishNow() {
                         <!-- Status -->
                         <div>
                             <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
-                                {{ t('post.status') }}
+                                {{ t('post.statusLabel') }}
                                 <UPopover :popper="{ placement: 'top' }">
                                     <UIcon name="i-heroicons-information-circle" class="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
                                     <template #content>
