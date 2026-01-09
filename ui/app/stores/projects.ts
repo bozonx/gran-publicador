@@ -38,6 +38,8 @@ export interface ProjectWithRole extends ProjectWithOwner {
   failedPostsCount?: number
   staleChannelsCount?: number
   problemPublicationsCount?: number
+  noCredentialsChannelsCount?: number
+  inactiveChannelsCount?: number
   lastPublicationAt?: string | null
   lastPublicationId?: string | null
   languages?: string[]

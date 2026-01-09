@@ -31,13 +31,13 @@ const warningsCount = computed(() => {
   return problems.value.filter(p => p.type === 'warning').length
 })
 
-// Tooltip text for errors
 const errorsTooltip = computed(() => {
   return problems.value
     .filter(p => p.type === 'critical')
     .map(p => {
       if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
-      return p.key
+      if (p.key === 'criticalChannels') return t('problems.project.criticalChannels', { count: p.count })
+      return t(`problems.project.${p.key}`, p.count ? { count: p.count } : {})
     })
     .join(', ')
 })
@@ -48,9 +48,10 @@ const warningsTooltip = computed(() => {
     .filter(p => p.type === 'warning')
     .map(p => {
       if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
-      if (p.key === 'staleChannels') return `${p.count} ` + t('common.stale').toLowerCase()
+      if (p.key === 'staleChannels') return t('problems.project.staleChannels', { count: p.count })
       if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
-      return p.key
+      if (p.key === 'warningChannels') return t('problems.project.warningChannels', { count: p.count })
+      return t(`problems.project.${p.key}`, p.count ? { count: p.count } : {})
     })
     .join(', ')
 })

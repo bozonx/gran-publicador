@@ -356,6 +356,24 @@ export function useProjects() {
             problems.push({ type: 'warning', key: 'noRecentActivity' })
         }
 
+        // Check for channels without credentials (critical)
+        if (project.noCredentialsChannelsCount > 0) {
+            problems.push({ 
+                type: 'critical', 
+                key: 'criticalChannels', 
+                count: project.noCredentialsChannelsCount 
+            })
+        }
+
+        // Check for inactive channels (warning)
+        if (project.inactiveChannelsCount > 0) {
+            problems.push({ 
+                type: 'warning', 
+                key: 'warningChannels', 
+                count: project.inactiveChannelsCount 
+            })
+        }
+
         return problems
     }
 

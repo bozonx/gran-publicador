@@ -127,6 +127,8 @@ export class ProjectsService {
         languages: [],
         failedPostsCount: 0,
         problemPublicationsCount: 0,
+        noCredentialsChannelsCount: 0,
+        inactiveChannelsCount: 0,
         preferences: project.preferences ? JSON.parse(project.preferences) : {},
         staleChannelsCount: 0,
       }));
@@ -183,6 +185,8 @@ export class ProjectsService {
       problematicCounts,
       failedPostsRaw,
       staleChannelsRaw,
+      noCredentialsRaw,
+      inactiveRaw,
       projectLanguages
     ] = await Promise.all([
       // A. Problematic Publications
@@ -224,7 +228,27 @@ export class ProjectsService {
         GROUP BY c.project_id
       `,
 
-      // D. Distinct Languages per Project (Lightweight)
+      // D. Channels without credentials
+      this.prisma.$queryRaw<Array<{ projectId: string, count: bigint }>>`
+        SELECT project_id as projectId, COUNT(id) as count
+        FROM channels
+        WHERE (credentials IS NULL OR credentials = '{}' OR credentials = '')
+          AND archived_at IS NULL
+          AND project_id IN (${Prisma.join(projectIds)})
+        GROUP BY project_id
+      `,
+
+      // E. Inactive channels
+      this.prisma.$queryRaw<Array<{ projectId: string, count: bigint }>>`
+        SELECT project_id as projectId, COUNT(id) as count
+        FROM channels
+        WHERE is_active = 0
+          AND archived_at IS NULL
+          AND project_id IN (${Prisma.join(projectIds)})
+        GROUP BY project_id
+      `,
+
+      // F. Distinct Languages per Project (Lightweight)
       this.prisma.channel.findMany({
         where: { 
           projectId: { in: projectIds },
@@ -251,6 +275,16 @@ export class ProjectsService {
     staleChannelsRaw.forEach((row: any) => {
       staleChannelsMap.set(row.projectId, Number(row.count));
     });
+
+    const noCredentialsMap = new Map<string, number>();
+    noCredentialsRaw.forEach((row: any) => {
+      noCredentialsMap.set(row.projectId, Number(row.count));
+    });
+
+    const inactiveMap = new Map<string, number>();
+    inactiveRaw.forEach((row: any) => {
+      inactiveMap.set(row.projectId, Number(row.count));
+    });
     
     const languageMap = new Map<string, string[]>();
     projectLanguages.forEach(l => {
@@ -271,6 +305,8 @@ export class ProjectsService {
       const failedPostsCount = failedPostsMap.get(project.id) || 0;
       const problemPublicationsCount = problematicCountMap[project.id] || 0;
       const staleChannelsCount = staleChannelsMap.get(project.id) || 0;
+      const noCredentialsChannelsCount = noCredentialsMap.get(project.id) || 0;
+      const inactiveChannelsCount = inactiveMap.get(project.id) || 0;
       const languages = (languageMap.get(project.id) || []).sort();
 
       const projectPreferences = project.preferences ? JSON.parse(project.preferences) : {};
@@ -316,6 +352,8 @@ export class ProjectsService {
         languages,
         failedPostsCount,
         problemPublicationsCount,
+        noCredentialsChannelsCount,
+        inactiveChannelsCount,
         preferences: projectPreferences,
         staleChannelsCount,
       };
@@ -575,6 +613,27 @@ export class ProjectsService {
       },
     });
 
+    // Count channels without credentials
+    const noCredentialsChannelsCount = await this.prisma.channel.count({
+      where: {
+        projectId,
+        archivedAt: null,
+        OR: [
+          { credentials: '' },
+          { credentials: '{}' },
+        ],
+      },
+    });
+
+    // Count inactive channels
+    const inactiveChannelsCount = await this.prisma.channel.count({
+      where: {
+        projectId,
+        archivedAt: null,
+        isActive: false,
+      },
+    });
+
     return {
       ...project,
       channels: mappedChannels,
@@ -588,6 +647,8 @@ export class ProjectsService {
       staleChannelsCount,
       failedPostsCount: projectFailedPostsCount,
       problemPublicationsCount,
+      noCredentialsChannelsCount,
+      inactiveChannelsCount,
     };
   }
 
