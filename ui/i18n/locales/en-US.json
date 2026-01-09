@@ -549,7 +549,8 @@
     "dropHere": "Drop file here",
     "preview": "Preview",
     "metadata": "Metadata",
-    "download": "Download"
+    "download": "Download",
+    "noExif": "No EXIF data found"
   },
   "postType": {
     "post": "Post",

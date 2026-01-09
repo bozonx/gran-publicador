@@ -1,9 +1,10 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { join, normalize, basename } from 'path';
+import { join, normalize, basename, resolve } from 'path';
 import { mkdir, writeFile, unlink, stat, readFile } from 'fs/promises';
 import { Readable } from 'stream';
 import { createReadStream, existsSync } from 'fs';
+import * as fs from 'fs';
 import { randomUUID } from 'crypto';
 import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -36,6 +37,7 @@ interface SavedFileInfo {
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
   private readonly mediaDir: string;
+  private readonly thumbnailsDir: string;
   private readonly maxFileSize: number;
 
   constructor(
@@ -44,15 +46,24 @@ export class MediaService {
     private permissions: PermissionsService,
   ) {
     this.mediaDir = getMediaDir();
+    this.thumbnailsDir = join(resolve(this.mediaDir, '..'), 'thumbnails');
     const appConfig = this.configService.get<AppConfig>('app');
     this.maxFileSize = appConfig?.media?.maxFileSize ?? 52428800; // 50MB fallback
     this.ensureMediaDir();
+    this.ensureThumbnailsDir();
   }
 
   private async ensureMediaDir(): Promise<void> {
     if (!existsSync(this.mediaDir)) {
       await mkdir(this.mediaDir, { recursive: true });
       this.logger.log(`Created media directory: ${this.mediaDir}`);
+    }
+  }
+
+  private async ensureThumbnailsDir(): Promise<void> {
+    if (!existsSync(this.thumbnailsDir)) {
+      await mkdir(this.thumbnailsDir, { recursive: true });
+      this.logger.log(`Created thumbnails directory: ${this.thumbnailsDir}`);
     }
   }
 
@@ -100,13 +111,40 @@ export class MediaService {
   }
 
   /**
-   * Determine MediaType based on mimetype.
+   * Determine MediaType and final MimeType based on provided info and content.
    */
-  private getMediaType(mimetype: string): MediaType {
-    if (mimetype.startsWith('image/')) return MediaType.IMAGE;
-    if (mimetype.startsWith('video/')) return MediaType.VIDEO;
-    if (mimetype.startsWith('audio/')) return MediaType.AUDIO;
-    return MediaType.DOCUMENT;
+  private async detectMediaInfo(bufferOrStream: Buffer | Readable, originalMime?: string, filename?: string): Promise<{ type: MediaType, mimeType: string }> {
+    let detectedMime = originalMime;
+    
+    // Detect from buffer/stream if possible
+    if (Buffer.isBuffer(bufferOrStream)) {
+      const fileType = await fileTypeFromBuffer(bufferOrStream);
+      if (fileType) detectedMime = fileType.mime;
+    } else {
+      // For streams, we could read the first chunk, but for now we rely on originalMime
+      // as reading from stream consumes it.
+    }
+
+    const mime = (detectedMime || 'application/octet-stream').toLowerCase();
+    let type: MediaType = MediaType.DOCUMENT;
+
+    if (mime.startsWith('image/')) type = MediaType.IMAGE;
+    else if (mime.startsWith('video/')) type = MediaType.VIDEO;
+    else if (mime.startsWith('audio/')) type = MediaType.AUDIO;
+
+    // Extension fallback for documents
+    if (type === MediaType.DOCUMENT && filename) {
+      const ext = this.getFileExtension(filename);
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'heic', 'avif', 'bmp', 'svg'];
+      const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v'];
+      const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma'];
+
+      if (imageExtensions.includes(ext)) type = MediaType.IMAGE;
+      else if (videoExtensions.includes(ext)) type = MediaType.VIDEO;
+      else if (audioExtensions.includes(ext)) type = MediaType.AUDIO;
+    }
+
+    return { type, mimeType: mime };
   }
 
   /**
@@ -148,7 +186,11 @@ export class MediaService {
     }
 
     // Validate type consistency
-    const inferredType = this.getMediaType(lowerMime);
+    const mime = lowerMime || 'application/octet-stream';
+    let inferredType: MediaType = MediaType.DOCUMENT;
+    if (mime.startsWith('image/')) inferredType = MediaType.IMAGE;
+    else if (mime.startsWith('video/')) inferredType = MediaType.VIDEO;
+    else if (mime.startsWith('audio/')) inferredType = MediaType.AUDIO;
     
     // For specific types, ensure mimetype matches
     if (lowerMime.startsWith('image/') && inferredType !== MediaType.IMAGE) {
@@ -261,6 +303,18 @@ export class MediaService {
             } else {
               this.logger.warn(`File not found during deletion: ${safePath}`);
             }
+
+            // Also delete any existing thumbnails
+            try {
+              const files = await fs.promises.readdir(this.thumbnailsDir);
+              const relatedThumbnails = files.filter((f: string) => f.startsWith(`${media.id}_`));
+              for (const thumb of relatedThumbnails) {
+                  await unlink(join(this.thumbnailsDir, thumb));
+                  this.logger.debug(`Deleted thumbnail: ${thumb}`);
+              }
+            } catch (e) {
+                this.logger.error(`Failed to clean up thumbnails for media ${id}: ${(e as Error).message}`);
+            }
           } catch (e) {
             this.logger.error(`Failed to delete file for media ${id}: ${(e as Error).message}`);
             // Don't throw - DB record is already deleted
@@ -318,39 +372,8 @@ export class MediaService {
 
     await writeFile(filePath, file.buffer);
 
-    // Detect MIME type from buffer
-    const fileType = await fileTypeFromBuffer(file.buffer);
-    let finalMimeType = file.mimetype;
-    
-    if (fileType) {
-      this.logger.debug(`Detected MIME type from content: ${fileType.mime} for ${file.filename}`);
-      finalMimeType = fileType.mime;
-    } else if (file.mimetype === 'application/octet-stream' || !file.mimetype) {
-      this.logger.warn(`Could not detect MIME type from content and no reliable mime provided for ${file.filename}`);
-    }
-
-    let type = this.getMediaType(finalMimeType);
-
-    // If still detected as document but has common media extension, treat as that type.
-    // This handles cases where file-type might not know the format but extension is clear.
-    if (type === MediaType.DOCUMENT) {
-      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'heic', 'avif', 'bmp', 'svg'];
-      if (imageExtensions.includes(ext)) {
-        this.logger.debug(`Auto-detecting image type based on extension '.${ext}' for file '${file.filename}'`);
-        type = MediaType.IMAGE;
-      } else {
-        const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v'];
-        const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma'];
-        
-        if (videoExtensions.includes(ext)) {
-          this.logger.debug(`Auto-detecting video type based on extension '.${ext}' for file '${file.filename}'`);
-          type = MediaType.VIDEO;
-        } else if (audioExtensions.includes(ext)) {
-          this.logger.debug(`Auto-detecting audio type based on extension '.${ext}' for file '${file.filename}'`);
-          type = MediaType.AUDIO;
-        }
-      }
-    }
+    // Detect media info using unified logic
+    const { type, mimeType: finalMimeType } = await this.detectMediaInfo(file.buffer, file.mimetype, sanitizedOriginalName);
     
     // Extract metadata if it's an image
     let metadata: Record<string, any> | undefined;
@@ -358,7 +381,7 @@ export class MediaService {
       try {
         metadata = await this.extractImageMetadata(file.buffer);
       } catch (e) {
-        this.logger.error(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`, (e as Error).stack);
+        this.logger.error(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`);
       }
     }
     
@@ -367,6 +390,64 @@ export class MediaService {
     return {
       path: relativePath,
       size: file.buffer.length,
+      mimetype: finalMimeType,
+      type,
+      filename: sanitizedOriginalName,
+      metadata
+    };
+  }
+
+  /**
+   * Save a stream to the filesystem.
+   */
+  private async saveStream(stream: Readable, filename: string, mimetype: string): Promise<SavedFileInfo> {
+    const sanitizedOriginalName = this.sanitizeFilename(filename);
+    const ext = this.getFileExtension(sanitizedOriginalName);
+
+    const date = new Date();
+    const subfolder = join(date.getFullYear().toString(), (date.getMonth() + 1).toString().padStart(2, '0'));
+    const fullDir = join(this.mediaDir, subfolder);
+    await mkdir(fullDir, { recursive: true });
+
+    const uniqueFilename = `${randomUUID()}.${ext}`;
+    const relativePath = join(subfolder, uniqueFilename);
+    const filePath = join(fullDir, uniqueFilename);
+
+    // Write stream to file
+    const fileStream = fs.createWriteStream(filePath);
+    let size = 0;
+    
+    await new Promise<void>((resolve, reject) => {
+      stream.on('data', (chunk) => {
+        size += chunk.length;
+        if (size > this.maxFileSize) {
+          fileStream.destroy();
+          reject(new BadRequestException(`File exceeds size limit`));
+        }
+      });
+      stream.pipe(fileStream);
+      fileStream.on('finish', resolve);
+      fileStream.on('error', reject);
+    });
+
+    // Detect media info (since we don't have the buffer now, we rely on mimetype and filename)
+    // In future, we could have read the first chunk for better detection.
+    const { type, mimeType: finalMimeType } = await this.detectMediaInfo(stream, mimetype, sanitizedOriginalName);
+
+    // If it's an image, we have to read it back to get metadata since we streamed it
+    let metadata: Record<string, any> | undefined;
+    if (type === MediaType.IMAGE) {
+        try {
+            const buffer = await readFile(filePath);
+            metadata = await this.extractImageMetadata(buffer);
+        } catch (e) {
+            this.logger.error(`Failed to extract metadata for ${filename} after stream: ${(e as Error).message}`);
+        }
+    }
+
+    return {
+      path: relativePath,
+      size,
       mimetype: finalMimeType,
       type,
       filename: sanitizedOriginalName,
@@ -475,15 +556,26 @@ export class MediaService {
   }
 
   /**
-   * Recursively convert Buffers in EXIF data to hex strings or similar 
-   * to ensure they can be serialized to JSON.
+   * Recursively convert Buffers in EXIF data to serializable formats.
    */
   private normalizeExif(data: any): any {
     if (data === null || data === undefined) return data;
     
     // Handle Buffers
     if (Buffer.isBuffer(data)) {
-      return `Buffer(${data.length}): ${data.toString('hex').substring(0, 32)}${data.length > 16 ? '...' : ''}`;
+      // Small buffers (like some metadata tags) can be converted to string or hex
+      if (data.length < 32) {
+          // Try to see if it's a string
+          const str = data.toString('utf8');
+          if (/^[\x20-\x7E]*$/.test(str)) return str;
+          return `0x${data.toString('hex')}`;
+      }
+      // Medium buffers - Base64
+      if (data.length < 1024) {
+          return `base64:${data.toString('base64')}`;
+      }
+      // Large buffers - just info
+      return `Buffer(${data.length} bytes)`;
     }
     
     // Handle Dates - VERY IMPORTANT: Object.entries(Date) is empty!
@@ -523,66 +615,48 @@ export class MediaService {
     this.logger.debug(`Downloading file from URL: ${url}`);
 
     try {
-      // Download file from URL using global fetch
       const response = await fetch(url);
-
       if (!response.ok) {
-        this.logger.warn(`URL returned status ${response.status}: ${url}`);
-        throw new BadRequestException(`Failed to download file from URL (status: ${response.status})`);
+        throw new BadRequestException(`Failed to download (status: ${response.status})`);
       }
 
-      // Get content type and length
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
       const contentLength = response.headers.get('content-length');
 
-      // Check file size before downloading
       if (contentLength && parseInt(contentLength) > this.maxFileSize) {
-        throw new BadRequestException(
-          `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
-        );
+        throw new BadRequestException(`File too large (${contentLength} bytes)`);
       }
 
-      // Download file to buffer
-      // Note: response.arrayBuffer() is easier but loads everything in memory. 
-      // Given maxFileSize is 50MB, it's acceptable.
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      if (buffer.length > this.maxFileSize) {
-         throw new BadRequestException(
-          `File size exceeds limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
-        );
+      if (!response.body) {
+        throw new BadRequestException('Empty response body');
       }
 
-      // Determine filename from URL or use provided one
+      // Convert Web Stream to Node Stream
+      const nodeStream = Readable.fromWeb(response.body as any);
+
+      // Determine filename
       let finalFilename = filename;
       if (!finalFilename) {
-        const urlPath = new URL(url).pathname;
-        finalFilename = basename(urlPath) || 'download';
+        try {
+          finalFilename = basename(new URL(url).pathname) || 'download';
+        } catch {
+          finalFilename = 'download';
+        }
       }
 
-      // Save file using existing saveFile method
-      const savedFileInfo = await this.saveFile({
-        filename: finalFilename,
-        buffer,
-        mimetype: contentType,
-      });
+      // Save using stream helper
+      const savedFileInfo = await this.saveStream(nodeStream, finalFilename, contentType);
 
-      this.logger.log(`File downloaded and saved from URL: ${url}`);
+      this.logger.log(`File downloaded via streaming: ${url}`);
 
       return {
         ...savedFileInfo,
         originalUrl: url,
       };
     } catch (error) {
-      const err = error as Error;
-      this.logger.error(`Failed to download file from URL ${url}: ${err.message}`);
-      
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      
-      throw new BadRequestException(`Failed to download file from URL: ${err.message}`);
+      this.logger.error(`Download failed for ${url}: ${(error as Error).message}`);
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(`Download failed: ${(error as Error).message}`);
     }
   }
 
@@ -827,6 +901,86 @@ export class MediaService {
       }
       
       throw new NotFoundException(`Telegram media unavailable: ${err.message}`);
+    }
+  }
+
+  /**
+   * Get thumbnail path for a media file. 
+   * Formats: {mediaId}_{width}x{height}.webp
+   */
+  private getThumbnailPath(mediaId: string, width: number, height: number): string {
+    return join(this.thumbnailsDir, `${mediaId}_${width}x${height}.webp`);
+  }
+
+  /**
+   * Generate thumbnail on demand.
+   */
+  async generateThumbnail(mediaId: string, width: number, height: number): Promise<string> {
+    const media = await this.prisma.media.findUnique({ where: { id: mediaId } });
+    if (!media) throw new NotFoundException('Media not found');
+    if (media.type !== MediaType.IMAGE && media.type !== MediaType.VIDEO) {
+        throw new BadRequestException('Thumbnails are only supported for images and videos');
+    }
+
+    const thumbPath = this.getThumbnailPath(mediaId, width, height);
+    
+    // Check if already exists
+    if (existsSync(thumbPath)) {
+        return thumbPath;
+    }
+
+    // For now, support only local FS images.
+    // In future, for Telegram we could download first, but it's expensive.
+    if (media.storageType !== StorageType.FS) {
+        throw new BadRequestException('Thumbnails currently supported only for local filesystem storage');
+    }
+
+    const safePath = normalize(join(this.mediaDir, media.storagePath));
+    if (!safePath.startsWith(this.mediaDir) || !existsSync(safePath)) {
+        throw new NotFoundException('Source file not found');
+    }
+
+    try {
+        this.logger.debug(`Generating thumbnail ${width}x${height} for ${mediaId}`);
+        await sharp(safePath)
+            .resize(width, height, {
+                fit: 'cover',
+                withoutEnlargement: true
+            })
+            .webp({ quality: 80 })
+            .toFile(thumbPath);
+            
+        return thumbPath;
+    } catch (error) {
+        this.logger.error(`Failed to generate thumbnail for ${mediaId}: ${(error as Error).message}`);
+        throw new BadRequestException(`Failed to generate thumbnail: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Stream thumbnail to response.
+   */
+  async streamThumbnail(id: string, res: ServerResponse, width = 400, height = 400): Promise<void> {
+    try {
+        const thumbPath = await this.generateThumbnail(id, width, height);
+        
+        const fileStat = await stat(thumbPath);
+        res.setHeader('Content-Type', 'image/webp');
+        res.setHeader('Content-Length', fileStat.size);
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+
+        return new Promise((resolve, reject) => {
+            const stream = createReadStream(thumbPath);
+            stream.pipe(res);
+            stream.on('end', resolve);
+            stream.on('error', reject);
+        });
+    } catch (error) {
+        if (error instanceof NotFoundException || error instanceof BadRequestException) {
+            throw error;
+        }
+        this.logger.error(`Error streaming thumbnail for ${id}: ${(error as Error).message}`);
+        throw new NotFoundException('Thumbnail unavailable');
     }
   }
 

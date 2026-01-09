@@ -584,7 +584,8 @@
     "dropHere": "Перетащите файл сюда",
     "preview": "Просмотр",
     "metadata": "Метаданные",
-    "download": "Скачать"
+    "download": "Скачать",
+    "noExif": "EXIF данные не найдены"
   },
   "postType": {
     "post": "Пост",

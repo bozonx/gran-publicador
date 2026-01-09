@@ -94,14 +94,31 @@ export class MediaController {
   }
 
   @Get(':id/file')
+  @UseGuards(JwtOrApiTokenGuard)
   async getFile(
     @Param('id') id: string, 
-    @Req() req: FastifyRequest,
+    @Req() req: UnifiedAuthRequest,
     @Res() res: FastifyReply
   ) {
     // Stream media file - res.raw is the native Node.js ServerResponse
     const range = req.headers.range;
-    return this.mediaService.streamMediaFile(id, res.raw, undefined, range);
+    return this.mediaService.streamMediaFile(id, res.raw, req.user.userId, range);
+  }
+
+  @Get(':id/thumbnail')
+  @UseGuards(JwtOrApiTokenGuard)
+  async getThumbnail(
+    @Param('id') id: string,
+    @Req() req: UnifiedAuthRequest & { query: { w?: string; h?: string } },
+    @Res() res: FastifyReply
+  ) {
+    // Check access even for thumbnails
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
+    
+    const width = req.query.w ? parseInt(req.query.w, 10) : 400;
+    const height = req.query.h ? parseInt(req.query.h, 10) : 400;
+    
+    return this.mediaService.streamThumbnail(id, res.raw, width, height);
   }
 
   /**

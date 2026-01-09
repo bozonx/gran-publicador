@@ -201,3 +201,24 @@ export function getMediaFileUrl(mediaId: string): string {
     : '/api/v1';
   return `${apiBase}/media/${mediaId}/file`;
 }
+
+/**
+ * Get URL for media thumbnail
+ */
+export function getThumbnailUrl(mediaId: string, width?: number, height?: number): string {
+  const config = useRuntimeConfig();
+  const apiBase = config.public.apiBase
+    ? `${config.public.apiBase}/api/v1`
+    : '/api/v1';
+  let url = `${apiBase}/media/${mediaId}/thumbnail`;
+  
+  const params = [];
+  if (width) params.push(`w=${width}`);
+  if (height) params.push(`h=${height}`);
+  
+  if (params.length > 0) {
+    url += `?${params.join('&')}`;
+  }
+  
+  return url;
+}

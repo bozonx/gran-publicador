@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getMediaFileUrl } from '~/composables/useMedia'
+import { getMediaFileUrl, getThumbnailUrl } from '~/composables/useMedia'
 
 interface MediaItem {
   id: string
@@ -81,6 +81,15 @@ function handleClick() {
       class="w-full h-full"
     >
       <img
+        v-if="media.storageType === 'FS'"
+        :src="getThumbnailUrl(media.id, 400, 400)"
+        :srcset="`${getThumbnailUrl(media.id, 400, 400)} 1x, ${getThumbnailUrl(media.id, 800, 800)} 2x`"
+        :alt="media.filename || 'Media'"
+        class="w-full h-full object-cover"
+        @error="handleImageError"
+      />
+      <img
+        v-else
         :src="getMediaFileUrl(media.id)"
         :alt="media.filename || 'Media'"
         class="w-full h-full object-cover"
