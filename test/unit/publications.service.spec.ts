@@ -82,20 +82,25 @@ describe('PublicationsService (unit)', () => {
 
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
 
-      const expectedPublication = {
+      const mockPublication = {
         id: 'pub-1',
         ...createDto,
         createdBy: userId,
         meta: '{}',
+        sourceTexts: '[]',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockPrismaService.publication.create.mockResolvedValue(expectedPublication);
+      mockPrismaService.publication.create.mockResolvedValue(mockPublication);
 
       const result = await service.create(createDto, userId);
 
-      expect(result).toEqual(expectedPublication);
+      expect(result).toEqual({
+        ...mockPublication,
+        meta: {},
+        sourceTexts: [],
+      });
       expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith(projectId, userId);
     });
 

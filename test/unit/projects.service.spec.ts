@@ -32,6 +32,7 @@ describe('ProjectsService (unit)', () => {
     },
     channel: {
       findMany: jest.fn() as any,
+      count: jest.fn() as any,
     },
   };
 
