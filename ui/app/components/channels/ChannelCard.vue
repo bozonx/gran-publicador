@@ -74,6 +74,13 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
           class="w-4 h-4 text-warning-500" 
         />
       </UTooltip>
+
+      <UTooltip v-if="channel.failedPostsCount && channel.failedPostsCount > 0" :text="`${channel.failedPostsCount} ${t('channel.failedPosts').toLowerCase()}`">
+        <UIcon 
+          name="i-heroicons-exclamation-circle" 
+          class="w-4 h-4 text-red-500" 
+        />
+      </UTooltip>
     </div>
 
     <!-- Project info (if needed) -->
@@ -97,14 +104,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
           :value="channel.postsCount || 0"
         />
 
-        <CommonMetricItem
-          v-if="channel.failedPostsCount && channel.failedPostsCount > 0"
-          icon="i-heroicons-exclamation-circle"
-          :label="t('channel.failedPosts')"
-          :value="channel.failedPostsCount"
-          variant="error"
-          bold
-        />
+
 
         <div class="flex items-center gap-1 ml-auto" :title="t('channel.lastPublishedPost')">
           <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5" />

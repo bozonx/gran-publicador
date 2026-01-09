@@ -81,6 +81,13 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
               />
              </NuxtLink>
           </UTooltip>
+
+          <UTooltip v-if="channel.failedPostsCount && channel.failedPostsCount > 0" :text="`${channel.failedPostsCount} ${t('channel.failedPosts').toLowerCase()}`">
+             <UIcon 
+               name="i-heroicons-exclamation-circle" 
+               class="w-5 h-5 text-red-500" 
+             />
+          </UTooltip>
         </div>
 
         <!-- Description -->
@@ -113,12 +120,7 @@ const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel)
             </span>
           </div>
 
-          <div v-if="channel.failedPostsCount && channel.failedPostsCount > 0" class="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-medium" :title="t('channel.failedPosts')">
-             <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 shrink-0" />
-             <span>
-               {{ channel.failedPostsCount }} {{ t('channel.failedPosts').toLowerCase() }}
-             </span>
-          </div>
+
 
           <div class="flex items-center gap-1.5" :title="t('channel.lastPublishedPost')">
             <UIcon name="i-heroicons-clock" class="w-4 h-4" />
