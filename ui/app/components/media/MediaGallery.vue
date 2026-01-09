@@ -113,6 +113,7 @@ async function handleFileUpload(event: Event) {
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
+      meta: uploadedMedia.meta,
     }
 
     await addMediaToPublication(props.publicationId, [newMedia])
@@ -349,6 +350,7 @@ async function handleDrop(event: DragEvent) {
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
+      meta: uploadedMedia.meta,
     }
 
     await addMediaToPublication(props.publicationId, [newMedia])

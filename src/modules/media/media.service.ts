@@ -289,8 +289,6 @@ export class MediaService {
       );
     }
 
-    this.logger.log(`saveFile called with filename: '${file.filename}', mimetype: '${file.mimetype}', buffer size: ${file.buffer.length}`);
-
     // Validate MIME type and Security
     this.validateMimeType(file.mimetype, file.filename);
 
@@ -305,7 +303,6 @@ export class MediaService {
     // Sanitize filename and get extension
     const sanitizedOriginalName = this.sanitizeFilename(file.filename);
     const ext = this.getFileExtension(sanitizedOriginalName);
-    this.logger.log(`Sanitized filename: '${sanitizedOriginalName}', extracted extension: '${ext}'`);
 
     const uniqueFilename = `${randomUUID()}.${ext}`;
     const relativePath = join(subfolder, uniqueFilename);
@@ -321,14 +318,13 @@ export class MediaService {
     await writeFile(filePath, file.buffer);
 
     let type = this.getMediaType(file.mimetype);
-    this.logger.log(`Initial inferred type: ${type} (from mimetype '${file.mimetype}')`);
 
     // If detected as document but has image extension, treat as image.
     // This helps when browser sends 'application/octet-stream' or similar for images.
     if (type === MediaType.DOCUMENT) {
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'heic', 'avif', 'bmp', 'svg'];
       if (imageExtensions.includes(ext)) {
-        this.logger.log(`Auto-detecting image type based on extension '.${ext}' for file '${file.filename}' (mimetype was '${file.mimetype}')`);
+        this.logger.debug(`Auto-detecting image type based on extension '.${ext}' for file '${file.filename}'`);
         type = MediaType.IMAGE;
       }
     }
@@ -337,14 +333,10 @@ export class MediaService {
     let metadata: Record<string, any> | undefined;
     if (type === MediaType.IMAGE) {
       try {
-        this.logger.log(`Attempting to extract metadata for image: ${file.filename}`);
         metadata = await this.extractImageMetadata(file.buffer);
-        this.logger.log(`Extracted metadata successfully: ${JSON.stringify(metadata)}`);
       } catch (e) {
         this.logger.error(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`, (e as Error).stack);
       }
-    } else {
-        this.logger.log(`Skipping metadata extraction because type is ${type} (not IMAGE)`);
     }
     
     this.logger.log(`File saved: ${relativePath} (${file.buffer.length} bytes, type: ${type})`);

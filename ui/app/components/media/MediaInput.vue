@@ -54,6 +54,7 @@ async function handleFileUpload(event: Event) {
       filename: uploadedMedia.filename,
       mimeType: uploadedMedia.mimeType,
       sizeBytes: uploadedMedia.sizeBytes,
+      meta: uploadedMedia.meta,
     }
 
     emit('update:modelValue', [...props.modelValue, newMedia])
