@@ -13,8 +13,8 @@ The `DATA_DIR` environment variable is **mandatory** for the application to run.
 The database URL is automatically constructed from `DATA_DIR`:
 
 ```
-DATA_DIR=/data → file:/absolute/path/to/data/gran-publicador.db
-DATA_DIR=./test-data → file:/absolute/path/to/test-data/gran-publicador.db
+DATA_DIR=/data → file:/absolute/path/to/data/db/gran-publicador.db
+DATA_DIR=./test-data → file:/absolute/path/to/test-data/db/gran-publicador.db
 ```
 
 The database filename is hardcoded as `gran-publicador.db` and cannot be changed.

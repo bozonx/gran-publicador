@@ -31,8 +31,8 @@ export function getDatabaseUrl(): string {
   // If it's relative (e.g., ./test-data), it will be resolved relative to cwd
   const absoluteDataDir = resolve(process.cwd(), dataDir);
 
-  // Construct the full path to the database file
-  const dbPath = join(absoluteDataDir, DB_FILENAME);
+  // Construct the full path to the database file in the /db subdirectory
+  const dbPath = join(absoluteDataDir, 'db', DB_FILENAME);
 
   // Return in SQLite URL format
   return `file:${dbPath}`;
@@ -54,3 +54,16 @@ export function getDataDir(): string {
 
   return dataDir;
 }
+
+/**
+ * Gets the absolute path to the directory where the database file is stored.
+ * This is {DATA_DIR}/db.
+ *
+ * @returns The absolute path to the database directory
+ * @throws Error if DATA_DIR is not set
+ */
+export function getDatabaseDirectory(): string {
+  const dataDir = getDataDir();
+  return join(resolve(process.cwd(), dataDir), 'db');
+}
+

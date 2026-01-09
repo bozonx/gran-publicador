@@ -29,8 +29,8 @@ if (!dataDir) {
 // Resolve to absolute path
 const absoluteDataDir = join(process.cwd(), dataDir);
 
-// Construct DATABASE_URL
-const dbPath = join(absoluteDataDir, DB_FILENAME);
+// Construct DATABASE_URL - stored in /db subdirectory
+const dbPath = join(absoluteDataDir, 'db', DB_FILENAME);
 const databaseUrl = `file:${dbPath}`;
 
 console.log(`📁 Data directory: ${absoluteDataDir}`);

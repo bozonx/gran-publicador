@@ -9,8 +9,8 @@ fi
 
 echo "📊 Data directory: $DATA_DIR"
 
-# Ensure data directory exists
-mkdir -p "${DATA_DIR}"
+# Ensure data and database directories exist
+mkdir -p "${DATA_DIR}/db"
 
 # Run database migrations
 # DATABASE_URL is automatically constructed from DATA_DIR by prisma.config.ts

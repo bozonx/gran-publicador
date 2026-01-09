@@ -10,7 +10,7 @@ import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
-import { getMediaDir } from '../../config/media.config.js';
+import { getMediaDir, getThumbnailsDir } from '../../config/media.config.js';
 import type { AppConfig } from '../../config/app.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import sharp from 'sharp';
@@ -46,7 +46,7 @@ export class MediaService {
     private permissions: PermissionsService,
   ) {
     this.mediaDir = getMediaDir();
-    this.thumbnailsDir = join(resolve(this.mediaDir, '..'), 'thumbnails');
+    this.thumbnailsDir = getThumbnailsDir();
     const appConfig = this.configService.get<AppConfig>('app');
     this.maxFileSize = appConfig?.media?.maxFileSize ?? 52428800; // 50MB fallback
     this.ensureMediaDir();
