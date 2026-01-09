@@ -12,6 +12,9 @@ import { MediaType, StorageType, Media } from '../../generated/prisma/client.js'
 import { getMediaDir } from '../../config/media.config.js';
 import type { AppConfig } from '../../config/app.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
+import sharp from 'sharp';
+// @ts-ignore - exif-reader might not have types
+import exifReader from 'exif-reader';
 
 interface FileUpload {
   filename: string;
@@ -25,6 +28,7 @@ interface SavedFileInfo {
   mimetype: string;
   type: MediaType;
   filename: string;
+  metadata?: Record<string, any>;
 }
 
 @Injectable()
@@ -308,6 +312,16 @@ export class MediaService {
 
     const type = this.getMediaType(file.mimetype);
     
+    // Extract metadata if it's an image
+    let metadata: Record<string, any> | undefined;
+    if (type === MediaType.IMAGE) {
+      try {
+        metadata = await this.extractImageMetadata(file.buffer);
+      } catch (e) {
+        this.logger.warn(`Failed to extract metadata for ${file.filename}: ${(e as Error).message}`);
+      }
+    }
+    
     this.logger.log(`File saved: ${relativePath} (${file.buffer.length} bytes, type: ${type})`);
 
     return {
@@ -315,8 +329,67 @@ export class MediaService {
       size: file.buffer.length,
       mimetype: file.mimetype,
       type,
-      filename: sanitizedOriginalName
+      filename: sanitizedOriginalName,
+      metadata
     };
+  }
+
+  /**
+   * Extract image metadata using sharp.
+   */
+  private async extractImageMetadata(buffer: Buffer): Promise<Record<string, any>> {
+    const image = sharp(buffer);
+    const metadata = await image.metadata();
+    
+    const result: Record<string, any> = {
+      width: metadata.width,
+      height: metadata.height,
+      format: metadata.format,
+      orientation: metadata.orientation,
+    };
+
+    // Extract EXIF data if present
+    if (metadata.exif) {
+      try {
+        const exif = exifReader(metadata.exif) as any;
+        
+        if (exif) {
+          if (exif.image) {
+            result.orientation = exif.image.Orientation || result.orientation;
+            if (exif.image.ModifyDate) {
+              result.capturedAt = exif.image.ModifyDate.toISOString();
+            }
+          }
+          
+          if (exif.exif) {
+            if (exif.exif.DateTimeOriginal) {
+              result.capturedAt = exif.exif.DateTimeOriginal.toISOString();
+            }
+          }
+          
+          if (exif.gps) {
+            // Convert GPS coordinates to decimal
+            const convertGps = (coords: number[], ref: string) => {
+              let decimal = coords[0] + coords[1] / 60 + coords[2] / 3600;
+              if (ref === 'S' || ref === 'W') decimal = -decimal;
+              return decimal;
+            };
+
+            if (exif.gps.GPSLatitude && exif.gps.GPSLatitudeRef && 
+                exif.gps.GPSLongitude && exif.gps.GPSLongitudeRef) {
+              result.location = {
+                lat: convertGps(exif.gps.GPSLatitude, exif.gps.GPSLatitudeRef),
+                lng: convertGps(exif.gps.GPSLongitude, exif.gps.GPSLongitudeRef)
+              };
+            }
+          }
+        }
+      } catch (e) {
+        this.logger.warn(`Error parsing EXIF: ${(e as Error).message}`);
+      }
+    }
+
+    return result;
   }
 
   /**

@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { jest } from '@jest/globals';
 import { MediaType, StorageType } from '../../src/generated/prisma/client.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
+import sharp from 'sharp';
 
 describe('MediaService (unit)', () => {
   let service: MediaService;
@@ -313,6 +314,38 @@ describe('MediaService (unit)', () => {
       };
       await expect(service.saveFile(file)).rejects.toThrow(BadRequestException);
       await expect(service.saveFile(file)).rejects.toThrow('Executable or script file extensions are not allowed');
+    });
+  });
+
+  describe('metadata extraction', () => {
+    it('should extract metadata from an image buffer', async () => {
+      // Create a real image buffer using sharp for testing
+      const buffer = await sharp({
+        create: {
+          width: 100,
+          height: 100,
+          channels: 3,
+          background: { r: 255, g: 0, b: 0 }
+        }
+      }).jpeg().toBuffer();
+
+      const file = {
+        filename: 'test.jpg',
+        buffer,
+        mimetype: 'image/jpeg',
+      };
+
+      // Mock mkdir and writeFile since they are imported from fs/promises
+      // In unit tests they might need mocking or we rely on the fact that 
+      // they don't crash if we mock the mediaDir to a tmp one.
+      // But for this test, let's just focus on the metadata part if we can.
+      
+      const result = await (service as any).extractImageMetadata(buffer);
+      
+      expect(result).toBeDefined();
+      expect(result.width).toBe(100);
+      expect(result.height).toBe(100);
+      expect(result.format).toBe('jpeg');
     });
   });
 });

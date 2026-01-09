@@ -56,7 +56,7 @@ export class MediaController {
       filename: fileInfo.filename,
       mimeType: fileInfo.mimetype,
       sizeBytes: fileInfo.size,
-      meta: {}
+      meta: fileInfo.metadata || {}
     });
   }
 
@@ -79,7 +79,8 @@ export class MediaController {
       mimeType: fileInfo.mimetype,
       sizeBytes: fileInfo.size,
       meta: {
-        originalUrl: fileInfo.originalUrl
+        originalUrl: fileInfo.originalUrl,
+        ...(fileInfo.metadata || {})
       }
     });
   }
