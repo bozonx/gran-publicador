@@ -19,7 +19,6 @@ services:
       - API_KEY=your_api_key_here
     volumes:
       - ./data:/data
-      - ./app-config.yaml:/data/app-config.yaml
     healthcheck:
       test: [ 'CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/api/v1/health || exit 1' ]
       interval: 30s

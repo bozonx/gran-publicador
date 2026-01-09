@@ -15,7 +15,6 @@ import { PostsModule } from './modules/posts/posts.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
 import { PublicationsModule } from './modules/publications/publications.module.js';
-import { SystemConfigModule } from './modules/system-config/system-config.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { ArchiveModule } from './modules/archive/archive.module.js';
 import { MediaModule } from './modules/media/media.module.js';
@@ -115,7 +114,6 @@ import { ShutdownModule } from './common/services/shutdown.module.js';
     ChannelsModule,
     PostsModule,
     PublicationsModule,
-    SystemConfigModule,
     ApiTokensModule,
     ArchiveModule,
     MediaModule,

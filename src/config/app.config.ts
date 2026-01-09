@@ -1,11 +1,6 @@
 import { plainToClass } from 'class-transformer';
 import { IsIn, IsInt, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
 import { registerAs } from '@nestjs/config';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as yaml from 'js-yaml';
-
-import { getDataDir } from './database.config.js';
 
 /**
  * Application configuration schema.
@@ -14,7 +9,7 @@ import { getDataDir } from './database.config.js';
 export class AppConfig {
   /**
    * The port number on which the server will listen.
-   * Defined by SERVER_PORT environment variable.
+   * Defined by LISTEN_PORT environment variable.
    * Default: 8080
    */
   @IsInt()
@@ -24,7 +19,7 @@ export class AppConfig {
 
   /**
    * The host address to verify binding.
-   * Defined by SERVER_HOST environment variable.
+   * Defined by LISTEN_HOST environment variable.
    * Default: 0.0.0.0
    */
   @IsString()
@@ -102,66 +97,25 @@ export class AppConfig {
 }
 
 export default registerAs('app', (): AppConfig => {
-  const dataDir = getDataDir();
-  const configFileName = 'app-config.yaml';
-  const defaultConfigFileName = 'app-config-default.yaml';
-
-  const configPath = path.join(path.resolve(process.cwd(), dataDir), configFileName);
-  const defaultPath = path.resolve(process.cwd(), defaultConfigFileName);
-
-  let fileContent = '';
-
-  // Ensure config file exists
-  if (!fs.existsSync(configPath)) {
-    if (fs.existsSync(defaultPath)) {
-      fs.copyFileSync(defaultPath, configPath);
-    }
-  }
-
-  // Read config file
-  if (fs.existsSync(configPath)) {
-    fileContent = fs.readFileSync(configPath, 'utf8');
-  } else if (fs.existsSync(defaultPath)) {
-    // Fallback if copy failed or something weird happened, use default directly
-    fileContent = fs.readFileSync(defaultPath, 'utf8');
-  }
-
-  // Substitute environment variables
-  const substitutedContent = fileContent.replace(
-    /\${(\w+)(?::-([^}]*))?}/g,
-    (_, varName, defaultValue) => {
-      return process.env[varName] ?? defaultValue ?? '';
-    },
-  );
-
-  // Parse YAML
-  const fileConfig = (yaml.load(substitutedContent) as Record<string, any>) ?? {};
-
-  // Transform environment variables and file config to a typed configuration object
+  // Transform environment variables to a typed configuration object
   const config = plainToClass(AppConfig, {
-    // System/Env config (Process Env has priority for these infrastructural settings)
-    port: parseInt(process.env.SERVER_PORT ?? '8080', 10),
-    host: process.env.SERVER_HOST ?? '0.0.0.0',
+    port: parseInt(process.env.LISTEN_PORT ?? '8080', 10),
+    host: process.env.LISTEN_HOST ?? '0.0.0.0',
     basePath: (process.env.SERVER_BASE_PATH ?? '').replace(/^\/+|\/+$/g, ''),
     nodeEnv: process.env.NODE_ENV ?? 'production',
     logLevel: process.env.LOG_LEVEL ?? 'warn',
 
-    // Application Config (File has priority, but fallback to env if missing in file is reasonable,
-    // though here we assume file controls these values via placeholders)
-    adminTelegramId: fileConfig.telegramAdminId?.toString() ?? process.env.TELEGRAM_ADMIN_ID,
-    telegramBotToken: fileConfig.telegramBotToken ?? process.env.TELEGRAM_BOT_TOKEN,
-    jwtSecret: fileConfig.jwtSecret ?? process.env.JWT_SECRET,
+    adminTelegramId: process.env.TELEGRAM_ADMIN_ID,
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+    jwtSecret: process.env.JWT_SECRET,
 
     // Media Config
     media: {
-      maxFileSize: parseInt(fileConfig.media?.maxFileSize?.toString() ?? '52428800', 10),
+      maxFileSize: parseInt(process.env.MEDIA_MAX_FILE_SIZE ?? '52428800', 10),
     },
 
     // Shutdown Config
-    shutdownTimeoutMs: parseInt(
-      fileConfig.shutdownTimeoutMs?.toString() ?? process.env.SHUTDOWN_TIMEOUT_MS ?? '30000',
-      10,
-    ),
+    shutdownTimeoutMs: parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '30000', 10),
   });
 
   // Perform synchronous validation of the configuration object
