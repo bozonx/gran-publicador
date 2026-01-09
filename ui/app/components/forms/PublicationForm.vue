@@ -8,6 +8,7 @@ import { usePosts } from '~/composables/usePosts'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 import { getUserSelectableStatuses } from '~/utils/publications'
+import SourceTextsManager from '~/components/forms/SourceTextsManager.vue'
 
 import type { PostType, PublicationStatus } from '~/types/posts'
 
@@ -78,6 +79,7 @@ const state = reactive({
   authorComment: props.publication?.authorComment || '',
   note: props.publication?.note || '',
   postDate: props.publication?.postDate ? new Date(props.publication.postDate).toISOString().slice(0, 16) : '',
+  sourceTexts: (props.publication as any)?.sourceTexts || [] as any[],
 })
 
 const linkedPublicationId = ref<string | undefined>(undefined)
@@ -105,6 +107,11 @@ const schema = computed(() => z.object({
   authorComment: z.string().optional(),
   note: z.string().optional(),
   postDate: z.string().optional(),
+  sourceTexts: z.array(z.object({
+    content: z.string(),
+    order: z.number(),
+    source: z.string().optional(),
+  })).optional(),
 }).superRefine((val, ctx) => {
   if (val.status === 'SCHEDULED' && !val.scheduledAt) {
     ctx.addIssue({
@@ -269,6 +276,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
           meta: event.data.meta || {}, // Already a JSON object from CommonYamlEditor
           postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
           scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
+          sourceTexts: event.data.sourceTexts || [],
       }
       
       // Update the publication itself
@@ -309,6 +317,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
         meta: event.data.meta || {}, // Already a JSON object from CommonYamlEditor
         postDate: event.data.postDate ? new Date(event.data.postDate).toISOString() : undefined,
         scheduledAt: event.data.scheduledAt ? new Date(event.data.scheduledAt).toISOString() : undefined,
+        sourceTexts: event.data.sourceTexts || [],
       }
 
       const publication = await createPublication(createData)
@@ -680,6 +689,9 @@ function toggleChannel(channelId: string) {
              :placeholder="t('post.notePlaceholder')"
            />
         </UFormField>
+
+        <!-- Source Texts Manager -->
+        <SourceTextsManager v-model="state.sourceTexts" />
       </UiFormAdvancedSection>
 
       <UiFormActions

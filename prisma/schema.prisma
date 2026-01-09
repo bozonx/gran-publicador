@@ -170,6 +170,11 @@ model Publication {
   // Internal note for author's reference only. Never published to social media
   note          String?
 
+  // Additional source texts collected via Telegram bot or other sources
+  // Format: [{ content, order, source? }]
+  // source format: "url:<URL>" | "telegram:<chatId>,<messageId>" | "manual"
+  sourceTexts String @default("[]") @map("source_texts")
+
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   creator User?   @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   posts   Post[]

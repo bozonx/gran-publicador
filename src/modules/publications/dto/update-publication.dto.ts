@@ -4,6 +4,7 @@ import { PublicationStatus, PostType } from '../../../generated/prisma/client.js
 import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
+import { SourceTextDto } from './create-publication.dto.js';
 
 /**
  * DTO for updating an existing publication.
@@ -81,5 +82,9 @@ export class UpdatePublicationDto {
   @IsOptional()
   public linkToPublicationId?: string;
 
-
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SourceTextDto)
+  @IsOptional()
+  public sourceTexts?: SourceTextDto[];
 }

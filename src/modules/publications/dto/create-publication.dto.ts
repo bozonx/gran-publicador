@@ -1,9 +1,26 @@
-import { IsArray, IsDate, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
 import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
+
+/**
+ * DTO for source text item in publication.
+ */
+export class SourceTextDto {
+  @IsString()
+  @IsNotEmpty()
+  public content!: string;
+
+  @IsNumber()
+  @IsOptional()
+  public order?: number;
+
+  @IsString()
+  @IsOptional()
+  public source?: string;
+}
 
 /**
  * DTO for creating a new publication.
@@ -93,4 +110,10 @@ export class CreatePublicationDto {
   @IsString({ each: true })
   @IsOptional()
   public channelIds?: string[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SourceTextDto)
+  @IsOptional()
+  public sourceTexts?: SourceTextDto[];
 }

@@ -1213,7 +1213,8 @@ export const PublicationScalarFieldEnum = {
   tags: 'tags',
   meta: 'meta',
   postDate: 'postDate',
-  note: 'note'
+  note: 'note',
+  sourceTexts: 'sourceTexts'
 } as const
 
 export type PublicationScalarFieldEnum = (typeof PublicationScalarFieldEnum)[keyof typeof PublicationScalarFieldEnum]

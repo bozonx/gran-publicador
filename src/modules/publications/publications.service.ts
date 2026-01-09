@@ -173,6 +173,19 @@ export class PublicationsService {
   }
 
   /**
+   * Parse sourceTexts JSON string to array.
+   */
+  private parseSourceTextsJson(sourceTexts: string | null | undefined): any[] {
+    if (!sourceTexts) return [];
+    try {
+      const parsed = JSON.parse(sourceTexts);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Create a new publication.
    * If userId is provided, it checks if the user has access to the project.
    * If userId is not provided, it assumes a system call or external integration (skipped permission check).
@@ -276,6 +289,7 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         meta: JSON.stringify(data.meta ?? {}),
+        sourceTexts: data.sourceTexts ? JSON.stringify(data.sourceTexts) : '[]',
       },
     });
 
@@ -297,7 +311,11 @@ export class PublicationsService {
       );
     }
 
-    return publication;
+    return {
+      ...publication,
+      meta: this.parseMetaJson(publication.meta),
+      sourceTexts: this.parseSourceTextsJson(publication.sourceTexts),
+    };
   }
 
   /**
@@ -486,7 +504,14 @@ export class PublicationsService {
       sortedItems = sortedItems.slice(offset, offset + limit);
     }
 
-    return { items: sortedItems, total };
+    return {
+      items: sortedItems.map((item: any) => ({
+        ...item,
+        meta: this.parseMetaJson(item.meta),
+        sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
+      })),
+      total,
+    };
   }
 
   /**
@@ -754,7 +779,14 @@ export class PublicationsService {
       sortedItems = sortedItems.slice(offset, offset + limit);
     }
 
-    return { items: sortedItems, total };
+    return {
+      items: sortedItems.map((item: any) => ({
+        ...item,
+        meta: this.parseMetaJson(item.meta),
+        sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
+      })),
+      total,
+    };
   }
 
   /**
@@ -833,7 +865,13 @@ export class PublicationsService {
       } : pm.media,
     }));
 
-    return { ...publication, media: parsedMedia, translations };
+    return {
+      ...publication,
+      media: parsedMedia,
+      translations,
+      meta: this.parseMetaJson(publication.meta),
+      sourceTexts: this.parseSourceTextsJson((publication as any).sourceTexts),
+    };
   }
 
   /**
@@ -1021,11 +1059,15 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         meta: data.meta ? JSON.stringify(data.meta) : undefined,
-
+        sourceTexts: data.sourceTexts !== undefined ? JSON.stringify(data.sourceTexts) : undefined,
       },
     });
 
-    return updated;
+    return {
+      ...updated,
+      meta: this.parseMetaJson(updated.meta),
+      sourceTexts: this.parseSourceTextsJson(updated.sourceTexts),
+    };
   }
 
   /**

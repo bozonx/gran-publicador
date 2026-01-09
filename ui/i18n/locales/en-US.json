@@ -1,4 +1,13 @@
 {
+  "sourceTexts": {
+    "title": "Source Texts",
+    "add": "Add Text",
+    "empty": "No source texts yet",
+    "source": "Source",
+    "manual": "Manual",
+    "contentPlaceholder": "Enter text content...",
+    "help": "Additional texts collected from Telegram bot or other sources. Use for AI summarization or manual content assembly."
+  },
   "common": {
     "appName": "Gran Publicador",
     "loading": "Loading...",

@@ -46,6 +46,7 @@ export type PublicationMinAggregateOutputType = {
   meta: string | null
   postDate: Date | null
   note: string | null
+  sourceTexts: string | null
 }
 
 export type PublicationMaxAggregateOutputType = {
@@ -70,6 +71,7 @@ export type PublicationMaxAggregateOutputType = {
   meta: string | null
   postDate: Date | null
   note: string | null
+  sourceTexts: string | null
 }
 
 export type PublicationCountAggregateOutputType = {
@@ -94,6 +96,7 @@ export type PublicationCountAggregateOutputType = {
   meta: number
   postDate: number
   note: number
+  sourceTexts: number
   _all: number
 }
 
@@ -120,6 +123,7 @@ export type PublicationMinAggregateInputType = {
   meta?: true
   postDate?: true
   note?: true
+  sourceTexts?: true
 }
 
 export type PublicationMaxAggregateInputType = {
@@ -144,6 +148,7 @@ export type PublicationMaxAggregateInputType = {
   meta?: true
   postDate?: true
   note?: true
+  sourceTexts?: true
 }
 
 export type PublicationCountAggregateInputType = {
@@ -168,6 +173,7 @@ export type PublicationCountAggregateInputType = {
   meta?: true
   postDate?: true
   note?: true
+  sourceTexts?: true
   _all?: true
 }
 
@@ -265,6 +271,7 @@ export type PublicationGroupByOutputType = {
   meta: string
   postDate: Date | null
   note: string | null
+  sourceTexts: string
   _count: PublicationCountAggregateOutputType | null
   _min: PublicationMinAggregateOutputType | null
   _max: PublicationMaxAggregateOutputType | null
@@ -310,6 +317,7 @@ export type PublicationWhereInput = {
   meta?: Prisma.StringFilter<"Publication"> | string
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableFilter<"Publication"> | string | null
+  sourceTexts?: Prisma.StringFilter<"Publication"> | string
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   posts?: Prisma.PostListRelationFilter
@@ -338,6 +346,7 @@ export type PublicationOrderByWithRelationInput = {
   meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrderInput | Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceTexts?: Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
   creator?: Prisma.UserOrderByWithRelationInput
   posts?: Prisma.PostOrderByRelationAggregateInput
@@ -369,6 +378,7 @@ export type PublicationWhereUniqueInput = Prisma.AtLeast<{
   meta?: Prisma.StringFilter<"Publication"> | string
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableFilter<"Publication"> | string | null
+  sourceTexts?: Prisma.StringFilter<"Publication"> | string
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   posts?: Prisma.PostListRelationFilter
@@ -397,6 +407,7 @@ export type PublicationOrderByWithAggregationInput = {
   meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrderInput | Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceTexts?: Prisma.SortOrder
   _count?: Prisma.PublicationCountOrderByAggregateInput
   _max?: Prisma.PublicationMaxOrderByAggregateInput
   _min?: Prisma.PublicationMinOrderByAggregateInput
@@ -427,6 +438,7 @@ export type PublicationScalarWhereWithAggregatesInput = {
   meta?: Prisma.StringWithAggregatesFilter<"Publication"> | string
   postDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
+  sourceTexts?: Prisma.StringWithAggregatesFilter<"Publication"> | string
 }
 
 export type PublicationCreateInput = {
@@ -449,6 +461,7 @@ export type PublicationCreateInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
@@ -477,6 +490,7 @@ export type PublicationUncheckedCreateInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
@@ -501,6 +515,7 @@ export type PublicationUpdateInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
@@ -529,6 +544,7 @@ export type PublicationUncheckedUpdateInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
@@ -555,6 +571,7 @@ export type PublicationCreateManyInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
 }
 
 export type PublicationUpdateManyMutationInput = {
@@ -577,6 +594,7 @@ export type PublicationUpdateManyMutationInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PublicationUncheckedUpdateManyInput = {
@@ -601,6 +619,7 @@ export type PublicationUncheckedUpdateManyInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PublicationListRelationFilter = {
@@ -635,6 +654,7 @@ export type PublicationCountOrderByAggregateInput = {
   meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  sourceTexts?: Prisma.SortOrder
 }
 
 export type PublicationMaxOrderByAggregateInput = {
@@ -659,6 +679,7 @@ export type PublicationMaxOrderByAggregateInput = {
   meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  sourceTexts?: Prisma.SortOrder
 }
 
 export type PublicationMinOrderByAggregateInput = {
@@ -683,6 +704,7 @@ export type PublicationMinOrderByAggregateInput = {
   meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  sourceTexts?: Prisma.SortOrder
 }
 
 export type PublicationScalarRelationFilter = {
@@ -830,6 +852,7 @@ export type PublicationCreateWithoutCreatorInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
@@ -856,6 +879,7 @@ export type PublicationUncheckedCreateWithoutCreatorInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
@@ -910,6 +934,7 @@ export type PublicationScalarWhereInput = {
   meta?: Prisma.StringFilter<"Publication"> | string
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableFilter<"Publication"> | string | null
+  sourceTexts?: Prisma.StringFilter<"Publication"> | string
 }
 
 export type PublicationCreateWithoutProjectInput = {
@@ -932,6 +957,7 @@ export type PublicationCreateWithoutProjectInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
@@ -958,6 +984,7 @@ export type PublicationUncheckedCreateWithoutProjectInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
@@ -1007,6 +1034,7 @@ export type PublicationCreateWithoutMediaInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
@@ -1034,6 +1062,7 @@ export type PublicationUncheckedCreateWithoutMediaInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
 }
 
@@ -1073,6 +1102,7 @@ export type PublicationUpdateWithoutMediaInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
@@ -1100,6 +1130,7 @@ export type PublicationUncheckedUpdateWithoutMediaInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
@@ -1123,6 +1154,7 @@ export type PublicationCreateWithoutPostsInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
@@ -1150,6 +1182,7 @@ export type PublicationUncheckedCreateWithoutPostsInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
 
@@ -1189,6 +1222,7 @@ export type PublicationUpdateWithoutPostsInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
@@ -1216,6 +1250,7 @@ export type PublicationUncheckedUpdateWithoutPostsInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
@@ -1240,6 +1275,7 @@ export type PublicationCreateManyCreatorInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
 }
 
 export type PublicationUpdateWithoutCreatorInput = {
@@ -1262,6 +1298,7 @@ export type PublicationUpdateWithoutCreatorInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
@@ -1288,6 +1325,7 @@ export type PublicationUncheckedUpdateWithoutCreatorInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
@@ -1313,6 +1351,7 @@ export type PublicationUncheckedUpdateManyWithoutCreatorInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PublicationCreateManyProjectInput = {
@@ -1336,6 +1375,7 @@ export type PublicationCreateManyProjectInput = {
   meta?: string
   postDate?: Date | string | null
   note?: string | null
+  sourceTexts?: string
 }
 
 export type PublicationUpdateWithoutProjectInput = {
@@ -1358,6 +1398,7 @@ export type PublicationUpdateWithoutProjectInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
@@ -1384,6 +1425,7 @@ export type PublicationUncheckedUpdateWithoutProjectInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
@@ -1409,6 +1451,7 @@ export type PublicationUncheckedUpdateManyWithoutProjectInput = {
   meta?: Prisma.StringFieldUpdateOperationsInput | string
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -1473,6 +1516,7 @@ export type PublicationSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   meta?: boolean
   postDate?: boolean
   note?: boolean
+  sourceTexts?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
   posts?: boolean | Prisma.Publication$postsArgs<ExtArgs>
@@ -1502,6 +1546,7 @@ export type PublicationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   meta?: boolean
   postDate?: boolean
   note?: boolean
+  sourceTexts?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
 }, ExtArgs["result"]["publication"]>
@@ -1528,6 +1573,7 @@ export type PublicationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   meta?: boolean
   postDate?: boolean
   note?: boolean
+  sourceTexts?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
 }, ExtArgs["result"]["publication"]>
@@ -1554,9 +1600,10 @@ export type PublicationSelectScalar = {
   meta?: boolean
   postDate?: boolean
   note?: boolean
+  sourceTexts?: boolean
 }
 
-export type PublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "translationGroupId" | "createdBy" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy" | "scheduledAt" | "processingStartedAt" | "postType" | "language" | "status" | "title" | "description" | "content" | "authorComment" | "tags" | "meta" | "postDate" | "note", ExtArgs["result"]["publication"]>
+export type PublicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "translationGroupId" | "createdBy" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy" | "scheduledAt" | "processingStartedAt" | "postType" | "language" | "status" | "title" | "description" | "content" | "authorComment" | "tags" | "meta" | "postDate" | "note" | "sourceTexts", ExtArgs["result"]["publication"]>
 export type PublicationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.Publication$creatorArgs<ExtArgs>
@@ -1603,6 +1650,7 @@ export type $PublicationPayload<ExtArgs extends runtime.Types.Extensions.Interna
     meta: string
     postDate: Date | null
     note: string | null
+    sourceTexts: string
   }, ExtArgs["result"]["publication"]>
   composites: {}
 }
@@ -2051,6 +2099,7 @@ export interface PublicationFieldRefs {
   readonly meta: Prisma.FieldRef<"Publication", 'String'>
   readonly postDate: Prisma.FieldRef<"Publication", 'DateTime'>
   readonly note: Prisma.FieldRef<"Publication", 'String'>
+  readonly sourceTexts: Prisma.FieldRef<"Publication", 'String'>
 }
     
 
