@@ -384,17 +384,37 @@ export class MediaService {
 
     // Normalize and validate path to prevent traversal
     const safePath = normalize(join(this.mediaDir, media.storagePath));
+    this.logger.debug(`Fetching EXIF for media ${id} at path: ${safePath}`);
+    
     if (!safePath.startsWith(this.mediaDir)) {
       throw new BadRequestException('Invalid file path');
     }
 
     try {
       const buffer = await readFile(safePath);
+      const stats = await stat(safePath);
+      this.logger.debug(`File read successfully, buffer size: ${buffer.length}, filename: ${basename(safePath)}`);
+      
       const image = sharp(buffer);
       const metadata = await image.metadata();
       
+      const debugInfo = {
+        _debug: {
+          fileSize: buffer.length,
+          statSize: stats.size,
+          path: safePath,
+          metadataKeys: Object.keys(metadata),
+          hasExifBuffer: !!metadata.exif,
+          exifBufferLength: metadata.exif?.length || 0,
+          format: metadata.format,
+          width: metadata.width,
+          height: metadata.height
+        }
+      };
+
       if (!metadata.exif) {
-        return {};
+        this.logger.debug('No EXIF buffer found in sharp metadata');
+        return { ...debugInfo, error: 'No EXIF buffer found' };
       }
 
       // Handle potential ESM/CJS interop issues with exif-reader
@@ -404,15 +424,30 @@ export class MediaService {
       }
 
       if (typeof reader === 'function') {
-        const exif = reader(metadata.exif);
-        // Normalize buffers in EXIF to prevent issues with JSON serialization
-        return this.normalizeExif(exif);
+        try {
+          const exif = reader(metadata.exif);
+          this.logger.debug(`EXIF parsed successfully, top-level keys: ${Object.keys(exif || {}).join(', ')}`);
+          
+          if (!exif || Object.keys(exif).length === 0) {
+            this.logger.warn('exif-reader returned an empty object');
+            return { _warning: 'exif-reader returned empty object' };
+          }
+
+          // Normalize buffers in EXIF to prevent issues with JSON serialization
+          const normalized = this.normalizeExif(exif);
+          this.logger.debug(`Normalized EXIF keys: ${Object.keys(normalized || {}).join(', ')}`);
+          return normalized;
+        } catch (parseError) {
+          this.logger.error(`exif-reader failed to parse buffer: ${(parseError as Error).message}`);
+          return { error: 'Failed to parse EXIF buffer', details: (parseError as Error).message };
+        }
       }
       
-      return {};
+      this.logger.warn('exif-reader is not a function');
+      return { error: 'EXIF parser not available' };
     } catch (e) {
       this.logger.error(`Failed to extract EXIF for media ${id}: ${(e as Error).message}`);
-      return {};
+      return { error: (e as Error).message };
     }
   }
 
@@ -421,20 +456,36 @@ export class MediaService {
    * to ensure they can be serialized to JSON.
    */
   private normalizeExif(data: any): any {
-    if (!data) return data;
+    if (data === null || data === undefined) return data;
     
+    // Handle Buffers
     if (Buffer.isBuffer(data)) {
-      return data.toString('hex');
+      return `Buffer(${data.length}): ${data.toString('hex').substring(0, 32)}${data.length > 16 ? '...' : ''}`;
     }
     
+    // Handle Dates - VERY IMPORTANT: Object.entries(Date) is empty!
+    if (data instanceof Date) {
+      return data.toISOString();
+    }
+    
+    // Handle Arrays
     if (Array.isArray(data)) {
       return data.map(item => this.normalizeExif(item));
     }
     
+    // Handle Objects
     if (typeof data === 'object') {
+      // Check if it's a plain object or something we can iterate
       const result: any = {};
+      let hasKeys = false;
       for (const [key, value] of Object.entries(data)) {
         result[key] = this.normalizeExif(value);
+        hasKeys = true;
+      }
+      // If it's an object but has no keys (and not a Date/Buffer), maybe it's some other class?
+      if (!hasKeys && data.toString) {
+          const str = data.toString();
+          if (str !== '[object Object]') return str;
       }
       return result;
     }

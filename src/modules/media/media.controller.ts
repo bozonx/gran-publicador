@@ -108,6 +108,7 @@ export class MediaController {
    * Get a single media item by ID.
    */
   @Get(':id')
+  @UseGuards(JwtOrApiTokenGuard)
   public async findOne(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.mediaService.checkMediaAccess(id, req.user.userId);
     return this.mediaService.findOne(id);
@@ -117,6 +118,7 @@ export class MediaController {
    * Get EXIF metadata for a media item.
    */
   @Get(':id/exif')
+  @UseGuards(JwtOrApiTokenGuard)
   public async getExif(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.mediaService.checkMediaAccess(id, req.user.userId);
     return this.mediaService.getExif(id);

@@ -169,7 +169,7 @@ export function useMedia() {
       return await api.get<Record<string, any>>(`/media/${id}/exif`)
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch EXIF'
-      return {}
+      return { error: error.value }
     } finally {
       isLoading.value = false
     }

@@ -462,8 +462,17 @@ async function handleFetchExif() {
   if (!selectedMedia.value) return
   isLoadingExif.value = true
   try {
-    exifData.value = await fetchExif(selectedMedia.value.id)
-    if (!exifData.value || Object.keys(exifData.value).length === 0) {
+    const data = await fetchExif(selectedMedia.value.id)
+    exifData.value = data
+    
+    // If we have an error or debug info, it's successful in terms of fetching metadata (even if missing)
+    if (data.error && !data._debug) {
+      toast.add({
+        title: t('common.error'),
+        description: data.error,
+        color: 'error'
+      })
+    } else if (Object.keys(data).length === 0) {
       toast.add({
         title: t('media.noExif', 'No EXIF data found'),
         color: 'info'
