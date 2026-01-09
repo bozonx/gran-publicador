@@ -111,23 +111,23 @@ function triggerFileInput() {
     <UCard>
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-3">
-          <UFormGroup :label="t('media.sourceType', 'Source Type')">
+          <UFormField :label="t('media.sourceType', 'Source Type')">
             <USelectMenu
               v-model="sourceType"
               :items="sourceTypeOptions"
               value-key="value"
               label-key="label"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup :label="t('media.mediaType', 'Media Type')">
+          <UFormField :label="t('media.mediaType', 'Media Type')">
             <USelectMenu
               v-model="mediaType"
               :items="mediaTypeOptions"
               value-key="value"
               label-key="label"
             />
-          </UFormGroup>
+          </UFormField>
         </div>
 
         <!-- File Upload -->
@@ -150,7 +150,7 @@ function triggerFileInput() {
 
         <!-- URL or Telegram File ID -->
         <template v-else>
-          <UFormGroup 
+          <UFormField 
             :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
           >
             <UInput
@@ -158,15 +158,15 @@ function triggerFileInput() {
               :placeholder="sourceType === 'URL' ? 'https://example.com/image.jpg' : 'AgACAgIAAxkBAAI...'"
               @keydown.enter.prevent="addMedia"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup :label="t('media.filename', 'Filename (optional)')">
+          <UFormField :label="t('media.filename', 'Filename (optional)')">
             <UInput
               v-model="filenameInput"
               placeholder="image.jpg"
               @keydown.enter.prevent="addMedia"
             />
-          </UFormGroup>
+          </UFormField>
 
           <UButton
             @click="addMedia"

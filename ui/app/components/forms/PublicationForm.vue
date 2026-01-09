@@ -426,18 +426,19 @@ function toggleChannel(channelId: string) {
           <!-- Status (Only when creating) -->
           <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
                 <div class="flex items-center gap-2">
-                  <UGroup size="sm" class="shadow-sm">
+                  <div class="inline-flex -space-x-px rounded-lg shadow-sm isolate">
                       <UButton
                         v-for="option in displayStatusOptions"
                         :key="option.value"
                         :label="option.label"
+                        size="sm"
                         :color="state.status === option.value ? 'primary' : 'neutral'"
                         :variant="state.status === option.value ? 'solid' : 'soft'"
                         :disabled="option.value === 'READY' && (!state.content || state.content.trim() === '') && !hasMedia && state.status === 'DRAFT'"
-                        class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
+                        class="focus:z-10 rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
                         @click="state.status = option.value as any"
                       />
-                  </UGroup>
+                  </div>
                   
                   <UPopover :popper="{ placement: 'top' }">
                      <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
