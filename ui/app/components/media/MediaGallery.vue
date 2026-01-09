@@ -876,6 +876,7 @@ const emit = defineEmits<Emits>()
               <template #actions>
                 <div class="flex items-center gap-2">
                   <UButton
+                    v-if="selectedMedia.type === 'IMAGE'"
                     icon="i-heroicons-information-circle"
                     variant="ghost"
                     color="neutral"
