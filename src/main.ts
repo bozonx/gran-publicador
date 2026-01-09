@@ -16,13 +16,12 @@ import { SpaFallbackFilter } from './common/filters/spa-fallback.filter.js';
 import type { AppConfig } from './config/app.config.js';
 
 /**
- * Validate that DATA_DIR is set before starting the application.
+ * Validate that DATABASE_URL is set before starting the application.
  * This is a REQUIRED environment variable for database configuration.
  */
-if (!process.env.DATA_DIR) {
-  console.error('❌ FATAL ERROR: DATA_DIR environment variable is not set!');
-  console.error('   DATA_DIR must point to the directory where the database file will be stored.');
-  console.error('   Example: DATA_DIR=/data or DATA_DIR=./test-data');
+if (!process.env.DATABASE_URL) {
+  console.error('❌ FATAL ERROR: DATABASE_URL environment variable is not set!');
+  console.error('   DATABASE_URL must be a valid connection string (e.g., file:/path/to/db.db)');
   process.exit(1);
 }
 

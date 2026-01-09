@@ -147,8 +147,12 @@ SERVER_PORT=8080
 LOG_LEVEL=debug
 TZ=UTC
 
-# Директория для данных (БД, конфиг, логи)
-DATA_DIR="./test-data"
+# SQLite connection string
+DATABASE_URL="file:./test-data/db/db.db"
+# Directory for storing media files.
+MEDIA_DIR="./test-data/media"
+# Directory for storing thumbnail files.
+THUMBNAILS_DIR="./test-data/thumbnails"
 
 # ID главного администратора в Telegram (опционально)
 TELEGRAM_ADMIN_ID="123456789"
@@ -162,20 +166,18 @@ TELEGRAM_BOT_TOKEN="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
 
 ### 2. Инициализация базы данных
 
-**Важно:** Используйте `prisma-wrapper.mjs` для всех Prisma команд. Этот скрипт автоматически устанавливает `DATABASE_URL` на основе `DATA_DIR`.
-
 ```bash
 # Создание миграций и базы данных
-node prisma-wrapper.mjs migrate dev --name init
+npx prisma migrate dev --name init
 
 # Или только применение миграций (для продакшн)
-node prisma-wrapper.mjs migrate deploy
+npx prisma migrate deploy
 
 # Генерация Prisma клиента
 npx prisma generate
 
 # Наполнение базы тестовыми данными (опционально)
-node prisma-wrapper.mjs db seed
+npx prisma db seed
 ``` 
 
 ### 3. Настройка Telegram Mini App
@@ -259,7 +261,7 @@ docker-compose down
 pnpm build
 
 # Применение миграций
-node prisma-wrapper.mjs migrate deploy
+npx prisma migrate deploy
 
 # Запуск
 pnpm start:prod
@@ -282,7 +284,9 @@ pnpm build
 NODE_ENV=production
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
-DATA_DIR="/app/data"
+DATABASE_URL="file:/app/data/db/db.db"
+MEDIA_DIR="/app/data/media"
+THUMBNAILS_DIR="/app/data/thumbnails"
 JWT_SECRET="your-production-secret"
 TELEGRAM_BOT_TOKEN="your-bot-token"
 TELEGRAM_ADMIN_ID="your-telegram-id"
@@ -305,7 +309,9 @@ LOG_LEVEL=info
 | `NODE_ENV` | Нет | Режим работы | `development`, `production` |
 | `SERVER_HOST` | Нет | Хост сервера | `localhost`, `0.0.0.0` |
 | `SERVER_PORT` | Нет | Порт сервера | `8080` |
-| `DATA_DIR` | Да | Директория для данных | `./test-data`, `/app/data` |
+| `DATABASE_URL` | Да | Строка подключения к БД | `file:./db/db.db` |
+| `MEDIA_DIR` | Да | Директория для медиа | `./media` |
+| `THUMBNAILS_DIR` | Да | Директория для миниатюр | `./thumbnails` |
 | `JWT_SECRET` | Да | Секрет для JWT | Длинная случайная строка |
 | `TELEGRAM_BOT_TOKEN` | Да | Токен Telegram бота | `1234567890:ABC...` |
 | `TELEGRAM_ADMIN_ID` | Нет | ID главного администратора | `123456789` |
@@ -564,10 +570,10 @@ pnpm lint               # Линтинг
 pnpm format             # Форматирование кода
 
 # Prisma
-node prisma-wrapper.mjs migrate dev     # Создание миграции
-node prisma-wrapper.mjs migrate deploy  # Применение миграций
-node prisma-wrapper.mjs db seed         # Заполнение тестовыми данными
-node prisma-wrapper.mjs studio          # Prisma Studio (GUI для БД)
+npx prisma migrate dev     # Создание миграции
+npx prisma migrate deploy  # Применение миграций
+npx prisma db seed         # Заполнение тестовыми данными
+npx prisma studio          # Prisma Studio (GUI для БД)
 npx prisma generate                     # Генерация клиента
 
 # Frontend
