@@ -474,8 +474,8 @@
     },
     "sort": {
       "chronology": "Chronology (future → past)",
-      "scheduledOnly": "Scheduled Only",
-      "publishedOnly": "Published Only",
+      "byScheduled": "By Scheduled",
+      "byPublished": "By Published",
       "createdAt": "By Created Date",
       "scheduledAt": "By Scheduled Time",
       "publishedAt": "By Published Date",

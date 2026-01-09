@@ -90,8 +90,8 @@ const selectedLanguage = ref<string | null>(
 // Sorting options
 const sortOptionsComputed = computed(() => [
   { id: 'chronology', label: t('publication.sort.chronology'), icon: 'i-heroicons-calendar-days' },
-  { id: 'scheduledOnly', label: t('publication.sort.scheduledOnly'), icon: 'i-heroicons-clock' },
-  { id: 'publishedOnly', label: t('publication.sort.publishedOnly'), icon: 'i-heroicons-check-circle' },
+  { id: 'byScheduled', label: t('publication.sort.byScheduled'), icon: 'i-heroicons-clock' },
+  { id: 'byPublished', label: t('publication.sort.byPublished'), icon: 'i-heroicons-check-circle' },
   { id: 'createdAt', label: t('publication.sort.createdAt'), icon: 'i-heroicons-plus-circle' },
   { id: 'postDate', label: t('publication.sort.postDate'), icon: 'i-heroicons-calendar' }
 ])
@@ -99,7 +99,7 @@ const sortOptionsComputed = computed(() => [
 
 
 // Manual sorting state synced with URL
-type SortField = 'chronology' | 'scheduledOnly' | 'publishedOnly' | 'scheduledAt' | 'createdAt' | 'postDate' | 'publishedAt'
+type SortField = 'chronology' | 'byScheduled' | 'byPublished' | 'scheduledAt' | 'createdAt' | 'postDate' | 'publishedAt'
 const sortBy = ref<SortField>(
   (route.query.sortBy as SortField) || 'chronology'
 )

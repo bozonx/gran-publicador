@@ -339,8 +339,8 @@ export class PublicationsService {
     let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
     let customSort = false;
     
-    // For chronology, scheduledOnly, and publishedOnly, we need custom sorting
-    if (sortField === 'chronology' || sortField === 'scheduledOnly' || sortField === 'publishedOnly') {
+    // For chronology, byScheduled, and byPublished, we need custom sorting
+    if (sortField === 'chronology' || sortField === 'byScheduled' || sortField === 'byPublished') {
       customSort = true;
       // We'll sort after fetching
       orderBy = { createdAt: 'desc' }; // Default order for fetching
@@ -432,7 +432,7 @@ export class PublicationsService {
           // Fallback to createdAt
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
-      } else if (sortField === 'scheduledOnly') {
+      } else if (sortField === 'byScheduled') {
         // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
         sortedItems = items.sort((a, b) => {
           const aScheduled = a.scheduledAt;
@@ -452,7 +452,7 @@ export class PublicationsService {
           // Neither has scheduledAt: sort by createdAt
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
-      } else if (sortField === 'publishedOnly') {
+      } else if (sortField === 'byPublished') {
         // Published first (sorted by publishedAt), then others (sorted by createdAt)
         sortedItems = items.sort((a, b) => {
           const getLatestPublishedAt = (pub: any) => {
@@ -605,8 +605,8 @@ export class PublicationsService {
     let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
     let customSort = false;
     
-    // For chronology, scheduledOnly, and publishedOnly, we need custom sorting
-    if (sortField === 'chronology' || sortField === 'scheduledOnly' || sortField === 'publishedOnly') {
+    // For chronology, byScheduled, and byPublished, we need custom sorting
+    if (sortField === 'chronology' || sortField === 'byScheduled' || sortField === 'byPublished') {
       customSort = true;
       // We'll sort after fetching
       orderBy = { createdAt: 'desc' }; // Default order for fetching
@@ -700,7 +700,7 @@ export class PublicationsService {
           // Fallback to createdAt
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
-      } else if (sortField === 'scheduledOnly') {
+      } else if (sortField === 'byScheduled') {
         // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
         sortedItems = items.sort((a, b) => {
           const aScheduled = a.scheduledAt;
@@ -720,7 +720,7 @@ export class PublicationsService {
           // Neither has scheduledAt: sort by createdAt
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
-      } else if (sortField === 'publishedOnly') {
+      } else if (sortField === 'byPublished') {
         // Published first (sorted by publishedAt), then others (sorted by createdAt)
         sortedItems = items.sort((a, b) => {
           const getLatestPublishedAt = (pub: any) => {

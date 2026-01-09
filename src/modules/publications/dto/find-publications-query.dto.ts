@@ -9,8 +9,8 @@ import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client
  */
 export enum PublicationSortBy {
   CHRONOLOGY = 'chronology',
-  SCHEDULED_ONLY = 'scheduledOnly',
-  PUBLISHED_ONLY = 'publishedOnly',
+  BY_SCHEDULED = 'byScheduled',
+  BY_PUBLISHED = 'byPublished',
   CREATED_AT = 'createdAt',
   SCHEDULED_AT = 'scheduledAt',
   PUBLISHED_AT = 'publishedAt',
