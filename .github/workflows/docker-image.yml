@@ -10,7 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      DATA_DIR: ./data
+      DATABASE_URL: "file:./data/db.db"
+      MEDIA_DIR: "./data/media"
+      THUMBNAILS_DIR: "./data/thumbnails"
     permissions:
       contents: read
       packages: write
