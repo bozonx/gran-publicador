@@ -199,7 +199,7 @@ function toggleSortOrder() {
 
 // Count badge - use server total count
 const nonArchivedChannelsCount = computed(() => {
-    return showArchivedFilter.value ? 0 : totalCount.value
+    return totalCount.value
 })
 
 // Project filter options
@@ -430,6 +430,7 @@ const showPagination = computed(() => {
          :key="channel.id"
          :channel="channel"
          :show-project="true"
+         :is-archived="!!channel.archivedAt"
        />
     </div>
 
@@ -456,6 +457,7 @@ const showPagination = computed(() => {
          :key="channel.id"
          :channel="channel"
          :show-project="true"
+         :is-archived="!!channel.archivedAt"
        />
     </div>
 

@@ -70,10 +70,6 @@ const warningsTooltip = computed(() => {
         <div class="flex-1 min-w-0">
           <!-- Header: Name + Role + Problem Badges -->
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <div 
-              class="w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300"
-              :class="getIndicatorColor(problemLevel)"
-            ></div>
             <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate max-w-full">
               {{ project.name }}
             </h3>

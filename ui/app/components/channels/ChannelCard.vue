@@ -17,12 +17,13 @@ const hasCredentials = computed(() => {
 
 const { getChannelProblemLevel } = useChannels()
 const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel))
+const isChannelArchived = computed(() => props.isArchived || !!props.channel.archivedAt)
 </script>
 
 <template>
   <div
     class="app-card app-card-hover p-4 cursor-pointer relative flex flex-col h-full"
-    :class="{ 'opacity-60 grayscale': isArchived }"
+    :class="{ 'opacity-60 grayscale': isChannelArchived }"
     @click="navigateTo(`/channels/${channel.id}`)"
   >
     <!-- Header with icon and name -->

@@ -61,13 +61,13 @@ function getProblemText(problem: { key: string, count?: number }) {
               <div class="flex items-center gap-2">
                 <span>{{ getProblemText(problem) }}</span>
                 <UButton
-                  v-if="problem.key === 'missingCredentials' && route.params.channelId"
+                  v-if="problem.key === 'noCredentials' && entityType === 'channel' && route.params.id"
                   size="xs"
                   color="error" 
                   variant="soft"
-                  :to="`/channels/${route.params.channelId}/settings#credentials`"
+                  :to="`/channels/${route.params.id}/settings#credentials`"
                 >
-                  {{ t('common.add') }}
+                  {{ t('common.edit') }}
                 </UButton>
               </div>
             </li>

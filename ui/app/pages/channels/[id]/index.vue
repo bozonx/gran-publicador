@@ -364,15 +364,7 @@ const channelProblems = computed(() => {
 
 
 
-                                <NuxtLink
-                                    v-if="!hasCredentials" 
-                                    :to="`/channels/${channel.id}/settings#credentials`"
-                                    class="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-medium hover:text-amber-600 dark:hover:text-amber-300 transition-colors"
-                                    :title="t('channel.noCredentials')"
-                                >
-                                    <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4" />
-                                    {{ t('channel.noCredentials') }}
-                                </NuxtLink>
+
                             </div>
 
                             <p 
