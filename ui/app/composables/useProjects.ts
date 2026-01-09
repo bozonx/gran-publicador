@@ -357,7 +357,7 @@ export function useProjects() {
         if (project.noCredentialsChannelsCount > 0) {
             problems.push({ 
                 type: 'critical', 
-                key: 'criticalChannels', 
+                key: 'noCredentials', 
                 count: project.noCredentialsChannelsCount 
             })
         }
@@ -366,7 +366,7 @@ export function useProjects() {
         if (project.inactiveChannelsCount > 0) {
             problems.push({ 
                 type: 'warning', 
-                key: 'warningChannels', 
+                key: 'inactiveChannels', 
                 count: project.inactiveChannelsCount 
             })
         }

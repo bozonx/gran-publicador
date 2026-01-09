@@ -143,8 +143,8 @@ function getProjectTooltip(project: ProjectWithRole) {
     if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
     if (p.key === 'staleChannels') return t('problems.project.staleChannels', { count: p.count })
     if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
-    if (p.key === 'criticalChannels') return t('problems.project.criticalChannels', { count: p.count })
-    if (p.key === 'warningChannels') return t('problems.project.warningChannels', { count: p.count })
+    if (p.key === 'noCredentials') return t('problems.project.noCredentials', { count: p.count })
+    if (p.key === 'inactiveChannels') return t('problems.project.inactiveChannels', { count: p.count })
     return t(`problems.project.${p.key}`, p.count ? { count: p.count } : {})
   }).join(', ')
 }

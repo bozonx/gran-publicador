@@ -591,8 +591,8 @@
       "warningProblems": "{count} important problem | {count} important problems",
       "problemChannels": "{count} channel with problems | {count} channels with problems",
       "problemPublications": "{count} publication with problems | {count} publications with problems",
-      "criticalChannels": "{count} channel with critical problems | {count} channels with critical problems",
-      "warningChannels": "{count} channel needs attention | {count} channels need attention",
+      "noCredentials": "{count} channel without credentials | {count} channels without credentials",
+      "inactiveChannels": "{count} inactive channel (disabled) | {count} inactive channels (disabled)",
       "staleChannels": "{count} stale channel | {count} stale channels",
       "noRecentActivity": "No activity for more than 3 days"
     }
