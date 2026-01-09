@@ -637,7 +637,7 @@ const emit = defineEmits<Emits>()
         
         <div class="space-y-4">
           <div class="flex items-end gap-3 w-full">
-            <UFormGroup :label="t('media.sourceType', 'Источник')" required class="flex-none w-48">
+            <UFormField :label="t('media.sourceType', 'Источник')" required class="flex-none w-48">
               <USelectMenu
                 v-model="sourceType"
                 :items="sourceTypeOptions"
@@ -647,9 +647,9 @@ const emit = defineEmits<Emits>()
                 class="w-full"
                 :ui-menu="{ width: 'w-48' }"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup :label="t('media.mediaType', 'Тип')" required class="flex-none w-48">
+            <UFormField :label="t('media.mediaType', 'Тип')" required class="flex-none w-48">
               <USelectMenu
                 v-model="mediaType"
                 :items="mediaTypeOptions"
@@ -659,9 +659,9 @@ const emit = defineEmits<Emits>()
                 class="w-full"
                 :ui-menu="{ width: 'w-48' }"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup :label="t('media.filename', 'Имя файла')" class="flex-1">
+            <UFormField :label="t('media.filename', 'Имя файла')" class="flex-1">
               <UInput
                 v-model="filenameInput"
                 placeholder="image.jpg"
@@ -669,11 +669,11 @@ const emit = defineEmits<Emits>()
                 class="w-full"
                 @keydown.enter.prevent="addMedia"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
 
           <div class="w-full">
-            <UFormGroup 
+            <UFormField 
               :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
               required
               class="w-full"
@@ -686,7 +686,7 @@ const emit = defineEmits<Emits>()
                 class="w-full"
                 @keydown.enter.prevent="addMedia"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
 
           <div class="flex gap-3 pt-2">

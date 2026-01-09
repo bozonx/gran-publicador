@@ -426,7 +426,7 @@ function toggleChannel(channelId: string) {
           <!-- Status (Only when creating) -->
           <UFormField v-if="!isEditMode" name="status" :label="t('post.status')" required>
                 <div class="flex items-center gap-2">
-                  <UButtonGroup orientation="horizontal" size="sm" class="shadow-sm">
+                  <UGroup size="sm" class="shadow-sm">
                       <UButton
                         v-for="option in displayStatusOptions"
                         :key="option.value"
@@ -437,7 +437,7 @@ function toggleChannel(channelId: string) {
                         class="rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
                         @click="state.status = option.value as any"
                       />
-                  </UButtonGroup>
+                  </UGroup>
                   
                   <UPopover :popper="{ placement: 'top' }">
                      <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />

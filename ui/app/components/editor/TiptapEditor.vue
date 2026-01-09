@@ -48,6 +48,9 @@ const extensions = [
     heading: {
       levels: [1, 2, 3],
     },
+    // Disable link if it is included in StarterKit to avoid duplicates with our explicit Link extension
+    // link: false, // Commented out to verify. Actually, if I keep link: false and remove the directive:
+    link: false,
   }),
   Markdown,
   Link.configure({
