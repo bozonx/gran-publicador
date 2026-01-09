@@ -586,13 +586,14 @@
       "hasProblems": "Has problems"
     },
     "project": {
-      "criticalProblems": "{count} critical problems",
-      "warningProblems": "{count} important problems",
-      "problemChannels": "{count} channels with problems",
-      "problemPublications": "{count} publications with problems",
-      "criticalChannels": "{count} channels with critical problems",
-      "warningChannels": "{count} channels need attention",
-      "staleChannels": "{count} stale channels",
+      "failedPosts": "{count} failed post | {count} failed posts",
+      "criticalProblems": "{count} critical problem | {count} critical problems",
+      "warningProblems": "{count} important problem | {count} important problems",
+      "problemChannels": "{count} channel with problems | {count} channels with problems",
+      "problemPublications": "{count} publication with problems | {count} publications with problems",
+      "criticalChannels": "{count} channel with critical problems | {count} channels with critical problems",
+      "warningChannels": "{count} channel needs attention | {count} channels need attention",
+      "staleChannels": "{count} stale channel | {count} stale channels",
       "noRecentActivity": "No activity for more than 3 days"
     }
   },

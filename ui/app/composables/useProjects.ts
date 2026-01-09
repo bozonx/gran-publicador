@@ -351,9 +351,6 @@ export function useProjects() {
             if (diffDays > 3) {
                 problems.push({ type: 'warning', key: 'noRecentActivity' })
             }
-        } else {
-            // No publications ever is also a warning
-            problems.push({ type: 'warning', key: 'noRecentActivity' })
         }
 
         // Check for channels without credentials (critical)

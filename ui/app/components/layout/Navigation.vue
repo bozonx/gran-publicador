@@ -141,9 +141,11 @@ function getProjectTooltip(project: ProjectWithRole) {
   return problems.map(p => {
     if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
     if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
-    if (p.key === 'staleChannels') return `${p.count} ` + t('common.stale').toLowerCase()
+    if (p.key === 'staleChannels') return t('problems.project.staleChannels', { count: p.count })
     if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
-    return p.key
+    if (p.key === 'criticalChannels') return t('problems.project.criticalChannels', { count: p.count })
+    if (p.key === 'warningChannels') return t('problems.project.warningChannels', { count: p.count })
+    return t(`problems.project.${p.key}`, p.count ? { count: p.count } : {})
   }).join(', ')
 }
 </script>
@@ -192,7 +194,13 @@ function getProjectTooltip(project: ProjectWithRole) {
                   class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
                   :class="getIndicatorColor(project)"
                 ></div>
-                <span class="truncate">{{ project.name }}</span>
+                <span class="truncate flex-1">{{ project.name }}</span>
+                <UIcon 
+                  v-if="getProjectProblemLevel(project)" 
+                  name="i-heroicons-exclamation-triangle" 
+                  class="w-4 h-4 shrink-0 transition-colors"
+                  :class="getProjectProblemLevel(project) === 'critical' ? 'text-red-500' : 'text-yellow-500'"
+                />
               </NuxtLink>
             </UTooltip>
             

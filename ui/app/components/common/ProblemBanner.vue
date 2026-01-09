@@ -26,8 +26,8 @@ const hasWarning = computed(() => warningProblems.value.length > 0)
 
 function getProblemText(problem: { key: string, count?: number }) {
   const key = `problems.${props.entityType}.${problem.key}`
-  return problem.count 
-    ? t(key, { count: problem.count })
+  return problem.count !== undefined 
+    ? t(key, problem.count) 
     : t(key)
 }
 </script>
@@ -56,7 +56,7 @@ function getProblemText(problem: { key: string, count?: number }) {
         </template>
         
         <template #description>
-          <ul class="list-disc list-inside space-y-1 mt-2">
+          <ul class="list-disc ml-5 space-y-1 mt-2">
             <li v-for="problem in criticalProblems" :key="problem.key" class="text-sm">
               <div class="flex items-center gap-2">
                 <span>{{ getProblemText(problem) }}</span>
@@ -98,7 +98,7 @@ function getProblemText(problem: { key: string, count?: number }) {
         </template>
         
         <template #description>
-          <ul class="list-disc list-inside space-y-1 mt-2">
+          <ul class="list-disc ml-5 space-y-1 mt-2">
             <li v-for="problem in warningProblems" :key="problem.key" class="text-sm">
               {{ getProblemText(problem) }}
             </li>

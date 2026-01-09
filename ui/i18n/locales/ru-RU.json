@@ -623,13 +623,14 @@
       "hasProblems": "Есть проблемы"
     },
     "project": {
-      "criticalProblems": "{count} критических проблем",
-      "warningProblems": "{count} важных проблем",
-      "problemChannels": "{count} каналов с проблемами",
-      "problemPublications": "{count} публикаций с проблемами",
-      "criticalChannels": "{count} каналов с критическими проблемами",
-      "warningChannels": "{count} каналов требуют внимания",
-      "staleChannels": "{count} неактивных каналов",
+      "failedPosts": "{count} проваленный пост | {count} проваленных поста | {count} проваленных постов",
+      "criticalProblems": "{count} критическая проблема | {count} критические проблемы | {count} критических проблем",
+      "warningProblems": "{count} важная проблема | {count} важные проблемы | {count} важных проблем",
+      "problemChannels": "{count} канал с проблемами | {count} канала с проблемами | {count} каналов с проблемами",
+      "problemPublications": "{count} публикация с проблемами | {count} публикации с проблемами | {count} публикаций с проблемами",
+      "criticalChannels": "{count} канал с критическими проблемами | {count} канала с критическими проблемами | {count} каналов с критическими проблемами",
+      "warningChannels": "{count} канал требует внимания | {count} канала требуют внимания | {count} каналов требуют внимания",
+      "staleChannels": "{count} неактивный канал | {count} неактивных канала | {count} неактивных каналов",
       "noRecentActivity": "Нет активности более 3 дней"
     }
   },
