@@ -8,6 +8,7 @@ import {
   Post, 
   Req, 
   Res, 
+  Request,
   BadRequestException,
   UseGuards
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import type { MultipartFile } from '@fastify/multipart';
 import { MediaService } from './media.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
+import { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 
 @Controller('media')
 export class MediaController {
@@ -102,10 +104,22 @@ export class MediaController {
     return this.mediaService.streamMediaFile(id, res.raw, undefined, range);
   }
 
+  /**
+   * Get a single media item by ID.
+   */
   @Get(':id')
-  @UseGuards(JwtOrApiTokenGuard)
-  findOne(@Param('id') id: string) {
+  public async findOne(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
     return this.mediaService.findOne(id);
+  }
+
+  /**
+   * Get EXIF metadata for a media item.
+   */
+  @Get(':id/exif')
+  public async getExif(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
+    return this.mediaService.getExif(id);
   }
 
   @Patch(':id')

@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { join, normalize, basename } from 'path';
-import { mkdir, writeFile, unlink, stat } from 'fs/promises';
+import { mkdir, writeFile, unlink, stat, readFile } from 'fs/promises';
 import { Readable } from 'stream';
 import { createReadStream, existsSync } from 'fs';
 import { randomUUID } from 'crypto';
@@ -352,82 +352,94 @@ export class MediaService {
   }
 
   /**
-   * Extract image metadata using sharp.
+   * Extract basic image metadata using sharp.
    */
   private async extractImageMetadata(buffer: Buffer): Promise<Record<string, any>> {
     try {
-      // console.log(`[DEBUG] sharp versions: ${JSON.stringify(sharp.versions)}`);
-      // this.logger.debug(`sharp versions: ${JSON.stringify(sharp.versions)}`);
       const image = sharp(buffer);
       const metadata = await image.metadata();
       
-      // console.log(`[DEBUG] sharp metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}, hasExif=${!!metadata.exif}`);
-      // this.logger.debug(`sharp metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}, hasExif=${!!metadata.exif}`);
-
-      const result: Record<string, any> = {
+      return {
         width: metadata.width,
         height: metadata.height,
         format: metadata.format,
         orientation: metadata.orientation,
       };
-
-      // Extract EXIF data if present
-      if (metadata.exif) {
-        try {
-          // Handle potential ESM/CJS interop issues with exif-reader
-          let reader = exifReader as any;
-          if (typeof reader !== 'function' && typeof reader.default === 'function') {
-            reader = reader.default;
-          }
-
-          if (typeof reader === 'function') {
-            const exif = reader(metadata.exif);
-            
-            if (exif) {
-              if (exif.image) {
-                result.orientation = exif.image.Orientation || result.orientation;
-                if (exif.image.ModifyDate) {
-                  result.capturedAt = exif.image.ModifyDate.toISOString();
-                }
-              }
-              
-              if (exif.exif) {
-                if (exif.exif.DateTimeOriginal) {
-                  result.capturedAt = exif.exif.DateTimeOriginal.toISOString();
-                }
-              }
-              
-              const gps = exif.gps || exif.GPSInfo; // Handle different casing if needed
-              if (gps) {
-                // Convert GPS coordinates to decimal
-                const convertGps = (coords: number[], ref: string) => {
-                  let decimal = coords[0] + coords[1] / 60 + coords[2] / 3600;
-                  if (ref === 'S' || ref === 'W') decimal = -decimal;
-                  return decimal;
-                };
-
-                if (gps.GPSLatitude && gps.GPSLatitudeRef && 
-                    gps.GPSLongitude && gps.GPSLongitudeRef) {
-                  result.location = {
-                    lat: convertGps(gps.GPSLatitude, gps.GPSLatitudeRef),
-                    lng: convertGps(gps.GPSLongitude, gps.GPSLongitudeRef)
-                  };
-                }
-              }
-            }
-          } else {
-             this.logger.warn(`exif-reader is not a function: ${typeof reader}`);
-          }
-        } catch (e) {
-          this.logger.warn(`Error parsing EXIF: ${(e as Error).message}`);
-        }
-      }
-
-      return result;
     } catch (error) {
        this.logger.error(`Error in extractImageMetadata: ${(error as Error).message}`);
-       throw error;
+       return {}; // Return empty if failed instead of throwing to allow save to continue
     }
+  }
+
+  /**
+   * Get full EXIF metadata for a media file on demand.
+   */
+  async getExif(id: string): Promise<Record<string, any>> {
+    const media = await this.prisma.media.findUnique({ where: { id } });
+    if (!media) throw new NotFoundException('Media not found');
+    
+    if (media.storageType !== StorageType.FS) {
+      throw new BadRequestException('EXIF extraction is only supported for local filesystem storage');
+    }
+
+    // Normalize and validate path to prevent traversal
+    const safePath = normalize(join(this.mediaDir, media.storagePath));
+    if (!safePath.startsWith(this.mediaDir)) {
+      throw new BadRequestException('Invalid file path');
+    }
+
+    try {
+      const buffer = await readFile(safePath);
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+      
+      if (!metadata.exif) {
+        return {};
+      }
+
+      // Handle potential ESM/CJS interop issues with exif-reader
+      let reader = exifReader as any;
+      if (typeof reader !== 'function' && typeof reader.default === 'function') {
+        reader = reader.default;
+      }
+
+      if (typeof reader === 'function') {
+        const exif = reader(metadata.exif);
+        // Normalize buffers in EXIF to prevent issues with JSON serialization
+        return this.normalizeExif(exif);
+      }
+      
+      return {};
+    } catch (e) {
+      this.logger.error(`Failed to extract EXIF for media ${id}: ${(e as Error).message}`);
+      return {};
+    }
+  }
+
+  /**
+   * Recursively convert Buffers in EXIF data to hex strings or similar 
+   * to ensure they can be serialized to JSON.
+   */
+  private normalizeExif(data: any): any {
+    if (!data) return data;
+    
+    if (Buffer.isBuffer(data)) {
+      return data.toString('hex');
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(item => this.normalizeExif(item));
+    }
+    
+    if (typeof data === 'object') {
+      const result: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        result[key] = this.normalizeExif(value);
+      }
+      return result;
+    }
+    
+    return data;
   }
 
   /**
@@ -506,7 +518,7 @@ export class MediaService {
    * If media is linked to a project (via publication), user must have access to that project.
    * If media is orphaned (not linked to any publication), it is considered accessible to any authenticated user (or we could restrict to creator).
    */
-  private async checkMediaAccess(mediaId: string, userId: string): Promise<void> {
+  public async checkMediaAccess(mediaId: string, userId: string): Promise<void> {
       // Fetch media with its publication associations
       const media = await this.prisma.media.findUnique({
           where: { id: mediaId },

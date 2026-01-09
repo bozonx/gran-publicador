@@ -162,6 +162,19 @@ export function useMedia() {
     }
   }
 
+  async function fetchExif(id: string): Promise<Record<string, any>> {
+    isLoading.value = true
+    error.value = null
+    try {
+      return await api.get<Record<string, any>>(`/media/${id}/exif`)
+    } catch (err: any) {
+      error.value = err.message || 'Failed to fetch EXIF'
+      return {}
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     isLoading,
     error,
@@ -174,6 +187,7 @@ export function useMedia() {
     addMediaToPublication,
     removeMediaFromPublication,
     reorderMediaInPublication,
+    fetchExif,
   }
 }
 
