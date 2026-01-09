@@ -81,20 +81,47 @@ CREATE TABLE "publications" (
     "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "archived_at" DATETIME,
     "archived_by" TEXT,
+    "scheduled_at" DATETIME,
+    "processing_started_at" DATETIME,
+    "post_type" TEXT NOT NULL DEFAULT 'POST',
+    "language" TEXT NOT NULL DEFAULT 'ru-RU',
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "title" TEXT,
     "description" TEXT,
     "content" TEXT,
     "author_comment" TEXT,
     "tags" TEXT,
-    "media_files" TEXT NOT NULL DEFAULT '[]',
     "meta" TEXT NOT NULL DEFAULT '{}',
-    "post_type" TEXT NOT NULL DEFAULT 'POST',
     "post_date" DATETIME,
-    "status" TEXT NOT NULL DEFAULT 'DRAFT',
-    "language" TEXT NOT NULL DEFAULT 'ru-RU',
-    "scheduled_at" DATETIME,
+    "note" TEXT,
+    "source_texts" TEXT NOT NULL DEFAULT '[]',
     CONSTRAINT "publications_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "publications_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "media" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "type" TEXT NOT NULL,
+    "storage_type" TEXT NOT NULL,
+    "storage_path" TEXT NOT NULL,
+    "filename" TEXT,
+    "mime_type" TEXT,
+    "size_bytes" INTEGER,
+    "meta" TEXT NOT NULL DEFAULT '{}',
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "publication_media" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "publication_id" TEXT NOT NULL,
+    "media_id" TEXT,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "publication_media_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "publication_media_media_id_fkey" FOREIGN KEY ("media_id") REFERENCES "media" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -105,6 +132,9 @@ CREATE TABLE "posts" (
     "social_media" TEXT NOT NULL,
     "tags" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "error_message" TEXT,
+    "meta" TEXT NOT NULL DEFAULT '{}',
+    "content" TEXT,
     "scheduled_at" DATETIME,
     "published_at" DATETIME,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -142,6 +172,18 @@ CREATE INDEX "publications_project_id_created_at_idx" ON "publications"("project
 
 -- CreateIndex
 CREATE INDEX "publications_project_id_scheduled_at_idx" ON "publications"("project_id", "scheduled_at");
+
+-- CreateIndex
+CREATE INDEX "media_type_idx" ON "media"("type");
+
+-- CreateIndex
+CREATE INDEX "media_storage_type_idx" ON "media"("storage_type");
+
+-- CreateIndex
+CREATE INDEX "publication_media_publication_id_idx" ON "publication_media"("publication_id");
+
+-- CreateIndex
+CREATE INDEX "publication_media_media_id_idx" ON "publication_media"("media_id");
 
 -- CreateIndex
 CREATE INDEX "posts_status_scheduled_at_idx" ON "posts"("status", "scheduled_at");
