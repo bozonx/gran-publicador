@@ -226,6 +226,9 @@ const channelOptions = computed(() => {
     label: channel.name,
     socialMedia: channel.socialMedia,
     language: channel.language,
+    isActive: channel.isActive,
+    archivedAt: channel.archivedAt,
+    isDisabled: !channel.isActive || !!channel.archivedAt,
   }))
 })
 
@@ -388,21 +391,44 @@ function toggleChannel(channelId: string) {
                 <div 
                     v-for="channel in channelOptions" 
                     :key="channel.value" 
-                    class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
-                    @click="toggleChannel(channel.value)"
+                    :class="[
+                      'flex items-center justify-between p-3 border rounded-lg transition-colors',
+                      channel.isDisabled 
+                        ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 opacity-60 cursor-not-allowed' 
+                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer'
+                    ]"
+                    @click="!channel.isDisabled && toggleChannel(channel.value)"
                 >
                     <div class="flex items-center gap-2">
                         <UCheckbox 
                             :model-value="state.channelIds.includes(channel.value)"
-                            @update:model-value="toggleChannel(channel.value)"
+                            :disabled="channel.isDisabled"
+                            @update:model-value="!channel.isDisabled && toggleChannel(channel.value)"
                             class="pointer-events-none" 
                         />
-                        <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
+                        <span :class="[
+                          'text-sm font-medium truncate max-w-32',
+                          channel.isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'
+                        ]">
                             {{ channel.label }}
                         </span>
                     </div>
                     
                     <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                        <!-- Inactive badge -->
+                        <UTooltip v-if="!channel.isActive" :text="t('channel.inactiveTooltip', 'Channel is inactive and cannot publish posts')">
+                          <UBadge color="warning" variant="subtle" size="xs">
+                            {{ t('channel.inactive') }}
+                          </UBadge>
+                        </UTooltip>
+                        
+                        <!-- Archived badge -->
+                        <UTooltip v-if="channel.archivedAt" :text="t('channel.archivedTooltip', 'Channel is archived and cannot publish posts')">
+                          <UBadge color="neutral" variant="subtle" size="xs">
+                            {{ t('common.archived') }}
+                          </UBadge>
+                        </UTooltip>
+                        
                         <span class="text-xxs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded flex items-center gap-1 font-mono uppercase">
                             <UIcon name="i-heroicons-language" class="w-3 h-3" />
                             {{ channel.language }}

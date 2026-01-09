@@ -285,6 +285,8 @@
     "isActiveHelp": "Deactivated channels are not used for publishing",
     "active": "Active",
     "inactive": "Inactive",
+    "inactiveTooltip": "Channel is inactive and cannot publish posts. Activate the channel to resume publishing.",
+    "archivedTooltip": "Channel is archived and cannot publish posts. Restore the channel from archive to resume operation.",
     "activate": "Activate",
     "deactivate": "Deactivate",
     "createChannel": "Create channel",

@@ -48,7 +48,36 @@ const stats = computed(() => {
     }
   }
 
-  // ... (publications and channels logic remains)
+  // Count publication problems
+  if (publications.value && Array.isArray(publications.value.items)) {
+    publications.value.items.forEach((publication: any) => {
+      const level = getPublicationProblemLevel(publication)
+      if (level === 'critical') result.critical++
+      else if (level === 'warning') result.warning++
+
+      // Count specific publication issues
+      if (publication.status === 'FAILED') result.publications.failed++
+      if (publication.status === 'PARTIAL') result.publications.partial++
+      if (publication.status === 'EXPIRED') result.publications.expired++
+    })
+  }
+
+  // Count channel problems
+  if (channels.value && Array.isArray(channels.value.items)) {
+    channels.value.items.forEach((channel: any) => {
+      const level = getChannelProblemLevel(channel)
+      if (level === 'critical') result.critical++
+      else if (level === 'warning') result.warning++
+
+      const problems = getChannelProblems(channel)
+      
+      // Count specific channel issues
+      if (problems.some(p => p.key === 'noCredentials')) result.channels.noCredentials++
+      if (problems.some(p => p.key === 'failedPosts')) result.channels.failedPosts++
+      if (problems.some(p => p.key === 'staleChannel')) result.channels.stale++
+      if (problems.some(p => p.key === 'inactiveChannel')) result.channels.inactive++
+    })
+  }
 
   // Count project problems
   if (projects.value && Array.isArray(projects.value)) {
