@@ -8,6 +8,7 @@ import { usePosts } from '~/composables/usePosts'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 import { getUserSelectableStatuses } from '~/utils/publications'
+import { isTextContentEmpty } from '~/utils/text'
 import SourceTextsManager from '~/components/forms/SourceTextsManager.vue'
 
 import type { PostType, PublicationStatus } from '~/types/posts'
@@ -88,7 +89,7 @@ const isEditMode = computed(() => !!props.publication?.id)
 const showAdvancedFields = ref(false)
 
 const hasMedia = computed(() => {
-    return props.publication?.media && props.publication.media.length > 0
+    return Array.isArray(props.publication?.media) && props.publication!.media.length > 0
 })
 
 // Validation Schema
@@ -121,7 +122,7 @@ const schema = computed(() => z.object({
     })
   }
 
-  if ((val.status === 'READY' || val.scheduledAt) && (!val.content || val.content.trim() === '') && !hasMedia.value) {
+  if ((val.status === 'READY' || val.scheduledAt) && isTextContentEmpty(val.content) && !hasMedia.value) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: t('publication.validation.contentOrMediaRequired', 'Content or Media is required'),
@@ -469,7 +470,7 @@ function toggleChannel(channelId: string) {
                         size="sm"
                         :color="state.status === option.value ? 'primary' : 'neutral'"
                         :variant="state.status === option.value ? 'solid' : 'soft'"
-                        :disabled="option.value === 'READY' && (!state.content || state.content.trim() === '') && !hasMedia && state.status === 'DRAFT'"
+                        :disabled="option.value === 'READY' && isTextContentEmpty(state.content) && !hasMedia && state.status === 'DRAFT'"
                         class="focus:z-10 rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
                         @click="state.status = option.value as any"
                       />

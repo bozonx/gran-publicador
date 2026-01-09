@@ -15,6 +15,40 @@ export class PublicationsService {
     private permissions: PermissionsService,
   ) { }
 
+  private readonly PUBLICATION_WITH_RELATIONS_INCLUDE = {
+    creator: {
+      select: {
+        id: true,
+        fullName: true,
+        telegramUsername: true,
+        avatarUrl: true,
+      },
+    },
+    project: true,
+    posts: {
+      include: {
+        channel: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                archivedAt: true,
+              }
+            }
+          }
+        },
+      },
+    },
+    media: {
+      include: {
+        media: true,
+      },
+      orderBy: {
+        order: 'asc' as const
+      }
+    }
+  };
+
   /**
    * Build WHERE clause for publication queries with filters.
    * Extracted to avoid code duplication between findAll and findAllForUser.
@@ -291,6 +325,7 @@ export class PublicationsService {
         meta: JSON.stringify(data.meta ?? {}),
         sourceTexts: data.sourceTexts ? JSON.stringify(data.sourceTexts) : '[]',
       },
+      include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
 
     const author = userId ? `user ${userId}` : 'external system';
@@ -803,30 +838,7 @@ export class PublicationsService {
       where: {
         id,
       },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            fullName: true,
-            telegramUsername: true,
-            avatarUrl: true,
-          },
-        },
-        project: true,
-        posts: {
-          include: {
-            channel: true,
-          },
-        },
-        media: {
-          include: {
-            media: true,
-          },
-          orderBy: {
-            order: 'asc'
-          }
-        }
-      },
+      include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
 
     if (!publication) {
@@ -1061,6 +1073,7 @@ export class PublicationsService {
         meta: data.meta ? JSON.stringify(data.meta) : undefined,
         sourceTexts: data.sourceTexts !== undefined ? JSON.stringify(data.sourceTexts) : undefined,
       },
+      include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
 
     return {

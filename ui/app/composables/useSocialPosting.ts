@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import type { PublicationStatus, PostStatus } from '~/types/posts';
+import { isTextContentEmpty } from '~/utils/text';
 
 interface PublishResponse {
   success: boolean;
@@ -69,8 +70,8 @@ export const useSocialPosting = () => {
     if (!publication) return false;
 
     // Check if publication has content or media
-    const hasContent = !!(publication.content && publication.content.trim());
-    const hasMedia = publication.media && publication.media.length > 0;
+    const hasContent = !isTextContentEmpty(publication.content);
+    const hasMedia = Array.isArray(publication.media) && publication.media.length > 0;
 
     if (!hasContent && !hasMedia) {
       return false;
@@ -98,8 +99,8 @@ export const useSocialPosting = () => {
     const pub = publication || post.publication;
     if (!pub) return false;
 
-    const hasContent = !!(pub.content && pub.content.trim());
-    const hasMedia = pub.media && pub.media.length > 0;
+    const hasContent = !isTextContentEmpty(pub.content);
+    const hasMedia = Array.isArray(pub.media) && pub.media.length > 0;
 
     if (!hasContent && !hasMedia) {
       return false;

@@ -3,7 +3,7 @@ import { useProjects } from '~/composables/useProjects'
 import { usePublications } from '~/composables/usePublications'
 import { useChannels } from '~/composables/useChannels'
 import { usePosts } from '~/composables/usePosts'
-import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
@@ -75,11 +75,11 @@ const allPostsPublished = computed(() => {
 })
 
 const isContentEmpty = computed(() => {
-    return !currentPublication.value?.content || currentPublication.value.content.trim() === ''
+    return isTextContentEmpty(currentPublication.value?.content)
 })
 
 const hasMedia = computed(() => {
-    return currentPublication.value?.media && currentPublication.value.media.length > 0
+    return Array.isArray(currentPublication.value?.media) && currentPublication.value!.media.length > 0
 })
 
 const isContentOrMediaMissing = computed(() => {

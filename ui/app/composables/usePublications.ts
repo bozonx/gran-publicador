@@ -385,6 +385,11 @@ export function usePublications() {
         if (failedPostsCount > 0 && publication.status !== 'FAILED' && publication.status !== 'PARTIAL') {
             problems.push({ type: 'warning', key: 'postsHaveErrors', count: failedPostsCount })
         }
+
+        // Check for channel problems (missing credentials, inactive, etc)
+        if (hasChannelProblems(publication)) {
+            problems.push({ type: 'critical', key: 'channelProblems' })
+        }
         
         return problems
     }

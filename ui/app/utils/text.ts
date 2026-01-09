@@ -34,3 +34,15 @@ export function stripHtmlAndSpecialChars(content: string | null | undefined): st
   return clean.replace(/\s+/g, ' ').trim()
 }
 
+/**
+ * Checks if the content is logically empty, ignoring HTML tags
+ * and whitespace. Useful for validating Tiptap editor content.
+ */
+export function isTextContentEmpty(content: string | null | undefined): boolean {
+  if (!content) return true
+  
+  // Strip HTML tags and special chars, then check what's left
+  const stripped = stripHtmlAndSpecialChars(content)
+  return stripped.length === 0
+}
+
