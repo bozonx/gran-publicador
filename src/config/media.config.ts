@@ -2,10 +2,9 @@ import { join, resolve } from 'path';
 
 /**
  * Gets the MEDIA_DIR from environment variables.
- * Defaults to DATA_DIR/media if MEDIA_DIR is not explicitly set.
  *
  * @returns The absolute path to the media directory.
- * @throws Error if DATA_DIR is not set (and MEDIA_DIR is not set).
+ * @throws Error if MEDIA_DIR is not set.
  */
 export function getMediaDir(): string {
   if (process.env.MEDIA_DIR) {

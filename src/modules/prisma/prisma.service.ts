@@ -10,8 +10,7 @@ import { dirname } from 'path';
  * Service that extends PrismaClient to handle database connections.
  * Manages lifecycle events for connection and disconnection.
  * Uses better-sqlite3 adapter for Prisma 7 compatibility.
- * Database URL is automatically constructed from DATA_DIR environment variable.
- * DATA_DIR is REQUIRED - service will fail to initialize if not set.
+ * Database URL is automatically constructed from DATABASE_URL environment variable.
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
