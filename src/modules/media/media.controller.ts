@@ -93,10 +93,12 @@ export class MediaController {
   @Get(':id/file')
   async getFile(
     @Param('id') id: string, 
+    @Req() req: FastifyRequest,
     @Res() res: FastifyReply
   ) {
     // Stream media file - res.raw is the native Node.js ServerResponse
-    return this.mediaService.streamMediaFile(id, res.raw);
+    const range = req.headers.range;
+    return this.mediaService.streamMediaFile(id, res.raw, undefined, range);
   }
 
   @Get(':id')

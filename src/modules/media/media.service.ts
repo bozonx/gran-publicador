@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { join, normalize, basename } from 'path';
-import { mkdir, writeFile, unlink } from 'fs/promises';
+import { mkdir, writeFile, unlink, stat } from 'fs/promises';
 import { Readable } from 'stream';
 import { createReadStream, existsSync } from 'fs';
 import { randomUUID } from 'crypto';
@@ -453,7 +453,7 @@ export class MediaService {
   /**
    * Stream media file to response based on source type.
    */
-  async streamMediaFile(id: string, res: ServerResponse, userId?: string): Promise<void> {
+  async streamMediaFile(id: string, res: ServerResponse, userId?: string, range?: string): Promise<void> {
     // Check access first
     if (userId) {
         await this.checkMediaAccess(id, userId);
@@ -466,11 +466,11 @@ export class MediaService {
     }
 
     try {
-      this.logger.debug(`Streaming media: ${id}, storageType: ${media.storageType}`);
+      this.logger.debug(`Streaming media: ${id}, storageType: ${media.storageType}, range: ${range || 'none'}`);
 
       switch (media.storageType) {
         case StorageType.FS:
-          await this.streamFromFileSystem(media, res);
+          await this.streamFromFileSystem(media, res, range);
           break;
         case StorageType.TELEGRAM:
           await this.streamFromTelegram(media, res);
@@ -492,7 +492,7 @@ export class MediaService {
   /**
    * Stream file from local filesystem.
    */
-  private async streamFromFileSystem(media: Media, res: ServerResponse): Promise<void> {
+  private async streamFromFileSystem(media: Media, res: ServerResponse, range?: string): Promise<void> {
     // Normalize and validate path to prevent traversal
     const safePath = normalize(join(this.mediaDir, media.storagePath));
     if (!safePath.startsWith(this.mediaDir)) {
@@ -505,26 +505,53 @@ export class MediaService {
       throw new NotFoundException('Media file not found on disk');
     }
 
-    // Set content type from database
+    const fileStat = await stat(safePath);
+    const fileSize = fileStat.size;
+
+    // Set basic headers
+    res.setHeader('Accept-Ranges', 'bytes');
     if (media.mimeType) {
       res.setHeader('Content-Type', media.mimeType);
     }
 
-    // Set content length if available
-    if (media.sizeBytes) {
-      res.setHeader('Content-Length', media.sizeBytes);
-    }
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
-    // Stream file to response
-    return new Promise((resolve, reject) => {
-      const fileStream = createReadStream(safePath);
-      fileStream.pipe(res);
-      fileStream.on('end', () => resolve());
-      fileStream.on('error', (err) => {
-        this.logger.error(`Stream error for ${safePath}: ${err.message}`);
-        reject(err);
+      if (start >= fileSize || end >= fileSize) {
+        res.statusCode = 416; // Range Not Satisfiable
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        res.end();
+        return;
+      }
+
+      const chunksize = (end - start) + 1;
+      res.statusCode = 206; // Partial Content
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', chunksize);
+
+      return new Promise((resolve, reject) => {
+        const fileStream = createReadStream(safePath, { start, end });
+        fileStream.pipe(res);
+        fileStream.on('end', () => resolve());
+        fileStream.on('error', (err) => {
+          this.logger.error(`Stream error (range) for ${safePath}: ${err.message}`);
+          reject(err);
+        });
       });
-    });
+    } else {
+      res.setHeader('Content-Length', fileSize);
+      return new Promise((resolve, reject) => {
+        const fileStream = createReadStream(safePath);
+        fileStream.pipe(res);
+        fileStream.on('end', () => resolve());
+        fileStream.on('error', (err) => {
+          this.logger.error(`Stream error for ${safePath}: ${err.message}`);
+          reject(err);
+        });
+      });
+    }
   }
 
   /**
