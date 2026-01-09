@@ -17,7 +17,7 @@ import type { MultipartFile } from '@fastify/multipart';
 import { MediaService } from './media.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
-import { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 
 @Controller('media')
 export class MediaController {

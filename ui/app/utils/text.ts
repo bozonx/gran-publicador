@@ -28,7 +28,7 @@ export function stripHtmlAndSpecialChars(content: string | null | undefined): st
 
   // 3. Keep only allowed characters: letters, numbers, spaces and basic punctuation
   // Extended to include more common punctuation symbols useful in text
-  const clean = text.replace(/[^\p{L}\p{N}\s.,?!:;'"()[\]\-#@]/gu, '')
+  const clean = text.replace(/[^\p{L}\p{N}\p{P}\p{S}\s]/gu, '')
 
   // 4. Collapse multiple spaces and newlines
   return clean.replace(/\s+/g, ' ').trim()
