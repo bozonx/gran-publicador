@@ -51,6 +51,9 @@ const sourceInput = ref('')
 const filenameInput = ref('')
 
 const addMediaButtonLabel = computed(() => {
+  if (sourceType.value === 'URL') {
+    return t('media.add', 'Добавить медиа')
+  }
   const types = {
     IMAGE: t('media.type.image'),
     VIDEO: t('media.type.video'),
@@ -672,7 +675,7 @@ const emit = defineEmits<Emits>()
               {{ t('media.addFromUrl', 'Добавить из URL или Telegram') }}
             </h4>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {{ sourceType === 'URL' ? 'Файл будет скачан и сохранён в хранилище' : 'Можно указывать file_id только того медиа файла, который был виден боту Gran Publicador' }}
+              {{ sourceType === 'URL' ? 'Файл будет скачан, проанализирован и сохранён в хранилище' : 'Можно указывать file_id только того медиа файла, который был виден боту Gran Publicador' }}
             </p>
           </div>
           <UButton
@@ -698,7 +701,7 @@ const emit = defineEmits<Emits>()
               />
             </UFormField>
 
-            <UFormField :label="t('media.mediaType', 'Тип')" required class="flex-none w-48">
+            <UFormField v-if="sourceType === 'TELEGRAM'" :label="t('media.mediaType', 'Тип')" required class="flex-none w-48">
               <USelectMenu
                 v-model="mediaType"
                 :items="mediaTypeOptions"

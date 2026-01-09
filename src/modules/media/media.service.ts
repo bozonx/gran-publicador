@@ -15,6 +15,7 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import sharp from 'sharp';
 // @ts-ignore - exif-reader might not have types
 import exifReader from 'exif-reader';
+import { fileTypeFromBuffer } from 'file-type';
 
 interface FileUpload {
   filename: string;
@@ -317,15 +318,37 @@ export class MediaService {
 
     await writeFile(filePath, file.buffer);
 
-    let type = this.getMediaType(file.mimetype);
+    // Detect MIME type from buffer
+    const fileType = await fileTypeFromBuffer(file.buffer);
+    let finalMimeType = file.mimetype;
+    
+    if (fileType) {
+      this.logger.debug(`Detected MIME type from content: ${fileType.mime} for ${file.filename}`);
+      finalMimeType = fileType.mime;
+    } else if (file.mimetype === 'application/octet-stream' || !file.mimetype) {
+      this.logger.warn(`Could not detect MIME type from content and no reliable mime provided for ${file.filename}`);
+    }
 
-    // If detected as document but has image extension, treat as image.
-    // This helps when browser sends 'application/octet-stream' or similar for images.
+    let type = this.getMediaType(finalMimeType);
+
+    // If still detected as document but has common media extension, treat as that type.
+    // This handles cases where file-type might not know the format but extension is clear.
     if (type === MediaType.DOCUMENT) {
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'heic', 'avif', 'bmp', 'svg'];
       if (imageExtensions.includes(ext)) {
         this.logger.debug(`Auto-detecting image type based on extension '.${ext}' for file '${file.filename}'`);
         type = MediaType.IMAGE;
+      } else {
+        const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v'];
+        const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma'];
+        
+        if (videoExtensions.includes(ext)) {
+          this.logger.debug(`Auto-detecting video type based on extension '.${ext}' for file '${file.filename}'`);
+          type = MediaType.VIDEO;
+        } else if (audioExtensions.includes(ext)) {
+          this.logger.debug(`Auto-detecting audio type based on extension '.${ext}' for file '${file.filename}'`);
+          type = MediaType.AUDIO;
+        }
       }
     }
     
@@ -344,7 +367,7 @@ export class MediaService {
     return {
       path: relativePath,
       size: file.buffer.length,
-      mimetype: file.mimetype,
+      mimetype: finalMimeType,
       type,
       filename: sanitizedOriginalName,
       metadata
