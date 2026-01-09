@@ -6,6 +6,7 @@ import type {
   ChannelCreateInput,
   ChannelUpdateInput,
   SocialMedia,
+  ChannelFooter,
 } from '~/composables/useChannels'
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 
@@ -86,6 +87,7 @@ const state = reactive({
   },
   preferences: {
     staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined as number | undefined,
+    footers: (props.channel?.preferences?.footers || []) as ChannelFooter[],
   },
   tags: props.channel?.tags || '',
 })
@@ -104,7 +106,13 @@ const schema = computed(() => z.object({
     vkAccessToken: z.string().optional(),
   }),
   preferences: z.object({
-    staleChannelsDays: z.coerce.number().min(1, t('validation.min', { min: 1 })).optional()
+    staleChannelsDays: z.coerce.number().min(1, t('validation.min', { min: 1 })).optional(),
+    footers: z.array(z.object({
+      id: z.string(),
+      name: z.string().min(1, t('validation.required')),
+      content: z.string().min(1, t('validation.required')),
+      isDefault: z.boolean(),
+    })).optional()
   }).optional()
 }).superRefine((val, ctx) => {
   if (val.socialMedia === 'TELEGRAM') {
@@ -154,6 +162,7 @@ watch(() => props.channel, () => {
   }
   state.preferences = {
     staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined,
+    footers: (props.channel?.preferences?.footers || []) as ChannelFooter[],
   }
   state.tags = props.channel?.tags || ''
   nextTick(() => {
@@ -180,7 +189,8 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       // Add preferences
       if (props.visibleSections.includes('preferences')) {
         updateData.preferences = {
-          staleChannelsDays: event.data.preferences?.staleChannelsDays
+          staleChannelsDays: event.data.preferences?.staleChannelsDays,
+          footers: state.preferences.footers,
         }
       }
 
@@ -232,9 +242,10 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       }
 
       // Add preferences
-      if (event.data.preferences?.staleChannelsDays) {
+      if (event.data.preferences?.staleChannelsDays || state.preferences.footers.length > 0) {
         createData.preferences = {
-          staleChannelsDays: event.data.preferences.staleChannelsDays
+          staleChannelsDays: event.data.preferences?.staleChannelsDays,
+          footers: state.preferences.footers,
         }
       }
 
@@ -306,6 +317,76 @@ const projectOptions = computed(() =>
     label: project.name
   }))
 )
+
+// Footers logic
+const isFooterModalOpen = ref(false)
+const editingFooter = ref<ChannelFooter | null>(null)
+const footerForm = reactive({
+  id: '',
+  name: '',
+  content: '',
+  isDefault: false
+})
+
+function openAddFooter() {
+  editingFooter.value = null
+  footerForm.id = crypto.randomUUID()
+  footerForm.name = ''
+  footerForm.content = ''
+  footerForm.isDefault = state.preferences.footers.length === 0
+  isFooterModalOpen.value = true
+}
+
+function openEditFooter(footer: ChannelFooter) {
+  editingFooter.value = footer
+  footerForm.id = footer.id
+  footerForm.name = footer.name
+  footerForm.content = footer.content
+  footerForm.isDefault = footer.isDefault
+  isFooterModalOpen.value = true
+}
+
+function saveFooter() {
+  if (!footerForm.name || !footerForm.content) return
+
+  if (footerForm.isDefault) {
+    state.preferences!.footers.forEach((f: ChannelFooter) => f.isDefault = false)
+  }
+
+  if (editingFooter.value) {
+    const index = state.preferences!.footers.findIndex((f: ChannelFooter) => f.id === footerForm.id)
+    if (index !== -1) {
+      state.preferences!.footers[index] = { ...footerForm }
+    }
+  } else {
+    state.preferences!.footers.push({ ...footerForm })
+  }
+
+  // Ensure at least one is default if list is not empty
+  if (state.preferences!.footers.length > 0 && !state.preferences!.footers.some((f: ChannelFooter) => f.isDefault)) {
+    state.preferences!.footers[0].isDefault = true
+  }
+
+  isFooterModalOpen.value = false
+}
+
+function deleteFooter(id: string) {
+  const index = state.preferences!.footers.findIndex((f: ChannelFooter) => f.id === id)
+  if (index !== -1) {
+    const removedWasDefault = state.preferences!.footers[index].isDefault
+    state.preferences!.footers.splice(index, 1)
+    
+    if (removedWasDefault && state.preferences!.footers.length > 0) {
+      state.preferences!.footers[0].isDefault = true
+    }
+  }
+}
+
+function setDefaultFooter(id: string) {
+  state.preferences!.footers.forEach((f: ChannelFooter) => {
+    f.isDefault = f.id === id
+  })
+}
 </script>
 
 <template>
@@ -579,5 +660,128 @@ const projectOptions = computed(() =>
         @cancel="handleCancel"
       />
     </UForm>
-  </div>
+
+    <!-- Footers Section -->
+    <div v-if="visibleSections.includes('preferences')" class="mt-8 space-y-4">
+      <div :class="FORM_SPACING.sectionDivider">
+        <div class="flex items-center justify-between mb-4">
+          <h3 :class="FORM_STYLES.sectionTitle" class="mb-0">
+            {{ t('channel.footers') }}
+          </h3>
+          <UButton
+            icon="i-heroicons-plus"
+            size="xs"
+            color="primary"
+            variant="soft"
+            @click="openAddFooter"
+          >
+            {{ t('channel.addFooter') }}
+          </UButton>
+        </div>
+      </div>
+
+      <div v-if="state.preferences.footers.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+        <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-8 h-8 mx-auto text-gray-400 mb-2" />
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {{ t('channel.noFooters') }}
+        </p>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div
+          v-for="footer in state.preferences.footers"
+          :key="footer.id"
+          class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+        >
+          <div class="flex items-center gap-3">
+            <UBadge v-if="footer.isDefault" color="primary" variant="subtle" size="xs">
+              {{ t('channel.footerDefault') }}
+            </UBadge>
+            <div>
+              <div class="text-sm font-medium text-gray-900 dark:text-white">
+                {{ footer.name }}
+              </div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-md">
+                {{ footer.content }}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <UButton
+              v-if="!footer.isDefault"
+              icon="i-heroicons-star"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              @click="setDefaultFooter(footer.id)"
+            />
+            <UButton
+              icon="i-heroicons-pencil-square"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              @click="openEditFooter(footer)"
+            />
+            <UButton
+              icon="i-heroicons-trash"
+              size="xs"
+              variant="ghost"
+              color="error"
+              @click="deleteFooter(footer.id)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- Footer Modal -->
+    <UModal v-model:open="isFooterModalOpen">
+      <UCard :ui="{ header: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+              {{ editingFooter ? t('channel.editFooter') : t('channel.addFooter') }}
+            </h3>
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" class="-my-1" @click="isFooterModalOpen = false" />
+          </div>
+        </template>
+
+        <div class="space-y-4 py-2">
+          <UFormField :label="t('channel.footerName')" required>
+            <UInput
+              v-model="footerForm.name"
+              :placeholder="t('channel.footerNamePlaceholder')"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField :label="t('channel.footerContent')" required>
+            <UTextarea
+              v-model="footerForm.content"
+              :placeholder="t('channel.footerContentPlaceholder')"
+              :rows="4"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UCheckbox
+            v-model="footerForm.isDefault"
+            :label="t('channel.footerDefault')"
+          />
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="neutral" variant="ghost" @click="isFooterModalOpen = false">
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton color="primary" @click="saveFooter">
+              {{ t('common.save') }}
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
 </template>

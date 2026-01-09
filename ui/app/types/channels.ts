@@ -1,5 +1,12 @@
 import type { SocialMedia } from './socialMedia'
 
+export interface ChannelFooter {
+    id: string
+    name: string
+    content: string
+    isDefault: boolean
+}
+
 export interface Channel {
     id: string
     projectId: string
@@ -8,13 +15,17 @@ export interface Channel {
     description?: string | null
     channelIdentifier: string
     language: string
-    preferences?: Record<string, any>
+    preferences?: {
+        staleChannelsDays?: number
+        footers?: ChannelFooter[]
+    }
     coordinates?: string
     credentials?: Record<string, any>
     isActive: boolean
     archivedAt?: string | null
     createdAt: string
     updatedAt: string
+    tags?: string | null
 }
 
 export interface ChannelWithProject extends Channel {
@@ -42,7 +53,11 @@ export interface ChannelCreateInput {
     language: string
     isActive?: boolean
     credentials?: Record<string, any>
-    preferences?: Record<string, any>
+    preferences?: {
+        staleChannelsDays?: number
+        footers?: ChannelFooter[]
+    }
+    tags?: string | null
 }
 
 export interface ChannelUpdateInput {
@@ -50,8 +65,12 @@ export interface ChannelUpdateInput {
     description?: string
     channelIdentifier?: string
     credentials?: Record<string, any>
-    preferences?: Record<string, any>
+    preferences?: {
+        staleChannelsDays?: number
+        footers?: ChannelFooter[]
+    }
     isActive?: boolean
+    tags?: string | null
 }
 
 export interface ChannelsFilter {

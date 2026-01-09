@@ -2,10 +2,10 @@ import { ref, computed } from 'vue'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { getSocialMediaColor as getColorBase, getSocialMediaIcon as getIconBase, getSocialMediaOptions } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
-import type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter } from '~/types/channels'
+import type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, ChannelFooter } from '~/types/channels'
 
 export type { SocialMedia }
-export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter }
+export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, ChannelFooter }
 
 export function useChannels() {
     const api = useApi()
