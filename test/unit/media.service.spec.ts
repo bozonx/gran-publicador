@@ -32,6 +32,10 @@ describe('MediaService (unit)', () => {
   };
 
   beforeAll(async () => {
+    // Set environment variables required by MediaConfig
+    process.env.MEDIA_DIR = '/tmp/test_media';
+    process.env.THUMBNAILS_DIR = '/tmp/test_thumbnails';
+
     // Mock config service to return app config
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'app') {
@@ -71,6 +75,8 @@ describe('MediaService (unit)', () => {
 
   afterAll(async () => {
     await moduleRef.close();
+    delete process.env.MEDIA_DIR;
+    delete process.env.THUMBNAILS_DIR;
   });
 
   beforeEach(() => {
