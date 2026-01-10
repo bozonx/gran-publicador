@@ -210,6 +210,13 @@ export class GranPublicadorPublication implements INodeType {
 						default: '',
 						description: 'Date and time when the publication should be posted',
 					},
+					{
+						displayName: 'Channel IDs',
+						name: 'channelIds',
+						type: 'string',
+						default: '',
+						description: 'Comma-separated list of channel IDs to post to',
+					},
 				],
 			},
 			// --- Add Content Fields ---
@@ -309,6 +316,15 @@ export class GranPublicadorPublication implements INodeType {
 
 					if (additionalFields.meta) {
 						additionalFields.meta = parseYamlOrJson.call(this, additionalFields.meta, i, 'Meta');
+					}
+
+					if (additionalFields.channelIds) {
+						if (typeof additionalFields.channelIds === 'string') {
+							additionalFields.channelIds = (additionalFields.channelIds as string)
+								.split(',')
+								.map((id) => id.trim())
+								.filter((id) => id);
+						}
 					}
 
 					const body: IDataObject = {
