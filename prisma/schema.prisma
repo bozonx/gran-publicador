@@ -26,8 +26,8 @@ model User {
   banReason        String?  @map("ban_reason")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-  // User preferences stored as JSON string (SQLite limitation)
-  preferences      String   @default("{}") // Store as JSON string in SQLite
+  // User preferences stored as JSON
+  preferences      Json
 
   ownedProjects  Project[]       @relation("ProjectOwner")
   projectMembers ProjectMember[]
@@ -47,8 +47,8 @@ model ApiToken {
   hashedToken     String    @unique @map("hashed_token")
   // Encrypted token for one-time display to user
   encryptedToken  String    @map("encrypted_token")
-  // Array of project IDs this token has access to (JSON string)
-  scopeProjectIds String    @default("[]") @map("scope_project_ids")
+  // Array of project IDs this token has access to
+  scopeProjectIds Json      @map("scope_project_ids")
   // Last time this token was used for authentication
   lastUsedAt      DateTime? @map("last_used_at")
   createdAt       DateTime  @default(now()) @map("created_at")
@@ -71,8 +71,8 @@ model Project {
   archivedAt  DateTime? @map("archived_at")
   // User ID who archived the project
   archivedBy  String?   @map("archived_by")
-  // Project preferences stored as JSON string (SQLite limitation)
-  preferences String    @default("{}") // Store as JSON string in SQLite
+  // Project preferences stored as JSON
+  preferences Json
 
   owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      ProjectMember[]
@@ -108,10 +108,10 @@ model Channel {
   channelIdentifier String      @map("channel_identifier")
   // Channel language in format like ru-RU, en-US, etc.
   language          String
-  // Encrypted credentials for channel access stored as JSON string
-  credentials       String      @default("{}") // Store as JSON string in SQLite
-  // Channel preferences stored as JSON string (SQLite limitation)
-  preferences       String      @default("{}") // Store as JSON string in SQLite
+  // Encrypted credentials for channel access
+  credentials       Json
+  // Channel preferences
+  preferences       Json
   // Tags for navigation and publication orientation
   tags              String?
 
@@ -165,8 +165,8 @@ model Publication {
   // Author's commentary for the news (published along with the content)
   authorComment String?    @map("author_comment")
   tags          String?
-  // Additional metadata stored as JSON string
-  meta          String     @default("{}")
+  // Additional metadata stored as JSON
+  meta          Json
   // Content date set by the author (e.g., article date, event date). Not the publication/posting date
   postDate      DateTime?  @map("post_date")
   // Internal note for author's reference only. Never published to social media
@@ -175,7 +175,7 @@ model Publication {
   // Additional source texts collected via Telegram bot or other sources
   // Format: [{ content, order, source? }]
   // source format: "url:<URL>" | "telegram:<chatId>,<messageId>" | "manual"
-  sourceTexts String @default("[]") @map("source_texts")
+  sourceTexts Json @map("source_texts")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   creator User?   @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
@@ -197,7 +197,7 @@ model Media {
   filename    String?
   mimeType    String?     @map("mime_type")
   sizeBytes   Int?        @map("size_bytes")
-  meta        String      @default("{}") // JSON: {width, height, duration, thumbnail, ...}
+  meta        Json
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
@@ -238,7 +238,7 @@ model Post {
   // Error message if post failed
   errorMessage  String?    @map("error_message")
   // Data received after publication (usually url or message id). Not editable by user.
-  meta          String    @default("{}")
+  meta          Json
   // Overwrite of publication content for this specific post
   content       String?
 

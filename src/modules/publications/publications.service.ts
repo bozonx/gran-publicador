@@ -183,49 +183,17 @@ export class PublicationsService {
   }
 
   /**
-   * Parse meta JSON string to object, handling nested JSON strings.
+   * Return meta object, ensuring it's an object.
    */
-  private parseMetaJson(meta: string | null | undefined): Record<string, any> {
-    if (!meta) return {};
-    
-    try {
-      let parsed = JSON.parse(meta);
-      
-      // Handle case where meta is double-encoded (e.g., '"{\"key\":\"value\"}"')
-      const maxDepth = 5;
-      let depth = 0;
-      while (typeof parsed === 'string' && depth < maxDepth) {
-        try {
-          const trimmed = parsed.trim();
-          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-              (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-            parsed = JSON.parse(parsed);
-            depth++;
-          } else {
-            break;
-          }
-        } catch {
-          break;
-        }
-      }
-      
-      return typeof parsed === 'object' && parsed !== null ? parsed : {};
-    } catch {
-      return {};
-    }
+  private parseMetaJson(meta: any): Record<string, any> {
+    return typeof meta === 'object' && meta !== null ? meta : {};
   }
 
   /**
-   * Parse sourceTexts JSON string to array.
+   * Return sourceTexts array, ensuring it's an array.
    */
-  private parseSourceTextsJson(sourceTexts: string | null | undefined): any[] {
-    if (!sourceTexts) return [];
-    try {
-      const parsed = JSON.parse(sourceTexts);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+  private parseSourceTextsJson(sourceTexts: any): any[] {
+    return Array.isArray(sourceTexts) ? sourceTexts : [];
   }
 
   /**
@@ -314,7 +282,7 @@ export class PublicationsService {
             // New Media
             ...(data.media || []).map((m, i) => ({
               order: i,
-              media: { create: { ...m, meta: JSON.stringify(m.meta || {}) } }
+              media: { create: { ...m, meta: (m.meta || {}) as any } }
             })),
             // Existing Media
             ...(data.existingMediaIds || []).map((id, i) => ({
@@ -331,8 +299,8 @@ export class PublicationsService {
         postType: data.postType ?? PostType.POST,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        meta: JSON.stringify(data.meta ?? {}),
-        sourceTexts: data.sourceTexts ? JSON.stringify(data.sourceTexts) : '[]',
+        meta: (data.meta ?? {}) as any,
+        sourceTexts: (data.sourceTexts ?? []) as any,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
@@ -1001,7 +969,7 @@ export class PublicationsService {
              // New Media
              ...(data.media || []).map((m, i) => ({
               order: i,
-              media: { create: { ...m, meta: JSON.stringify(m.meta || {}) } }
+              media: { create: { ...m, meta: (m.meta || {}) as any } }
             })),
             // Existing Media
             ...(data.existingMediaIds || []).map((id, i) => ({
@@ -1017,9 +985,9 @@ export class PublicationsService {
         postType: data.postType,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        meta: data.meta ? JSON.stringify(data.meta) : undefined,
+        meta: data.meta ? (data.meta as any) : undefined,
         sourceTexts: data.sourceTexts !== undefined 
-          ? JSON.stringify(data.appendSourceTexts ? [...publication.sourceTexts, ...data.sourceTexts] : data.sourceTexts) 
+          ? (data.appendSourceTexts ? [...publication.sourceTexts, ...data.sourceTexts] : data.sourceTexts) as any
           : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
@@ -1114,6 +1082,7 @@ export class PublicationsService {
             tags: null, // Can be overridden later, defaults to publication tags
             status: PostStatus.PENDING,
             scheduledAt: scheduledAt ?? publication.scheduledAt,
+            meta: {},
           },
           include: {
             channel: true,
@@ -1170,7 +1139,7 @@ export class PublicationsService {
               filename: m.filename,
               mimeType: m.mimeType,
               sizeBytes: m.sizeBytes,
-              meta: JSON.stringify(m.meta || {}),
+              meta: (m.meta || {}) as any,
             },
           });
           mediaId = mediaItem.id;

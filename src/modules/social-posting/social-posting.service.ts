@@ -96,9 +96,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const credentials = typeof channel.credentials === 'string' 
-        ? JSON.parse(channel.credentials) 
-        : channel.credentials;
+      const credentials = channel.credentials || {};
 
       const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
         channel.socialMedia,
@@ -291,8 +289,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     try {
       if (!this.postingClient) throw new Error('Posting client not initialized');
 
-      const credentials = typeof channel.credentials === 'string' 
-        ? JSON.parse(channel.credentials) : channel.credentials;
+      const credentials = channel.credentials || {};
 
       const mediaMapping = this.mapMediaToLibraryFormat(publication.media);
 
@@ -328,7 +325,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: PostStatus.PUBLISHED,
             publishedAt: new Date(response.data.publishedAt),
-            meta: JSON.stringify(response.data),
+            meta: response.data as any,
             errorMessage: null,
           },
         });
@@ -340,7 +337,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: PostStatus.FAILED,
             errorMessage: platformError.error.message,
-            meta: JSON.stringify(platformError.error),
+            meta: platformError.error as any,
           },
         });
         return { success: false, error: platformError.error.message };
@@ -352,7 +349,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         data: {
           status: PostStatus.FAILED,
           errorMessage: error.message,
-          meta: JSON.stringify({ error: error.message, stack: error.stack }),
+          meta: { error: error.message, stack: error.stack } as any,
         },
       });
       return { success: false, error: error.message };
@@ -367,8 +364,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     if (!channel.channelIdentifier) errors.push('Channel identifier is missing');
 
     try {
-      const credentials = typeof channel.credentials === 'string' 
-        ? JSON.parse(channel.credentials) : channel.credentials;
+      const credentials = channel.credentials || {};
       const validation = validatePlatformCredentials(channel.socialMedia, credentials);
       if (!validation.valid) errors.push(...validation.errors);
     } catch {

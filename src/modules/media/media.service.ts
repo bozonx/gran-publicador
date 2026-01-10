@@ -216,7 +216,7 @@ export class MediaService {
     const created = await this.prisma.media.create({
       data: {
         ...rest,
-        meta: JSON.stringify(meta || {}),
+        meta: (meta || {}) as any,
       },
     });
     
@@ -224,7 +224,7 @@ export class MediaService {
     
     return {
       ...created,
-      meta: meta || {},
+      meta: (created.meta as any) || {},
     };
   }
 
@@ -275,7 +275,7 @@ export class MediaService {
     });
     return list.map(media => ({
       ...media,
-      meta: JSON.parse(media.meta || '{}') as Record<string, any>,
+      meta: (media.meta as any) || {},
     }));
   }
 
@@ -287,7 +287,7 @@ export class MediaService {
     }
     return {
       ...media,
-      meta: JSON.parse(media.meta || '{}') as Record<string, any>,
+      meta: (media.meta as any) || {},
     };
   }
 
@@ -305,13 +305,13 @@ export class MediaService {
       where: { id },
       data: {
         ...rest,
-        meta: meta ? JSON.stringify(meta) : undefined
+        meta: meta ? (meta as any) : undefined
       }
     });
     
     return {
       ...updated,
-      meta: JSON.parse(updated.meta || '{}') as Record<string, any>,
+      meta: (updated.meta as any) || {},
     };
   }
 

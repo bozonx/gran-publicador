@@ -10,7 +10,7 @@ CREATE TABLE "users" (
     "ban_reason" TEXT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL,
-    "preferences" TEXT NOT NULL DEFAULT '{}'
+    "preferences" JSONB NOT NULL
 );
 
 -- CreateTable
@@ -20,7 +20,7 @@ CREATE TABLE "api_tokens" (
     "name" TEXT NOT NULL,
     "hashed_token" TEXT NOT NULL,
     "encrypted_token" TEXT NOT NULL,
-    "scope_project_ids" TEXT NOT NULL DEFAULT '[]',
+    "scope_project_ids" JSONB NOT NULL,
     "last_used_at" DATETIME,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE "projects" (
     "updated_at" DATETIME NOT NULL,
     "archived_at" DATETIME,
     "archived_by" TEXT,
-    "preferences" TEXT NOT NULL DEFAULT '{}',
+    "preferences" JSONB NOT NULL,
     CONSTRAINT "projects_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -61,8 +61,9 @@ CREATE TABLE "channels" (
     "description" TEXT,
     "channel_identifier" TEXT NOT NULL,
     "language" TEXT NOT NULL,
-    "credentials" TEXT NOT NULL DEFAULT '{}',
-    "preferences" TEXT NOT NULL DEFAULT '{}',
+    "credentials" JSONB NOT NULL,
+    "preferences" JSONB NOT NULL,
+    "tags" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL,
@@ -84,17 +85,17 @@ CREATE TABLE "publications" (
     "scheduled_at" DATETIME,
     "processing_started_at" DATETIME,
     "post_type" TEXT NOT NULL DEFAULT 'POST',
-    "language" TEXT NOT NULL DEFAULT 'ru-RU',
+    "language" TEXT NOT NULL DEFAULT 'ru-US',
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "title" TEXT,
     "description" TEXT,
     "content" TEXT,
     "author_comment" TEXT,
     "tags" TEXT,
-    "meta" TEXT NOT NULL DEFAULT '{}',
+    "meta" JSONB NOT NULL,
     "post_date" DATETIME,
     "note" TEXT,
-    "source_texts" TEXT NOT NULL DEFAULT '[]',
+    "source_texts" JSONB NOT NULL,
     CONSTRAINT "publications_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "publications_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -108,7 +109,7 @@ CREATE TABLE "media" (
     "filename" TEXT,
     "mime_type" TEXT,
     "size_bytes" INTEGER,
-    "meta" TEXT NOT NULL DEFAULT '{}',
+    "meta" JSONB NOT NULL,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL
 );
@@ -133,7 +134,7 @@ CREATE TABLE "posts" (
     "tags" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "error_message" TEXT,
-    "meta" TEXT NOT NULL DEFAULT '{}',
+    "meta" JSONB NOT NULL,
     "content" TEXT,
     "scheduled_at" DATETIME,
     "published_at" DATETIME,

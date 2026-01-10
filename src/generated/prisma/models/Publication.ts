@@ -43,10 +43,8 @@ export type PublicationMinAggregateOutputType = {
   content: string | null
   authorComment: string | null
   tags: string | null
-  meta: string | null
   postDate: Date | null
   note: string | null
-  sourceTexts: string | null
 }
 
 export type PublicationMaxAggregateOutputType = {
@@ -68,10 +66,8 @@ export type PublicationMaxAggregateOutputType = {
   content: string | null
   authorComment: string | null
   tags: string | null
-  meta: string | null
   postDate: Date | null
   note: string | null
-  sourceTexts: string | null
 }
 
 export type PublicationCountAggregateOutputType = {
@@ -120,10 +116,8 @@ export type PublicationMinAggregateInputType = {
   content?: true
   authorComment?: true
   tags?: true
-  meta?: true
   postDate?: true
   note?: true
-  sourceTexts?: true
 }
 
 export type PublicationMaxAggregateInputType = {
@@ -145,10 +139,8 @@ export type PublicationMaxAggregateInputType = {
   content?: true
   authorComment?: true
   tags?: true
-  meta?: true
   postDate?: true
   note?: true
-  sourceTexts?: true
 }
 
 export type PublicationCountAggregateInputType = {
@@ -268,10 +260,10 @@ export type PublicationGroupByOutputType = {
   content: string | null
   authorComment: string | null
   tags: string | null
-  meta: string
+  meta: runtime.JsonValue
   postDate: Date | null
   note: string | null
-  sourceTexts: string
+  sourceTexts: runtime.JsonValue
   _count: PublicationCountAggregateOutputType | null
   _min: PublicationMinAggregateOutputType | null
   _max: PublicationMaxAggregateOutputType | null
@@ -314,10 +306,10 @@ export type PublicationWhereInput = {
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
-  meta?: Prisma.StringFilter<"Publication"> | string
+  meta?: Prisma.JsonFilter<"Publication">
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableFilter<"Publication"> | string | null
-  sourceTexts?: Prisma.StringFilter<"Publication"> | string
+  sourceTexts?: Prisma.JsonFilter<"Publication">
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   posts?: Prisma.PostListRelationFilter
@@ -375,10 +367,10 @@ export type PublicationWhereUniqueInput = Prisma.AtLeast<{
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
-  meta?: Prisma.StringFilter<"Publication"> | string
+  meta?: Prisma.JsonFilter<"Publication">
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableFilter<"Publication"> | string | null
-  sourceTexts?: Prisma.StringFilter<"Publication"> | string
+  sourceTexts?: Prisma.JsonFilter<"Publication">
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   posts?: Prisma.PostListRelationFilter
@@ -435,10 +427,10 @@ export type PublicationScalarWhereWithAggregatesInput = {
   content?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
-  meta?: Prisma.StringWithAggregatesFilter<"Publication"> | string
+  meta?: Prisma.JsonWithAggregatesFilter<"Publication">
   postDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableWithAggregatesFilter<"Publication"> | string | null
-  sourceTexts?: Prisma.StringWithAggregatesFilter<"Publication"> | string
+  sourceTexts?: Prisma.JsonWithAggregatesFilter<"Publication">
 }
 
 export type PublicationCreateInput = {
@@ -458,10 +450,10 @@ export type PublicationCreateInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
@@ -487,10 +479,10 @@ export type PublicationUncheckedCreateInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
@@ -512,10 +504,10 @@ export type PublicationUpdateInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
@@ -541,10 +533,10 @@ export type PublicationUncheckedUpdateInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
@@ -568,10 +560,10 @@ export type PublicationCreateManyInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type PublicationUpdateManyMutationInput = {
@@ -591,10 +583,10 @@ export type PublicationUpdateManyMutationInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type PublicationUncheckedUpdateManyInput = {
@@ -616,10 +608,10 @@ export type PublicationUncheckedUpdateManyInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type PublicationListRelationFilter = {
@@ -676,10 +668,8 @@ export type PublicationMaxOrderByAggregateInput = {
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
   note?: Prisma.SortOrder
-  sourceTexts?: Prisma.SortOrder
 }
 
 export type PublicationMinOrderByAggregateInput = {
@@ -701,10 +691,8 @@ export type PublicationMinOrderByAggregateInput = {
   content?: Prisma.SortOrder
   authorComment?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  meta?: Prisma.SortOrder
   postDate?: Prisma.SortOrder
   note?: Prisma.SortOrder
-  sourceTexts?: Prisma.SortOrder
 }
 
 export type PublicationScalarRelationFilter = {
@@ -849,10 +837,10 @@ export type PublicationCreateWithoutCreatorInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
@@ -876,10 +864,10 @@ export type PublicationUncheckedCreateWithoutCreatorInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
@@ -931,10 +919,10 @@ export type PublicationScalarWhereInput = {
   content?: Prisma.StringNullableFilter<"Publication"> | string | null
   authorComment?: Prisma.StringNullableFilter<"Publication"> | string | null
   tags?: Prisma.StringNullableFilter<"Publication"> | string | null
-  meta?: Prisma.StringFilter<"Publication"> | string
+  meta?: Prisma.JsonFilter<"Publication">
   postDate?: Prisma.DateTimeNullableFilter<"Publication"> | Date | string | null
   note?: Prisma.StringNullableFilter<"Publication"> | string | null
-  sourceTexts?: Prisma.StringFilter<"Publication"> | string
+  sourceTexts?: Prisma.JsonFilter<"Publication">
 }
 
 export type PublicationCreateWithoutProjectInput = {
@@ -954,10 +942,10 @@ export type PublicationCreateWithoutProjectInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
@@ -981,10 +969,10 @@ export type PublicationUncheckedCreateWithoutProjectInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
@@ -1031,10 +1019,10 @@ export type PublicationCreateWithoutMediaInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
@@ -1059,10 +1047,10 @@ export type PublicationUncheckedCreateWithoutMediaInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
 }
 
@@ -1099,10 +1087,10 @@ export type PublicationUpdateWithoutMediaInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
@@ -1127,10 +1115,10 @@ export type PublicationUncheckedUpdateWithoutMediaInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
@@ -1151,10 +1139,10 @@ export type PublicationCreateWithoutPostsInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
   creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
   media?: Prisma.PublicationMediaCreateNestedManyWithoutPublicationInput
@@ -1179,10 +1167,10 @@ export type PublicationUncheckedCreateWithoutPostsInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   media?: Prisma.PublicationMediaUncheckedCreateNestedManyWithoutPublicationInput
 }
 
@@ -1219,10 +1207,10 @@ export type PublicationUpdateWithoutPostsInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
@@ -1247,10 +1235,10 @@ export type PublicationUncheckedUpdateWithoutPostsInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
@@ -1272,10 +1260,10 @@ export type PublicationCreateManyCreatorInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type PublicationUpdateWithoutCreatorInput = {
@@ -1295,10 +1283,10 @@ export type PublicationUpdateWithoutCreatorInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
@@ -1322,10 +1310,10 @@ export type PublicationUncheckedUpdateWithoutCreatorInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
@@ -1348,10 +1336,10 @@ export type PublicationUncheckedUpdateManyWithoutCreatorInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type PublicationCreateManyProjectInput = {
@@ -1372,10 +1360,10 @@ export type PublicationCreateManyProjectInput = {
   content?: string | null
   authorComment?: string | null
   tags?: string | null
-  meta?: string
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Date | string | null
   note?: string | null
-  sourceTexts?: string
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type PublicationUpdateWithoutProjectInput = {
@@ -1395,10 +1383,10 @@ export type PublicationUpdateWithoutProjectInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
   posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUpdateManyWithoutPublicationNestedInput
@@ -1422,10 +1410,10 @@ export type PublicationUncheckedUpdateWithoutProjectInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
 }
@@ -1448,10 +1436,10 @@ export type PublicationUncheckedUpdateManyWithoutProjectInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.StringFieldUpdateOperationsInput | string
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 
@@ -1647,10 +1635,10 @@ export type $PublicationPayload<ExtArgs extends runtime.Types.Extensions.Interna
     content: string | null
     authorComment: string | null
     tags: string | null
-    meta: string
+    meta: runtime.JsonValue
     postDate: Date | null
     note: string | null
-    sourceTexts: string
+    sourceTexts: runtime.JsonValue
   }, ExtArgs["result"]["publication"]>
   composites: {}
 }
@@ -2096,10 +2084,10 @@ export interface PublicationFieldRefs {
   readonly content: Prisma.FieldRef<"Publication", 'String'>
   readonly authorComment: Prisma.FieldRef<"Publication", 'String'>
   readonly tags: Prisma.FieldRef<"Publication", 'String'>
-  readonly meta: Prisma.FieldRef<"Publication", 'String'>
+  readonly meta: Prisma.FieldRef<"Publication", 'Json'>
   readonly postDate: Prisma.FieldRef<"Publication", 'DateTime'>
   readonly note: Prisma.FieldRef<"Publication", 'String'>
-  readonly sourceTexts: Prisma.FieldRef<"Publication", 'String'>
+  readonly sourceTexts: Prisma.FieldRef<"Publication", 'Json'>
 }
     
 

@@ -32,8 +32,6 @@ export type ChannelMinAggregateOutputType = {
   description: string | null
   channelIdentifier: string | null
   language: string | null
-  credentials: string | null
-  preferences: string | null
   tags: string | null
   isActive: boolean | null
   createdAt: Date | null
@@ -50,8 +48,6 @@ export type ChannelMaxAggregateOutputType = {
   description: string | null
   channelIdentifier: string | null
   language: string | null
-  credentials: string | null
-  preferences: string | null
   tags: string | null
   isActive: boolean | null
   createdAt: Date | null
@@ -88,8 +84,6 @@ export type ChannelMinAggregateInputType = {
   description?: true
   channelIdentifier?: true
   language?: true
-  credentials?: true
-  preferences?: true
   tags?: true
   isActive?: true
   createdAt?: true
@@ -106,8 +100,6 @@ export type ChannelMaxAggregateInputType = {
   description?: true
   channelIdentifier?: true
   language?: true
-  credentials?: true
-  preferences?: true
   tags?: true
   isActive?: true
   createdAt?: true
@@ -215,8 +207,8 @@ export type ChannelGroupByOutputType = {
   description: string | null
   channelIdentifier: string
   language: string
-  credentials: string
-  preferences: string
+  credentials: runtime.JsonValue
+  preferences: runtime.JsonValue
   tags: string | null
   isActive: boolean
   createdAt: Date
@@ -254,8 +246,8 @@ export type ChannelWhereInput = {
   description?: Prisma.StringNullableFilter<"Channel"> | string | null
   channelIdentifier?: Prisma.StringFilter<"Channel"> | string
   language?: Prisma.StringFilter<"Channel"> | string
-  credentials?: Prisma.StringFilter<"Channel"> | string
-  preferences?: Prisma.StringFilter<"Channel"> | string
+  credentials?: Prisma.JsonFilter<"Channel">
+  preferences?: Prisma.JsonFilter<"Channel">
   tags?: Prisma.StringNullableFilter<"Channel"> | string | null
   isActive?: Prisma.BoolFilter<"Channel"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Channel"> | Date | string
@@ -297,8 +289,8 @@ export type ChannelWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"Channel"> | string | null
   channelIdentifier?: Prisma.StringFilter<"Channel"> | string
   language?: Prisma.StringFilter<"Channel"> | string
-  credentials?: Prisma.StringFilter<"Channel"> | string
-  preferences?: Prisma.StringFilter<"Channel"> | string
+  credentials?: Prisma.JsonFilter<"Channel">
+  preferences?: Prisma.JsonFilter<"Channel">
   tags?: Prisma.StringNullableFilter<"Channel"> | string | null
   isActive?: Prisma.BoolFilter<"Channel"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Channel"> | Date | string
@@ -341,8 +333,8 @@ export type ChannelScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"Channel"> | string | null
   channelIdentifier?: Prisma.StringWithAggregatesFilter<"Channel"> | string
   language?: Prisma.StringWithAggregatesFilter<"Channel"> | string
-  credentials?: Prisma.StringWithAggregatesFilter<"Channel"> | string
-  preferences?: Prisma.StringWithAggregatesFilter<"Channel"> | string
+  credentials?: Prisma.JsonWithAggregatesFilter<"Channel">
+  preferences?: Prisma.JsonWithAggregatesFilter<"Channel">
   tags?: Prisma.StringNullableWithAggregatesFilter<"Channel"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"Channel"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Channel"> | Date | string
@@ -358,8 +350,8 @@ export type ChannelCreateInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -378,8 +370,8 @@ export type ChannelUncheckedCreateInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -396,8 +388,8 @@ export type ChannelUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -416,8 +408,8 @@ export type ChannelUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -435,8 +427,8 @@ export type ChannelCreateManyInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -452,8 +444,8 @@ export type ChannelUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -470,8 +462,8 @@ export type ChannelUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -516,8 +508,6 @@ export type ChannelMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   channelIdentifier?: Prisma.SortOrder
   language?: Prisma.SortOrder
-  credentials?: Prisma.SortOrder
-  preferences?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -534,8 +524,6 @@ export type ChannelMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   channelIdentifier?: Prisma.SortOrder
   language?: Prisma.SortOrder
-  credentials?: Prisma.SortOrder
-  preferences?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -616,8 +604,8 @@ export type ChannelCreateWithoutProjectInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -634,8 +622,8 @@ export type ChannelUncheckedCreateWithoutProjectInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -681,8 +669,8 @@ export type ChannelScalarWhereInput = {
   description?: Prisma.StringNullableFilter<"Channel"> | string | null
   channelIdentifier?: Prisma.StringFilter<"Channel"> | string
   language?: Prisma.StringFilter<"Channel"> | string
-  credentials?: Prisma.StringFilter<"Channel"> | string
-  preferences?: Prisma.StringFilter<"Channel"> | string
+  credentials?: Prisma.JsonFilter<"Channel">
+  preferences?: Prisma.JsonFilter<"Channel">
   tags?: Prisma.StringNullableFilter<"Channel"> | string | null
   isActive?: Prisma.BoolFilter<"Channel"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Channel"> | Date | string
@@ -698,8 +686,8 @@ export type ChannelCreateWithoutPostsInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -717,8 +705,8 @@ export type ChannelUncheckedCreateWithoutPostsInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -750,8 +738,8 @@ export type ChannelUpdateWithoutPostsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -769,8 +757,8 @@ export type ChannelUncheckedUpdateWithoutPostsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -786,8 +774,8 @@ export type ChannelCreateManyProjectInput = {
   description?: string | null
   channelIdentifier: string
   language: string
-  credentials?: string
-  preferences?: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -803,8 +791,8 @@ export type ChannelUpdateWithoutProjectInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -821,8 +809,8 @@ export type ChannelUncheckedUpdateWithoutProjectInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -839,8 +827,8 @@ export type ChannelUncheckedUpdateManyWithoutProjectInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
   language?: Prisma.StringFieldUpdateOperationsInput | string
-  credentials?: Prisma.StringFieldUpdateOperationsInput | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -984,8 +972,8 @@ export type $ChannelPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     description: string | null
     channelIdentifier: string
     language: string
-    credentials: string
-    preferences: string
+    credentials: runtime.JsonValue
+    preferences: runtime.JsonValue
     tags: string | null
     isActive: boolean
     createdAt: Date
@@ -1424,8 +1412,8 @@ export interface ChannelFieldRefs {
   readonly description: Prisma.FieldRef<"Channel", 'String'>
   readonly channelIdentifier: Prisma.FieldRef<"Channel", 'String'>
   readonly language: Prisma.FieldRef<"Channel", 'String'>
-  readonly credentials: Prisma.FieldRef<"Channel", 'String'>
-  readonly preferences: Prisma.FieldRef<"Channel", 'String'>
+  readonly credentials: Prisma.FieldRef<"Channel", 'Json'>
+  readonly preferences: Prisma.FieldRef<"Channel", 'Json'>
   readonly tags: Prisma.FieldRef<"Channel", 'String'>
   readonly isActive: Prisma.FieldRef<"Channel", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Channel", 'DateTime'>

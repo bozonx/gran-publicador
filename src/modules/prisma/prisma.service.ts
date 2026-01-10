@@ -16,34 +16,40 @@ import { dirname } from 'path';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   constructor() {
-    // getDatabaseUrl() will throw if DATABASE_URL is not set
     const url = getDatabaseUrl();
-
-    // Create a local logger instance for use before super()
     const internalLogger = new Logger(PrismaService.name);
 
-    // Ensure the database directory exists if it's a file URL
-    if (url.startsWith('file:')) {
+    let clientConfig: any = {};
+
+    // SQLite detection and setup
+    if (url.startsWith('file:') || url.includes('.db')) {
       try {
-        // Handle explicit file path or relative path
-        // Remove file: prefix (and potentially // if present)
         const filePath = url.replace(/^file:\/\//, '').replace(/^file:/, '');
         const dbDir = dirname(filePath);
         if (!existsSync(dbDir)) {
-           mkdirSync(dbDir, { recursive: true });
-           internalLogger.log(`📁 Created database directory: ${dbDir}`);
+          mkdirSync(dbDir, { recursive: true });
+          internalLogger.log(`📁 Created database directory: ${dbDir}`);
         }
       } catch (err: any) {
         internalLogger.warn(`Could not ensure database directory exists: ${err.message}`);
       }
-    }
-    
-    const adapter = new PrismaBetterSqlite3({ url });
-    
-    super({ adapter });
 
-    // Log after super()
-    this.logger.log(`🔌 Database URL: ${url}`);
+      // Use better-sqlite3 adapter for SQLite
+      const adapter = new PrismaBetterSqlite3({ url });
+      clientConfig.adapter = adapter;
+      internalLogger.log('📦 Using SQLite with better-sqlite3 adapter');
+    } else if (url.startsWith('postgresql://') || url.startsWith('postgres://')) {
+      // PostgreSQL uses native driver by default, no adapter needed here
+      // but we could use @prisma/adapter-pg if required
+      internalLogger.log('🐘 Using PostgreSQL native client');
+      // For PG, the URL is passed via environment or datasource property
+      // But since we are using Prisma 7 and potentially overriding datasource in prisma.config.ts,
+      // we don't need to do much here unless we want to use an adapter.
+    }
+
+    super(clientConfig);
+
+    this.logger.log(`🔌 Database connected via: ${url.split('@').pop()}`); // Log URL without credentials
   }
 
   public async onModuleInit() {

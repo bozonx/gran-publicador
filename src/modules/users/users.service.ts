@@ -67,6 +67,7 @@ export class UsersService {
         fullName: fullName,
         avatarUrl: userData.avatarUrl,
         isAdmin: isAdmin,
+        preferences: {},
       },
     });
   }

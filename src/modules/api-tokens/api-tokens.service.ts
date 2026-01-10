@@ -40,13 +40,8 @@ export class ApiTokensService {
   /**
    * Safely parse scopeProjectIds from JSON string
    */
-  private parseScopeProjectIds(scopeString: string): string[] {
-    try {
-      const parsed = JSON.parse(scopeString);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+  private parseScopeProjectIds(scope: any): string[] {
+    return Array.isArray(scope) ? scope : [];
   }
 
   /**
@@ -117,8 +112,6 @@ export class ApiTokensService {
     const hashedToken = this.hashToken(plainToken);
     const encryptedToken = this.encryptToken(plainToken);
 
-    const scopeProjectIds = JSON.stringify(dto.scopeProjectIds ?? []);
-
     try {
       const apiToken = await this.prisma.apiToken.create({
         data: {
@@ -126,7 +119,7 @@ export class ApiTokensService {
           name: dto.name,
           hashedToken,
           encryptedToken,
-          scopeProjectIds,
+          scopeProjectIds: (dto.scopeProjectIds ?? []) as any,
         },
       });
 
@@ -209,7 +202,7 @@ export class ApiTokensService {
           );
         }
       }
-      updateData.scopeProjectIds = JSON.stringify(dto.scopeProjectIds);
+      updateData.scopeProjectIds = (dto.scopeProjectIds as any);
     }
 
     const updated = await this.prisma.apiToken.update({

@@ -30,7 +30,6 @@ export type ApiTokenMinAggregateOutputType = {
   name: string | null
   hashedToken: string | null
   encryptedToken: string | null
-  scopeProjectIds: string | null
   lastUsedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -42,7 +41,6 @@ export type ApiTokenMaxAggregateOutputType = {
   name: string | null
   hashedToken: string | null
   encryptedToken: string | null
-  scopeProjectIds: string | null
   lastUsedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -68,7 +66,6 @@ export type ApiTokenMinAggregateInputType = {
   name?: true
   hashedToken?: true
   encryptedToken?: true
-  scopeProjectIds?: true
   lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -80,7 +77,6 @@ export type ApiTokenMaxAggregateInputType = {
   name?: true
   hashedToken?: true
   encryptedToken?: true
-  scopeProjectIds?: true
   lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -177,7 +173,7 @@ export type ApiTokenGroupByOutputType = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds: string
+  scopeProjectIds: runtime.JsonValue
   lastUsedAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -210,7 +206,7 @@ export type ApiTokenWhereInput = {
   name?: Prisma.StringFilter<"ApiToken"> | string
   hashedToken?: Prisma.StringFilter<"ApiToken"> | string
   encryptedToken?: Prisma.StringFilter<"ApiToken"> | string
-  scopeProjectIds?: Prisma.StringFilter<"ApiToken"> | string
+  scopeProjectIds?: Prisma.JsonFilter<"ApiToken">
   lastUsedAt?: Prisma.DateTimeNullableFilter<"ApiToken"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ApiToken"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ApiToken"> | Date | string
@@ -239,7 +235,7 @@ export type ApiTokenWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"ApiToken"> | string
   name?: Prisma.StringFilter<"ApiToken"> | string
   encryptedToken?: Prisma.StringFilter<"ApiToken"> | string
-  scopeProjectIds?: Prisma.StringFilter<"ApiToken"> | string
+  scopeProjectIds?: Prisma.JsonFilter<"ApiToken">
   lastUsedAt?: Prisma.DateTimeNullableFilter<"ApiToken"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ApiToken"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ApiToken"> | Date | string
@@ -270,7 +266,7 @@ export type ApiTokenScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"ApiToken"> | string
   hashedToken?: Prisma.StringWithAggregatesFilter<"ApiToken"> | string
   encryptedToken?: Prisma.StringWithAggregatesFilter<"ApiToken"> | string
-  scopeProjectIds?: Prisma.StringWithAggregatesFilter<"ApiToken"> | string
+  scopeProjectIds?: Prisma.JsonWithAggregatesFilter<"ApiToken">
   lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ApiToken"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ApiToken"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ApiToken"> | Date | string
@@ -281,7 +277,7 @@ export type ApiTokenCreateInput = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds?: string
+  scopeProjectIds: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -294,7 +290,7 @@ export type ApiTokenUncheckedCreateInput = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds?: string
+  scopeProjectIds: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -305,7 +301,7 @@ export type ApiTokenUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -318,7 +314,7 @@ export type ApiTokenUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -330,7 +326,7 @@ export type ApiTokenCreateManyInput = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds?: string
+  scopeProjectIds: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -341,7 +337,7 @@ export type ApiTokenUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -353,7 +349,7 @@ export type ApiTokenUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -387,7 +383,6 @@ export type ApiTokenMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   hashedToken?: Prisma.SortOrder
   encryptedToken?: Prisma.SortOrder
-  scopeProjectIds?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -399,7 +394,6 @@ export type ApiTokenMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   hashedToken?: Prisma.SortOrder
   encryptedToken?: Prisma.SortOrder
-  scopeProjectIds?: Prisma.SortOrder
   lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -456,7 +450,7 @@ export type ApiTokenCreateWithoutUserInput = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds?: string
+  scopeProjectIds: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -467,7 +461,7 @@ export type ApiTokenUncheckedCreateWithoutUserInput = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds?: string
+  scopeProjectIds: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -507,7 +501,7 @@ export type ApiTokenScalarWhereInput = {
   name?: Prisma.StringFilter<"ApiToken"> | string
   hashedToken?: Prisma.StringFilter<"ApiToken"> | string
   encryptedToken?: Prisma.StringFilter<"ApiToken"> | string
-  scopeProjectIds?: Prisma.StringFilter<"ApiToken"> | string
+  scopeProjectIds?: Prisma.JsonFilter<"ApiToken">
   lastUsedAt?: Prisma.DateTimeNullableFilter<"ApiToken"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ApiToken"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ApiToken"> | Date | string
@@ -518,7 +512,7 @@ export type ApiTokenCreateManyUserInput = {
   name: string
   hashedToken: string
   encryptedToken: string
-  scopeProjectIds?: string
+  scopeProjectIds: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -529,7 +523,7 @@ export type ApiTokenUpdateWithoutUserInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -540,7 +534,7 @@ export type ApiTokenUncheckedUpdateWithoutUserInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -551,7 +545,7 @@ export type ApiTokenUncheckedUpdateManyWithoutUserInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   hashedToken?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedToken?: Prisma.StringFieldUpdateOperationsInput | string
-  scopeProjectIds?: Prisma.StringFieldUpdateOperationsInput | string
+  scopeProjectIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -632,7 +626,7 @@ export type $ApiTokenPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     name: string
     hashedToken: string
     encryptedToken: string
-    scopeProjectIds: string
+    scopeProjectIds: runtime.JsonValue
     lastUsedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -1065,7 +1059,7 @@ export interface ApiTokenFieldRefs {
   readonly name: Prisma.FieldRef<"ApiToken", 'String'>
   readonly hashedToken: Prisma.FieldRef<"ApiToken", 'String'>
   readonly encryptedToken: Prisma.FieldRef<"ApiToken", 'String'>
-  readonly scopeProjectIds: Prisma.FieldRef<"ApiToken", 'String'>
+  readonly scopeProjectIds: Prisma.FieldRef<"ApiToken", 'Json'>
   readonly lastUsedAt: Prisma.FieldRef<"ApiToken", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"ApiToken", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ApiToken", 'DateTime'>

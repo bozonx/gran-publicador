@@ -63,6 +63,7 @@ export class PostsService {
         status: data.status ?? PostStatus.PENDING,
         scheduledAt: data.scheduledAt,
         content: data.content,
+        meta: {},
       },
       include: {
         channel: true,

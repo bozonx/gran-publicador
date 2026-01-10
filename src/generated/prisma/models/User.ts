@@ -45,7 +45,6 @@ export type UserMinAggregateOutputType = {
   banReason: string | null
   createdAt: Date | null
   updatedAt: Date | null
-  preferences: string | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -59,7 +58,6 @@ export type UserMaxAggregateOutputType = {
   banReason: string | null
   createdAt: Date | null
   updatedAt: Date | null
-  preferences: string | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -97,7 +95,6 @@ export type UserMinAggregateInputType = {
   banReason?: true
   createdAt?: true
   updatedAt?: true
-  preferences?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -111,7 +108,6 @@ export type UserMaxAggregateInputType = {
   banReason?: true
   createdAt?: true
   updatedAt?: true
-  preferences?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -226,7 +222,7 @@ export type UserGroupByOutputType = {
   banReason: string | null
   createdAt: Date
   updatedAt: Date
-  preferences: string
+  preferences: runtime.JsonValue
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -263,7 +259,7 @@ export type UserWhereInput = {
   banReason?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  preferences?: Prisma.StringFilter<"User"> | string
+  preferences?: Prisma.JsonFilter<"User">
   ownedProjects?: Prisma.ProjectListRelationFilter
   projectMembers?: Prisma.ProjectMemberListRelationFilter
   publications?: Prisma.PublicationListRelationFilter
@@ -302,7 +298,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   banReason?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  preferences?: Prisma.StringFilter<"User"> | string
+  preferences?: Prisma.JsonFilter<"User">
   ownedProjects?: Prisma.ProjectListRelationFilter
   projectMembers?: Prisma.ProjectMemberListRelationFilter
   publications?: Prisma.PublicationListRelationFilter
@@ -342,7 +338,7 @@ export type UserScalarWhereWithAggregatesInput = {
   banReason?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
-  preferences?: Prisma.StringWithAggregatesFilter<"User"> | string
+  preferences?: Prisma.JsonWithAggregatesFilter<"User">
 }
 
 export type UserCreateInput = {
@@ -356,7 +352,7 @@ export type UserCreateInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
@@ -374,7 +370,7 @@ export type UserUncheckedCreateInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
@@ -392,7 +388,7 @@ export type UserUpdateInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
@@ -410,7 +406,7 @@ export type UserUncheckedUpdateInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
@@ -428,7 +424,7 @@ export type UserCreateManyInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type UserUpdateManyMutationInput = {
@@ -442,7 +438,7 @@ export type UserUpdateManyMutationInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -456,7 +452,7 @@ export type UserUncheckedUpdateManyInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -488,7 +484,6 @@ export type UserMaxOrderByAggregateInput = {
   banReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  preferences?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -502,7 +497,6 @@ export type UserMinOrderByAggregateInput = {
   banReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  preferences?: Prisma.SortOrder
 }
 
 export type UserSumOrderByAggregateInput = {
@@ -612,7 +606,7 @@ export type UserCreateWithoutApiTokensInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
@@ -629,7 +623,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
@@ -662,7 +656,7 @@ export type UserUpdateWithoutApiTokensInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
@@ -679,7 +673,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
@@ -696,7 +690,7 @@ export type UserCreateWithoutOwnedProjectsInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
@@ -713,7 +707,7 @@ export type UserUncheckedCreateWithoutOwnedProjectsInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
@@ -746,7 +740,7 @@ export type UserUpdateWithoutOwnedProjectsInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
@@ -763,7 +757,7 @@ export type UserUncheckedUpdateWithoutOwnedProjectsInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -780,7 +774,7 @@ export type UserCreateWithoutProjectMembersInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
@@ -797,7 +791,7 @@ export type UserUncheckedCreateWithoutProjectMembersInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
@@ -830,7 +824,7 @@ export type UserUpdateWithoutProjectMembersInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
@@ -847,7 +841,7 @@ export type UserUncheckedUpdateWithoutProjectMembersInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -864,7 +858,7 @@ export type UserCreateWithoutPublicationsInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
@@ -881,7 +875,7 @@ export type UserUncheckedCreateWithoutPublicationsInput = {
   banReason?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
@@ -914,7 +908,7 @@ export type UserUpdateWithoutPublicationsInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
@@ -931,7 +925,7 @@ export type UserUncheckedUpdateWithoutPublicationsInput = {
   banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
@@ -1086,7 +1080,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     banReason: string | null
     createdAt: Date
     updatedAt: Date
-    preferences: string
+    preferences: runtime.JsonValue
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1524,7 +1518,7 @@ export interface UserFieldRefs {
   readonly banReason: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
-  readonly preferences: Prisma.FieldRef<"User", 'String'>
+  readonly preferences: Prisma.FieldRef<"User", 'Json'>
 }
     
 

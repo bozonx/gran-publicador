@@ -33,7 +33,6 @@ export type ProjectMinAggregateOutputType = {
   updatedAt: Date | null
   archivedAt: Date | null
   archivedBy: string | null
-  preferences: string | null
 }
 
 export type ProjectMaxAggregateOutputType = {
@@ -45,7 +44,6 @@ export type ProjectMaxAggregateOutputType = {
   updatedAt: Date | null
   archivedAt: Date | null
   archivedBy: string | null
-  preferences: string | null
 }
 
 export type ProjectCountAggregateOutputType = {
@@ -71,7 +69,6 @@ export type ProjectMinAggregateInputType = {
   updatedAt?: true
   archivedAt?: true
   archivedBy?: true
-  preferences?: true
 }
 
 export type ProjectMaxAggregateInputType = {
@@ -83,7 +80,6 @@ export type ProjectMaxAggregateInputType = {
   updatedAt?: true
   archivedAt?: true
   archivedBy?: true
-  preferences?: true
 }
 
 export type ProjectCountAggregateInputType = {
@@ -180,7 +176,7 @@ export type ProjectGroupByOutputType = {
   updatedAt: Date
   archivedAt: Date | null
   archivedBy: string | null
-  preferences: string
+  preferences: runtime.JsonValue
   _count: ProjectCountAggregateOutputType | null
   _min: ProjectMinAggregateOutputType | null
   _max: ProjectMaxAggregateOutputType | null
@@ -213,7 +209,7 @@ export type ProjectWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   archivedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   archivedBy?: Prisma.StringNullableFilter<"Project"> | string | null
-  preferences?: Prisma.StringFilter<"Project"> | string
+  preferences?: Prisma.JsonFilter<"Project">
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   members?: Prisma.ProjectMemberListRelationFilter
   channels?: Prisma.ChannelListRelationFilter
@@ -248,7 +244,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   archivedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   archivedBy?: Prisma.StringNullableFilter<"Project"> | string | null
-  preferences?: Prisma.StringFilter<"Project"> | string
+  preferences?: Prisma.JsonFilter<"Project">
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   members?: Prisma.ProjectMemberListRelationFilter
   channels?: Prisma.ChannelListRelationFilter
@@ -282,7 +278,7 @@ export type ProjectScalarWhereWithAggregatesInput = {
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
   archivedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
   archivedBy?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
-  preferences?: Prisma.StringWithAggregatesFilter<"Project"> | string
+  preferences?: Prisma.JsonWithAggregatesFilter<"Project">
 }
 
 export type ProjectCreateInput = {
@@ -293,7 +289,7 @@ export type ProjectCreateInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
@@ -309,7 +305,7 @@ export type ProjectUncheckedCreateInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
@@ -323,7 +319,7 @@ export type ProjectUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
@@ -339,7 +335,7 @@ export type ProjectUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
@@ -354,7 +350,7 @@ export type ProjectCreateManyInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type ProjectUpdateManyMutationInput = {
@@ -365,7 +361,7 @@ export type ProjectUpdateManyMutationInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type ProjectUncheckedUpdateManyInput = {
@@ -377,7 +373,7 @@ export type ProjectUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type ProjectListRelationFilter = {
@@ -411,7 +407,6 @@ export type ProjectMaxOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   archivedAt?: Prisma.SortOrder
   archivedBy?: Prisma.SortOrder
-  preferences?: Prisma.SortOrder
 }
 
 export type ProjectMinOrderByAggregateInput = {
@@ -423,7 +418,6 @@ export type ProjectMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   archivedAt?: Prisma.SortOrder
   archivedBy?: Prisma.SortOrder
-  preferences?: Prisma.SortOrder
 }
 
 export type ProjectScalarRelationFilter = {
@@ -523,7 +517,7 @@ export type ProjectCreateWithoutOwnerInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
@@ -537,7 +531,7 @@ export type ProjectUncheckedCreateWithoutOwnerInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
@@ -580,7 +574,7 @@ export type ProjectScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   archivedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   archivedBy?: Prisma.StringNullableFilter<"Project"> | string | null
-  preferences?: Prisma.StringFilter<"Project"> | string
+  preferences?: Prisma.JsonFilter<"Project">
 }
 
 export type ProjectCreateWithoutMembersInput = {
@@ -591,7 +585,7 @@ export type ProjectCreateWithoutMembersInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
@@ -606,7 +600,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
 }
@@ -635,7 +629,7 @@ export type ProjectUpdateWithoutMembersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
@@ -650,7 +644,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
 }
@@ -663,7 +657,7 @@ export type ProjectCreateWithoutChannelsInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
@@ -678,7 +672,7 @@ export type ProjectUncheckedCreateWithoutChannelsInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
 }
@@ -707,7 +701,7 @@ export type ProjectUpdateWithoutChannelsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
@@ -722,7 +716,7 @@ export type ProjectUncheckedUpdateWithoutChannelsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
 }
@@ -735,7 +729,7 @@ export type ProjectCreateWithoutPublicationsInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
@@ -750,7 +744,7 @@ export type ProjectUncheckedCreateWithoutPublicationsInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
 }
@@ -779,7 +773,7 @@ export type ProjectUpdateWithoutPublicationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
@@ -794,7 +788,7 @@ export type ProjectUncheckedUpdateWithoutPublicationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
 }
@@ -807,7 +801,7 @@ export type ProjectCreateManyOwnerInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
-  preferences?: string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type ProjectUpdateWithoutOwnerInput = {
@@ -818,7 +812,7 @@ export type ProjectUpdateWithoutOwnerInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
@@ -832,7 +826,7 @@ export type ProjectUncheckedUpdateWithoutOwnerInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
@@ -846,7 +840,7 @@ export type ProjectUncheckedUpdateManyWithoutOwnerInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  preferences?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 
@@ -985,7 +979,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     updatedAt: Date
     archivedAt: Date | null
     archivedBy: string | null
-    preferences: string
+    preferences: runtime.JsonValue
   }, ExtArgs["result"]["project"]>
   composites: {}
 }
@@ -1421,7 +1415,7 @@ export interface ProjectFieldRefs {
   readonly updatedAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly archivedAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly archivedBy: Prisma.FieldRef<"Project", 'String'>
-  readonly preferences: Prisma.FieldRef<"Project", 'String'>
+  readonly preferences: Prisma.FieldRef<"Project", 'Json'>
 }
     
 
