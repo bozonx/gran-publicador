@@ -7,6 +7,22 @@ export interface ChannelFooter {
     isDefault: boolean
 }
 
+export interface TemplateBlock {
+    enabled: boolean
+    before?: string
+    insert: 'title' | 'content' | 'description' | 'tags'
+    after?: string
+}
+
+export interface ChannelPostTemplate {
+    id: string
+    name: string
+    order: number
+    postType?: string | null
+    language?: string | null
+    template: TemplateBlock[]
+}
+
 export interface Channel {
     id: string
     projectId: string
@@ -18,6 +34,7 @@ export interface Channel {
     preferences?: {
         staleChannelsDays?: number
         footers?: ChannelFooter[]
+        templates?: ChannelPostTemplate[]
     }
     coordinates?: string
     credentials?: Record<string, any>
@@ -56,6 +73,7 @@ export interface ChannelCreateInput {
     preferences?: {
         staleChannelsDays?: number
         footers?: ChannelFooter[]
+        templates?: ChannelPostTemplate[]
     }
     tags?: string | null
 }
@@ -68,6 +86,7 @@ export interface ChannelUpdateInput {
     preferences?: {
         staleChannelsDays?: number
         footers?: ChannelFooter[]
+        templates?: ChannelPostTemplate[]
     }
     isActive?: boolean
     tags?: string | null

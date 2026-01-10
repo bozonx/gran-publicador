@@ -221,6 +221,11 @@ async function handleDelete() {
             hide-cancel
           />
         </UCard>
+
+        <!-- Post Templates -->
+        <UCard v-if="canEdit(channel)">
+          <FormsChannelTemplatesEditor :channel="channel" />
+        </UCard>
  
         <!-- Channel Control -->
         <UCard v-if="canEdit(channel)">
