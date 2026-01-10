@@ -15,9 +15,10 @@ export interface MediaItem {
 }
 
 export interface CreateMediaInput {
-  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
-  storageType: 'TELEGRAM' | 'FS'
-  storagePath: string
+  id?: string
+  type?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
+  storageType?: 'TELEGRAM' | 'FS'
+  storagePath?: string
   filename?: string
   mimeType?: string
   sizeBytes?: number
@@ -175,6 +176,19 @@ export function useMedia() {
     }
   }
 
+  async function fetchAllMedia(): Promise<MediaItem[]> {
+    isLoading.value = true
+    error.value = null
+    try {
+      return await api.get<MediaItem[]>('/media')
+    } catch (err: any) {
+      error.value = err.message || 'Failed to fetch all media'
+      return []
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     isLoading,
     error,
@@ -188,6 +202,7 @@ export function useMedia() {
     removeMediaFromPublication,
     reorderMediaInPublication,
     fetchExif,
+    fetchAllMedia,
   }
 }
 

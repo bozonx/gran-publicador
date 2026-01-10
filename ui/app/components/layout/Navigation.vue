@@ -37,6 +37,11 @@ const mainNavItems = computed<NavItem[]>(() => [
     to: '/publications',
     icon: 'i-heroicons-document-text',
   },
+  {
+    label: t('navigation.media_library', 'Медиа-библиотека'),
+    to: '/media',
+    icon: 'i-heroicons-photo',
+  },
 ])
 
 

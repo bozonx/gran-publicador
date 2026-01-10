@@ -119,17 +119,7 @@ async function handleFileUpload(event: Event) {
       uploadProgressPercent.value = progress
     })
     
-    const newMedia: CreateMediaInput = {
-      type: uploadedMedia.type,
-      storageType: uploadedMedia.storageType,
-      storagePath: uploadedMedia.storagePath,
-      filename: uploadedMedia.filename,
-      mimeType: uploadedMedia.mimeType,
-      sizeBytes: uploadedMedia.sizeBytes,
-      meta: uploadedMedia.meta,
-    }
-
-    await addMediaToPublication(props.publicationId, [newMedia])
+    await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
     
     toast.add({
       title: t('common.success'),
@@ -228,17 +218,7 @@ async function addMedia() {
     }
 
     // For URL: add the downloaded media to publication
-    const newMedia: CreateMediaInput = {
-      type: uploadedMedia.type as 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT',
-      storageType: uploadedMedia.storageType as 'TELEGRAM' | 'FS',
-      storagePath: uploadedMedia.storagePath,
-      filename: uploadedMedia.filename,
-      mimeType: uploadedMedia.mimeType,
-      sizeBytes: uploadedMedia.sizeBytes,
-      meta: uploadedMedia.meta,
-    }
-
-    await addMediaToPublication(props.publicationId, [newMedia])
+    await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
     
     toast.add({
       title: t('common.success'),
@@ -356,17 +336,7 @@ async function handleDrop(event: DragEvent) {
       uploadProgressPercent.value = progress
     })
     
-    const newMedia: CreateMediaInput = {
-      type: uploadedMedia.type,
-      storageType: uploadedMedia.storageType,
-      storagePath: uploadedMedia.storagePath,
-      filename: uploadedMedia.filename,
-      mimeType: uploadedMedia.mimeType,
-      sizeBytes: uploadedMedia.sizeBytes,
-      meta: uploadedMedia.meta,
-    }
-
-    await addMediaToPublication(props.publicationId, [newMedia])
+    await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
     
     toast.add({
       title: t('common.success'),

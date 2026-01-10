@@ -228,8 +228,49 @@ export class MediaService {
     };
   }
 
-  async findAll(): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any> }>> {
+  async findAll(userId?: string): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any> }>> {
+    let where = {};
+
+    if (userId) {
+      // Find all projects where user is owner or member
+      const userProjects = await this.prisma.project.findMany({
+        where: {
+          OR: [
+            { ownerId: userId },
+            { members: { some: { userId } } }
+          ]
+        },
+        select: { id: true }
+      });
+
+      const projectIds = userProjects.map(p => p.id);
+
+      // Filter media that is linked to publications in these projects
+      // We also include orphaned media (not linked to any publication) for now, 
+      // as it might have been just uploaded. 
+      // If we want to be strict, we'd only show media from these projects.
+      where = {
+        OR: [
+          {
+            publicationMedia: {
+              some: {
+                publication: {
+                  projectId: { in: projectIds }
+                }
+              }
+            }
+          },
+          {
+            publicationMedia: {
+              none: {}
+            }
+          }
+        ]
+      };
+    }
+
     const list = await this.prisma.media.findMany({
+      where,
       orderBy: { createdAt: 'desc' }
     });
     return list.map(media => ({

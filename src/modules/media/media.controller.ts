@@ -89,8 +89,8 @@ export class MediaController {
 
   @Get()
   @UseGuards(JwtOrApiTokenGuard)
-  findAll() {
-    return this.mediaService.findAll();
+  findAll(@Req() req: UnifiedAuthRequest) {
+    return this.mediaService.findAll(req.user.userId);
   }
 
   @Get(':id/file')
