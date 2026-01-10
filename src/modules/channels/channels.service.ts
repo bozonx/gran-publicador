@@ -193,11 +193,16 @@ export class ChannelsService {
     // Build where clause
     const where: any = {
       projectId: { in: searchProjectIds },
-      ...(filters.includeArchived ? {} : { archivedAt: null }),
     };
 
     if (!filters.includeArchived) {
-        where.project = { archivedAt: null };
+      where.archivedAt = null;
+      where.project = { archivedAt: null };
+    } else {
+      where.OR = [
+        { archivedAt: { not: null } },
+        { project: { archivedAt: { not: null } } },
+      ];
     }
 
     const andConditions: any[] = [];

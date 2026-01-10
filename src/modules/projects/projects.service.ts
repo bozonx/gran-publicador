@@ -88,7 +88,7 @@ export class ProjectsService {
         members: {
           some: { userId },
         },
-        ...(includeArchived ? {} : { archivedAt: null }),
+        archivedAt: includeArchived ? { not: null } : null,
         OR: [
           { name: { contains: search } },
           { description: { contains: search } },
@@ -139,7 +139,7 @@ export class ProjectsService {
     const projects = await this.prisma.project.findMany({
       take: limit,
       where: {
-        ...(includeArchived ? {} : { archivedAt: null }),
+        archivedAt: includeArchived ? { not: null } : null,
         members: {
           some: {
             userId: userId,

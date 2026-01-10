@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class FindProjectsQueryDto {
@@ -7,7 +7,7 @@ export class FindProjectsQueryDto {
   search?: string;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
   @IsBoolean()
   includeArchived?: boolean;
 

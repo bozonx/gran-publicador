@@ -187,13 +187,13 @@ function getProjectTooltip(project: ProjectWithRole) {
         <div v-for="project in activeProjects" :key="project.id" class="space-y-1">
           <!-- Project Item -->
           <div 
-            class="group flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            class="group flex items-stretch rounded-lg text-sm font-medium transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
             :class="{ 'bg-gray-100 dark:bg-gray-800': expandedProjects.has(project.id) || route.path.includes(`/projects/${project.id}`) }"
           > 
-            <UTooltip :text="getProjectTooltip(project)" :popper="{ placement: 'right' }">
+            <UTooltip :text="getProjectTooltip(project)" :popper="{ placement: 'right' }" class="flex-1 min-w-0 h-full">
               <NuxtLink 
                 :to="`/projects/${project.id}`"
-                class="flex items-center gap-3 flex-1 min-w-0"
+                class="flex items-center gap-3 pl-3 pr-2 py-2 h-full w-full"
               >
                 <div 
                   class="w-2 h-2 rounded-full shrink-0 transition-colors duration-300"
@@ -204,12 +204,12 @@ function getProjectTooltip(project: ProjectWithRole) {
             </UTooltip>
             
             <button
-              class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+              class="px-3 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded-r-lg transition-colors"
               @click.stop="toggleProject(project.id)"
             >
               <UIcon 
                 name="i-heroicons-chevron-right" 
-                class="w-4 h-4 transition-transform duration-200"
+                class="w-4 h-4 transition-transform duration-200 shrink-0"
                 :class="{ 'rotate-90': expandedProjects.has(project.id) }"
               />
             </button>

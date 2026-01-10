@@ -15,6 +15,8 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const { getStatusColor, getStatusDisplayName, getPublicationProblems, getPostProblemLevel } = usePublications()
 const { formatDateShort, truncateContent } = useFormatters()
+const route = useRoute()
+const isArchiveView = computed(() => route.query.archived === 'true')
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
@@ -62,7 +64,7 @@ function handleDelete(e: Event) {
             {{ getStatusDisplayName(publication.status) }}
           </UBadge>
 
-          <UBadge v-if="publication.archivedAt" color="neutral" size="xs" variant="solid">
+          <UBadge v-if="publication.archivedAt && !isArchiveView" color="neutral" size="xs" variant="solid">
             {{ t('common.archived') }}
           </UBadge>
           

@@ -66,29 +66,38 @@ export class PublicationsService {
     },
     userId: string,
     projectId?: string,
+    userAllowedProjectIds?: string[],
   ): Prisma.PublicationWhereInput {
     const where: Prisma.PublicationWhereInput = {};
     const conditions: Prisma.PublicationWhereInput[] = [];
 
-    // Project filter (if provided)
+    // Project filter & Scoping
     if (projectId) {
       where.projectId = projectId;
-      // Archive filter for project-specific queries
-      if (!filters?.includeArchived) {
-        where.archivedAt = null;
-        where.project = { archivedAt: null };
-      }
+    } else if (userAllowedProjectIds) {
+      where.projectId = { in: userAllowedProjectIds };
     } else {
-      // For user queries, filter by membership
       where.project = {
         members: {
           some: { userId },
         },
-        archivedAt: null,
       };
-      if (!filters?.includeArchived) {
-        where.archivedAt = null;
+    }
+
+    // Archive filter
+    if (!filters?.includeArchived) {
+      where.archivedAt = null;
+      // We need to merge project criteria if it exists
+      if (where.project) {
+        (where.project as any).archivedAt = null;
+      } else {
+        where.project = { archivedAt: null };
       }
+    } else {
+      where.OR = [
+        { archivedAt: { not: null } },
+        { project: { archivedAt: { not: null } } },
+      ];
     }
 
     // Status filter
@@ -593,69 +602,7 @@ export class PublicationsService {
     }
 
     // 2. Build filter with explicit projectId list
-    const where = this.buildWhereClause(filters || {}, userId);
-    
-    // Override the project relation filter from buildWhereClause with explicit IN clause
-    // buildWhereClause adds 'project: { members... }'. We want to replace/simplify that.
-    // Actually, buildWhereClause is private. Let's look at it.
-    // It adds: where.project = { members: { some: { userId } }, archivedAt: null }
-    // We want to remove that and strictly use projectId IN list.
-    // But buildWhereClause assumes it's handling the security check.
-    
-    // Let's modify buildWhereClause usage or manually construct where here to be safe.
-    // Since we can't easily change buildWhereClause without affecting findAll, 
-    // we can just OVERWRITE where.project and where.projectId.
-    
-    // Re-construct basic where without buildWhereClause for clarity and safety in this new approach?
-    // Or just patch the result of buildWhereClause.
-    
-    // buildWhereClause logic:
-    /*
-      where.project = {
-        members: { some: { userId } },
-        archivedAt: null,
-      };
-      if (!filters?.includeArchived) {
-        where.archivedAt = null;
-      }
-    */
-    
-    // We want:
-    // where.projectId = { in: userProjectIds }
-    // where.project = { archivedAt: null } (if needed) or just trust userProjectIds are mostly valid? 
-    // userProjectIds includes archived projects?
-    // projectMember exists for archived projects? Yes.
-    // So we still need to filter out archived projects if !includeArchived.
-    
-    // So:
-    delete where.project; // Remove the complex member check
-    
-    where.projectId = { in: userProjectIds };
-    
-    if (!filters?.includeArchived) {
-        where.project = { archivedAt: null }; // Only check for archived status
-        where.archivedAt = null;
-    }
-    
-    // The rest of buildWhereClause logic (status, channelId, etc.) is fine and preserved in 'where'
-    // BUT buildWhereClause was called with userId.
-    // It logic:
-    /*
-     } else {
-      where.project = {
-        members: {
-          some: { userId },
-        },
-        archivedAt: null,
-      };
-      if (!filters?.includeArchived) {
-        where.archivedAt = null;
-      }
-    }
-    */
-    
-    // So if we delete where.project, we lose 'archivedAt: null' inside it.
-    // So we must restore it.
+    const where = this.buildWhereClause(filters || {}, userId, undefined, userProjectIds);
      
     // Dynamic sorting
     const sortField = filters?.sortBy || 'chronology';

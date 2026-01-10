@@ -91,13 +91,22 @@ export class PostsService {
     }
 
     const where: any = {
-      channel: {
-        projectId,
-        ...(filters?.includeArchived ? {} : { archivedAt: null }),
-        project: { archivedAt: null },
-      },
-      ...(filters?.includeArchived ? {} : { publication: { archivedAt: null } }),
+      channel: { projectId },
     };
+
+    if (!filters?.includeArchived) {
+      where.channel = {
+        ...where.channel,
+        archivedAt: null,
+      };
+      where.publication = { archivedAt: null };
+    } else {
+      where.OR = [
+        { channel: { archivedAt: { not: null } } },
+        { channel: { project: { archivedAt: { not: null } } } },
+        { publication: { archivedAt: { not: null } } },
+      ];
+    }
 
     if (filters?.status && typeof filters.status === 'string') {
       where.status = filters.status.toUpperCase() as PostStatus;
@@ -149,18 +158,31 @@ export class PostsService {
     userId: string,
     filters?: { status?: PostStatus; postType?: PostType; search?: string; includeArchived?: boolean; limit?: number; page?: number },
   ) {
-    const where: any = {
-      channel: {
+    const where: any = {};
+
+    if (!filters?.includeArchived) {
+      where.channel = {
         project: {
-          members: {
-            some: { userId },
-          },
+          members: { some: { userId } },
           archivedAt: null,
         },
-        ...(filters?.includeArchived ? {} : { archivedAt: null }),
-      },
-      ...(filters?.includeArchived ? {} : { publication: { archivedAt: null } }),
-    };
+        archivedAt: null,
+      };
+      where.publication = { archivedAt: null };
+    } else {
+      where.OR = [
+        { channel: { archivedAt: { not: null } } },
+        { channel: { project: { archivedAt: { not: null } } } },
+        { publication: { archivedAt: { not: null } } },
+      ];
+      // Still must belong to user's projects
+      where.channel = {
+        ...where.channel,
+        project: {
+           members: { some: { userId } }
+        }
+      };
+    }
 
     if (filters?.status && typeof filters.status === 'string') {
       where.status = filters.status.toUpperCase() as PostStatus;
@@ -224,8 +246,13 @@ export class PostsService {
 
     const where: any = {
       channelId,
-      ...(filters?.includeArchived ? {} : { publication: { archivedAt: null } }),
     };
+
+    if (!filters?.includeArchived) {
+      where.publication = { archivedAt: null };
+    } else {
+      where.publication = { archivedAt: { not: null } };
+    }
 
     if (filters?.status && typeof filters.status === 'string') {
       where.status = filters.status.toUpperCase() as PostStatus;

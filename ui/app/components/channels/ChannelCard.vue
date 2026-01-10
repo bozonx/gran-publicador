@@ -17,7 +17,8 @@ const hasCredentials = computed(() => {
 
 const { getChannelProblemLevel } = useChannels()
 const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel))
-const isChannelArchived = computed(() => props.isArchived || !!props.channel.archivedAt)
+const route = useRoute()
+const isChannelArchived = computed(() => (props.isArchived || !!props.channel.archivedAt) && route.query.archived !== 'true')
 </script>
 
 <template>
