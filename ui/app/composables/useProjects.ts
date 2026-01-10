@@ -14,12 +14,15 @@ export function useProjects() {
     const store = useProjectsStore()
     const { projects, currentProject, members, isLoading, error } = storeToRefs(store)
 
-    async function fetchProjects(includeArchived = false): Promise<ProjectWithRole[]> {
+    async function fetchProjects(includeArchived?: boolean): Promise<ProjectWithRole[]> {
         store.setLoading(true)
         store.setError(null)
 
         try {
-            const params = { includeArchived, limit: 1000 }
+            const params: any = { limit: 1000 }
+            if (includeArchived !== undefined) {
+                params.includeArchived = includeArchived
+            }
             const data = await api.get<ProjectWithRole[]>('/projects', { params })
             store.setProjects(data)
             return data

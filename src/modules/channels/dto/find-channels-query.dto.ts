@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean } from 'class-validator';
+import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean, IsLocale } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { SocialMedia } from '../../../generated/prisma/client.js';
 
@@ -66,6 +66,7 @@ export class FindChannelsQueryDto {
 
   @IsOptional()
   @IsString()
+  @IsLocale()
   language?: string;
 
   @IsOptional()

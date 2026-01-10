@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean } from 'class-validator';
+import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean, IsLocale } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client.js';
 
@@ -59,11 +59,12 @@ export class FindPublicationsQueryDto {
 
   @IsOptional()
   @IsString()
-  search?: string;
+  @IsLocale()
+  language?: string;
 
   @IsOptional()
   @IsString()
-  language?: string;
+  search?: string;
 
   @IsOptional()
   @IsEnum(OwnershipType)

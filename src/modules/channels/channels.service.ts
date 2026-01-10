@@ -658,6 +658,7 @@ export class ChannelsService {
         preferences: data.preferences ? JSON.stringify(data.preferences) : undefined,
         isActive: data.isActive,
         tags: data.tags,
+        language: data.language,
       },
     });
   }

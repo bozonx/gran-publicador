@@ -1,4 +1,4 @@
-import { IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsLocale, IsObject, IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO for updating an existing channel.
@@ -15,6 +15,11 @@ export class UpdateChannelDto {
   @IsString()
   @IsOptional()
   public channelIdentifier?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsLocale()
+  public language?: string;
 
   @IsObject()
   @IsOptional()

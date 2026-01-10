@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDate, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsEnum, IsLocale, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
 import { CreateMediaDto } from '../../media/dto/index.js';
@@ -87,6 +87,7 @@ export class CreatePublicationDto {
 
   @IsString()
   @IsNotEmpty()
+  @IsLocale()
   public language!: string;
 
   @IsString()
