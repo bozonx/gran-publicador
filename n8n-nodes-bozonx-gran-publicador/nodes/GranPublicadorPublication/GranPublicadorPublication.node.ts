@@ -488,6 +488,10 @@ async function handleMediaUpload(
 		}>;
 	};
 
+	if (!media.mediaItem) {
+		return;
+	}
+
 	for (const mediaData of media.mediaItem) {
 		let mediaId: string | undefined;
 
