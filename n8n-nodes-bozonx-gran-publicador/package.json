@@ -1,0 +1,50 @@
+{
+    "name": "n8n-nodes-bozonx-gran-publicador",
+    "version": "0.1.0",
+    "description": "n8n community node for gran-publicador service",
+    "license": "MIT",
+    "keywords": [
+        "n8n-community-node-package"
+    ],
+    "author": {
+        "name": "Ivan K"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bozonx/gran-publicador"
+    },
+    "scripts": {
+        "build": "n8n-node build",
+        "build:watch": "tsc --watch",
+        "dev": "n8n-node dev",
+        "lint": "n8n-node lint",
+        "lint:fix": "n8n-node lint --fix",
+        "release:n8n": "n8n-node release",
+        "prepublishOnly:n8n": "n8n-node prerelease",
+        "publish:npm": "pnpm build && pnpm publish --access public"
+    },
+    "files": [
+        "dist"
+    ],
+    "n8n": {
+        "n8nNodesApiVersion": 1,
+        "nodes": [
+            "dist/nodes/GranPublicador/GranPublicador.node.js"
+        ],
+        "credentials": [
+            "dist/credentials/GranPublicadorApi.credentials.js"
+        ]
+    },
+    "devDependencies": {
+        "@n8n/node-cli": "^0.17.0",
+        "@types/node": "^22.0.0",
+        "eslint": "9.39.2",
+        "prettier": "3.7.4",
+        "release-it": "^19.2.3",
+        "typescript": "5.7.3"
+    },
+    "peerDependencies": {
+        "n8n-workflow": "*"
+    },
+    "dependencies": {}
+}
