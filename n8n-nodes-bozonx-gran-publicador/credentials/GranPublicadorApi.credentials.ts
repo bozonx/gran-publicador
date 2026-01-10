@@ -1,4 +1,6 @@
 import {
+	IAuthenticateGeneric,
+	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
 } from 'n8n-workflow';
@@ -7,6 +9,23 @@ export class GranPublicadorApi implements ICredentialType {
 	name = 'granPublicadorApi';
 	displayName = 'Gran Publicador API';
 	documentationUrl = 'https://github.com/bozonx/gran-publicador';
+
+	authenticate: IAuthenticateGeneric = {
+		type: 'generic',
+		properties: {
+			headers: {
+				Authorization: '={{"Bearer " + $credentials.apiToken}}',
+			},
+		},
+	};
+
+	test: ICredentialTestRequest = {
+		request: {
+			method: 'GET',
+			url: '={{$credentials.baseUrl.replace(/\/$/, "")}}/health',
+		},
+	};
+
 	properties: INodeProperties[] = [
 		{
 			displayName: 'Base URL',
@@ -29,3 +48,4 @@ export class GranPublicadorApi implements ICredentialType {
 		},
 	];
 }
+

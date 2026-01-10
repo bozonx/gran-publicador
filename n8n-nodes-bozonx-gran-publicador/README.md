@@ -41,6 +41,11 @@ Add source texts and media to an existing publication.
 - `Media URLs`: Comma-separated list of URLs.
 - `Binary Media`: Option to upload files from n8n binary data.
 
+### System Operations
+
+#### 1. Check Health
+Check if the Gran Publicador API is online and responding.
+
 ## Credentials
 
 Requires a `baseUrl` and `apiToken` for the Gran Publicador API.

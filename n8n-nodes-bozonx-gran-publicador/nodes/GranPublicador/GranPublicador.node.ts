@@ -38,8 +38,32 @@ export class GranPublicador implements INodeType {
 						name: 'Publication',
 						value: 'publication',
 					},
+					{
+						name: 'System',
+						value: 'system',
+					},
 				],
 				default: 'publication',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['system'],
+					},
+				},
+				options: [
+					{
+						name: 'Check Health',
+						value: 'checkHealth',
+						description: 'Check if the API is up and running',
+						action: 'Check API health',
+					},
+				],
+				default: 'checkHealth',
 			},
 			{
 				displayName: 'Operation',
@@ -279,7 +303,11 @@ export class GranPublicador implements INodeType {
 
 						let sourceTexts = [];
 						if (typeof sourceTextsJson === 'string') {
-							sourceTexts = JSON.parse(sourceTextsJson);
+							try {
+								sourceTexts = JSON.parse(sourceTextsJson);
+							} catch (e) {
+								throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
+							}
 						} else {
 							sourceTexts = sourceTextsJson;
 						}
@@ -305,7 +333,7 @@ export class GranPublicador implements INodeType {
 						const publicationId = response.id;
 
 						// 2. Handle Media if needed
-						await handleMediaUpload.call(this, i, publicationId, baseUrl);
+						await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
 
 						returnData.push({
 							json: response,
@@ -317,7 +345,11 @@ export class GranPublicador implements INodeType {
 
 						let sourceTexts = [];
 						if (typeof sourceTextsJson === 'string') {
-							sourceTexts = JSON.parse(sourceTextsJson);
+							try {
+								sourceTexts = JSON.parse(sourceTextsJson);
+							} catch (e) {
+								throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
+							}
 						} else {
 							sourceTexts = sourceTextsJson;
 						}
@@ -331,12 +363,25 @@ export class GranPublicador implements INodeType {
 						});
 
 						// 2. Handle Media (POST /media)
-						await handleMediaUpload.call(this, i, publicationId, baseUrl);
+						await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
 
 						// Fetch latest state
 						response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 							method: 'GET',
 							uri: `${baseUrl}/publications/${publicationId}`,
+							json: true,
+						});
+
+						returnData.push({
+							json: response,
+							pairedItem: { item: i },
+						});
+					}
+				} else if (resource === 'system') {
+					if (operation === 'checkHealth') {
+						const response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+							method: 'GET',
+							uri: `${baseUrl}/health`,
 							json: true,
 						});
 
@@ -367,6 +412,7 @@ export class GranPublicador implements INodeType {
 async function handleMediaUpload(
 	this: IExecuteFunctions,
 	itemIndex: number,
+	item: INodeExecutionData,
 	publicationId: string,
 	baseUrl: string,
 ): Promise<void> {
@@ -399,10 +445,9 @@ async function handleMediaUpload(
 	const binaryPropertyName = this.getNodeParameter('binaryPropertyName', itemIndex) as string;
 	const propertyNames = binaryPropertyName.split(',').map((p) => p.trim());
 
-	const items = this.getInputData();
 	for (const propertyName of propertyNames) {
-		if (items[itemIndex].binary?.[propertyName]) {
-			const binaryData = items[itemIndex].binary![propertyName];
+		if (item.binary?.[propertyName]) {
+			const binaryData = item.binary![propertyName];
 			const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, propertyName);
 
 			// Upload file
