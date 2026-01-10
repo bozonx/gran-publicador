@@ -64,18 +64,6 @@ export class GranPublicadorPublication implements INodeType {
 				description: 'The ID of the project where the publication will be created',
 			},
 			{
-				displayName: 'Title',
-				name: 'title',
-				type: 'string',
-				default: '',
-				displayOptions: {
-					show: {
-						operation: ['create'],
-					},
-				},
-				description: 'The title of the publication',
-			},
-			{
 				displayName: 'Language',
 				name: 'language',
 				type: 'string',
@@ -125,16 +113,16 @@ export class GranPublicadorPublication implements INodeType {
 				},
 			},
 			{
-				displayName: 'Tags',
-				name: 'tags',
+				displayName: 'Title',
+				name: 'title',
 				type: 'string',
 				default: '',
-				description: 'Comma-separated tags for the publication',
 				displayOptions: {
 					show: {
 						operation: ['create'],
 					},
 				},
+				description: 'The title of the publication',
 			},
 			{
 				displayName: 'Content',
@@ -152,6 +140,18 @@ export class GranPublicadorPublication implements INodeType {
 				description: 'The main text content of the publication',
 			},
 			{
+				displayName: 'Tags',
+				name: 'tags',
+				type: 'string',
+				default: '',
+				description: 'Comma-separated tags for the publication',
+				displayOptions: {
+					show: {
+						operation: ['create'],
+					},
+				},
+			},
+			{
 				displayName: 'Additional Fields',
 				name: 'additionalFields',
 				type: 'collection',
@@ -164,16 +164,6 @@ export class GranPublicadorPublication implements INodeType {
 				},
 				options: [
 					{
-						displayName: 'Author Comment',
-						name: 'authorComment',
-						type: 'string',
-						typeOptions: {
-							rows: 2,
-						},
-						default: '',
-						description: 'Commentary from the author to be published along with the content',
-					},
-					{
 						displayName: 'Description',
 						name: 'description',
 						type: 'string',
@@ -182,6 +172,16 @@ export class GranPublicadorPublication implements INodeType {
 						},
 						default: '',
 						description: 'Short description or SEO summary of the publication',
+					},
+					{
+						displayName: 'Author Comment',
+						name: 'authorComment',
+						type: 'string',
+						typeOptions: {
+							rows: 2,
+						},
+						default: '',
+						description: 'Commentary from the author to be published along with the content',
 					},
 					{
 						displayName: 'Meta',
