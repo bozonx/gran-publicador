@@ -334,6 +334,23 @@ export class GranPublicadorPublication implements INodeType {
 									},
 								},
 							},
+							{
+								displayName: 'Filename',
+								name: 'filename',
+								type: 'string',
+								default: '',
+								description: 'Custom filename for the media file',
+							},
+							{
+								displayName: 'Meta (YAML/JSON)',
+								name: 'meta',
+								type: 'string',
+								typeOptions: {
+									rows: 2,
+								},
+								default: '',
+								description: 'Additional metadata in YAML or JSON format',
+							},
 						],
 					},
 				],
@@ -466,29 +483,51 @@ async function handleMediaUpload(
 			url?: string;
 			fileId?: string;
 			type?: string;
+			filename?: string;
+			meta?: string;
 		}>;
 	};
 
 	for (const mediaData of media.mediaItem) {
 		let mediaId: string | undefined;
 
+		const meta = parseYamlOrJson.call(this, mediaData.meta || '', itemIndex, 'Media Meta');
+
 		if (mediaData.mode === 'url' && mediaData.url) {
+			const body: any = { url: mediaData.url };
+			if (mediaData.filename) body.filename = mediaData.filename;
+
 			const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 				method: 'POST',
 				uri: `${baseUrl}/media/upload-from-url`,
-				body: { url: mediaData.url },
+				body,
 				json: true,
 			});
 			mediaId = uploadResponse.id;
+
+			// If meta is provided, we need to update the media record since upload-from-url doesn't accept generic meta
+			if (meta && Object.keys(meta).length > 0) {
+				await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+					method: 'PATCH',
+					uri: `${baseUrl}/media/${mediaId}`,
+					body: { meta },
+					json: true,
+				});
+			}
+
 		} else if (mediaData.mode === 'telegram' && mediaData.fileId) {
+			const body: any = {
+				type: mediaData.type || 'IMAGE',
+				storageType: 'TELEGRAM',
+				storagePath: mediaData.fileId,
+				meta,
+			};
+			if (mediaData.filename) body.filename = mediaData.filename;
+
 			const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 				method: 'POST',
 				uri: `${baseUrl}/media`,
-				body: {
-					type: mediaData.type || 'IMAGE',
-					storageType: 'TELEGRAM',
-					storagePath: mediaData.fileId,
-				},
+				body,
 				json: true,
 			});
 			mediaId = uploadResponse.id;
