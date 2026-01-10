@@ -22,7 +22,7 @@ export class GranPublicadorApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			method: 'GET',
-			url: '={{$credentials.baseUrl.replace(/\/$/, "")}}/health',
+			url: '={{$credentials.baseUrl.replace(/\/$/, "")}}/api/v1/health',
 		},
 	};
 

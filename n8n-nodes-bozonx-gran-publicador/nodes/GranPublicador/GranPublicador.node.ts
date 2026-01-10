@@ -287,7 +287,7 @@ export class GranPublicador implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as string;
 
 		const credentials = await this.getCredentials('granPublicadorApi');
-		const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
+		const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '') + '/api/v1';
 
 		for (let i = 0; i < items.length; i++) {
 			try {
