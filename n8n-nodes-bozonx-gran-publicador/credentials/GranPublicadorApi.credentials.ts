@@ -23,6 +23,9 @@ export class GranPublicadorApi implements ICredentialType {
 		request: {
 			method: 'GET',
 			url: '={{$credentials.baseUrl.replace(/\/$/, "")}}/api/v1/health',
+			headers: {
+				Authorization: '={{"Bearer " + $credentials.apiToken}}',
+			},
 		},
 	};
 
