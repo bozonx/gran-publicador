@@ -142,6 +142,22 @@ export class GranPublicadorPublication implements INodeType {
 				description: 'The main text content of the publication',
 			},
 			{
+				displayName: 'Source Texts (YAML/JSON)',
+				name: 'sourceTexts',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				default: '',
+				description:
+					'Initial source text objects in YAML or JSON format: [{"content": "...", "source": "..."}]',
+				displayOptions: {
+					show: {
+						operation: ['create'],
+					},
+				},
+			},
+			{
 				displayName: 'Tags',
 				name: 'tags',
 				type: 'string',
@@ -234,7 +250,7 @@ export class GranPublicadorPublication implements INodeType {
 				description: 'The ID of the publication to add content to',
 			},
 			{
-				displayName: 'Source Texts (YAML/JSON)',
+				displayName: 'Source Texts to Add (YAML/JSON)',
 				name: 'sourceTexts',
 				type: 'string',
 				typeOptions: {
@@ -242,10 +258,10 @@ export class GranPublicadorPublication implements INodeType {
 				},
 				default: '',
 				description:
-					'Array of source text objects in YAML or JSON format: [{"content": "...", "source": "..."}]',
+					'Source text objects to append in YAML or JSON format: [{"content": "...", "source": "..."}]',
 				displayOptions: {
 					show: {
-						operation: ['addContent', 'create'],
+						operation: ['addContent'],
 					},
 				},
 			},
