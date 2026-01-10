@@ -29,28 +29,10 @@ export class GranPublicador implements INodeType {
 		],
 		properties: [
 			{
-				displayName: 'Resource',
-				name: 'resource',
-				type: 'options',
-				noDataExpression: true,
-				options: [
-					{
-						name: 'Publication',
-						value: 'publication',
-					},
-				],
-				default: 'publication',
-			},
-			{
 				displayName: 'Operation',
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['publication'],
-					},
-				},
 				options: [
 					{
 						name: 'Create',
@@ -76,7 +58,6 @@ export class GranPublicador implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
@@ -89,7 +70,6 @@ export class GranPublicador implements INodeType {
 				default: '',
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
@@ -103,7 +83,6 @@ export class GranPublicador implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
@@ -120,7 +99,6 @@ export class GranPublicador implements INodeType {
 				default: PublicationStatus.DRAFT,
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
@@ -142,7 +120,6 @@ export class GranPublicador implements INodeType {
 				default: PostType.POST,
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
@@ -155,10 +132,24 @@ export class GranPublicador implements INodeType {
 				description: 'Comma-separated tags for the publication',
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
+			},
+			{
+				displayName: 'Content',
+				name: 'content',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				default: '',
+				displayOptions: {
+					show: {
+						operation: ['create'],
+					},
+				},
+				description: 'The main text content of the publication',
 			},
 			{
 				displayName: 'Additional Fields',
@@ -168,7 +159,6 @@ export class GranPublicador implements INodeType {
 				default: {},
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create'],
 					},
 				},
@@ -182,16 +172,6 @@ export class GranPublicador implements INodeType {
 						},
 						default: '',
 						description: 'Commentary from the author to be published along with the content',
-					},
-					{
-						displayName: 'Content',
-						name: 'content',
-						type: 'string',
-						typeOptions: {
-							rows: 4,
-						},
-						default: '',
-						description: 'The main text content of the publication',
 					},
 					{
 						displayName: 'Description',
@@ -224,13 +204,6 @@ export class GranPublicador implements INodeType {
 						default: '',
 						description: 'Date and time when the publication should be posted',
 					},
-					{
-						displayName: 'Translate To All Languages',
-						name: 'translateToAll',
-						type: 'boolean',
-						default: false,
-						description: 'Whether to automatically create translations for other project languages',
-					},
 				],
 			},
 			// --- Add Content Fields ---
@@ -242,7 +215,6 @@ export class GranPublicador implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['addContent'],
 					},
 				},
@@ -256,7 +228,6 @@ export class GranPublicador implements INodeType {
 				description: 'Array of source text objects: [{"content": "...", "source": "..."}]',
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['addContent', 'create'],
 					},
 				},
@@ -270,7 +241,6 @@ export class GranPublicador implements INodeType {
 				description: 'Comma-separated list of media URLs to upload',
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create', 'addContent'],
 					},
 				},
@@ -283,7 +253,6 @@ export class GranPublicador implements INodeType {
 				description: 'Whether to upload media from binary data',
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create', 'addContent'],
 					},
 				},
@@ -297,7 +266,6 @@ export class GranPublicador implements INodeType {
 				description: 'Comma-separated list of binary property names to upload',
 				displayOptions: {
 					show: {
-						resource: ['publication'],
 						operation: ['create', 'addContent'],
 						binaryMedia: [true],
 					},
@@ -309,7 +277,6 @@ export class GranPublicador implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
 
 		const credentials = await this.getCredentials('granPublicadorApi');
@@ -317,94 +284,94 @@ export class GranPublicador implements INodeType {
 
 		for (let i = 0; i < items.length; i++) {
 			try {
-				if (resource === 'publication') {
-					if (operation === 'create') {
-						const projectId = this.getNodeParameter('projectId', i) as string;
-						const title = this.getNodeParameter('title', i) as string;
-						const language = this.getNodeParameter('language', i) as string;
-						const status = this.getNodeParameter('status', i) as string;
-						const postType = this.getNodeParameter('postType', i) as string;
-						const tags = this.getNodeParameter('tags', i) as string;
-						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
-						const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
+				if (operation === 'create') {
+					const projectId = this.getNodeParameter('projectId', i) as string;
+					const title = this.getNodeParameter('title', i) as string;
+					const language = this.getNodeParameter('language', i) as string;
+					const status = this.getNodeParameter('status', i) as string;
+					const postType = this.getNodeParameter('postType', i) as string;
+					const tags = this.getNodeParameter('tags', i) as string;
+					const content = this.getNodeParameter('content', i, '') as string;
+					const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
+					const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
 
-						let sourceTexts = [];
-						if (typeof sourceTextsJson === 'string') {
-							try {
-								sourceTexts = JSON.parse(sourceTextsJson);
-							} catch (e) {
-								throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
-							}
-						} else {
-							sourceTexts = sourceTextsJson;
+					let sourceTexts = [];
+					if (typeof sourceTextsJson === 'string') {
+						try {
+							sourceTexts = JSON.parse(sourceTextsJson);
+						} catch (e) {
+							throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
 						}
-
-						const body: IDataObject = {
-							projectId,
-							title,
-							language,
-							status,
-							postType,
-							tags,
-							sourceTexts,
-							...additionalFields,
-						};
-
-						// 1. Create Publication
-						const response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
-							method: 'POST',
-							uri: `${baseUrl}/publications`,
-							body,
-							json: true,
-						});
-
-						const publicationId = response.id;
-
-						// 2. Handle Media if needed
-						await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
-
-						returnData.push({
-							json: response,
-							pairedItem: { item: i },
-						});
-					} else if (operation === 'addContent') {
-						const publicationId = this.getNodeParameter('id', i) as string;
-						const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
-
-						let sourceTexts = [];
-						if (typeof sourceTextsJson === 'string') {
-							try {
-								sourceTexts = JSON.parse(sourceTextsJson);
-							} catch (e) {
-								throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
-							}
-						} else {
-							sourceTexts = sourceTextsJson;
-						}
-
-						// 1. Update sourceTexts (PATCH)
-						let response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
-							method: 'PATCH',
-							uri: `${baseUrl}/publications/${publicationId}`,
-							body: { sourceTexts },
-							json: true,
-						});
-
-						// 2. Handle Media (POST /media)
-						await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
-
-						// Fetch latest state
-						response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
-							method: 'GET',
-							uri: `${baseUrl}/publications/${publicationId}`,
-							json: true,
-						});
-
-						returnData.push({
-							json: response,
-							pairedItem: { item: i },
-						});
+					} else {
+						sourceTexts = sourceTextsJson;
 					}
+
+					const body: IDataObject = {
+						projectId,
+						title,
+						language,
+						status,
+						postType,
+						tags,
+						content,
+						sourceTexts,
+						...additionalFields,
+					};
+
+					// 1. Create Publication
+					const response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+						method: 'POST',
+						uri: `${baseUrl}/publications`,
+						body,
+						json: true,
+					});
+
+					const publicationId = response.id;
+
+					// 2. Handle Media if needed
+					await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
+
+					returnData.push({
+						json: response,
+						pairedItem: { item: i },
+					});
+				} else if (operation === 'addContent') {
+					const publicationId = this.getNodeParameter('id', i) as string;
+					const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
+
+					let sourceTexts = [];
+					if (typeof sourceTextsJson === 'string') {
+						try {
+							sourceTexts = JSON.parse(sourceTextsJson);
+						} catch (e) {
+							throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
+						}
+					} else {
+						sourceTexts = sourceTextsJson;
+					}
+
+					// 1. Update sourceTexts (PATCH)
+					let response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+						method: 'PATCH',
+						uri: `${baseUrl}/publications/${publicationId}`,
+						body: { sourceTexts },
+						json: true,
+					});
+
+					// 2. Handle Media (POST /media)
+					await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
+
+					// Fetch latest state
+					response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+						method: 'GET',
+						uri: `${baseUrl}/publications/${publicationId}`,
+						json: true,
+					});
+
+					returnData.push({
+						json: response,
+						pairedItem: { item: i },
+					});
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
