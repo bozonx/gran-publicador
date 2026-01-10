@@ -213,6 +213,19 @@ export class GranPublicador implements INodeType {
 			},
 			// --- Media Handle ---
 			{
+				displayName: 'Media URLs',
+				name: 'mediaUrls',
+				type: 'string',
+				default: '',
+				description: 'Comma-separated list of media URLs to upload',
+				displayOptions: {
+					show: {
+						resource: ['publication'],
+						operation: ['create', 'addContent'],
+					},
+				},
+			},
+			{
 				displayName: 'Binary Media',
 				name: 'binaryMedia',
 				type: 'boolean',
@@ -357,6 +370,29 @@ async function handleMediaUpload(
 	publicationId: string,
 	baseUrl: string,
 ): Promise<void> {
+	const mediaUrlsStr = this.getNodeParameter('mediaUrls', itemIndex, '') as string;
+	const mediaUrls = mediaUrlsStr.split(',').map((u) => u.trim()).filter((u) => u);
+
+	for (const url of mediaUrls) {
+		const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+			method: 'POST',
+			uri: `${baseUrl}/media/upload-from-url`,
+			body: { url },
+			json: true,
+		});
+
+		const mediaId = uploadResponse.id;
+
+		await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+			method: 'POST',
+			uri: `${baseUrl}/publications/${publicationId}/media`,
+			body: {
+				media: [{ id: mediaId }],
+			},
+			json: true,
+		});
+	}
+
 	const binaryMedia = this.getNodeParameter('binaryMedia', itemIndex, false) as boolean;
 	if (!binaryMedia) return;
 
