@@ -121,7 +121,7 @@ export class GranPublicador implements INodeType {
 				displayName: 'Language',
 				name: 'language',
 				type: 'string',
-				default: 'en',
+				default: 'en-US',
 				required: true,
 				displayOptions: {
 					show: {
