@@ -267,42 +267,76 @@ export class GranPublicadorPublication implements INodeType {
 			},
 			// --- Media Handle ---
 			{
-				displayName: 'Media URLs',
-				name: 'mediaUrls',
-				type: 'string',
-				default: '',
-				description: 'Comma-separated list of media URLs to upload',
+				displayName: 'Media',
+				name: 'media',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				placeholder: 'Add Media Item',
+				default: {},
 				displayOptions: {
 					show: {
 						operation: ['create', 'addContent'],
 					},
 				},
-			},
-			{
-				displayName: 'Binary Media',
-				name: 'binaryMedia',
-				type: 'boolean',
-				default: false,
-				description: 'Whether to upload media from binary data',
-				displayOptions: {
-					show: {
-						operation: ['create', 'addContent'],
+				options: [
+					{
+						name: 'mediaItem',
+						displayName: 'Media Item',
+						values: [
+							{
+								displayName: 'Mode',
+								name: 'mode',
+								type: 'options',
+								options: [
+									{ name: 'URL', value: 'url' },
+									{ name: 'Telegram', value: 'telegram' },
+								],
+								default: 'url',
+							},
+							{
+								displayName: 'URL',
+								name: 'url',
+								type: 'string',
+								default: '',
+								displayOptions: {
+									show: {
+										mode: ['url'],
+									},
+								},
+							},
+							{
+								displayName: 'Telegram File ID',
+								name: 'fileId',
+								type: 'string',
+								default: '',
+								displayOptions: {
+									show: {
+										mode: ['telegram'],
+									},
+								},
+							},
+							{
+								displayName: 'Type',
+								name: 'type',
+								type: 'options',
+								options: [
+									{ name: 'Image', value: 'IMAGE' },
+									{ name: 'Video', value: 'VIDEO' },
+									{ name: 'Audio', value: 'AUDIO' },
+									{ name: 'Document', value: 'DOCUMENT' },
+								],
+								default: 'IMAGE',
+								displayOptions: {
+									show: {
+										mode: ['telegram'],
+									},
+								},
+							},
+						],
 					},
-				},
-			},
-			{
-				displayName: 'Binary Property Names',
-				name: 'binaryPropertyName',
-				type: 'string',
-				default: 'data',
-				required: true,
-				description: 'Comma-separated list of binary property names to upload',
-				displayOptions: {
-					show: {
-						operation: ['create', 'addContent'],
-						binaryMedia: [true],
-					},
-				},
+				],
 			},
 		],
 	};
@@ -426,59 +460,41 @@ async function handleMediaUpload(
 	publicationId: string,
 	baseUrl: string,
 ): Promise<void> {
-	const mediaUrlsStr = this.getNodeParameter('mediaUrls', itemIndex, '') as string;
-	const mediaUrls = mediaUrlsStr.split(',').map((u) => u.trim()).filter((u) => u);
+	const media = this.getNodeParameter('media', itemIndex, { mediaItem: [] }) as {
+		mediaItem: Array<{
+			mode: 'url' | 'telegram';
+			url?: string;
+			fileId?: string;
+			type?: string;
+		}>;
+	};
 
-	for (const url of mediaUrls) {
-		const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
-			method: 'POST',
-			uri: `${baseUrl}/media/upload-from-url`,
-			body: { url },
-			json: true,
-		});
+	for (const mediaData of media.mediaItem) {
+		let mediaId: string | undefined;
 
-		const mediaId = uploadResponse.id;
-
-		await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
-			method: 'POST',
-			uri: `${baseUrl}/publications/${publicationId}/media`,
-			body: {
-				media: [{ id: mediaId }],
-			},
-			json: true,
-		});
-	}
-
-	const binaryMedia = this.getNodeParameter('binaryMedia', itemIndex, false) as boolean;
-	if (!binaryMedia) return;
-
-	const binaryPropertyName = this.getNodeParameter('binaryPropertyName', itemIndex) as string;
-	const propertyNames = binaryPropertyName.split(',').map((p) => p.trim());
-
-	for (const propertyName of propertyNames) {
-		if (item.binary?.[propertyName]) {
-			const binaryData = item.binary![propertyName];
-			const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, propertyName);
-
-			// Upload file
+		if (mediaData.mode === 'url' && mediaData.url) {
 			const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 				method: 'POST',
-				uri: `${baseUrl}/media/upload`,
-				formData: {
-					file: {
-						value: buffer,
-						options: {
-							filename: binaryData.fileName || 'upload',
-							contentType: binaryData.mimeType,
-						},
-					},
+				uri: `${baseUrl}/media/upload-from-url`,
+				body: { url: mediaData.url },
+				json: true,
+			});
+			mediaId = uploadResponse.id;
+		} else if (mediaData.mode === 'telegram' && mediaData.fileId) {
+			const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+				method: 'POST',
+				uri: `${baseUrl}/media`,
+				body: {
+					type: mediaData.type || 'IMAGE',
+					storageType: 'TELEGRAM',
+					storagePath: mediaData.fileId,
 				},
 				json: true,
 			});
+			mediaId = uploadResponse.id;
+		}
 
-			const mediaId = uploadResponse.id;
-
-			// Attach to publication
+		if (mediaId) {
 			await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 				method: 'POST',
 				uri: `${baseUrl}/publications/${publicationId}/media`,
