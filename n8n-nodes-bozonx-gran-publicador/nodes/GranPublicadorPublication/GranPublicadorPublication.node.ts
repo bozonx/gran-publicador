@@ -249,6 +249,18 @@ export class GranPublicadorPublication implements INodeType {
 					},
 				},
 			},
+			{
+				displayName: 'Append Source Texts',
+				name: 'appendSourceTexts',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to append source texts to existing ones or replace them (only for update)',
+				displayOptions: {
+					show: {
+						operation: ['addContent'],
+					},
+				},
+			},
 			// --- Media Handle ---
 			{
 				displayName: 'Media URLs',
@@ -359,6 +371,7 @@ export class GranPublicadorPublication implements INodeType {
 				} else if (operation === 'addContent') {
 					const publicationId = this.getNodeParameter('id', i) as string;
 					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
+					const appendSourceTexts = this.getNodeParameter('appendSourceTexts', i, true) as boolean;
 
 					const sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
 
@@ -366,7 +379,7 @@ export class GranPublicadorPublication implements INodeType {
 					let response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 						method: 'PATCH',
 						uri: `${baseUrl}/publications/${publicationId}`,
-						body: { sourceTexts },
+						body: { sourceTexts, appendSourceTexts },
 						json: true,
 					});
 

@@ -1071,7 +1071,9 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         meta: data.meta ? JSON.stringify(data.meta) : undefined,
-        sourceTexts: data.sourceTexts !== undefined ? JSON.stringify(data.sourceTexts) : undefined,
+        sourceTexts: data.sourceTexts !== undefined 
+          ? JSON.stringify(data.appendSourceTexts ? [...publication.sourceTexts, ...data.sourceTexts] : data.sourceTexts) 
+          : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });

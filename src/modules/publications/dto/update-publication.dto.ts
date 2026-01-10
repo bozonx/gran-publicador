@@ -87,4 +87,7 @@ export class UpdatePublicationDto {
   @Type(() => SourceTextDto)
   @IsOptional()
   public sourceTexts?: SourceTextDto[];
+
+  @IsOptional()
+  public appendSourceTexts?: boolean;
 }
