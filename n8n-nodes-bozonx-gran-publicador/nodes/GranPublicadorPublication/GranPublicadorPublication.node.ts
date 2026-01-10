@@ -414,7 +414,7 @@ export class GranPublicadorPublication implements INodeType {
 					const response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 						method: 'POST',
 						uri: `${baseUrl}/publications`,
-						body,
+						body: removeEmpty(body),
 						json: true,
 					});
 
@@ -516,8 +516,10 @@ async function handleMediaUpload(
 		const meta = parseYamlOrJson.call(this, mediaData.meta || '', itemIndex, 'Media Meta');
 
 		if (mediaData.mode === 'url' && mediaData.url) {
-			const body: any = { url: mediaData.url };
-			if (mediaData.filename) body.filename = mediaData.filename;
+			const body = removeEmpty({
+				url: mediaData.url,
+				filename: mediaData.filename,
+			});
 
 			const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 				method: 'POST',
@@ -538,13 +540,13 @@ async function handleMediaUpload(
 			}
 
 		} else if (mediaData.mode === 'telegram' && mediaData.fileId) {
-			const body: any = {
+			const body = removeEmpty({
 				type: mediaData.type || 'IMAGE',
 				storageType: 'TELEGRAM',
 				storagePath: mediaData.fileId,
 				meta,
-			};
-			if (mediaData.filename) body.filename = mediaData.filename;
+				filename: mediaData.filename,
+			});
 
 			const uploadResponse = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 				method: 'POST',
@@ -579,7 +581,7 @@ function parseYamlOrJson(
 	fieldName: string,
 ): any {
 	if (typeof data !== 'string' || data.trim() === '') {
-		return data || (fieldName === 'Source Texts' ? [] : {});
+		return data === '' || data === undefined || data === null ? undefined : data;
 	}
 
 	try {
@@ -597,4 +599,13 @@ function parseYamlOrJson(
 			);
 		}
 	}
+}
+
+function removeEmpty(obj: IDataObject): IDataObject {
+	return Object.entries(obj).reduce((acc, [key, value]) => {
+		if (value !== null && value !== undefined && value !== '') {
+			acc[key] = value;
+		}
+		return acc;
+	}, {} as IDataObject);
 }
