@@ -734,10 +734,9 @@ function setDefaultFooter(id: string) {
       </div>
     </div>
 
-    </div>
-
     <!-- Footer Modal -->
-    <UModal v-model:open="isFooterModalOpen">
+    <UModal v-if="visibleSections.includes('preferences')" v-model:open="isFooterModalOpen">
+      <template #content>
       <UCard :ui="{ header: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <template #header>
           <div class="flex items-center justify-between">
@@ -783,5 +782,7 @@ function setDefaultFooter(id: string) {
           </div>
         </template>
       </UCard>
+      </template>
     </UModal>
+  </div>
 </template>
