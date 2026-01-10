@@ -379,7 +379,11 @@ export class GranPublicadorPublication implements INodeType {
 					const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
 					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
 
-					const sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
+					let sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
+
+					if (Array.isArray(sourceTexts)) {
+						sourceTexts = sourceTexts.filter((item: any) => item && item.content && item.content.trim() !== '');
+					}
 
 					if (additionalFields.meta) {
 						additionalFields.meta = parseYamlOrJson.call(this, additionalFields.meta, i, 'Meta');
@@ -427,7 +431,11 @@ export class GranPublicadorPublication implements INodeType {
 					const publicationId = this.getNodeParameter('id', i) as string;
 					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
 
-					const sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
+					let sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
+
+					if (Array.isArray(sourceTexts)) {
+						sourceTexts = sourceTexts.filter((item: any) => item && item.content && item.content.trim() !== '');
+					}
 
 					// 1. Update sourceTexts (PATCH)
 					let response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
