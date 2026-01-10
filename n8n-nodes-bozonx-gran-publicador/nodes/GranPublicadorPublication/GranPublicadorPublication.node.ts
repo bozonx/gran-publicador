@@ -492,7 +492,17 @@ async function handleMediaUpload(
 		return;
 	}
 
-	for (const mediaData of media.mediaItem) {
+	// Filter out invalid media items (missing URL or File ID)
+	const validMediaItems = media.mediaItem.filter((item) => {
+		if (item.mode === 'url') {
+			return item.url && item.url.trim() !== '';
+		} else if (item.mode === 'telegram') {
+			return item.fileId && item.fileId.trim() !== '';
+		}
+		return false;
+	});
+
+	for (const mediaData of validMediaItems) {
 		let mediaId: string | undefined;
 
 		const meta = parseYamlOrJson.call(this, mediaData.meta || '', itemIndex, 'Media Meta');
