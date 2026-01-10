@@ -4,7 +4,9 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	NodeOperationError,
 } from 'n8n-workflow';
+import { load as yamlLoad } from 'js-yaml';
 import { PostType, PublicationStatus } from './types';
 
 export class GranPublicadorPublication implements INodeType {
@@ -184,11 +186,15 @@ export class GranPublicadorPublication implements INodeType {
 						description: 'Commentary from the author to be published along with the content',
 					},
 					{
-						displayName: 'Meta',
+						displayName: 'Meta (YAML/JSON)',
 						name: 'meta',
-						type: 'json',
-						default: '{}',
-						description: 'Additional metadata in JSON format',
+						type: 'string',
+						typeOptions: {
+							rows: 4,
+						},
+						default: '',
+						description:
+							'Additional metadata in YAML or JSON format. If a string is provided, it will first be parsed as YAML, then as JSON.',
 					},
 					{
 						displayName: 'Post Date',
@@ -221,11 +227,15 @@ export class GranPublicadorPublication implements INodeType {
 				description: 'The ID of the publication to add content to',
 			},
 			{
-				displayName: 'Source Texts',
+				displayName: 'Source Texts (YAML/JSON)',
 				name: 'sourceTexts',
-				type: 'json',
-				default: '[]',
-				description: 'Array of source text objects: [{"content": "...", "source": "..."}]',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				default: '',
+				description:
+					'Array of source text objects in YAML or JSON format: [{"content": "...", "source": "..."}]',
 				displayOptions: {
 					show: {
 						operation: ['addContent', 'create'],
@@ -293,17 +303,12 @@ export class GranPublicadorPublication implements INodeType {
 					const tags = this.getNodeParameter('tags', i) as string;
 					const content = this.getNodeParameter('content', i, '') as string;
 					const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
-					const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
+					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
 
-					let sourceTexts = [];
-					if (typeof sourceTextsJson === 'string') {
-						try {
-							sourceTexts = JSON.parse(sourceTextsJson);
-						} catch (e) {
-							throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
-						}
-					} else {
-						sourceTexts = sourceTextsJson;
+					const sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
+
+					if (additionalFields.meta) {
+						additionalFields.meta = parseYamlOrJson.call(this, additionalFields.meta, i, 'Meta');
 					}
 
 					const body: IDataObject = {
@@ -337,18 +342,9 @@ export class GranPublicadorPublication implements INodeType {
 					});
 				} else if (operation === 'addContent') {
 					const publicationId = this.getNodeParameter('id', i) as string;
-					const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
+					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
 
-					let sourceTexts = [];
-					if (typeof sourceTextsJson === 'string') {
-						try {
-							sourceTexts = JSON.parse(sourceTextsJson);
-						} catch (e) {
-							throw new Error(`Invalid JSON in 'Source Texts' for item ${i}. Expected array of objects.`);
-						}
-					} else {
-						sourceTexts = sourceTextsJson;
-					}
+					const sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
 
 					// 1. Update sourceTexts (PATCH)
 					let response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
@@ -459,6 +455,37 @@ async function handleMediaUpload(
 				},
 				json: true,
 			});
+		}
+	}
+}
+
+/**
+ * Parses YAML or JSON string into an object/array.
+ * If data is not a string, returns it as is.
+ */
+function parseYamlOrJson(
+	this: IExecuteFunctions,
+	data: any,
+	itemIndex: number,
+	fieldName: string,
+): any {
+	if (typeof data !== 'string' || data.trim() === '') {
+		return data || (fieldName === 'Source Texts' ? [] : {});
+	}
+
+	try {
+		// Try YAML first (YAML is a superset of JSON)
+		return yamlLoad(data);
+	} catch (yamlError) {
+		// If YAML parsing fails, try JSON
+		try {
+			return JSON.parse(data);
+		} catch (jsonError) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Invalid YAML or JSON provided in ${fieldName}: ${(jsonError as Error).message}`,
+				{ itemIndex },
+			);
 		}
 	}
 }
