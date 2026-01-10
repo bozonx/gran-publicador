@@ -7,5 +7,9 @@ export enum PublicationStatus {
 
 export enum PostType {
 	POST = 'POST',
+	ARTICLE = 'ARTICLE',
+	NEWS = 'NEWS',
+	VIDEO = 'VIDEO',
+	SHORT = 'SHORT',
 	STORY = 'STORY',
 }

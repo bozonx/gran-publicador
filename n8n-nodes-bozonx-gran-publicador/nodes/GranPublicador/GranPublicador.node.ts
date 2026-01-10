@@ -104,6 +104,7 @@ export class GranPublicador implements INodeType {
 						operation: ['create'],
 					},
 				},
+				description: 'The ID of the project where the publication will be created',
 			},
 			{
 				displayName: 'Title',
@@ -116,6 +117,7 @@ export class GranPublicador implements INodeType {
 						operation: ['create'],
 					},
 				},
+				description: 'The title of the publication',
 			},
 			{
 				displayName: 'Language',
@@ -129,6 +131,7 @@ export class GranPublicador implements INodeType {
 						operation: ['create'],
 					},
 				},
+				description: 'The language code for the publication (e.g., en-US, ru-RU)',
 			},
 			{
 				displayName: 'Status',
@@ -145,16 +148,35 @@ export class GranPublicador implements INodeType {
 						operation: ['create'],
 					},
 				},
+				description: 'The initial status of the publication',
 			},
 			{
 				displayName: 'Post Type',
 				name: 'postType',
 				type: 'options',
+				description: 'The type of content being published (e.g., Post, Article, Video)',
 				options: [
 					{ name: 'Post', value: PostType.POST },
+					{ name: 'Article', value: PostType.ARTICLE },
+					{ name: 'News', value: PostType.NEWS },
+					{ name: 'Video', value: PostType.VIDEO },
+					{ name: 'Short', value: PostType.SHORT },
 					{ name: 'Story', value: PostType.STORY },
 				],
 				default: PostType.POST,
+				displayOptions: {
+					show: {
+						resource: ['publication'],
+						operation: ['create'],
+					},
+				},
+			},
+			{
+				displayName: 'Tags',
+				name: 'tags',
+				type: 'string',
+				default: '',
+				description: 'Comma-separated tags for the publication',
 				displayOptions: {
 					show: {
 						resource: ['publication'],
@@ -176,6 +198,16 @@ export class GranPublicador implements INodeType {
 				},
 				options: [
 					{
+						displayName: 'Author Comment',
+						name: 'authorComment',
+						type: 'string',
+						typeOptions: {
+							rows: 2,
+						},
+						default: '',
+						description: 'Commentary from the author to be published along with the content',
+					},
+					{
 						displayName: 'Content',
 						name: 'content',
 						type: 'string',
@@ -183,6 +215,7 @@ export class GranPublicador implements INodeType {
 							rows: 4,
 						},
 						default: '',
+						description: 'The main text content of the publication',
 					},
 					{
 						displayName: 'Description',
@@ -192,12 +225,28 @@ export class GranPublicador implements INodeType {
 							rows: 2,
 						},
 						default: '',
+						description: 'Short description or SEO summary of the publication',
+					},
+					{
+						displayName: 'Meta',
+						name: 'meta',
+						type: 'json',
+						default: '{}',
+						description: 'Additional metadata in JSON format',
+					},
+					{
+						displayName: 'Post Date',
+						name: 'postDate',
+						type: 'dateTime',
+						default: '',
+						description: 'The date associated with the content (e.g., event date), not the publication date',
 					},
 					{
 						displayName: 'Scheduled At',
 						name: 'scheduledAt',
 						type: 'dateTime',
 						default: '',
+						description: 'Date and time when the publication should be posted',
 					},
 					{
 						displayName: 'Translate To All Languages',
@@ -221,6 +270,7 @@ export class GranPublicador implements INodeType {
 						operation: ['addContent'],
 					},
 				},
+				description: 'The ID of the publication to add content to',
 			},
 			{
 				displayName: 'Source Texts',
@@ -298,6 +348,7 @@ export class GranPublicador implements INodeType {
 						const language = this.getNodeParameter('language', i) as string;
 						const status = this.getNodeParameter('status', i) as string;
 						const postType = this.getNodeParameter('postType', i) as string;
+						const tags = this.getNodeParameter('tags', i) as string;
 						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
 						const sourceTextsJson = this.getNodeParameter('sourceTexts', i, '[]') as string | any[];
 
@@ -318,6 +369,7 @@ export class GranPublicador implements INodeType {
 							language,
 							status,
 							postType,
+							tags,
 							sourceTexts,
 							...additionalFields,
 						};
