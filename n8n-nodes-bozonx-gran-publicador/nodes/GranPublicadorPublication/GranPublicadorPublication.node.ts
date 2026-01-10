@@ -7,17 +7,17 @@ import {
 } from 'n8n-workflow';
 import { PostType, PublicationStatus } from './types';
 
-export class GranPublicador implements INodeType {
+export class GranPublicadorPublication implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Gran Publicador',
-		name: 'granPublicador',
+		displayName: 'Gran Publicador (Publications)',
+		name: 'granPublicadorPublication',
 		icon: 'file:gran-publicador.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Interact with Gran Publicador API',
+		description: 'Manage publications in Gran Publicador',
 		defaults: {
-			name: 'Gran Publicador',
+			name: 'Gran Publicador (Publications)',
 		},
 		inputs: ['main'],
 		outputs: ['main'],

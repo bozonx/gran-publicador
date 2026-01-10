@@ -1,6 +1,12 @@
 # n8n-nodes-bozonx-gran-publicador
 
-This is an n8n community node for interacting with the Gran Publicador API.
+This package contains n8n nodes for interacting with the Gran Publicador API. Currently, it provides a node for managing publications, with more nodes (Projects, Channels) coming soon.
+
+## Nodes
+
+### Gran Publicador (Publications)
+
+This node allows you to create and manage publications.
 
 ## Installation
 
@@ -10,7 +16,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 npm install n8n-nodes-bozonx-gran-publicador
 ```
 
-## Features
+## Features (Publications Node)
 
 ### Publication Operations
 
@@ -45,6 +51,10 @@ Add source texts and media to an existing publication.
 
 #### 1. Check Health
 Check if the Gran Publicador API is online and responding.
+
+---
+
+*Note: Nodes for Projects and Channels management are currently under development.*
 
 ## Credentials
 
