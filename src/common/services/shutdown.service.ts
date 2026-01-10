@@ -31,14 +31,20 @@ export class ShutdownService implements OnApplicationShutdown {
     this.logger.log('Starting graceful shutdown...');
 
     const shutdownPromise = this.performShutdown();
-    const timeoutPromise = new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error('Shutdown timeout exceeded')), this.shutdownTimeout),
-    );
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise<void>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Shutdown timeout exceeded')),
+        this.shutdownTimeout,
+      );
+    });
 
     try {
       await Promise.race([shutdownPromise, timeoutPromise]);
+      clearTimeout(timeoutId!);
       this.logger.log('✅ Graceful shutdown completed successfully');
     } catch (error: any) {
+      if (timeoutId!) clearTimeout(timeoutId);
       this.logger.error(`❌ Shutdown error: ${error.message}`, error.stack);
       process.exit(1);
     }

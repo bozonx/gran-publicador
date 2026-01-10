@@ -28,7 +28,7 @@ describe('MediaService (unit)', () => {
   };
 
   const mockPermissionsService = {
-    checkProjectAccess: jest.fn().mockResolvedValue(undefined),
+    checkProjectAccess: (jest.fn() as any).mockResolvedValue(undefined),
   };
 
   beforeAll(async () => {
@@ -201,6 +201,7 @@ describe('MediaService (unit)', () => {
 
       expect(result).toEqual(expected);
       expect(mockPrismaService.media.findMany).toHaveBeenCalledWith({
+        where: {},
         orderBy: { createdAt: 'desc' },
       });
     });
@@ -274,7 +275,7 @@ describe('MediaService (unit)', () => {
       mockPrismaService.$transaction.mockImplementation(async (callback: any) => {
         const txMock = {
           media: {
-            delete: jest.fn().mockResolvedValue(mockMedia),
+            delete: (jest.fn() as any).mockResolvedValue(mockMedia),
           },
         };
         return callback(txMock);
