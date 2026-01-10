@@ -1,7 +1,7 @@
 {
     "name": "n8n-nodes-bozonx-gran-publicador",
-    "version": "0.1.0",
-    "description": "n8n community node for gran-publicador service",
+    "version": "1.0.0",
+    "description": "n8n community node for Bozonx's gran-publicador service",
     "license": "MIT",
     "keywords": [
         "n8n-community-node-package"
