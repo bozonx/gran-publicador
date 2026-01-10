@@ -80,7 +80,10 @@ const state = reactive({
   authorComment: props.publication?.authorComment || '',
   note: props.publication?.note || '',
   postDate: props.publication?.postDate ? new Date(props.publication.postDate).toISOString().slice(0, 16) : '',
-  sourceTexts: (props.publication as any)?.sourceTexts || [] as any[],
+  sourceTexts: (props.publication as any)?.sourceTexts?.map((st: any, i: number) => ({
+    ...st,
+    order: typeof st.order === 'number' ? st.order : i
+  })) || [] as any[],
 })
 
 const linkedPublicationId = ref<string | undefined>(undefined)
@@ -110,7 +113,7 @@ const schema = computed(() => z.object({
   postDate: z.string().optional(),
   sourceTexts: z.array(z.object({
     content: z.string(),
-    order: z.number(),
+    order: z.number().optional(),
     source: z.string().optional(),
   })).optional(),
 }).superRefine((val, ctx) => {
@@ -195,6 +198,10 @@ watch(() => props.publication, (newPub) => {
     state.note = newPub.note || ''
     state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
     state.scheduledAt = newPub.scheduledAt ? new Date(newPub.scheduledAt).toISOString().slice(0, 16) : ''
+    state.sourceTexts = (newPub as any)?.sourceTexts?.map((st: any, i: number) => ({
+        ...st,
+        order: typeof st.order === 'number' ? st.order : i
+    })) || []
     
     nextTick(() => {
       saveOriginalState()
@@ -362,7 +369,7 @@ function handleReset() {
 }
 
 function handleError(event: any) {
-    console.error('Form validation errors:', event.errors)
+    console.error('Form validation errors:', JSON.stringify(event.errors, null, 2))
     
     // Expand advanced section if errors are there
     const advancedFields = ['description', 'authorComment', 'note', 'postDate', 'meta']

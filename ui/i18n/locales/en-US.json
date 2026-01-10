@@ -696,7 +696,8 @@
     "positive": "Number must be positive",
     "integer": "Enter an integer",
     "jsonInvalid": "Invalid JSON format",
-    "invalidYaml": "Must be a valid YAML object (key-value pairs), not a list or value"
+    "invalidYaml": "Must be a valid YAML object (key-value pairs), not a list or value",
+    "checkFormErrors": "Please check the form for errors"
   },
   "errors": {
     "generic": "An error occurred. Please try again.",
