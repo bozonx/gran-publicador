@@ -1,0 +1,120 @@
+import { PostType } from '../../../generated/prisma/client.js';
+
+export interface TemplateBlock {
+  enabled: boolean;
+  insert: 'title' | 'content' | 'description' | 'tags';
+  before: string;
+  after: string;
+}
+
+export interface ChannelPostTemplate {
+  id: string;
+  name: string;
+  order: number;
+  postType: PostType | null;
+  language: string | null;
+  template: TemplateBlock[];
+}
+
+export interface PublicationData {
+  title?: string | null;
+  content?: string | null;
+  description?: string | null;
+  tags?: string | null;
+  postType?: PostType;
+  language?: string;
+}
+
+export class SocialPostingBodyFormatter {
+  /**
+   * Default template blocks as defined in the requirements and UI.
+   * - Title: disabled by default
+   * - Content: enabled
+   * - Description: enabled (with \n\n before)
+   * - Tags: enabled (with \n\n before)
+   */
+  private static getDefaultBlocks(): TemplateBlock[] {
+    return [
+      { enabled: false, insert: 'title', before: '', after: '\n\n' },
+      { enabled: true, insert: 'content', before: '', after: '' },
+      { enabled: true, insert: 'description', before: '\n\n', after: '' },
+      { enabled: true, insert: 'tags', before: '\n\n', after: '' },
+    ];
+  }
+
+  /**
+   * Formats the body text based on channel templates or default template.
+   */
+  static format(data: PublicationData, channel: { language: string; preferences?: any }): string {
+    const templates: ChannelPostTemplate[] = channel.preferences?.templates || [];
+    
+    // 1. Try to find the best matching template
+    // Priority: 1. Exact postType and language, 2. Exact postType, 3. Exact language, 4. Any generic template
+    const template = this.findBestTemplate(templates, data.postType, data.language || channel.language);
+    
+    const blocks = template ? template.template : this.getDefaultBlocks();
+    
+    let result = '';
+
+    for (const block of blocks) {
+      if (!block.enabled) continue;
+
+      let value = '';
+      switch (block.insert) {
+        case 'title':
+          value = data.title || '';
+          break;
+        case 'content':
+          value = data.content || '';
+          break;
+        case 'description':
+          value = data.description || '';
+          break;
+        case 'tags':
+          value = this.formatTags(data.tags);
+          break;
+      }
+
+      if (value && value.trim()) {
+        result += block.before + value.trim() + block.after;
+      }
+    }
+
+    return result.trim();
+  }
+
+  private static findBestTemplate(
+    templates: ChannelPostTemplate[],
+    postType?: PostType,
+    language?: string,
+  ): ChannelPostTemplate | null {
+    if (!templates.length) return null;
+
+    // Filter templates that match postType (if it's set) or have null postType
+    const matchingType = templates.filter(t => !t.postType || t.postType === postType);
+    
+    // Filter by language
+    const matchingLang = matchingType.filter(t => !t.language || t.language === language);
+
+    if (!matchingLang.length) return null;
+
+    // Sort by specificity: templates with both postType and language first, then either, then neither
+    return matchingLang.sort((a, b) => {
+      const scoreA = (a.postType ? 2 : 0) + (a.language ? 1 : 0);
+      const scoreB = (b.postType ? 2 : 0) + (b.language ? 1 : 0);
+      return scoreB - scoreA || (a.order - b.order);
+    })[0];
+  }
+
+  private static formatTags(tags?: string | null): string {
+    if (!tags) return '';
+    
+    // Split by comma or space and convert to hashtags
+    return tags
+      .split(/[\s,]+/)
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0)
+      .map(tag => (tag.startsWith('#') ? tag : `#${tag}`))
+      .join(' ');
+  }
+}

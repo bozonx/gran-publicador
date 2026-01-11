@@ -23,6 +23,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
 import { resolvePlatformParams } from './utils/platform-params-resolver.util.js';
+import { SocialPostingRequestFormatter } from './utils/social-posting-request.formatter.js';
 import { PublishResponseDto } from './dto/publish-response.dto.js';
 import { ShutdownService } from '../../common/services/shutdown.service.js';
 
@@ -305,26 +306,19 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
       const credentials = channel.credentials || {};
 
-      const mediaMapping = this.mapMediaToLibraryFormat(publication.media);
-
       const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
         channel.socialMedia,
         channel.channelIdentifier,
         credentials,
       );
 
-      const request: PostRequestDto = {
-        platform: channel.socialMedia.toLowerCase(),
-        body: post.content || publication.content || '',
-        bodyFormat: 'md',
-        channelId: targetChannelId,
-        auth: {
-          apiKey,
-        },
-        type: 'auto',
-        idempotencyKey: `post-${post.id}-${post.updatedAt.getTime()}`,
-        ...mediaMapping,
-      };
+      const request = SocialPostingRequestFormatter.prepareRequest({
+        post,
+        channel,
+        publication,
+        apiKey,
+        targetChannelId,
+      });
 
       if (post.scheduledAt || publication.scheduledAt) {
         request.scheduledAt = (post.scheduledAt || publication.scheduledAt).toISOString();
@@ -390,60 +384,5 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
   private hasContentOrMedia(content: string | null, media: any[]): boolean {
     return !!(content && content.trim()) || media.length > 0;
-  }
-
-  private mapMediaToLibraryFormat(media: any[]): any {
-    if (media.length === 0) return {};
-    if (media.length === 1) {
-      const item = media[0].media;
-      const src = this.getMediaSrc(item);
-      switch (item.type) {
-        case MediaType.IMAGE:
-          return { cover: { src } };
-        case MediaType.VIDEO:
-          return { video: { src } };
-        case MediaType.AUDIO:
-          return { audio: { src } };
-        case MediaType.DOCUMENT:
-          return { document: { src } };
-        default:
-          return { cover: { src } };
-      }
-    }
-    return {
-      media: media.map(item => ({
-        src: this.getMediaSrc(item.media),
-        type: this.mapMediaTypeToLibrary(item.media.type),
-      })),
-    };
-  }
-
-  private getMediaSrc(media: any): string {
-    // В SQLite StorageType это ENUM (FS, TELEGRAM)
-    // Если путь начинается с http, считаем это ссылкой
-    if (media.storagePath?.startsWith('http')) {
-      return media.storagePath;
-    }
-
-    if (media.storageType === StorageType.TELEGRAM) {
-      return media.storagePath; // It's a file_id
-    }
-
-    return media.storagePath; // Fallback to path
-  }
-
-  private mapMediaTypeToLibrary(type: MediaType): string {
-    switch (type) {
-      case MediaType.IMAGE:
-        return 'image';
-      case MediaType.VIDEO:
-        return 'video';
-      case MediaType.AUDIO:
-        return 'audio';
-      case MediaType.DOCUMENT:
-        return 'document';
-      default:
-        return 'image';
-    }
   }
 }
