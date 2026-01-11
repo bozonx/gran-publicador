@@ -398,7 +398,12 @@
     "footerNamePlaceholder": "Подпись для Telegram",
     "footerContentPlaceholder": "Введите текст футера в Markdown...",
     "deletedFooters": "Удаленные элементы ({count})",
-    "footerDefaultHelp": "Этот футер будет использоваться по умолчанию для новых постов"
+    "footerDefaultHelp": "Этот футер будет использоваться по умолчанию для новых постов",
+    "settings": "Настройки канала",
+    "settings_description": "Управляйте подключениями и настройками вашего канала",
+    "general_settings": "Основные настройки",
+    "general_settings_desc": "Обновите название канала и детали подключения",
+    "control": "Управление каналом"
   },
   "socialMedia": {
     "telegram": "Telegram",
@@ -473,7 +478,13 @@
       "draft": "Черновик",
       "scheduled": "Запланировано",
       "published_posts": "Опубликованные посты"
-    }
+    },
+    "type_post": "Пост",
+    "type_article": "Статья",
+    "type_news": "Новость",
+    "type_video": "Видео",
+    "type_short": "Shorts/Reels",
+    "type_story": "История"
   },
   "publication": {
     "title": "Публикация",
@@ -631,6 +642,8 @@
     "metadata": "Метаданные",
     "download": "Скачать",
     "noExif": "EXIF данные не найдены",
+    "viewExif": "Просмотр EXIF",
+    "yamlHelp": "Дополнительные метаданные в формате YAML",
     "library_description": "Управление и организация всех медиа-файлов",
     "no_media_found": "Медиа-файлы не найдены по вашему запросу"
   },
@@ -745,6 +758,7 @@
     "number": "Введите число",
     "positive": "Число должно быть положительным",
     "integer": "Введите целое число",
+    "min": "Минимальное значение: {min}",
     "jsonInvalid": "Некорректный формат JSON",
     "invalidYaml": "Должен быть YAML объект (ключ-значение), а не список или значение",
     "checkFormErrors": "Пожалуйста, проверьте форму на наличие ошибок"

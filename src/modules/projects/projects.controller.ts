@@ -19,7 +19,7 @@ import {
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
-import { CreateProjectDto, FindProjectsQueryDto, UpdateProjectDto } from './dto/index.js';
+import { CreateProjectDto, FindProjectsQueryDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
 import { ProjectsService } from './projects.service.js';
 
 /**
@@ -117,5 +117,70 @@ export class ProjectsController {
     }
 
     return this.projectsService.remove(id, req.user.userId);
+  }
+
+  @Get(':id/members')
+  public async findMembers(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    // Validate project scope for API token users
+    if (req.user.scopeProjectIds) {
+      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.projectsService.findMembers(id, req.user.userId);
+  }
+
+  @Post(':id/members')
+  public async addMember(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() addMemberDto: AddMemberDto,
+  ) {
+    // Validate project scope for API token users (only admins/owners can add members)
+    if (req.user.scopeProjectIds) {
+      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.projectsService.addMember(id, req.user.userId, addMemberDto);
+  }
+
+  @Patch(':id/members/:userId')
+  public async updateMemberRole(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Param('userId') memberUserId: string,
+    @Body() updateMemberDto: UpdateMemberDto,
+  ) {
+    // Validate project scope for API token users
+    if (req.user.scopeProjectIds) {
+      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.projectsService.updateMemberRole(id, req.user.userId, memberUserId, updateMemberDto);
+  }
+
+  @Delete(':id/members/:userId')
+  public async removeMember(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Param('userId') memberUserId: string,
+  ) {
+    // Validate project scope for API token users
+    if (req.user.scopeProjectIds) {
+      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.projectsService.removeMember(id, req.user.userId, memberUserId);
   }
 }

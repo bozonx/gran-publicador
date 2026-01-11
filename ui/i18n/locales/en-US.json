@@ -58,7 +58,6 @@
     "hideArchived": "Hide Archived",
     "saveSuccess": "Saved successfully",
     "saveError": "Failed to save",
-    "restore": "Restore",
     "stay": "Stay",
     "leave": "Leave without saving",
     "stale": "Stale",
@@ -587,7 +586,9 @@
     "preview": "Preview",
     "metadata": "Metadata",
     "download": "Download",
-    "noExif": "No EXIF data found"
+    "noExif": "No EXIF data found",
+    "viewExif": "View EXIF",
+    "yamlHelp": "Additional metadata in YAML format"
   },
   "postType": {
     "post": "Post",
@@ -698,6 +699,7 @@
     "number": "Enter a number",
     "positive": "Number must be positive",
     "integer": "Enter an integer",
+    "min": "Minimum value: {min}",
     "jsonInvalid": "Invalid JSON format",
     "invalidYaml": "Must be a valid YAML object (key-value pairs), not a list or value",
     "checkFormErrors": "Please check the form for errors"

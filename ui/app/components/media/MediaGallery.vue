@@ -3,6 +3,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
+import { DialogTitle, DialogDescription, VisuallyHidden } from 'reka-ui'
 
 interface MediaItem {
   id: string
@@ -735,9 +736,14 @@ const emit = defineEmits<Emits>()
         <!-- Fixed header -->
         <div class="p-6 pb-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
           <div class="flex items-center justify-between gap-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
-              {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
-            </h3>
+            <DialogTitle as-child>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
+                {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
+              </h3>
+            </DialogTitle>
+            <VisuallyHidden>
+              <DialogDescription>{{ t('media.metadata', 'Metadata') }}</DialogDescription>
+            </VisuallyHidden>
             <div class="flex items-center gap-2 shrink-0">
               <!-- Position indicator -->
               <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">

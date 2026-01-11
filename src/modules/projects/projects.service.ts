@@ -11,7 +11,8 @@ import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.j
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreateProjectDto, UpdateProjectDto } from './dto/index.js';
+import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
+
 
 @Injectable()
 export class ProjectsService {
@@ -439,6 +440,105 @@ export class ProjectsService {
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: null, archivedBy: null },
+    });
+  }
+
+  public async findMembers(projectId: string, userId: string) {
+    await this.permissions.checkProjectPermission(projectId, userId, [
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+      ProjectRole.EDITOR,
+      ProjectRole.VIEWER,
+    ]);
+
+    return this.prisma.projectMember.findMany({
+      where: { projectId },
+      include: { user: true },
+    });
+  }
+
+  public async addMember(projectId: string, userId: string, data: AddMemberDto) {
+    await this.permissions.checkProjectPermission(projectId, userId, [
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+    ]);
+
+    const userToAdd = await this.prisma.user.findFirst({
+      where: { telegramUsername: data.username.replace(/^@/, '') },
+    });
+
+    if (!userToAdd) {
+      throw new NotFoundException(`User with username @${data.username} not found`);
+    }
+
+    const existingMember = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: userToAdd.id } },
+    });
+
+    if (existingMember) {
+      throw new ForbiddenException('User is already a member of this project');
+    }
+
+    return this.prisma.projectMember.create({
+      data: {
+        projectId,
+        userId: userToAdd.id,
+        role: data.role,
+      },
+      include: { user: true },
+    });
+  }
+
+  public async updateMemberRole(
+    projectId: string,
+    userId: string,
+    memberUserId: string,
+    data: UpdateMemberDto,
+  ) {
+    await this.permissions.checkProjectPermission(projectId, userId, [
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+    ]);
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: memberUserId } },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found in this project');
+    }
+
+    if (member.role === ProjectRole.OWNER && data.role !== ProjectRole.OWNER) {
+      throw new ForbiddenException('Cannot change roles of the project owner');
+    }
+
+    return this.prisma.projectMember.update({
+      where: { id: member.id },
+      data: { role: data.role },
+      include: { user: true },
+    });
+  }
+
+  public async removeMember(projectId: string, userId: string, memberUserId: string) {
+    await this.permissions.checkProjectPermission(projectId, userId, [
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+    ]);
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: memberUserId } },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found in this project');
+    }
+
+    if (member.role === ProjectRole.OWNER) {
+      throw new ForbiddenException('Cannot remove the project owner');
+    }
+
+    return this.prisma.projectMember.delete({
+      where: { id: member.id },
     });
   }
 }
