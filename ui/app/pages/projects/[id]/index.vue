@@ -384,6 +384,10 @@ const projectProblems = computed(() => {
               class="w-64 shrink-0"
               @click="goToPublication"
             />
+            <CommonViewAllCard
+              v-if="draftTotal > 5"
+              :to="`/publications?projectId=${projectId}&status=DRAFT`"
+            />
           </CommonHorizontalScroll>
           <div v-else class="text-center py-8 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-lg">
              <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('publication.noPublicationsDescription') }}</p>

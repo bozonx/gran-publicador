@@ -153,6 +153,10 @@ function goToPublication(pub: PublicationWithRelations) {
             class="w-64 shrink-0"
             @click="goToPublication"
           />
+          <CommonViewAllCard
+            v-if="draftsCount > 5"
+            to="/publications?status=DRAFT"
+          />
         </CommonHorizontalScroll>
         <div v-else class="text-center py-8 text-sm text-gray-500">
             {{ t('publication.noPublicationsDescription') }}
