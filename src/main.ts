@@ -102,6 +102,7 @@ async function bootstrap() {
         ], // Allow Telegram login widget
       },
     },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 
   // Register the fastify-static plugin to serve the frontend files
