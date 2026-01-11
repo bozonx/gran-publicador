@@ -5,7 +5,7 @@ import { useAuthStore } from '~/stores/auth'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
-const { fetchAllMedia, deleteMedia, fetchExif, updateMedia, isLoading } = useMedia()
+const { fetchAllMedia, deleteMedia, updateMedia, isLoading } = useMedia()
 const toast = useToast()
 
 const mediaItems = ref<MediaItem[]>([])
@@ -40,37 +40,19 @@ const filteredMedia = computed(() => {
 
 const selectedMedia = ref<MediaItem | null>(null)
 const isModalOpen = ref(false)
-const exifData = ref<Record<string, any> | null>(null)
-const isLoadingExif = ref(false)
+
 const isSavingMeta = ref(false)
 const editableMetadata = ref<Record<string, any>>({})
 
 function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
-  editableMetadata.value = media.meta || {}
+  editableMetadata.value = JSON.parse(JSON.stringify(media.meta || {}))
   isModalOpen.value = true
 }
 
 function closeMediaModal() {
   selectedMedia.value = null
   isModalOpen.value = false
-  exifData.value = null
-}
-
-async function handleFetchExif() {
-  if (!selectedMedia.value) return
-  isLoadingExif.value = true
-  try {
-    exifData.value = await fetchExif(selectedMedia.value.id)
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: error.message || 'Failed to fetch EXIF',
-      color: 'error'
-    })
-  } finally {
-    isLoadingExif.value = false
-  }
 }
 
 async function saveMediaMeta() {
@@ -190,7 +172,7 @@ function formatSizeMB(bytes?: number): string {
         :key="media.id"
         :media="media"
         size="md"
-        class="!w-full !h-full aspect-square"
+        class="w-full aspect-square"
         @click="openMediaModal"
       />
     </div>
@@ -293,15 +275,6 @@ function formatSizeMB(bytes?: number): string {
                   <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
                     {{ t('media.metadata', 'Метаданные (JSON)') }}
                   </h4>
-                  <UButton
-                    v-if="selectedMedia?.type === 'IMAGE' && !exifData"
-                    variant="link"
-                    size="xs"
-                    :loading="isLoadingExif"
-                    @click="handleFetchExif"
-                  >
-                    {{ t('media.view_exif', 'Просмотреть EXIF') }}
-                  </UButton>
                 </div>
                 
                 <CommonYamlEditor
@@ -320,14 +293,6 @@ function formatSizeMB(bytes?: number): string {
                 </div>
               </section>
 
-              <section v-if="exifData">
-                <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
-                  EXIF Data
-                </h4>
-                <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-auto max-h-48 text-xs font-mono">
-                  <pre class="text-gray-700 dark:text-gray-300">{{ JSON.stringify(exifData, null, 2) }}</pre>
-                </div>
-              </section>
             </div>
           </div>
         </div>

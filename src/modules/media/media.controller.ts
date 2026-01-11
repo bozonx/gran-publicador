@@ -127,15 +127,6 @@ export class MediaController {
     return this.mediaService.findOne(id);
   }
 
-  /**
-   * Get EXIF metadata for a media item.
-   */
-  @Get(':id/exif')
-  @UseGuards(JwtOrApiTokenGuard)
-  public async getExif(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
-    await this.mediaService.checkMediaAccess(id, req.user.userId);
-    return this.mediaService.getExif(id);
-  }
 
   @Patch(':id')
   @UseGuards(JwtOrApiTokenGuard)

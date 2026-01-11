@@ -476,10 +476,15 @@ export class MediaService {
     let metadata: Record<string, any> | undefined;
     if (type === MediaType.IMAGE) {
       try {
-        metadata = await this.extractImageMetadata(file.buffer);
+        const baseMetadata = await this.extractImageMetadata(file.buffer);
+        const exif = await this.extractFullExif(file.buffer);
+        metadata = {
+          ...baseMetadata,
+          exif,
+        };
       } catch (e) {
         this.logger.error(
-          `Failed to extract metadata for ${file.filename}: ${(e as Error).message}`,
+          `Failed to extract metadata/EXIF for ${file.filename}: ${(e as Error).message}`,
         );
       }
     }
@@ -549,10 +554,15 @@ export class MediaService {
     if (type === MediaType.IMAGE) {
       try {
         const buffer = await readFile(filePath);
-        metadata = await this.extractImageMetadata(buffer);
+        const baseMetadata = await this.extractImageMetadata(buffer);
+        const exif = await this.extractFullExif(buffer);
+        metadata = {
+          ...baseMetadata,
+          exif,
+        };
       } catch (e) {
         this.logger.error(
-          `Failed to extract metadata for ${filename} after stream: ${(e as Error).message}`,
+          `Failed to extract metadata and EXIF for ${filename} after stream: ${(e as Error).message}`,
         );
       }
     }
@@ -587,54 +597,17 @@ export class MediaService {
     }
   }
 
+
   /**
-   * Get full EXIF metadata for a media file on demand.
+   * Internal helper to extract full EXIF from a buffer.
    */
-  async getExif(id: string): Promise<Record<string, any>> {
-    const media = await this.prisma.media.findUnique({ where: { id } });
-    if (!media) throw new NotFoundException('Media not found');
-
-    if (media.storageType !== StorageType.FS) {
-      throw new BadRequestException(
-        'EXIF extraction is only supported for local filesystem storage',
-      );
-    }
-
-    // Normalize and validate path to prevent traversal
-    const safePath = normalize(join(this.mediaDir, media.storagePath));
-    this.logger.debug(`Fetching EXIF for media ${id} at path: ${safePath}`);
-
-    if (!safePath.startsWith(this.mediaDir)) {
-      throw new BadRequestException('Invalid file path');
-    }
-
+  private async extractFullExif(buffer: Buffer): Promise<Record<string, any>> {
     try {
-      const buffer = await readFile(safePath);
-      const stats = await stat(safePath);
-      this.logger.debug(
-        `File read successfully, buffer size: ${buffer.length}, filename: ${basename(safePath)}`,
-      );
-
       const image = sharp(buffer);
       const metadata = await image.metadata();
 
-      const debugInfo = {
-        _debug: {
-          fileSize: buffer.length,
-          statSize: stats.size,
-          path: safePath,
-          metadataKeys: Object.keys(metadata),
-          hasExifBuffer: !!metadata.exif,
-          exifBufferLength: metadata.exif?.length || 0,
-          format: metadata.format,
-          width: metadata.width,
-          height: metadata.height,
-        },
-      };
-
       if (!metadata.exif) {
-        this.logger.debug('No EXIF buffer found in sharp metadata');
-        return { ...debugInfo, error: 'No EXIF buffer found' };
+        return {};
       }
 
       // Handle potential ESM/CJS interop issues with exif-reader
@@ -646,30 +619,22 @@ export class MediaService {
       if (typeof reader === 'function') {
         try {
           const exif = reader(metadata.exif);
-          this.logger.debug(
-            `EXIF parsed successfully, top-level keys: ${Object.keys(exif || {}).join(', ')}`,
-          );
-
           if (!exif || Object.keys(exif).length === 0) {
-            this.logger.warn('exif-reader returned an empty object');
-            return { _warning: 'exif-reader returned empty object' };
+            return {};
           }
 
           // Normalize buffers in EXIF to prevent issues with JSON serialization
-          const normalized = this.normalizeExif(exif);
-          this.logger.debug(`Normalized EXIF keys: ${Object.keys(normalized || {}).join(', ')}`);
-          return normalized;
+          return this.normalizeExif(exif);
         } catch (parseError) {
           this.logger.error(`exif-reader failed to parse buffer: ${(parseError as Error).message}`);
-          return { error: 'Failed to parse EXIF buffer', details: (parseError as Error).message };
+          return { _error: 'Failed to parse EXIF buffer', _details: (parseError as Error).message };
         }
       }
 
-      this.logger.warn('exif-reader is not a function');
-      return { error: 'EXIF parser not available' };
+      return { _error: 'EXIF parser not available' };
     } catch (e) {
-      this.logger.error(`Failed to extract EXIF for media ${id}: ${(e as Error).message}`);
-      return { error: (e as Error).message };
+      this.logger.error(`Failed to extract EXIF from buffer: ${(e as Error).message}`);
+      return { _error: (e as Error).message };
     }
   }
 

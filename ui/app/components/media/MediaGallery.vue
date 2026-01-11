@@ -40,7 +40,6 @@ const {
   addMediaToPublication, 
   removeMediaFromPublication, 
   reorderMediaInPublication,
-  fetchExif
 } = useMedia()
 const toast = useToast()
 
@@ -435,43 +434,9 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-const exifData = ref<Record<string, any> | null>(null)
-const isLoadingExif = ref(false)
-
-async function handleFetchExif() {
-  if (!selectedMedia.value) return
-  isLoadingExif.value = true
-  try {
-    const data = await fetchExif(selectedMedia.value.id)
-    exifData.value = data
-    
-    // If we have an error or debug info, it's successful in terms of fetching metadata (even if missing)
-    if (data.error && !data._debug) {
-      toast.add({
-        title: t('common.error'),
-        description: data.error,
-        color: 'error'
-      })
-    } else if (Object.keys(data).length === 0) {
-      toast.add({
-        title: t('media.noExif', 'No EXIF data found'),
-        color: 'info'
-      })
-    }
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: error.message || 'Failed to fetch EXIF',
-      color: 'error'
-    })
-  } finally {
-    isLoadingExif.value = false
-  }
-}
-
-// Reset EXIF when changing media
+// Reset data when changing media
 watch(selectedMedia, () => {
-  exifData.value = null
+  // Reset any temporary state if needed
 })
 
 
@@ -866,17 +831,6 @@ const emit = defineEmits<Emits>()
             >
               <template #actions>
                 <div class="flex items-center gap-2">
-                  <UButton
-                    v-if="selectedMedia.type === 'IMAGE'"
-                    icon="i-heroicons-information-circle"
-                    variant="ghost"
-                    color="neutral"
-                    size="sm"
-                    :loading="isLoadingExif"
-                    @click="handleFetchExif"
-                  >
-                    {{ t('media.viewExif', 'View EXIF') }}
-                  </UButton>
                   
                   <UButton
                     v-if="editable"
@@ -893,20 +847,6 @@ const emit = defineEmits<Emits>()
               </template>
             </CommonYamlEditor>
 
-            <!-- EXIF Data Display -->
-            <div v-if="exifData" class="mt-6 p-4 bg-gray-50 dark:bg-gray-900/80 rounded-lg border border-gray-200 dark:border-gray-800">
-               <div class="flex items-center justify-between mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
-                 <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500">Raw EXIF Data</h4>
-                 <UButton
-                   icon="i-heroicons-x-mark"
-                   variant="ghost"
-                   color="neutral"
-                   size="xs"
-                   @click="exifData = null"
-                 />
-               </div>
-               <pre class="text-[10px] font-mono whitespace-pre-wrap overflow-x-auto text-gray-700 dark:text-gray-300 max-h-96">{{ JSON.stringify(exifData, null, 2) }}</pre>
-            </div>
           </div>
         </div>
       </div>

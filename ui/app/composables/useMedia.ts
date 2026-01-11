@@ -163,18 +163,6 @@ export function useMedia() {
     }
   }
 
-  async function fetchExif(id: string): Promise<Record<string, any>> {
-    isLoading.value = true
-    error.value = null
-    try {
-      return await api.get<Record<string, any>>(`/media/${id}/exif`)
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch EXIF'
-      return { error: error.value }
-    } finally {
-      isLoading.value = false
-    }
-  }
 
   async function fetchAllMedia(): Promise<MediaItem[]> {
     isLoading.value = true
@@ -198,11 +186,10 @@ export function useMedia() {
     uploadMedia,
     uploadMediaFromUrl,
     updateMedia,
+    fetchAllMedia,
     addMediaToPublication,
     removeMediaFromPublication,
     reorderMediaInPublication,
-    fetchExif,
-    fetchAllMedia,
   }
 }
 
