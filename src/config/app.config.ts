@@ -121,6 +121,14 @@ export class AppConfig {
   @IsInt()
   @Min(1)
   public postProcessingTimeoutSeconds!: number;
+
+  /**
+   * Timezone for the application.
+   * Defined by TZ environment variable.
+   * Default: 'UTC'
+   */
+  @IsString()
+  public timezone!: string;
 }
 
 export default registerAs('app', (): AppConfig => {
@@ -148,6 +156,7 @@ export default registerAs('app', (): AppConfig => {
     schedulerIntervalSeconds: parseInt(process.env.SCHEDULER_INTERVAL_SECONDS ?? '60', 10),
     schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
     postProcessingTimeoutSeconds: parseInt(process.env.POST_PROCESSING_TIMEOUT_SECONDS ?? '30', 10),
+    timezone: process.env.TZ ?? 'UTC',
   });
 
   // Perform synchronous validation of the configuration object

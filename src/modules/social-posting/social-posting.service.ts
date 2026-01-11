@@ -26,6 +26,7 @@ import { SocialPostingRequestFormatter } from './utils/social-posting-request.fo
 import { PublishResponseDto } from './dto/publish-response.dto.js';
 import { ShutdownService } from '../../common/services/shutdown.service.js';
 import { AppConfig } from '../../config/app.config.js';
+import { SocialPostingConfig } from '../../config/social-posting.config.js';
 
 /**
  * Custom logger adapter to pipe library logs to NestJS Logger
@@ -58,12 +59,18 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     try {
+      const appConfig = this.configService.get<AppConfig>('app')!;
+      const socialPostingConfig =
+        this.configService.get<SocialPostingConfig>('socialPosting')!;
+
       this.postingClient = createPostingClient({
         accounts: {},
-        logLevel: 'info',
+        logLevel: appConfig.logLevel as any,
         logger: new LibraryLogger(),
-        retryAttempts: 3,
-        retryDelayMs: 2000,
+        requestTimeoutSecs: socialPostingConfig.requestTimeoutSecs,
+        retryAttempts: socialPostingConfig.retryAttempts,
+        retryDelayMs: socialPostingConfig.retryDelayMs,
+        idempotencyTtlMinutes: socialPostingConfig.idempotencyTtlMinutes,
       });
       this.logger.log('Social posting client initialized successfully');
     } catch (error: any) {

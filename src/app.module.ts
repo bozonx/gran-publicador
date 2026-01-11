@@ -7,6 +7,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { PermissionsModule } from './common/services/permissions.module.js';
 import appConfig, { AppConfig } from './config/app.config.js';
+import socialPostingConfig from './config/social-posting.config.js';
 import { ApiTokensModule } from './modules/api-tokens/api-tokens.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChannelsModule } from './modules/channels/channels.module.js';
@@ -25,7 +26,7 @@ import { ShutdownModule } from './common/services/shutdown.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig],
+      load: [appConfig, socialPostingConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),

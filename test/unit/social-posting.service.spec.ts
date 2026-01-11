@@ -42,7 +42,15 @@ describe('SocialPostingService (unit)', () => {
   const mockConfigService = {
     get: jest.fn((key) => {
       if (key === 'app') {
-        return { postProcessingTimeoutSeconds: 1 };
+        return { postProcessingTimeoutSeconds: 1, logLevel: 'warn' };
+      }
+      if (key === 'socialPosting') {
+        return {
+          requestTimeoutSecs: 60,
+          retryAttempts: 3,
+          retryDelayMs: 1000,
+          idempotencyTtlMinutes: 10,
+        };
       }
       return null;
     }),
