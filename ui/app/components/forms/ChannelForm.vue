@@ -20,19 +20,24 @@ interface Props {
   /** Whether to hide the cancel button */
   hideCancel?: boolean
   /** Sections to show */
-  visibleSections?: ('general' | 'credentials' | 'preferences')[]
+  visibleSections?: ('general' | 'credentials' | 'preferences' | 'footers')[]
+  /** Whether the form is disabled (e.g. while another related form is saving) */
+  disabled?: boolean
 }
 
 interface Emits {
   (e: 'success', channel: any): void | Promise<void>
   (e: 'cancel'): void
+  (e: 'submit-start'): void
+  (e: 'submit-end'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   channel: null,
   hideHeader: false,
   hideCancel: false,
-  visibleSections: () => ['general', 'credentials', 'preferences'],
+  visibleSections: () => ['general', 'credentials', 'preferences', 'footers'],
+  disabled: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -174,6 +179,7 @@ watch(() => props.channel, () => {
  * Form submission handler
  */
 async function handleSubmit(event: FormSubmitEvent<Schema>) {
+  emit('submit-start')
   try {
     const updateData: ChannelUpdateInput = {}
 
@@ -187,9 +193,9 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       }
 
       // Add preferences
-      if (props.visibleSections.includes('preferences')) {
+      if (props.visibleSections.includes('preferences') || props.visibleSections.includes('footers')) {
         updateData.preferences = {
-          staleChannelsDays: event.data.preferences?.staleChannelsDays,
+          staleChannelsDays: state.preferences.staleChannelsDays,
           footers: state.preferences.footers,
         }
       }
@@ -268,6 +274,8 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       color: 'error',
       duration: 5000
     })
+  } finally {
+    emit('submit-end')
   }
 }
 
@@ -650,92 +658,106 @@ function setDefaultFooter(id: string) {
 
 
       <UiFormActions
+        v-if="visibleSections.some(s => ['general', 'credentials', 'preferences'].includes(s))"
         ref="formActionsRef"
         :loading="isLoading"
         :is-dirty="isDirty"
+        :disabled="disabled"
         :save-label="isEditMode ? t('common.save') : t('common.create')"
         :hide-cancel="hideCancel"
         :show-border="!hideHeader"
         @reset="handleReset"
         @cancel="handleCancel"
       />
-    </UForm>
 
-    <!-- Footers Section -->
-    <div v-if="visibleSections.includes('preferences')" class="mt-8 space-y-4">
-      <div :class="FORM_SPACING.sectionDivider">
-        <div class="flex items-center justify-between mb-4">
-          <h3 :class="FORM_STYLES.sectionTitle" class="mb-0">
-            {{ t('channel.footers') }}
-          </h3>
-          <UButton
-            icon="i-heroicons-plus"
-            size="xs"
-            color="primary"
-            variant="soft"
-            @click="openAddFooter"
-          >
-            {{ t('channel.addFooter') }}
-          </UButton>
+      <!-- Footers Section -->
+      <div v-if="visibleSections.includes('footers')" :class="[visibleSections.some(s => ['general', 'credentials', 'preferences'].includes(s)) ? 'mt-8' : '']" class="space-y-4">
+        <div :class="FORM_SPACING.sectionDivider">
+          <div class="flex items-center justify-between mb-4">
+            <h3 :class="FORM_STYLES.sectionTitle" class="mb-0">
+              {{ t('channel.footers') }}
+            </h3>
+            <UButton
+              icon="i-heroicons-plus"
+              size="xs"
+              color="primary"
+              variant="soft"
+              @click="openAddFooter"
+            >
+              {{ t('channel.addFooter') }}
+            </UButton>
+          </div>
         </div>
-      </div>
 
-      <div v-if="state.preferences.footers.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
-        <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-8 h-8 mx-auto text-gray-400 mb-2" />
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('channel.noFooters') }}
-        </p>
-      </div>
+        <div v-if="state.preferences.footers.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+          <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-8 h-8 mx-auto text-gray-400 mb-2" />
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ t('channel.noFooters') }}
+          </p>
+        </div>
 
-      <div v-else class="space-y-3">
-        <div
-          v-for="footer in state.preferences.footers"
-          :key="footer.id"
-          class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <UBadge v-if="footer.isDefault" color="primary" variant="subtle" size="xs">
-              {{ t('channel.footerDefault') }}
-            </UBadge>
-            <div>
-              <div class="text-sm font-medium text-gray-900 dark:text-white">
-                {{ footer.name }}
-              </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-md">
-                {{ footer.content }}
+        <div v-else class="space-y-3">
+          <div
+            v-for="footer in state.preferences.footers"
+            :key="footer.id"
+            class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+          >
+            <div class="flex items-center gap-3">
+              <UBadge v-if="footer.isDefault" color="primary" variant="subtle" size="xs">
+                {{ t('channel.footerDefault') }}
+              </UBadge>
+              <div>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ footer.name }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-md">
+                  {{ footer.content }}
+                </div>
               </div>
             </div>
-          </div>
-          <div class="flex items-center gap-1">
-            <UButton
-              v-if="!footer.isDefault"
-              icon="i-heroicons-star"
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              @click="setDefaultFooter(footer.id)"
-            />
-            <UButton
-              icon="i-heroicons-pencil-square"
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              @click="openEditFooter(footer)"
-            />
-            <UButton
-              icon="i-heroicons-trash"
-              size="xs"
-              variant="ghost"
-              color="error"
-              @click="deleteFooter(footer.id)"
-            />
+            <div class="flex items-center gap-1">
+              <UButton
+                v-if="!footer.isDefault"
+                icon="i-heroicons-star"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                @click="setDefaultFooter(footer.id)"
+              />
+              <UButton
+                icon="i-heroicons-pencil-square"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                @click="openEditFooter(footer)"
+              />
+              <UButton
+                icon="i-heroicons-trash"
+                size="xs"
+                variant="ghost"
+                color="error"
+                @click="deleteFooter(footer.id)"
+              />
+            </div>
           </div>
         </div>
+        
+        <UiFormActions
+          v-if="visibleSections.length === 1 && visibleSections[0] === 'footers'"
+          ref="formActionsRef"
+          :loading="isLoading"
+          :is-dirty="isDirty"
+          :disabled="disabled"
+          :save-label="t('common.save')"
+          :hide-cancel="true"
+          :show-border="true"
+          @reset="handleReset"
+        />
       </div>
-    </div>
+    </UForm>
 
     <!-- Footer Modal -->
-    <UModal v-if="visibleSections.includes('preferences')" v-model:open="isFooterModalOpen">
+    <UModal v-if="visibleSections.includes('footers') || visibleSections.includes('preferences')" v-model:open="isFooterModalOpen">
       <template #content>
       <UCard :ui="{ header: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <template #header>

@@ -32,6 +32,10 @@ const isTogglingActive = ref(false)
 const isDeleting = ref(false)
 const showDeleteModal = ref(false)
 const deleteConfirmationInput = ref('')
+const isSavingPreferencesSection = ref(false)
+const isSavingFootersSection = ref(false)
+
+const anyPreferencesSaving = computed(() => isSavingPreferencesSection.value || isSavingFootersSection.value)
 
 // Fetch channel on mount
 onMounted(async () => {
@@ -215,8 +219,36 @@ async function handleDelete() {
             :project-id="projectId"
             :channel="channel"
             :visible-sections="['preferences']"
+            :disabled="anyPreferencesSaving"
             @success="handleUpdateSuccess"
             @cancel="goBack"
+            @submit-start="isSavingPreferencesSection = true"
+            @submit-end="isSavingPreferencesSection = false"
+            hide-header
+            hide-cancel
+          />
+        </UCard>
+
+        <!-- Footers -->
+        <UCard v-if="canEdit(channel)">
+          <template #header>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('channel.footers', 'Footers') }}
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ t('channel.footers_desc', 'Manage text footers that can be automatically added to your posts') }}
+            </p>
+          </template>
+          
+          <FormsChannelForm
+            :project-id="projectId"
+            :channel="channel"
+            :visible-sections="['footers']"
+            :disabled="anyPreferencesSaving"
+            @success="handleUpdateSuccess"
+            @cancel="goBack"
+            @submit-start="isSavingFootersSection = true"
+            @submit-end="isSavingFootersSection = false"
             hide-header
             hide-cancel
           />

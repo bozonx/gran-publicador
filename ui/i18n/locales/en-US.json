@@ -373,6 +373,7 @@
     "deactivated_notice": "Channel deactivated",
     "credentials_desc": "Manage credentials",
     "preferences_desc": "Channel preferences",
+    "footers_desc": "Manage text footers that can be automatically added to your posts",
     "unarchiveChannel": "Unarchive channel",
     "archiveChannel": "Archive channel",
     "channelIsArchived": "Channel is archived",
