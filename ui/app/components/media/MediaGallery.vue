@@ -385,8 +385,11 @@ function closeMediaModal() {
   selectedMedia.value = null
 }
 
+const transitionName = ref('slide-next')
+
 function navigateToPreviousMedia() {
   if (!hasPreviousMedia.value) return
+  transitionName.value = 'slide-prev'
   const prevItem = localMedia.value[currentMediaIndex.value - 1]
   if (prevItem?.media) {
     selectedMedia.value = prevItem.media
@@ -395,6 +398,7 @@ function navigateToPreviousMedia() {
 
 function navigateToNextMedia() {
   if (!hasNextMedia.value) return
+  transitionName.value = 'slide-next'
   const nextItem = localMedia.value[currentMediaIndex.value + 1]
   if (nextItem?.media) {
     selectedMedia.value = nextItem.media
@@ -791,20 +795,24 @@ const emit = defineEmits<Emits>()
           <!-- Media content -->
           <div 
             ref="swipeElement"
-            class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden touch-pan-y"
+            class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden touch-pan-y relative h-[70vh]"
           >
-            <img
-              v-if="selectedMedia.type === 'IMAGE'"
-              :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
-              :alt="selectedMedia.filename || 'Media'"
-              class="max-w-full max-h-[70vh] object-contain"
-            />
-            <div v-else class="flex items-center justify-center h-64 w-full">
-              <UIcon
-                :name="getMediaIcon(selectedMedia.type)"
-                class="w-24 h-24 text-gray-400"
-              />
-            </div>
+            <Transition :name="transitionName">
+              <div :key="selectedMedia.id" class="absolute inset-0 flex items-center justify-center">
+                <img
+                  v-if="selectedMedia.type === 'IMAGE'"
+                  :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                  :alt="selectedMedia.filename || 'Media'"
+                  class="max-w-full max-h-full object-contain"
+                />
+                <div v-else class="flex items-center justify-center h-full w-full">
+                  <UIcon
+                    :name="getMediaIcon(selectedMedia.type)"
+                    class="w-24 h-24 text-gray-400"
+                  />
+                </div>
+              </div>
+            </Transition>
           </div>
 
           <!-- Next button -->
