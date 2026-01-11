@@ -249,6 +249,7 @@ export class PublicationsService {
       ownership?: OwnershipType;
       socialMedia?: SocialMedia;
       issueType?: IssueType;
+      publishedAfter?: Date;
     },
   ) {
     await this.permissions.checkProjectAccess(projectId, userId);
@@ -339,6 +340,7 @@ export class PublicationsService {
       ownership?: OwnershipType;
       socialMedia?: SocialMedia;
       issueType?: IssueType;
+      publishedAfter?: Date;
     },
   ) {
     this.logger.log(

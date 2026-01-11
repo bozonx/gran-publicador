@@ -100,4 +100,9 @@ export class FindPublicationsQueryDto {
   @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
   @IsBoolean()
   includeArchived?: boolean;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsString()
+  publishedAfter?: Date;
 }

@@ -21,6 +21,7 @@ export class PublicationQueryBuilder {
       issueType?: IssueType;
       search?: string;
       language?: string;
+      publishedAfter?: Date;
     },
     userAllowedProjectIds?: string[],
   ): Prisma.PublicationWhereInput {
@@ -122,6 +123,18 @@ export class PublicationQueryBuilder {
     // Filter by language
     if (filters?.language) {
       where.language = filters.language;
+    }
+
+    // Filter by publication date (last 24h for example)
+    if (filters?.publishedAfter) {
+      conditions.push({
+        posts: {
+          some: {
+            publishedAt: { gte: filters.publishedAfter },
+            status: PostStatus.PUBLISHED,
+          },
+        },
+      });
     }
 
     // Apply AND conditions

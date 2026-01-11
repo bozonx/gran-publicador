@@ -72,6 +72,7 @@ export interface PublicationsFilter {
     ownership?: 'own' | 'notOwn'
     issueType?: 'failed' | 'partial' | 'expired'
     socialMedia?: string
+    publishedAfter?: string
 }
 
 export interface PaginatedPublications {
@@ -131,6 +132,7 @@ export function usePublications() {
             if (filters.ownership) params.ownership = filters.ownership
             if (filters.issueType) params.issueType = filters.issueType
             if (filters.socialMedia) params.socialMedia = filters.socialMedia
+            if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter
 
             const data = await api.get<PaginatedPublications>('/publications', { params })
             publications.value = data.items
@@ -171,6 +173,7 @@ export function usePublications() {
             if (filters.ownership) params.ownership = filters.ownership
             if (filters.issueType) params.issueType = filters.issueType
             if (filters.socialMedia) params.socialMedia = filters.socialMedia
+            if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter
 
             const data = await api.get<PaginatedPublications>('/publications', { params })
             publications.value = data.items
