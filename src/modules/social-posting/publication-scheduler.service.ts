@@ -22,9 +22,20 @@ export class PublicationSchedulerService implements OnModuleInit {
     const appConfig = this.configService.get<AppConfig>('app')!;
     this.logger.log(`Date source of truth: ${new Date().toISOString()}`);
 
-    const intervalMs = appConfig.schedulerIntervalSeconds * 1000;
-    const interval = setInterval(() => this.handleCron(), intervalMs);
-    this.schedulerRegistry.addInterval('publication-scheduler', interval);
+    const intervalSeconds = appConfig.schedulerIntervalSeconds;
+    const intervalMs = intervalSeconds * 1000;
+
+    // Align start to the next interval boundary for better precision
+    const now = Date.now();
+    const delay = intervalMs - (now % intervalMs);
+
+    this.logger.log(`Aligning scheduler: first run in ${delay}ms`);
+
+    setTimeout(() => {
+        this.handleCron();
+        const interval = setInterval(() => this.handleCron(), intervalMs);
+        this.schedulerRegistry.addInterval('publication-scheduler', interval);
+    }, delay);
 
     this.logger.log(
       `Publication Scheduler initialized with dynamic interval ${appConfig.schedulerIntervalSeconds}s and window ${appConfig.schedulerWindowMinutes}m`,
@@ -70,8 +81,6 @@ export class PublicationSchedulerService implements OnModuleInit {
     }
 
     // Mark individual posts as EXPIRED (FAILED with error message)
-    // We only mark posts of SCHEDULED/PROCESSING/PARTIAL/FAILED publications
-    // if the post itself is proсрочено.
     const expiredPosts = await this.prisma.post.updateMany({
       where: {
         status: PostStatus.PENDING,
@@ -89,8 +98,9 @@ export class PublicationSchedulerService implements OnModuleInit {
   }
 
   private async processScheduledPublications(now: Date) {
-    // Fetch publications that are SCHEDULED and hit the time
-    // We also include publications that have posts with hit the time (if publication.scheduledAt is null)
+    // Fetch publications that are SCHEDULED and due
+    // IMPORTANT: Order by scheduledAt ASC to ensure "Part 1" goes before "Part 2"
+    // Also including createdAt as secondary sort for identical scheduledAt times
     const publications = await this.prisma.publication.findMany({
       where: {
         status: PublicationStatus.SCHEDULED,
@@ -99,18 +109,22 @@ export class PublicationSchedulerService implements OnModuleInit {
           { posts: { some: { scheduledAt: { lte: now } } } },
         ],
       },
-      select: { id: true },
+      select: { id: true, scheduledAt: true, createdAt: true },
+      orderBy: [
+        { scheduledAt: 'asc' },
+        { createdAt: 'asc' },
+      ],
     });
 
     if (publications.length === 0) return;
 
     this.logger.debug(`Found ${publications.length} publications to trigger`);
 
-    // Parallel trigger with basic limitation (batching or just Promise.all if count is low)
-    // For now, let's use all settled. In production, we might want a limit.
-    await Promise.allSettled(
-      publications.map((pub) => this.triggerPublication(pub.id)),
-    );
+    // Sequential trigger to maintain strict delivery order
+    // This is crucial for multi-part messages in the same channel
+    for (const pub of publications) {
+        await this.triggerPublication(pub.id);
+    }
   }
 
 
