@@ -45,8 +45,13 @@ const {
   isLoading: isProblemsLoading,
   totalCount: problemsTotal,
   fetchPublicationsByProject: fetchProblems,
-  getStatusDisplayName,
-  getStatusColor,
+} = usePublications()
+
+const {
+  publications: publishedPublications,
+  isLoading: isPublishedLoading,
+  totalCount: publishedTotal,
+  fetchPublicationsByProject: fetchRecentPublished,
 } = usePublications()
 
 const {
@@ -60,9 +65,17 @@ const projectId = computed(() => route.params.id as string)
 // Fetch project on mount
 onMounted(async () => {
   if (projectId.value) {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     await Promise.all([
       fetchProject(projectId.value),
       fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
+      fetchRecentPublished(projectId.value, { 
+        status: 'PUBLISHED', 
+        publishedAfter: yesterday,
+        limit: 10,
+        sortBy: 'byPublished',
+        sortOrder: 'desc'
+      }),
       fetchScheduled(projectId.value, { status: 'SCHEDULED', limit: 5 }),
       fetchProblems(projectId.value, { status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 5 }),
       fetchChannels({ projectId: projectId.value, limit: 1000 })
@@ -432,6 +445,46 @@ const projectProblems = computed(() => {
             <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
               {{ t('common.noData') }}
             </div>
+          </div>
+        </div>
+
+        <!-- Published in the last 24h Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
+              {{ t('dashboard.published_last_24h', 'Опубликовано за прошедшие сутки') }}
+              <CommonCountBadge :count="publishedTotal" color="success" />
+            </h3>
+            <UButton
+              v-if="publishedTotal > 0"
+              :to="`/publications?projectId=${projectId}&status=PUBLISHED&sortBy=byPublished`"
+              variant="ghost"
+              size="xs"
+              color="primary"
+              icon="i-heroicons-arrow-right"
+              trailing
+            >
+              {{ t('common.viewAll') }}
+            </UButton>
+          </div>
+
+          <div v-if="isPublishedLoading && !publishedPublications.length" class="flex justify-center py-4">
+            <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+          </div>
+
+          <div v-else-if="publishedPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <PublicationsPublicationMiniItem
+              v-for="pub in publishedPublications"
+              :key="pub.id"
+              :publication="pub"
+              show-date
+              date-type="scheduled"
+            />
+          </div>
+
+          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+            {{ t('dashboard.no_published_last_24h', 'За прошедшие сутки публикаций не было') }}
           </div>
         </div>
 
