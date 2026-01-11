@@ -129,39 +129,13 @@ function goToPublication(pub: PublicationWithRelations) {
     </div>
 
     <div class="space-y-8">
-      <!-- 1. Drafts Section (Top) -->
-      <div v-if="draftsCount > 0 || draftsLoading" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
-            {{ t('publicationStatus.draft') }}
-            <CommonCountBadge :count="draftsCount" :title="t('publicationStatus.draft')" />
-          </h2>
-          <!-- Note: No global "View All drafts" page yet potentially, but we can link to publications filtered by draft if needed.
-               For now, just listing them. -->
-        </div>
-
-        <div v-if="draftsLoading && !draftPublications.length" class="flex justify-center py-8">
-          <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
-        </div>
-        <CommonHorizontalScroll v-else-if="draftPublications.length > 0">
-          <PublicationsPublicationCard
-            v-for="draft in draftPublications"
-            :key="draft.id"
-            :publication="draft"
-            :show-project-info="true"
-            class="w-64 shrink-0"
-            @click="goToPublication"
-          />
-          <CommonViewAllCard
-            v-if="draftsCount > 5"
-            to="/publications?status=DRAFT"
-          />
-        </CommonHorizontalScroll>
-        <div v-else class="text-center py-8 text-sm text-gray-500">
-            {{ t('publication.noPublicationsDescription') }}
-        </div>
-      </div>
+      <PublicationsDraftsSection
+        :publications="draftPublications"
+        :total-count="draftsCount"
+        :loading="draftsLoading"
+        view-all-to="/publications?status=DRAFT"
+        show-project-info
+      />
 
       <!-- 2. Scheduled and Problems Columns -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

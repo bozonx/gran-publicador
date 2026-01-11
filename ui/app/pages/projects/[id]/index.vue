@@ -347,52 +347,12 @@ const projectProblems = computed(() => {
 
       <!-- Publications Section -->
       <div class="space-y-6 mt-6">
-        <!-- Drafts Block (Only visible if has drafts) -->
-        <div v-if="draftTotal > 0 || isDraftsLoading" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
-              {{ t('publicationStatus.draft') }}
-              <CommonCountBadge :count="draftTotal" :title="t('publicationStatus.draft')" />
-            </h2>
-            <div class="flex items-center gap-2">
-              <UButton
-                v-if="draftTotal > 5"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                icon="i-heroicons-arrow-right"
-                trailing
-                :to="`/publications?projectId=${projectId}&status=DRAFT`"
-              >
-                {{ t('common.viewAll') }}
-              </UButton>
-            </div>
-          </div>
-
-          <!-- Create buttons moved to header -->
-
-          <div v-if="isDraftsLoading && !draftPublications.length" class="flex justify-center py-8">
-            <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
-          </div>
-          <CommonHorizontalScroll v-else-if="draftPublications.length > 0">
-            <PublicationsPublicationCard
-              v-for="draft in draftPublications"
-              :key="draft.id"
-              :publication="draft"
-              :show-project-info="false"
-              class="w-64 shrink-0"
-              @click="goToPublication"
-            />
-            <CommonViewAllCard
-              v-if="draftTotal > 5"
-              :to="`/publications?projectId=${projectId}&status=DRAFT`"
-            />
-          </CommonHorizontalScroll>
-          <div v-else class="text-center py-8 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-lg">
-             <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('publication.noPublicationsDescription') }}</p>
-          </div>
-        </div>
+        <PublicationsDraftsSection
+          :publications="draftPublications"
+          :total-count="draftTotal"
+          :loading="isDraftsLoading"
+          :view-all-to="`/publications?projectId=${projectId}&status=DRAFT`"
+        />
 
         <!-- Scheduled and Problems Columns -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
