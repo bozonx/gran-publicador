@@ -24,18 +24,19 @@ import { ShutdownService } from '../../common/services/shutdown.service.js';
  * Custom logger adapter to pipe library logs to NestJS Logger
  */
 class LibraryLogger {
+  constructor(private readonly logger: Logger) {}
+
   debug(message: string, context?: string) {
-    // Using console directly to avoid potential recursion with NestJS logger
-    console.debug(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`);
+    this.logger.debug(`${context ? `[${context}] ` : ''}${message}`);
   }
   log(message: string, context?: string) {
-    console.log(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`);
+    this.logger.log(`${context ? `[${context}] ` : ''}${message}`);
   }
   warn(message: string, context?: string) {
-    console.warn(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`);
+    this.logger.warn(`${context ? `[${context}] ` : ''}${message}`);
   }
   error(message: string, trace?: string, context?: string) {
-    console.error(`[SocialMediaPostingLib] ${context ? `[${context}] ` : ''}${message}`, trace);
+    this.logger.error(`${context ? `[${context}] ` : ''}${message}`, trace);
   }
 }
 
@@ -54,7 +55,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       this.postingClient = createPostingClient({
         accounts: {}, 
         logLevel: 'info',
-        logger: new LibraryLogger(),
+        logger: new LibraryLogger(this.logger),
         retryAttempts: 3,
         retryDelayMs: 2000,
       });

@@ -13,6 +13,7 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
 import { SpaFallbackFilter } from './common/filters/spa-fallback.filter.js';
+import { BigIntInterceptor } from './common/interceptors/bigint.interceptor.js';
 import type { AppConfig } from './config/app.config.js';
 
 /**
@@ -25,12 +26,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-/**
- * Solves "Do not know how to serialize a BigInt" error.
- */
-(BigInt.prototype as any).toJSON = function () {
-  return this.toString();
-};
+
 
 /**
  * Bootstrap the NestJS application.
@@ -77,6 +73,9 @@ async function bootstrap() {
 
   // Register SPA fallback filter to serve 200.html for non-API 404s
   app.useGlobalFilters(new SpaFallbackFilter(globalPrefix));
+
+  // Register BigInt interceptor to handle serialization
+  app.useGlobalInterceptors(new BigIntInterceptor());
 
   // Serve static assets from ui/dist (Nuxt static build)
   // We resolve the path relative to the current file location
