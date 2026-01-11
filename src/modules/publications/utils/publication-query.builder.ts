@@ -1,4 +1,4 @@
-import { PublicationStatus, PostType, Prisma, SocialMedia } from '../../generated/prisma/client.js';
+import { PublicationStatus, PostType, Prisma, SocialMedia } from '../../../generated/prisma/client.js';
 import { IssueType, OwnershipType } from '../dto/index.js';
 
 /**
