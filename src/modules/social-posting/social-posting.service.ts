@@ -204,6 +204,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       postId: string;
       channelId: string;
       success: boolean;
+      url?: string;
       error?: string;
     }> = [];
 
@@ -260,6 +261,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           postId: post.id,
           channelId: post.channelId,
           success: result.success,
+          url: result.url,
           error: result.error,
         });
       } catch (error: any) {
@@ -288,7 +290,22 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       where: { id: publicationId },
       data: { 
         status: finalStatus,
-        processingStartedAt: null 
+        processingStartedAt: null,
+        meta: {
+          ...(publication.meta as any || {}),
+          lastResult: {
+            timestamp: new Date().toISOString(),
+            successCount,
+            totalCount: results.length,
+            results: results.map(r => ({
+              postId: r.postId,
+              channelId: r.channelId,
+              success: r.success,
+              url: r.url,
+              error: r.error
+            }))
+          }
+        }
       },
     });
 
@@ -354,11 +371,28 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         ? PublicationStatus.PUBLISHED 
         : successCount > 0 ? PublicationStatus.PARTIAL : PublicationStatus.FAILED;
 
+      const lastResult = {
+        timestamp: new Date().toISOString(),
+        successCount,
+        totalCount: allPosts.length,
+        results: allPosts.map(p => ({
+            postId: p.id,
+            channelId: p.channelId,
+            success: p.status === PostStatus.PUBLISHED,
+            // We might not have URL easily available here without fetching meta, but this is acceptable for single update
+            error: p.errorMessage 
+        }))
+      };
+
       await this.prisma.publication.update({
           where: { id: post.publicationId },
           data: { 
             status: finalStatus,
-            processingStartedAt: null
+            processingStartedAt: null,
+            meta: {
+                ...(post.publication.meta as any || {}),
+                lastResult
+            }
           }
       });
 
@@ -380,7 +414,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     post: any,
     channel: any,
     publication: any,
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; url?: string }> {
     const logPrefix = `[publishSinglePost][Post:${post.id}]`;
 
     try {
@@ -411,31 +445,40 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       const response = await Promise.race([this.postingClient.post(request), timeoutPromise]);
 
       if (response.success) {
+        // Save response in meta.response as requested
+        const meta = post.meta as any || {};
         await this.prisma.post.update({
           where: { id: post.id },
           data: {
             status: PostStatus.PUBLISHED,
             publishedAt: new Date(response.data.publishedAt),
-            meta: response.data as any,
+            meta: {
+              ...meta,
+              response: response.data
+            },
             errorMessage: null,
             retryCount: post.retryCount, // keep existing
             nextRetryAt: null,
           },
         });
-        return { success: true };
+        return { success: true, url: response.data.url };
       } else {
         const platformError = response;
-        return await this.handlePostError(post.id, post.retryCount, platformError.error.message, platformError.error);
+        return await this.handlePostError(post, platformError.error.message, platformError.error);
       }
     } catch (error: any) {
       this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
-      return await this.handlePostError(post.id, post.retryCount, error.message, { error: error.message, stack: error.stack });
+      return await this.handlePostError(post, error.message, { 
+        code: 'INTERNAL_ERROR',
+        message: error.message,
+        details: { stack: error.stack }
+      });
     }
   }
 
-  private async handlePostError(postId: string, currentRetryCount: number, message: string, meta: any) {
+  private async handlePostError(post: any, message: string, errorResponse: any) {
     const MAX_RETRIES = 5;
-    const retryCount = currentRetryCount || 0;
+    const retryCount = post.retryCount || 0;
     const nextRetryCount = retryCount + 1;
     
     let nextRetryAt: Date | null = null;
@@ -446,17 +489,22 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     if (nextRetryCount <= MAX_RETRIES && message !== 'EXPIRED') {
       const minutes = backoffMinutes[nextRetryCount - 1] || 240;
       nextRetryAt = new Date(Date.now() + minutes * 60000);
-      this.logger.log(`Post ${postId} failed, scheduled retry #${nextRetryCount} in ${minutes}m`);
+      this.logger.log(`Post ${post.id} failed, scheduled retry #${nextRetryCount} in ${minutes}m`);
     } else {
-      this.logger.warn(`Post ${postId} failed and reached max retries or expired. No more retries.`);
+      this.logger.warn(`Post ${post.id} failed and reached max retries or expired. No more retries.`);
     }
 
+    const meta = post.meta as any || {};
+
     await this.prisma.post.update({
-      where: { id: postId },
+      where: { id: post.id },
       data: {
         status: PostStatus.FAILED,
         errorMessage: message,
-        meta: meta as any,
+        meta: {
+          ...meta,
+          response: errorResponse
+        },
         retryCount: nextRetryCount,
         nextRetryAt,
       },

@@ -103,10 +103,21 @@ export class PublicationSchedulerService implements OnModuleInit {
     // Also including createdAt as secondary sort for identical scheduledAt times
     const publications = await this.prisma.publication.findMany({
       where: {
-        status: PublicationStatus.SCHEDULED,
         OR: [
-          { scheduledAt: { lte: now } },
-          { posts: { some: { scheduledAt: { lte: now } } } },
+          // 1. Classic scheduled publication
+          { 
+            status: PublicationStatus.SCHEDULED,
+            OR: [
+              { scheduledAt: { lte: now } },
+              { posts: { some: { scheduledAt: { lte: now } } } },
+            ]
+          },
+          // 2. Retryable failed/partial publication
+          // We pick it up if it has at least one post ready to retry
+          {
+            status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL] },
+            posts: { some: { status: PostStatus.FAILED, nextRetryAt: { lte: now } } }
+          }
         ],
       },
       select: { id: true, scheduledAt: true, createdAt: true },
@@ -136,7 +147,7 @@ export class PublicationSchedulerService implements OnModuleInit {
       const updateResult = await this.prisma.publication.updateMany({
         where: {
           id: publicationId,
-          status: PublicationStatus.SCHEDULED,
+          status: { in: [PublicationStatus.SCHEDULED, PublicationStatus.FAILED, PublicationStatus.PARTIAL] },
         },
         data: {
           status: PublicationStatus.PROCESSING,
