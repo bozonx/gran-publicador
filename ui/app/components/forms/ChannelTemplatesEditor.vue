@@ -39,11 +39,25 @@ const insertOptions = [
   { value: 'tags', label: t('channel.templateInsertTags') },
 ]
 
+const tagStringCaseOptions = [
+  { value: 'none', label: t('common.none', 'None') },
+  { value: 'camelCase', label: 'camelCase' },
+  { value: 'pascalCase', label: 'PascalCase' },
+  { value: 'snake_case', label: 'snake_case' },
+  { value: 'kebab-case', label: 'kebab-case' },
+]
+
+const tagLetterCaseOptions = [
+  { value: 'none', label: t('common.none', 'None') },
+  { value: 'lowercase', label: t('common.lowercase', 'lower case') },
+  { value: 'uppercase', label: t('common.uppercase', 'UPPER CASE') },
+]
+
 const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: false, insert: 'title', before: '', after: '\n\n' },
   { enabled: true, insert: 'content', before: '', after: '' },
   { enabled: true, insert: 'description', before: '\n\n', after: '' },
-  { enabled: true, insert: 'tags', before: '\n\n', after: '' },
+  { enabled: true, insert: 'tags', before: '\n\n', after: '', stringCase: 'none', letterCase: 'none' },
 ]
 
 const templates = ref<ChannelPostTemplate[]>(props.channel.preferences?.templates || [])
@@ -323,6 +337,27 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                         class="font-mono text-xs"
                       />
                     </UFormField>
+
+                    <template v-if="block.insert === 'tags'">
+                      <UFormField :label="t('channel.templateTagStyle', 'Tag Style')">
+                        <USelectMenu
+                          v-model="block.stringCase"
+                          :items="tagStringCaseOptions"
+                          value-key="value"
+                          label-key="label"
+                          class="w-full"
+                        />
+                      </UFormField>
+                      <UFormField :label="t('channel.templateTagCase', 'Tag Case')">
+                        <USelectMenu
+                          v-model="block.letterCase"
+                          :items="tagLetterCaseOptions"
+                          value-key="value"
+                          label-key="label"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
                   </div>
                 </div>
               </VueDraggable>

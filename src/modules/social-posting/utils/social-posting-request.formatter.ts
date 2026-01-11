@@ -10,6 +10,7 @@ import {
   StorageType 
 } from '../../../generated/prisma/client.js';
 import { SocialPostingBodyFormatter } from './social-posting-body.formatter.js';
+import { TagsFormatter } from './tags.formatter.js';
 
 export interface FormatterParams {
   post: any; // Post with relations or simplified
@@ -70,6 +71,12 @@ export class SocialPostingRequestFormatter {
       // For other platforms we can provide title and description if available
       if (publication.title) request.title = publication.title;
       if (publication.description) request.description = publication.description;
+      
+      // Add tags as separate field if present
+      const tagsString = post.tags || publication.tags;
+      if (tagsString) {
+        (request as any).tags = TagsFormatter.format(tagsString);
+      }
     }
 
     return request;

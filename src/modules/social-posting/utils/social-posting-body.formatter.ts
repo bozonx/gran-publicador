@@ -1,10 +1,17 @@
 import { PostType } from '../../../generated/prisma/client.js';
+import { 
+  TagsFormatter, 
+  TagStringCase, 
+  TagLetterCase 
+} from './tags.formatter.js';
 
 export interface TemplateBlock {
   enabled: boolean;
   insert: 'title' | 'content' | 'description' | 'tags';
   before: string;
   after: string;
+  stringCase?: TagStringCase;
+  letterCase?: TagLetterCase;
 }
 
 export interface ChannelPostTemplate {
@@ -71,7 +78,10 @@ export class SocialPostingBodyFormatter {
           value = data.description || '';
           break;
         case 'tags':
-          value = this.formatTags(data.tags);
+          value = TagsFormatter.format(data.tags, {
+            stringCase: block.stringCase,
+            letterCase: block.letterCase,
+          });
           break;
       }
 
@@ -104,17 +114,5 @@ export class SocialPostingBodyFormatter {
       const scoreB = (b.postType ? 2 : 0) + (b.language ? 1 : 0);
       return scoreB - scoreA || (a.order - b.order);
     })[0];
-  }
-
-  private static formatTags(tags?: string | null): string {
-    if (!tags) return '';
-    
-    // Split by comma or space and convert to hashtags
-    return tags
-      .split(/[\s,]+/)
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0)
-      .map(tag => (tag.startsWith('#') ? tag : `#${tag}`))
-      .join(' ');
   }
 }

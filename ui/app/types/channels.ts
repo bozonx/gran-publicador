@@ -12,6 +12,8 @@ export interface TemplateBlock {
     before?: string
     insert: 'title' | 'content' | 'description' | 'tags'
     after?: string
+    stringCase?: 'camelCase' | 'pascalCase' | 'snake_case' | 'kebab-case' | 'none'
+    letterCase?: 'uppercase' | 'lowercase' | 'none'
 }
 
 export interface ChannelPostTemplate {
