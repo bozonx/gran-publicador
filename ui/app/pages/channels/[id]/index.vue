@@ -189,12 +189,16 @@ async function handleToggleActive() {
 // Formatters
 function formatDate(date: string | null): string {
   if (!date) return '-'
-  return new Date(date).toLocaleDateString()
+  const dObj = new Date(date)
+  if (isNaN(dObj.getTime())) return '-'
+  return dObj.toLocaleDateString()
 }
 
 function formatDateTime(date: string | null): string {
   if (!date) return '-'
-  return new Date(date).toLocaleString()
+  const dObj = new Date(date)
+  if (isNaN(dObj.getTime())) return '-'
+  return dObj.toLocaleString()
 }
 
 function truncateContent(content: string | null | undefined, maxLength = 150): string {

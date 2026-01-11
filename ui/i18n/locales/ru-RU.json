@@ -84,7 +84,8 @@
     "settings": "Настройки",
     "admin": "Администрирование",
     "my_projects": "MY PROJECTS",
-    "archive": "Архив"
+    "archive": "Архив",
+    "media_library": "Медиатека"
   },
   "auth": {
     "login": "Войти",
@@ -615,7 +616,9 @@
     "preview": "Просмотр",
     "metadata": "Метаданные",
     "download": "Скачать",
-    "noExif": "EXIF данные не найдены"
+    "noExif": "EXIF данные не найдены",
+    "library_description": "Управление и организация всех медиа-файлов",
+    "no_media_found": "Медиа-файлы не найдены по вашему запросу"
   },
   "postType": {
     "post": "Пост",

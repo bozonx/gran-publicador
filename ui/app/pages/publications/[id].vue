@@ -365,7 +365,9 @@ function toggleFormCollapse() {
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '-'
-  return new Date(dateString).toLocaleString()
+  const dObj = new Date(dateString)
+  if (isNaN(dObj.getTime())) return '-'
+  return dObj.toLocaleString()
 }
 
 async function handlePublishNow() {

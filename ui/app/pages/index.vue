@@ -62,7 +62,9 @@ onMounted(async () => {
  */
 function formatDateWithTime(date: string | null | undefined): string {
   if (!date) return '-'
-  return d(new Date(date), {
+  const dObj = new Date(date)
+  if (isNaN(dObj.getTime())) return '-'
+  return d(dObj, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

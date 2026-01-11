@@ -114,7 +114,7 @@ function handleDelete(e: Event) {
         <!-- Date -->
         <div class="flex items-center gap-1.5 shrink-0">
           <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-          <span>{{ d(new Date(publication.createdAt), 'short') }}</span>
+          <span>{{ formatDateShort(publication.createdAt) }}</span>
         </div>
         
         <!-- Posts Count -->

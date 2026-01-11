@@ -8,7 +8,7 @@ const props = defineProps<{
 
 const { t, d } = useI18n()
 const router = useRouter()
-const { truncateContent } = useFormatters()
+const { truncateContent, formatDateShort } = useFormatters()
 
 function goToDraft() {
     router.push(`/publications/${props.draft.id}`)
@@ -30,7 +30,7 @@ function goToDraft() {
         <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-gray-700">
           <div class="flex items-center gap-2 text-xs text-gray-400">
              <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
-             {{ d(new Date(draft.createdAt), 'short') }}
+             {{ formatDateShort(draft.createdAt) }}
           </div>
           
           <div class="flex items-center gap-1">

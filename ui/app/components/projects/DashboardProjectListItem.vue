@@ -58,7 +58,9 @@ const warningsTooltip = computed(() => {
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return '-'
-  return d(new Date(date), 'short')
+  const dObj = new Date(date)
+  if (isNaN(dObj.getTime())) return '-'
+  return d(dObj, 'short')
 }
 </script>
 

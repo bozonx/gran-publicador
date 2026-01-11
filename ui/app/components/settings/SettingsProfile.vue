@@ -8,7 +8,9 @@ const isSyncing = ref(false)
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return '—'
-  return new Date(date).toLocaleDateString()
+  const dObj = new Date(date)
+  if (isNaN(dObj.getTime())) return '—'
+  return dObj.toLocaleDateString()
 }
 
 /**

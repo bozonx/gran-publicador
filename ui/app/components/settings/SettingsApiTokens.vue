@@ -131,7 +131,9 @@ function formatScope(scopeProjectIds: string[]) {
 // Format date helper
 function formatDate(date: string | null | undefined): string {
   if (!date) return '—'
-  return d(new Date(date), 'long')
+  const dObj = new Date(date)
+  if (isNaN(dObj.getTime())) return '—'
+  return d(dObj, 'long')
 }
 </script>
 
