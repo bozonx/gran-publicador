@@ -73,20 +73,7 @@ export const useSocialPosting = () => {
     const hasContent = !isTextContentEmpty(publication.content);
     const hasMedia = Array.isArray(publication.media) && publication.media.length > 0;
 
-    if (!hasContent && !hasMedia) {
-      return false;
-    }
-
-    // Check if publication has posts
-    if (!publication.posts || publication.posts.length === 0) {
-      return false;
-    }
-
-    // Check if at least one channel is ready
-    return publication.posts.some((post: any) => {
-      if (!post.channel) return false;
-      return canPublishToChannel(post.channel);
-    });
+    return hasContent || hasMedia;
   };
 
   /**
@@ -102,15 +89,7 @@ export const useSocialPosting = () => {
     const hasContent = !isTextContentEmpty(pub.content);
     const hasMedia = Array.isArray(pub.media) && pub.media.length > 0;
 
-    if (!hasContent && !hasMedia) {
-      return false;
-    }
-
-    // Check if channel is ready
-    const channel = post.channel;
-    if (!channel) return false;
-
-    return canPublishToChannel(channel);
+    return hasContent || hasMedia;
   };
 
   /**
@@ -119,42 +98,13 @@ export const useSocialPosting = () => {
   const canPublishToChannel = (channel: any): boolean => {
     if (!channel) return false;
 
-    // Check if channel is active
-    if (!channel.isActive) return false;
-
-    // Check if channel is archived
-    if (channel.archivedAt) return false;
-
-    // Check if project is archived
-    if (channel.project?.archivedAt) return false;
+    // Check if channel is active and not archived
+    if (!channel.isActive || channel.archivedAt || channel.project?.archivedAt) return false;
 
     // Check if channel has identifier
     if (!channel.channelIdentifier) return false;
 
-    // Check if channel has credentials
-    if (!channel.credentials) return false;
-
-    try {
-      const credentials = typeof channel.credentials === 'string' 
-        ? JSON.parse(channel.credentials) 
-        : channel.credentials;
-
-      // For Telegram, check telegramBotToken
-      if (channel.socialMedia === 'TELEGRAM') {
-        const token = credentials.telegramBotToken || credentials.botToken;
-        return !!(token && token.includes(':'));
-      }
-
-      // For VK, check vkAccessToken
-      if (channel.socialMedia === 'VK') {
-        return !!(credentials.vkAccessToken || credentials.accessToken);
-      }
-
-      // For other platforms, just check if credentials exist
-      return !!credentials && Object.keys(credentials).length > 0;
-    } catch {
-      return false;
-    }
+    return !!channel.credentials;
   };
 
   return {

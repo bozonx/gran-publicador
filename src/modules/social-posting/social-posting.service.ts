@@ -11,8 +11,6 @@ import type {
   PostingClient,
   PostRequestDto,
   PostResponseDto,
-  ErrorResponseDto,
-  PreviewResponseDto,
 } from 'bozonx-social-media-posting';
 import {
   PublicationStatus,
@@ -101,19 +99,11 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
     if (!channel) throw new BadRequestException('Channel not found');
 
-    const validation = this.validateChannelReady(channel);
-    if (!validation.valid) {
-      return { success: false, message: `Validation failed: ${validation.errors.join(', ')}` };
-    }
-
     try {
-      const credentials = channel.credentials || {};
-
-      const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
-        channel.socialMedia,
-        channel.channelIdentifier,
-        credentials,
-      );
+      const { targetChannelId, apiKey, error: prepError } = await this.prepareChannelForPosting(channel);
+      if (prepError) {
+        return { success: false, message: `Validation failed: ${prepError}` };
+      }
 
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
@@ -157,20 +147,12 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       include: {
         posts: {
           include: {
-            channel: {
-              include: {
-                project: true,
-              },
-            },
+            channel: { include: { project: true } },
           },
         },
         media: {
-          include: {
-            media: true,
-          },
-          orderBy: {
-            order: 'asc',
-          },
+          include: { media: true },
+          orderBy: { order: 'asc' },
         },
       },
     });
@@ -185,13 +167,26 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('Publication must have content or at least one media file');
     }
 
-    await this.prisma.publication.update({
-      where: { id: publicationId },
+    // Atomic status update to prevent race conditions
+    const updateResult = await this.prisma.publication.updateMany({
+      where: {
+        id: publicationId,
+        status: { not: PublicationStatus.PROCESSING },
+      },
       data: {
         status: PublicationStatus.PROCESSING,
         processingStartedAt: new Date(),
       },
     });
+
+    if (updateResult.count === 0) {
+      this.logger.warn(`[publishPublication] Publication ${publicationId} is already being processed or not found`);
+      return {
+        success: false,
+        message: 'Publication is already being processed',
+        data: { publicationId, status: PublicationStatus.PROCESSING, publishedCount: 0, failedCount: 0, results: [] }
+      };
+    }
 
     const results: Array<{
       postId: string;
@@ -200,7 +195,27 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       error?: string;
     }> = [];
 
-    for (const post of publication.posts) {
+    // Reload with all posts to ensure we process everything (ignoring status in manual trigger)
+    const publicationWithPosts = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+      include: {
+        posts: {
+          include: {
+            channel: { include: { project: true } },
+          },
+        },
+        media: {
+          include: { media: true },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    if (!publicationWithPosts) {
+        throw new BadRequestException('Publication not found after lock');
+    }
+
+    for (const post of publicationWithPosts.posts) {
       if (this.shutdownService.isShutdownInProgress()) {
         this.logger.warn(
           `[publishPublication] Shutdown in progress, aborting remaining posts for publication ${publicationId}`,
@@ -214,41 +229,8 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
 
-      // Skip already successfully published posts
-      if (post.status === PostStatus.PUBLISHED) {
-        results.push({
-          postId: post.id,
-          channelId: post.channelId,
-          success: true,
-        });
-        continue;
-      }
-
-      // Skip posts marked as expired
-      if (post.status === PostStatus.FAILED && post.errorMessage === 'EXPIRED') {
-        results.push({
-          postId: post.id,
-          channelId: post.channelId,
-          success: false,
-          error: 'EXPIRED',
-        });
-        continue;
-      }
-
       try {
-        const channelValidation = this.validateChannelReady(post.channel);
-        if (!channelValidation.valid) {
-          const errorMsg = channelValidation.errors.join(', ');
-          results.push({
-            postId: post.id,
-            channelId: post.channelId,
-            success: false,
-            error: errorMsg,
-          });
-          continue;
-        }
-
-        const result = await this.publishSinglePost(post, post.channel, publication);
+        const result = await this.publishSinglePost(post, post.channel, publicationWithPosts);
         this.logger.log(`[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`);
         results.push({
           postId: post.id,
@@ -280,12 +262,21 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
     await this.prisma.publication.update({
       where: { id: publicationId },
-      data: { status: finalStatus },
+      data: { 
+        status: finalStatus,
+        processingStartedAt: null 
+      },
     });
 
     return {
-      success: successCount > 0,
-      message: successCount === results.length ? 'Success' : 'Partial success or failure',
+      success: successCount === results.length && results.length > 0,
+      message: results.length === 0 
+        ? 'No posts to publish' 
+        : successCount === results.length 
+          ? 'Success' 
+          : successCount > 0 
+            ? 'Partial success' 
+            : 'All posts failed',
       data: {
         publicationId,
         status: finalStatus,
@@ -311,13 +302,54 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
     if (!post) throw new BadRequestException('Post not found');
 
-    const result = await this.publishSinglePost(post, post.channel, post.publication);
+    // For single post we still want to make sure the publication is not locked by scheduler
+    const updateResult = await this.prisma.publication.updateMany({
+      where: {
+        id: post.publicationId,
+        status: { not: PublicationStatus.PROCESSING },
+      },
+      data: {
+        status: PublicationStatus.PROCESSING,
+        processingStartedAt: new Date(),
+      },
+    });
 
-    return {
-      success: result.success,
-      message: result.success ? 'Success' : result.error || 'Failed',
-      data: { postId, status: result.success ? PostStatus.PUBLISHED : PostStatus.FAILED },
-    };
+    if (updateResult.count === 0) {
+        throw new BadRequestException('Publication is already being processed');
+    }
+
+    try {
+      const result = await this.publishSinglePost(post, post.channel, post.publication);
+      
+      const allPosts = await this.prisma.post.findMany({
+          where: { publicationId: post.publicationId }
+      });
+      
+      const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
+      const finalStatus = successCount === allPosts.length 
+        ? PublicationStatus.PUBLISHED 
+        : successCount > 0 ? PublicationStatus.PARTIAL : PublicationStatus.FAILED;
+
+      await this.prisma.publication.update({
+          where: { id: post.publicationId },
+          data: { 
+            status: finalStatus,
+            processingStartedAt: null
+          }
+      });
+
+      return {
+        success: result.success,
+        message: result.success ? 'Success' : result.error || 'Failed',
+        data: { postId, status: result.success ? PostStatus.PUBLISHED : PostStatus.FAILED },
+      };
+    } catch (error: any) {
+        await this.prisma.publication.update({
+            where: { id: post.publicationId },
+            data: { processingStartedAt: null }
+        });
+        throw error;
+    }
   }
 
   private async publishSinglePost(
@@ -330,13 +362,8 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     try {
       if (!this.postingClient) throw new Error('Posting client not initialized');
 
-      const credentials = channel.credentials || {};
-
-      const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
-        channel.socialMedia,
-        channel.channelIdentifier,
-        credentials,
-      );
+      const { targetChannelId, apiKey, error: prepError } = await this.prepareChannelForPosting(channel);
+      if (prepError) throw new Error(prepError);
 
       const request = SocialPostingRequestFormatter.prepareRequest({
         post,
@@ -346,13 +373,10 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         targetChannelId,
       });
 
-      if (post.scheduledAt || publication.scheduledAt) {
-        request.scheduledAt = new Date(post.scheduledAt || publication.scheduledAt).toISOString();
-      }
-
       this.logger.log(`${logPrefix} Sending request to library...`);
 
-      const timeoutSeconds = this.configService.get<AppConfig>('app')!.postProcessingTimeoutSeconds;
+      const appConfig = this.configService.get<AppConfig>('app')!;
+      const timeoutSeconds = appConfig.postProcessingTimeoutSeconds;
       const timeoutPromise = new Promise<PostResponseDto>((_, reject) =>
         setTimeout(
           () => reject(new Error(`Timeout reached (${timeoutSeconds}s)`)),
@@ -397,6 +421,25 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       });
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Helper to validate channel and resolve platform params
+   */
+  private async prepareChannelForPosting(channel: any): Promise<{ targetChannelId: string; apiKey: string; error?: string }> {
+    const validation = this.validateChannelReady(channel);
+    if (!validation.valid) {
+      return { targetChannelId: '', apiKey: '', error: validation.errors.join(', ') };
+    }
+
+    const credentials = channel.credentials || {};
+    const params = resolvePlatformParams(
+      channel.socialMedia,
+      channel.channelIdentifier,
+      credentials,
+    );
+
+    return { ...params };
   }
 
   private validateChannelReady(channel: any): { valid: boolean; errors: string[] } {
