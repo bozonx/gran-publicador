@@ -144,15 +144,16 @@ function goToPublication(pub: PublicationWithRelations) {
         <div v-if="draftsLoading && !draftPublications.length" class="flex justify-center py-8">
           <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
         </div>
-        <div v-else-if="draftPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CommonHorizontalScroll v-else-if="draftPublications.length > 0">
           <PublicationsPublicationCard
             v-for="draft in draftPublications"
             :key="draft.id"
             :publication="draft"
             :show-project-info="true"
+            class="w-64 shrink-0"
             @click="goToPublication"
           />
-        </div>
+        </CommonHorizontalScroll>
         <div v-else class="text-center py-8 text-sm text-gray-500">
             {{ t('publication.noPublicationsDescription') }}
         </div>

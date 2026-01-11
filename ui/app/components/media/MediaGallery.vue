@@ -508,8 +508,7 @@ const emit = defineEmits<Emits>()
       </div>
 
       <!-- Horizontal scrollable media gallery -->
-      <div class="overflow-x-auto -mx-6 px-6">
-        <div class="flex gap-4 pb-2">
+      <CommonHorizontalScroll class="-mx-6 px-6">
           <!-- Upload button card (always first) -->
           <div
             v-if="editable"
@@ -636,8 +635,7 @@ const emit = defineEmits<Emits>()
               {{ t('media.noMedia', 'No media files') }}
             </p>
           </div>
-        </div>
-      </div>
+      </CommonHorizontalScroll>
 
       <!-- Add media form (URL/Telegram) -->
       <div v-if="isAddingMedia && editable" class="mt-6 p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/50 shadow-sm">
