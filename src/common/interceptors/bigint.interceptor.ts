@@ -22,6 +22,10 @@ export class BigIntInterceptor implements NestInterceptor {
       return data.toString();
     }
 
+    if (data instanceof Date) {
+      return data;
+    }
+
     if (Array.isArray(data)) {
       return data.map(item => this.serializeBigInt(item));
     }
