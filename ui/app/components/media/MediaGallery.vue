@@ -110,21 +110,39 @@ function triggerFileInput() {
 
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+  if (target.files) {
+    await uploadFiles(target.files)
+  }
+}
+
+async function uploadFiles(files: FileList | File[]) {
+  const fileArray = Array.from(files)
+  if (fileArray.length === 0) return
 
   uploadProgress.value = true
   uploadProgressPercent.value = 0
+  
+  const progresses = new Array(fileArray.length).fill(0)
+  
   try {
-    const uploadedMedia = await uploadMedia(file, (progress) => {
-      uploadProgressPercent.value = progress
-    })
+    const uploadedMediaItems = await Promise.all(
+      fileArray.map(async (file, index) => {
+        return await uploadMedia(file, (progress) => {
+          progresses[index] = progress
+          const totalProgress = progresses.reduce((a, b) => a + b, 0)
+          uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
+        })
+      })
+    )
     
-    await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
+    await addMediaToPublication(
+      props.publicationId, 
+      uploadedMediaItems.map(m => ({ id: m.id }))
+    )
     
     toast.add({
       title: t('common.success'),
-      description: t('media.uploadSuccess', 'File uploaded successfully'),
+      description: t('media.uploadSuccess', 'Files uploaded successfully'),
       color: 'success',
     })
     
@@ -132,12 +150,11 @@ async function handleFileUpload(event: Event) {
       fileInput.value.value = ''
     }
     
-    // Emit event to refresh publication data
     emit('refresh')
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('media.uploadError', 'Failed to upload file'),
+      description: error.message || t('media.uploadError', 'Failed to upload files'),
       color: 'error',
     })
   } finally {
@@ -325,37 +342,8 @@ async function handleDrop(event: DragEvent) {
   isDropZoneActive.value = false
 
   const files = event.dataTransfer?.files
-  if (!files || files.length === 0) return
-
-  const file = files[0]
-  if (!file) return
-  
-  uploadProgress.value = true
-  uploadProgressPercent.value = 0
-  try {
-    const uploadedMedia = await uploadMedia(file, (progress) => {
-      uploadProgressPercent.value = progress
-    })
-    
-    await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('media.uploadSuccess', 'File uploaded successfully'),
-      color: 'success',
-    })
-    
-    // Emit event to refresh publication data
-    emit('refresh')
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: error.message || t('media.uploadError', 'Failed to upload file'),
-      color: 'error',
-    })
-  } finally {
-    uploadProgress.value = false
-    uploadProgressPercent.value = 0
+  if (files) {
+    await uploadFiles(files)
   }
 }
 
@@ -550,6 +538,7 @@ const emit = defineEmits<Emits>()
             <input
               ref="fileInput"
               type="file"
+              multiple
               class="hidden"
               @change="handleFileUpload"
             />
