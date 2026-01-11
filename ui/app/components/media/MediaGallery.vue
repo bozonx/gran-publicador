@@ -921,3 +921,32 @@ const emit = defineEmits<Emits>()
     </template>
   </UModal>
 </template>
+
+<style scoped>
+.slide-next-enter-active,
+.slide-next-leave-active,
+.slide-prev-enter-active,
+.slide-prev-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-next-enter-from {
+  opacity: 0;
+  transform: translateX(50px);
+}
+
+.slide-next-leave-to {
+  opacity: 0;
+  transform: translateX(-50px);
+}
+
+.slide-prev-enter-from {
+  opacity: 0;
+  transform: translateX(-50px);
+}
+
+.slide-prev-leave-to {
+  opacity: 0;
+  transform: translateX(50px);
+}
+</style>
