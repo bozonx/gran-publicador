@@ -11,6 +11,7 @@ import type {
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useDebounceFn } from '@vueuse/core'
+import { DialogTitle, DialogDescription, VisuallyHidden } from 'reka-ui'
 
 interface Props {
   /** Project ID for creating new channel */
@@ -847,9 +848,16 @@ function setDefaultFooter(id: string) {
       <UCard :ui="{ header: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <template #header>
           <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-              {{ editingFooter ? t('channel.editFooter') : t('channel.addFooter') }}
-            </h3>
+            <DialogTitle as-child>
+              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                {{ editingFooter ? t('channel.editFooter') : t('channel.addFooter') }}
+              </h3>
+            </DialogTitle>
+            <VisuallyHidden>
+              <DialogDescription>
+                {{ editingFooter ? t('channel.editFooter') : t('channel.addFooter') }}
+              </DialogDescription>
+            </VisuallyHidden>
             <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" class="-my-1" @click="isFooterModalOpen = false" />
           </div>
         </template>
