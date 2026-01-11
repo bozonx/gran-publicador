@@ -327,10 +327,10 @@ export function useProjects() {
             })
         }
 
-        // Check for problem publications (warnings)
+        // Check for problem publications (critical)
         if (project.problemPublicationsCount > 0) {
             problems.push({ 
-                type: 'warning', 
+                type: 'critical', 
                 key: 'problemPublications', 
                 count: project.problemPublicationsCount 
             })

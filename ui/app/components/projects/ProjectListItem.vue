@@ -25,23 +25,23 @@ function getIndicatorColor(level: 'critical' | 'warning' | null) {
 
 // Errors category (critical issues)
 const errorsCount = computed(() => {
-  const p = problems.value.find(p => p.type === 'critical')
-  return p ? (p.count || 1) : 0
+  return problems.value
+    .filter(p => p.type === 'critical')
+    .reduce((sum, p) => sum + (p.count || 1), 0)
 })
 
 // Warnings category (non-critical issues)
 const warningsCount = computed(() => {
-  return problems.value.filter(p => p.type === 'warning').length
+  return problems.value
+    .filter(p => p.type === 'warning')
+    .reduce((sum, p) => sum + (p.count || 1), 0)
 })
 
 // Tooltip text for errors
 const errorsTooltip = computed(() => {
   return problems.value
     .filter(p => p.type === 'critical')
-    .map(p => {
-      if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
-      return p.key
-    })
+    .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
     .join(', ')
 })
 
@@ -49,12 +49,7 @@ const errorsTooltip = computed(() => {
 const warningsTooltip = computed(() => {
   return problems.value
     .filter(p => p.type === 'warning')
-    .map(p => {
-      if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
-      if (p.key === 'staleChannels') return `${p.count} ` + t('common.stale').toLowerCase()
-      if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
-      return p.key
-    })
+    .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
     .join(', ')
 })
 </script>

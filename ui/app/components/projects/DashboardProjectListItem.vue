@@ -22,23 +22,22 @@ function getIndicatorColor(level: 'critical' | 'warning' | null) {
 
 // Errors category (critical issues)
 const errorsCount = computed(() => {
-  const p = problems.value.find(p => p.type === 'critical')
-  return p ? (p.count || 1) : 0
+  return problems.value
+    .filter(p => p.type === 'critical')
+    .reduce((sum, p) => sum + (p.count || 1), 0)
 })
 
 // Warnings category (non-critical issues)
 const warningsCount = computed(() => {
-  return problems.value.filter(p => p.type === 'warning').length
+  return problems.value
+    .filter(p => p.type === 'warning')
+    .reduce((sum, p) => sum + (p.count || 1), 0)
 })
 
 const errorsTooltip = computed(() => {
   return problems.value
     .filter(p => p.type === 'critical')
-    .map(p => {
-      if (p.key === 'failedPosts') return t('channel.failedPosts') + `: ${p.count}`
-      if (p.key === 'noCredentials') return t('problems.project.noCredentials', { count: p.count })
-      return t(`problems.project.${p.key}`, p.count ? { count: p.count } : {})
-    })
+    .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
     .join(', ')
 })
 
@@ -46,13 +45,7 @@ const errorsTooltip = computed(() => {
 const warningsTooltip = computed(() => {
   return problems.value
     .filter(p => p.type === 'warning')
-    .map(p => {
-      if (p.key === 'problemPublications') return t('problems.project.problemPublications', { count: p.count })
-      if (p.key === 'staleChannels') return t('problems.project.staleChannels', { count: p.count })
-      if (p.key === 'noRecentActivity') return t('project.noRecentPostsWarning')
-      if (p.key === 'inactiveChannels') return t('problems.project.inactiveChannels', { count: p.count })
-      return t(`problems.project.${p.key}`, p.count ? { count: p.count } : {})
-    })
+    .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
     .join(', ')
 })
 

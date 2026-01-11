@@ -101,14 +101,18 @@ export class ProjectsService {
         by: ['projectId'],
         where: {
           projectId: { in: projectIds },
-          status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL] },
+          status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL, PublicationStatus.EXPIRED] },
           archivedAt: null,
         },
         _count: { id: true },
       }),
       this.prisma.post.groupBy({
         by: ['channelId'],
-        where: { status: PostStatus.FAILED, channel: { projectId: { in: projectIds } } },
+        where: { 
+          status: PostStatus.FAILED, 
+          channel: { projectId: { in: projectIds } },
+          publication: { archivedAt: null }
+        },
         _count: { id: true },
       }),
       isPostgres
@@ -140,31 +144,46 @@ export class ProjectsService {
       }),
       this.prisma.channel.findMany({
         where: { projectId: { in: projectIds }, archivedAt: null },
-        select: { projectId: true, language: true },
-        distinct: ['projectId', 'language'],
+        select: { id: true, projectId: true, language: true },
       }),
     ]);
 
     const problematicCountMap = Object.fromEntries(
       problematicCounts.map(c => [c.projectId, c._count.id]),
     );
+
+    const channelProjectMap = new Map<string, string>();
+    const languageMap = new Map<string, string[]>();
+    
+    projectLanguages.forEach(l => {
+      channelProjectMap.set(l.id, l.projectId);
+      if (!languageMap.has(l.projectId)) languageMap.set(l.projectId, []);
+      const langs = languageMap.get(l.projectId)!;
+      if (!langs.includes(l.language)) langs.push(l.language);
+    });
+
     const failedPostsMap = new Map<string, number>();
-    failedPostsRaw.forEach((row: any) => failedPostsMap.set(row.projectId, Number(row.count || 0)));
+    failedPostsRaw.forEach((row: any) => {
+      const projectId = channelProjectMap.get(row.channelId);
+      if (projectId) {
+        failedPostsMap.set(projectId, (failedPostsMap.get(projectId) || 0) + Number(row._count.id || 0));
+      }
+    });
+
     const staleChannelsMap = new Map<string, number>();
     staleChannelsRaw.forEach((row: any) =>
       staleChannelsMap.set(row.projectId, Number(row.count || 0)),
     );
+
     const noCredentialsMap = new Map<string, number>();
     noCredentialsRaw.forEach((row: any) =>
-      noCredentialsMap.set(row.projectId, Number(row.count || 0)),
+      noCredentialsMap.set(row.projectId, Number(row._count.id || 0)),
     );
+
     const inactiveMap = new Map<string, number>();
-    inactiveRaw.forEach((row: any) => inactiveMap.set(row.projectId, Number(row.count || 0)));
-    const languageMap = new Map<string, string[]>();
-    projectLanguages.forEach(l => {
-      if (!languageMap.has(l.projectId)) languageMap.set(l.projectId, []);
-      languageMap.get(l.projectId)?.push(l.language);
-    });
+    inactiveRaw.forEach((row: any) => 
+      inactiveMap.set(row.projectId, Number(row._count.id || 0))
+    );
 
     return projects.map(project => {
       const userMember = project.members[0];
@@ -309,7 +328,11 @@ export class ProjectsService {
       channelIds.length > 0
         ? await this.prisma.post.groupBy({
             by: ['channelId'],
-            where: { channelId: { in: channelIds }, status: PostStatus.FAILED },
+            where: { 
+              channelId: { in: channelIds }, 
+              status: PostStatus.FAILED,
+              publication: { archivedAt: null }
+            },
             _count: { id: true },
           })
         : [];
@@ -346,7 +369,7 @@ export class ProjectsService {
       this.prisma.publication.count({
         where: {
           projectId,
-          status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL] },
+          status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL, PublicationStatus.EXPIRED] },
           archivedAt: null,
         },
       }),
