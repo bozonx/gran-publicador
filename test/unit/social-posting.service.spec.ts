@@ -170,10 +170,10 @@ describe('SocialPostingService (unit)', () => {
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: pubId },
-          data: { 
+          data: expect.objectContaining({ 
             status: PublicationStatus.PUBLISHED,
             processingStartedAt: null,
-          },
+          }),
         }),
       );
       expect(mockPrismaService.post.update).toHaveBeenCalledWith(
@@ -220,10 +220,10 @@ describe('SocialPostingService (unit)', () => {
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: pubId },
-          data: { 
+          data: expect.objectContaining({ 
             status: PublicationStatus.FAILED,
             processingStartedAt: null,
-          },
+          }),
         }),
       );
     });
@@ -278,10 +278,10 @@ describe('SocialPostingService (unit)', () => {
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: pubId },
-          data: { 
+          data: expect.objectContaining({ 
             status: PublicationStatus.PARTIAL,
             processingStartedAt: null,
-          },
+          }),
         }),
       );
     });

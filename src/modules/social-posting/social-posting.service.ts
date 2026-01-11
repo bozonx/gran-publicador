@@ -232,12 +232,8 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     for (const post of publicationWithPosts.posts) {
       // Filter posts that need publishing:
       // 1. Status PENDING
-      // 2. OR Status FAILED AND nextRetryAt <= now
-      const isPending = post.status === PostStatus.PENDING;
-      const isReadyToRetry = post.status === PostStatus.FAILED && post.nextRetryAt && new Date(post.nextRetryAt) <= now;
-
-      if (!isPending && !isReadyToRetry) {
-        this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status}, ReadyToRetry: ${isReadyToRetry})`);
+      if (post.status !== PostStatus.PENDING) {
+        this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status})`);
         continue;
       }
 
@@ -457,59 +453,52 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               response: response.data
             },
             errorMessage: null,
-            retryCount: post.retryCount, // keep existing
             nextRetryAt: null,
           },
         });
         return { success: true, url: response.data.url };
       } else {
         const platformError = response;
-        return await this.handlePostError(post, platformError.error.message, platformError.error);
+        const meta = post.meta as any || {};
+        const message = platformError.error.message;
+
+        await this.prisma.post.update({
+          where: { id: post.id },
+          data: {
+            status: PostStatus.FAILED,
+            errorMessage: message,
+            meta: {
+              ...meta,
+              response: platformError.error
+            },
+            nextRetryAt: null,
+          },
+        });
+        return { success: false, error: message };
       }
     } catch (error: any) {
       this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
-      return await this.handlePostError(post, error.message, { 
-        code: 'INTERNAL_ERROR',
-        message: error.message,
-        details: { stack: error.stack }
-      });
-    }
-  }
+      const meta = post.meta as any || {};
+      const message = error.message;
 
-  private async handlePostError(post: any, message: string, errorResponse: any) {
-    const MAX_RETRIES = 5;
-    const retryCount = post.retryCount || 0;
-    const nextRetryCount = retryCount + 1;
-    
-    let nextRetryAt: Date | null = null;
-    
-    // Exponential backoff: 1m, 5m, 15m, 1h, 4h
-    const backoffMinutes = [1, 5, 15, 60, 240];
-    
-    if (nextRetryCount <= MAX_RETRIES && message !== 'EXPIRED') {
-      const minutes = backoffMinutes[nextRetryCount - 1] || 240;
-      nextRetryAt = new Date(Date.now() + minutes * 60000);
-      this.logger.log(`Post ${post.id} failed, scheduled retry #${nextRetryCount} in ${minutes}m`);
-    } else {
-      this.logger.warn(`Post ${post.id} failed and reached max retries or expired. No more retries.`);
-    }
-
-    const meta = post.meta as any || {};
-
-    await this.prisma.post.update({
-      where: { id: post.id },
-      data: {
-        status: PostStatus.FAILED,
-        errorMessage: message,
-        meta: {
-          ...meta,
-          response: errorResponse
+      await this.prisma.post.update({
+        where: { id: post.id },
+        data: {
+          status: PostStatus.FAILED,
+          errorMessage: message,
+          meta: {
+            ...meta,
+            response: { 
+              code: 'INTERNAL_ERROR',
+              message: message,
+              details: { stack: error.stack }
+            }
+          },
+          nextRetryAt: null,
         },
-        retryCount: nextRetryCount,
-        nextRetryAt,
-      },
-    });
-    return { success: false, error: message };
+      });
+      return { success: false, error: message };
+    }
   }
 
   /**

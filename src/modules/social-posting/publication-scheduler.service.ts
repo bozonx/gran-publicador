@@ -112,12 +112,6 @@ export class PublicationSchedulerService implements OnModuleInit {
               { posts: { some: { scheduledAt: { lte: now } } } },
             ]
           },
-          // 2. Retryable failed/partial publication
-          // We pick it up if it has at least one post ready to retry
-          {
-            status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL] },
-            posts: { some: { status: PostStatus.FAILED, nextRetryAt: { lte: now } } }
-          }
         ],
       },
       select: { id: true, scheduledAt: true, createdAt: true },
