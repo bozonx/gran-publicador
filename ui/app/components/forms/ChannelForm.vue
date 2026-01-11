@@ -9,6 +9,8 @@ import type {
   ChannelFooter,
 } from '~/composables/useChannels'
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
+import { VueDraggable } from 'vue-draggable-plus'
+import { useDebounceFn } from '@vueuse/core'
 
 interface Props {
   /** Project ID for creating new channel */
@@ -336,6 +338,34 @@ const footerForm = reactive({
   isDefault: false
 })
 
+const deletedFooters = ref<ChannelFooter[]>([])
+const showDeleted = ref(false)
+
+const debouncedSave = useDebounceFn(async () => {
+  if (!isEditMode.value || !props.channel) return
+  
+  try {
+    const updateData: ChannelUpdateInput = {
+      preferences: {
+        ...state.preferences,
+        footers: state.preferences.footers,
+      }
+    }
+    await updateChannel(props.channel.id, updateData)
+    saveOriginalState()
+  } catch (error) {
+    toast.add({
+      title: t('common.error'),
+      description: t('common.saveError', 'Failed to save'),
+      color: 'error'
+    })
+  }
+}, 1000)
+
+async function autoSave() {
+  await debouncedSave()
+}
+
 function openAddFooter() {
   editingFooter.value = null
   footerForm.id = crypto.randomUUID()
@@ -376,24 +406,38 @@ function saveFooter() {
   }
 
   isFooterModalOpen.value = false
+  autoSave()
+}
+
+function restoreFooter(footer: ChannelFooter) {
+  state.preferences.footers.push({ ...footer })
+  deletedFooters.value = deletedFooters.value.filter(f => f.id !== footer.id)
+  autoSave()
 }
 
 function deleteFooter(id: string) {
   const index = state.preferences!.footers.findIndex((f: ChannelFooter) => f.id === id)
   if (index !== -1) {
-    const removedWasDefault = state.preferences!.footers[index].isDefault
+    const footer = state.preferences!.footers[index]
+    const removedWasDefault = footer.isDefault
+    
+    // Add to session-only deleted list
+    deletedFooters.value.push({ ...footer })
+    
     state.preferences!.footers.splice(index, 1)
     
     if (removedWasDefault && state.preferences!.footers.length > 0) {
       state.preferences!.footers[0].isDefault = true
     }
+    autoSave()
   }
 }
 
 function setDefaultFooter(id: string) {
   state.preferences!.footers.forEach((f: ChannelFooter) => {
-    f.isDefault = f.id === id
+    f.id === id ? f.isDefault = true : f.isDefault = false
   })
+  autoSave()
 }
 </script>
 
@@ -696,16 +740,28 @@ function setDefaultFooter(id: string) {
           </p>
         </div>
 
-        <div v-else class="space-y-3">
+        <VueDraggable
+          v-model="state.preferences.footers"
+          :animation="150"
+          handle=".drag-handle"
+          class="space-y-3"
+          @end="autoSave"
+        >
           <div
             v-for="footer in state.preferences.footers"
             :key="footer.id"
             class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
           >
             <div class="flex items-center gap-3">
-              <UBadge v-if="footer.isDefault" color="primary" variant="subtle" size="xs">
-                {{ t('channel.footerDefault') }}
-              </UBadge>
+              <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
+              </div>
+              <UIcon 
+                v-if="footer.isDefault" 
+                name="i-heroicons-star-20-solid" 
+                class="w-4 h-4 text-primary-500" 
+              />
+              <div class="w-4 h-4" v-else></div>
               <div>
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
                   {{ footer.name }}
@@ -716,14 +772,6 @@ function setDefaultFooter(id: string) {
               </div>
             </div>
             <div class="flex items-center gap-1">
-              <UButton
-                v-if="!footer.isDefault"
-                icon="i-heroicons-star"
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                @click="setDefaultFooter(footer.id)"
-              />
               <UButton
                 icon="i-heroicons-pencil-square"
                 size="xs"
@@ -740,19 +788,44 @@ function setDefaultFooter(id: string) {
               />
             </div>
           </div>
+        </VueDraggable>
+
+        <!-- Deleted Footers (Session only) -->
+        <div v-if="deletedFooters.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            :icon="showDeleted ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
+            @click="showDeleted = !showDeleted"
+          >
+            {{ t('channel.deletedFooters', 'Deleted items ({count})', { count: deletedFooters.length }) }}
+          </UButton>
+          
+          <div v-if="showDeleted" class="mt-2 space-y-2">
+            <div
+              v-for="footer in deletedFooters"
+              :key="footer.id"
+              class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-60"
+            >
+              <div class="flex items-center gap-3">
+                <div class="text-xs">
+                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ footer.name }}</span>
+                </div>
+              </div>
+              <UButton
+                icon="i-heroicons-arrow-path"
+                size="xs"
+                variant="soft"
+                color="primary"
+                @click="restoreFooter(footer)"
+              >
+                {{ t('common.restore', 'Restore') }}
+              </UButton>
+            </div>
+          </div>
         </div>
         
-        <UiFormActions
-          v-if="visibleSections.length === 1 && visibleSections[0] === 'footers'"
-          ref="formActionsRef"
-          :loading="isLoading"
-          :is-dirty="isDirty"
-          :disabled="disabled"
-          :save-label="t('common.save')"
-          :hide-cancel="true"
-          :show-border="true"
-          @reset="handleReset"
-        />
       </div>
     </UForm>
 

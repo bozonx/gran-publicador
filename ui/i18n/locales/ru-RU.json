@@ -397,6 +397,7 @@
     "footerDeleteConfirm": "Вы уверены, что хотите удалить этот футер?",
     "footerNamePlaceholder": "Подпись для Telegram",
     "footerContentPlaceholder": "Введите текст футера в Markdown...",
+    "deletedFooters": "Удаленные элементы ({count})",
     "footerDefaultHelp": "Этот футер будет использоваться по умолчанию для новых постов"
   },
   "socialMedia": {
