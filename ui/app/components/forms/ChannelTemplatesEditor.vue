@@ -39,25 +39,23 @@ const insertOptions = [
   { value: 'tags', label: t('channel.templateInsertTags') },
 ]
 
-const tagStringCaseOptions = [
-  { value: 'none', label: t('common.none', 'None') },
-  { value: 'camelCase', label: 'camelCase' },
-  { value: 'pascalCase', label: 'PascalCase' },
-  { value: 'snake_case', label: 'snake_case' },
-  { value: 'kebab-case', label: 'kebab-case' },
-]
-
-const tagLetterCaseOptions = [
-  { value: 'none', label: t('common.none', 'None') },
-  { value: 'lowercase', label: t('common.lowercase', 'lower case') },
-  { value: 'uppercase', label: t('common.uppercase', 'UPPER CASE') },
+const tagCaseOptions = [
+  { value: 'none', label: t('channel.tagCaseOptions.none') },
+  { value: 'camelCase', label: t('channel.tagCaseOptions.camelCase') },
+  { value: 'pascalCase', label: t('channel.tagCaseOptions.pascalCase') },
+  { value: 'snake_case', label: t('channel.tagCaseOptions.snake_case') },
+  { value: 'SNAKE_CASE', label: t('channel.tagCaseOptions.SNAKE_CASE') },
+  { value: 'kebab-case', label: t('channel.tagCaseOptions.kebab-case') },
+  { value: 'KEBAB-CASE', label: t('channel.tagCaseOptions.KEBAB-CASE') },
+  { value: 'lowercase', label: t('channel.tagCaseOptions.lowercase') },
+  { value: 'uppercase', label: t('channel.tagCaseOptions.uppercase') },
 ]
 
 const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: false, insert: 'title', before: '', after: '\n\n' },
   { enabled: true, insert: 'content', before: '', after: '' },
   { enabled: true, insert: 'description', before: '\n\n', after: '' },
-  { enabled: true, insert: 'tags', before: '\n\n', after: '', stringCase: 'none', letterCase: 'none' },
+  { enabled: true, insert: 'tags', before: '\n\n', after: '', tagCase: 'none' },
 ]
 
 const templates = ref<ChannelPostTemplate[]>(props.channel.preferences?.templates || [])
@@ -339,19 +337,10 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                     </UFormField>
 
                     <template v-if="block.insert === 'tags'">
-                      <UFormField :label="t('channel.templateTagStyle', 'Tag Style')">
+                      <UFormField :label="t('channel.templateTagCase')" class="md:col-span-2">
                         <USelectMenu
-                          v-model="block.stringCase"
-                          :items="tagStringCaseOptions"
-                          value-key="value"
-                          label-key="label"
-                          class="w-full"
-                        />
-                      </UFormField>
-                      <UFormField :label="t('channel.templateTagCase', 'Tag Case')">
-                        <USelectMenu
-                          v-model="block.letterCase"
-                          :items="tagLetterCaseOptions"
+                          v-model="block.tagCase"
+                          :items="tagCaseOptions"
                           value-key="value"
                           label-key="label"
                           class="w-full"

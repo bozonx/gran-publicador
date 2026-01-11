@@ -84,6 +84,25 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).toContain('#tag1 #tag2 #tag3 #tag4');
   });
 
+  it('should apply tagCase from template', () => {
+    const channelWithTagCase = {
+      ...mockChannel,
+      preferences: {
+        templates: [
+          {
+            id: '1',
+            name: 'Tag Template',
+            template: [
+              { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' }
+            ]
+          }
+        ]
+      }
+    };
+    const result = SocialPostingBodyFormatter.format({ tags: 'CamelCaseTag' }, channelWithTagCase as any);
+    expect(result).toBe('#camel_case_tag');
+  });
+
   it('should handle missing fields gracefully', () => {
     const minimalData = { content: 'Just content' };
     const result = SocialPostingBodyFormatter.format(minimalData, mockChannel);

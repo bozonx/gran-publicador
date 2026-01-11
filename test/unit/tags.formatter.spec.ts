@@ -13,52 +13,58 @@ describe('TagsFormatter', () => {
 
   it('should convert to snake_case', () => {
     const result = TagsFormatter.format('camelCaseTag, PascalCaseTag, kebab-case-tag', {
-      stringCase: 'snake_case'
+      tagCase: 'snake_case'
     });
     expect(result).toBe('#camel_case_tag #pascal_case_tag #kebab_case_tag');
   });
 
+  it('should convert to SNAKE_CASE', () => {
+    const result = TagsFormatter.format('camelCaseTag', {
+      tagCase: 'SNAKE_CASE'
+    });
+    expect(result).toBe('#CAMEL_CASE_TAG');
+  });
+
   it('should convert to kebab-case', () => {
     const result = TagsFormatter.format('camelCaseTag, snake_case_tag', {
-      stringCase: 'kebab-case'
+      tagCase: 'kebab-case'
     });
     expect(result).toBe('#camel-case-tag #snake-case-tag');
   });
 
+  it('should convert to KEBAB-CASE', () => {
+    const result = TagsFormatter.format('camelCaseTag', {
+      tagCase: 'KEBAB-CASE'
+    });
+    expect(result).toBe('#CAMEL-CASE-TAG');
+  });
+
   it('should convert to camelCase', () => {
     const result = TagsFormatter.format('snake_case_tag, kebab-case-tag', {
-      stringCase: 'camelCase'
+      tagCase: 'camelCase'
     });
     expect(result).toBe('#snakeCaseTag #kebabCaseTag');
   });
 
   it('should convert to pascalCase', () => {
     const result = TagsFormatter.format('snake_case_tag, kebab-case-tag', {
-      stringCase: 'pascalCase'
+      tagCase: 'pascalCase'
     });
     expect(result).toBe('#SnakeCaseTag #KebabCaseTag');
   });
 
-  it('should apply uppercase', () => {
-    const result = TagsFormatter.format('tag1, tag2', {
-      letterCase: 'uppercase'
+  it('should apply low case (words with spaces)', () => {
+    const result = TagsFormatter.format('camelCaseTag, tag_two', {
+      tagCase: 'lowercase'
     });
-    expect(result).toBe('#TAG1 #TAG2');
+    expect(result).toBe('#camel case tag #tag two');
   });
 
-  it('should apply lowercase', () => {
-    const result = TagsFormatter.format('TAG1, TAG2', {
-      letterCase: 'lowercase'
+  it('should apply UPPER CASE (words with spaces)', () => {
+    const result = TagsFormatter.format('camelCaseTag, tag_two', {
+      tagCase: 'uppercase'
     });
-    expect(result).toBe('#tag1 #tag2');
-  });
-
-  it('should combine stringCase and letterCase', () => {
-    const result = TagsFormatter.format('camelCaseTag', {
-      stringCase: 'snake_case',
-      letterCase: 'uppercase'
-    });
-    expect(result).toBe('#CAMEL_CASE_TAG');
+    expect(result).toBe('#CAMEL CASE TAG #TAG TWO');
   });
 
   it('should handle empty input', () => {

@@ -24,6 +24,10 @@ const props = withDefaults(defineProps<Props>(), {
 const { d } = useI18n()
 
 const displayValue = computed(() => {
+  if (props.label === 'Created At' || props.label === 'Дата создания') {
+     console.log('DEBUG: FormReadOnlyField value for', props.label, ':', props.value, 'Type:', typeof props.value, 'Constructor:', props.value?.constructor?.name)
+  }
+
   if (props.value === null || props.value === undefined) return '—'
   
   if (props.formatAsDate) {
