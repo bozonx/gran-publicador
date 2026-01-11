@@ -21,6 +21,7 @@ export interface ChannelPostTemplate {
     order: number
     postType?: string | null
     language?: string | null
+    footerId?: string | null
     template: TemplateBlock[]
 }
 

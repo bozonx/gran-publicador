@@ -33,6 +33,14 @@ const languageSelectOptions = computed(() => [
   ...languageOptions
 ])
 
+const footerOptions = computed(() => {
+  const footers = props.channel.preferences?.footers || []
+  return [
+    { value: null, label: t('channel.footerDefault', 'Default') },
+    ...footers.map(f => ({ value: f.id, label: f.name }))
+  ]
+})
+
 const insertOptions = [
   { value: 'title', label: t('channel.templateInsertTitle') },
   { value: 'content', label: t('channel.templateInsertContent') },
@@ -68,6 +76,7 @@ const templateForm = reactive({
   name: '',
   postType: null as string | null,
   language: null as string | null,
+  footerId: null as string | null,
   template: [] as TemplateBlock[]
 })
 
@@ -77,6 +86,7 @@ function openAddTemplate() {
   templateForm.name = ''
   templateForm.postType = null
   templateForm.language = null
+  templateForm.footerId = null
   templateForm.template = getDefaultBlocks()
   isModalOpen.value = true
 }
@@ -87,6 +97,7 @@ function openEditTemplate(template: ChannelPostTemplate) {
   templateForm.name = template.name
   templateForm.postType = template.postType || null
   templateForm.language = template.language || null
+  templateForm.footerId = template.footerId || null
   templateForm.template = JSON.parse(JSON.stringify(template.template))
   isModalOpen.value = true
 }
@@ -113,6 +124,7 @@ function handleSaveTemplate() {
         order: templates.value[index].order,
         postType: templateForm.postType,
         language: templateForm.language,
+        footerId: templateForm.footerId,
         template: JSON.parse(JSON.stringify(templateForm.template))
       }
     }
@@ -123,6 +135,7 @@ function handleSaveTemplate() {
       order: templates.value.length,
       postType: templateForm.postType,
       language: templateForm.language,
+      footerId: templateForm.footerId,
       template: JSON.parse(JSON.stringify(templateForm.template))
     })
   }
@@ -273,6 +286,16 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                 <USelectMenu
                   v-model="templateForm.language"
                   :items="languageSelectOptions"
+                  value-key="value"
+                  label-key="label"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField :label="t('channel.templateFooter')">
+                <USelectMenu
+                  v-model="templateForm.footerId"
+                  :items="footerOptions"
                   value-key="value"
                   label-key="label"
                   class="w-full"

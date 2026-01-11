@@ -12,12 +12,20 @@ export interface TemplateBlock {
   tagCase?: TagCase;
 }
 
+export interface ChannelFooter {
+  id: string;
+  name: string;
+  content: string;
+  isDefault: boolean;
+}
+
 export interface ChannelPostTemplate {
   id: string;
   name: string;
   order: number;
   postType: PostType | null;
   language: string | null;
+  footerId?: string | null;
   template: TemplateBlock[];
 }
 
@@ -85,6 +93,24 @@ export class SocialPostingBodyFormatter {
       if (value && value.trim()) {
         result += block.before + value.trim() + block.after;
       }
+    }
+
+    // Append Footer
+    const footers: ChannelFooter[] = channel.preferences?.footers || [];
+    let footerObj: ChannelFooter | undefined;
+
+    if (template && template.footerId) {
+       // A specific footer is selected
+       footerObj = footers.find(f => f.id === template.footerId);
+    } else {
+       // No specific footer, try to find default (if not explicitly set to "no footer" - currently null means "default" in UI)
+       // NOTE: If we want "Null" to mean "No Footer", we would need a specific ID for "No Footer" or different logic.
+       // Based on requirements found in UI code (value: null, label: 'Default'), null means use Default.
+       footerObj = footers.find(f => f.isDefault);
+    }
+
+    if (footerObj && footerObj.content && footerObj.content.trim()) {
+      result += '\n\n' + footerObj.content.trim();
     }
 
     return result.trim();
