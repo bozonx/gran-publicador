@@ -11,7 +11,7 @@ definePageMeta({
   middleware: 'auth',
 })
 
-const { t } = useI18n()
+const { t, d } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { canGoBack, goBack: navigateBack } = useNavigation()
@@ -55,7 +55,7 @@ const {
 } = usePosts()
 
 // Import utility function for getting post title
-const { getPostTitle } = await import('~/composables/usePosts')
+const { getPostTitle, getPostScheduledAt } = await import('~/composables/usePosts')
 
 const { archiveEntity } = useArchive()
 
@@ -187,19 +187,7 @@ async function handleToggleActive() {
 
 
 // Formatters
-function formatDate(date: string | null): string {
-  if (!date) return '-'
-  const dObj = new Date(date)
-  if (isNaN(dObj.getTime())) return '-'
-  return dObj.toLocaleDateString()
-}
-
-function formatDateTime(date: string | null): string {
-  if (!date) return '-'
-  const dObj = new Date(date)
-  if (isNaN(dObj.getTime())) return '-'
-  return dObj.toLocaleString()
-}
+const { getPublicationDisplayTitle, formatDateWithTime } = useFormatters()
 
 function truncateContent(content: string | null | undefined, maxLength = 150): string {
   if (!content) return ''
@@ -209,9 +197,7 @@ function truncateContent(content: string | null | undefined, maxLength = 150): s
 }
 
 function getDisplayPostTitle(post: PostWithRelations): string {
-  if (post.publication?.title) return stripHtmlAndSpecialChars(post.publication.title)
-  if (post.publication?.content) return stripHtmlAndSpecialChars(post.publication.content)
-  return ''
+  return getPublicationDisplayTitle(mapPostToPublication(post))
 }
 
 function mapPostToPublication(post: PostWithRelations): PublicationWithRelations {
@@ -246,6 +232,7 @@ function mapPostToPublication(post: PostWithRelations): PublicationWithRelations
       // Visualize the Post's status as the Publication's status in this view
       status: (post.status as unknown) as PublicationStatus, 
       createdAt: post.createdAt,
+      postScheduledAt: post.scheduledAt,
       posts: [post],
       _count: { posts: 1 },
       creator,
@@ -503,20 +490,15 @@ const channelProblems = computed(() => {
                     <div v-if="isScheduledLoading && !scheduledPosts.length" class="flex justify-center py-4">
                         <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
                     </div>
-                    <ul v-else-if="scheduledPosts.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
-                         <li v-for="post in scheduledPosts" :key="post.id" class="py-3">
-                             <!-- Click to go to publication since post view isn't separate usually -->
-                            <NuxtLink 
-                                :to="`/publications/${post.publicationId}`"
-                                class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
-                            >
-                                {{ getDisplayPostTitle(post) || t('post.untitled') }}
-                            </NuxtLink>
-                            <span v-if="post.scheduledAt" class="text-xs text-gray-400 block mt-1">
-                                {{ formatDateTime(post.scheduledAt) }}
-                            </span>
-                        </li>
-                    </ul>
+                    <div v-else-if="scheduledPosts.length > 0" class="grid grid-cols-1 gap-2">
+                        <PublicationsPublicationMiniItem
+                            v-for="post in scheduledPosts"
+                            :key="post.id"
+                            :publication="mapPostToPublication(post)"
+                            show-date
+                            date-type="scheduled"
+                        />
+                    </div>
                     <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
                          {{ t('common.noData') }}
                     </div>
@@ -546,16 +528,15 @@ const channelProblems = computed(() => {
                     <div v-if="isProblemsLoading && !problemPosts.length" class="flex justify-center py-4">
                         <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
                     </div>
-                    <ul v-else-if="problemPosts.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
-                         <li v-for="post in problemPosts" :key="post.id" class="py-3 flex items-center gap-3">
-                            <NuxtLink 
-                                :to="`/publications/${post.publicationId}`"
-                                class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
-                            >
-                                {{ getDisplayPostTitle(post) || t('post.untitled') }}
-                            </NuxtLink>
-                        </li>
-                    </ul>
+                    <div v-else-if="problemPosts.length > 0" class="grid grid-cols-1 gap-2">
+                        <PublicationsPublicationMiniItem
+                            v-for="post in problemPosts"
+                            :key="post.id"
+                            :publication="mapPostToPublication(post)"
+                            show-status
+                            is-problematic
+                        />
+                    </div>
                     <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
                          {{ t('common.noData') }}
                     </div>

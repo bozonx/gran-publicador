@@ -25,6 +25,7 @@ export interface Publication {
     note: string | null
     archivedAt?: string | null
     scheduledAt?: string | null
+    postScheduledAt?: string | null
 }
 
 export interface PublicationWithRelations extends Publication {

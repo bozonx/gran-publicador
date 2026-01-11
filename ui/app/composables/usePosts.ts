@@ -49,6 +49,8 @@ export interface PostWithRelations extends Post {
     status: string // Publication status
     language: string
     createdBy: string | null
+    scheduledAt: string | null
+    archivedAt: string | null
   } | null
 }
 
@@ -361,4 +363,9 @@ export function getPostType(post: PostWithRelations): string {
 
 export function getPostLanguage(post: PostWithRelations): string {
   return post.publication?.language ?? 'en-US'
+}
+
+export function getPostScheduledAt(post: PostWithRelations): string | null {
+  // Priority: post scheduledAt > publication scheduledAt
+  return post.scheduledAt ?? post.publication?.scheduledAt ?? null
 }

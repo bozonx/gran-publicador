@@ -53,10 +53,31 @@ export function useFormatters() {
     return value.toLocaleString()
   }
 
+  /**
+   * Get display title for publication with fallback logic
+   */
+  function getPublicationDisplayTitle(pub: any): string {
+    let text = ''
+    if (pub.title && pub.title.trim()) {
+      text = stripHtmlAndSpecialChars(pub.title)
+    } else if (pub.content) {
+      text = stripHtmlAndSpecialChars(pub.content)
+    } else if (pub.tags && pub.tags.trim()) {
+      text = pub.tags
+    } else if (pub.createdAt) {
+      text = formatDateShort(pub.createdAt)
+    } else {
+      text = 'Untitled'
+    }
+    
+    return text.replace(/\s+/g, ' ').trim()
+  }
+
   return {
     formatDateShort,
     formatDateWithTime,
     truncateContent,
     formatNumber,
+    getPublicationDisplayTitle,
   }
 }

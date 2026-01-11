@@ -57,40 +57,7 @@ onMounted(async () => {
   }
 })
 
-/**
- * Format date for display with time
- */
-function formatDateWithTime(date: string | null | undefined): string {
-  if (!date) return '-'
-  const dObj = new Date(date)
-  if (isNaN(dObj.getTime())) return '-'
-  return d(dObj, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-/**
- * Get display title for publication list fallback
- */
-function getPublicationDisplayTitle(pub: any): string {
-  let text = ''
-  if (pub.title && pub.title.trim()) {
-    text = stripHtmlAndSpecialChars(pub.title)
-  } else if (pub.content) {
-    text = stripHtmlAndSpecialChars(pub.content)
-  } else if (pub.tags && pub.tags.trim()) {
-    text = pub.tags
-  } else if (pub.createdAt) {
-    text = formatDateWithTime(pub.createdAt)
-  } else {
-    text = 'Untitled'
-  }
-  
-  return text.replace(/\s+/g, ' ').trim().substring(0, 100)
-}
+const { getPublicationDisplayTitle, formatDateWithTime } = useFormatters()
 
 // Group scheduled publications by project
 const scheduledByProject = computed(() => {
@@ -218,21 +185,15 @@ function goToPublication(pub: PublicationWithRelations) {
                 </h4>
               </div>
               
-              <ul class="divide-y divide-gray-100 dark:divide-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
-                <li v-for="pub in group.publications" :key="pub.id" class="p-3 hover:bg-white dark:hover:bg-gray-700/50 transition-colors first:rounded-t-lg last:rounded-b-lg">
-                  <NuxtLink 
-                    :to="`/publications/${pub.id}`"
-                    class="block"
-                  >
-                    <div class="text-sm text-gray-700 dark:text-gray-200 line-clamp-1 mb-1">
-                      {{ getPublicationDisplayTitle(pub) }}
-                    </div>
-                    <div class="text-xs text-gray-500 flex items-center gap-2">
-                         <span v-if="pub.scheduledAt">{{ formatDateWithTime(pub.scheduledAt) }}</span>
-                    </div>
-                  </NuxtLink>
-                </li>
-              </ul>
+              <div class="grid grid-cols-1 gap-2">
+                <PublicationsPublicationMiniItem
+                  v-for="pub in group.publications"
+                  :key="pub.id"
+                  :publication="pub"
+                  show-date
+                  date-type="scheduled"
+                />
+              </div>
             </div>
           </div>
           
@@ -265,23 +226,15 @@ function goToPublication(pub: PublicationWithRelations) {
                 </h4>
               </div>
               
-              <ul class="divide-y divide-gray-100 dark:divide-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
-                <li v-for="pub in group.publications" :key="pub.id" class="p-3 hover:bg-white dark:hover:bg-gray-700/50 transition-colors first:rounded-t-lg last:rounded-b-lg">
-                   <NuxtLink 
-                    :to="`/publications/${pub.id}`"
-                    class="block"
-                  >
-                    <div class="flex items-start gap-2 mb-1">
-                        <UBadge :color="getStatusColor(pub.status) as any" variant="subtle" size="xs" class="shrink-0 mt-0.5">
-                            {{ getStatusDisplayName(pub.status) }}
-                        </UBadge>
-                        <div class="text-sm text-gray-700 dark:text-gray-200 line-clamp-1 font-medium">
-                        {{ getPublicationDisplayTitle(pub) }}
-                        </div>
-                    </div>
-                  </NuxtLink>
-                </li>
-              </ul>
+              <div class="grid grid-cols-1 gap-2">
+                <PublicationsPublicationMiniItem
+                  v-for="pub in group.publications"
+                  :key="pub.id"
+                  :publication="pub"
+                  show-status
+                  is-problematic
+                />
+              </div>
             </div>
           </div>
           

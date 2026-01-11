@@ -98,55 +98,7 @@ const availableLanguages = computed(() => {
 })
 
 
-/**
- * Format date for display
- */
-function formatDate(date: string | null | undefined): string {
-  if (!date) return '-'
-  const dObj = new Date(date)
-  if (isNaN(dObj.getTime())) return '-'
-  return d(dObj, 'short')
-}
-
-/**
- * Format date for display with time (until minutes)
- */
-function formatDateWithTime(date: string | null | undefined): string {
-  if (!date) return '-'
-  const dObj = new Date(date)
-  if (isNaN(dObj.getTime())) return '-'
-  return d(dObj, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-// 123
-import type { PublicationWithRelations } from '~/composables/usePublications'
-
-/**
- * Get display title for publication list fallback
- */
-function getPublicationDisplayTitle(pub: any): string {
-  let text = ''
-  if (pub.title && pub.title.trim()) {
-    text = stripHtmlAndSpecialChars(pub.title)
-  } else if (pub.content) {
-    text = stripHtmlAndSpecialChars(pub.content)
-  } else if (pub.tags && pub.tags.trim()) {
-    text = pub.tags
-  } else if (pub.createdAt) {
-    text = formatDateWithTime(pub.createdAt)
-  } else {
-    text = 'Untitled'
-  }
-  
-  // Collapse whitespace and trim
-  return text.replace(/\s+/g, ' ').trim().substring(0, 100)
-}
+const { getPublicationDisplayTitle, formatDateWithTime } = useFormatters()
 
 function goToPublication(pub: PublicationWithRelations) {
     router.push(`/publications/${pub.id}`)
@@ -463,16 +415,15 @@ const projectProblems = computed(() => {
             <div v-if="isScheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
               <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
             </div>
-            <ul v-else-if="scheduledPublications.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
-              <li v-for="pub in scheduledPublications" :key="pub.id" class="py-3">
-                <NuxtLink 
-                  :to="`/publications/${pub.id}`"
-                  class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors line-clamp-1"
-                >
-                  {{ getPublicationDisplayTitle(pub) }}
-                </NuxtLink>
-              </li>
-            </ul>
+            <div v-else-if="scheduledPublications.length > 0" class="grid grid-cols-1 gap-2">
+              <PublicationsPublicationMiniItem
+                v-for="pub in scheduledPublications"
+                :key="pub.id"
+                :publication="pub"
+                show-date
+                date-type="scheduled"
+              />
+            </div>
             <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
               {{ t('common.noData') }}
             </div>
@@ -502,19 +453,15 @@ const projectProblems = computed(() => {
             <div v-if="isProblemsLoading && !problemPublications.length" class="flex justify-center py-4">
               <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
             </div>
-            <ul v-else-if="problemPublications.length > 0" class="divide-y divide-gray-100 dark:divide-gray-800">
-              <li v-for="pub in problemPublications" :key="pub.id" class="py-3 flex items-center gap-3">
-                <UBadge :color="getStatusColor(pub.status) as any" variant="subtle" size="xs" class="shrink-0">
-                  {{ getStatusDisplayName(pub.status) }}
-                </UBadge>
-                <NuxtLink 
-                  :to="`/publications/${pub.id}`"
-                  class="text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors line-clamp-1"
-                >
-                  {{ getPublicationDisplayTitle(pub) }}
-                </NuxtLink>
-              </li>
-            </ul>
+            <div v-else-if="problemPublications.length > 0" class="grid grid-cols-1 gap-2">
+              <PublicationsPublicationMiniItem
+                v-for="pub in problemPublications"
+                :key="pub.id"
+                :publication="pub"
+                show-status
+                is-problematic
+              />
+            </div>
             <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
               {{ t('common.noData') }}
             </div>
