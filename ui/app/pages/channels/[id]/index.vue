@@ -54,6 +54,14 @@ const {
   setFilter: setScheduledFilter,
 } = usePosts()
 
+// Drafts data
+const {
+  publications: draftPublications,
+  fetchPublicationsByProject: fetchDrafts,
+  totalCount: draftsCount,
+  isLoading: draftsLoading
+} = usePublications()
+
 // Import utility function for getting post title
 const { getPostTitle, getPostScheduledAt } = await import('~/composables/usePosts')
 
@@ -133,6 +141,13 @@ onMounted(async () => {
             limit: 5
         })
         await fetchScheduledPosts(projectId.value)
+
+        // Fetch drafts
+        await fetchDrafts(projectId.value, { 
+            channelId: channelId.value, 
+            status: 'DRAFT', 
+            limit: 5 
+        })
     }
 })
 
@@ -142,6 +157,10 @@ function goToPost(postId: string) {
   if (post?.publicationId) {
     router.push(`/publications/${post.publicationId}`)
   }
+}
+
+function goToPublication(pub: PublicationWithRelations) {
+    router.push(`/publications/${pub.id}`)
 }
 
 function goBack() {
@@ -462,6 +481,35 @@ const channelProblems = computed(() => {
                         {{ t('channel.activate') }}
                     </UButton>
                 </div>
+            </div>
+
+            <!-- Drafts Block (Only visible if has drafts) -->
+            <div v-if="draftsCount > 0 || draftsLoading" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
+                        {{ t('publicationStatus.draft') }}
+                        <CommonCountBadge :count="draftsCount" :title="t('publicationStatus.draft')" />
+                    </h2>
+                </div>
+
+                <div v-if="draftsLoading && !draftPublications.length" class="flex justify-center py-8">
+                    <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+                <CommonHorizontalScroll v-else-if="draftPublications.length > 0">
+                    <PublicationsPublicationCard
+                        v-for="draft in draftPublications"
+                        :key="draft.id"
+                        :publication="draft"
+                        :show-project-info="false"
+                        class="w-64 shrink-0"
+                        @click="goToPublication"
+                    />
+                    <CommonViewAllCard
+                        v-if="draftsCount > 5"
+                        :to="`/publications?channelId=${channelId}&status=DRAFT`"
+                    />
+                </CommonHorizontalScroll>
             </div>
 
             <!-- Scheduled and Problems Columns -->
