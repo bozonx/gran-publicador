@@ -120,19 +120,41 @@ describe('AuthService (unit)', () => {
     });
 
     it('should throw UnauthorizedException if hash is invalid', async () => {
-      const initData = 'user=%7B%22id%22%3A123%7D&hash=invalid_hash&auth_date=1234567890';
+      const authDate = Math.floor(Date.now() / 1000);
+      const initData = `user=%7B%22id%22%3A123%7D&hash=invalid_hash&auth_date=${authDate}`;
 
       await expect(service.loginWithTelegram(initData)).rejects.toThrow(UnauthorizedException);
       expect(mockUsersService.findOrCreateTelegramUser).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException if user data is missing', async () => {
-      // Generate hash for data without user field
-      const _params = { auth_date: '1234567890' };
-      const dataCheckString = 'auth_date=1234567890';
+    it('should throw UnauthorizedException if auth_date is expired', async () => {
+      // Date older than 24h
+      const expiredDate = Math.floor(Date.now() / 1000) - 100000;
+      const params = {
+        auth_date: expiredDate.toString(),
+        user: JSON.stringify(telegramUser),
+      };
+
+      const dataCheckString = Object.entries(params)
+        .map(([key, value]) => `${key}=${value}`)
+        .sort()
+        .join('\n');
+
       const secretKey = createHmac('sha256', 'WebAppData').update(mockBotToken).digest();
       const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-      const initData = `auth_date=1234567890&hash=${hash}`;
+      const initData = new URLSearchParams({ ...params, hash }).toString();
+
+      await expect(service.loginWithTelegram(initData)).rejects.toThrow('Invalid Telegram init data');
+    });
+
+    it('should throw UnauthorizedException if user data is missing', async () => {
+      // Generate hash for data without user field but with fresh date
+      const authDate = Math.floor(Date.now() / 1000).toString();
+      const _params = { auth_date: authDate };
+      const dataCheckString = `auth_date=${authDate}`;
+      const secretKey = createHmac('sha256', 'WebAppData').update(mockBotToken).digest();
+      const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+      const initData = `auth_date=${authDate}&hash=${hash}`;
 
       await expect(service.loginWithTelegram(initData)).rejects.toThrow('User data missing');
     });

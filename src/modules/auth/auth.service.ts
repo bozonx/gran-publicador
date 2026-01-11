@@ -184,6 +184,20 @@ export class AuthService {
   private validateTelegramInitData(initData: string): boolean {
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
+    const authDate = urlParams.get('auth_date');
+
+    if (!authDate) {
+      this.logger.warn('Telegram init data missing auth_date');
+      return false;
+    }
+
+    // Check if auth_date is older than 24 hours
+    const now = Math.floor(Date.now() / 1000);
+    if (now - Number(authDate) > 86400) {
+      this.logger.warn('Telegram init data expired');
+      return false;
+    }
+
     urlParams.delete('hash');
 
     const params = Array.from(urlParams.entries())
