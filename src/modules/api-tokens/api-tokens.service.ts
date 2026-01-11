@@ -202,7 +202,7 @@ export class ApiTokensService {
           );
         }
       }
-      updateData.scopeProjectIds = (dto.scopeProjectIds as any);
+      updateData.scopeProjectIds = dto.scopeProjectIds as any;
     }
 
     const updated = await this.prisma.apiToken.update({

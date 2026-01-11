@@ -4,8 +4,6 @@ import { join, resolve } from 'path';
  * Database configuration constants and utilities.
  */
 
-
-
 /**
  * Gets the DATABASE_URL from the environment variable.
  *
@@ -19,6 +17,3 @@ export function getDatabaseUrl(): string {
 
   throw new Error('DATABASE_URL environment variable is not set.');
 }
-
-
-

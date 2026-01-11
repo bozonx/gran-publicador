@@ -13,7 +13,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   public async findByTelegramId(telegramId: bigint): Promise<User | null> {
     return this.prisma.user.findUnique({
@@ -171,7 +171,6 @@ export class UsersService {
       },
     });
   }
-
 
   /**
    * Ban a user.

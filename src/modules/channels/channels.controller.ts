@@ -32,7 +32,7 @@ export class ChannelsController {
   constructor(
     private readonly channelsService: ChannelsService,
     private readonly socialPostingService: SocialPostingService,
-  ) { }
+  ) {}
 
   @Post()
   public async create(
@@ -103,7 +103,7 @@ export class ChannelsController {
     }
 
     const result = await this.channelsService.findAllForUser(req.user.userId, filters);
-    
+
     return {
       items: result.items,
       meta: {
@@ -135,8 +135,8 @@ export class ChannelsController {
     const channels = await this.channelsService.findArchivedForUser(req.user.userId);
 
     if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      return channels.filter(c =>
-        (c as any).projectId && req.user.scopeProjectIds!.includes((c as any).projectId)
+      return channels.filter(
+        c => (c as any).projectId && req.user.scopeProjectIds!.includes((c as any).projectId),
       );
     }
 

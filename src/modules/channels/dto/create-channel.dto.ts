@@ -1,5 +1,13 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsEnum, IsLocale, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsLocale,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { SocialMedia } from '../../../generated/prisma/client.js';
 
 /**

@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PostStatus, PostType, ProjectRole } from '../../generated/prisma/client.js';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -11,7 +16,7 @@ export class PostsService {
     private prisma: PrismaService,
     private channelsService: ChannelsService,
     private permissions: PermissionsService,
-  ) { }
+  ) {}
 
   /**
    * Create a new post in a specific channel.
@@ -23,6 +28,31 @@ export class PostsService {
    * @param data - The post creation data (channel-specific only).
    * @returns The created post.
    */
+  private applyCommonFilters(
+    where: any,
+    filters?: { status?: PostStatus; postType?: PostType; search?: string },
+  ) {
+    if (filters?.status && typeof filters.status === 'string') {
+      where.status = filters.status.toUpperCase() as PostStatus;
+    }
+    if (filters?.postType && typeof filters.postType === 'string') {
+      where.publication = {
+        ...where.publication,
+        postType: filters.postType.toUpperCase() as PostType,
+      };
+    }
+    if (filters?.search) {
+      where.publication = {
+        ...where.publication,
+        OR: [
+          { title: { contains: filters.search, mode: 'insensitive' } },
+          { content: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      };
+    }
+    return where;
+  }
+
   public async create(
     userId: string,
     channelId: string,
@@ -83,7 +113,14 @@ export class PostsService {
   public async findAllForProject(
     projectId: string,
     userId: string,
-    filters?: { status?: PostStatus; postType?: PostType; search?: string; includeArchived?: boolean; limit?: number; page?: number },
+    filters?: {
+      status?: PostStatus;
+      postType?: PostType;
+      search?: string;
+      includeArchived?: boolean;
+      limit?: number;
+      page?: number;
+    },
   ) {
     // Check project permission (owner/admin/editor/viewer)
     const role = await this.permissions.getUserProjectRole(projectId, userId);
@@ -109,25 +146,7 @@ export class PostsService {
       ];
     }
 
-    if (filters?.status && typeof filters.status === 'string') {
-      where.status = filters.status.toUpperCase() as PostStatus;
-    }
-    if (filters?.postType && typeof filters.postType === 'string') {
-      where.publication = {
-        ...where.publication,
-        postType: filters.postType.toUpperCase() as PostType,
-      };
-    }
-    if (filters?.search) {
-      // Search in publication content instead of post
-      where.publication = {
-        ...where.publication,
-        OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { content: { contains: filters.search, mode: 'insensitive' } },
-        ],
-      };
-    }
+    this.applyCommonFilters(where, filters);
 
     return this.prisma.post.findMany({
       where,
@@ -157,7 +176,14 @@ export class PostsService {
    */
   public async findAllForUser(
     userId: string,
-    filters?: { status?: PostStatus; postType?: PostType; search?: string; includeArchived?: boolean; limit?: number; page?: number },
+    filters?: {
+      status?: PostStatus;
+      postType?: PostType;
+      search?: string;
+      includeArchived?: boolean;
+      limit?: number;
+      page?: number;
+    },
   ) {
     const where: any = {};
 
@@ -180,30 +206,12 @@ export class PostsService {
       where.channel = {
         ...where.channel,
         project: {
-           members: { some: { userId } }
-        }
+          members: { some: { userId } },
+        },
       };
     }
 
-    if (filters?.status && typeof filters.status === 'string') {
-      where.status = filters.status.toUpperCase() as PostStatus;
-    }
-    if (filters?.postType && typeof filters.postType === 'string') {
-      where.publication = {
-        ...where.publication,
-        postType: filters.postType.toUpperCase() as PostType,
-      };
-    }
-    if (filters?.search) {
-      // Search in publication content
-      where.publication = {
-        ...where.publication,
-        OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { content: { contains: filters.search, mode: 'insensitive' } },
-        ],
-      };
-    }
+    this.applyCommonFilters(where, filters);
 
     return this.prisma.post.findMany({
       where,
@@ -235,11 +243,17 @@ export class PostsService {
   public async findAllForChannel(
     channelId: string,
     userId: string,
-    filters?: { status?: PostStatus; postType?: PostType; search?: string, includeArchived?: boolean; limit?: number; page?: number },
+    filters?: {
+      status?: PostStatus;
+      postType?: PostType;
+      search?: string;
+      includeArchived?: boolean;
+      limit?: number;
+      page?: number;
+    },
   ) {
-
     const channel = await this.channelsService.findOne(channelId, userId, true);
-    
+
     // Ensure user has access to the channel's project
     if (!channel.role) {
       throw new ForbiddenException('You do not have access to this channel');
@@ -255,25 +269,7 @@ export class PostsService {
       where.publication = { archivedAt: { not: null } };
     }
 
-    if (filters?.status && typeof filters.status === 'string') {
-      where.status = filters.status.toUpperCase() as PostStatus;
-    }
-    if (filters?.postType && typeof filters.postType === 'string') {
-      where.publication = {
-        ...where.publication,
-        postType: filters.postType.toUpperCase() as PostType,
-      };
-    }
-    if (filters?.search) {
-      // Search in publication content
-      where.publication = {
-        ...where.publication,
-        OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { content: { contains: filters.search, mode: 'insensitive' } },
-        ],
-      };
-    }
+    this.applyCommonFilters(where, filters);
 
     return this.prisma.post.findMany({
       where,

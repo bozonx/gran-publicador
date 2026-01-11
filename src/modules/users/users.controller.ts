@@ -26,7 +26,7 @@ import { UsersService } from './users.service.js';
 @Controller('users')
 @UseGuards(AuthGuard(JWT_STRATEGY))
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   /**
    * Get all users with pagination and filtering.
@@ -118,10 +118,7 @@ export class UsersController {
    * Admin only.
    */
   @Post(':id/unban')
-  public async unbanUser(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') userId: string,
-  ) {
+  public async unbanUser(@Request() req: AuthenticatedRequest, @Param('id') userId: string) {
     const currentUser = await this.usersService.findById(req.user.sub);
     if (!currentUser?.isAdmin) {
       throw new ForbiddenException('Admin access required');

@@ -47,9 +47,7 @@ export function validatePlatformCredentials(
  * Validates Telegram credentials
  * Required: botToken (mapped to apiKey in library)
  */
-function validateTelegramCredentials(
-  credentials: any,
-): CredentialsValidationResult {
+function validateTelegramCredentials(credentials: any): CredentialsValidationResult {
   const errors: string[] = [];
 
   // Check for telegramBotToken

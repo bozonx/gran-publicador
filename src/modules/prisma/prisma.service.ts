@@ -5,7 +5,6 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { getDatabaseUrl } from '../../config/database.config.js';
 import { dirname } from 'path';
 
-
 /**
  * Service that extends PrismaClient to handle database connections.
  * Manages lifecycle events for connection and disconnection.
@@ -19,7 +18,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const url = getDatabaseUrl();
     const internalLogger = new Logger(PrismaService.name);
 
-    let clientConfig: any = {};
+    const clientConfig: any = {};
 
     // SQLite detection and setup
     if (url.startsWith('file:') || url.includes('.db')) {

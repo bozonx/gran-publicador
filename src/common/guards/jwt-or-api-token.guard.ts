@@ -49,10 +49,10 @@ export class JwtOrApiTokenGuard implements CanActivate {
 
     // Try to get token from query if not in headers (for images)
     if (!request.headers['authorization']) {
-        const queryToken = (request.query as any)?.token;
-        if (queryToken && typeof queryToken === 'string') {
-            request.headers['authorization'] = `Bearer ${queryToken}`;
-        }
+      const queryToken = (request.query as any)?.token;
+      if (queryToken && typeof queryToken === 'string') {
+        request.headers['authorization'] = `Bearer ${queryToken}`;
+      }
     }
 
     // Use JWT authentication
@@ -85,7 +85,7 @@ export class JwtOrApiTokenGuard implements CanActivate {
     // Check query param
     const queryKey = (request.query as any)?.['api_key'] || (request.query as any)?.['token'];
     if (queryKey && typeof queryKey === 'string' && queryKey.startsWith('gpt_')) {
-        return queryKey;
+      return queryKey;
     }
 
     // Try to get token from Authorization header (Bearer)

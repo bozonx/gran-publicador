@@ -1,9 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -15,7 +10,7 @@ import { map } from 'rxjs/operators';
 @Injectable()
 export class BigIntInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(map((data) => this.serializeBigInt(data)));
+    return next.handle().pipe(map(data => this.serializeBigInt(data)));
   }
 
   private serializeBigInt(data: any): any {
@@ -28,7 +23,7 @@ export class BigIntInterceptor implements NestInterceptor {
     }
 
     if (Array.isArray(data)) {
-      return data.map((item) => this.serializeBigInt(item));
+      return data.map(item => this.serializeBigInt(item));
     }
 
     if (typeof data === 'object') {

@@ -133,7 +133,11 @@ describe('ArchiveService', () => {
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.project.delete.mockResolvedValue(mockProject);
 
-      const result = await service.deleteEntityPermanently(ArchiveEntityType.PROJECT, projectId, userId);
+      const result = await service.deleteEntityPermanently(
+        ArchiveEntityType.PROJECT,
+        projectId,
+        userId,
+      );
 
       expect(mockPrismaService.project.delete).toHaveBeenCalledWith({
         where: { id: projectId },

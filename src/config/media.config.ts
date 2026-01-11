@@ -8,8 +8,8 @@ import { join, resolve } from 'path';
  */
 export function getMediaDir(): string {
   if (process.env.MEDIA_DIR) {
-      // Resolve if relative, keep as-is if absolute
-      return resolve(process.cwd(), process.env.MEDIA_DIR);
+    // Resolve if relative, keep as-is if absolute
+    return resolve(process.cwd(), process.env.MEDIA_DIR);
   }
 
   throw new Error('MEDIA_DIR environment variable is not set.');

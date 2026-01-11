@@ -1,4 +1,14 @@
-import { IsArray, IsDate, IsEnum, IsLocale, IsNotEmpty, IsObject, IsOptional, IsString, ValidateIf } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEnum,
+  IsLocale,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
 import { CreateMediaDto } from '../../media/dto/index.js';
@@ -18,8 +28,17 @@ export class UpdatePublicationDto {
   @IsOptional()
   public description?: string;
 
-  @ValidateIf((o) => ((o.status !== undefined && o.status !== PublicationStatus.DRAFT) || o.scheduledAt !== undefined) && o.content !== undefined && (!o.media?.length && !o.existingMediaIds?.length))
-  @IsNotEmpty({ message: 'Content is required for non-draft publications when no media is attached' })
+  @ValidateIf(
+    o =>
+      ((o.status !== undefined && o.status !== PublicationStatus.DRAFT) ||
+        o.scheduledAt !== undefined) &&
+      o.content !== undefined &&
+      !o.media?.length &&
+      !o.existingMediaIds?.length,
+  )
+  @IsNotEmpty({
+    message: 'Content is required for non-draft publications when no media is attached',
+  })
   @IsString()
   @IsOptional()
   public content?: string;

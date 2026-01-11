@@ -26,8 +26,6 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-
-
 /**
  * Bootstrap the NestJS application.
  * Initializes the Fastify adapter, global pipes, configuration, and starts the server.
@@ -129,7 +127,7 @@ async function bootstrap() {
   process.once('SIGINT', () => void gracefulShutdown('SIGINT'));
 
   // Handle uncaught errors during shutdown
-  process.on('uncaughtException', (error) => {
+  process.on('uncaughtException', error => {
     logger.error('Uncaught Exception:', error.stack, 'Bootstrap');
     process.exit(1);
   });
@@ -141,4 +139,3 @@ async function bootstrap() {
 }
 
 void bootstrap();
-

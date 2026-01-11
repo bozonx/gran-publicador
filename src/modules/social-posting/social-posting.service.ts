@@ -1,11 +1,17 @@
-import { Injectable, BadRequestException, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { createPostingClient } from 'bozonx-social-media-posting';
-import type { 
-  PostingClient, 
-  PostRequestDto, 
-  PostResponseDto, 
+import type {
+  PostingClient,
+  PostRequestDto,
+  PostResponseDto,
   ErrorResponseDto,
-  PreviewResponseDto
+  PreviewResponseDto,
 } from 'bozonx-social-media-posting';
 import {
   PublicationStatus,
@@ -24,19 +30,17 @@ import { ShutdownService } from '../../common/services/shutdown.service.js';
  * Custom logger adapter to pipe library logs to NestJS Logger
  */
 class LibraryLogger {
-  constructor(private readonly logger: Logger) {}
-
   debug(message: string, context?: string) {
-    this.logger.debug(`${context ? `[${context}] ` : ''}${message}`);
+    console.debug(`[Library] ${context ? `[${context}] ` : ''}${message}`);
   }
   log(message: string, context?: string) {
-    this.logger.log(`${context ? `[${context}] ` : ''}${message}`);
+    console.log(`[Library] ${context ? `[${context}] ` : ''}${message}`);
   }
   warn(message: string, context?: string) {
-    this.logger.warn(`${context ? `[${context}] ` : ''}${message}`);
+    console.warn(`[Library] ${context ? `[${context}] ` : ''}${message}`);
   }
   error(message: string, trace?: string, context?: string) {
-    this.logger.error(`${context ? `[${context}] ` : ''}${message}`, trace);
+    console.error(`[Library] ${context ? `[${context}] ` : ''}${message}`, trace);
   }
 }
 
@@ -53,9 +57,9 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     try {
       this.postingClient = createPostingClient({
-        accounts: {}, 
+        accounts: {},
         logLevel: 'info',
-        logger: new LibraryLogger(this.logger),
+        logger: new LibraryLogger(),
         retryAttempts: 3,
         retryDelayMs: 2000,
       });
@@ -81,12 +85,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   /**
    * Test channel connection and credentials using library's preview mode
    */
-  async testChannel(channelId: string): Promise<{ success: boolean; message: string; details?: any }> {
+  async testChannel(
+    channelId: string,
+  ): Promise<{ success: boolean; message: string; details?: any }> {
     this.logger.log(`[testChannel] Testing connection for channel: ${channelId}`);
-    
+
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
-      include: { project: true }
+      include: { project: true },
     });
 
     if (!channel) throw new BadRequestException('Channel not found');
@@ -102,7 +108,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
         channel.socialMedia,
         channel.channelIdentifier,
-        credentials
+        credentials,
       );
 
       const request: PostRequestDto = {
@@ -111,23 +117,23 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         channelId: targetChannelId,
         auth: {
           apiKey,
-        }
+        },
       };
 
       const response = await this.postingClient!.preview(request);
-      
+
       if (response.success) {
-        return { 
-          success: true, 
+        return {
+          success: true,
           message: 'Connection and credentials are valid (Preview mode)',
-          details: (response as PreviewResponseDto).data 
+          details: response.data,
         };
       } else {
         const platformError = response as any; // Cast to access error properly
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: 'Platform rejected the preview request',
-          details: platformError.error || platformError
+          details: platformError.error || platformError,
         };
       }
     } catch (error: any) {
@@ -192,7 +198,9 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
     for (const post of publication.posts) {
       if (this.shutdownService.isShutdownInProgress()) {
-        this.logger.warn(`[publishPublication] Shutdown in progress, aborting remaining posts for publication ${publicationId}`);
+        this.logger.warn(
+          `[publishPublication] Shutdown in progress, aborting remaining posts for publication ${publicationId}`,
+        );
         results.push({
           postId: post.id,
           channelId: post.channelId,
@@ -223,7 +231,9 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           error: result.error,
         });
       } catch (error: any) {
-        this.logger.error(`[publishPublication] Error publishing post ${post.id}: ${error.message}`);
+        this.logger.error(
+          `[publishPublication] Error publishing post ${post.id}: ${error.message}`,
+        );
         results.push({
           postId: post.id,
           channelId: post.channelId,
@@ -233,10 +243,13 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    const successCount = results.filter((r) => r.success).length;
-    const finalStatus = successCount === results.length 
-      ? PublicationStatus.PUBLISHED 
-      : successCount > 0 ? PublicationStatus.PARTIAL : PublicationStatus.FAILED;
+    const successCount = results.filter(r => r.success).length;
+    const finalStatus =
+      successCount === results.length
+        ? PublicationStatus.PUBLISHED
+        : successCount > 0
+          ? PublicationStatus.PARTIAL
+          : PublicationStatus.FAILED;
 
     await this.prisma.publication.update({
       where: { id: publicationId },
@@ -286,7 +299,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     publication: any,
   ): Promise<{ success: boolean; error?: string }> {
     const logPrefix = `[publishSinglePost][Post:${post.id}]`;
-    
+
     try {
       if (!this.postingClient) throw new Error('Posting client not initialized');
 
@@ -297,12 +310,12 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       const { channelId: targetChannelId, apiKey } = resolvePlatformParams(
         channel.socialMedia,
         channel.channelIdentifier,
-        credentials
+        credentials,
       );
 
       const request: PostRequestDto = {
         platform: channel.socialMedia.toLowerCase(),
-        body: (post.content || publication.content) || '',
+        body: post.content || publication.content || '',
         bodyFormat: 'md',
         channelId: targetChannelId,
         auth: {
@@ -332,7 +345,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         });
         return { success: true };
       } else {
-        const platformError = response as ErrorResponseDto;
+        const platformError = response;
         await this.prisma.post.update({
           where: { id: post.id },
           data: {
@@ -385,15 +398,20 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       const item = media[0].media;
       const src = this.getMediaSrc(item);
       switch (item.type) {
-        case MediaType.IMAGE: return { cover: { src } };
-        case MediaType.VIDEO: return { video: { src } };
-        case MediaType.AUDIO: return { audio: { src } };
-        case MediaType.DOCUMENT: return { document: { src } };
-        default: return { cover: { src } };
+        case MediaType.IMAGE:
+          return { cover: { src } };
+        case MediaType.VIDEO:
+          return { video: { src } };
+        case MediaType.AUDIO:
+          return { audio: { src } };
+        case MediaType.DOCUMENT:
+          return { document: { src } };
+        default:
+          return { cover: { src } };
       }
     }
     return {
-      media: media.map((item) => ({
+      media: media.map(item => ({
         src: this.getMediaSrc(item.media),
         type: this.mapMediaTypeToLibrary(item.media.type),
       })),
@@ -403,10 +421,10 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   private getMediaSrc(media: any): string {
     // В SQLite StorageType это ENUM (FS, TELEGRAM)
     // Если путь начинается с http, считаем это ссылкой
-    if (media.storagePath && media.storagePath.startsWith('http')) {
+    if (media.storagePath?.startsWith('http')) {
       return media.storagePath;
     }
-    
+
     if (media.storageType === StorageType.TELEGRAM) {
       return media.storagePath; // It's a file_id
     }
@@ -416,11 +434,16 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
   private mapMediaTypeToLibrary(type: MediaType): string {
     switch (type) {
-      case MediaType.IMAGE: return 'image';
-      case MediaType.VIDEO: return 'video';
-      case MediaType.AUDIO: return 'audio';
-      case MediaType.DOCUMENT: return 'document';
-      default: return 'image';
+      case MediaType.IMAGE:
+        return 'image';
+      case MediaType.VIDEO:
+        return 'video';
+      case MediaType.AUDIO:
+        return 'audio';
+      case MediaType.DOCUMENT:
+        return 'document';
+      default:
+        return 'image';
     }
   }
 }

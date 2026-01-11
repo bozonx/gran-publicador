@@ -31,7 +31,7 @@ import { ProjectsService } from './projects.service.js';
 export class ProjectsController {
   private readonly logger = new Logger(ProjectsController.name);
 
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
   public async create(
@@ -49,14 +49,11 @@ export class ProjectsController {
   }
 
   @Get()
-  public async findAll(
-    @Request() req: UnifiedAuthRequest,
-    @Query() query: FindProjectsQueryDto,
-  ) {
+  public async findAll(@Request() req: UnifiedAuthRequest, @Query() query: FindProjectsQueryDto) {
     const projects = await this.projectsService.findAllForUser(req.user.userId, {
       search: query.search,
       includeArchived: query.includeArchived,
-      limit: query.limit || undefined
+      limit: query.limit || undefined,
     });
 
     // Filter projects based on token scope
@@ -68,9 +65,7 @@ export class ProjectsController {
   }
 
   @Get('archived')
-  public async findArchived(
-    @Request() req: UnifiedAuthRequest,
-  ) {
+  public async findArchived(@Request() req: UnifiedAuthRequest) {
     const projects = await this.projectsService.findArchivedForUser(req.user.userId);
 
     // Filter projects based on token scope
@@ -123,6 +118,4 @@ export class ProjectsController {
 
     return this.projectsService.remove(id, req.user.userId);
   }
-
-
 }

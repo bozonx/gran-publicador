@@ -1,10 +1,22 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PublicationStatus, PostStatus, PostType, Prisma, ProjectRole, SocialMedia } from '../../generated/prisma/client.js';
+import {
+  PublicationStatus,
+  PostStatus,
+  PostType,
+  Prisma,
+  ProjectRole,
+  SocialMedia,
+} from '../../generated/prisma/client.js';
 import { randomUUID } from 'node:crypto';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreatePublicationDto, UpdatePublicationDto, IssueType, OwnershipType } from './dto/index.js';
+import {
+  CreatePublicationDto,
+  UpdatePublicationDto,
+  IssueType,
+  OwnershipType,
+} from './dto/index.js';
 
 @Injectable()
 export class PublicationsService {
@@ -13,7 +25,7 @@ export class PublicationsService {
   constructor(
     private prisma: PrismaService,
     private permissions: PermissionsService,
-  ) { }
+  ) {}
 
   private readonly PUBLICATION_WITH_RELATIONS_INCLUDE = {
     creator: {
@@ -33,9 +45,9 @@ export class PublicationsService {
               select: {
                 id: true,
                 archivedAt: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
       },
     },
@@ -44,9 +56,9 @@ export class PublicationsService {
         media: true,
       },
       orderBy: {
-        order: 'asc' as const
-      }
-    }
+        order: 'asc' as const,
+      },
+    },
   };
 
   /**
@@ -94,10 +106,7 @@ export class PublicationsService {
         where.project = { archivedAt: null };
       }
     } else {
-      where.OR = [
-        { archivedAt: { not: null } },
-        { project: { archivedAt: { not: null } } },
-      ];
+      where.OR = [{ archivedAt: { not: null } }, { project: { archivedAt: { not: null } } }];
     }
 
     // Status filter
@@ -148,8 +157,8 @@ export class PublicationsService {
         conditions.push({
           OR: [
             { status: PublicationStatus.FAILED },
-            { posts: { some: { status: PostStatus.FAILED } } }
-          ]
+            { posts: { some: { status: PostStatus.FAILED } } },
+          ],
         });
       } else if (filters.issueType === IssueType.PARTIAL) {
         where.status = PublicationStatus.PARTIAL;
@@ -197,6 +206,129 @@ export class PublicationsService {
   }
 
   /**
+   * Prepare Prisma orderBy and determine if custom sorting is needed.
+   */
+  private prepareSortParams(sortField: string, sortDirection: 'asc' | 'desc') {
+    let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
+    let customSort = false;
+
+    // For chronology, byScheduled, and byPublished, we need custom sorting
+    if (sortField === 'chronology' || sortField === 'byScheduled' || sortField === 'byPublished') {
+      customSort = true;
+      // We'll sort after fetching
+      orderBy = { createdAt: 'desc' }; // Default order for fetching
+    } else {
+      // Standard sorting
+      (orderBy as any)[sortField] = sortDirection;
+    }
+
+    return { orderBy, customSort };
+  }
+
+  /**
+   * Apply custom in-memory sorting for complex fields.
+   */
+  private applyCustomSort(
+    items: any[],
+    sortField: string,
+    sortDirection: 'asc' | 'desc',
+    limit?: number,
+    offset?: number,
+  ) {
+    const sortedItems = [...items];
+
+    if (sortField === 'chronology') {
+      // Chronology: scheduled (latest to nearest) → published (recent to old)
+      sortedItems.sort((a, b) => {
+        const aScheduled = a.scheduledAt;
+        const bScheduled = b.scheduledAt;
+
+        // Get the latest publishedAt from posts
+        const getLatestPublishedAt = (pub: any) => {
+          const publishedDates = pub.posts
+            .map((p: any) => p.publishedAt)
+            .filter((d: any) => d !== null);
+          if (publishedDates.length === 0) return null;
+          return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
+        };
+
+        const aPublishedAt = getLatestPublishedAt(a);
+        const bPublishedAt = getLatestPublishedAt(b);
+
+        // Both scheduled: sort by scheduledAt DESC (latest first)
+        if (aScheduled && bScheduled) {
+          return new Date(bScheduled).getTime() - new Date(aScheduled).getTime();
+        }
+
+        // Both published: sort by publishedAt DESC (recent first)
+        if (aPublishedAt && bPublishedAt) {
+          return bPublishedAt.getTime() - aPublishedAt.getTime();
+        }
+
+        // One scheduled, one published: scheduled comes first
+        if (aScheduled && !bScheduled) return -1;
+        if (!aScheduled && bScheduled) return 1;
+
+        // Fallback to createdAt
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else if (sortField === 'byScheduled') {
+      // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
+      sortedItems.sort((a, b) => {
+        const aScheduled = a.scheduledAt;
+        const bScheduled = b.scheduledAt;
+
+        // Both have scheduledAt: sort by scheduledAt
+        if (aScheduled && bScheduled) {
+          const aTime = new Date(aScheduled).getTime();
+          const bTime = new Date(bScheduled).getTime();
+          return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
+        }
+
+        // One has scheduledAt, one doesn't: scheduled comes first
+        if (aScheduled && !bScheduled) return -1;
+        if (!aScheduled && bScheduled) return 1;
+
+        // Neither has scheduledAt: sort by createdAt
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else if (sortField === 'byPublished') {
+      // Published first (sorted by publishedAt), then others (sorted by createdAt)
+      sortedItems.sort((a, b) => {
+        const getLatestPublishedAt = (pub: any) => {
+          const publishedDates = pub.posts
+            .map((p: any) => p.publishedAt)
+            .filter((d: any) => d !== null);
+          if (publishedDates.length === 0) return null;
+          return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
+        };
+
+        const aPublishedAt = getLatestPublishedAt(a);
+        const bPublishedAt = getLatestPublishedAt(b);
+
+        // Both have publishedAt: sort by publishedAt
+        if (aPublishedAt && bPublishedAt) {
+          return sortDirection === 'desc'
+            ? bPublishedAt.getTime() - aPublishedAt.getTime()
+            : aPublishedAt.getTime() - bPublishedAt.getTime();
+        }
+
+        // One has publishedAt, one doesn't: published comes first
+        if (aPublishedAt && !bPublishedAt) return -1;
+        if (!aPublishedAt && bPublishedAt) return 1;
+
+        // Neither has publishedAt: sort by createdAt
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
+
+    // Apply pagination after custom sorting
+    const finalOffset = offset || 0;
+    const finalLimit = limit || sortedItems.length;
+    return sortedItems.slice(finalOffset, finalOffset + finalLimit);
+  }
+
+  /**
    * Create a new publication.
    * If userId is provided, it checks if the user has access to the project.
    * If userId is not provided, it assumes a system call or external integration (skipped permission check).
@@ -236,7 +368,9 @@ export class PublicationsService {
 
       // 4. Validate Post Type Compatibility (User Request)
       if (data.postType && targetPub.postType !== data.postType) {
-        throw new BadRequestException(`Cannot link publication of type ${data.postType} with ${targetPub.postType}`);
+        throw new BadRequestException(
+          `Cannot link publication of type ${data.postType} with ${targetPub.postType}`,
+        );
       }
 
       // Determine Group ID
@@ -249,7 +383,9 @@ export class PublicationsService {
           where: { id: targetPub.id },
           data: { translationGroupId },
         });
-        this.logger.log(`Created new translation group ${translationGroupId} for publication ${targetPub.id}`);
+        this.logger.log(
+          `Created new translation group ${translationGroupId} for publication ${targetPub.id}`,
+        );
       }
     }
 
@@ -264,7 +400,9 @@ export class PublicationsService {
       });
 
       if (existingTranslation) {
-        throw new BadRequestException(`A publication with language ${data.language} already exists in this translation group`);
+        throw new BadRequestException(
+          `A publication with language ${data.language} already exists in this translation group`,
+        );
       }
     }
 
@@ -276,20 +414,20 @@ export class PublicationsService {
         description: data.description,
         content: data.content,
         authorComment: data.authorComment,
-        
+
         media: {
           create: [
             // New Media
             ...(data.media || []).map((m, i) => ({
               order: i,
-              media: { create: { ...m, meta: (m.meta || {}) as any } }
+              media: { create: { ...m, meta: (m.meta || {}) as any } },
             })),
             // Existing Media
             ...(data.existingMediaIds || []).map((id, i) => ({
               order: (data.media?.length || 0) + i,
-              media: { connect: { id } }
+              media: { connect: { id } },
             })),
-          ]
+          ],
         },
 
         tags: data.tags,
@@ -318,9 +456,7 @@ export class PublicationsService {
         userId,
         undefined, // no scheduled time by default
       );
-      this.logger.log(
-        `Created ${data.channelIds.length} posts for publication ${publication.id}`,
-      );
+      this.logger.log(`Created ${data.channelIds.length} posts for publication ${publication.id}`);
     }
 
     return {
@@ -364,20 +500,8 @@ export class PublicationsService {
     // Dynamic sorting
     const sortField = filters?.sortBy || 'chronology';
     const sortDirection = filters?.sortOrder || 'desc';
-    
-    // Handle special sorting modes
-    let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
-    let customSort = false;
-    
-    // For chronology, byScheduled, and byPublished, we need custom sorting
-    if (sortField === 'chronology' || sortField === 'byScheduled' || sortField === 'byPublished') {
-      customSort = true;
-      // We'll sort after fetching
-      orderBy = { createdAt: 'desc' }; // Default order for fetching
-    } else {
-      // Standard sorting
-      (orderBy as any)[sortField] = sortDirection;
-    }
+
+    const { orderBy, customSort } = this.prepareSortParams(sortField, sortDirection);
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -425,95 +549,15 @@ export class PublicationsService {
 
     // Apply custom sorting if needed
     let sortedItems = items;
-    
+
     if (customSort) {
-      if (sortField === 'chronology') {
-        // Chronology: scheduled (latest to nearest) → published (recent to old)
-        sortedItems = items.sort((a, b) => {
-          const aScheduled = a.scheduledAt;
-          const bScheduled = b.scheduledAt;
-          
-          // Get the latest publishedAt from posts
-          const getLatestPublishedAt = (pub: any) => {
-            const publishedDates = pub.posts
-              .map((p: any) => p.publishedAt)
-              .filter((d: any) => d !== null);
-            if (publishedDates.length === 0) return null;
-            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
-          };
-          
-          const aPublishedAt = getLatestPublishedAt(a);
-          const bPublishedAt = getLatestPublishedAt(b);
-          
-          // Both scheduled: sort by scheduledAt DESC (latest first)
-          if (aScheduled && bScheduled) {
-            return new Date(bScheduled).getTime() - new Date(aScheduled).getTime();
-          }
-          
-          // Both published: sort by publishedAt DESC (recent first)
-          if (aPublishedAt && bPublishedAt) {
-            return bPublishedAt.getTime() - aPublishedAt.getTime();
-          }
-          
-          // One scheduled, one published: scheduled comes first
-          if (aScheduled && !bScheduled) return -1;
-          if (!aScheduled && bScheduled) return 1;
-          
-          // Fallback to createdAt
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      } else if (sortField === 'byScheduled') {
-        // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
-        sortedItems = items.sort((a, b) => {
-          const aScheduled = a.scheduledAt;
-          const bScheduled = b.scheduledAt;
-          
-          // Both have scheduledAt: sort by scheduledAt
-          if (aScheduled && bScheduled) {
-            const aTime = new Date(aScheduled).getTime();
-            const bTime = new Date(bScheduled).getTime();
-            return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
-          }
-          
-          // One has scheduledAt, one doesn't: scheduled comes first
-          if (aScheduled && !bScheduled) return -1;
-          if (!aScheduled && bScheduled) return 1;
-          
-          // Neither has scheduledAt: sort by createdAt
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      } else if (sortField === 'byPublished') {
-        // Published first (sorted by publishedAt), then others (sorted by createdAt)
-        sortedItems = items.sort((a, b) => {
-          const getLatestPublishedAt = (pub: any) => {
-            const publishedDates = pub.posts
-              .map((p: any) => p.publishedAt)
-              .filter((d: any) => d !== null);
-            if (publishedDates.length === 0) return null;
-            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
-          };
-          
-          const aPublishedAt = getLatestPublishedAt(a);
-          const bPublishedAt = getLatestPublishedAt(b);
-          
-          // Both have publishedAt: sort by publishedAt
-          if (aPublishedAt && bPublishedAt) {
-            return sortDirection === 'desc' ? bPublishedAt.getTime() - aPublishedAt.getTime() : aPublishedAt.getTime() - bPublishedAt.getTime();
-          }
-          
-          // One has publishedAt, one doesn't: published comes first
-          if (aPublishedAt && !bPublishedAt) return -1;
-          if (!aPublishedAt && bPublishedAt) return 1;
-          
-          // Neither has publishedAt: sort by createdAt
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      }
-      
-      // Apply pagination after custom sorting
-      const offset = filters?.offset || 0;
-      const limit = filters?.limit || sortedItems.length;
-      sortedItems = sortedItems.slice(offset, offset + limit);
+      sortedItems = this.applyCustomSort(
+        items,
+        sortField,
+        sortDirection,
+        filters?.limit,
+        filters?.offset,
+      );
     }
 
     return {
@@ -557,7 +601,9 @@ export class PublicationsService {
       issueType?: IssueType;
     },
   ) {
-    this.logger.log(`findAllForUser called for user ${userId} with search: "${filters?.search || ''}"`);
+    this.logger.log(
+      `findAllForUser called for user ${userId} with search: "${filters?.search || ''}"`,
+    );
     // 1. Get all projects where user is a member
     const userProjects = await this.prisma.projectMember.findMany({
       where: { userId },
@@ -571,24 +617,12 @@ export class PublicationsService {
 
     // 2. Build filter with explicit projectId list
     const where = this.buildWhereClause(filters || {}, userId, undefined, userProjectIds);
-     
+
     // Dynamic sorting
     const sortField = filters?.sortBy || 'chronology';
     const sortDirection = filters?.sortOrder || 'desc';
-    
-    // Handle special sorting modes
-    let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
-    let customSort = false;
-    
-    // For chronology, byScheduled, and byPublished, we need custom sorting
-    if (sortField === 'chronology' || sortField === 'byScheduled' || sortField === 'byPublished') {
-      customSort = true;
-      // We'll sort after fetching
-      orderBy = { createdAt: 'desc' }; // Default order for fetching
-    } else {
-      // Standard sorting
-      (orderBy as any)[sortField] = sortDirection;
-    }
+
+    const { orderBy, customSort } = this.prepareSortParams(sortField, sortDirection);
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -636,97 +670,15 @@ export class PublicationsService {
 
     // Apply custom sorting if needed
     let sortedItems = items;
-    
+
     if (customSort) {
-      if (sortField === 'chronology') {
-        // Chronology: scheduled (latest to nearest) → published (recent to old)
-        sortedItems = items.sort((a, b) => {
-          const aScheduled = a.scheduledAt;
-          const bScheduled = b.scheduledAt;
-          const aPublished = a.posts.some(p => p.publishedAt);
-          const bPublished = b.posts.some(p => p.publishedAt);
-          
-          // Get the latest publishedAt from posts
-          const getLatestPublishedAt = (pub: any) => {
-            const publishedDates = pub.posts
-              .map((p: any) => p.publishedAt)
-              .filter((d: any) => d !== null);
-            if (publishedDates.length === 0) return null;
-            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
-          };
-          
-          const aPublishedAt = getLatestPublishedAt(a);
-          const bPublishedAt = getLatestPublishedAt(b);
-          
-          // Both scheduled: sort by scheduledAt DESC (latest first)
-          if (aScheduled && bScheduled) {
-            return new Date(bScheduled).getTime() - new Date(aScheduled).getTime();
-          }
-          
-          // Both published: sort by publishedAt DESC (recent first)
-          if (aPublishedAt && bPublishedAt) {
-            return bPublishedAt.getTime() - aPublishedAt.getTime();
-          }
-          
-          // One scheduled, one published: scheduled comes first
-          if (aScheduled && !bScheduled) return -1;
-          if (!aScheduled && bScheduled) return 1;
-          
-          // Fallback to createdAt
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      } else if (sortField === 'byScheduled') {
-        // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
-        sortedItems = items.sort((a, b) => {
-          const aScheduled = a.scheduledAt;
-          const bScheduled = b.scheduledAt;
-          
-          // Both have scheduledAt: sort by scheduledAt
-          if (aScheduled && bScheduled) {
-            const aTime = new Date(aScheduled).getTime();
-            const bTime = new Date(bScheduled).getTime();
-            return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
-          }
-          
-          // One has scheduledAt, one doesn't: scheduled comes first
-          if (aScheduled && !bScheduled) return -1;
-          if (!aScheduled && bScheduled) return 1;
-          
-          // Neither has scheduledAt: sort by createdAt
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      } else if (sortField === 'byPublished') {
-        // Published first (sorted by publishedAt), then others (sorted by createdAt)
-        sortedItems = items.sort((a, b) => {
-          const getLatestPublishedAt = (pub: any) => {
-            const publishedDates = pub.posts
-              .map((p: any) => p.publishedAt)
-              .filter((d: any) => d !== null);
-            if (publishedDates.length === 0) return null;
-            return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
-          };
-          
-          const aPublishedAt = getLatestPublishedAt(a);
-          const bPublishedAt = getLatestPublishedAt(b);
-          
-          // Both have publishedAt: sort by publishedAt
-          if (aPublishedAt && bPublishedAt) {
-            return sortDirection === 'desc' ? bPublishedAt.getTime() - aPublishedAt.getTime() : aPublishedAt.getTime() - bPublishedAt.getTime();
-          }
-          
-          // One has publishedAt, one doesn't: published comes first
-          if (aPublishedAt && !bPublishedAt) return -1;
-          if (!aPublishedAt && bPublishedAt) return 1;
-          
-          // Neither has publishedAt: sort by createdAt
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      }
-      
-      // Apply pagination after custom sorting
-      const offset = filters?.offset || 0;
-      const limit = filters?.limit || sortedItems.length;
-      sortedItems = sortedItems.slice(offset, offset + limit);
+      sortedItems = this.applyCustomSort(
+        items,
+        sortField,
+        sortDirection,
+        filters?.limit,
+        filters?.offset,
+      );
     }
 
     return {
@@ -786,10 +738,12 @@ export class PublicationsService {
     // Parse meta JSON for media items
     const parsedMedia = publication.media?.map(pm => ({
       ...pm,
-      media: pm.media ? {
-        ...pm.media,
-        meta: this.parseMetaJson(pm.media.meta),
-      } : pm.media,
+      media: pm.media
+        ? {
+            ...pm.media,
+            meta: this.parseMetaJson(pm.media.meta),
+          }
+        : pm.media,
     }));
 
     return {
@@ -826,11 +780,11 @@ export class PublicationsService {
     // If undefined, we keep current (handled by 'const translationGroupId = data.translationGroupId' -> undefined)
     // BUT we must check if user wants to change logic.
     // Prisma update: undefined means "do nothing", null means "set to NULL".
-    
+
     if (data.linkToPublicationId) {
       // 1. Self-linking check (Issue 9)
       if (data.linkToPublicationId === id) {
-         throw new BadRequestException('Cannot link publication to itself');
+        throw new BadRequestException('Cannot link publication to itself');
       }
 
       // 2. Fetch target
@@ -843,19 +797,23 @@ export class PublicationsService {
       }
 
       // 3. Access Check
-      if (publication.createdBy !== userId) { // Use original permission context or check again
-         await this.permissions.checkProjectAccess(targetPub.projectId, userId);
+      if (publication.createdBy !== userId) {
+        // Use original permission context or check again
+        await this.permissions.checkProjectAccess(targetPub.projectId, userId);
       }
 
       // 4. Project Scope
-      if (targetPub.projectId !== publication.projectId) { // Assuming project doesn't change on update
-         throw new BadRequestException('Cannot link publications from different projects');
+      if (targetPub.projectId !== publication.projectId) {
+        // Assuming project doesn't change on update
+        throw new BadRequestException('Cannot link publications from different projects');
       }
 
       // 5. Post Type Compatibility
       const newPostType = data.postType || publication.postType;
       if (targetPub.postType !== newPostType) {
-         throw new BadRequestException(`Cannot link publication of type ${newPostType} with ${targetPub.postType}`);
+        throw new BadRequestException(
+          `Cannot link publication of type ${newPostType} with ${targetPub.postType}`,
+        );
       }
 
       if (targetPub.translationGroupId) {
@@ -866,7 +824,9 @@ export class PublicationsService {
           where: { id: targetPub.id },
           data: { translationGroupId },
         });
-        this.logger.log(`Created new translation group ${translationGroupId} for publication ${targetPub.id}`);
+        this.logger.log(
+          `Created new translation group ${translationGroupId} for publication ${targetPub.id}`,
+        );
       }
     }
 
@@ -874,12 +834,13 @@ export class PublicationsService {
     // Only check if we are setting a NEW group ID or changing language
     // If translationGroupId is undefined, we use current publication's group (if we are checking language change)
     // Actually, if we update language OR update group, we must check.
-    
-    const effectiveGroupId = translationGroupId !== undefined ? translationGroupId : publication.translationGroupId;
+
+    const effectiveGroupId =
+      translationGroupId !== undefined ? translationGroupId : publication.translationGroupId;
     const effectiveLanguage = data.language || publication.language;
 
     if (effectiveGroupId) {
-       const existingTranslation = await this.prisma.publication.findFirst({
+      const existingTranslation = await this.prisma.publication.findFirst({
         where: {
           translationGroupId: effectiveGroupId,
           language: effectiveLanguage,
@@ -888,7 +849,9 @@ export class PublicationsService {
       });
 
       if (existingTranslation) {
-        throw new BadRequestException(`A publication with language ${effectiveLanguage} already exists in this translation group`);
+        throw new BadRequestException(
+          `A publication with language ${effectiveLanguage} already exists in this translation group`,
+        );
       }
     }
 
@@ -897,11 +860,13 @@ export class PublicationsService {
       // Validate content is filled for READY status
       if (data.status === PublicationStatus.READY) {
         const contentToCheck = data.content !== undefined ? data.content : publication.content;
-        
+
         // Check for media presence (either in update data or existing)
         const isMediaUpdating = data.media !== undefined || data.existingMediaIds !== undefined;
         const newMediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
-        const hasMedia = isMediaUpdating ? newMediaCount > 0 : (publication.media && publication.media.length > 0);
+        const hasMedia = isMediaUpdating
+          ? newMediaCount > 0
+          : publication.media && publication.media.length > 0;
 
         if (!contentToCheck && !hasMedia) {
           throw new BadRequestException('Content or Media is required when status is READY');
@@ -926,11 +891,13 @@ export class PublicationsService {
     if (data.scheduledAt !== undefined && data.scheduledAt !== null) {
       // Validate content is filled
       const contentToCheck = data.content !== undefined ? data.content : publication.content;
-      
+
       // Check for media presence (either in update data or existing)
       const isMediaUpdating = data.media !== undefined || data.existingMediaIds !== undefined;
       const newMediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
-      const hasMedia = isMediaUpdating ? newMediaCount > 0 : (publication.media && publication.media.length > 0);
+      const hasMedia = isMediaUpdating
+        ? newMediaCount > 0
+        : publication.media && publication.media.length > 0;
 
       if (!contentToCheck && !hasMedia) {
         throw new BadRequestException('Content or Media is required when setting scheduledAt');
@@ -963,21 +930,24 @@ export class PublicationsService {
         // Logic: if any media DTO field is present, we assume full replace.
         // If all are undefined, we touch nothing.
         // Note: This logic assumes that the client sends the FULL state of media.
-        media: (data.media || data.existingMediaIds) ? {
-          deleteMany: {}, // Clear existing
-          create: [
-             // New Media
-             ...(data.media || []).map((m, i) => ({
-              order: i,
-              media: { create: { ...m, meta: (m.meta || {}) as any } }
-            })),
-            // Existing Media
-            ...(data.existingMediaIds || []).map((id, i) => ({
-              order: (data.media?.length || 0) + i,
-              media: { connect: { id } }
-            })),
-          ]
-        } : undefined,
+        media:
+          data.media || data.existingMediaIds
+            ? {
+                deleteMany: {}, // Clear existing
+                create: [
+                  // New Media
+                  ...(data.media || []).map((m, i) => ({
+                    order: i,
+                    media: { create: { ...m, meta: (m.meta || {}) as any } },
+                  })),
+                  // Existing Media
+                  ...(data.existingMediaIds || []).map((id, i) => ({
+                    order: (data.media?.length || 0) + i,
+                    media: { connect: { id } },
+                  })),
+                ],
+              }
+            : undefined,
         tags: data.tags,
         status: data.status,
         language: data.language,
@@ -986,9 +956,12 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         meta: data.meta ? (data.meta as any) : undefined,
-        sourceTexts: data.sourceTexts !== undefined 
-          ? (data.appendSourceTexts ? [...publication.sourceTexts, ...data.sourceTexts] : data.sourceTexts) as any
-          : undefined,
+        sourceTexts:
+          data.sourceTexts !== undefined
+            ? ((data.appendSourceTexts
+                ? [...publication.sourceTexts, ...data.sourceTexts]
+                : data.sourceTexts) as any)
+            : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
@@ -1125,7 +1098,7 @@ export class PublicationsService {
     const startOrder = existingMedia.length > 0 ? existingMedia[0].order + 1 : 0;
 
     // Use transaction to ensure atomicity
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async tx => {
       for (let i = 0; i < media.length; i++) {
         const m = media[i];
         let mediaId = m.id;
@@ -1139,7 +1112,7 @@ export class PublicationsService {
               filename: m.filename,
               mimeType: m.mimeType,
               sizeBytes: m.sizeBytes,
-              meta: (m.meta || {}) as any,
+              meta: m.meta || {},
             },
           });
           mediaId = mediaItem.id;
@@ -1206,7 +1179,11 @@ export class PublicationsService {
    * @param mediaOrder - Array of media IDs with their new order.
    * @returns Success status.
    */
-  public async reorderMedia(publicationId: string, userId: string, mediaOrder: Array<{ id: string; order: number }>) {
+  public async reorderMedia(
+    publicationId: string,
+    userId: string,
+    mediaOrder: Array<{ id: string; order: number }>,
+  ) {
     const publication = await this.findOne(publicationId, userId);
 
     // Check if user is author or has admin rights
@@ -1228,12 +1205,11 @@ export class PublicationsService {
           data: {
             order,
           },
-        })
-      )
+        }),
+      ),
     );
 
     this.logger.log(`Reordered ${mediaOrder.length} media items in publication ${publicationId}`);
     return { success: true };
   }
 }
-

@@ -128,9 +128,7 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({});
       mockPrismaService.publication.findUnique.mockResolvedValue({ scheduledAt: null }); // Publication has no schedule
 
-      await expect(service.update(postId, userId, updateDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.update(postId, userId, updateDto)).rejects.toThrow(BadRequestException);
     });
 
     it('should validate scheduledAt: allow setting if publication has scheduledAt', async () => {

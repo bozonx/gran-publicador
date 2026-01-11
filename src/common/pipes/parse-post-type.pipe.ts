@@ -1,4 +1,4 @@
-import { BadRequestException, PipeTransform } from '@nestjs/common';
+import { BadRequestException, type PipeTransform } from '@nestjs/common';
 import { PostType } from '../../generated/prisma/client.js';
 
 /**
@@ -15,9 +15,7 @@ export class ParsePostTypePipe implements PipeTransform<string, PostType | undef
     const validTypes = Object.values(PostType);
 
     if (!validTypes.includes(upperValue)) {
-      throw new BadRequestException(
-        `Invalid post type. Allowed values: ${validTypes.join(', ')}`,
-      );
+      throw new BadRequestException(`Invalid post type. Allowed values: ${validTypes.join(', ')}`);
     }
 
     return upperValue;

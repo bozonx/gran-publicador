@@ -11,7 +11,7 @@ export class ChannelsService {
   constructor(
     private prisma: PrismaService,
     private permissions: PermissionsService,
-  ) { }
+  ) {}
 
   /**
    * Creates a new channel within a project.
@@ -49,7 +49,7 @@ export class ChannelsService {
   public async findAllForProject(
     projectId: string,
     userId: string,
-    options: { allowArchived?: boolean, isActive?: boolean, limit?: number } = {}
+    options: { allowArchived?: boolean; isActive?: boolean; limit?: number } = {},
   ) {
     await this.permissions.checkProjectAccess(projectId, userId);
 
@@ -63,7 +63,7 @@ export class ChannelsService {
       },
       include: {
         project: {
-          select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true }
+          select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
         },
         posts: {
           where: publishedPostFilter,
@@ -81,14 +81,14 @@ export class ChannelsService {
       by: ['channelId', 'status'],
       where: {
         channelId: { in: channelIds },
-        status: { in: ['PUBLISHED', 'FAILED'] }
+        status: { in: ['PUBLISHED', 'FAILED'] },
       },
       _count: {
-        id: true
-      }
+        id: true,
+      },
     });
 
-    const countsMap = new Map<string, { published: number, failed: number }>();
+    const countsMap = new Map<string, { published: number; failed: number }>();
     postCounts.forEach(pc => {
       const current = countsMap.get(pc.channelId) || { published: 0, failed: 0 };
       if (pc.status === 'PUBLISHED') current.published = pc._count.id;
@@ -99,17 +99,20 @@ export class ChannelsService {
     return channels.map(channel => {
       const { posts, credentials, preferences, project, ...channelData } = channel;
       const counts = countsMap.get(channel.id) || { published: 0, failed: 0 };
-      
+
       const channelPrefs = (preferences as any) || {};
       const projectPrefs = (project.preferences as any) || {};
       const lastPostAt = posts[0]?.publishedAt || posts[0]?.createdAt || null;
-      
+
       let isStale = false;
       if (lastPostAt) {
-          const staleDays = (channelPrefs.staleChannelsDays as number) || (projectPrefs.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
-          const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-          isStale = diffDays > staleDays;
+        const staleDays =
+          (channelPrefs.staleChannelsDays as number) ||
+          (projectPrefs.staleChannelsDays as number) ||
+          DEFAULT_STALE_CHANNELS_DAYS;
+        const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        isStale = diffDays > staleDays;
       }
 
       return {
@@ -144,7 +147,7 @@ export class ChannelsService {
       offset?: number;
       includeArchived?: boolean;
       projectIds?: string[];
-    } = {}
+    } = {},
   ) {
     const validatedLimit = Math.min(filters.limit || 50, 1000);
     const offset = filters.offset || 0;
@@ -159,8 +162,8 @@ export class ChannelsService {
 
     let searchProjectIds = userAllowedProjectIds;
     if (filters.projectIds && filters.projectIds.length > 0) {
-        searchProjectIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
-        if (searchProjectIds.length === 0) return { items: [], total: 0 };
+      searchProjectIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
+      if (searchProjectIds.length === 0) return { items: [], total: 0 };
     }
 
     const where: any = {
@@ -171,7 +174,10 @@ export class ChannelsService {
     const andConditions: any[] = [];
     if (filters.search) {
       andConditions.push({
-        OR: [{ name: { contains: filters.search } }, { channelIdentifier: { contains: filters.search } }]
+        OR: [
+          { name: { contains: filters.search } },
+          { channelIdentifier: { contains: filters.search } },
+        ],
       });
     }
 
@@ -181,10 +187,7 @@ export class ChannelsService {
     if (filters.issueType === 'inactive') where.isActive = false;
     else if (filters.issueType === 'noCredentials') {
       andConditions.push({
-        OR: [
-          { credentials: { equals: {} } },
-          { credentials: { equals: Prisma.AnyNull } }
-        ]
+        OR: [{ credentials: { equals: {} } }, { credentials: { equals: Prisma.AnyNull } }],
       });
     } else if (filters.issueType === 'failedPosts') {
       where.posts = { some: { status: 'FAILED' } };
@@ -208,14 +211,16 @@ export class ChannelsService {
       this.prisma.channel.findMany({
         where,
         include: {
-          project: { select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true } },
+          project: {
+            select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
+          },
           posts: {
             where: { status: 'PUBLISHED' },
             take: 1,
             orderBy: { publishedAt: 'desc' },
             select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
           },
-          _count: { select: { posts: { where: { status: 'PUBLISHED' } } } }
+          _count: { select: { posts: { where: { status: 'PUBLISHED' } } } },
         },
         orderBy,
         take: validatedLimit,
@@ -225,13 +230,14 @@ export class ChannelsService {
     ]);
 
     const channelIds = channels.map(c => c.id);
-    const failedPostCounts = channelIds.length > 0 
-      ? await this.prisma.post.groupBy({
-          by: ['channelId'],
-          where: { channelId: { in: channelIds }, status: 'FAILED' },
-          _count: { id: true }
-        })
-      : [];
+    const failedPostCounts =
+      channelIds.length > 0
+        ? await this.prisma.post.groupBy({
+            by: ['channelId'],
+            where: { channelId: { in: channelIds }, status: 'FAILED' },
+            _count: { id: true },
+          })
+        : [];
 
     const failedCountsMap = new Map<string, number>();
     failedPostCounts.forEach(pc => failedCountsMap.set(pc.channelId, pc._count.id));
@@ -241,12 +247,17 @@ export class ChannelsService {
       const channelPrefs = (preferences as any) || {};
       const projectPrefs = (project.preferences as any) || {};
       const lastPostAt = posts[0]?.publishedAt || posts[0]?.createdAt || null;
-      
+
       let isStale = false;
       if (lastPostAt) {
-          const staleDays = (channelPrefs.staleChannelsDays as number) || (projectPrefs.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
-          const diffDays = Math.ceil(Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24)); 
-          isStale = diffDays > staleDays;
+        const staleDays =
+          (channelPrefs.staleChannelsDays as number) ||
+          (projectPrefs.staleChannelsDays as number) ||
+          DEFAULT_STALE_CHANNELS_DAYS;
+        const diffDays = Math.ceil(
+          Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
+        );
+        isStale = diffDays > staleDays;
       }
 
       return {
@@ -271,7 +282,9 @@ export class ChannelsService {
     const channels = await this.prisma.channel.findMany({
       where: { projectId, archivedAt: { not: null } },
       include: {
-        project: { select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true } },
+        project: {
+          select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
+        },
         posts: {
           where: { status: 'PUBLISHED' },
           take: 1,
@@ -304,7 +317,9 @@ export class ChannelsService {
         archivedAt: { not: null },
       },
       include: {
-        project: { select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true } },
+        project: {
+          select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
+        },
         posts: {
           where: { status: 'PUBLISHED' },
           take: 1,
@@ -334,7 +349,9 @@ export class ChannelsService {
     const channel = await this.prisma.channel.findUnique({
       where: { id, ...(allowArchived ? {} : { archivedAt: null }) },
       include: {
-        project: { select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true } },
+        project: {
+          select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
+        },
         posts: {
           where: { status: 'PUBLISHED' },
           take: 1,
@@ -349,21 +366,26 @@ export class ChannelsService {
     const pc = await this.prisma.post.groupBy({
       by: ['status'],
       where: { channelId: id, status: { in: ['PUBLISHED', 'FAILED'] } },
-      _count: { id: true }
+      _count: { id: true },
     });
 
     const role = await this.permissions.getUserProjectRole(channel.projectId, userId);
     const { posts, credentials, preferences, project, ...channelData } = channel;
-    
+
     const channelPrefs = (preferences as any) || {};
     const projectPrefs = (project.preferences as any) || {};
     const lastPostAt = posts[0]?.publishedAt || posts[0]?.createdAt || null;
 
     let isStale = false;
     if (lastPostAt) {
-        const staleDays = (channelPrefs.staleChannelsDays as number) || (projectPrefs.staleChannelsDays as number) || DEFAULT_STALE_CHANNELS_DAYS;
-        const diffDays = Math.ceil(Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24)); 
-        isStale = diffDays > staleDays;
+      const staleDays =
+        (channelPrefs.staleChannelsDays as number) ||
+        (projectPrefs.staleChannelsDays as number) ||
+        DEFAULT_STALE_CHANNELS_DAYS;
+      const diffDays = Math.ceil(
+        Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
+      );
+      isStale = diffDays > staleDays;
     }
 
     return {
@@ -384,7 +406,9 @@ export class ChannelsService {
   public async update(id: string, userId: string, data: UpdateChannelDto) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.EDITOR,
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+      ProjectRole.EDITOR,
     ]);
 
     return this.prisma.channel.update({
@@ -404,14 +428,19 @@ export class ChannelsService {
 
   public async remove(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, [ProjectRole.OWNER, ProjectRole.ADMIN]);
+    await this.permissions.checkProjectPermission(channel.projectId, userId, [
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+    ]);
     return this.prisma.channel.delete({ where: { id } });
   }
 
   public async archive(id: string, userId: string) {
     const channel = await this.findOne(id, userId);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.EDITOR,
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+      ProjectRole.EDITOR,
     ]);
 
     return this.prisma.channel.update({
@@ -423,7 +452,9 @@ export class ChannelsService {
   public async unarchive(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.EDITOR,
+      ProjectRole.OWNER,
+      ProjectRole.ADMIN,
+      ProjectRole.EDITOR,
     ]);
 
     return this.prisma.channel.update({

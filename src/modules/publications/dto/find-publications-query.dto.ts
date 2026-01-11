@@ -2,8 +2,6 @@ import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean, IsLocale } from 'c
 import { Type, Transform } from 'class-transformer';
 import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client.js';
 
-
-
 /**
  * Allowed fields for sorting publications
  */

@@ -11,7 +11,9 @@ export function useFormatters() {
    */
   function formatDateShort(date: string | null | undefined): string {
     if (!date) return '—'
-    return d(new Date(date), 'short')
+    const dObj = new Date(date)
+    if (isNaN(dObj.getTime())) return '—'
+    return d(dObj, 'short')
   }
 
   /**
@@ -19,7 +21,9 @@ export function useFormatters() {
    */
   function formatDateWithTime(date: string | null | undefined): string {
     if (!date) return '—'
-    return d(new Date(date), {
+    const dObj = new Date(date)
+    if (isNaN(dObj.getTime())) return '—'
+    return d(dObj, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

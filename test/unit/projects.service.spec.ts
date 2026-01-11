@@ -33,6 +33,7 @@ describe('ProjectsService (unit)', () => {
     channel: {
       findMany: jest.fn() as any,
       count: jest.fn() as any,
+      groupBy: jest.fn() as any,
     },
   };
 
@@ -60,7 +61,7 @@ describe('ProjectsService (unit)', () => {
     service = moduleRef.get<ProjectsService>(ProjectsService);
 
     // Silence logger for tests
-    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => { });
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
   });
 
   afterAll(async () => {
@@ -136,7 +137,9 @@ describe('ProjectsService (unit)', () => {
 
       mockPrismaService.project.findMany.mockResolvedValue(mockProjects);
       mockPrismaService.publication.groupBy.mockResolvedValue([]);
+      mockPrismaService.post.groupBy.mockResolvedValue([]);
       mockPrismaService.$queryRaw.mockResolvedValue([]);
+      mockPrismaService.channel.groupBy.mockResolvedValue([]);
       mockPrismaService.channel.findMany.mockResolvedValue([]);
 
       const result = await service.findAllForUser(userId);

@@ -5,7 +5,10 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
 import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/client.js';
-import { CreatePublicationDto, UpdatePublicationDto, IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
+import {
+  IssueType,
+  OwnershipType,
+} from '../../src/modules/publications/dto/index.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -164,11 +167,13 @@ describe('PublicationsService (unit)', () => {
       // AND conditions should contain socialMedia and issueType filters
       expect(where.AND).toBeDefined();
       expect(where.AND).toHaveLength(2);
-      
+
       const andConditions = where.AND as any[];
-      
+
       // Social Media check
-      const socialMediaCondition = andConditions.find(c => c.posts?.some?.channel?.socialMedia === SocialMedia.TELEGRAM);
+      const socialMediaCondition = andConditions.find(
+        c => c.posts?.some?.channel?.socialMedia === SocialMedia.TELEGRAM,
+      );
       expect(socialMediaCondition).toBeDefined();
 
       // Issue Type check (OR condition)

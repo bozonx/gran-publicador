@@ -116,7 +116,7 @@ describe('MediaService (unit)', () => {
       expect(mockPrismaService.media.create).toHaveBeenCalledWith({
         data: {
           ...createDto,
-          meta: JSON.stringify(createDto.meta),
+          meta: createDto.meta,
         },
       });
     });
@@ -143,7 +143,7 @@ describe('MediaService (unit)', () => {
 
       expect(mockPrismaService.media.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          meta: '{}',
+          meta: {},
         }),
       });
     });
@@ -179,7 +179,9 @@ describe('MediaService (unit)', () => {
       mockPrismaService.media.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
-      await expect(service.findOne('non-existent')).rejects.toThrow('Media with ID non-existent not found');
+      await expect(service.findOne('non-existent')).rejects.toThrow(
+        'Media with ID non-existent not found',
+      );
     });
   });
 
@@ -193,10 +195,10 @@ describe('MediaService (unit)', () => {
       mockPrismaService.media.findMany.mockResolvedValue(mockMedia);
 
       const result = await service.findAll();
-      
+
       const expected = mockMedia.map(m => ({
         ...m,
-        meta: JSON.parse(m.meta)
+        meta: JSON.parse(m.meta),
       }));
 
       expect(result).toEqual(expected);
@@ -245,7 +247,7 @@ describe('MediaService (unit)', () => {
         where: { id: mediaId },
         data: {
           ...updateDto,
-          meta: JSON.stringify(updateDto.meta),
+          meta: updateDto.meta,
         },
       });
     });
@@ -294,7 +296,6 @@ describe('MediaService (unit)', () => {
     });
   });
 
-
   describe('validation', () => {
     it('should validate max file size in saveFile', async () => {
       const largeBuffer = Buffer.alloc(53 * 1024 * 1024); // 53MB - exceeds limit
@@ -315,7 +316,9 @@ describe('MediaService (unit)', () => {
         mimetype: 'application/x-msdownload',
       };
       await expect(service.saveFile(file)).rejects.toThrow(BadRequestException);
-      await expect(service.saveFile(file)).rejects.toThrow('Executable or script files are not allowed');
+      await expect(service.saveFile(file)).rejects.toThrow(
+        'Executable or script files are not allowed',
+      );
     });
 
     it('should reject executable files by extension', async () => {
@@ -325,7 +328,9 @@ describe('MediaService (unit)', () => {
         mimetype: 'text/plain', // Mimetype might look innocent
       };
       await expect(service.saveFile(file)).rejects.toThrow(BadRequestException);
-      await expect(service.saveFile(file)).rejects.toThrow('Executable or script file extensions are not allowed');
+      await expect(service.saveFile(file)).rejects.toThrow(
+        'Executable or script file extensions are not allowed',
+      );
     });
   });
 
@@ -337,9 +342,11 @@ describe('MediaService (unit)', () => {
           width: 100,
           height: 100,
           channels: 3,
-          background: { r: 255, g: 0, b: 0 }
-        }
-      }).jpeg().toBuffer();
+          background: { r: 255, g: 0, b: 0 },
+        },
+      })
+        .jpeg()
+        .toBuffer();
 
       const file = {
         filename: 'test.jpg',
@@ -348,12 +355,12 @@ describe('MediaService (unit)', () => {
       };
 
       // Mock mkdir and writeFile since they are imported from fs/promises
-      // In unit tests they might need mocking or we rely on the fact that 
+      // In unit tests they might need mocking or we rely on the fact that
       // they don't crash if we mock the mediaDir to a tmp one.
       // But for this test, let's just focus on the metadata part if we can.
-      
+
       const result = await (service as any).extractImageMetadata(buffer);
-      
+
       expect(result).toBeDefined();
       expect(result.width).toBe(100);
       expect(result.height).toBe(100);

@@ -1,4 +1,3 @@
-
 /**
  * Default number of days after which a channel is considered stale if not configured otherwise.
  */

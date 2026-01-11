@@ -1,4 +1,4 @@
-import { PublicationStatus, PostStatus } from '../../../generated/prisma/client.js';
+import type { PublicationStatus, PostStatus } from '../../../generated/prisma/client.js';
 
 export class PublishResponseDto {
   success!: boolean;

@@ -20,9 +20,9 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ParsePublicationStatusPipe } from '../../common/pipes/parse-publication-status.pipe.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
-import { 
-  CreatePostsDto, 
-  CreatePublicationDto, 
+import {
+  CreatePostsDto,
+  CreatePublicationDto,
   UpdatePublicationDto,
   FindPublicationsQueryDto,
   PublicationSortBy,
@@ -73,11 +73,11 @@ export class PublicationsController {
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindPublicationsQueryDto,
   ): Promise<PaginatedResponse<any>> {
-    const { 
-      projectId, 
-      status, 
-      limit = 20, 
-      offset = 0, 
+    const {
+      projectId,
+      status,
+      limit = 20,
+      offset = 0,
       includeArchived = false,
       sortBy,
       sortOrder,
@@ -86,7 +86,7 @@ export class PublicationsController {
       language,
       ownership,
       socialMedia,
-      issueType
+      issueType,
     } = query;
 
     // Validate and cap limit

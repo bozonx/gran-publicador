@@ -1,16 +1,16 @@
-import { 
-  Body, 
-  Controller, 
-  Delete, 
-  Get, 
-  Param, 
-  Patch, 
-  Post, 
-  Req, 
-  Res, 
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
   Request,
   BadRequestException,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { MultipartFile } from '@fastify/multipart';
@@ -33,11 +33,11 @@ export class MediaController {
   @Post('upload')
   @UseGuards(JwtOrApiTokenGuard)
   async upload(@Req() req: FastifyRequest) {
-    if (!req.isMultipart || !req.isMultipart()) {
+    if (!req.isMultipart?.()) {
       throw new BadRequestException('Request is not multipart');
     }
 
-    const part = await req.file() as MultipartFile | undefined;
+    const part = await req.file();
     if (!part) {
       throw new BadRequestException('No file uploaded');
     }
@@ -47,7 +47,7 @@ export class MediaController {
     const fileInfo = await this.mediaService.saveFile({
       filename: part.filename,
       buffer: buffer,
-      mimetype: part.mimetype
+      mimetype: part.mimetype,
     });
 
     // Create the media record
@@ -58,7 +58,7 @@ export class MediaController {
       filename: fileInfo.filename,
       mimeType: fileInfo.mimetype,
       sizeBytes: fileInfo.size,
-      meta: fileInfo.metadata || {}
+      meta: fileInfo.metadata || {},
     });
   }
 
@@ -82,8 +82,8 @@ export class MediaController {
       sizeBytes: fileInfo.size,
       meta: {
         originalUrl: fileInfo.originalUrl,
-        ...(fileInfo.metadata || {})
-      }
+        ...(fileInfo.metadata || {}),
+      },
     });
   }
 
@@ -95,11 +95,7 @@ export class MediaController {
 
   @Get(':id/file')
   @UseGuards(JwtOrApiTokenGuard)
-  async getFile(
-    @Param('id') id: string, 
-    @Req() req: UnifiedAuthRequest,
-    @Res() res: FastifyReply
-  ) {
+  async getFile(@Param('id') id: string, @Req() req: UnifiedAuthRequest, @Res() res: FastifyReply) {
     // Stream media file - res.raw is the native Node.js ServerResponse
     const range = req.headers.range;
     return this.mediaService.streamMediaFile(id, res.raw, req.user.userId, range);
@@ -110,14 +106,14 @@ export class MediaController {
   async getThumbnail(
     @Param('id') id: string,
     @Req() req: UnifiedAuthRequest & { query: { w?: string; h?: string } },
-    @Res() res: FastifyReply
+    @Res() res: FastifyReply,
   ) {
     // Check access even for thumbnails
     await this.mediaService.checkMediaAccess(id, req.user.userId);
-    
+
     const width = req.query.w ? parseInt(req.query.w, 10) : 400;
     const height = req.query.h ? parseInt(req.query.h, 10) : 400;
-    
+
     return this.mediaService.streamThumbnail(id, res.raw, width, height);
   }
 
@@ -152,5 +148,4 @@ export class MediaController {
   remove(@Param('id') id: string) {
     return this.mediaService.remove(id);
   }
-
 }
