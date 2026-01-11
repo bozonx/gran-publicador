@@ -9,6 +9,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyStatic from '@fastify/static';
 import multipart from '@fastify/multipart';
+import fastifyHelmet from '@fastify/helmet';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
@@ -81,6 +82,27 @@ async function bootstrap() {
   const __dirname = path.dirname(__filename);
   const staticRoot = path.resolve(__dirname, '..', '..', 'ui', '.output', 'public');
   logger.log(`Serving static files from: ${staticRoot}`, 'Bootstrap');
+
+  // Register helmet for security headers
+  // We configure CSP to allow Telegram widgets and Nuxt scripts
+  await app.register(fastifyHelmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://telegram.org', 'https://*.telegram.org'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'], // Allow external images (like from Telegram)
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'", 'https:', 'wss:', 'http:'], // Allow connections to API and external services
+        frameSrc: [
+          "'self'",
+          'https://telegram.org',
+          'https://*.telegram.org',
+          'https://oauth.telegram.org',
+        ], // Allow Telegram login widget
+      },
+    },
+  });
 
   // Register the fastify-static plugin to serve the frontend files
   await app.register(fastifyStatic, {
