@@ -352,9 +352,12 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`${logPrefix} Sending request to library...`);
 
-      const timeoutMs = this.configService.get<AppConfig>('app')!.postProcessingTimeoutMs;
+      const timeoutSeconds = this.configService.get<AppConfig>('app')!.postProcessingTimeoutSeconds;
       const timeoutPromise = new Promise<PostResponseDto>((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout reached (${timeoutMs}ms)`)), timeoutMs),
+        setTimeout(
+          () => reject(new Error(`Timeout reached (${timeoutSeconds}s)`)),
+          timeoutSeconds * 1000,
+        ),
       );
 
       const response = await Promise.race([this.postingClient.post(request), timeoutPromise]);

@@ -114,13 +114,13 @@ export class AppConfig {
   public schedulerWindowMinutes!: number;
 
   /**
-   * Timeout for post processing in milliseconds.
-   * Defined by POST_PROCESSING_TIMEOUT_MS environment variable.
-   * Default: 30000
+   * Timeout for post processing in seconds.
+   * Defined by POST_PROCESSING_TIMEOUT_SECONDS environment variable.
+   * Default: 30
    */
   @IsInt()
-  @Min(100)
-  public postProcessingTimeoutMs!: number;
+  @Min(1)
+  public postProcessingTimeoutSeconds!: number;
 }
 
 export default registerAs('app', (): AppConfig => {
@@ -147,7 +147,7 @@ export default registerAs('app', (): AppConfig => {
     // Scheduler Config
     schedulerIntervalSeconds: parseInt(process.env.SCHEDULER_INTERVAL_SECONDS ?? '60', 10),
     schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
-    postProcessingTimeoutMs: parseInt(process.env.POST_PROCESSING_TIMEOUT_MS ?? '30000', 10),
+    postProcessingTimeoutSeconds: parseInt(process.env.POST_PROCESSING_TIMEOUT_SECONDS ?? '30', 10),
   });
 
   // Perform synchronous validation of the configuration object

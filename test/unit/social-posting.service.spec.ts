@@ -41,7 +41,7 @@ describe('SocialPostingService (unit)', () => {
   const mockConfigService = {
     get: jest.fn((key) => {
       if (key === 'app') {
-        return { postProcessingTimeoutMs: 1000 };
+        return { postProcessingTimeoutSeconds: 1 };
       }
       return null;
     }),
@@ -311,7 +311,7 @@ describe('SocialPostingService (unit)', () => {
       const result = await service.publishPublication(pubId);
 
       expect(result.data?.results?.[0]?.success).toBe(false);
-      expect(result.data?.results?.[0]?.error).toContain('Timeout reached');
+      expect(result.data?.results?.[0]?.error).toContain('Timeout reached (1s)');
     });
   });
 });
