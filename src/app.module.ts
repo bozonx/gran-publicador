@@ -13,6 +13,7 @@ import { ChannelsModule } from './modules/channels/channels.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { PostsModule } from './modules/posts/posts.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ProjectsModule } from './modules/projects/projects.module.js';
 import { PublicationsModule } from './modules/publications/publications.module.js';
 import { UsersModule } from './modules/users/users.module.js';
@@ -104,6 +105,7 @@ import { ShutdownModule } from './common/services/shutdown.module.js';
         };
       },
     }),
+    ScheduleModule.forRoot(),
     ShutdownModule,
     HealthModule,
     PrismaModule,

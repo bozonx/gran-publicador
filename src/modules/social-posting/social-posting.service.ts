@@ -211,6 +211,27 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
 
+      // Skip already successfully published posts
+      if (post.status === PostStatus.PUBLISHED) {
+        results.push({
+          postId: post.id,
+          channelId: post.channelId,
+          success: true,
+        });
+        continue;
+      }
+
+      // Skip posts marked as expired
+      if (post.status === PostStatus.FAILED && post.errorMessage === 'EXPIRED') {
+        results.push({
+          postId: post.id,
+          channelId: post.channelId,
+          success: false,
+          error: 'EXPIRED',
+        });
+        continue;
+      }
+
       try {
         const channelValidation = this.validateChannelReady(post.channel);
         if (!channelValidation.valid) {

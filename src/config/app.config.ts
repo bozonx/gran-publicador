@@ -94,6 +94,24 @@ export class AppConfig {
   @IsInt()
   @Min(1000)
   public shutdownTimeoutMs!: number;
+
+  /**
+   * Scheduler interval in seconds.
+   * Defined by SCHEDULER_INTERVAL_SECONDS environment variable.
+   * Default: 60
+   */
+  @IsInt()
+  @Min(1)
+  public schedulerIntervalSeconds!: number;
+
+  /**
+   * Scheduler window for publications in minutes.
+   * Defined by SCHEDULER_WINDOW_MINUTES environment variable.
+   * Default: 10
+   */
+  @IsInt()
+  @Min(1)
+  public schedulerWindowMinutes!: number;
 }
 
 export default registerAs('app', (): AppConfig => {
@@ -116,6 +134,10 @@ export default registerAs('app', (): AppConfig => {
 
     // Shutdown Config
     shutdownTimeoutMs: parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '30000', 10),
+
+    // Scheduler Config
+    schedulerIntervalSeconds: parseInt(process.env.SCHEDULER_INTERVAL_SECONDS ?? '60', 10),
+    schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
   });
 
   // Perform synchronous validation of the configuration object
