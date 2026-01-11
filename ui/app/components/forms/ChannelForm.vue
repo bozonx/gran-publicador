@@ -716,7 +716,19 @@ function setDefaultFooter(id: string) {
 
       <!-- Footers Section -->
       <div v-if="visibleSections.includes('footers')" :class="[visibleSections.some(s => ['general', 'credentials', 'preferences'].includes(s)) ? 'mt-8' : '']" class="space-y-4">
-        <div :class="FORM_SPACING.sectionDivider">
+        <Teleport defer v-if="isEditMode" to="#channel-footers-actions">
+          <UButton
+            icon="i-heroicons-plus"
+            size="xs"
+            color="primary"
+            variant="soft"
+            @click="openAddFooter"
+          >
+            {{ t('channel.addFooter') }}
+          </UButton>
+        </Teleport>
+
+        <div v-if="!isEditMode" :class="FORM_SPACING.sectionDivider">
           <div class="flex items-center justify-between mb-4">
             <h3 :class="FORM_STYLES.sectionTitle" class="mb-0">
               {{ t('channel.footers') }}
@@ -750,20 +762,18 @@ function setDefaultFooter(id: string) {
           <div
             v-for="footer in state.preferences.footers"
             :key="footer.id"
-            class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+            class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
+            @click="openEditFooter(footer)"
           >
             <div class="flex items-center gap-3">
-              <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <div 
+                class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 -ml-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click.stop
+              >
                 <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
               </div>
-              <UIcon 
-                v-if="footer.isDefault" 
-                name="i-heroicons-star-20-solid" 
-                class="w-4 h-4 text-primary-500" 
-              />
-              <div class="w-4 h-4" v-else></div>
               <div>
-                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                   {{ footer.name }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-md">
@@ -772,19 +782,19 @@ function setDefaultFooter(id: string) {
               </div>
             </div>
             <div class="flex items-center gap-1">
-              <UButton
-                icon="i-heroicons-pencil-square"
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                @click="openEditFooter(footer)"
+              <UIcon 
+                v-if="footer.isDefault" 
+                name="i-heroicons-star-20-solid" 
+                class="w-4 h-4 text-primary-500 mr-2" 
               />
+              <div class="w-4 h-4 mr-2" v-else></div>
+              
               <UButton
                 icon="i-heroicons-trash"
                 size="xs"
                 variant="ghost"
                 color="error"
-                @click="deleteFooter(footer.id)"
+                @click.stop="deleteFooter(footer.id)"
               />
             </div>
           </div>
@@ -806,18 +816,20 @@ function setDefaultFooter(id: string) {
             <div
               v-for="footer in deletedFooters"
               :key="footer.id"
-              class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/50 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-60"
+              class="flex items-center justify-between py-1.5 px-3 bg-gray-50/30 dark:bg-gray-800/20 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50 hover:opacity-80 transition-opacity"
             >
-              <div class="flex items-center gap-3">
-                <div class="text-xs">
-                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ footer.name }}</span>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-trash" class="w-3.5 h-3.5 text-gray-400" />
+                <div class="text-xs truncate max-w-[200px]">
+                  <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ footer.name }}</span>
                 </div>
               </div>
               <UButton
                 icon="i-heroicons-arrow-path"
                 size="xs"
-                variant="soft"
+                variant="ghost"
                 color="primary"
+                class="scale-90"
                 @click="restoreFooter(footer)"
               >
                 {{ t('common.restore', 'Restore') }}
