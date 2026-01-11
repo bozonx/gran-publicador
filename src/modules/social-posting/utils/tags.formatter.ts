@@ -1,9 +1,16 @@
-export type TagStringCase = 'camelCase' | 'pascalCase' | 'snake_case' | 'kebab-case' | 'none';
-export type TagLetterCase = 'uppercase' | 'lowercase' | 'none';
+export type TagCase = 
+  | 'camelCase' 
+  | 'pascalCase' 
+  | 'snake_case' 
+  | 'SNAKE_CASE' 
+  | 'kebab-case' 
+  | 'KEBAB-CASE' 
+  | 'lowercase' 
+  | 'uppercase' 
+  | 'none';
 
 export interface TagFormatOptions {
-  stringCase?: TagStringCase;
-  letterCase?: TagLetterCase;
+  tagCase?: TagCase;
 }
 
 export class TagsFormatter {
@@ -14,28 +21,33 @@ export class TagsFormatter {
   static format(tags: string | null | undefined, options: TagFormatOptions = {}): string {
     if (!tags) return '';
 
-    // Split into individual tags
-    const individualTags = tags
-      .split(/[\s,]+/)
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0)
-      .map(tag => tag.startsWith('#') ? tag.slice(1) : tag);
+    const tagCase = options.tagCase || 'none';
+
+    // 1. Split into chunks by comma
+    const chunks = tags.split(',').map(c => c.trim()).filter(c => c.length > 0);
+    const individualTags: string[] = [];
+
+    for (const chunk of chunks) {
+      if (tagCase !== 'none') {
+        // If we have a case transformation, the whole chunk (even with spaces) is one potential tag
+        individualTags.push(chunk.startsWith('#') ? chunk.slice(1) : chunk);
+      } else {
+        // If no case transformation, split the chunk further by whitespace (standard behavior)
+        const subTags = chunk.split(/\s+/)
+          .map(t => t.trim())
+          .filter(t => t.length > 0)
+          .map(t => t.startsWith('#') ? t.slice(1) : t);
+        individualTags.push(...subTags);
+      }
+    }
 
     if (individualTags.length === 0) return '';
 
     const formattedTags = individualTags.map(tag => {
       let result = tag;
 
-      // 1. Apply string case (camel, snake, etc.)
-      if (options.stringCase && options.stringCase !== 'none') {
-        result = this.convertStringCase(result, options.stringCase);
-      }
-
-      // 2. Apply letter case (upper, lower)
-      if (options.letterCase === 'uppercase') {
-        result = result.toUpperCase();
-      } else if (options.letterCase === 'lowercase') {
-        result = result.toLowerCase();
+      if (tagCase !== 'none') {
+        result = this.convertStringCase(result, tagCase);
       }
 
       return `#${result}`;
@@ -44,13 +56,14 @@ export class TagsFormatter {
     return formattedTags.join(' ');
   }
 
-  private static convertStringCase(str: string, targetCase: TagStringCase): string {
-    // Break into parts (words) based on common delimiters (space, dash, underscore, or camelCase)
+  private static convertStringCase(str: string, targetCase: TagCase): string {
+    // Break into parts (words) based on common delimiters
+    // Use Unicode-aware regex for camelCase splitting (\p{Ll} is lower, \p{Lu} is upper)
     const words = str
-      .replace(/([a-z])([A-Z])/g, '$1 $2') // split camelCase
-      .replace(/[-_]/g, ' ')               // replace - and _ with spaces
-      .toLowerCase()
+      .replace(/(\p{Ll})(\p{Lu})/gu, '$1 $2') 
+      .replace(/[-_]/g, ' ')                 
       .split(/\s+/)
+      .map(w => w.toLowerCase())
       .filter(w => w.length > 0);
 
     if (words.length === 0) return str;
@@ -62,8 +75,16 @@ export class TagsFormatter {
         return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
       case 'snake_case':
         return words.join('_');
+      case 'SNAKE_CASE':
+        return words.join('_').toUpperCase();
       case 'kebab-case':
         return words.join('-');
+      case 'KEBAB-CASE':
+        return words.join('-').toUpperCase();
+      case 'lowercase':
+        return words.join(' ');
+      case 'uppercase':
+        return words.join(' ').toUpperCase();
       default:
         return str;
     }

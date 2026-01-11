@@ -380,6 +380,18 @@
     "templateDeleteConfirm": "Вы уверены, что хотите удалить этот шаблон?",
     "templateReset": "Сбросить блоки",
     "templateSectionDesc": "Настройте правила автоматического формирования текста поста для этого канала.",
+    "templateTagCase": "Регистр и стиль тегов",
+    "tagCaseOptions": {
+      "none": "Без изменений",
+      "camelCase": "camelCase",
+      "pascalCase": "PascalCase",
+      "snake_case": "snake_case",
+      "SNAKE_CASE": "SNAKE_CASE",
+      "kebab-case": "kebab-case",
+      "KEBAB-CASE": "KEBAB-CASE",
+      "lowercase": "low case (пробелы)",
+      "uppercase": "UPPER CASE (пробелы)"
+    },
     "noFooters": "Нет созданных футеров",
     "footerDeleteConfirm": "Вы уверены, что хотите удалить этот футер?",
     "footerNamePlaceholder": "Подпись для Telegram",

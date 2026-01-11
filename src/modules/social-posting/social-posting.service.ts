@@ -225,6 +225,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         }
 
         const result = await this.publishSinglePost(post, post.channel, publication);
+        this.logger.log(`[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`);
         results.push({
           postId: post.id,
           channelId: post.channelId,
@@ -234,6 +235,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       } catch (error: any) {
         this.logger.error(
           `[publishPublication] Error publishing post ${post.id}: ${error.message}`,
+          error.stack,
         );
         results.push({
           postId: post.id,
@@ -321,7 +323,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (post.scheduledAt || publication.scheduledAt) {
-        request.scheduledAt = (post.scheduledAt || publication.scheduledAt).toISOString();
+        request.scheduledAt = new Date(post.scheduledAt || publication.scheduledAt).toISOString();
       }
 
       this.logger.log(`${logPrefix} Sending request to library...`);

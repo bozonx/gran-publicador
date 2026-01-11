@@ -1,8 +1,7 @@
 import { PostType } from '../../../generated/prisma/client.js';
 import { 
   TagsFormatter, 
-  TagStringCase, 
-  TagLetterCase 
+  TagCase
 } from './tags.formatter.js';
 
 export interface TemplateBlock {
@@ -10,8 +9,7 @@ export interface TemplateBlock {
   insert: 'title' | 'content' | 'description' | 'tags';
   before: string;
   after: string;
-  stringCase?: TagStringCase;
-  letterCase?: TagLetterCase;
+  tagCase?: TagCase;
 }
 
 export interface ChannelPostTemplate {
@@ -79,8 +77,7 @@ export class SocialPostingBodyFormatter {
           break;
         case 'tags':
           value = TagsFormatter.format(data.tags, {
-            stringCase: block.stringCase,
-            letterCase: block.letterCase,
+            tagCase: block.tagCase,
           });
           break;
       }

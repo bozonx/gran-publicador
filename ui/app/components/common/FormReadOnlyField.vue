@@ -26,14 +26,18 @@ const { d } = useI18n()
 const displayValue = computed(() => {
   if (props.value === null || props.value === undefined) return '—'
   
-  if (props.formatAsDate && typeof props.value === 'string') {
-    return d(new Date(props.value), {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+  if (props.formatAsDate) {
+    const date = new Date(props.value as string | number | Date)
+    // Check if date is valid
+    if (!isNaN(date.getTime())) {
+      return d(date, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    }
   }
   
   return String(props.value)

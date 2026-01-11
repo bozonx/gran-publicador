@@ -51,7 +51,7 @@ export class SocialPostingRequestFormatter {
       },
       body,
       bodyFormat: isTelegram ? 'md' : 'html', // Telegram needs md, others usually html or plain
-      idempotencyKey: `post-${post.id}-${post.updatedAt.getTime()}`,
+      idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,
     };

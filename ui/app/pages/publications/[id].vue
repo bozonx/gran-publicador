@@ -390,6 +390,12 @@ async function handlePublishNow() {
       
       // Refresh publication
       await fetchPublication(currentPublication.value.id)
+    } else {
+      toast.add({
+        title: t('common.error'),
+        description: result.message || t('publication.publishError'),
+        color: 'error'
+      })
     }
   } catch (error: any) {
     toast.add({
