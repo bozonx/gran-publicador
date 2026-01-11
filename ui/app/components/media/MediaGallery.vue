@@ -426,6 +426,18 @@ watch(isModalOpen, (isOpen) => {
   }
 })
 
+// Swipe navigation
+const swipeElement = ref<HTMLElement | null>(null)
+const { isSwiping, direction } = useSwipe(swipeElement, {
+  onSwipeEnd(e: TouchEvent, direction: 'left' | 'right' | 'up' | 'down' | 'none') {
+    if (direction === 'left') {
+      navigateToNextMedia()
+    } else if (direction === 'right') {
+      navigateToPreviousMedia()
+    }
+  },
+})
+
 // Cleanup on unmount
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
@@ -777,7 +789,10 @@ const emit = defineEmits<Emits>()
           />
           
           <!-- Media content -->
-          <div class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden">
+          <div 
+            ref="swipeElement"
+            class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden touch-pan-y"
+          >
             <img
               v-if="selectedMedia.type === 'IMAGE'"
               :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
