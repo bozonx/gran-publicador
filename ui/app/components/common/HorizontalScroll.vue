@@ -68,12 +68,39 @@ onUnmounted(() => {
 
 <style scoped>
 .horizontal-scroll-container {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none; /* Firefox hide by default */
+  -ms-overflow-style: none;  /* IE and Edge hide by default */
   -webkit-overflow-scrolling: touch;
 }
 
 .horizontal-scroll-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none; /* Chrome, Safari, Opera hide by default */
+}
+
+/* Show scrollbar on desktop (>= 1024px) */
+@media (min-width: 1024px) {
+  .horizontal-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent; /* gray-400 with opacity */
+  }
+
+  .horizontal-scroll-container::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .horizontal-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .horizontal-scroll-container::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+    border: 1px solid transparent;
+  }
+
+  .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.8);
+  }
 }
 </style>
