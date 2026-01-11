@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PublicationQueryBuilder } from './utils/publication-query.builder.js';
 import {
   CreatePublicationDto,
   UpdatePublicationDto,
@@ -62,136 +63,6 @@ export class PublicationsService {
   };
 
   /**
-   * Build WHERE clause for publication queries with filters.
-   * Extracted to avoid code duplication between findAll and findAllForUser.
-   */
-  private buildWhereClause(
-    filters: {
-      status?: PublicationStatus | PublicationStatus[];
-      includeArchived?: boolean;
-      channelId?: string;
-      socialMedia?: SocialMedia;
-      ownership?: OwnershipType;
-      issueType?: IssueType;
-      search?: string;
-      language?: string;
-    },
-    userId: string,
-    projectId?: string,
-    userAllowedProjectIds?: string[],
-  ): Prisma.PublicationWhereInput {
-    const where: Prisma.PublicationWhereInput = {};
-    const conditions: Prisma.PublicationWhereInput[] = [];
-
-    // Project filter & Scoping
-    if (projectId) {
-      where.projectId = projectId;
-    } else if (userAllowedProjectIds) {
-      where.projectId = { in: userAllowedProjectIds };
-    } else {
-      where.project = {
-        members: {
-          some: { userId },
-        },
-      };
-    }
-
-    // Archive filter
-    if (!filters?.includeArchived) {
-      where.archivedAt = null;
-      // We need to merge project criteria if it exists
-      if (where.project) {
-        (where.project as any).archivedAt = null;
-      } else {
-        where.project = { archivedAt: null };
-      }
-    } else {
-      where.OR = [{ archivedAt: { not: null } }, { project: { archivedAt: { not: null } } }];
-    }
-
-    // Status filter
-    if (filters?.status) {
-      if (Array.isArray(filters.status)) {
-        where.status = { in: filters.status };
-      } else {
-        where.status = filters.status;
-      }
-    }
-
-    // Filter by channel (publications that have posts in this channel)
-    if (filters?.channelId) {
-      conditions.push({
-        posts: {
-          some: {
-            channelId: filters.channelId,
-          },
-        },
-      });
-    }
-
-    // Filter by Social Media
-    if (filters?.socialMedia) {
-      conditions.push({
-        posts: {
-          some: {
-            channel: {
-              socialMedia: filters.socialMedia,
-            },
-          },
-        },
-      });
-    }
-
-    // Filter by Ownership
-    if (filters?.ownership) {
-      if (filters.ownership === OwnershipType.OWN) {
-        where.createdBy = userId;
-      } else if (filters.ownership === OwnershipType.NOT_OWN) {
-        where.createdBy = { not: userId };
-      }
-    }
-
-    // Filter by Issue Type
-    if (filters?.issueType) {
-      if (filters.issueType === IssueType.FAILED) {
-        conditions.push({
-          OR: [
-            { status: PublicationStatus.FAILED },
-            { posts: { some: { status: PostStatus.FAILED } } },
-          ],
-        });
-      } else if (filters.issueType === IssueType.PARTIAL) {
-        where.status = PublicationStatus.PARTIAL;
-      } else if (filters.issueType === IssueType.EXPIRED) {
-        where.status = PublicationStatus.EXPIRED;
-      }
-    }
-
-    // Text search across title, description, and content
-    // Note: SQLite LIKE is case-sensitive for non-ASCII (Cyrillic) characters
-    // For true case-insensitive search, would need LOWER() in raw SQL
-    if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search } },
-        { description: { contains: filters.search } },
-        { content: { contains: filters.search } },
-      ];
-    }
-
-    // Filter by language
-    if (filters?.language) {
-      where.language = filters.language;
-    }
-
-    // Apply AND conditions
-    if (conditions.length > 0) {
-      where.AND = conditions;
-    }
-
-    return where;
-  }
-
-  /**
    * Return meta object, ensuring it's an object.
    */
   private parseMetaJson(meta: any): Record<string, any> {
@@ -206,131 +77,13 @@ export class PublicationsService {
   }
 
   /**
-   * Prepare Prisma orderBy and determine if custom sorting is needed.
+   * Prepare Prisma orderBy clauses.
    */
-  private prepareSortParams(sortField: string, sortDirection: 'asc' | 'desc') {
-    let orderBy: Prisma.PublicationOrderByWithRelationInput = {};
-    let customSort = false;
-
-    // For chronology, byScheduled, and byPublished, we need custom sorting
-    if (sortField === 'chronology' || sortField === 'byScheduled' || sortField === 'byPublished') {
-      customSort = true;
-      // We'll sort after fetching
-      orderBy = { createdAt: 'desc' }; // Default order for fetching
-    } else {
-      // Standard sorting
-      (orderBy as any)[sortField] = sortDirection;
-    }
-
-    return { orderBy, customSort };
-  }
-
-  /**
-   * Apply custom in-memory sorting for complex fields.
-   */
-  private applyCustomSort(
-    items: any[],
-    sortField: string,
-    sortDirection: 'asc' | 'desc',
-    limit?: number,
-    offset?: number,
-  ) {
-    const sortedItems = [...items];
-
-    if (sortField === 'chronology') {
-      // Chronology: scheduled (latest to nearest) → published (recent to old)
-      sortedItems.sort((a, b) => {
-        const aScheduled = a.scheduledAt;
-        const bScheduled = b.scheduledAt;
-
-        // Get the latest publishedAt from posts
-        const getLatestPublishedAt = (pub: any) => {
-          const publishedDates = pub.posts
-            .map((p: any) => p.publishedAt)
-            .filter((d: any) => d !== null);
-          if (publishedDates.length === 0) return null;
-          return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
-        };
-
-        const aPublishedAt = getLatestPublishedAt(a);
-        const bPublishedAt = getLatestPublishedAt(b);
-
-        // Both scheduled: sort by scheduledAt DESC (latest first)
-        if (aScheduled && bScheduled) {
-          return new Date(bScheduled).getTime() - new Date(aScheduled).getTime();
-        }
-
-        // Both published: sort by publishedAt DESC (recent first)
-        if (aPublishedAt && bPublishedAt) {
-          return bPublishedAt.getTime() - aPublishedAt.getTime();
-        }
-
-        // One scheduled, one published: scheduled comes first
-        if (aScheduled && !bScheduled) return -1;
-        if (!aScheduled && bScheduled) return 1;
-
-        // One published, one scheduled: already handled (scheduled first)
-        // One published, one neither: published comes first
-        if (aPublishedAt && !bPublishedAt) return -1;
-        if (!aPublishedAt && bPublishedAt) return 1;
-
-        // Fallback to createdAt
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-    } else if (sortField === 'byScheduled') {
-      // Scheduled first (sorted by scheduledAt), then others (sorted by createdAt)
-      sortedItems.sort((a, b) => {
-        const aScheduled = a.scheduledAt;
-        const bScheduled = b.scheduledAt;
-
-        // Both have scheduledAt: sort by scheduledAt
-        if (aScheduled && bScheduled) {
-          const aTime = new Date(aScheduled).getTime();
-          const bTime = new Date(bScheduled).getTime();
-          return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
-        }
-
-        // One has scheduledAt, one doesn't: scheduled comes first
-        if (aScheduled && !bScheduled) return -1;
-        if (!aScheduled && bScheduled) return 1;
-
-        // Neither has scheduledAt: sort by createdAt
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-    } else if (sortField === 'byPublished') {
-      // Published first (sorted by publishedAt), then others (sorted by createdAt)
-      sortedItems.sort((a, b) => {
-        const getLatestPublishedAt = (pub: any) => {
-          const publishedDates = pub.posts
-            .map((p: any) => p.publishedAt)
-            .filter((d: any) => d !== null);
-          if (publishedDates.length === 0) return null;
-          return new Date(Math.max(...publishedDates.map((d: any) => new Date(d).getTime())));
-        };
-
-        const aPublishedAt = getLatestPublishedAt(a);
-        const bPublishedAt = getLatestPublishedAt(b);
-
-        // Both have publishedAt: sort by publishedAt
-        if (aPublishedAt && bPublishedAt) {
-          return sortDirection === 'desc'
-            ? bPublishedAt.getTime() - aPublishedAt.getTime()
-            : aPublishedAt.getTime() - bPublishedAt.getTime();
-        }
-
-        // One has publishedAt, one doesn't: published comes first
-        if (aPublishedAt && !bPublishedAt) return -1;
-        if (!aPublishedAt && bPublishedAt) return 1;
-
-        // Neither has publishedAt: sort by createdAt
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-    }
-
-    // Apply pagination after custom sorting
-    const finalOffset = offset || 0;
-    const finalLimit = limit || sortedItems.length;
-    return sortedItems.slice(finalOffset, finalOffset + finalLimit);
+  private prepareOrderBy(sortField?: string, sortDirection?: 'asc' | 'desc') {
+    return PublicationQueryBuilder.getOrderBy(
+      sortField || 'chronology',
+      sortDirection || 'desc',
+    );
   }
 
   /**
@@ -500,13 +253,8 @@ export class PublicationsService {
   ) {
     await this.permissions.checkProjectAccess(projectId, userId);
 
-    const where = this.buildWhereClause(filters || {}, userId, projectId);
-
-    // Dynamic sorting
-    const sortField = filters?.sortBy || 'chronology';
-    const sortDirection = filters?.sortOrder || 'desc';
-
-    const { orderBy, customSort } = this.prepareSortParams(sortField, sortDirection);
+    const where = PublicationQueryBuilder.buildWhere(userId, projectId, filters);
+    const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -546,27 +294,14 @@ export class PublicationsService {
           },
         },
         orderBy,
-        take: customSort ? undefined : filters?.limit,
-        skip: customSort ? undefined : filters?.offset,
+        take: filters?.limit,
+        skip: filters?.offset,
       }),
       this.prisma.publication.count({ where }),
     ]);
 
-    // Apply custom sorting if needed
-    let sortedItems = items;
-
-    if (customSort) {
-      sortedItems = this.applyCustomSort(
-        items,
-        sortField,
-        sortDirection,
-        filters?.limit,
-        filters?.offset,
-      );
-    }
-
     return {
-      items: sortedItems.map((item: any) => ({
+      items: items.map((item: any) => ({
         ...item,
         meta: this.parseMetaJson(item.meta),
         sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
@@ -620,14 +355,8 @@ export class PublicationsService {
       return { items: [], total: 0 };
     }
 
-    // 2. Build filter with explicit projectId list
-    const where = this.buildWhereClause(filters || {}, userId, undefined, userProjectIds);
-
-    // Dynamic sorting
-    const sortField = filters?.sortBy || 'chronology';
-    const sortDirection = filters?.sortOrder || 'desc';
-
-    const { orderBy, customSort } = this.prepareSortParams(sortField, sortDirection);
+    const where = PublicationQueryBuilder.buildWhere(userId, undefined, filters, userProjectIds);
+    const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
 
     const [items, total] = await Promise.all([
       this.prisma.publication.findMany({
@@ -667,27 +396,14 @@ export class PublicationsService {
           },
         },
         orderBy,
-        take: customSort ? undefined : filters?.limit,
-        skip: customSort ? undefined : filters?.offset,
+        take: filters?.limit,
+        skip: filters?.offset,
       }),
       this.prisma.publication.count({ where }),
     ]);
 
-    // Apply custom sorting if needed
-    let sortedItems = items;
-
-    if (customSort) {
-      sortedItems = this.applyCustomSort(
-        items,
-        sortField,
-        sortDirection,
-        filters?.limit,
-        filters?.offset,
-      );
-    }
-
     return {
-      items: sortedItems.map((item: any) => ({
+      items: items.map((item: any) => ({
         ...item,
         meta: this.parseMetaJson(item.meta),
         sourceTexts: this.parseSourceTextsJson(item.sourceTexts),

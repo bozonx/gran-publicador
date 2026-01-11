@@ -534,6 +534,8 @@ const channelProblems = computed(() => {
                             :key="post.id"
                             :publication="mapPostToPublication(post)"
                             show-status
+                            show-date
+                            date-type="scheduled"
                             is-problematic
                         />
                     </div>

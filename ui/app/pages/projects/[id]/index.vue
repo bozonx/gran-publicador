@@ -459,6 +459,8 @@ const projectProblems = computed(() => {
                 :key="pub.id"
                 :publication="pub"
                 show-status
+                show-date
+                date-type="scheduled"
                 is-problematic
               />
             </div>
