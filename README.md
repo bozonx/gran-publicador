@@ -162,6 +162,11 @@ JWT_SECRET="your-very-long-and-secure-secret-key-here"
 
 # ОБЯЗАТЕЛЬНО: Токен бота от @BotFather
 TELEGRAM_BOT_TOKEN="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+
+# Настройки планировщика (опционально)
+SCHEDULER_INTERVAL_SECONDS=60
+SCHEDULER_WINDOW_MINUTES=10
+POST_PROCESSING_TIMEOUT_MS=30000
 ```
 
 ### 2. Инициализация базы данных
@@ -320,6 +325,9 @@ LOG_LEVEL=info
 | `SHUTDOWN_TIMEOUT_MS` | Нет | Таймаут graceful shutdown (мс) | `30000` |
 | `VITE_DEV_MODE` | Нет | Режим разработки без Telegram | `true`, `false` |
 | `VITE_DEV_TELEGRAM_ID` | Нет | Mock Telegram ID для dev | `123456789` |
+| `SCHEDULER_INTERVAL_SECONDS` | Нет | Интервал проверки планировщика (сек) | `60` |
+| `SCHEDULER_WINDOW_MINUTES` | Нет | Окно обработки запланированных постов (мин) | `10` |
+| `POST_PROCESSING_TIMEOUT_MS` | Нет | Таймаут обработки одного поста (мс) | `30000` |
 
 ### Graceful Shutdown
 

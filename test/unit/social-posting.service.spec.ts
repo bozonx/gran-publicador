@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SocialPostingService } from '../../src/modules/social-posting/social-posting.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ShutdownService } from '../../src/common/services/shutdown.service.js';
@@ -15,9 +16,9 @@ describe('SocialPostingService (unit)', () => {
   let moduleRef: TestingModule;
 
   // Mock methods for the client
-  const mockPreview = jest.fn();
-  const mockPost = jest.fn();
-  const mockDestroy = jest.fn();
+  const mockPreview = jest.fn() as any;
+  const mockPost = jest.fn() as any;
+  const mockDestroy = jest.fn() as any;
 
   const mockPrismaService = {
     channel: {
@@ -37,6 +38,15 @@ describe('SocialPostingService (unit)', () => {
     isShutdownInProgress: jest.fn().mockReturnValue(false),
   };
 
+  const mockConfigService = {
+    get: jest.fn((key) => {
+      if (key === 'app') {
+        return { postProcessingTimeoutMs: 1000 };
+      }
+      return null;
+    }),
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -48,6 +58,10 @@ describe('SocialPostingService (unit)', () => {
         {
           provide: ShutdownService,
           useValue: mockShutdownService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -65,6 +79,7 @@ describe('SocialPostingService (unit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockShutdownService.isShutdownInProgress.mockReturnValue(false);
 
     // FORCE REPLACE the private client with our mock
     (service as any).postingClient = {
@@ -262,6 +277,41 @@ describe('SocialPostingService (unit)', () => {
 
       expect(result.data?.failedCount).toBe(1);
       expect(result.data?.results?.[0]?.error).toContain('Publication aborted due to system shutdown');
+    });
+
+    it('should fail with timeout error if processing takes too long', async () => {
+      const pubId = 'p1';
+      const publication = {
+        id: pubId,
+        content: 'Hello',
+        media: [],
+        posts: [
+          {
+            id: 'post1',
+            channelId: 'c1',
+            channel: {
+              id: 'c1',
+              isActive: true,
+              socialMedia: SocialMedia.TELEGRAM,
+              channelIdentifier: '@test',
+              credentials: { botToken: '1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890' },
+            },
+          },
+        ],
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(publication);
+
+      // Simulate slow response > 1000ms configured in mockConfigService
+      mockPost.mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return { success: true };
+      });
+
+      const result = await service.publishPublication(pubId);
+
+      expect(result.data?.results?.[0]?.success).toBe(false);
+      expect(result.data?.results?.[0]?.error).toContain('Timeout reached');
     });
   });
 });

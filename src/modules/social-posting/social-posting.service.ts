@@ -5,6 +5,7 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createPostingClient } from 'bozonx-social-media-posting';
 import type {
   PostingClient,
@@ -26,6 +27,7 @@ import { resolvePlatformParams } from './utils/platform-params-resolver.util.js'
 import { SocialPostingRequestFormatter } from './utils/social-posting-request.formatter.js';
 import { PublishResponseDto } from './dto/publish-response.dto.js';
 import { ShutdownService } from '../../common/services/shutdown.service.js';
+import { AppConfig } from '../../config/app.config.js';
 
 /**
  * Custom logger adapter to pipe library logs to NestJS Logger
@@ -53,6 +55,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly shutdownService: ShutdownService,
+    private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit() {
@@ -348,7 +351,13 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       }
 
       this.logger.log(`${logPrefix} Sending request to library...`);
-      const response = await this.postingClient.post(request);
+
+      const timeoutMs = this.configService.get<AppConfig>('app')!.postProcessingTimeoutMs;
+      const timeoutPromise = new Promise<PostResponseDto>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout reached (${timeoutMs}ms)`)), timeoutMs),
+      );
+
+      const response = await Promise.race([this.postingClient.post(request), timeoutPromise]);
 
       if (response.success) {
         await this.prisma.post.update({
