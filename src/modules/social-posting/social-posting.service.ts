@@ -439,7 +439,10 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       credentials,
     );
 
-    return { ...params };
+    return { 
+      targetChannelId: params.channelId, 
+      apiKey: params.apiKey 
+    };
   }
 
   private validateChannelReady(channel: any): { valid: boolean; errors: string[] } {
