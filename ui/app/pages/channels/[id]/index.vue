@@ -592,7 +592,7 @@ const channelProblems = computed(() => {
                             variant="ghost" 
                             color="neutral"
                             icon="i-heroicons-eye"
-                            :to="`/publications?channelId=${channelId}`"
+                            :to="`/publications?channelId=${channelId}&status=PUBLISHED&sortBy=byPublished`"
                         >
                             {{ t('common.viewAll') }}
                         </UButton>
