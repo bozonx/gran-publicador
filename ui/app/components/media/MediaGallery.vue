@@ -595,6 +595,9 @@ const emit = defineEmits<Emits>()
             v-model="localMedia"
             :disabled="!editable"
             :animation="200"
+            :delay="300"
+            :delay-on-touch-only="true"
+            :touch-start-threshold="5"
             class="flex gap-4"
             @start="handleDragStart"
             @end="handleDragEnd"
@@ -948,5 +951,18 @@ const emit = defineEmits<Emits>()
 .slide-prev-leave-to {
   opacity: 0;
   transform: translateX(50px);
+}
+
+:deep(.sortable-chosen) {
+  opacity: 0.9;
+  transform: scale(1.05);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  z-index: 50;
+  cursor: grabbing !important;
+}
+
+:deep(.sortable-ghost) {
+  opacity: 0.2;
+  filter: grayscale(1);
 }
 </style>
