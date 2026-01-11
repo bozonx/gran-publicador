@@ -269,6 +269,11 @@ export class PublicationsService {
         if (aScheduled && !bScheduled) return -1;
         if (!aScheduled && bScheduled) return 1;
 
+        // One published, one scheduled: already handled (scheduled first)
+        // One published, one neither: published comes first
+        if (aPublishedAt && !bPublishedAt) return -1;
+        if (!aPublishedAt && bPublishedAt) return 1;
+
         // Fallback to createdAt
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });

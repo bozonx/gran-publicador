@@ -25,6 +25,7 @@ describe('PublicationsService (unit)', () => {
     },
     projectMember: {
       findUnique: jest.fn() as any,
+      findMany: jest.fn() as any,
     },
     project: {
       findUnique: jest.fn() as any,
@@ -485,6 +486,83 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.delete.mockResolvedValue(mockPublication);
 
       await expect(service.remove(publicationId, userId)).resolves.toBeDefined();
+    });
+  });
+
+  describe('findAllForUser', () => {
+    it('should return publications from all user projects', async () => {
+      const userId = 'u1';
+      mockPrismaService.projectMember.findMany.mockResolvedValue([
+        { projectId: 'p1' },
+        { projectId: 'p2' },
+      ]);
+      mockPrismaService.publication.findMany.mockResolvedValue([]);
+      mockPrismaService.publication.count.mockResolvedValue(0);
+
+      await service.findAllForUser(userId);
+
+      expect(mockPrismaService.projectMember.findMany).toHaveBeenCalledWith({
+        where: { userId },
+        select: { projectId: true },
+      });
+      // Check that it calls findMany with proper where clause including projectIds
+      expect(mockPrismaService.publication.findMany).toHaveBeenCalled();
+    });
+
+    it('should return empty list if user has no projects', async () => {
+      mockPrismaService.projectMember.findMany.mockResolvedValue([]);
+      const res = await service.findAllForUser('u1');
+      expect(res.items).toEqual([]);
+      expect(res.total).toBe(0);
+      expect(mockPrismaService.publication.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sorting logic', () => {
+    it('should sort by chronology correctly', async () => {
+      const userId = 'u1';
+      const projectId = 'p1';
+
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+
+      // Setup items
+      const scheduledFar = { id: '1', scheduledAt: new Date('2028-01-01'), posts: [] };
+      const publishedRecent = {
+        id: '2',
+        scheduledAt: null,
+        posts: [{ publishedAt: new Date('2027-01-02') }],
+      };
+      const publishedOld = {
+        id: '3',
+        scheduledAt: null,
+        posts: [{ publishedAt: new Date('2027-01-01') }],
+      };
+      const draft = {
+        id: '4',
+        scheduledAt: null,
+        posts: [],
+        createdAt: new Date('2026-01-01'),
+      };
+
+      mockPrismaService.publication.findMany.mockResolvedValue([
+        draft,
+        publishedOld,
+        scheduledFar,
+        publishedRecent,
+      ]);
+      mockPrismaService.publication.count.mockResolvedValue(4);
+
+      const result = await service.findAll(projectId, userId, { sortBy: 'chronology' });
+
+      // Expected:
+      // 1. Scheduled (Far)
+      // 2. Published (Recent)
+      // 3. Published (Old)
+      // 4. Draft
+      expect(result.items[0].id).toBe('1');
+      expect(result.items[1].id).toBe('2');
+      expect(result.items[2].id).toBe('3');
+      expect(result.items[3].id).toBe('4');
     });
   });
 });

@@ -222,4 +222,129 @@ describe('PostsService (unit)', () => {
       );
     });
   });
+
+  describe('create', () => {
+    it('should create a post when user has access', async () => {
+      const userId = 'user-1';
+      const channelId = 'channel-1';
+      const dto = { publicationId: 'pub-1', content: 'hello' };
+      const projectId = 'p1';
+
+      mockChannelsService.findOne.mockResolvedValue({ id: channelId, projectId });
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.findFirst.mockResolvedValue({ id: 'pub-1', projectId });
+
+      mockPrismaService.post.create.mockResolvedValue({
+        id: 'new-post',
+        ...dto,
+      });
+
+      const result = await service.create(userId, channelId, dto);
+      expect(result).toBeDefined();
+      expect(mockPrismaService.post.create).toHaveBeenCalled();
+    });
+
+    it('should throw if publication does not belong to project', async () => {
+      mockChannelsService.findOne.mockResolvedValue({ id: 'c1', projectId: 'p1' });
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.findFirst.mockResolvedValue(null);
+
+      await expect(service.create('u', 'c', { publicationId: 'pub' } as any)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('findAllForProject', () => {
+    it('should return posts for project members', async () => {
+      const userId = 'u1';
+      const projectId = 'p1';
+      mockPermissionsService.getUserProjectRole.mockResolvedValue('VIEWER');
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+
+      await service.findAllForProject(projectId, userId);
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            channel: expect.objectContaining({ projectId }),
+          }),
+        }),
+      );
+    });
+
+    it('should throw forbidden if user not member', async () => {
+      mockPermissionsService.getUserProjectRole.mockResolvedValue(null);
+      await expect(service.findAllForProject('p', 'u')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('findAllForUser', () => {
+    it('should return posts for user projects', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      await service.findAllForUser('u1');
+      expect(mockPrismaService.post.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('findAllForChannel', () => {
+    it('should return posts for channel if user has access', async () => {
+      mockChannelsService.findOne.mockResolvedValue({ role: 'VIEWER' });
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+
+      await service.findAllForChannel('c1', 'u1');
+      expect(mockPrismaService.post.findMany).toHaveBeenCalled();
+    });
+
+    it('should throw forbidden if no access to channel', async () => {
+      mockChannelsService.findOne.mockResolvedValue({ role: null }); // Mock returning no role
+      await expect(service.findAllForChannel('c1', 'u1')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return post if found and user has access', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post1', channelId: 'c1' });
+      mockChannelsService.findOne.mockResolvedValue({}); // check access inside
+
+      const res = await service.findOne('post1', 'u1');
+      expect(res).toBeDefined();
+    });
+
+    it('should throw not found if post missing', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue(null);
+      await expect(service.findOne('p', 'u')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('remove', () => {
+    it('should allow author to delete post', async () => {
+      const userId = 'u1';
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post1',
+        channelId: 'c1',
+        publication: { createdBy: userId },
+      });
+      mockChannelsService.findOne.mockResolvedValue({});
+      mockPrismaService.post.delete.mockResolvedValue({});
+
+      await service.remove('post1', userId);
+      expect(mockPrismaService.post.delete).toHaveBeenCalled();
+    });
+
+    it('should allow admin to delete post', async () => {
+      const userId = 'admin';
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post1',
+        channelId: 'c1',
+        publication: { createdBy: 'other' },
+      });
+      mockChannelsService.findOne.mockResolvedValue({});
+      // Simulate channel lookup for permission check
+      mockPrismaService.channel.findUnique.mockResolvedValue({ projectId: 'p1' });
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+
+      await service.remove('post1', userId);
+      expect(mockPrismaService.post.delete).toHaveBeenCalled();
+    });
+  });
 });
