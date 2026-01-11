@@ -139,8 +139,11 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   /**
    * Publish all posts of a publication
    */
-  async publishPublication(publicationId: string): Promise<PublishResponseDto> {
-    this.logger.log(`[publishPublication] Starting publication process for ID: ${publicationId}`);
+  async publishPublication(
+    publicationId: string,
+    options: { skipLock?: boolean } = {},
+  ): Promise<PublishResponseDto> {
+    this.logger.log(`[publishPublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}`);
 
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
@@ -168,24 +171,26 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Atomic status update to prevent race conditions
-    const updateResult = await this.prisma.publication.updateMany({
-      where: {
-        id: publicationId,
-        status: { not: PublicationStatus.PROCESSING },
-      },
-      data: {
-        status: PublicationStatus.PROCESSING,
-        processingStartedAt: new Date(),
-      },
-    });
+    if (!options.skipLock) {
+      const updateResult = await this.prisma.publication.updateMany({
+        where: {
+          id: publicationId,
+          status: { not: PublicationStatus.PROCESSING },
+        },
+        data: {
+          status: PublicationStatus.PROCESSING,
+          processingStartedAt: new Date(),
+        },
+      });
 
-    if (updateResult.count === 0) {
-      this.logger.warn(`[publishPublication] Publication ${publicationId} is already being processed or not found`);
-      return {
-        success: false,
-        message: 'Publication is already being processed',
-        data: { publicationId, status: PublicationStatus.PROCESSING, publishedCount: 0, failedCount: 0, results: [] }
-      };
+      if (updateResult.count === 0) {
+        this.logger.warn(`[publishPublication] Publication ${publicationId} is already being processed or not found`);
+        return {
+          success: false,
+          message: 'Publication is already being processed',
+          data: { publicationId, status: PublicationStatus.PROCESSING, publishedCount: 0, failedCount: 0, results: [] }
+        };
+      }
     }
 
     const results: Array<{
@@ -215,7 +220,19 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         throw new BadRequestException('Publication not found after lock');
     }
 
+    const now = new Date();
     for (const post of publicationWithPosts.posts) {
+      // Filter posts that need publishing:
+      // 1. Status PENDING
+      // 2. OR Status FAILED AND nextRetryAt <= now
+      const isPending = post.status === PostStatus.PENDING;
+      const isReadyToRetry = post.status === PostStatus.FAILED && post.nextRetryAt && new Date(post.nextRetryAt) <= now;
+
+      if (!isPending && !isReadyToRetry) {
+        this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status}, ReadyToRetry: ${isReadyToRetry})`);
+        continue;
+      }
+
       if (this.shutdownService.isShutdownInProgress()) {
         this.logger.warn(
           `[publishPublication] Shutdown in progress, aborting remaining posts for publication ${publicationId}`,
@@ -394,33 +411,50 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
             publishedAt: new Date(response.data.publishedAt),
             meta: response.data as any,
             errorMessage: null,
+            retryCount: post.retryCount, // keep existing
+            nextRetryAt: null,
           },
         });
         return { success: true };
       } else {
         const platformError = response;
-        await this.prisma.post.update({
-          where: { id: post.id },
-          data: {
-            status: PostStatus.FAILED,
-            errorMessage: platformError.error.message,
-            meta: platformError.error as any,
-          },
-        });
-        return { success: false, error: platformError.error.message };
+        return await this.handlePostError(post.id, post.retryCount, platformError.error.message, platformError.error);
       }
     } catch (error: any) {
       this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
-      await this.prisma.post.update({
-        where: { id: post.id },
-        data: {
-          status: PostStatus.FAILED,
-          errorMessage: error.message,
-          meta: { error: error.message, stack: error.stack } as any,
-        },
-      });
-      return { success: false, error: error.message };
+      return await this.handlePostError(post.id, post.retryCount, error.message, { error: error.message, stack: error.stack });
     }
+  }
+
+  private async handlePostError(postId: string, currentRetryCount: number, message: string, meta: any) {
+    const MAX_RETRIES = 5;
+    const retryCount = currentRetryCount || 0;
+    const nextRetryCount = retryCount + 1;
+    
+    let nextRetryAt: Date | null = null;
+    
+    // Exponential backoff: 1m, 5m, 15m, 1h, 4h
+    const backoffMinutes = [1, 5, 15, 60, 240];
+    
+    if (nextRetryCount <= MAX_RETRIES && message !== 'EXPIRED') {
+      const minutes = backoffMinutes[nextRetryCount - 1] || 240;
+      nextRetryAt = new Date(Date.now() + minutes * 60000);
+      this.logger.log(`Post ${postId} failed, scheduled retry #${nextRetryCount} in ${minutes}m`);
+    } else {
+      this.logger.warn(`Post ${postId} failed and reached max retries or expired. No more retries.`);
+    }
+
+    await this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        status: PostStatus.FAILED,
+        errorMessage: message,
+        meta: meta as any,
+        retryCount: nextRetryCount,
+        nextRetryAt,
+      },
+    });
+    return { success: false, error: message };
   }
 
   /**

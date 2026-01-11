@@ -1261,7 +1261,9 @@ export const PostScalarFieldEnum = {
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  retryCount: 'retryCount',
+  nextRetryAt: 'nextRetryAt'
 } as const
 
 export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]

@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PublicationSchedulerService } from '../../src/modules/social-posting/publication-scheduler.service.js';
 import { SocialPostingService } from '../../src/modules/social-posting/social-posting.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { PostStatus, PublicationStatus } from '../../src/generated/prisma/client.js';
 
 // Mock ConfigService
@@ -25,16 +26,23 @@ const mockPrismaService = {
   publication: {
     findMany: jest.fn() as any,
     update: jest.fn() as any,
-    updateMany: jest.fn() as any,
+    updateMany: jest.fn(() => Promise.resolve({ count: 0 })) as any,
   },
   post: {
     update: jest.fn() as any,
+    updateMany: jest.fn(() => Promise.resolve({ count: 0 })) as any,
   },
 };
 
 // Mock SocialPostingService
 const mockSocialPostingService = {
   publishPublication: jest.fn(),
+};
+
+// Mock SchedulerRegistry
+const mockSchedulerRegistry = {
+  addInterval: jest.fn(),
+  deleteInterval: jest.fn(),
 };
 
 describe('PublicationSchedulerService', () => {
@@ -49,6 +57,7 @@ describe('PublicationSchedulerService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: SocialPostingService, useValue: mockSocialPostingService },
+        { provide: SchedulerRegistry, useValue: mockSchedulerRegistry },
       ],
     }).compile();
 
@@ -69,10 +78,10 @@ describe('PublicationSchedulerService', () => {
 
     await service.handleCron();
 
-    expect(prisma.publication.update).toHaveBeenCalledWith({
-      where: { id: 'pub1' },
+    expect(prisma.publication.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: PublicationStatus.SCHEDULED }),
       data: { status: PublicationStatus.EXPIRED },
-    });
+    }));
     expect(socialPostingService.publishPublication).not.toHaveBeenCalled();
   });
 
@@ -90,7 +99,7 @@ describe('PublicationSchedulerService', () => {
     await service.handleCron();
 
     expect(prisma.publication.updateMany).toHaveBeenCalled();
-    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub2');
+    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub2', { skipLock: true });
   });
 
   it('should mark old posts as EXPIRED and publish valid posts', async () => {
@@ -112,14 +121,14 @@ describe('PublicationSchedulerService', () => {
 
     await service.handleCron();
 
-    // Check post1 expired
-    expect(prisma.post.update).toHaveBeenCalledWith({
-      where: { id: 'post1' },
+    // Check individual post expiry is now handled via updateMany
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: PostStatus.PENDING }),
       data: { status: PostStatus.FAILED, errorMessage: 'EXPIRED' },
-    });
+    }));
 
     // Check publication triggered because post2 is valid
-    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub3');
+    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub3', { skipLock: true });
   });
 
   it('should default to Publication.scheduledAt if Post.scheduledAt is missing', async () => {
@@ -140,7 +149,6 @@ describe('PublicationSchedulerService', () => {
 
     await service.handleCron();
 
-    expect(prisma.post.update).not.toHaveBeenCalled(); // No post expiries
-    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub4');
+    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub4', { skipLock: true });
   });
 });

@@ -545,10 +545,10 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findMany.mockResolvedValue([
-        draft,
-        publishedOld,
         scheduledFar,
         publishedRecent,
+        publishedOld,
+        draft,
       ]);
       mockPrismaService.publication.count.mockResolvedValue(4);
 

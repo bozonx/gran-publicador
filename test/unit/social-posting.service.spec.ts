@@ -27,6 +27,7 @@ describe('SocialPostingService (unit)', () => {
     publication: {
       findUnique: jest.fn() as any,
       update: jest.fn() as any,
+      updateMany: jest.fn(() => Promise.resolve({ count: 1 })) as any,
     },
     post: {
       findUnique: jest.fn() as any,
@@ -134,6 +135,8 @@ describe('SocialPostingService (unit)', () => {
         posts: [
           {
             id: 'post1',
+            status: PostStatus.PENDING,
+            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
@@ -159,7 +162,10 @@ describe('SocialPostingService (unit)', () => {
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: pubId },
-          data: { status: PublicationStatus.PUBLISHED },
+          data: { 
+            status: PublicationStatus.PUBLISHED,
+            processingStartedAt: null,
+          },
         }),
       );
       expect(mockPrismaService.post.update).toHaveBeenCalledWith(
@@ -179,6 +185,8 @@ describe('SocialPostingService (unit)', () => {
         posts: [
           {
             id: 'post1',
+            status: PostStatus.PENDING,
+            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
@@ -204,7 +212,10 @@ describe('SocialPostingService (unit)', () => {
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: pubId },
-          data: { status: PublicationStatus.FAILED },
+          data: { 
+            status: PublicationStatus.FAILED,
+            processingStartedAt: null,
+          },
         }),
       );
     });
@@ -218,6 +229,8 @@ describe('SocialPostingService (unit)', () => {
         posts: [
           {
             id: 'post1',
+            status: PostStatus.PENDING,
+            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
@@ -230,6 +243,8 @@ describe('SocialPostingService (unit)', () => {
           },
           {
             id: 'post2',
+            status: PostStatus.PENDING,
+            retryCount: 0,
             channelId: 'c2',
             channel: {
               id: 'c2',
@@ -251,11 +266,14 @@ describe('SocialPostingService (unit)', () => {
 
       const result = await service.publishPublication(pubId);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: pubId },
-          data: { status: PublicationStatus.PARTIAL },
+          data: { 
+            status: PublicationStatus.PARTIAL,
+            processingStartedAt: null,
+          },
         }),
       );
     });
@@ -266,7 +284,7 @@ describe('SocialPostingService (unit)', () => {
         id: pubId,
         content: 'Hello',
         media: [],
-        posts: [{ id: 'p1', channelId: 'c1' }],
+        posts: [{ id: 'p1', status: PostStatus.PENDING, retryCount: 0, channelId: 'c1' }],
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(publication);
@@ -288,6 +306,8 @@ describe('SocialPostingService (unit)', () => {
         posts: [
           {
             id: 'post1',
+            status: PostStatus.PENDING,
+            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',

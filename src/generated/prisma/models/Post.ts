@@ -20,8 +20,18 @@ export type PostModel = runtime.Types.Result.DefaultSelection<Prisma.$PostPayloa
 
 export type AggregatePost = {
   _count: PostCountAggregateOutputType | null
+  _avg: PostAvgAggregateOutputType | null
+  _sum: PostSumAggregateOutputType | null
   _min: PostMinAggregateOutputType | null
   _max: PostMaxAggregateOutputType | null
+}
+
+export type PostAvgAggregateOutputType = {
+  retryCount: number | null
+}
+
+export type PostSumAggregateOutputType = {
+  retryCount: number | null
 }
 
 export type PostMinAggregateOutputType = {
@@ -37,6 +47,8 @@ export type PostMinAggregateOutputType = {
   publishedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  retryCount: number | null
+  nextRetryAt: Date | null
 }
 
 export type PostMaxAggregateOutputType = {
@@ -52,6 +64,8 @@ export type PostMaxAggregateOutputType = {
   publishedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  retryCount: number | null
+  nextRetryAt: Date | null
 }
 
 export type PostCountAggregateOutputType = {
@@ -68,9 +82,19 @@ export type PostCountAggregateOutputType = {
   publishedAt: number
   createdAt: number
   updatedAt: number
+  retryCount: number
+  nextRetryAt: number
   _all: number
 }
 
+
+export type PostAvgAggregateInputType = {
+  retryCount?: true
+}
+
+export type PostSumAggregateInputType = {
+  retryCount?: true
+}
 
 export type PostMinAggregateInputType = {
   id?: true
@@ -85,6 +109,8 @@ export type PostMinAggregateInputType = {
   publishedAt?: true
   createdAt?: true
   updatedAt?: true
+  retryCount?: true
+  nextRetryAt?: true
 }
 
 export type PostMaxAggregateInputType = {
@@ -100,6 +126,8 @@ export type PostMaxAggregateInputType = {
   publishedAt?: true
   createdAt?: true
   updatedAt?: true
+  retryCount?: true
+  nextRetryAt?: true
 }
 
 export type PostCountAggregateInputType = {
@@ -116,6 +144,8 @@ export type PostCountAggregateInputType = {
   publishedAt?: true
   createdAt?: true
   updatedAt?: true
+  retryCount?: true
+  nextRetryAt?: true
   _all?: true
 }
 
@@ -157,6 +187,18 @@ export type PostAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: PostAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: PostSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: PostMinAggregateInputType
@@ -187,6 +229,8 @@ export type PostGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: PostCountAggregateInputType | true
+  _avg?: PostAvgAggregateInputType
+  _sum?: PostSumAggregateInputType
   _min?: PostMinAggregateInputType
   _max?: PostMaxAggregateInputType
 }
@@ -205,7 +249,11 @@ export type PostGroupByOutputType = {
   publishedAt: Date | null
   createdAt: Date
   updatedAt: Date
+  retryCount: number
+  nextRetryAt: Date | null
   _count: PostCountAggregateOutputType | null
+  _avg: PostAvgAggregateOutputType | null
+  _sum: PostSumAggregateOutputType | null
   _min: PostMinAggregateOutputType | null
   _max: PostMaxAggregateOutputType | null
 }
@@ -242,6 +290,8 @@ export type PostWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Post"> | Date | string
+  retryCount?: Prisma.IntFilter<"Post"> | number
+  nextRetryAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publication?: Prisma.XOR<Prisma.PublicationScalarRelationFilter, Prisma.PublicationWhereInput>
   channel?: Prisma.XOR<Prisma.ChannelScalarRelationFilter, Prisma.ChannelWhereInput>
 }
@@ -260,6 +310,8 @@ export type PostOrderByWithRelationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  nextRetryAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publication?: Prisma.PublicationOrderByWithRelationInput
   channel?: Prisma.ChannelOrderByWithRelationInput
 }
@@ -281,6 +333,8 @@ export type PostWhereUniqueInput = Prisma.AtLeast<{
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Post"> | Date | string
+  retryCount?: Prisma.IntFilter<"Post"> | number
+  nextRetryAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publication?: Prisma.XOR<Prisma.PublicationScalarRelationFilter, Prisma.PublicationWhereInput>
   channel?: Prisma.XOR<Prisma.ChannelScalarRelationFilter, Prisma.ChannelWhereInput>
 }, "id">
@@ -299,9 +353,13 @@ export type PostOrderByWithAggregationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  nextRetryAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.PostCountOrderByAggregateInput
+  _avg?: Prisma.PostAvgOrderByAggregateInput
   _max?: Prisma.PostMaxOrderByAggregateInput
   _min?: Prisma.PostMinOrderByAggregateInput
+  _sum?: Prisma.PostSumOrderByAggregateInput
 }
 
 export type PostScalarWhereWithAggregatesInput = {
@@ -321,6 +379,8 @@ export type PostScalarWhereWithAggregatesInput = {
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Post"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Post"> | Date | string
+  retryCount?: Prisma.IntWithAggregatesFilter<"Post"> | number
+  nextRetryAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
 }
 
 export type PostCreateInput = {
@@ -335,6 +395,8 @@ export type PostCreateInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
   publication: Prisma.PublicationCreateNestedOneWithoutPostsInput
   channel: Prisma.ChannelCreateNestedOneWithoutPostsInput
 }
@@ -353,6 +415,8 @@ export type PostUncheckedCreateInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
 }
 
 export type PostUpdateInput = {
@@ -367,6 +431,8 @@ export type PostUpdateInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publication?: Prisma.PublicationUpdateOneRequiredWithoutPostsNestedInput
   channel?: Prisma.ChannelUpdateOneRequiredWithoutPostsNestedInput
 }
@@ -385,6 +451,8 @@ export type PostUncheckedUpdateInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type PostCreateManyInput = {
@@ -401,6 +469,8 @@ export type PostCreateManyInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
 }
 
 export type PostUpdateManyMutationInput = {
@@ -415,6 +485,8 @@ export type PostUpdateManyMutationInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type PostUncheckedUpdateManyInput = {
@@ -431,6 +503,8 @@ export type PostUncheckedUpdateManyInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type PostListRelationFilter = {
@@ -457,6 +531,12 @@ export type PostCountOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  nextRetryAt?: Prisma.SortOrder
+}
+
+export type PostAvgOrderByAggregateInput = {
+  retryCount?: Prisma.SortOrder
 }
 
 export type PostMaxOrderByAggregateInput = {
@@ -472,6 +552,8 @@ export type PostMaxOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  nextRetryAt?: Prisma.SortOrder
 }
 
 export type PostMinOrderByAggregateInput = {
@@ -487,6 +569,12 @@ export type PostMinOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  nextRetryAt?: Prisma.SortOrder
+}
+
+export type PostSumOrderByAggregateInput = {
+  retryCount?: Prisma.SortOrder
 }
 
 export type PostCreateNestedManyWithoutChannelInput = {
@@ -589,6 +677,8 @@ export type PostCreateWithoutChannelInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
   publication: Prisma.PublicationCreateNestedOneWithoutPostsInput
 }
 
@@ -605,6 +695,8 @@ export type PostUncheckedCreateWithoutChannelInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
 }
 
 export type PostCreateOrConnectWithoutChannelInput = {
@@ -649,6 +741,8 @@ export type PostScalarWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Post"> | Date | string
+  retryCount?: Prisma.IntFilter<"Post"> | number
+  nextRetryAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
 }
 
 export type PostCreateWithoutPublicationInput = {
@@ -663,6 +757,8 @@ export type PostCreateWithoutPublicationInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
   channel: Prisma.ChannelCreateNestedOneWithoutPostsInput
 }
 
@@ -679,6 +775,8 @@ export type PostUncheckedCreateWithoutPublicationInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
 }
 
 export type PostCreateOrConnectWithoutPublicationInput = {
@@ -719,6 +817,8 @@ export type PostCreateManyChannelInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
 }
 
 export type PostUpdateWithoutChannelInput = {
@@ -733,6 +833,8 @@ export type PostUpdateWithoutChannelInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publication?: Prisma.PublicationUpdateOneRequiredWithoutPostsNestedInput
 }
 
@@ -749,6 +851,8 @@ export type PostUncheckedUpdateWithoutChannelInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type PostUncheckedUpdateManyWithoutChannelInput = {
@@ -764,6 +868,8 @@ export type PostUncheckedUpdateManyWithoutChannelInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type PostCreateManyPublicationInput = {
@@ -779,6 +885,8 @@ export type PostCreateManyPublicationInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
+  nextRetryAt?: Date | string | null
 }
 
 export type PostUpdateWithoutPublicationInput = {
@@ -793,6 +901,8 @@ export type PostUpdateWithoutPublicationInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   channel?: Prisma.ChannelUpdateOneRequiredWithoutPostsNestedInput
 }
 
@@ -809,6 +919,8 @@ export type PostUncheckedUpdateWithoutPublicationInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type PostUncheckedUpdateManyWithoutPublicationInput = {
@@ -824,6 +936,8 @@ export type PostUncheckedUpdateManyWithoutPublicationInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  nextRetryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -842,6 +956,8 @@ export type PostSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
+  nextRetryAt?: boolean
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["post"]>
@@ -860,6 +976,8 @@ export type PostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
+  nextRetryAt?: boolean
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["post"]>
@@ -878,6 +996,8 @@ export type PostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
+  nextRetryAt?: boolean
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["post"]>
@@ -896,9 +1016,11 @@ export type PostSelectScalar = {
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
+  nextRetryAt?: boolean
 }
 
-export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "content" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
+export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "content" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt" | "retryCount" | "nextRetryAt", ExtArgs["result"]["post"]>
 export type PostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
@@ -932,6 +1054,8 @@ export type $PostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     publishedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    retryCount: number
+    nextRetryAt: Date | null
   }, ExtArgs["result"]["post"]>
   composites: {}
 }
@@ -1370,6 +1494,8 @@ export interface PostFieldRefs {
   readonly publishedAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Post", 'DateTime'>
+  readonly retryCount: Prisma.FieldRef<"Post", 'Int'>
+  readonly nextRetryAt: Prisma.FieldRef<"Post", 'DateTime'>
 }
     
 
