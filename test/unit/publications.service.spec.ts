@@ -323,11 +323,14 @@ describe('PublicationsService (unit)', () => {
       expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
         where: {
           publicationId,
-          scheduledAt: null,
         },
         data: {
           status: PostStatus.PENDING,
           errorMessage: null,
+          scheduledAt: null,
+          publishedAt: null,
+          retryCount: 0,
+          nextRetryAt: null,
         },
       });
       expect(result.status).toBe(PublicationStatus.SCHEDULED);
@@ -353,7 +356,7 @@ describe('PublicationsService (unit)', () => {
       );
     });
 
-    it('should reset posts without own scheduledAt when publication scheduledAt changes', async () => {
+    it('should reset ALL posts when publication scheduledAt changes', async () => {
       const userId = 'user-1';
       const publicationId = 'pub-1';
       const newScheduledAt = new Date('2026-12-31');
@@ -377,15 +380,18 @@ describe('PublicationsService (unit)', () => {
 
       await service.update(publicationId, userId, updateDto);
 
-      // Should only update posts without their own scheduledAt
+      // Should update ALL posts
       expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
         where: {
           publicationId,
-          scheduledAt: null,
         },
         data: {
           status: PostStatus.PENDING,
           errorMessage: null,
+          scheduledAt: null,
+          publishedAt: null,
+          retryCount: 0,
+          nextRetryAt: null,
         },
       });
     });

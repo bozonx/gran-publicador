@@ -71,7 +71,7 @@ const availableChannels = computed(() => {
 })
 
 const allPostsPublished = computed(() => {
-    if (!currentPublication.value?.posts) return false
+    if (!currentPublication.value?.posts || currentPublication.value.posts.length === 0) return false
     return currentPublication.value.posts.every((p: any) => !!p.publishedAt)
 })
 
@@ -748,7 +748,7 @@ async function executePublish(force: boolean) {
                                         variant="soft"
                                         size="xs"
                                         color="primary"
-                                        :disabled="allPostsPublished || isContentOrMediaMissing"
+                                        :disabled="isContentOrMediaMissing"
                                         @click="openScheduleModal"
                                     ></UButton>
                                 </UTooltip>

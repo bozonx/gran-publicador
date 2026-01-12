@@ -629,15 +629,19 @@ export class PublicationsService {
       // Automatically set status to SCHEDULED
       data.status = PublicationStatus.SCHEDULED;
 
-      // Reset posts without their own scheduledAt
+      // Reset all posts to PENDING and sync scheduledAt
+      // This allows "restarting" a failed publication or rescheduling it entirely
       await this.prisma.post.updateMany({
         where: {
           publicationId: id,
-          scheduledAt: null,
         },
         data: {
           status: PostStatus.PENDING,
           errorMessage: null,
+          scheduledAt: null, // Clear post-specific schedule to fallback to publication's one
+          retryCount: 0,
+          nextRetryAt: null,
+          publishedAt: null,
         },
       });
     }
