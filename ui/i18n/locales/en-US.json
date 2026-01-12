@@ -6,7 +6,10 @@
     "source": "Source",
     "manual": "Manual",
     "contentPlaceholder": "Enter text content...",
-    "help": "Additional texts collected from Telegram bot or other sources. Use for AI summarization or manual content assembly."
+    "help": "Additional texts collected from Telegram bot or other sources. Use for AI summarization or manual content assembly.",
+    "view": "View source texts",
+    "hide": "Hide source texts",
+    "deleteAll": "Delete all"
   },
   "common": {
     "appName": "Gran Publicador",

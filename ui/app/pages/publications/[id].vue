@@ -395,17 +395,23 @@ async function executePublish(force: boolean) {
   try {
     const result = await publishPublication(currentPublication.value.id, force)
     
-    if (result.success) {
-      // Update status directly from server response
-      if (result.data?.status) {
-        currentPublication.value.status = result.data.status as PublicationStatus
-      }
+    // Always update status if returned from server
+    if (result.data?.status) {
+      currentPublication.value.status = result.data.status as PublicationStatus
+    }
 
-      const totalPosts = (result.data?.publishedCount || 0) + (result.data?.failedCount || 0)
+    if (result.success) {
+      toast.add({
+        title: t('common.success'),
+        description: t('publication.publishSuccess'),
+        color: 'success'
+      })
+    } else {
       const isPartial = result.data?.failedCount && result.data.failedCount > 0
+      const isFailed = result.data?.status === 'FAILED'
       
       // Output errors if they appeared after publication
-      if (isPartial && result.data?.results) {
+      if ((isPartial || isFailed) && result.data?.results) {
          const errors = result.data.results
             .filter(r => !r.success && r.error)
             .map(r => r.error)
@@ -421,29 +427,25 @@ async function executePublish(force: boolean) {
       }
 
       toast.add({
-        title: t('common.success'),
-        description: isPartial 
-          ? t('publication.publishSuccessPartial')
-          : t('publication.publishSuccess'),
-        color: isPartial ? 'warning' : 'success'
+        title: t('common.error'),
+        description: result.message || t('publication.publishError'),
+        color: 'error'
       })
-      
-      // Refresh publication
-      await fetchPublication(currentPublication.value.id)
-    } else {
-        // Even if success is false, we might have partial data or just a message
-        toast.add({
-            title: t('common.error'),
-            description: result.message || t('publication.publishError'),
-            color: 'error'
-        })
     }
+    
+    // Always refresh publication to get latest meta, post statuses and messages
+    await fetchPublication(currentPublication.value.id)
+
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
       description: error.message || t('publication.publishError'),
       color: 'error'
     })
+    // Refresh even on exception as some posts might have been updated before the crash
+    if (currentPublication.value) {
+        await fetchPublication(currentPublication.value.id)
+    }
   }
 }
 </script>

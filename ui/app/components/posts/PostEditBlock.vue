@@ -266,9 +266,6 @@ async function executePublish() {
         description: t('publication.publishSuccess'),
         color: 'success'
       })
-      
-      // Refresh post
-      emit('success')
     } else {
          let errorMsg = result.message || t('publication.publishError')
          if (result.data?.results?.[0]?.error) {
@@ -281,12 +278,19 @@ async function executePublish() {
             color: 'error'
          })
     }
+
+    // Always emit success to refresh the parent publication state 
+    // (which includes current post status, errors and meta)
+    emit('success')
+
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
       description: error.message || t('publication.publishError'),
       color: 'error'
     })
+    // Also emit success on catch if something went wrong but backend might have saved some status
+    emit('success')
   }
 }
 const metaYaml = computed(() => {

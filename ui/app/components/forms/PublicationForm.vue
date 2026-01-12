@@ -192,6 +192,23 @@ function handleError(event: any) {
 function handleReset() {
   resetToOriginal()
 }
+
+const isSourceTextsOpen = ref(false)
+
+function handleDeleteSourceText(index: number) {
+    if (!state.sourceTexts) return
+    const newList = [...state.sourceTexts]
+    newList.splice(index, 1)
+    state.sourceTexts = newList
+    if (state.sourceTexts.length === 0) {
+        isSourceTextsOpen.value = false
+    }
+}
+
+function handleDeleteAllSourceTexts() {
+    state.sourceTexts = []
+    isSourceTextsOpen.value = false
+}
 </script>
 
 <template>
@@ -285,6 +302,53 @@ function handleReset() {
           :min-height="250"
         />
       </UFormField>
+
+      <!-- Source Texts Section -->
+      <div v-if="state.sourceTexts && state.sourceTexts.length > 0" class="mb-6 ml-1">
+            <UButton
+                variant="ghost"
+                color="primary"
+                size="sm"
+                :icon="isSourceTextsOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+                class="mb-2"
+                @click="isSourceTextsOpen = !isSourceTextsOpen"
+            >
+                {{ isSourceTextsOpen ? t('sourceTexts.hide') : t('sourceTexts.view') }} ({{ state.sourceTexts.length }})
+            </UButton>
+
+            <div v-if="isSourceTextsOpen" class="space-y-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+                <div class="flex justify-end">
+                    <UButton
+                        color="error"
+                        variant="ghost"
+                        size="xs"
+                        icon="i-heroicons-trash"
+                        @click="handleDeleteAllSourceTexts"
+                    >
+                        {{ t('sourceTexts.deleteAll') }}
+                    </UButton>
+                </div>
+
+                <div v-for="(item, index) in state.sourceTexts" :key="index" class="p-3 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-800 text-sm group hover:border-primary-200 dark:hover:border-primary-800/50 transition-colors">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300 leading-relaxed font-normal">{{ item.content }}</div>
+                        <UButton
+                            color="neutral"
+                            variant="ghost"
+                            size="xs"
+                            icon="i-heroicons-trash"
+                            class="opacity-0 group-hover:opacity-100 transition-opacity"
+                            @click="handleDeleteSourceText(index as number)"
+                        />
+                    </div>
+                    <div v-if="item.source && item.source !== 'manual'" class="mt-2 text-xs text-gray-400 font-mono flex items-center gap-1">
+                        <UIcon name="i-heroicons-link" class="w-3 h-3" />
+                        {{ item.source }}
+                    </div>
+                </div>
+            </div>
+      </div>
+
       
       <UFormField name="tags" :label="t('post.tags')" :help="t('post.tagsHint')">
         <UInput
@@ -365,7 +429,7 @@ function handleReset() {
           <UTextarea v-model="state.note" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.notePlaceholder')" />
         </UFormField>
 
-        <FormsSourceTextsManager v-model="state.sourceTexts" />
+
       </UiFormAdvancedSection>
 
       <UiFormActions
