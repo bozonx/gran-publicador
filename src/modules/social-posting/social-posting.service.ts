@@ -19,6 +19,7 @@ import {
   MediaType,
   StorageType,
 } from '../../generated/prisma/client.js';
+import { getMediaDir } from '../../config/media.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
 import { resolvePlatformParams } from './utils/platform-params-resolver.util.js';
@@ -63,12 +64,15 @@ class LibraryLogger {
 export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SocialPostingService.name);
   private postingClient: PostingClient | null = null;
+  private readonly mediaDir: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly shutdownService: ShutdownService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.mediaDir = getMediaDir();
+  }
 
   async onModuleInit() {
     try {
@@ -439,6 +443,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         publication,
         apiKey,
         targetChannelId,
+        mediaDir: this.mediaDir,
       });
 
       this.logger.log(`${logPrefix} Sending request to library...`);

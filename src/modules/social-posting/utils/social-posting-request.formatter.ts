@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { 
   PostRequestDto,
   MediaType as LibraryMediaType 
@@ -18,6 +19,7 @@ export interface FormatterParams {
   publication: any; // Publication with media
   apiKey: string;
   targetChannelId: string;
+  mediaDir: string;
 }
 
 export class SocialPostingRequestFormatter {
@@ -25,7 +27,7 @@ export class SocialPostingRequestFormatter {
    * Prepares the request object for the posting library.
    */
   static prepareRequest(params: FormatterParams): PostRequestDto {
-    const { post, channel, publication, apiKey, targetChannelId } = params;
+    const { post, channel, publication, apiKey, targetChannelId, mediaDir } = params;
     const isTelegram = channel.socialMedia === 'TELEGRAM';
 
     // Generate body using templates
@@ -42,7 +44,7 @@ export class SocialPostingRequestFormatter {
       post.template // Pass the template override
     );
 
-    const mediaMapping = this.mapMedia(publication.media);
+    const mediaMapping = this.mapMedia(publication.media, mediaDir);
 
     const request: PostRequestDto = {
       platform: channel.socialMedia.toLowerCase(),
@@ -104,12 +106,12 @@ export class SocialPostingRequestFormatter {
     return request;
   }
 
-  private static mapMedia(publicationMedia: any[]): Partial<PostRequestDto> {
+  private static mapMedia(publicationMedia: any[], mediaDir: string): Partial<PostRequestDto> {
     if (!publicationMedia || publicationMedia.length === 0) return {};
 
     if (publicationMedia.length === 1) {
       const item = publicationMedia[0].media;
-      const src = this.getMediaSrc(item);
+      const src = this.getMediaSrc(item, mediaDir);
       
       switch (item.type) {
         case MediaType.IMAGE:
@@ -128,13 +130,13 @@ export class SocialPostingRequestFormatter {
     // Multiple media items
     return {
       media: publicationMedia.map(pm => ({
-        src: this.getMediaSrc(pm.media),
+        src: this.getMediaSrc(pm.media, mediaDir),
         type: this.mapMediaTypeToLibrary(pm.media.type),
       })),
     };
   }
 
-  private static getMediaSrc(media: any): string {
+  private static getMediaSrc(media: any, mediaDir: string): string {
     // If it's a direct URL, use it
     if (media.storagePath?.startsWith('http')) {
       return media.storagePath;
@@ -143,6 +145,11 @@ export class SocialPostingRequestFormatter {
     // For Telegram storage, path is the file_id
     if (media.storageType === StorageType.TELEGRAM) {
       return media.storagePath;
+    }
+
+    // For FS storage, we return absolute path
+    if (media.storageType === StorageType.FS) {
+      return `file://${join(mediaDir, media.storagePath)}`;
     }
 
     // Fallback/Local FS
