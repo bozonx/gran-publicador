@@ -446,9 +446,8 @@ async function handleDelete() {
   if (success) {
     showDeleteModal.value = false
     publicationToDelete.value = null
-    // Refresh list (handled by reactivity or manual fetch if needed, 
-    // depending on usePublications implementation. 
-    // usePublications 'deletePublication' updates local state 'publications.value', so it should be fine.)
+    // Manually refresh publications list
+    fetchPublications()
   }
 }
 </script>
@@ -756,7 +755,7 @@ async function handleDelete() {
             variant="ghost"
             icon="i-heroicons-archive-box"
             size="sm"
-            @click="handleBulkAction('archive')"
+            @click="handleBulkAction('ARCHIVE')"
             :loading="bulkActionPending"
           >
             {{ t('common.archive') }}
@@ -767,7 +766,7 @@ async function handleDelete() {
             variant="ghost"
             icon="i-heroicons-arrow-path"
             size="sm"
-            @click="handleBulkAction('unarchive')"
+            @click="handleBulkAction('UNARCHIVE')"
             :loading="bulkActionPending"
           >
             {{ t('common.restore') }}
@@ -779,7 +778,7 @@ async function handleDelete() {
               statusOptions.map(opt => ({
                 label: opt.label,
                 icon: 'i-heroicons-tag',
-                click: () => handleBulkAction('status', opt.value as any)
+                click: () => handleBulkAction('SET_STATUS', opt.value as any)
               }))
             ]"
             :popper="{ placement: 'top' }"
@@ -881,7 +880,7 @@ async function handleDelete() {
             color="error"
             :label="t('common.delete')"
             :loading="bulkActionPending"
-            @click="handleBulkAction('delete')"
+            @click="handleBulkAction('DELETE')"
           />
         </div>
       </div>

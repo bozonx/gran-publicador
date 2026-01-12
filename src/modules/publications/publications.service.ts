@@ -785,24 +785,24 @@ export class PublicationsService {
     }
 
     switch (operation) {
-      case 'delete':
+      case 'DELETE':
         return this.prisma.publication.deleteMany({
           where: { id: { in: authorizedIds } },
         });
 
-      case 'archive':
+      case 'ARCHIVE':
         return this.prisma.publication.updateMany({
           where: { id: { in: authorizedIds } },
           data: { archivedAt: new Date(), archivedBy: userId },
         });
 
-      case 'unarchive':
+      case 'UNARCHIVE':
         return this.prisma.publication.updateMany({
           where: { id: { in: authorizedIds } },
           data: { archivedAt: null, archivedBy: null },
         });
 
-      case 'status':
+      case 'SET_STATUS':
         if (!status) {
           throw new BadRequestException('Status is required for status operation');
         }

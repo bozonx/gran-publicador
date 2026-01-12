@@ -2,10 +2,10 @@ import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 import { PublicationStatus } from '../../../generated/prisma/client.js';
 
 export enum BulkOperationType {
-  DELETE = 'delete',
-  ARCHIVE = 'archive',
-  UNARCHIVE = 'unarchive',
-  SET_STATUS = 'status',
+  DELETE = 'DELETE',
+  ARCHIVE = 'ARCHIVE',
+  UNARCHIVE = 'UNARCHIVE',
+  SET_STATUS = 'SET_STATUS',
 }
 
 export class BulkOperationDto {
