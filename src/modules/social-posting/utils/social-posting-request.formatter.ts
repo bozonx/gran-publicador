@@ -66,12 +66,17 @@ export class SocialPostingRequestFormatter {
         : post.platformOptions;
       
       // Map specific known options
-      if (opts.disableNotification !== undefined) {
-        request.disableNotification = !!opts.disableNotification;
+      // Support both camelCase and snake_case for disableNotification
+      const disableNotification = opts.disableNotification ?? opts.disable_notification;
+
+      if (disableNotification !== undefined) {
+        request.disableNotification = !!disableNotification;
       }
       
       // Pass the rest as general options if any
-      const { disableNotification, ...rest } = opts;
+      // Remove both variants from options to avoid duplication
+      const { disableNotification: _, disable_notification: __, ...rest } = opts;
+      
       if (Object.keys(rest).length > 0) {
         request.options = {
           ...(request.options || {}),
