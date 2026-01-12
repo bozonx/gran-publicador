@@ -606,6 +606,7 @@ export class PublicationsService {
           status: PostStatus.PENDING,
           scheduledAt: null,
           errorMessage: null,
+          publishedAt: null,
         },
       });
     }
@@ -692,7 +693,9 @@ export class PublicationsService {
         postType: data.postType,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        meta: data.meta ? (data.meta as any) : undefined,
+        meta: data.meta
+          ? { ...(publication.meta as any), ...(data.meta as any) }
+          : undefined,
         sourceTexts:
           data.sourceTexts !== undefined
             ? ((data.appendSourceTexts

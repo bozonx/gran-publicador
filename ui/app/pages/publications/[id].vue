@@ -8,7 +8,7 @@ import { useSocialPosting } from '~/composables/useSocialPosting'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
-import { getUserSelectableStatuses, getStatusColor, getStatusClass } from '~/utils/publications'
+import { getUserSelectableStatuses, getStatusColor, getStatusClass, getStatusIcon } from '~/utils/publications'
 
 
 definePageMeta({
@@ -818,7 +818,11 @@ async function executePublish(force: boolean) {
                                         @click="handleUpdateStatusOption(option.value as PublicationStatus)"
                                     >
                                         <template v-if="currentPublication?.status === option.value" #leading>
-                                            <UIcon name="i-heroicons-check" class="w-4 h-4" />
+                                            <UIcon 
+                                                :name="getStatusIcon(option.value as PublicationStatus)" 
+                                                class="w-4 h-4" 
+                                                :class="{ 'animate-spin': option.value === 'PROCESSING' }"
+                                            />
                                         </template>
                                     </UButton>
                                 </div>

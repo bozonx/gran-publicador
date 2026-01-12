@@ -302,6 +302,21 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         processingStartedAt: null,
         meta: {
           ...(publication.meta as any || {}),
+          attempts: [
+            ...((publication.meta as any)?.attempts || []),
+            {
+              timestamp: new Date().toISOString(),
+              successCount,
+              totalCount: results.length,
+              results: results.map(r => ({
+                postId: r.postId,
+                channelId: r.channelId,
+                success: r.success,
+                url: r.url,
+                error: r.error
+              }))
+            }
+          ],
           lastResult: {
             timestamp: new Date().toISOString(),
             successCount,
@@ -400,6 +415,10 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
             processingStartedAt: null,
             meta: {
                 ...(post.publication.meta as any || {}),
+                attempts: [
+                  ...((post.publication.meta as any)?.attempts || []),
+                  lastResult
+                ],
                 lastResult
             }
           }
@@ -463,7 +482,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
             publishedAt: new Date(response.data.publishedAt),
             meta: {
               ...meta,
-              response: response.data
+              attempts: [
+                ...(meta.attempts || []),
+                {
+                   timestamp: new Date().toISOString(),
+                   success: true,
+                   response: response.data
+                }
+              ]
             },
             errorMessage: null,
           },
@@ -481,7 +507,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
             errorMessage: message,
             meta: {
               ...meta,
-              response: platformError.error
+              attempts: [
+                ...(meta.attempts || []),
+                {
+                   timestamp: new Date().toISOString(),
+                   success: false,
+                   response: platformError.error
+                }
+              ]
             },
           },
         });
@@ -497,16 +530,23 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         data: {
           status: PostStatus.FAILED,
           errorMessage: message,
-          meta: {
-            ...meta,
-            response: { 
-              code: 'INTERNAL_ERROR',
-              message: message,
-              details: { stack: error.stack }
-            }
+            meta: {
+              ...meta,
+              attempts: [
+                ...(meta.attempts || []),
+                {
+                   timestamp: new Date().toISOString(),
+                   success: false,
+                   response: { 
+                     code: 'INTERNAL_ERROR',
+                     message: message,
+                     details: { stack: error.stack }
+                   }
+                }
+              ]
+            },
           },
-        },
-      });
+        });
       return { success: false, error: message };
     }
   }

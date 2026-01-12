@@ -349,8 +349,8 @@ export class PostsService {
     data: {
       tags?: string;
       status?: PostStatus;
-      scheduledAt?: Date;
-      publishedAt?: Date;
+      scheduledAt?: Date | null;
+      publishedAt?: Date | null;
       errorMessage?: string | null;
       content?: string | null;
     },
@@ -385,6 +385,17 @@ export class PostsService {
 
       data.status = PostStatus.PENDING;
       data.errorMessage = null;
+      data.publishedAt = null;
+    }
+
+    // Clear error if status is explicitly changed to something else than FAILED
+    if (data.status && data.status !== PostStatus.FAILED) {
+      data.errorMessage = null;
+    }
+
+    // Clear publishedAt if status is changed to PENDING
+    if (data.status === PostStatus.PENDING) {
+      data.publishedAt = null;
     }
 
     // Business Rule: When removing scheduledAt from post

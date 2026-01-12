@@ -62,3 +62,25 @@ export function getStatusClass(status: PublicationStatus): string {
       return 'bg-gray-500 text-white ring-0!'
   }
 }
+export function getStatusIcon(status: PublicationStatus): string {
+  switch (status) {
+    case 'DRAFT':
+      return 'i-heroicons-pencil-square'
+    case 'READY':
+      return 'i-heroicons-check'
+    case 'SCHEDULED':
+      return 'i-heroicons-clock'
+    case 'PROCESSING':
+      return 'i-heroicons-arrow-path'
+    case 'PUBLISHED':
+      return 'i-heroicons-check-circle'
+    case 'PARTIAL':
+      return 'i-heroicons-exclamation-triangle'
+    case 'FAILED':
+      return 'i-heroicons-exclamation-circle'
+    case 'EXPIRED':
+      return 'i-heroicons-clock'
+    default:
+      return 'i-heroicons-check'
+  }
+}
