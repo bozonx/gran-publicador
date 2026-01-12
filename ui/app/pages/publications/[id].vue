@@ -989,6 +989,7 @@ async function executePublish(force: boolean) {
                   :key="post.id"
                   :post="post"
                   :publication="currentPublication"
+                  :channels="channels"
                   @deleted="handlePostDeleted"
                   @success="() => fetchPublication(publicationId)"
                 ></PostsPostEditBlock>

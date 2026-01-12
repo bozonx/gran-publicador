@@ -62,6 +62,7 @@ export interface PostCreateInput {
   status?: PostStatus | null
   scheduledAt?: string | null
   content?: string | null
+  meta?: any // Additional metadata (like templateId)
 }
 
 export interface PostUpdateInput {
@@ -70,6 +71,7 @@ export interface PostUpdateInput {
   scheduledAt?: string | null
   publishedAt?: string | null
   content?: string | null
+  meta?: any // Update metadata
 }
 
 export interface PostsFilter {

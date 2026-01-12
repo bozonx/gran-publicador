@@ -77,6 +77,7 @@ const templateForm = reactive({
   postType: null as string | null,
   language: null as string | null,
   footerId: null as string | null,
+  isDefault: false,
   template: [] as TemplateBlock[]
 })
 
@@ -87,6 +88,7 @@ function openAddTemplate() {
   templateForm.postType = null
   templateForm.language = null
   templateForm.footerId = null
+  templateForm.isDefault = false
   templateForm.template = getDefaultBlocks()
   isModalOpen.value = true
 }
@@ -98,6 +100,7 @@ function openEditTemplate(template: ChannelPostTemplate) {
   templateForm.postType = template.postType || null
   templateForm.language = template.language || null
   templateForm.footerId = template.footerId || null
+  templateForm.isDefault = !!template.isDefault
   templateForm.template = JSON.parse(JSON.stringify(template.template))
   isModalOpen.value = true
 }
@@ -125,6 +128,7 @@ function handleSaveTemplate() {
         postType: templateForm.postType,
         language: templateForm.language,
         footerId: templateForm.footerId,
+        isDefault: templateForm.isDefault,
         template: JSON.parse(JSON.stringify(templateForm.template))
       }
     }
@@ -136,8 +140,18 @@ function handleSaveTemplate() {
       postType: templateForm.postType,
       language: templateForm.language,
       footerId: templateForm.footerId,
+      isDefault: templateForm.isDefault,
       template: JSON.parse(JSON.stringify(templateForm.template))
     })
+  }
+
+  // If this template is set as default, reset others
+  if (templateForm.isDefault) {
+     templates.value.forEach(t => {
+         if (t.id !== templateForm.id) {
+             t.isDefault = false
+         }
+     })
   }
 
   saveTemplates()
@@ -212,6 +226,9 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
               </UBadge>
               <UBadge v-if="template.language" size="xs" color="neutral" variant="subtle">
                 {{ languageOptions.find(o => o.value === template.language)?.label }}
+              </UBadge>
+              <UBadge v-if="template.isDefault" size="xs" color="primary" variant="soft">
+                {{ t('channel.templateIsDefault') }}
               </UBadge>
               <span v-if="!template.postType && !template.language" class="text-xs text-gray-400 italic">
                 {{ t('common.all') }}
@@ -301,6 +318,20 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                   class="w-full"
                 />
               </UFormField>
+
+              <div class="md:col-span-2">
+                 <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                    <USwitch v-model="templateForm.isDefault" size="md" />
+                    <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ t('channel.templateIsDefault') }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                             {{ t('channel.footerDefaultHelp') }}
+                        </div>
+                    </div>
+                 </div>
+              </div>
             </div>
 
             <!-- Blocks Editor -->

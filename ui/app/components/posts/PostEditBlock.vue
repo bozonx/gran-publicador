@@ -11,6 +11,7 @@ import {
     getPostType,
     getPostLanguage 
 } from '~/composables/usePosts'
+import type { ChannelPostTemplate } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
@@ -21,6 +22,7 @@ interface Props {
   post?: PostWithRelations
   publication?: PublicationWithRelations
   availableChannels?: ChannelWithProject[]
+  channels?: ChannelWithProject[]
   isCreating?: boolean
 }
 
@@ -90,7 +92,8 @@ const formData = reactive({
   tags: props.post?.tags || '', // Null or empty means use publication tags
   scheduledAt: toDatetimeLocal(props.post?.scheduledAt),
   status: (props.post?.status || 'PENDING') as PostStatus,
-  content: props.post?.content || ''
+  content: props.post?.content || '',
+  meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>
 })
 
 // Dirty state tracking
@@ -106,9 +109,17 @@ const channelOptions = computed(() => {
     })) || []
 })
 
+
+
 const selectedChannel = computed(() => {
     if (props.isCreating) {
         return props.availableChannels?.find(c => c.id === formData.channelId)
+    }
+    // Try to find full channel object in props.channels
+    if (props.channels && props.post?.channelId) {
+        const pid = props.post.channelId
+        const found = props.channels.find(c => c.id === pid)
+        if (found) return found
     }
     return props.post?.channel
 })
@@ -147,6 +158,7 @@ async function handleSave() {
             tags: formData.tags || null,
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
             content: formData.content || null,
+            meta: formData.meta
         }, { silent: true })
 
         if (newPost) {
@@ -163,6 +175,7 @@ async function handleSave() {
           tags: formData.tags || null,
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
           content: formData.content || null,
+          meta: formData.meta
         }, { silent: true })
 
         if (!updatedPost) throw new Error('Failed to update post')
@@ -215,6 +228,69 @@ const displayLanguage = computed(() => {
 })
 const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
 
+const availableTemplates = computed(() => {
+    const channel = selectedChannel.value
+    // Check if channel has preferences (type guard)
+    if (!channel || !('preferences' in channel) || !(channel as ChannelWithProject).preferences?.templates) return []
+    
+    // Filter templates by post type (if specified in template)
+    // If template has specific post type, it must match publication's post type
+    // If template post type is null, it applies to all
+    const publicationPostType = displayType.value
+    
+    return ((channel as ChannelWithProject).preferences?.templates || []).filter(t => {
+        // Filter by Post Type
+        if (t.postType && t.postType !== publicationPostType) return false
+        
+        // Filter by Language? Usually not strictly enforced but good to consider
+        // If template has specific language, maybe valid only if channel language matches?
+        // For now, let's stick to post type filtering as primary
+        
+        return true
+    }).map(template => ({
+        value: template.id,
+        label: template.name + (template.isDefault ? ` (${t('channel.templateIsDefault', 'Default')})` : '')
+    }))
+})
+
+// Auto-select default template if none selected or invalid
+watch(availableTemplates, (newTemplates) => {
+    // If we have a current selection, verify it still exists in available templates
+    const currentId = formData.meta.templateId
+    const currentExists = currentId && newTemplates.some(t => t.value === currentId)
+    
+    // If no selection or current selection is invalid for this filter context
+    if (!currentId || !currentExists) {
+        // Find default template
+        const channel = selectedChannel.value
+        // We need to look at the raw template objects to find isDefault, 
+        // as availableTemplates only has value/label.
+        // But we can rebuild the lookup or just re-find from channel preferences
+         if (channel && 'preferences' in channel && (channel as ChannelWithProject).preferences?.templates) {
+            const rawTemplates = (channel as ChannelWithProject).preferences?.templates || []
+            // Filter same as availableTemplates (by post type)
+            const publicationPostType = displayType.value
+            
+            const validTemplates = rawTemplates.filter(t => {
+                if (t.postType && t.postType !== publicationPostType) return false
+                return true
+            })
+            
+            const defaultTemplate = validTemplates.find(t => t.isDefault)
+            if (defaultTemplate) {
+                formData.meta.templateId = defaultTemplate.id
+            } else {
+                // If current was invalid and no default, we should probably clear it?
+                // Or keep it if we want to allow "invalid" selections (legacy)?
+                // Safer to clear if it's strictly invalid.
+                if (currentId && !currentExists) {
+                    formData.meta.templateId = undefined
+                }
+            }
+         }
+    }
+}, { immediate: true })
+
 // Watchers for external updates
 watch(() => props.post, (newPost) => {
     if (!newPost) return
@@ -222,6 +298,7 @@ watch(() => props.post, (newPost) => {
     formData.scheduledAt = toDatetimeLocal(newPost.scheduledAt)
     formData.status = newPost.status
     formData.content = newPost.content || ''
+    formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
     
     // Save original state after update
     nextTick(() => {
@@ -558,6 +635,19 @@ const metaYaml = computed(() => {
                         :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
                     />
                 </UTooltip>
+            </UFormField>
+
+            <!-- Template Selector -->
+            <UFormField :label="t('post.template')" v-if="availableTemplates.length > 0">
+                <USelectMenu
+                    v-model="formData.meta.templateId"
+                    :items="availableTemplates"
+                    value-key="value"
+                    label-key="label"
+                    :placeholder="t('post.selectTemplate', 'Select template...')"
+                    class="w-full"
+                >
+                </USelectMenu>
             </UFormField>
 
 

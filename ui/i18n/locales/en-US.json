@@ -336,6 +336,7 @@
     "templatePostType": "Post Type",
     "templateLanguage": "Language",
     "templateEnabled": "Enabled",
+    "templateIsDefault": "Default",
     "templateInsert": "Insert",
     "templateBefore": "Text BEFORE",
     "templateAfter": "Text AFTER",
@@ -450,7 +451,9 @@
     "newPostInChannel": "New post in channel",
     "languageMismatch": "Channel language differs from publication",
     "languageMismatchWarning": "Warning: Channel language differs from publication language",
-    "metadata": "Metadata"
+    "metadata": "Metadata",
+    "template": "Template",
+    "selectTemplate": "Select template..."
   },
   "publication": {
     "title": "Publication",

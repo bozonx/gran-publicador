@@ -372,6 +372,7 @@
     "templatePostType": "Тип поста",
     "templateLanguage": "Язык",
     "templateEnabled": "Включен",
+    "templateIsDefault": "По умолчанию",
     "templateInsert": "Вставить",
     "templateBefore": "Текст ДО",
     "templateAfter": "Текст ПОСЛЕ",
@@ -475,6 +476,8 @@
     "languageMismatch": "Язык канала отличается от публикации",
     "languageMismatchWarning": "Внимание: Язык канала отличается от языка публикации",
     "metadata": "Метаданные",
+    "template": "Шаблон",
+    "selectTemplate": "Выберите шаблон...",
     "status": {
       "pending": "Ожидает",
       "published": "Опубликовано",
