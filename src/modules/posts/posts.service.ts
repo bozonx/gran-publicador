@@ -63,6 +63,7 @@ export class PostsService {
       status?: PostStatus;
       scheduledAt?: Date;
       content?: string | null;
+      platformOptions?: any;
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
@@ -94,6 +95,7 @@ export class PostsService {
         scheduledAt: data.scheduledAt,
         content: data.content,
         meta: {},
+        platformOptions: data.platformOptions,
       },
       include: {
         channel: true,
@@ -353,6 +355,7 @@ export class PostsService {
       publishedAt?: Date | null;
       errorMessage?: string | null;
       content?: string | null;
+      platformOptions?: any;
     },
   ) {
     const post = await this.findOne(id, userId);
@@ -412,6 +415,7 @@ export class PostsService {
         publishedAt: data.publishedAt,
         errorMessage: data.errorMessage,
         content: data.content,
+        platformOptions: data.platformOptions,
       },
       include: {
         channel: true,

@@ -42,4 +42,7 @@ export class CreatePostDto {
 
   @IsOptional()
   public template?: any;
+
+  @IsOptional()
+  public platformOptions?: any;
 }

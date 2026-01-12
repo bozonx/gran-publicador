@@ -193,6 +193,7 @@ export const PostScalarFieldEnum = {
   meta: 'meta',
   template: 'template',
   content: 'content',
+  platformOptions: 'platformOptions',
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',

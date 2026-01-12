@@ -405,6 +405,10 @@
   },
   "post": {
     "title": "Post",
+    "options": {
+      "title": "Platform Options",
+      "disableNotification": "Disable Notification"
+    },
     "titlePlural": "Posts",
     "postTitle": "Title",
     "content": "Content",

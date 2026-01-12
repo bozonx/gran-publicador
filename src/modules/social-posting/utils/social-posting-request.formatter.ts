@@ -57,6 +57,27 @@ export class SocialPostingRequestFormatter {
       ...mediaMapping,
     };
 
+    // Apply platform options from post
+    if (post.platformOptions) {
+      const opts = typeof post.platformOptions === 'string' 
+        ? JSON.parse(post.platformOptions) 
+        : post.platformOptions;
+      
+      // Map specific known options
+      if (opts.disableNotification !== undefined) {
+        request.disableNotification = !!opts.disableNotification;
+      }
+      
+      // Pass the rest as general options if any
+      const { disableNotification, ...rest } = opts;
+      if (Object.keys(rest).length > 0) {
+        request.options = {
+          ...(request.options || {}),
+          ...rest
+        };
+      }
+    }
+
     // Platform specific overrides
     if (isTelegram) {
       // Per instructions for Telegram:

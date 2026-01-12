@@ -94,7 +94,8 @@ const formData = reactive({
   status: (props.post?.status || 'PENDING') as PostStatus,
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
-  template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null
+  template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null,
+  platformOptions: (props.post?.platformOptions && typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : (props.post?.platformOptions || {})) as Record<string, any>
 })
 
 // Dirty state tracking
@@ -160,7 +161,8 @@ async function handleSave() {
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
             content: formData.content || null,
             meta: formData.meta,
-            template: formData.template
+            template: formData.template,
+            platformOptions: formData.platformOptions
         }, { silent: true })
 
         if (newPost) {
@@ -178,7 +180,8 @@ async function handleSave() {
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
           content: formData.content || null,
           meta: formData.meta,
-          template: formData.template
+          template: formData.template,
+          platformOptions: formData.platformOptions
         }, { silent: true })
 
         if (!updatedPost) throw new Error('Failed to update post')
@@ -289,6 +292,7 @@ watch(() => props.post, (newPost) => {
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
     formData.template = (newPost.template && typeof newPost.template === 'string' ? JSON.parse(newPost.template) : (newPost.template || null))
+    formData.platformOptions = (newPost.platformOptions && typeof newPost.platformOptions === 'string' ? JSON.parse(newPost.platformOptions) : (newPost.platformOptions || {}))
     
     // Save original state after update
     nextTick(() => {
@@ -723,6 +727,18 @@ const metaYaml = computed(() => {
             </UFormField>
 
 
+       </div>
+       
+       <!-- Platform Specific Options -->
+       <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UFormField :label="t('post.options.title', 'Platform Options')">
+                <div class="flex items-center gap-2 py-2">
+                    <UCheckbox 
+                      v-model="formData.platformOptions.disableNotification" 
+                      :label="t('post.options.disableNotification')" 
+                    />
+                </div>
+            </UFormField>
        </div>
        
        <!-- Post Content (Override) -->

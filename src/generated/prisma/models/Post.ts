@@ -65,6 +65,7 @@ export type PostCountAggregateOutputType = {
   meta: number
   template: number
   content: number
+  platformOptions: number
   scheduledAt: number
   publishedAt: number
   createdAt: number
@@ -114,6 +115,7 @@ export type PostCountAggregateInputType = {
   meta?: true
   template?: true
   content?: true
+  platformOptions?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -204,6 +206,7 @@ export type PostGroupByOutputType = {
   meta: runtime.JsonValue
   template: runtime.JsonValue | null
   content: string | null
+  platformOptions: runtime.JsonValue | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date
@@ -242,6 +245,7 @@ export type PostWhereInput = {
   meta?: Prisma.JsonFilter<"Post">
   template?: Prisma.JsonNullableFilter<"Post">
   content?: Prisma.StringNullableFilter<"Post"> | string | null
+  platformOptions?: Prisma.JsonNullableFilter<"Post">
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -261,6 +265,7 @@ export type PostOrderByWithRelationInput = {
   meta?: Prisma.SortOrder
   template?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
+  platformOptions?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -283,6 +288,7 @@ export type PostWhereUniqueInput = Prisma.AtLeast<{
   meta?: Prisma.JsonFilter<"Post">
   template?: Prisma.JsonNullableFilter<"Post">
   content?: Prisma.StringNullableFilter<"Post"> | string | null
+  platformOptions?: Prisma.JsonNullableFilter<"Post">
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -302,6 +308,7 @@ export type PostOrderByWithAggregationInput = {
   meta?: Prisma.SortOrder
   template?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
+  platformOptions?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -325,6 +332,7 @@ export type PostScalarWhereWithAggregatesInput = {
   meta?: Prisma.JsonWithAggregatesFilter<"Post">
   template?: Prisma.JsonNullableWithAggregatesFilter<"Post">
   content?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
+  platformOptions?: Prisma.JsonNullableWithAggregatesFilter<"Post">
   scheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Post"> | Date | string
@@ -340,6 +348,7 @@ export type PostCreateInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -359,6 +368,7 @@ export type PostUncheckedCreateInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -374,6 +384,7 @@ export type PostUpdateInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -393,6 +404,7 @@ export type PostUncheckedUpdateInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -410,6 +422,7 @@ export type PostCreateManyInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -425,6 +438,7 @@ export type PostUpdateManyMutationInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -442,6 +456,7 @@ export type PostUncheckedUpdateManyInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -469,6 +484,7 @@ export type PostCountOrderByAggregateInput = {
   meta?: Prisma.SortOrder
   template?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  platformOptions?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -602,6 +618,7 @@ export type PostCreateWithoutChannelInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -619,6 +636,7 @@ export type PostUncheckedCreateWithoutChannelInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -664,6 +682,7 @@ export type PostScalarWhereInput = {
   meta?: Prisma.JsonFilter<"Post">
   template?: Prisma.JsonNullableFilter<"Post">
   content?: Prisma.StringNullableFilter<"Post"> | string | null
+  platformOptions?: Prisma.JsonNullableFilter<"Post">
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -679,6 +698,7 @@ export type PostCreateWithoutPublicationInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -696,6 +716,7 @@ export type PostUncheckedCreateWithoutPublicationInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -737,6 +758,7 @@ export type PostCreateManyChannelInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -752,6 +774,7 @@ export type PostUpdateWithoutChannelInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -769,6 +792,7 @@ export type PostUncheckedUpdateWithoutChannelInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -785,6 +809,7 @@ export type PostUncheckedUpdateManyWithoutChannelInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -801,6 +826,7 @@ export type PostCreateManyPublicationInput = {
   meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -816,6 +842,7 @@ export type PostUpdateWithoutPublicationInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -833,6 +860,7 @@ export type PostUncheckedUpdateWithoutPublicationInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -849,6 +877,7 @@ export type PostUncheckedUpdateManyWithoutPublicationInput = {
   meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -868,6 +897,7 @@ export type PostSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   meta?: boolean
   template?: boolean
   content?: boolean
+  platformOptions?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -887,6 +917,7 @@ export type PostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   meta?: boolean
   template?: boolean
   content?: boolean
+  platformOptions?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -906,6 +937,7 @@ export type PostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   meta?: boolean
   template?: boolean
   content?: boolean
+  platformOptions?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -925,13 +957,14 @@ export type PostSelectScalar = {
   meta?: boolean
   template?: boolean
   content?: boolean
+  platformOptions?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "template" | "content" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
+export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "template" | "content" | "platformOptions" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
 export type PostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
@@ -962,6 +995,7 @@ export type $PostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     meta: runtime.JsonValue
     template: runtime.JsonValue | null
     content: string | null
+    platformOptions: runtime.JsonValue | null
     scheduledAt: Date | null
     publishedAt: Date | null
     createdAt: Date
@@ -1401,6 +1435,7 @@ export interface PostFieldRefs {
   readonly meta: Prisma.FieldRef<"Post", 'Json'>
   readonly template: Prisma.FieldRef<"Post", 'Json'>
   readonly content: Prisma.FieldRef<"Post", 'String'>
+  readonly platformOptions: Prisma.FieldRef<"Post", 'Json'>
   readonly scheduledAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly publishedAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Post", 'DateTime'>

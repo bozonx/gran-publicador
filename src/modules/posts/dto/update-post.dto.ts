@@ -28,4 +28,7 @@ export class UpdatePostDto {
 
   @IsOptional()
   public template?: any;
+
+  @IsOptional()
+  public platformOptions?: any;
 }

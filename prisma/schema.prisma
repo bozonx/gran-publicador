@@ -208,6 +208,8 @@ model Post {
   template      Json?
   // Overwrite of publication content for this specific post
   content       String?
+  // Platform-specific options (e.g., disableNotification for Telegram)
+  platformOptions Json? @map("platform_options")
 
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")
