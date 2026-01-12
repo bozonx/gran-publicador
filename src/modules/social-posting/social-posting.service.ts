@@ -304,7 +304,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       data: { 
         status: finalStatus,
         processingStartedAt: null,
-        meta: {
+        meta: this.sanitizeJson({
           ...(publication.meta as any || {}),
           attempts: [
             ...((publication.meta as any)?.attempts || []),
@@ -321,7 +321,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
             totalCount: results.length,
 
           }
-        }
+        })
       },
     });
 
@@ -399,14 +399,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           data: { 
             status: finalStatus,
             processingStartedAt: null,
-            meta: {
+            meta: this.sanitizeJson({
                 ...(post.publication.meta as any || {}),
                 attempts: [
                   ...((post.publication.meta as any)?.attempts || []),
                   lastResult
                 ],
                 lastResult
-            }
+            })
           }
       });
 
@@ -467,7 +467,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: PostStatus.PUBLISHED,
             publishedAt: new Date(response.data.publishedAt),
-            meta: {
+            meta: this.sanitizeJson({
               ...meta,
               attempts: [
                 ...(meta.attempts || []),
@@ -477,7 +477,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
                    response: response.data
                 }
               ]
-            },
+            }),
             errorMessage: null,
           },
         });
@@ -492,7 +492,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: PostStatus.FAILED,
             errorMessage: message,
-            meta: {
+            meta: this.sanitizeJson({
               ...meta,
               attempts: [
                 ...(meta.attempts || []),
@@ -502,7 +502,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
                    response: platformError.error
                 }
               ]
-            },
+            }),
           },
         });
         return { success: false, error: message };
@@ -517,7 +517,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         data: {
           status: PostStatus.FAILED,
           errorMessage: message,
-            meta: {
+            meta: this.sanitizeJson({
               ...meta,
               attempts: [
                 ...(meta.attempts || []),
@@ -531,7 +531,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
                    }
                 }
               ]
-            },
+            }),
           },
         });
       return { success: false, error: message };
@@ -580,5 +580,25 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
   private hasContentOrMedia(content: string | null, media: any[]): boolean {
     return !!(content && content.trim()) || media.length > 0;
+  }
+
+  /**
+   * Deeply sanitizes an object to ensure it only contains JSON-compatible data.
+   * Removes functions and ensures class instances are converted to plain objects.
+   */
+  private sanitizeJson(obj: any): any {
+    if (!obj) return obj;
+    try {
+      return JSON.parse(
+        JSON.stringify(obj, (key, value) =>
+          typeof value === 'bigint' ? value.toString() : value,
+        ),
+      );
+    } catch (error: any) {
+      if (this.logger) {
+        this.logger.warn(`Failed to sanitize JSON object: ${error?.message || error}`);
+      }
+      return { _error: 'Sanitization failed', _message: error?.message || String(error) };
+    }
   }
 }
