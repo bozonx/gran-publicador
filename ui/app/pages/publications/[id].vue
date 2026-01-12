@@ -382,6 +382,16 @@ async function handlePublishNow() {
       warning = t('publication.archiveWarning.publication')
   } else if (currentProject.value?.archivedAt) {
       warning = t('publication.archiveWarning.project', { name: currentProject.value.name })
+  } else {
+      // Check for inactive channels
+      const inactiveChannels = currentPublication.value.posts
+          ?.filter((p: any) => p.channel && !p.channel.isActive)
+          .map((p: any) => p.channel.name) || []
+      
+      if (inactiveChannels.length > 0) {
+          const names = [...new Set(inactiveChannels)].join(', ')
+          warning = t('publication.archiveWarning.inactiveChannels', { names })
+      }
   }
 
   if (warning) {

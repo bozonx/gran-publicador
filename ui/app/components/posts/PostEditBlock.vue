@@ -325,6 +325,8 @@ async function handlePublishPost() {
       warning = t('publication.archiveWarning.channel', { name: channel.name })
   } else if (channel?.project?.archivedAt) {
       warning = t('publication.archiveWarning.project', { name: channel.project.name })
+  } else if (channel?.isActive === false) {
+      warning = t('publication.archiveWarning.inactiveChannel', { name: channel.name })
   }
 
   if (warning) {
