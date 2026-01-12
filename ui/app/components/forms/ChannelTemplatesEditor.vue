@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { DialogTitle, DialogDescription, VisuallyHidden } from 'reka-ui'
+
 import type { 
   ChannelWithProject, 
   ChannelPostTemplate, 
@@ -263,16 +263,12 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
           <template #header>
             <div class="flex items-center justify-between">
               <div>
-                <DialogTitle as-child>
-                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">
-                    {{ editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate') }}
-                  </h3>
-                </DialogTitle>
-                <VisuallyHidden>
-                  <DialogDescription>
-                    {{ editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate') }}
-                  </DialogDescription>
-                </VisuallyHidden>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+                  {{ editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate') }}
+                </h3>
+                <p class="sr-only">
+                  {{ editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate') }}
+                </p>
               </div>
               <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" class="-my-1" @click="isModalOpen = false" />
             </div>
