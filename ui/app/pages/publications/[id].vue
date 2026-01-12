@@ -877,6 +877,13 @@ async function executePublish(force: boolean) {
             </div>
         </div>
 
+        <!-- Publication Notes -->
+        <PublicationsPublicationNotesBlock
+          v-if="currentPublication"
+          :publication="currentPublication"
+          @update="() => fetchPublication(publicationId)"
+        />
+
         <!-- Media Gallery (always expanded, horizontal scroll) -->
         <MediaGallery
           v-if="currentPublication"

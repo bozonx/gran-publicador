@@ -474,9 +474,6 @@ function handleDeleteAllSourceTexts() {
 
         <CommonYamlEditor v-model="state.meta" label="Meta (YAML)" help="Additional metadata in YAML format" :rows="8" />
 
-        <UFormField name="note" :label="t('post.note')" :help="t('post.noteHint')">
-          <UTextarea v-model="state.note" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.notePlaceholder')" />
-        </UFormField>
       </UiFormAdvancedSection>
 
       <UiFormActions
