@@ -163,7 +163,7 @@ async function handleSave() {
             content: formData.content || null,
             meta: formData.meta,
             template: formData.template,
-            platformOptions: formData.platformOptions
+            platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
 
         if (newPost) {
@@ -182,7 +182,7 @@ async function handleSave() {
           content: formData.content || null,
           meta: formData.meta,
           template: formData.template,
-          platformOptions: formData.platformOptions
+          platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
 
         if (!updatedPost) throw new Error('Failed to update post')

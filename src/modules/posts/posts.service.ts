@@ -413,7 +413,7 @@ export class PostsService {
 
     this.logger.log(`Updating post ${id}. platformOptions: ${JSON.stringify(data.platformOptions)}`);
 
-    return this.prisma.post.update({
+    const updatedPost = await this.prisma.post.update({
       where: { id },
       data: {
         tags: data.tags,
@@ -429,6 +429,9 @@ export class PostsService {
         publication: true,
       },
     });
+
+    this.logger.log(`Updated post ${id}. platformOptions in return: ${JSON.stringify(updatedPost.platformOptions)}`);
+    return updatedPost;
   }
 
   /**
