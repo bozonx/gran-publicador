@@ -726,20 +726,26 @@ async function handlePublishNow() {
                                 </UPopover>
                             </div>
                             <div class="flex items-center gap-2">
-                                <div class="inline-flex gap-px shadow-sm">
+                                <div class="inline-flex shadow-sm rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                                     <UButton
                                         v-for="option in displayStatusOptions"
                                         :key="option.value"
                                         :label="option.label"
                                         color="neutral"
+                                        variant="ghost"
                                         :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentOrMediaMissing && currentPublication?.status === 'DRAFT')"
-                                        class="rounded-none first:rounded-l-md last:rounded-r-md transition-opacity"
+                                        class="rounded-none border-r last:border-r-0 border-gray-200 dark:border-gray-700 transition-all px-4 py-2 font-medium"
                                         :class="[
-                                            getStatusClass(option.value as PublicationStatus),
-                                            currentPublication?.status !== option.value ? 'opacity-40 hover:opacity-100' : ''
+                                            currentPublication?.status === option.value 
+                                                ? (getStatusClass(option.value as PublicationStatus) + ' opacity-100! shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] disabled:opacity-100! disabled:cursor-default') 
+                                                : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 opacity-100'
                                         ]"
                                         @click="handleUpdateStatusOption(option.value as PublicationStatus)"
-                                    />
+                                    >
+                                        <template v-if="currentPublication?.status === option.value" #leading>
+                                            <UIcon name="i-heroicons-check" class="w-4 h-4" />
+                                        </template>
+                                    </UButton>
                                 </div>
                             </div>
                         </div>

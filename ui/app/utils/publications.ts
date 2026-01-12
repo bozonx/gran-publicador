@@ -24,19 +24,19 @@ export function getUserSelectableStatuses(t: (key: string) => string): StatusOpt
 export function getStatusColor(status: PublicationStatus): string {
   switch (status) {
     case 'DRAFT':
-      return 'black'
+      return 'neutral'
     case 'READY':
-      return 'yellow'
+      return 'amber'
     case 'SCHEDULED':
       return 'sky'
     case 'PROCESSING':
-      return 'blue'
+      return 'indigo'
     case 'PUBLISHED':
-      return 'green'
+      return 'emerald'
     case 'PARTIAL':
     case 'FAILED':
     case 'EXPIRED':
-      return 'red'
+      return 'rose'
     default:
       return 'neutral'
   }
@@ -44,22 +44,21 @@ export function getStatusColor(status: PublicationStatus): string {
 
 export function getStatusClass(status: PublicationStatus): string {
   const color = getStatusColor(status)
-  // Using !important to ensure override of default button styles if necessary, 
-  // and ensuring the colors are picked up by Tailwind JIT by full string usage.
+  
   switch (color) {
-    case 'black':
-      return '!bg-black dark:!bg-white dark:!text-black !text-white !ring-0'
-    case 'yellow':
-      return '!bg-yellow-500 dark:!bg-yellow-500 !text-white !ring-0'
+    case 'neutral':
+      return 'bg-gray-600 dark:bg-gray-400 text-white dark:text-gray-900 ring-0!'
+    case 'amber':
+      return 'bg-amber-500 text-white ring-0!'
     case 'sky':
-      return '!bg-sky-500 dark:!bg-sky-500 !text-white !ring-0'
-    case 'blue':
-      return '!bg-blue-500 dark:!bg-blue-500 !text-white !ring-0'
-    case 'green':
-      return '!bg-green-500 dark:!bg-green-500 !text-white !ring-0'
-    case 'red':
-      return '!bg-red-500 dark:!bg-red-500 !text-white !ring-0'
+      return 'bg-sky-500 text-white ring-0!'
+    case 'indigo':
+      return 'bg-indigo-600 text-white ring-0!'
+    case 'emerald':
+      return 'bg-emerald-500 text-white ring-0!'
+    case 'rose':
+      return 'bg-rose-500 text-white ring-0!'
     default:
-      return '!bg-gray-500 dark:!bg-gray-500 !text-white !ring-0'
+      return 'bg-gray-500 text-white ring-0!'
   }
 }
