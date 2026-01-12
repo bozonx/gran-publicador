@@ -552,7 +552,11 @@
     "publishSuccess": "Publication published successfully",
     "publishSuccessPartial": "Publication partially published",
     "publishError": "Publication error",
-    "cannotPublish": "Cannot publish: missing content or media, or channel not configured"
+    "cannotPublish": "Cannot publish: missing content or media, or channel not configured",
+    "republishConfirm": "Republish Confirmation",
+    "republishWarning": "This publication has already been published. Do you want to publish it again? This may result in duplicate posts.",
+    "republishPostWarning": "This post has already been published. Do you want to publish it again?",
+    "republishFailedWarning": "You are about to retry a failed publication. Are you sure?"
   },
   "media": {
     "type": {

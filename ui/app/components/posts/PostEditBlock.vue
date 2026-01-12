@@ -239,8 +239,8 @@ const isValid = computed(() => {
 async function handlePublishPost() {
   if (!props.post) return
 
-  // Check if already published
-  if (props.post.status === 'PUBLISHED') {
+  // Check if already published or failed
+  if (props.post.status === 'PUBLISHED' || props.post.status === 'FAILED') {
       isRepublishModalOpen.value = true
       return
   }
@@ -269,6 +269,17 @@ async function executePublish() {
       
       // Refresh post
       emit('success')
+    } else {
+         let errorMsg = result.message || t('publication.publishError')
+         if (result.data?.results?.[0]?.error) {
+             errorMsg = result.data.results[0].error
+         }
+         
+         toast.add({
+            title: t('common.error'),
+            description: errorMsg,
+            color: 'error'
+         })
     }
   } catch (error: any) {
     toast.add({
@@ -337,12 +348,12 @@ const metaYaml = computed(() => {
           <div class="flex items-center gap-3 text-warning-500 mb-4">
             <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
             <h3 class="text-lg font-medium">
-              {{ t('publication.republishConfirm', 'Republish Confirmation') }}
+              {{ t('publication.republishConfirm') }}
             </h3>
           </div>
 
           <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('publication.republishPostWarning', 'This post has already been published. Do you want to publish it again?') }}
+            {{ props.post?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishPostWarning') }}
           </p>
 
           <div class="flex justify-end gap-3">

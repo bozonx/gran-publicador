@@ -141,7 +141,7 @@ export class PublicationSchedulerService implements OnModuleInit {
       const updateResult = await this.prisma.publication.updateMany({
         where: {
           id: publicationId,
-          status: { in: [PublicationStatus.SCHEDULED, PublicationStatus.FAILED, PublicationStatus.PARTIAL] },
+          status: PublicationStatus.SCHEDULED,
         },
         data: {
           status: PublicationStatus.PROCESSING,

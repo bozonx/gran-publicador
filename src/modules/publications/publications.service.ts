@@ -610,8 +610,20 @@ export class PublicationsService {
       });
     }
 
-    // Business Rule: When scheduledAt is set
-    if (data.scheduledAt !== undefined && data.scheduledAt !== null) {
+    // Business Rule: When scheduledAt is set OR status is explicitly set to SCHEDULED
+    const isScheduling =
+      (data.scheduledAt !== undefined && data.scheduledAt !== null) ||
+      data.status === PublicationStatus.SCHEDULED;
+
+    if (isScheduling) {
+      // Validate that we have a scheduled time
+      const effectiveScheduledAt =
+        data.scheduledAt !== undefined ? data.scheduledAt : publication.scheduledAt;
+
+      if (!effectiveScheduledAt) {
+        throw new BadRequestException('Cannot set status to SCHEDULED without a scheduled time');
+      }
+
       // Validate content is filled
       const contentToCheck = data.content !== undefined ? data.content : publication.content;
 

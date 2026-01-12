@@ -351,7 +351,7 @@ export class PostsService {
       status?: PostStatus;
       scheduledAt?: Date;
       publishedAt?: Date;
-      errorMessage?: string;
+      errorMessage?: string | null;
       content?: string | null;
     },
   ) {
@@ -384,12 +384,12 @@ export class PostsService {
       }
 
       data.status = PostStatus.PENDING;
-      data.errorMessage = undefined;
+      data.errorMessage = null;
     }
 
     // Business Rule: When removing scheduledAt from post
     if (data.scheduledAt === null) {
-      data.errorMessage = undefined;
+      data.errorMessage = null;
     }
 
     return this.prisma.post.update({

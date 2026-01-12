@@ -374,18 +374,10 @@ function formatDate(dateString: string | null | undefined): string {
 async function handlePublishNow() {
   if (!currentPublication.value) return
   
-  // If publication contains published posts (PUBLISHED or PARTIAL), warn about duplication
-  if (['PUBLISHED', 'PARTIAL'].includes(currentPublication.value.status)) {
+  // If publication is not PENDING (already tried), warn the user
+  if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(currentPublication.value.status)) {
     isRepublishModalOpen.value = true
     return
-  }
-
-  // If FAILED, we strictly need force=true to retry failed posts (as backend skips non-pending by default)
-  // No warning needed as there are no successful posts to duplicate (if status is FAILED, it implies mostly failure)
-  // However, FAILED status is strictly "All posts failed".
-  if (currentPublication.value.status === 'FAILED') {
-      await executePublish(true)
-      return
   }
   
   await executePublish(false)
@@ -393,6 +385,7 @@ async function handlePublishNow() {
 
 async function handleConfirmRepublish() {
     isRepublishModalOpen.value = false
+    // When manually republishing, we use force=true to ensure all posts are processed
     await executePublish(true)
 }
 
@@ -403,9 +396,30 @@ async function executePublish(force: boolean) {
     const result = await publishPublication(currentPublication.value.id, force)
     
     if (result.success) {
+      // Update status directly from server response
+      if (result.data?.status) {
+        currentPublication.value.status = result.data.status as PublicationStatus
+      }
+
       const totalPosts = (result.data?.publishedCount || 0) + (result.data?.failedCount || 0)
       const isPartial = result.data?.failedCount && result.data.failedCount > 0
       
+      // Output errors if they appeared after publication
+      if (isPartial && result.data?.results) {
+         const errors = result.data.results
+            .filter(r => !r.success && r.error)
+            .map(r => r.error)
+            .join('\n')
+         
+         if (errors) {
+            toast.add({
+                title: t('common.error'),
+                description: errors,
+                color: 'error'
+            })
+         }
+      }
+
       toast.add({
         title: t('common.success'),
         description: isPartial 
@@ -417,11 +431,12 @@ async function executePublish(force: boolean) {
       // Refresh publication
       await fetchPublication(currentPublication.value.id)
     } else {
-      toast.add({
-        title: t('common.error'),
-        description: result.message || t('publication.publishError'),
-        color: 'error'
-      })
+        // Even if success is false, we might have partial data or just a message
+        toast.add({
+            title: t('common.error'),
+            description: result.message || t('publication.publishError'),
+            color: 'error'
+        })
     }
   } catch (error: any) {
     toast.add({
@@ -476,12 +491,12 @@ async function executePublish(force: boolean) {
           <div class="flex items-center gap-3 text-warning-500 mb-4">
             <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
             <h3 class="text-lg font-medium">
-              {{ t('publication.republishConfirm', 'Republish Confirmation') }}
+              {{ t('publication.republishConfirm') }}
             </h3>
           </div>
 
           <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('publication.republishWarning', 'This publication has already been published. Do you want to publish it again? This may result in duplicate posts.') }}
+            {{ currentPublication?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishWarning') }}
           </p>
 
           <div class="flex justify-end gap-3">
