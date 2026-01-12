@@ -68,28 +68,21 @@ export class SocialPostingBodyFormatter {
     
     let template: ChannelPostTemplate | null | undefined = null;
 
-    // 1. If explicit template is selected, try to find it
+    // 1. Explicit selection (Highest Priority)
     if (templateOverride?.id) {
       template = templates.find(t => t.id === templateOverride.id);
+      
+      // If explicit template is not found, user requested to use Default template.
+      // We don't fail here, just proceed to look for default.
     }
 
-    // 2. If no explicit template (or not found), try to find "Default" template
+    // 2. Channel Default (if no explicit found, or explicit was invalid)
     if (!template) {
-        // Only if no override was attempted (or we want default to be the fallback when override fails? 
-        // Requirement: "if template field is empty then it means ... default template will be taken")
-        // So if override is provided but invalid, we might fall back to default or standard logic. 
-        // Let's assume if explicit ID is given but not found, we shouldn't silently switch to default, but maybe we have no choice.
-        
-        // However, the main case is templateOverride is null/undefined.
-        if (!templateOverride) {
-            template = templates.find(t => t.isDefault);
-        }
+         template = templates.find(t => t.isDefault);
     }
 
-    // 3. If still no template, fallback to "Best Match" logic (legacy/smart selection)
-    if (!template) {
-      template = this.findBestTemplate(templates, data.postType, data.language || channel.language);
-    }
+    // 3. System Default (if even channel default is missing)
+    // Implicitly handled: if template is null, we use getDefaultBlocks()
     
     const blocks = template ? template.template : this.getDefaultBlocks();
     
@@ -129,9 +122,7 @@ export class SocialPostingBodyFormatter {
        // A specific footer is selected
        footerObj = footers.find(f => f.id === template.footerId);
     } else {
-       // No specific footer, try to find default (if not explicitly set to "no footer" - currently null means "default" in UI)
-       // NOTE: If we want "Null" to mean "No Footer", we would need a specific ID for "No Footer" or different logic.
-       // Based on requirements found in UI code (value: null, label: 'Default'), null means use Default.
+       // If no specific footer or using System Default, check for Default Footer
        footerObj = footers.find(f => f.isDefault);
     }
 
@@ -140,28 +131,5 @@ export class SocialPostingBodyFormatter {
     }
 
     return result.trim();
-  }
-
-  private static findBestTemplate(
-    templates: ChannelPostTemplate[],
-    postType?: PostType,
-    language?: string,
-  ): ChannelPostTemplate | null {
-    if (!templates.length) return null;
-
-    // Filter templates that match postType (if it's set) or have null postType
-    const matchingType = templates.filter(t => !t.postType || t.postType === postType);
-    
-    // Filter by language
-    const matchingLang = matchingType.filter(t => !t.language || t.language === language);
-
-    if (!matchingLang.length) return null;
-
-    // Sort by specificity: templates with both postType and language first, then either, then neither
-    return matchingLang.sort((a, b) => {
-      const scoreA = (a.postType ? 2 : 0) + (a.language ? 1 : 0);
-      const scoreB = (b.postType ? 2 : 0) + (b.language ? 1 : 0);
-      return scoreB - scoreA || (a.order - b.order);
-    })[0];
   }
 }

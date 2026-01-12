@@ -255,9 +255,13 @@ const availableTemplates = computed(() => {
         label: template.name + (template.isDefault ? ` (${t('channel.templateIsDefault', 'Default')})` : '')
     }))
 
+    // Find current default to show in label
+    const defaultTemplate = ((channel as ChannelWithProject).preferences?.templates || []).find(t => t.isDefault)
+    const defaultLabel =  defaultTemplate ? `${t('channel.templateDefault', 'Default')} (currently '${defaultTemplate.name}')` : t('channel.templateDefault', 'Default (Auto)')
+
     // Add "Default" option at the top
     return [
-        { value: null, label: t('channel.templateDefault', 'Default (Auto)') },
+        { value: null, label: defaultLabel },
         ...list
     ]
 })
@@ -632,11 +636,17 @@ const metaYaml = computed(() => {
                     :placeholder="t('post.selectTemplate', 'Select template...')"
                 >
                     <template #label>
-                        <span v-if="formData.template" class="truncate">
-                            {{ availableTemplates.find(t => t.value?.id === formData.template?.id)?.label || t('post.unknownTemplate') }}
+
+                        <span v-if="formData.template" class="truncate" :class="{ 'text-red-500': !availableTemplates.find(t => t.value?.id === formData.template?.id) }">
+                            <template v-if="availableTemplates.find(t => t.value?.id === formData.template?.id)">
+                                {{ availableTemplates.find(t => t.value?.id === formData.template?.id)?.label }}
+                            </template>
+                            <template v-else>
+                                {{ t('post.templateNotFound', 'Template Not Found') }}
+                            </template>
                         </span>
                         <span v-else class="text-gray-500 truncate">
-                             {{ t('channel.templateDefault', 'Default (Auto)') }}
+                             {{ availableTemplates.find(t => t.value === null)?.label || t('channel.templateDefault', 'Default (Auto)') }}
                         </span>
                     </template>
                 </USelectMenu>

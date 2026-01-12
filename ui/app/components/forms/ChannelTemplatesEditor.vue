@@ -158,11 +158,71 @@ function handleSaveTemplate() {
   isModalOpen.value = false
 }
 
-function deleteTemplate(id: string) {
-  if (!confirm(t('channel.templateDeleteConfirm'))) return
+const isDeleteWarningModalOpen = ref(false)
+const templateToDeleteId = ref<string | null>(null)
+const affectedPostsCount = ref(0)
+const isCheckingUsage = ref(false)
+
+async function checkTemplateUsage(id: string): Promise<number> {
+    const api = useApi()
+    try {
+        // Fetch posts for this channel that might need this template
+        // We only care about posts that are waiting to be published (PENDING) 
+        // and belong to a publication that is SCHEDULED.
+        // It's hard to filter deeply via simple API params unless we have a specific endpoint or deep filter support.
+        // Let's assume we can fetch PENDING posts for this channel and filter client side for now.
+        // Or better: Assume the user doesn't have thousands of pending posts per channel.
+        const posts = await api.get<any[]>('/posts', { 
+            params: { 
+                channelId: props.channel.id, 
+                status: 'PENDING',
+                limit: 100 // Limit check to 100 recent pending posts to avoid heavy load
+            } 
+        })
+        
+        // Filter those where publication is scheduled and template matches
+        const affected = posts.filter(p => {
+             // We need publication status. If 'posts' endpoint returns relations, we are good.
+             // Based on PostWithRelations it does.
+             if (p.publication?.status !== 'SCHEDULED') return false
+             
+             // Check if post uses this template explicitly
+             // p.template is the JSON field.
+             const templateData = typeof p.template === 'string' ? JSON.parse(p.template) : p.template
+             return templateData?.id === id
+        })
+        
+        return affected.length
+    } catch (e) {
+        console.error('Failed to check template usage', e)
+        return 0
+    }
+}
+
+async function handleDeleteRequest(id: string) {
+    templateToDeleteId.value = id
+    isCheckingUsage.value = true
+    
+    const count = await checkTemplateUsage(id)
+    affectedPostsCount.value = count
+    isCheckingUsage.value = false
+    
+    if (count > 0) {
+        isDeleteWarningModalOpen.value = true
+    } else {
+        if (confirm(t('channel.templateDeleteConfirm'))) {
+             confirmDeleteTemplate()
+        }
+    }
+}
+
+function confirmDeleteTemplate() {
+  if (!templateToDeleteId.value) return
   
-  templates.value = templates.value.filter(t => t.id !== id)
+  templates.value = templates.value.filter(t => t.id !== templateToDeleteId.value)
   saveTemplates()
+  isDeleteWarningModalOpen.value = false
+  templateToDeleteId.value = null
 }
 
 function resetBlocks() {
@@ -250,7 +310,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
             size="xs"
             variant="ghost"
             color="error"
-            @click="deleteTemplate(template.id)"
+            @click="handleDeleteRequest(template.id)"
           />
         </div>
       </div>
@@ -422,6 +482,42 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
             </div>
           </template>
         </UCard>
+      </template>
+    </UModal>
+
+    <!-- Delete Warning Modal -->
+    <UModal v-model:open="isDeleteWarningModalOpen">
+      <template #content>
+        <div class="p-6">
+          <div class="flex items-center gap-3 text-amber-500 mb-4">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
+            <h3 class="text-lg font-medium">
+              {{ t('channel.templateUpdateWarning') }}
+            </h3>
+          </div>
+
+          <p class="text-gray-500 dark:text-gray-400 mb-4">
+             {{ t('channel.templateInUseWarning', { count: affectedPostsCount }, `This template is used in ${affectedPostsCount} scheduled posts. Deleting it will cause these posts to use the default template.`) }}
+          </p>
+          
+          <p class="text-gray-500 dark:text-gray-400 mb-6">
+            {{ t('common.areYouSure') }}
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :label="t('common.cancel')"
+              @click="isDeleteWarningModalOpen = false"
+            ></UButton>
+            <UButton
+              color="warning"
+              :label="t('common.delete')"
+              @click="confirmDeleteTemplate"
+            ></UButton>
+          </div>
+        </div>
       </template>
     </UModal>
   </div>
