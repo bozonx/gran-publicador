@@ -26,6 +26,8 @@ const {
   totalCount,
   statusOptions,
   fetchUserPublications,
+  bulkOperation,
+  deletePublication
 } = usePublications()
 
 // Initialize currentPage from URL query parameter
@@ -372,7 +374,19 @@ const showPagination = computed(() => {
 
 // Bulk Operations State
 const selectedIds = ref<string[]>([])
-const { bulkOperation } = usePublications()
+
+const bulkStatusOptions = computed(() => [
+  statusOptions.value
+    .filter(opt => ['DRAFT', 'READY'].includes(opt.value))
+    .map(opt => ({
+      label: opt.label,
+      icon: 'i-heroicons-tag',
+      click: () => {
+        console.log('Bulk Status Click:', opt.value)
+        handleBulkAction('SET_STATUS', opt.value as any)
+      }
+    }))
+])
 
 const isAllSelected = computed(() => {
   return filteredPublications.value.length > 0 && 
@@ -411,6 +425,7 @@ const bulkActionPending = ref(false)
 const bulkStatusToSet = ref<PublicationStatus | null>(null)
 
 async function handleBulkAction(operation: string, status?: PublicationStatus) {
+  console.log('handleBulkAction called:', { operation, status, selectedIds: selectedIds.value })
   if (selectedIds.value.length === 0) return
 
   bulkActionPending.value = true
@@ -429,7 +444,7 @@ const showDeleteModal = ref(false)
 const publicationToDelete = ref<PublicationWithRelations | null>(null)
 const isDeleting = ref(false)
 
-const { deletePublication } = usePublications() // get delete action
+
 
 function confirmDelete(pub: PublicationWithRelations) {
   publicationToDelete.value = pub
@@ -772,17 +787,8 @@ async function handleDelete() {
             {{ t('common.restore') }}
           </UButton>
 
-          <!-- Set Status -->
           <UDropdownMenu
-            :items="[
-              statusOptions
-                .filter(opt => ['DRAFT', 'READY'].includes(opt.value))
-                .map(opt => ({
-                  label: opt.label,
-                  icon: 'i-heroicons-tag',
-                  click: () => handleBulkAction('SET_STATUS', opt.value as any)
-                }))
-            ]"
+            :items="bulkStatusOptions"
             :popper="{ placement: 'top' }"
           >
             <UButton
