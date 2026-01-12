@@ -426,7 +426,7 @@ export function usePublications() {
         toggleArchive,
         // Problem detection
         hasFailedPosts,
-        hasChannelProblems,
+
         getPublicationProblems,
         getPublicationProblemLevel,
         getPostProblemLevel,
