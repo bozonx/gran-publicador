@@ -30,32 +30,47 @@ const formData = reactive({
   channelIds: [] as string[],
 })
 
-// Load channels on mount
-onMounted(async () => {
-  if (props.projectId) {
-    await fetchChannels({ projectId: props.projectId })
+// Watch for project ID to load channels
+watch(() => props.projectId, async (newProjectId) => {
+  if (newProjectId) {
+    await fetchChannels({ projectId: newProjectId })
   }
-})
+}, { immediate: true })
 
 // Initialize form when modal opens or props change
-watch([isOpen, () => props.preselectedLanguage, () => props.preselectedChannelId], ([open]) => {
+watch([isOpen, () => props.preselectedLanguage, () => props.preselectedChannelId, () => channels.value.length], ([open]) => {
   if (open && channels.value.length > 0) {
-    // Set language
-    if (props.preselectedChannelId) {
-      const channel = channels.value.find(ch => ch.id === props.preselectedChannelId)
+    const requestedChannelId = props.preselectedChannelId
+    
+    // Auto-select requested channel if available
+    if (requestedChannelId) {
+      const channel = channels.value.find(ch => ch.id === requestedChannelId)
       if (channel) {
-        formData.language = channel.language
-        formData.channelIds = [props.preselectedChannelId]
+        // Only override if data is missing or different
+        if (formData.language !== channel.language) {
+          formData.language = channel.language
+        }
+        
+        // Ensure the array contains the ID
+        if (!formData.channelIds.includes(requestedChannelId)) {
+          formData.channelIds = [requestedChannelId]
+        }
       }
-    } else {
+    } 
+    // Otherwise auto-select channels based on language if no specific channel requested
+    else if (formData.channelIds.length === 0) {
       if (props.preselectedLanguage) {
         formData.language = props.preselectedLanguage
       }
       
       // Auto-select channels for the language
-      formData.channelIds = channels.value
+      const matchingChannels = channels.value
         .filter(ch => ch.language === formData.language)
         .map(ch => ch.id)
+        
+      if (matchingChannels.length > 0) {
+        formData.channelIds = matchingChannels
+      }
     }
   }
 }, { immediate: true })
