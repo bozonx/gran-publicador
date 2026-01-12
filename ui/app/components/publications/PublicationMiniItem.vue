@@ -10,7 +10,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-const { getStatusColor, getStatusDisplayName } = usePublications()
+const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePublications()
 const { getPublicationDisplayTitle, formatDateWithTime } = useFormatters()
 
 const displayTitle = computed(() => getPublicationDisplayTitle(props.publication))
@@ -53,7 +53,10 @@ const displayDate = computed(() => {
             size="xs"
             class="shrink-0 mt-0.5"
           >
-            {{ getStatusDisplayName(publication.status) }}
+            <div class="flex items-center gap-1">
+              <UIcon :name="getStatusIcon(publication.status)" class="w-3 h-3" :class="{ 'animate-spin': publication.status === 'PROCESSING' }" />
+              {{ getStatusDisplayName(publication.status) }}
+            </div>
           </UBadge>
           <div 
             class="text-sm text-gray-700 dark:text-gray-200 line-clamp-2 font-medium group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"

@@ -31,7 +31,7 @@ const saveButtonRef = ref<{ showSuccess: () => void; showError: () => void } | n
 
 const { t } = useI18n()
 const { updatePost, deletePost, createPost, isLoading, statusOptions: postStatusOptions } = usePosts()
-const { getStatusColor, getStatusDisplayName } = usePosts()
+const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
 const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 
@@ -392,7 +392,6 @@ const metaYaml = computed(() => {
              <SocialIcon 
               v-if="selectedChannel?.socialMedia" 
               :platform="selectedChannel.socialMedia" 
-              :problem-level="post ? getPostProblemLevel(post) : null"
             />
             <UIcon v-else-if="isCreating" name="i-heroicons-plus-circle" class="w-5 h-5 text-primary-500" />
             <UIcon v-else name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
@@ -429,7 +428,7 @@ const metaYaml = computed(() => {
                   size="xs"
                   class="gap-1 px-2 py-0.5"
                 >
-                  <UIcon v-if="props.post.status === 'FAILED'" name="i-heroicons-exclamation-circle" class="w-3.5 h-3.5" />
+                  <UIcon :name="getStatusIcon(props.post.status)" class="w-3.5 h-3.5" />
                   {{ getStatusDisplayName(props.post.status) }}
                 </UBadge>
 

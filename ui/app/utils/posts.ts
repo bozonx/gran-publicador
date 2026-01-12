@@ -39,3 +39,16 @@ export function getPostTypeDisplayName(type: string | undefined | null, t: (key:
     if (!type) return '-'
     return t(`postType.${type.toLowerCase()}`)
 }
+export function getPostStatusIcon(status: string | undefined | null): string {
+    if (!status) return 'i-heroicons-question-mark-circle'
+    switch (status.toUpperCase()) {
+        case 'PENDING':
+            return 'i-heroicons-clock'
+        case 'PUBLISHED':
+            return 'i-heroicons-check-circle'
+        case 'FAILED':
+            return 'i-heroicons-exclamation-circle'
+        default:
+            return 'i-heroicons-question-mark-circle'
+    }
+}

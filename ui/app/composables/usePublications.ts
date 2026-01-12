@@ -3,6 +3,7 @@ import { useApi } from './useApi'
 import { useAuth } from './useAuth'
 import { ArchiveEntityType } from '~/types/archive.types'
 import type { PublicationStatus } from '~/types/posts'
+import { getStatusIcon } from '~/utils/publications'
 
 export interface Publication {
     id: string
@@ -423,6 +424,7 @@ export function usePublications() {
         createPostsFromPublication,
         getStatusDisplayName,
         getStatusColor,
+        getStatusIcon,
         toggleArchive,
         // Problem detection
         hasFailedPosts,

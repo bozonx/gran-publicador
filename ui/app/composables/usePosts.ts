@@ -6,7 +6,8 @@ import {
     getPostTypeOptions,
     getPostStatusDisplayName,
     getPostTypeDisplayName,
-    getPostStatusColor
+    getPostStatusColor,
+    getPostStatusIcon
 } from '~/utils/posts'
 
 export type { PostStatus, PostType } from '~/types/posts'
@@ -333,6 +334,7 @@ export function usePosts() {
         getStatusDisplayName: (status: string) => getPostStatusDisplayName(status, t),
         getTypeDisplayName: (type: string) => getPostTypeDisplayName(type, t),
         getStatusColor: getPostStatusColor,
+        getStatusIcon: getPostStatusIcon,
         canDelete,
         canEdit,
         clearCurrentPost,

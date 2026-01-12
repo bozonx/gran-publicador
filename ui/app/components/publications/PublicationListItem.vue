@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 const { t, d } = useI18n()
 const { formatDateShort, truncateContent } = useFormatters()
-const { getStatusColor, getStatusDisplayName, getPublicationProblems, getPostProblemLevel } = usePublications()
+const { getStatusColor, getStatusDisplayName, getStatusIcon, getPublicationProblems, getPostProblemLevel } = usePublications()
 const route = useRoute()
 const isArchiveView = computed(() => route.query.archived === 'true')
 
@@ -55,7 +55,8 @@ function handleDelete(e: Event) {
           <h3 class="font-semibold text-gray-900 dark:text-white truncate text-lg leading-snug" :class="{ 'italic text-gray-500 font-medium': !publication.title && !stripHtmlAndSpecialChars(publication.content) }">
             {{ displayTitle }}
           </h3>
-          <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize">
+          <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize gap-1">
+            <UIcon :name="getStatusIcon(publication.status)" class="w-3.5 h-3.5" :class="{ 'animate-spin': publication.status === 'PROCESSING' }" />
             {{ getStatusDisplayName(publication.status) }}
           </UBadge>
 
