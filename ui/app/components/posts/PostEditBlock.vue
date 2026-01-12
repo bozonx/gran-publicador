@@ -526,13 +526,13 @@ const metaYaml = computed(() => {
 
             <!-- Scheduled At (Custom for post) -->
             <UFormField :label="t('post.scheduledAt')">
-                <UTooltip :text="!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : ''">
+                <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
                     <UInput 
                         v-model="formData.scheduledAt" 
                         type="datetime-local" 
                         class="w-full" 
                         icon="i-heroicons-clock" 
-                        :disabled="!props.publication?.scheduledAt"
+                        :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
                     />
                 </UTooltip>
             </UFormField>
@@ -620,14 +620,14 @@ const metaYaml = computed(() => {
             
             <UTooltip 
               v-if="!isCreating" 
-              :text="!canPublishPost(props.post, props.publication) ? t('publication.cannotPublish') : ''"
+              :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!canPublishPost(props.post, props.publication) ? t('publication.cannotPublish') : '')"
             >
               <UButton
                 :label="t('publication.publishNow')"
                 icon="i-heroicons-paper-airplane"
                 variant="soft"
                 color="success"
-                :disabled="!canPublishPost(props.post, props.publication)"
+                :disabled="!canPublishPost(props.post, props.publication) || !!props.publication?.archivedAt"
                 :loading="isPublishing"
                 @click="handlePublishPost"
               ></UButton>
