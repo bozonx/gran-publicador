@@ -109,6 +109,7 @@ async function bootstrap() {
       },
     },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    xFrameOptions: false,
   });
 
   // Register the fastify-static plugin to serve the frontend files
