@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, validateSync } from 'class-validator';
+import { IsInt, Min, validateSync, IsString, IsUrl } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -41,6 +41,15 @@ export class SocialPostingConfig {
   @IsInt()
   @Min(1)
   public idempotencyTtlMinutes!: number;
+
+  /**
+   * URL of the social media posting microservice.
+   * Defined by SOCIAL_POSTING_SERVICE_URL environment variable.
+   * Example: http://localhost:8080/api/v1
+   */
+  @IsString()
+  @IsUrl({ require_tld: false })
+  public serviceUrl!: string;
 }
 
 export default registerAs('socialPosting', (): SocialPostingConfig => {
@@ -49,6 +58,7 @@ export default registerAs('socialPosting', (): SocialPostingConfig => {
     retryAttempts: parseInt(process.env.SOCIAL_POSTING_RETRY_ATTEMPTS ?? '3', 10),
     retryDelayMs: parseInt(process.env.SOCIAL_POSTING_RETRY_DELAY_MS ?? '1000', 10),
     idempotencyTtlMinutes: parseInt(process.env.SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES ?? '10', 10),
+    serviceUrl: process.env.SOCIAL_POSTING_SERVICE_URL,
   });
 
   const errors = validateSync(config, {

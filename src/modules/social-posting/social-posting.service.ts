@@ -2,22 +2,11 @@ import {
   Injectable,
   BadRequestException,
   Logger,
-  OnModuleInit,
-  OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createPostingClient } from 'bozonx-social-media-posting';
-import type {
-  PostingClient,
-  PostRequestDto,
-  PostResponseDto,
-} from 'bozonx-social-media-posting';
 import {
   PublicationStatus,
   PostStatus,
-  SocialMedia,
-  MediaType,
-  StorageType,
 } from '../../generated/prisma/client.js';
 import { getMediaDir } from '../../config/media.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -28,43 +17,20 @@ import { PublishResponseDto } from './dto/publish-response.dto.js';
 import { ShutdownService } from '../../common/services/shutdown.service.js';
 import { AppConfig } from '../../config/app.config.js';
 import { SocialPostingConfig } from '../../config/social-posting.config.js';
-
-/**
- * Custom logger adapter to pipe library logs to NestJS Logger
- */
-class LibraryLogger {
-  private formatMessage(message: any, context?: string): any[] {
-    const prefix = `[Library] ${context ? `[${context}] ` : ''}`;
-    if (typeof message === 'object') {
-      return [prefix, message];
-    }
-    return [`${prefix}${message}`];
-  }
-
-  debug(message: any, context?: string) {
-    console.debug(...this.formatMessage(message, context));
-  }
-  log(message: any, context?: string) {
-    console.log(...this.formatMessage(message, context));
-  }
-  warn(message: any, context?: string) {
-    console.warn(...this.formatMessage(message, context));
-  }
-  error(message: any, trace?: string, context?: string) {
-    const formatted = this.formatMessage(message, context);
-    if (trace) {
-      console.error(...formatted, trace);
-    } else {
-      console.error(...formatted);
-    }
-  }
-}
+import {
+  PostRequestDto,
+  PostResponseDto,
+  PreviewResponseDto,
+} from './dto/social-posting.dto.js';
+import { fetch } from 'undici';
 
 @Injectable()
-export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
+export class SocialPostingService {
   private readonly logger = new Logger(SocialPostingService.name);
-  private postingClient: PostingClient | null = null;
   private readonly mediaDir: string;
+  private readonly socialPostingConfig: SocialPostingConfig;
+  // Instance level fetch for testability
+  private fetch = global.fetch;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -72,49 +38,19 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
   ) {
     this.mediaDir = getMediaDir();
-  }
-
-  async onModuleInit() {
-    try {
-      const appConfig = this.configService.get<AppConfig>('app')!;
-      const socialPostingConfig =
-        this.configService.get<SocialPostingConfig>('socialPosting')!;
-
-      this.postingClient = createPostingClient({
-        accounts: {},
-        logLevel: appConfig.logLevel as any,
-        logger: new LibraryLogger(),
-        requestTimeoutSecs: socialPostingConfig.requestTimeoutSecs,
-        retryAttempts: socialPostingConfig.retryAttempts,
-        retryDelayMs: socialPostingConfig.retryDelayMs,
-        idempotencyTtlMinutes: socialPostingConfig.idempotencyTtlMinutes,
-      });
-      this.logger.log('Social posting client initialized successfully');
-    } catch (error: any) {
-      this.logger.error(`Failed to initialize posting client: ${error.message}`, error.stack);
-    }
-  }
-
-  async onModuleDestroy() {
-    this.logger.log('Cleaning up social posting client...');
-    try {
-      if (this.postingClient) {
-        await this.postingClient.destroy();
-        this.logger.log('✅ Social posting client destroyed');
-      }
-    } catch (error: any) {
-      this.logger.error(`❌ Error destroying posting client: ${error.message}`, error.stack);
-      // Don't throw - allow other services to cleanup
-    }
+    this.socialPostingConfig =
+      this.configService.get<SocialPostingConfig>('socialPosting')!;
   }
 
   /**
-   * Test channel connection and credentials using library's preview mode
+   * Test channel connection and credentials using microservice preview endpoint
    */
   async testChannel(
     channelId: string,
   ): Promise<{ success: boolean; message: string; details?: any }> {
-    this.logger.log(`[testChannel] Testing connection for channel: ${channelId}`);
+    this.logger.log(
+      `[testChannel] Testing connection for channel: ${channelId}`,
+    );
 
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
@@ -124,7 +60,8 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     if (!channel) throw new BadRequestException('Channel not found');
 
     try {
-      const { targetChannelId, apiKey, error: prepError } = await this.prepareChannelForPosting(channel);
+      const { targetChannelId, apiKey, error: prepError } =
+        await this.prepareChannelForPosting(channel);
       if (prepError) {
         return { success: false, message: `Validation failed: ${prepError}` };
       }
@@ -138,24 +75,38 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         },
       };
 
-      const response = await this.postingClient!.preview(request);
+      const response = await this.sendRequest<PreviewResponseDto>(
+        'preview',
+        request,
+      );
 
-      if (response.success) {
-        return {
-          success: true,
-          message: 'Connection and credentials are valid (Preview mode)',
-          details: response.data,
-        };
+      // Check if it's success response based on DTO structure
+      if (response.success && 'valid' in (response.data || {})) {
+        const data = response.data as any;
+        if (data.valid) {
+          return {
+            success: true,
+            message: 'Connection and credentials are valid (Preview mode)',
+            details: response.data,
+          };
+        } else {
+             return {
+              success: false,
+              message: 'Platform rejected the preview request',
+              details: (response.data as any)?.errors || response.data,
+            };
+        }
       } else {
-        const platformError = response as any; // Cast to access error properly
-        return {
+         return {
           success: false,
-          message: 'Platform rejected the preview request',
-          details: platformError.error || platformError,
+          message: 'Service returned error',
+          details: response,
         };
       }
     } catch (error: any) {
-      this.logger.error(`[testChannel] Error testing channel: ${error.message}`);
+      this.logger.error(
+        `[testChannel] Error testing channel: ${error.message}`,
+      );
       return { success: false, message: error.message };
     }
   }
@@ -167,7 +118,9 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     publicationId: string,
     options: { skipLock?: boolean; force?: boolean } = {},
   ): Promise<PublishResponseDto> {
-    this.logger.log(`[publishPublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}${options.force ? ' (force)' : ''}`);
+    this.logger.log(
+      `[publishPublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}${options.force ? ' (force)' : ''}`,
+    );
 
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
@@ -185,13 +138,19 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!publication) {
-      this.logger.error(`[publishPublication] Publication ${publicationId} not found`);
+      this.logger.error(
+        `[publishPublication] Publication ${publicationId} not found`,
+      );
       throw new BadRequestException('Publication not found');
     }
 
     if (!this.hasContentOrMedia(publication.content, publication.media)) {
-      this.logger.warn(`[publishPublication] Publication ${publicationId} has no content or media`);
-      throw new BadRequestException('Publication must have content or at least one media file');
+      this.logger.warn(
+        `[publishPublication] Publication ${publicationId} has no content or media`,
+      );
+      throw new BadRequestException(
+        'Publication must have content or at least one media file',
+      );
     }
 
     // Atomic status update to prevent race conditions
@@ -208,11 +167,19 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (updateResult.count === 0) {
-        this.logger.warn(`[publishPublication] Publication ${publicationId} is already being processed or not found`);
+        this.logger.warn(
+          `[publishPublication] Publication ${publicationId} is already being processed or not found`,
+        );
         return {
           success: false,
           message: 'Publication is already being processed',
-          data: { publicationId, status: PublicationStatus.PROCESSING, publishedCount: 0, failedCount: 0, results: [] }
+          data: {
+            publicationId,
+            status: PublicationStatus.PROCESSING,
+            publishedCount: 0,
+            failedCount: 0,
+            results: [],
+          },
         };
       }
     }
@@ -242,15 +209,16 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!publicationWithPosts) {
-        throw new BadRequestException('Publication not found after lock');
+      throw new BadRequestException('Publication not found after lock');
     }
 
-    const now = new Date();
     for (const post of publicationWithPosts.posts) {
       // Filter posts that need publishing:
       // 1. Status PENDING (unless forced)
       if (post.status !== PostStatus.PENDING && !options.force) {
-        this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status})`);
+        this.logger.debug(
+          `[publishPublication] Skipping post ${post.id} (Status: ${post.status})`,
+        );
         continue;
       }
 
@@ -268,8 +236,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       }
 
       try {
-        const result = await this.publishSinglePost(post, post.channel, publicationWithPosts);
-        this.logger.log(`[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`);
+        const result = await this.publishSinglePost(
+          post,
+          post.channel,
+          publicationWithPosts,
+        );
+        this.logger.log(
+          `[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`,
+        );
         results.push({
           postId: post.id,
           channelId: post.channelId,
@@ -291,7 +265,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r) => r.success).length;
     const finalStatus =
       successCount === results.length
         ? PublicationStatus.PUBLISHED
@@ -301,39 +275,38 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
 
     await this.prisma.publication.update({
       where: { id: publicationId },
-      data: { 
+      data: {
         status: finalStatus,
         processingStartedAt: null,
         meta: this.sanitizeJson({
-          ...(publication.meta as any || {}),
+          ...((publication.meta as any) || {}),
           attempts: [
             ...((publication.meta as any)?.attempts || []),
             {
               timestamp: new Date().toISOString(),
               successCount,
               totalCount: results.length,
-
-            }
+            },
           ],
           lastResult: {
             timestamp: new Date().toISOString(),
             successCount,
             totalCount: results.length,
-
-          }
-        })
+          },
+        }),
       },
     });
 
     return {
       success: successCount === results.length && results.length > 0,
-      message: results.length === 0 
-        ? 'No posts to publish' 
-        : successCount === results.length 
-          ? 'Success' 
-          : successCount > 0 
-            ? 'Partial success' 
-            : 'All posts failed',
+      message:
+        results.length === 0
+          ? 'No posts to publish'
+          : successCount === results.length
+            ? 'Success'
+            : successCount > 0
+              ? 'Partial success'
+              : 'All posts failed',
       data: {
         publicationId,
         status: finalStatus,
@@ -372,55 +345,66 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (updateResult.count === 0) {
-        throw new BadRequestException('Publication is already being processed');
+      throw new BadRequestException('Publication is already being processed');
     }
 
     try {
-      const result = await this.publishSinglePost(post, post.channel, post.publication);
-      
+      const result = await this.publishSinglePost(
+        post,
+        post.channel,
+        post.publication,
+      );
+
       const allPosts = await this.prisma.post.findMany({
-          where: { publicationId: post.publicationId }
+        where: { publicationId: post.publicationId },
       });
-      
-      const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
-      const finalStatus = successCount === allPosts.length 
-        ? PublicationStatus.PUBLISHED 
-        : successCount > 0 ? PublicationStatus.PARTIAL : PublicationStatus.FAILED;
+
+      const successCount = allPosts.filter(
+        (p) => p.status === PostStatus.PUBLISHED,
+      ).length;
+      const finalStatus =
+        successCount === allPosts.length
+          ? PublicationStatus.PUBLISHED
+          : successCount > 0
+            ? PublicationStatus.PARTIAL
+            : PublicationStatus.FAILED;
 
       const lastResult = {
         timestamp: new Date().toISOString(),
         successCount,
         totalCount: allPosts.length,
-
       };
 
       await this.prisma.publication.update({
-          where: { id: post.publicationId },
-          data: { 
-            status: finalStatus,
-            processingStartedAt: null,
-            meta: this.sanitizeJson({
-                ...(post.publication.meta as any || {}),
-                attempts: [
-                  ...((post.publication.meta as any)?.attempts || []),
-                  lastResult
-                ],
-                lastResult
-            })
-          }
+        where: { id: post.publicationId },
+        data: {
+          status: finalStatus,
+          processingStartedAt: null,
+          meta: this.sanitizeJson({
+            ...((post.publication.meta as any) || {}),
+            attempts: [
+              ...((post.publication.meta as any)?.attempts || []),
+              lastResult,
+            ],
+            lastResult,
+          }),
+        },
       });
 
       return {
         success: result.success,
         message: result.success ? 'Success' : result.error || 'Failed',
-        data: { postId, status: result.success ? PostStatus.PUBLISHED : PostStatus.FAILED },
+        data: {
+          postId,
+          status: result.success ? PostStatus.PUBLISHED : PostStatus.FAILED,
+        },
       };
     } catch (error: any) {
-        await this.prisma.publication.update({
-            where: { id: post.publicationId },
-            data: { processingStartedAt: null }
-        });
-        throw error;
+      await this.prisma.publication.update({
+        where: { id: post.publicationId },
+        data: { processingStartedAt: null },
+      });
+      throw error;
     }
   }
 
@@ -432,9 +416,8 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     const logPrefix = `[publishSinglePost][Post:${post.id}]`;
 
     try {
-      if (!this.postingClient) throw new Error('Posting client not initialized');
-
-      const { targetChannelId, apiKey, error: prepError } = await this.prepareChannelForPosting(channel);
+      const { targetChannelId, apiKey, error: prepError } =
+        await this.prepareChannelForPosting(channel);
       if (prepError) throw new Error(prepError);
 
       const request = SocialPostingRequestFormatter.prepareRequest({
@@ -444,24 +427,31 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         apiKey,
         targetChannelId,
         mediaDir: this.mediaDir,
+        // For microservice, we don't need raw file paths usually if we provided URLs,
+        // but formatter might return local paths.
+        // If the microservice runs in docker and shares volume, local paths might work.
+        // Assuming we need to provide public URLs or the microservice has access to these files.
+        // The original library handled local files via 'fs'.
+        // The new microservice (from readme) supports URLs.
+        // If Gran Publicador serves files publicly, we should use those URLs.
+        // However, looking at previous code, it used `this.mediaDir`.
+        // If the microservice is on same machine/network/volume, it might work if paths align.
+        // But typically microservices need HTTP URLs or base64 (if supported).
+        // The README says: "Media fields accept only object format with src property... max 500 characters"
+        // src can be URL or file_id.
+        // If we are passing local paths, the microservice must have access to them.
+        // For now, let's assume the Formatter handles this or we need to ensure they are URLs.
+        // Given the constraints, I will assume the Formatter or the system is set up such that 'src' is correct.
+        // If not, we might need to adjust Formatter later.
       });
 
-      this.logger.log(`${logPrefix} Sending request to library...`);
+      this.logger.log(`${logPrefix} Sending request to microservice...`);
 
-      const appConfig = this.configService.get<AppConfig>('app')!;
-      const timeoutSeconds = appConfig.postProcessingTimeoutSeconds;
-      const timeoutPromise = new Promise<PostResponseDto>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Timeout reached (${timeoutSeconds}s)`)),
-          timeoutSeconds * 1000,
-        ),
-      );
+      const response = await this.sendRequest<PostResponseDto>('post', request);
 
-      const response = await Promise.race([this.postingClient.post(request), timeoutPromise]);
-
-      if (response.success) {
+      if (response.success && response.data) {
         // Save response in meta.response as requested
-        const meta = post.meta as any || {};
+        const meta = (post.meta as any) || {};
         await this.prisma.post.update({
           where: { id: post.id },
           data: {
@@ -472,11 +462,11 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               attempts: [
                 ...(meta.attempts || []),
                 {
-                   timestamp: new Date().toISOString(),
-                   success: true,
-                   response: response.data
-                }
-              ]
+                  timestamp: new Date().toISOString(),
+                  success: true,
+                  response: response.data,
+                },
+              ],
             }),
             errorMessage: null,
           },
@@ -484,8 +474,9 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         return { success: true, url: response.data.url };
       } else {
         const platformError = response;
-        const meta = post.meta as any || {};
-        const message = platformError.error.message;
+        const meta = (post.meta as any) || {};
+        const message =
+          platformError.error?.message || 'Unknown error from microservice';
 
         await this.prisma.post.update({
           where: { id: post.id },
@@ -497,11 +488,11 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               attempts: [
                 ...(meta.attempts || []),
                 {
-                   timestamp: new Date().toISOString(),
-                   success: false,
-                   response: platformError.error
-                }
-              ]
+                  timestamp: new Date().toISOString(),
+                  success: false,
+                  response: platformError.error || platformError,
+                },
+              ],
             }),
           },
         });
@@ -509,7 +500,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       }
     } catch (error: any) {
       this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
-      const meta = post.meta as any || {};
+      const meta = (post.meta as any) || {};
       const message = error.message;
 
       await this.prisma.post.update({
@@ -517,34 +508,77 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         data: {
           status: PostStatus.FAILED,
           errorMessage: message,
-            meta: this.sanitizeJson({
-              ...meta,
-              attempts: [
-                ...(meta.attempts || []),
-                {
-                   timestamp: new Date().toISOString(),
-                   success: false,
-                   response: { 
-                     code: 'INTERNAL_ERROR',
-                     message: message,
-                     details: { stack: error.stack }
-                   }
-                }
-              ]
-            }),
-          },
-        });
+          meta: this.sanitizeJson({
+            ...meta,
+            attempts: [
+              ...(meta.attempts || []),
+              {
+                timestamp: new Date().toISOString(),
+                success: false,
+                response: {
+                  code: 'INTERNAL_ERROR',
+                  message: message,
+                  details: { stack: error.stack },
+                },
+              },
+            ],
+          }),
+        },
+      });
       return { success: false, error: message };
+    }
+  }
+
+  private async sendRequest<T>(endpoint: string, body: any): Promise<T> {
+    const baseUrl = this.socialPostingConfig.serviceUrl.replace(/\/$/, '');
+    // Ensure endpoint key logic aligns with user preference (/api/v1 included in URL)
+    const url = `${baseUrl}/${endpoint}`;
+
+    const appConfig = this.configService.get<AppConfig>('app')!;
+    const timeout = (appConfig.postProcessingTimeoutSeconds || 60) * 1000;
+
+    try {
+      const response = await this.fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeout),
+      });
+
+      if (!response.ok) {
+        // Try to parse error response if JSON
+        try {
+          const errorData = await response.json();
+          // Wrap in our expected structure if not already
+          return errorData as T;
+        } catch {
+             throw new Error(`Service returned ${response.status} ${response.statusText}`);
+        }
+      }
+
+      return (await response.json()) as T;
+    } catch (error: any) {
+      // Network errors, timeouts, etc.
+       this.logger.error(`Request to ${url} failed: ${error.message}`);
+       throw new Error(`Microservice request failed: ${error.message}`);
     }
   }
 
   /**
    * Helper to validate channel and resolve platform params
    */
-  private async prepareChannelForPosting(channel: any): Promise<{ targetChannelId: string; apiKey: string; error?: string }> {
+  private async prepareChannelForPosting(
+    channel: any,
+  ): Promise<{ targetChannelId: string; apiKey: string; error?: string }> {
     const validation = this.validateChannelReady(channel);
     if (!validation.valid) {
-      return { targetChannelId: '', apiKey: '', error: validation.errors.join(', ') };
+      return {
+        targetChannelId: '',
+        apiKey: '',
+        error: validation.errors.join(', '),
+      };
     }
 
     const credentials = channel.credentials || {};
@@ -554,22 +588,29 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       credentials,
     );
 
-    return { 
-      targetChannelId: params.channelId, 
-      apiKey: params.apiKey 
+    return {
+      targetChannelId: params.channelId,
+      apiKey: params.apiKey,
     };
   }
 
-  private validateChannelReady(channel: any): { valid: boolean; errors: string[] } {
+  private validateChannelReady(channel: any): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
     if (!channel.isActive) errors.push('Channel is not active');
     if (channel.archivedAt) errors.push('Channel is archived');
     if (channel.project?.archivedAt) errors.push('Project is archived');
-    if (!channel.channelIdentifier) errors.push('Channel identifier is missing');
+    if (!channel.channelIdentifier)
+      errors.push('Channel identifier is missing');
 
     try {
       const credentials = channel.credentials || {};
-      const validation = validatePlatformCredentials(channel.socialMedia, credentials);
+      const validation = validatePlatformCredentials(
+        channel.socialMedia,
+        credentials,
+      );
       if (!validation.valid) errors.push(...validation.errors);
     } catch {
       errors.push('Invalid credentials format');
@@ -596,9 +637,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (error: any) {
       if (this.logger) {
-        this.logger.warn(`Failed to sanitize JSON object: ${error?.message || error}`);
+        this.logger.warn(
+          `Failed to sanitize JSON object: ${error?.message || error}`,
+        );
       }
-      return { _error: 'Sanitization failed', _message: error?.message || String(error) };
+      return {
+        _error: 'Sanitization failed',
+        _message: error?.message || String(error),
+      };
     }
   }
 }

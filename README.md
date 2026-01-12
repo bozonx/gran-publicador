@@ -328,6 +328,7 @@ LOG_LEVEL=info
 | `SCHEDULER_INTERVAL_SECONDS` | Нет | Интервал проверки планировщика (сек) | `60` |
 | `SCHEDULER_WINDOW_MINUTES` | Нет | Окно обработки запланированных постов (мин) | `10` |
 | `POST_PROCESSING_TIMEOUT_SECONDS` | Нет | Таймаут обработки одного поста (сек) | `30` |
+| `SOCIAL_POSTING_SERVICE_URL` | Да | URL микросервиса постинга | `http://localhost:8080/api/v1` |
 
 ### Graceful Shutdown
 

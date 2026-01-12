@@ -1,8 +1,5 @@
 import { join } from 'path';
-import { 
-  PostRequestDto,
-  MediaType as LibraryMediaType 
-} from 'bozonx-social-media-posting';
+import { PostRequestDto } from '../dto/social-posting.dto.js';
 import { 
   Post, 
   Channel, 
@@ -161,7 +158,7 @@ export class SocialPostingRequestFormatter {
     return media.storagePath;
   }
 
-  private static mapMediaTypeToLibrary(type: MediaType): LibraryMediaType {
+  private static mapMediaTypeToLibrary(type: MediaType): string {
     switch (type) {
       case MediaType.IMAGE:
         return 'image';
