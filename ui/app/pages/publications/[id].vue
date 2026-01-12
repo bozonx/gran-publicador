@@ -731,40 +731,39 @@ async function executePublish(force: boolean) {
                         
                         <div class="mt-2 border-t border-gray-100 dark:border-gray-700/50 pt-2">
                              <div class="text-gray-500 dark:text-gray-400 text-xs mb-1">
-                                {{ t('post.scheduledAt') }}
+                                {{ currentPublication.scheduledAt ? t('publication.status.willBePublishedAt') : t('publication.status.scheduling') }}
                              </div>
                              <div class="flex flex-col gap-2 items-start">
-                                 <div v-if="currentPublication.scheduledAt" class="text-gray-900 dark:text-white font-medium">
+                                 <div v-if="currentPublication.scheduledAt" class="text-gray-900 dark:text-white font-medium flex flex-col">
                                       {{ formatDate(currentPublication.scheduledAt) }}
                                  </div>
-                                 <div v-else class="text-gray-400 italic text-xs">
-                                      {{ t('common.noData') }}
-                                 </div>
 
-                                 <UTooltip :text="isContentOrMediaMissing ? t('publication.validation.contentOrMediaRequired') : ''">
-                                    <UButton
-                                        :label="t('publication.changeSchedule')"
-                                        icon="i-heroicons-clock"
-                                        variant="soft"
-                                        size="xs"
-                                        color="primary"
-                                        :disabled="isContentOrMediaMissing"
-                                        @click="openScheduleModal"
-                                    ></UButton>
-                                </UTooltip>
-                                
-                                <UTooltip :text="!canPublishPublication(currentPublication) ? t('publication.cannotPublish') : ''">
-                                    <UButton
-                                        :label="t('publication.publishNow')"
-                                        icon="i-heroicons-paper-airplane"
-                                        variant="soft"
-                                        size="xs"
-                                        color="success"
-                                        :disabled="!canPublishPublication(currentPublication)"
-                                        :loading="isPublishing"
-                                        @click="handlePublishNow"
-                                    ></UButton>
-                                </UTooltip>
+                                 <div class="flex flex-row gap-2 mt-1">
+                                     <UTooltip :text="isContentOrMediaMissing ? t('publication.validation.contentOrMediaRequired') : ''">
+                                        <UButton
+                                            :label="currentPublication.scheduledAt ? t('publication.changeSchedule') : t('publication.status.scheduleTime')"
+                                            icon="i-heroicons-clock"
+                                            variant="soft"
+                                            size="xs"
+                                            color="primary"
+                                            :disabled="isContentOrMediaMissing"
+                                            @click="openScheduleModal"
+                                        ></UButton>
+                                    </UTooltip>
+                                    
+                                    <UTooltip :text="!canPublishPublication(currentPublication) ? t('publication.cannotPublish') : ''">
+                                        <UButton
+                                            :label="t('publication.publishNow')"
+                                            icon="i-heroicons-paper-airplane"
+                                            variant="soft"
+                                            size="xs"
+                                            color="success"
+                                            :disabled="!canPublishPublication(currentPublication)"
+                                            :loading="isPublishing"
+                                            @click="handlePublishNow"
+                                        ></UButton>
+                                    </UTooltip>
+                                 </div>
                              </div>
                         </div>
                     </div>

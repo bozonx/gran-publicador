@@ -215,8 +215,6 @@ model Post {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
 
-
-
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
