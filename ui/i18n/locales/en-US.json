@@ -563,7 +563,15 @@
     "republishConfirm": "Republish Confirmation",
     "republishWarning": "This publication has already been published. Do you want to publish it again? This may result in duplicate posts.",
     "republishPostWarning": "This post has already been published. Do you want to publish it again?",
-    "republishFailedWarning": "You are about to retry a failed publication. Are you sure?"
+    "republishFailedWarning": "You are about to retry a failed publication. Are you sure?",
+    "archiveWarning": {
+      "title": "Archive Warning",
+      "publication": "This publication is archived.",
+      "channel": "You are publishing to an archived channel '{name}'.",
+      "project": "You are publishing to an archived project '{name}'.",
+      "confirm": "Are you sure you want to proceed?",
+      "publishAnyway": "Publish Anyway"
+    }
   },
   "media": {
     "type": {

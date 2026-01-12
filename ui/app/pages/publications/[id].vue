@@ -49,6 +49,8 @@ const isFormCollapsed = ref(true)
 const isDeleteModalOpen = ref(false)
 const isDeleting = ref(false)
 const isRepublishModalOpen = ref(false)
+const isArchiveWarningModalOpen = ref(false)
+const archiveWarningMessage = ref('')
 
 const { updatePost } = usePosts()
 const toast = useToast()
@@ -373,6 +375,20 @@ function formatDate(dateString: string | null | undefined): string {
 
 async function handlePublishNow() {
   if (!currentPublication.value) return
+
+  // Check for archive warnings
+  let warning = ''
+  if (currentPublication.value.archivedAt) {
+      warning = t('publication.archiveWarning.publication')
+  } else if (currentProject.value?.archivedAt) {
+      warning = t('publication.archiveWarning.project', { name: currentProject.value.name })
+  }
+
+  if (warning) {
+      archiveWarningMessage.value = warning
+      isArchiveWarningModalOpen.value = true
+      return
+  }
   
   // If publication is not PENDING (already tried), warn the user
   if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(currentPublication.value.status)) {
@@ -381,6 +397,20 @@ async function handlePublishNow() {
   }
   
   await executePublish(false)
+}
+
+async function handleConfirmArchivePublish() {
+    isArchiveWarningModalOpen.value = false
+    
+    if (!currentPublication.value) return
+
+    // Proceed to Republish check logic matching handlePublishNow
+    if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(currentPublication.value.status)) {
+        isRepublishModalOpen.value = true
+        return
+    }
+
+    await executePublish(false)
 }
 
 async function handleConfirmRepublish() {
@@ -513,6 +543,42 @@ async function executePublish(force: boolean) {
               :label="t('publication.republish', 'Republish')"
               :loading="isPublishing"
               @click="handleConfirmRepublish"
+            ></UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Archive Warning Modal -->
+    <UModal v-model:open="isArchiveWarningModalOpen">
+      <template #content>
+        <div class="p-6">
+          <div class="flex items-center gap-3 text-warning-500 mb-4">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
+            <h3 class="text-lg font-medium">
+              {{ t('publication.archiveWarning.title') }}
+            </h3>
+          </div>
+
+          <p class="text-gray-500 dark:text-gray-400 mb-6 font-medium">
+            {{ archiveWarningMessage }}
+          </p>
+          <p class="text-gray-500 dark:text-gray-400 mb-6">
+            {{ t('publication.archiveWarning.confirm') }}
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :label="t('common.cancel')"
+              @click="isArchiveWarningModalOpen = false"
+            ></UButton>
+            <UButton
+              color="warning"
+              :label="t('publication.archiveWarning.publishAnyway')"
+              :loading="isPublishing"
+              @click="handleConfirmArchivePublish"
             ></UButton>
           </div>
         </div>
@@ -775,7 +841,7 @@ async function executePublish(force: boolean) {
                                             variant="soft"
                                             size="xs"
                                             color="success"
-                                            :disabled="!canPublishPublication(currentPublication) || !!currentPublication.archivedAt"
+                                            :disabled="!canPublishPublication(currentPublication)"
                                             :loading="isPublishing"
                                             @click="handlePublishNow"
                                         ></UButton>

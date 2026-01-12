@@ -200,6 +200,8 @@ async function handleSave() {
 
 const isDeleteModalOpen = ref(false)
 const isRepublishModalOpen = ref(false)
+const isArchiveWarningModalOpen = ref(false)
+const archiveWarningMessage = ref('')
 
 async function handleDelete() {
   isDeleteModalOpen.value = true
@@ -313,6 +315,24 @@ const isValid = computed(() => {
 async function handlePublishPost() {
   if (!props.post) return
 
+  // Check for archive warnings
+  let warning = ''
+  const channel = selectedChannel.value as ChannelWithProject | undefined
+  
+  if (props.publication?.archivedAt) {
+      warning = t('publication.archiveWarning.publication')
+  } else if (channel?.archivedAt) {
+      warning = t('publication.archiveWarning.channel', { name: channel.name })
+  } else if (channel?.project?.archivedAt) {
+      warning = t('publication.archiveWarning.project', { name: channel.project.name })
+  }
+
+  if (warning) {
+      archiveWarningMessage.value = warning
+      isArchiveWarningModalOpen.value = true
+      return
+  }
+
   // Check if already published or failed
   if (props.post.status === 'PUBLISHED' || props.post.status === 'FAILED') {
       isRepublishModalOpen.value = true
@@ -320,6 +340,18 @@ async function handlePublishPost() {
   }
   
   await executePublish()
+}
+
+async function handleConfirmArchivePublish() {
+    isArchiveWarningModalOpen.value = false
+    
+    // Proceed to Republish check
+    if (props.post?.status === 'PUBLISHED' || props.post?.status === 'FAILED') {
+        isRepublishModalOpen.value = true
+        return
+    }
+
+    await executePublish()
 }
 
 async function handleConfirmRepublish() {
@@ -446,6 +478,42 @@ const metaYaml = computed(() => {
               :label="t('publication.republish', 'Republish')"
               :loading="isPublishing"
               @click="handleConfirmRepublish"
+            ></UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Archive Warning Modal -->
+    <UModal v-model:open="isArchiveWarningModalOpen">
+      <template #content>
+        <div class="p-6">
+          <div class="flex items-center gap-3 text-warning-500 mb-4">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
+            <h3 class="text-lg font-medium">
+              {{ t('publication.archiveWarning.title') }}
+            </h3>
+          </div>
+
+          <p class="text-gray-500 dark:text-gray-400 mb-6 font-medium">
+            {{ archiveWarningMessage }}
+          </p>
+          <p class="text-gray-500 dark:text-gray-400 mb-6">
+            {{ t('publication.archiveWarning.confirm') }}
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :label="t('common.cancel')"
+              @click="isArchiveWarningModalOpen = false"
+            ></UButton>
+            <UButton
+              color="warning"
+              :label="t('publication.archiveWarning.publishAnyway')"
+              :loading="isPublishing"
+              @click="handleConfirmArchivePublish"
             ></UButton>
           </div>
         </div>
@@ -742,7 +810,7 @@ const metaYaml = computed(() => {
                 icon="i-heroicons-paper-airplane"
                 variant="soft"
                 color="success"
-                :disabled="!canPublishPost(props.post, props.publication) || !!props.publication?.archivedAt"
+                :disabled="!canPublishPost(props.post, props.publication)"
                 :loading="isPublishing"
                 @click="handlePublishPost"
               ></UButton>
