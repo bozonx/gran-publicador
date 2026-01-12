@@ -444,6 +444,7 @@
     "updateSuccess": "Post updated successfully",
     "deleteSuccess": "Post deleted successfully",
     "contentInheritedFromPublication": "Post content is inherited from publication",
+    "contentOverridePlaceholder": "Override publication content specifically for this post. If left empty, the publication content will be used.",
     "editPublication": "Edit Publication",
     "tagsOverrideHint": "Leave empty to use tags from publication",
     "newPostInChannel": "New post in channel",

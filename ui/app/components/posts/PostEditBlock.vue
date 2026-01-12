@@ -15,7 +15,7 @@ import { useSocialPosting } from '~/composables/useSocialPosting'
 import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
-import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 
 interface Props {
   post?: PostWithRelations
@@ -199,6 +199,7 @@ async function confirmDelete() {
 
 // Accessors for inherited content
 const displayTitle = computed(() => props.post ? getPostTitle(props.post) : props.publication?.title)
+const isPostContentOverride = computed(() => !isTextContentEmpty(formData.content))
 const displayContent = computed(() => {
     return formData.content || props.publication?.content
 })
@@ -461,9 +462,9 @@ const metaYaml = computed(() => {
                 </UBadge>
             </div>
 
-            <!-- Content Preview -->
-            <p v-if="displayContent" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                {{ stripHtmlAndSpecialChars(displayContent) }}
+            <!-- Content Preview (Only if overridden for this post) -->
+            <p v-if="isPostContentOverride" class="text-sm text-primary-600 dark:text-primary-400 font-medium line-clamp-2 mt-1 bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded border border-primary-100 dark:border-primary-800/20">
+                {{ stripHtmlAndSpecialChars(formData.content) }}
             </p>
         </div>
 
@@ -571,7 +572,7 @@ const metaYaml = computed(() => {
             </div>
             <TiptapEditor 
                 v-model="formData.content" 
-                :placeholder="t('post.contentTooltip')"
+                :placeholder="t('post.contentOverridePlaceholder')"
                 :min-height="150"
             />
             <p v-if="!formData.content" class="text-xs text-gray-500 dark:text-gray-400 italic">
