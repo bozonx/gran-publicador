@@ -639,8 +639,6 @@ export class PublicationsService {
           status: PostStatus.PENDING,
           errorMessage: null,
           scheduledAt: null, // Clear post-specific schedule to fallback to publication's one
-          retryCount: 0,
-          nextRetryAt: null,
           publishedAt: null,
         },
       });

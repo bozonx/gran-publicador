@@ -215,9 +215,7 @@ model Post {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
 
-  // Retry control
-  retryCount    Int       @default(0) @map("retry_count")
-  nextRetryAt   DateTime? @map("next_retry_at")
+
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)

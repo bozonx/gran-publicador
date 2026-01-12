@@ -329,8 +329,6 @@ describe('PublicationsService (unit)', () => {
           errorMessage: null,
           scheduledAt: null,
           publishedAt: null,
-          retryCount: 0,
-          nextRetryAt: null,
         },
       });
       expect(result.status).toBe(PublicationStatus.SCHEDULED);
@@ -390,8 +388,6 @@ describe('PublicationsService (unit)', () => {
           errorMessage: null,
           scheduledAt: null,
           publishedAt: null,
-          retryCount: 0,
-          nextRetryAt: null,
         },
       });
     });

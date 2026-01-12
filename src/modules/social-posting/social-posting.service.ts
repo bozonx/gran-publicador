@@ -466,7 +466,6 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               response: response.data
             },
             errorMessage: null,
-            nextRetryAt: null,
           },
         });
         return { success: true, url: response.data.url };
@@ -484,7 +483,6 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               ...meta,
               response: platformError.error
             },
-            nextRetryAt: null,
           },
         });
         return { success: false, error: message };
@@ -507,7 +505,6 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               details: { stack: error.stack }
             }
           },
-          nextRetryAt: null,
         },
       });
       return { success: false, error: message };

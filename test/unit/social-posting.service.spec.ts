@@ -144,7 +144,6 @@ describe('SocialPostingService (unit)', () => {
           {
             id: 'post1',
             status: PostStatus.PENDING,
-            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
@@ -194,7 +193,6 @@ describe('SocialPostingService (unit)', () => {
           {
             id: 'post1',
             status: PostStatus.PENDING,
-            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
@@ -238,7 +236,6 @@ describe('SocialPostingService (unit)', () => {
           {
             id: 'post1',
             status: PostStatus.PENDING,
-            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
@@ -252,7 +249,6 @@ describe('SocialPostingService (unit)', () => {
           {
             id: 'post2',
             status: PostStatus.PENDING,
-            retryCount: 0,
             channelId: 'c2',
             channel: {
               id: 'c2',
@@ -292,7 +288,7 @@ describe('SocialPostingService (unit)', () => {
         id: pubId,
         content: 'Hello',
         media: [],
-        posts: [{ id: 'p1', status: PostStatus.PENDING, retryCount: 0, channelId: 'c1' }],
+        posts: [{ id: 'p1', status: PostStatus.PENDING, channelId: 'c1' }],
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(publication);
@@ -315,7 +311,6 @@ describe('SocialPostingService (unit)', () => {
           {
             id: 'post1',
             status: PostStatus.PENDING,
-            retryCount: 0,
             channelId: 'c1',
             channel: {
               id: 'c1',
