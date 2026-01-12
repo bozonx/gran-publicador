@@ -36,4 +36,10 @@ export class CreatePostDto {
   @IsString()
   @IsOptional()
   public content?: string | null;
+
+  @IsOptional()
+  public meta?: any;
+
+  @IsOptional()
+  public template?: any;
 }

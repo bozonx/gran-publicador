@@ -57,9 +57,9 @@ export const ModelName = {
   ProjectMember: 'ProjectMember',
   Channel: 'Channel',
   Publication: 'Publication',
+  Post: 'Post',
   Media: 'Media',
-  PublicationMedia: 'PublicationMedia',
-  Post: 'Post'
+  PublicationMedia: 'PublicationMedia'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -182,6 +182,26 @@ export const PublicationScalarFieldEnum = {
 export type PublicationScalarFieldEnum = (typeof PublicationScalarFieldEnum)[keyof typeof PublicationScalarFieldEnum]
 
 
+export const PostScalarFieldEnum = {
+  id: 'id',
+  publicationId: 'publicationId',
+  channelId: 'channelId',
+  socialMedia: 'socialMedia',
+  tags: 'tags',
+  status: 'status',
+  errorMessage: 'errorMessage',
+  meta: 'meta',
+  template: 'template',
+  content: 'content',
+  scheduledAt: 'scheduledAt',
+  publishedAt: 'publishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
+
+
 export const MediaScalarFieldEnum = {
   id: 'id',
   type: 'type',
@@ -209,27 +229,6 @@ export const PublicationMediaScalarFieldEnum = {
 export type PublicationMediaScalarFieldEnum = (typeof PublicationMediaScalarFieldEnum)[keyof typeof PublicationMediaScalarFieldEnum]
 
 
-export const PostScalarFieldEnum = {
-  id: 'id',
-  publicationId: 'publicationId',
-  channelId: 'channelId',
-  socialMedia: 'socialMedia',
-  tags: 'tags',
-  status: 'status',
-  errorMessage: 'errorMessage',
-  meta: 'meta',
-  content: 'content',
-  scheduledAt: 'scheduledAt',
-  publishedAt: 'publishedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  retryCount: 'retryCount',
-  nextRetryAt: 'nextRetryAt'
-} as const
-
-export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
-
-
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -243,6 +242,14 @@ export const JsonNullValueInput = {
 } as const
 
 export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull'
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const JsonNullValueFilter = {

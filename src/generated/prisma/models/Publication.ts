@@ -792,20 +792,6 @@ export type EnumPublicationStatusFieldUpdateOperationsInput = {
   set?: $Enums.PublicationStatus
 }
 
-export type PublicationCreateNestedOneWithoutMediaInput = {
-  create?: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
-  connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutMediaInput
-  connect?: Prisma.PublicationWhereUniqueInput
-}
-
-export type PublicationUpdateOneRequiredWithoutMediaNestedInput = {
-  create?: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
-  connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutMediaInput
-  upsert?: Prisma.PublicationUpsertWithoutMediaInput
-  connect?: Prisma.PublicationWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.PublicationUpdateToOneWithWhereWithoutMediaInput, Prisma.PublicationUpdateWithoutMediaInput>, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
-}
-
 export type PublicationCreateNestedOneWithoutPostsInput = {
   create?: Prisma.XOR<Prisma.PublicationCreateWithoutPostsInput, Prisma.PublicationUncheckedCreateWithoutPostsInput>
   connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutPostsInput
@@ -818,6 +804,20 @@ export type PublicationUpdateOneRequiredWithoutPostsNestedInput = {
   upsert?: Prisma.PublicationUpsertWithoutPostsInput
   connect?: Prisma.PublicationWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.PublicationUpdateToOneWithWhereWithoutPostsInput, Prisma.PublicationUpdateWithoutPostsInput>, Prisma.PublicationUncheckedUpdateWithoutPostsInput>
+}
+
+export type PublicationCreateNestedOneWithoutMediaInput = {
+  create?: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+  connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutMediaInput
+  connect?: Prisma.PublicationWhereUniqueInput
+}
+
+export type PublicationUpdateOneRequiredWithoutMediaNestedInput = {
+  create?: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+  connectOrCreate?: Prisma.PublicationCreateOrConnectWithoutMediaInput
+  upsert?: Prisma.PublicationUpsertWithoutMediaInput
+  connect?: Prisma.PublicationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PublicationUpdateToOneWithWhereWithoutMediaInput, Prisma.PublicationUpdateWithoutMediaInput>, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
 }
 
 export type PublicationCreateWithoutCreatorInput = {
@@ -1002,126 +1002,6 @@ export type PublicationUpdateManyWithWhereWithoutProjectInput = {
   data: Prisma.XOR<Prisma.PublicationUpdateManyMutationInput, Prisma.PublicationUncheckedUpdateManyWithoutProjectInput>
 }
 
-export type PublicationCreateWithoutMediaInput = {
-  id?: string
-  translationGroupId?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
-  scheduledAt?: Date | string | null
-  processingStartedAt?: Date | string | null
-  postType?: $Enums.PostType
-  language?: string
-  status?: $Enums.PublicationStatus
-  title?: string | null
-  description?: string | null
-  content?: string | null
-  authorComment?: string | null
-  tags?: string | null
-  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  postDate?: Date | string | null
-  note?: string | null
-  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
-  creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
-  posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
-}
-
-export type PublicationUncheckedCreateWithoutMediaInput = {
-  id?: string
-  projectId: string
-  translationGroupId?: string | null
-  createdBy?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
-  scheduledAt?: Date | string | null
-  processingStartedAt?: Date | string | null
-  postType?: $Enums.PostType
-  language?: string
-  status?: $Enums.PublicationStatus
-  title?: string | null
-  description?: string | null
-  content?: string | null
-  authorComment?: string | null
-  tags?: string | null
-  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  postDate?: Date | string | null
-  note?: string | null
-  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
-}
-
-export type PublicationCreateOrConnectWithoutMediaInput = {
-  where: Prisma.PublicationWhereUniqueInput
-  create: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
-}
-
-export type PublicationUpsertWithoutMediaInput = {
-  update: Prisma.XOR<Prisma.PublicationUpdateWithoutMediaInput, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
-  create: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
-  where?: Prisma.PublicationWhereInput
-}
-
-export type PublicationUpdateToOneWithWhereWithoutMediaInput = {
-  where?: Prisma.PublicationWhereInput
-  data: Prisma.XOR<Prisma.PublicationUpdateWithoutMediaInput, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
-}
-
-export type PublicationUpdateWithoutMediaInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  translationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  processingStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
-  language?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumPublicationStatusFieldUpdateOperationsInput | $Enums.PublicationStatus
-  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
-  creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
-  posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
-}
-
-export type PublicationUncheckedUpdateWithoutMediaInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  projectId?: Prisma.StringFieldUpdateOperationsInput | string
-  translationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  processingStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
-  language?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumPublicationStatusFieldUpdateOperationsInput | $Enums.PublicationStatus
-  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
-}
-
 export type PublicationCreateWithoutPostsInput = {
   id?: string
   translationGroupId?: string | null
@@ -1240,6 +1120,126 @@ export type PublicationUncheckedUpdateWithoutPostsInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   media?: Prisma.PublicationMediaUncheckedUpdateManyWithoutPublicationNestedInput
+}
+
+export type PublicationCreateWithoutMediaInput = {
+  id?: string
+  translationGroupId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  scheduledAt?: Date | string | null
+  processingStartedAt?: Date | string | null
+  postType?: $Enums.PostType
+  language?: string
+  status?: $Enums.PublicationStatus
+  title?: string | null
+  description?: string | null
+  content?: string | null
+  authorComment?: string | null
+  tags?: string | null
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  postDate?: Date | string | null
+  note?: string | null
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  project: Prisma.ProjectCreateNestedOneWithoutPublicationsInput
+  creator?: Prisma.UserCreateNestedOneWithoutPublicationsInput
+  posts?: Prisma.PostCreateNestedManyWithoutPublicationInput
+}
+
+export type PublicationUncheckedCreateWithoutMediaInput = {
+  id?: string
+  projectId: string
+  translationGroupId?: string | null
+  createdBy?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  scheduledAt?: Date | string | null
+  processingStartedAt?: Date | string | null
+  postType?: $Enums.PostType
+  language?: string
+  status?: $Enums.PublicationStatus
+  title?: string | null
+  description?: string | null
+  content?: string | null
+  authorComment?: string | null
+  tags?: string | null
+  meta: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  postDate?: Date | string | null
+  note?: string | null
+  sourceTexts: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  posts?: Prisma.PostUncheckedCreateNestedManyWithoutPublicationInput
+}
+
+export type PublicationCreateOrConnectWithoutMediaInput = {
+  where: Prisma.PublicationWhereUniqueInput
+  create: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+}
+
+export type PublicationUpsertWithoutMediaInput = {
+  update: Prisma.XOR<Prisma.PublicationUpdateWithoutMediaInput, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
+  create: Prisma.XOR<Prisma.PublicationCreateWithoutMediaInput, Prisma.PublicationUncheckedCreateWithoutMediaInput>
+  where?: Prisma.PublicationWhereInput
+}
+
+export type PublicationUpdateToOneWithWhereWithoutMediaInput = {
+  where?: Prisma.PublicationWhereInput
+  data: Prisma.XOR<Prisma.PublicationUpdateWithoutMediaInput, Prisma.PublicationUncheckedUpdateWithoutMediaInput>
+}
+
+export type PublicationUpdateWithoutMediaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  translationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  processingStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumPublicationStatusFieldUpdateOperationsInput | $Enums.PublicationStatus
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  project?: Prisma.ProjectUpdateOneRequiredWithoutPublicationsNestedInput
+  creator?: Prisma.UserUpdateOneWithoutPublicationsNestedInput
+  posts?: Prisma.PostUpdateManyWithoutPublicationNestedInput
+}
+
+export type PublicationUncheckedUpdateWithoutMediaInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  translationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  processingStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  postType?: Prisma.EnumPostTypeFieldUpdateOperationsInput | $Enums.PostType
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumPublicationStatusFieldUpdateOperationsInput | $Enums.PublicationStatus
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorComment?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  postDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceTexts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  posts?: Prisma.PostUncheckedUpdateManyWithoutPublicationNestedInput
 }
 
 export type PublicationCreateManyCreatorInput = {

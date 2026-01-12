@@ -27,6 +27,7 @@ export interface ChannelPostTemplate {
   language: string | null;
   footerId?: string | null;
   template: TemplateBlock[];
+  isDefault?: boolean;
 }
 
 export interface PublicationData {
@@ -58,12 +59,37 @@ export class SocialPostingBodyFormatter {
   /**
    * Formats the body text based on channel templates or default template.
    */
-  static format(data: PublicationData, channel: { language: string; preferences?: any }): string {
+  static format(
+    data: PublicationData, 
+    channel: { language: string; preferences?: any },
+    templateOverride?: { id: string } | null
+  ): string {
     const templates: ChannelPostTemplate[] = channel.preferences?.templates || [];
     
-    // 1. Try to find the best matching template
-    // Priority: 1. Exact postType and language, 2. Exact postType, 3. Exact language, 4. Any generic template
-    const template = this.findBestTemplate(templates, data.postType, data.language || channel.language);
+    let template: ChannelPostTemplate | null | undefined = null;
+
+    // 1. If explicit template is selected, try to find it
+    if (templateOverride?.id) {
+      template = templates.find(t => t.id === templateOverride.id);
+    }
+
+    // 2. If no explicit template (or not found), try to find "Default" template
+    if (!template) {
+        // Only if no override was attempted (or we want default to be the fallback when override fails? 
+        // Requirement: "if template field is empty then it means ... default template will be taken")
+        // So if override is provided but invalid, we might fall back to default or standard logic. 
+        // Let's assume if explicit ID is given but not found, we shouldn't silently switch to default, but maybe we have no choice.
+        
+        // However, the main case is templateOverride is null/undefined.
+        if (!templateOverride) {
+            template = templates.find(t => t.isDefault);
+        }
+    }
+
+    // 3. If still no template, fallback to "Best Match" logic (legacy/smart selection)
+    if (!template) {
+      template = this.findBestTemplate(templates, data.postType, data.language || channel.language);
+    }
     
     const blocks = template ? template.template : this.getDefaultBlocks();
     

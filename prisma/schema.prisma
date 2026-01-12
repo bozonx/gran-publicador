@@ -205,6 +205,7 @@ model Post {
   errorMessage  String?    @map("error_message")
   // Data received after publication (usually url or message id). Not editable by user.
   meta          Json
+  template      Json?
   // Overwrite of publication content for this specific post
   content       String?
 

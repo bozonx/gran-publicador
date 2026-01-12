@@ -93,7 +93,8 @@ const formData = reactive({
   scheduledAt: toDatetimeLocal(props.post?.scheduledAt),
   status: (props.post?.status || 'PENDING') as PostStatus,
   content: props.post?.content || '',
-  meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>
+  meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
+  template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null
 })
 
 // Dirty state tracking
@@ -158,7 +159,8 @@ async function handleSave() {
             tags: formData.tags || null,
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
             content: formData.content || null,
-            meta: formData.meta
+            meta: formData.meta,
+            template: formData.template
         }, { silent: true })
 
         if (newPost) {
@@ -175,7 +177,8 @@ async function handleSave() {
           tags: formData.tags || null,
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
           content: formData.content || null,
-          meta: formData.meta
+          meta: formData.meta,
+          template: formData.template
         }, { silent: true })
 
         if (!updatedPost) throw new Error('Failed to update post')
@@ -238,7 +241,7 @@ const availableTemplates = computed(() => {
     // If template post type is null, it applies to all
     const publicationPostType = displayType.value
     
-    return ((channel as ChannelWithProject).preferences?.templates || []).filter(t => {
+    const list = ((channel as ChannelWithProject).preferences?.templates || []).filter(t => {
         // Filter by Post Type
         if (t.postType && t.postType !== publicationPostType) return false
         
@@ -248,46 +251,26 @@ const availableTemplates = computed(() => {
         
         return true
     }).map(template => ({
-        value: template.id,
+        value: { id: template.id },
         label: template.name + (template.isDefault ? ` (${t('channel.templateIsDefault', 'Default')})` : '')
     }))
+
+    // Add "Default" option at the top
+    return [
+        { value: null, label: t('channel.templateDefault', 'Default (Auto)') },
+        ...list
+    ]
 })
 
-// Auto-select default template if none selected or invalid
+// Auto-select logic?
 watch(availableTemplates, (newTemplates) => {
-    // If we have a current selection, verify it still exists in available templates
-    const currentId = formData.meta.templateId
-    const currentExists = currentId && newTemplates.some(t => t.value === currentId)
-    
-    // If no selection or current selection is invalid for this filter context
-    if (!currentId || !currentExists) {
-        // Find default template
-        const channel = selectedChannel.value
-        // We need to look at the raw template objects to find isDefault, 
-        // as availableTemplates only has value/label.
-        // But we can rebuild the lookup or just re-find from channel preferences
-         if (channel && 'preferences' in channel && (channel as ChannelWithProject).preferences?.templates) {
-            const rawTemplates = (channel as ChannelWithProject).preferences?.templates || []
-            // Filter same as availableTemplates (by post type)
-            const publicationPostType = displayType.value
-            
-            const validTemplates = rawTemplates.filter(t => {
-                if (t.postType && t.postType !== publicationPostType) return false
-                return true
-            })
-            
-            const defaultTemplate = validTemplates.find(t => t.isDefault)
-            if (defaultTemplate) {
-                formData.meta.templateId = defaultTemplate.id
-            } else {
-                // If current was invalid and no default, we should probably clear it?
-                // Or keep it if we want to allow "invalid" selections (legacy)?
-                // Safer to clear if it's strictly invalid.
-                if (currentId && !currentExists) {
-                    formData.meta.templateId = undefined
-                }
-            }
-         }
+    // If current selection is explicit ({id:...}) but not in list (deleted?), fallback to Default (null)
+    const current = formData.template
+    if (current && current.id) {
+        const exists = newTemplates.some(t => t.value && t.value.id === current.id)
+        if (!exists) {
+            formData.template = null // Reset to default
+        }
     }
 }, { immediate: true })
 
@@ -299,6 +282,7 @@ watch(() => props.post, (newPost) => {
     formData.status = newPost.status
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
+    formData.template = (newPost.template && typeof newPost.template === 'string' ? JSON.parse(newPost.template) : (newPost.template || null))
     
     // Save original state after update
     nextTick(() => {
@@ -640,13 +624,21 @@ const metaYaml = computed(() => {
             <!-- Template Selector -->
             <UFormField :label="t('post.template')" v-if="availableTemplates.length > 0">
                 <USelectMenu
-                    v-model="formData.meta.templateId"
+                    v-model="formData.template"
                     :items="availableTemplates"
                     value-key="value"
                     label-key="label"
-                    :placeholder="t('post.selectTemplate', 'Select template...')"
                     class="w-full"
+                    :placeholder="t('post.selectTemplate', 'Select template...')"
                 >
+                    <template #label>
+                        <span v-if="formData.template" class="truncate">
+                            {{ availableTemplates.find(t => t.value?.id === formData.template?.id)?.label || t('post.unknownTemplate') }}
+                        </span>
+                        <span v-else class="text-gray-500 truncate">
+                             {{ t('channel.templateDefault', 'Default (Auto)') }}
+                        </span>
+                    </template>
                 </USelectMenu>
             </UFormField>
 

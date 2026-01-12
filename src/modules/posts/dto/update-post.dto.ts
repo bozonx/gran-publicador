@@ -22,4 +22,10 @@ export class UpdatePostDto {
   @IsDate()
   @IsOptional()
   public publishedAt?: Date;
+
+  @IsOptional()
+  public meta?: any;
+
+  @IsOptional()
+  public template?: any;
 }

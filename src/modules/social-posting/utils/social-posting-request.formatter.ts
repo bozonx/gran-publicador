@@ -38,7 +38,8 @@ export class SocialPostingRequestFormatter {
         postType: publication.postType,
         language: post.language || publication.language,
       },
-      channel
+      channel,
+      post.template // Pass the template override
     );
 
     const mediaMapping = this.mapMedia(publication.media);

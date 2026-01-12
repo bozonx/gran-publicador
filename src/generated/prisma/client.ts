@@ -70,6 +70,11 @@ export type Channel = Prisma.ChannelModel
  */
 export type Publication = Prisma.PublicationModel
 /**
+ * Model Post
+ * 
+ */
+export type Post = Prisma.PostModel
+/**
  * Model Media
  * 
  */
@@ -79,8 +84,3 @@ export type Media = Prisma.MediaModel
  * 
  */
 export type PublicationMedia = Prisma.PublicationMediaModel
-/**
- * Model Post
- * 
- */
-export type Post = Prisma.PostModel

@@ -23,6 +23,7 @@ export interface Post {
   publishedAt: string | null
   errorMessage: string | null
   meta: any
+  template: any // Store template selection { id: string } or null
   content: string | null
   createdAt: string
   updatedAt: string
@@ -62,7 +63,8 @@ export interface PostCreateInput {
   status?: PostStatus | null
   scheduledAt?: string | null
   content?: string | null
-  meta?: any // Additional metadata (like templateId)
+  meta?: any // Additional metadata
+  template?: any
 }
 
 export interface PostUpdateInput {
@@ -72,6 +74,7 @@ export interface PostUpdateInput {
   publishedAt?: string | null
   content?: string | null
   meta?: any // Update metadata
+  template?: any
 }
 
 export interface PostsFilter {
