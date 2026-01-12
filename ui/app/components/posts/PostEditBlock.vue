@@ -33,6 +33,7 @@ const { t } = useI18n()
 const { updatePost, deletePost, createPost, isLoading, statusOptions: postStatusOptions } = usePosts()
 const { getStatusColor, getStatusDisplayName } = usePosts()
 const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
+const { getPostProblemLevel } = usePublications()
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -100,7 +101,8 @@ const channelOptions = computed(() => {
         value: c.id,
         label: c.name,
         socialMedia: c.socialMedia,
-        language: c.language
+        language: c.language,
+        problemLevel: getPostProblemLevel({ channel: c })
     })) || []
 })
 
@@ -324,6 +326,7 @@ const metaYaml = computed(() => {
              <SocialIcon 
               v-if="selectedChannel?.socialMedia" 
               :platform="selectedChannel.socialMedia" 
+              :problem-level="post ? getPostProblemLevel(post) : null"
             />
             <UIcon v-else-if="isCreating" name="i-heroicons-plus-circle" class="w-5 h-5 text-primary-500" />
             <UIcon v-else name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
@@ -440,7 +443,11 @@ const metaYaml = computed(() => {
             >
                 <template #item="{ item }">
                     <div class="flex items-center gap-2 w-full">
-                        <SocialIcon :platform="item.socialMedia" size="xs" />
+                        <SocialIcon 
+                            :platform="item.socialMedia" 
+                            size="xs" 
+                            :problem-level="item.problemLevel"
+                        />
                         <span class="truncate">{{ item.label }}</span>
                         <span class="ml-auto text-xs text-gray-500 uppercase">{{ item.language }}</span>
                     </div>

@@ -353,46 +353,28 @@ export function usePublications() {
         return publication.posts.some((post: any) => post.status === 'FAILED')
     }
 
-    function hasChannelProblems(publication: PublicationWithRelations): boolean {
-        if (!publication.posts || publication.posts.length === 0) return false
-        return publication.posts.some((post: any) => {
-            const channel = post.channel
-            if (!channel) return false
-            
-            const hasNoCredentials = !channel.credentials || Object.keys(channel.credentials).length === 0
-            const isStale = channel.isStale === true
-            const isInactive = channel.isActive === false
-            
-            return hasNoCredentials || isStale || isInactive
-        })
-    }
 
     function getPublicationProblems(publication: PublicationWithRelations) {
         const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
-        
-        // Check publication status
-        if (publication.status === 'FAILED') {
-            problems.push({ type: 'critical', key: 'allPostsFailed' })
-        }
-        
-        if (publication.status === 'PARTIAL') {
-            const failedCount = publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0
-            problems.push({ type: 'warning', key: 'somePostsFailed', count: failedCount })
-        }
-        
-        if (publication.status === 'EXPIRED') {
-            problems.push({ type: 'warning', key: 'publicationExpired' })
-        }
 
-        // Check if any post failed regardless of publication status
+        // Check if any post failed regardless of publication status (Lowest level - bottom)
         const failedPostsCount = publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0
         if (failedPostsCount > 0 && publication.status !== 'FAILED' && publication.status !== 'PARTIAL') {
             problems.push({ type: 'warning', key: 'postsHaveErrors', count: failedPostsCount })
         }
 
-        // Check for channel problems (missing credentials, inactive, etc)
-        if (hasChannelProblems(publication)) {
-            problems.push({ type: 'critical', key: 'channelProblems' })
+        // Check publication status (Higher level)
+        if (publication.status === 'EXPIRED') {
+            problems.push({ type: 'warning', key: 'publicationExpired' })
+        }
+
+        if (publication.status === 'PARTIAL') {
+            const failedCount = publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0
+            problems.push({ type: 'warning', key: 'somePostsFailed', count: failedCount })
+        }
+
+        if (publication.status === 'FAILED') {
+            problems.push({ type: 'critical', key: 'allPostsFailed' })
         }
         
         return problems
