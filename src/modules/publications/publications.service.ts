@@ -696,6 +696,7 @@ export class PublicationsService {
         meta: data.meta
           ? { ...(publication.meta as any), ...(data.meta as any) }
           : undefined,
+        note: data.note,
         sourceTexts:
           data.sourceTexts !== undefined
             ? ((data.appendSourceTexts
