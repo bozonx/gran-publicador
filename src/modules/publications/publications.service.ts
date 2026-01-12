@@ -738,6 +738,110 @@ export class PublicationsService {
   }
 
   /**
+   * Perform bulk operations on publications.
+   *
+   * @param userId - The ID of the user performing the operation.
+   * @param dto - The bulk operation data.
+   */
+  public async bulkOperation(
+    userId: string,
+    dto: import('./dto/bulk-operation.dto.js').BulkOperationDto,
+  ) {
+    const { ids, operation, status } = dto;
+
+    if (!ids || ids.length === 0) {
+      return { count: 0 };
+    }
+
+    // 1. Verify access to all publications or filter those that user has access to
+    // For simplicity and safety, we'll fetch them and check permissions
+    // Alternatively, we could do a complex updateMany with where: { id: { in: ids }, projectId: { in: ... } }
+
+    const publications = await this.prisma.publication.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, projectId: true, createdBy: true },
+    });
+
+    const authorizedIds: string[] = [];
+
+    for (const pub of publications) {
+      try {
+        if (pub.createdBy !== userId) {
+          await this.permissions.checkProjectPermission(pub.projectId, userId, [
+            ProjectRole.OWNER,
+            ProjectRole.ADMIN,
+          ]);
+        }
+        authorizedIds.push(pub.id);
+      } catch (e) {
+        this.logger.warn(
+          `User ${userId} attempted bulk ${operation} on publication ${pub.id} without permission`,
+        );
+      }
+    }
+
+    if (authorizedIds.length === 0) {
+      return { count: 0 };
+    }
+
+    switch (operation) {
+      case 'delete':
+        return this.prisma.publication.deleteMany({
+          where: { id: { in: authorizedIds } },
+        });
+
+      case 'archive':
+        return this.prisma.publication.updateMany({
+          where: { id: { in: authorizedIds } },
+          data: { archivedAt: new Date(), archivedBy: userId },
+        });
+
+      case 'unarchive':
+        return this.prisma.publication.updateMany({
+          where: { id: { in: authorizedIds } },
+          data: { archivedAt: null, archivedBy: null },
+        });
+
+      case 'status':
+        if (!status) {
+          throw new BadRequestException('Status is required for status operation');
+        }
+
+        // Special handling for READY status - normally require content
+        // For bulk status change, we'll just set it, assuming user knows what they are doing
+        // OR we can reuse the logic from update() but it's more complex for updateMany
+
+        if (status === PublicationStatus.DRAFT || status === PublicationStatus.READY) {
+          // Reset all posts to PENDING
+          await this.prisma.post.updateMany({
+            where: { publicationId: { in: authorizedIds } },
+            data: {
+              status: PostStatus.PENDING,
+              scheduledAt: null,
+              errorMessage: null,
+              publishedAt: null,
+            },
+          });
+
+          return this.prisma.publication.updateMany({
+            where: { id: { in: authorizedIds } },
+            data: { status, scheduledAt: null },
+          });
+        }
+
+        // For other statuses (e.g. SCHEDULED), we might need more validation
+        // But for bulk, we usually only allow DRAFT/READY or maybe ARCHIVE (handled above)
+        return this.prisma.publication.updateMany({
+          where: { id: { in: authorizedIds } },
+          data: { status },
+        });
+
+      default:
+        throw new BadRequestException(`Unsupported operation: ${operation}`);
+    }
+  }
+
+  /**
    * Generate individual posts for specified channels from a publication.
    * Posts inherit content from the publication automatically.
    * Verifies that all channels belong to the same project as the publication.

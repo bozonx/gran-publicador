@@ -75,7 +75,11 @@
     "unknown": "Unknown",
     "unknownChannel": "Unknown channel",
     "role": "Role",
-    "toggle": "Toggle"
+    "toggle": "Toggle",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "selected": "Selected: {count}",
+    "clearSelection": "Clear"
   },
   "navigation": {
     "home": "Home",
@@ -573,6 +577,13 @@
       "inactiveChannels": "Some channels are inactive: {names}.",
       "confirm": "Are you sure you want to proceed?",
       "publishAnyway": "Publish Anyway"
+    },
+    "bulkDeleteConfirm": "Delete {count} publications?",
+    "bulk": {
+      "DELETESuccess": "Successfully deleted {count} publications",
+      "ARCHIVESuccess": "{count} publications moved to archive",
+      "UNARCHIVESuccess": "{count} publications restored from archive",
+      "SET_STATUSSuccess": "Status of {count} publications updated"
     }
   },
   "media": {

@@ -5,11 +5,13 @@ import { stripHtmlAndSpecialChars } from '~/utils/text'
 const props = defineProps<{
   publication: PublicationWithRelations
   showProjectInfo?: boolean
+  selected?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'click', publication: PublicationWithRelations): void
   (e: 'delete', publication: PublicationWithRelations): void
+  (e: 'update:selected', value: boolean): void
 }>()
 
 const { t } = useI18n()
@@ -46,11 +48,19 @@ function handleDelete(e: Event) {
 
 <template>
   <div
-    class="app-card app-card-hover p-4 cursor-pointer group flex flex-col h-full"
+    class="app-card app-card-hover p-4 cursor-pointer group flex flex-col h-full relative"
     @click="handleClick"
   >
+    <!-- Checkbox for bulk operations -->
+    <div class="absolute top-4 left-4 z-10" @click.stop>
+      <UCheckbox
+        :model-value="selected"
+        @update:model-value="(val) => emit('update:selected', !!val)"
+      />
+    </div>
+
     <!-- Header: Title, Status, Delete -->
-    <div class="flex items-start justify-between gap-3 mb-2">
+    <div class="flex items-start justify-between gap-3 mb-2" :class="{ 'pl-8': true }">
       <div class="flex-1 min-w-0">
         <div v-if="showProjectInfo && publication.project" class="flex items-center gap-1.5 mb-1 text-xs text-gray-500 dark:text-gray-400">
           <UIcon name="i-heroicons-briefcase" class="w-3 h-3 text-gray-400" />

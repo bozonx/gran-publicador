@@ -75,7 +75,11 @@
     "unknown": "Неизвестно",
     "unknownChannel": "Неизвестный канал",
     "role": "Роль",
-    "toggle": "Переключить"
+    "toggle": "Переключить",
+    "selectAll": "Выбрать все",
+    "deselectAll": "Снять выделение",
+    "selected": "Выбрано: {count}",
+    "clearSelection": "Очистить"
   },
   "navigation": {
     "home": "Главная",
@@ -631,6 +635,13 @@
       "inactiveChannels": "Некоторые каналы неактивны: {names}.",
       "confirm": "Вы уверены, что хотите продолжить?",
       "publishAnyway": "Опубликовать все равно"
+    },
+    "bulkDeleteConfirm": "Удалить {count} публикаций?",
+    "bulk": {
+      "DELETESuccess": "Успешно удалено {count} публикаций",
+      "ARCHIVESuccess": "{count} публикаций отправлено в архив",
+      "UNARCHIVESuccess": "{count} публикаций восстановлено из архива",
+      "SET_STATUSSuccess": "Статус {count} публикаций изменен"
     }
   },
   "media": {

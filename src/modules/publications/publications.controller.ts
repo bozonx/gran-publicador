@@ -30,6 +30,7 @@ import {
   OwnershipType,
   IssueType,
   ReorderMediaDto,
+  BulkOperationDto,
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
@@ -156,6 +157,17 @@ export class PublicationsController {
   @Delete(':id')
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     return this.publicationsService.remove(id, req.user.userId);
+  }
+
+  /**
+   * Perform bulk operations on publications.
+   */
+  @Post('bulk')
+  public async bulkOperation(
+    @Request() req: UnifiedAuthRequest,
+    @Body() bulkOperationDto: BulkOperationDto,
+  ) {
+    return this.publicationsService.bulkOperation(req.user.userId, bulkOperationDto);
   }
 
   /**

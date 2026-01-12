@@ -370,6 +370,61 @@ const showPagination = computed(() => {
     return totalCount.value > limit.value
 })
 
+// Bulk Operations State
+const selectedIds = ref<string[]>([])
+const { bulkOperation } = usePublications()
+
+const isAllSelected = computed(() => {
+  return filteredPublications.value.length > 0 && 
+         filteredPublications.value.every(pub => selectedIds.value.includes(pub.id))
+})
+
+const isSomeSelected = computed(() => {
+  return selectedIds.value.length > 0 && !isAllSelected.value
+})
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = filteredPublications.value.map(pub => pub.id)
+  }
+}
+
+function toggleSelection(pubId: string) {
+  const index = selectedIds.value.indexOf(pubId)
+  if (index === -1) {
+    selectedIds.value.push(pubId)
+  } else {
+    selectedIds.value.splice(index, 1)
+  }
+}
+
+// Reset selection on filter change
+watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], () => {
+    selectedIds.value = []
+})
+
+const showBulkDeleteModal = ref(false)
+const showBulkStatusModal = ref(false)
+const bulkActionPending = ref(false)
+const bulkStatusToSet = ref<PublicationStatus | null>(null)
+
+async function handleBulkAction(operation: string, status?: PublicationStatus) {
+  if (selectedIds.value.length === 0) return
+
+  bulkActionPending.value = true
+  const success = await bulkOperation(selectedIds.value, operation, status)
+  bulkActionPending.value = false
+
+  if (success) {
+    showBulkDeleteModal.value = false
+    showBulkStatusModal.value = false
+    selectedIds.value = []
+    fetchPublications()
+  }
+}
+
 const showDeleteModal = ref(false)
 const publicationToDelete = ref<PublicationWithRelations | null>(null)
 const isDeleting = ref(false)
@@ -633,15 +688,27 @@ async function handleDelete() {
         </p>
     </div>
 
+    <!-- Bulk operations and select all -->
+    <div v-if="filteredPublications.length > 0" class="flex items-center gap-4 px-2">
+      <UCheckbox
+        :model-value="isAllSelected"
+        :indeterminate="isSomeSelected"
+        @update:model-value="toggleSelectAll"
+        :label="isAllSelected ? t('common.deselectAll', 'Снять выделение') : t('common.selectAll', 'Выбрать все')"
+      />
+    </div>
+
     <!-- Publications list view -->
     <div v-if="isListView" class="space-y-4">
         <PublicationsPublicationListItem
           v-for="pub in filteredPublications"
           :key="pub.id"
           :publication="pub"
+          :selected="selectedIds.includes(pub.id)"
           show-project-info
           @click="goToPublication"
           @delete="confirmDelete"
+          @update:selected="toggleSelection(pub.id)"
         />
     </div>
 
@@ -651,11 +718,97 @@ async function handleDelete() {
           v-for="pub in filteredPublications"
           :key="pub.id"
           :publication="pub"
+          :selected="selectedIds.includes(pub.id)"
           show-project-info
           @click="goToPublication"
           @delete="confirmDelete"
+          @update:selected="toggleSelection(pub.id)"
         />
     </div>
+
+    <!-- Bulk Action Bar -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform translate-y-full opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform translate-y-full opacity-0"
+    >
+      <div v-if="selectedIds.length > 0" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-full shadow-2xl border border-gray-700 flex items-center gap-6 min-w-max">
+        <div class="flex items-center gap-2 border-r border-gray-700 pr-6 mr-2">
+          <span class="text-sm font-medium">{{ t('common.selected', { count: selectedIds.length }) }}</span>
+          <UButton 
+            color="neutral" 
+            variant="ghost" 
+            size="xs" 
+            icon="i-heroicons-x-mark" 
+            @click="selectedIds = []" 
+            :title="t('common.clearSelection', 'Очистить')"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Archive / Unarchive -->
+          <UButton
+            v-if="!showArchivedFilter"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-archive-box"
+            size="sm"
+            @click="handleBulkAction('archive')"
+            :loading="bulkActionPending"
+          >
+            {{ t('common.archive') }}
+          </UButton>
+          <UButton
+            v-else
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-path"
+            size="sm"
+            @click="handleBulkAction('unarchive')"
+            :loading="bulkActionPending"
+          >
+            {{ t('common.restore') }}
+          </UButton>
+
+          <!-- Set Status -->
+          <UDropdownMenu
+            :items="[
+              statusOptions.map(opt => ({
+                label: opt.label,
+                icon: 'i-heroicons-tag',
+                click: () => handleBulkAction('status', opt.value as any)
+              }))
+            ]"
+            :popper="{ placement: 'top' }"
+          >
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-adjustments-horizontal"
+              size="sm"
+              :loading="bulkActionPending"
+            >
+              {{ t('post.statusLabel') }}
+            </UButton>
+          </UDropdownMenu>
+
+          <!-- Delete -->
+          <UButton
+            color="error"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            size="sm"
+            @click="showBulkDeleteModal = true"
+            :loading="bulkActionPending"
+          >
+            {{ t('common.delete') }}
+          </UButton>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Pagination -->
     <div v-if="showPagination" class="mt-8 flex justify-center">
@@ -696,6 +849,39 @@ async function handleDelete() {
             :label="t('common.delete')"
             :loading="isDeleting"
             @click="handleDelete"
+          />
+        </div>
+      </div>
+    </template>
+  </UModal>
+
+  <!-- Bulk Delete Confirmation Modal -->
+  <UModal v-model:open="showBulkDeleteModal">
+    <template #content>
+      <div class="p-6">
+        <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
+          <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6" />
+          <h3 class="text-lg font-medium">
+            {{ t('publication.bulkDeleteConfirm', { count: selectedIds.length }) }}
+          </h3>
+        </div>
+
+        <p class="text-gray-500 dark:text-gray-400 mb-6">
+          {{ t('publication.deleteCascadeWarning') }}
+        </p>
+
+        <div class="flex justify-end gap-3">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :label="t('common.cancel')"
+            @click="showBulkDeleteModal = false"
+          />
+          <UButton
+            color="error"
+            :label="t('common.delete')"
+            :loading="bulkActionPending"
+            @click="handleBulkAction('delete')"
           />
         </div>
       </div>

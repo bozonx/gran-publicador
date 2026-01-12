@@ -299,6 +299,33 @@ export function usePublications() {
         }
     }
 
+    async function bulkOperation(ids: string[], operation: string, status?: string): Promise<boolean> {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            await api.post('/publications/bulk', { ids, operation, status })
+            
+            toast.add({
+                title: t('common.success'),
+                description: t(`publication.bulk.${operation}Success`, { count: ids.length }),
+                color: 'success'
+            })
+            return true
+        } catch (err: any) {
+            console.error('[usePublications] bulkOperation error:', err)
+            error.value = err.message || 'Bulk operation failed'
+            toast.add({
+                title: t('common.error'),
+                description: error.value || 'Bulk operation failed',
+                color: 'error'
+            })
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     async function createPostsFromPublication(id: string, channelIds: string[], scheduledAt?: string): Promise<any> {
         isLoading.value = true
         error.value = null
@@ -422,6 +449,7 @@ export function usePublications() {
         createPublication,
         updatePublication,
         deletePublication,
+        bulkOperation,
         createPostsFromPublication,
         getStatusDisplayName,
         getStatusColor,

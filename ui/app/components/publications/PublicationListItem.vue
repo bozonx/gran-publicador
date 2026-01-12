@@ -5,11 +5,13 @@ import { stripHtmlAndSpecialChars } from '~/utils/text'
 const props = defineProps<{
   publication: PublicationWithRelations
   showProjectInfo?: boolean
+  selected?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'click', publication: PublicationWithRelations): void
   (e: 'delete', publication: PublicationWithRelations): void
+  (e: 'update:selected', value: boolean): void
 }>()
 
 const { t, d } = useI18n()
@@ -49,9 +51,19 @@ function handleDelete(e: Event) {
     @click="handleClick"
   >
     <div class="flex flex-col h-full">
-      <!-- Title and Actions -->
-      <div class="flex items-start justify-between gap-4 mb-2">
-        <div class="flex flex-wrap items-center gap-2 min-w-0">
+      <div class="flex items-start gap-4">
+        <!-- Checkbox for bulk operations -->
+        <div class="pt-1" @click.stop>
+          <UCheckbox
+            :model-value="selected"
+            @update:model-value="(val) => emit('update:selected', !!val)"
+          />
+        </div>
+        
+        <div class="flex-1 min-w-0">
+          <!-- Title and Actions -->
+          <div class="flex items-start justify-between gap-4 mb-2">
+            <div class="flex flex-wrap items-center gap-2 min-w-0">
           <h3 class="font-semibold text-gray-900 dark:text-white truncate text-lg leading-snug" :class="{ 'italic text-gray-500 font-medium': !publication.title && !stripHtmlAndSpecialChars(publication.content) }">
             {{ displayTitle }}
           </h3>
@@ -160,6 +172,8 @@ function handleDelete(e: Event) {
           <div v-if="publication.posts.length > 8" class="h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[9px] text-gray-500 font-medium">
             +{{ publication.posts.length - 8 }}
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
