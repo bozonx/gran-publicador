@@ -80,6 +80,34 @@ onMounted(async () => {
   }
 })
 
+// Watch for external publication updates (e.g. from modals)
+watch(() => props.publication, (newPub) => {
+  if (newPub) {
+    state.title = newPub.title || ''
+    state.content = newPub.content || ''
+    state.tags = newPub.tags || ''
+    state.postType = newPub.postType as PostType
+    state.status = (newPub.status || 'DRAFT') as PublicationStatus
+    state.language = newPub.language || 'en-US'
+    state.description = newPub.description || ''
+    state.authorComment = newPub.authorComment || ''
+    state.note = newPub.note || ''
+    state.scheduledAt = newPub.scheduledAt ? new Date(newPub.scheduledAt).toISOString().slice(0, 16) : ''
+    state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
+    state.translationGroupId = newPub.translationGroupId || undefined
+    
+    if (newPub.sourceTexts) {
+        state.sourceTexts = newPub.sourceTexts.map((st: any, i: number) => ({
+            ...st,
+            order: typeof st.order === 'number' ? st.order : i
+        }))
+    }
+    
+    // Reset baseline for dirty tracking AFTER updating state
+    nextTick(() => saveOriginalState())
+  }
+}, { deep: true })
+
 // Linking logic
 const availablePublications = computed(() => {
     return publications.value
@@ -235,7 +263,7 @@ function handleDeleteAllSourceTexts() {
         </UFormField>
 
         <!-- Scheduling -->
-        <UFormField v-if="state.status === 'SCHEDULED' && !isEditMode" name="scheduledAt" :label="t('post.scheduledAt')" required>
+        <UFormField v-if="state.status === 'SCHEDULED'" name="scheduledAt" :label="t('post.scheduledAt')" required>
           <UInput v-model="state.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
         </UFormField>
 

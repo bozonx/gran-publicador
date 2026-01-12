@@ -27,6 +27,7 @@ export interface Publication {
     archivedAt?: string | null
     scheduledAt?: string | null
     postScheduledAt?: string | null
+    sourceTexts?: Array<{ content: string; order?: number; source?: string }>
 }
 
 export interface PublicationWithRelations extends Publication {

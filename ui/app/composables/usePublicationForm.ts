@@ -80,7 +80,7 @@ export function usePublicationFormState(publication: PublicationWithRelations | 
     authorComment: publication?.authorComment || '',
     note: publication?.note || '',
     postDate: publication?.postDate ? new Date(publication.postDate).toISOString().slice(0, 16) : '',
-    sourceTexts: (publication as any)?.sourceTexts?.map((st: any, i: number) => ({
+    sourceTexts: publication?.sourceTexts?.map((st: any, i: number) => ({
       ...st,
       order: typeof st.order === 'number' ? st.order : i
     })) || [] as any[],

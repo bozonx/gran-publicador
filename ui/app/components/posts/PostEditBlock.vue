@@ -123,7 +123,7 @@ const channelLanguage = computed(() => {
 
 const hasLanguageMismatch = computed(() => {
     if (!publicationLanguage.value || !channelLanguage.value) return false
-    return publicationLanguage.value !== channelLanguage.value
+    return publicationLanguage.value.toLowerCase() !== channelLanguage.value.toLowerCase()
 })
 
 function toggleCollapse() {
@@ -204,7 +204,9 @@ const displayContent = computed(() => {
     return formData.content || props.publication?.content
 })
 const displayDescription = computed(() => props.post ? getPostDescription(props.post) : props.publication?.description)
-const displayLanguage = computed(() => props.post ? getPostLanguage(props.post) : props.publication?.language)
+const displayLanguage = computed(() => {
+    return selectedChannel.value?.language || publicationLanguage.value
+})
 const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
 
 // Watchers for external updates
@@ -411,19 +413,25 @@ const metaYaml = computed(() => {
                 </span>
 
                 <!-- Language Code -->
-                <UBadge 
-                  v-if="!isCreating && displayLanguage" 
-                  variant="subtle" 
-                  color="neutral" 
-                  size="xs"
-                  class="font-mono shrink-0 rounded-md"
+                <UTooltip 
+                    :text="hasLanguageMismatch ? t('post.languageMismatch', 'Channel language differs from publication') : ''"
+                    v-if="!isCreating && displayLanguage"
+                    :disabled="!hasLanguageMismatch"
                 >
-                  {{ displayLanguage }}
-                </UBadge>
+                    <UBadge 
+                        variant="subtle" 
+                        :color="hasLanguageMismatch ? 'warning' : 'neutral'" 
+                        size="xs"
+                        class="font-mono shrink-0 rounded-md gap-1"
+                    >
+                        <UIcon v-if="hasLanguageMismatch" name="i-heroicons-exclamation-triangle" class="w-3 h-3" />
+                        {{ displayLanguage }}
+                    </UBadge>
+                </UTooltip>
 
                 <!-- Status Display -->
                 <UBadge 
-                  v-if="!isCreating && props.post?.status" 
+                  v-if="!isCreating && props.post?.status && props.post.status !== 'PENDING'" 
                   :variant="props.post.status === 'FAILED' ? 'solid' : 'subtle'" 
                   :color="getStatusColor(props.post.status)" 
                   size="xs"
@@ -439,13 +447,7 @@ const metaYaml = computed(() => {
                      {{ headerDateInfo.date }}
                 </span>
 
-                <!-- Language Mismatch Warning (Edit Mode) -->
-                <UTooltip 
-                    v-if="!isCreating && hasLanguageMismatch" 
-                    :text="t('post.languageMismatch', 'Channel language differs from publication')"
-                >
-                    <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-amber-500" />
-                </UTooltip>
+
             </div>
             
             <!-- Overridden Tags -->
