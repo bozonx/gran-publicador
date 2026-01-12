@@ -32,17 +32,30 @@ import { SocialPostingConfig } from '../../config/social-posting.config.js';
  * Custom logger adapter to pipe library logs to NestJS Logger
  */
 class LibraryLogger {
-  debug(message: string, context?: string) {
-    console.debug(`[Library] ${context ? `[${context}] ` : ''}${message}`);
+  private formatMessage(message: any, context?: string): any[] {
+    const prefix = `[Library] ${context ? `[${context}] ` : ''}`;
+    if (typeof message === 'object') {
+      return [prefix, message];
+    }
+    return [`${prefix}${message}`];
   }
-  log(message: string, context?: string) {
-    console.log(`[Library] ${context ? `[${context}] ` : ''}${message}`);
+
+  debug(message: any, context?: string) {
+    console.debug(...this.formatMessage(message, context));
   }
-  warn(message: string, context?: string) {
-    console.warn(`[Library] ${context ? `[${context}] ` : ''}${message}`);
+  log(message: any, context?: string) {
+    console.log(...this.formatMessage(message, context));
   }
-  error(message: string, trace?: string, context?: string) {
-    console.error(`[Library] ${context ? `[${context}] ` : ''}${message}`, trace);
+  warn(message: any, context?: string) {
+    console.warn(...this.formatMessage(message, context));
+  }
+  error(message: any, trace?: string, context?: string) {
+    const formatted = this.formatMessage(message, context);
+    if (trace) {
+      console.error(...formatted, trace);
+    } else {
+      console.error(...formatted);
+    }
   }
 }
 
