@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PostStatus, PostType, ProjectRole } from '../../generated/prisma/client.js';
@@ -12,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class PostsService {
+  private readonly logger = new Logger(PostsService.name);
   constructor(
     private prisma: PrismaService,
     private channelsService: ChannelsService,
@@ -85,7 +87,7 @@ export class PostsService {
       throw new NotFoundException('Publication not found or does not belong to this project');
     }
 
-    return this.prisma.post.create({
+    const post = await this.prisma.post.create({
       data: {
         channelId,
         publicationId: data.publicationId,
@@ -102,6 +104,9 @@ export class PostsService {
         publication: true,
       },
     });
+
+    this.logger.log(`Created post ${post.id}. platformOptions: ${JSON.stringify(data.platformOptions)}`);
+    return post;
   }
 
   /**
@@ -405,6 +410,8 @@ export class PostsService {
     if (data.scheduledAt === null) {
       data.errorMessage = null;
     }
+
+    this.logger.log(`Updating post ${id}. platformOptions: ${JSON.stringify(data.platformOptions)}`);
 
     return this.prisma.post.update({
       where: { id },

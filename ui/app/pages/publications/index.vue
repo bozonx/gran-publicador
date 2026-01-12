@@ -376,12 +376,12 @@ const showPagination = computed(() => {
 const selectedIds = ref<string[]>([])
 
 const bulkStatusOptions = computed(() => [
-  statusOptions.value
+  ...statusOptions.value
     .filter(opt => ['DRAFT', 'READY'].includes(opt.value))
     .map(opt => ({
       label: opt.label,
       icon: 'i-heroicons-tag',
-      click: () => {
+      onSelect: () => {
         console.log('Bulk Status Click:', opt.value)
         handleBulkAction('SET_STATUS', opt.value as any)
       }
@@ -424,7 +424,7 @@ const showBulkStatusModal = ref(false)
 const bulkActionPending = ref(false)
 const bulkStatusToSet = ref<PublicationStatus | null>(null)
 
-async function handleBulkAction(operation: string, status?: PublicationStatus) {
+async function handleBulkAction(operation: string, status?: string) {
   console.log('handleBulkAction called:', { operation, status, selectedIds: selectedIds.value })
   if (selectedIds.value.length === 0) return
 

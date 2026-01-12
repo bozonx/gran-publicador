@@ -95,7 +95,7 @@ const formData = reactive({
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
   template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null,
-  platformOptions: (props.post?.platformOptions && typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : (props.post?.platformOptions || {})) as Record<string, any>
+  platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
 })
 
 // Dirty state tracking
@@ -150,6 +150,7 @@ function toggleCollapse() {
 }
 
 async function handleSave() {
+  console.log('[PostEditBlock] handleSave formData:', JSON.parse(JSON.stringify(formData)))
   try {
     if (props.isCreating) {
         if (!formData.channelId || !props.publication) return 
