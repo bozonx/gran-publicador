@@ -122,8 +122,13 @@ const channelLanguage = computed(() => {
 })
 
 const hasLanguageMismatch = computed(() => {
-    if (!publicationLanguage.value || !channelLanguage.value) return false
-    return publicationLanguage.value.toLowerCase() !== channelLanguage.value.toLowerCase()
+    const pLang = publicationLanguage.value
+    const cLang = channelLanguage.value
+    if (!pLang || !cLang) return false
+    
+    // Normalize: lowercase, trim, and treat - and _ the same for comparison
+    const normalize = (l: string) => l.toLowerCase().replace(/[-_]/g, '').trim()
+    return normalize(pLang) !== normalize(cLang)
 })
 
 function toggleCollapse() {
@@ -205,7 +210,8 @@ const displayContent = computed(() => {
 })
 const displayDescription = computed(() => props.post ? getPostDescription(props.post) : props.publication?.description)
 const displayLanguage = computed(() => {
-    return selectedChannel.value?.language || publicationLanguage.value
+    // Priority: Channel language (since this block is for a post in a specific channel)
+    return channelLanguage.value || publicationLanguage.value
 })
 const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
 
