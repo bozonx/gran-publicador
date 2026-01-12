@@ -279,6 +279,17 @@ function handleDeleteAllSourceTexts() {
         />
       </UFormField>
 
+      <!-- Description for ARTICLE -->
+      <UFormField v-if="state.postType === 'ARTICLE'" name="description" :help="t('post.descriptionPlaceholder')">
+        <template #label>
+          <div class="flex items-center gap-1.5">
+            <span>{{ t('post.description') }}</span>
+            <CommonInfoTooltip :text="t('post.descriptionTooltip')" />
+          </div>
+        </template>
+        <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
+      </UFormField>
+
       <UFormField name="content">
         <template #label>
           <div class="flex items-center gap-1.5">
@@ -301,6 +312,11 @@ function handleDeleteAllSourceTexts() {
           :placeholder="t('post.contentPlaceholder')"
           :min-height="250"
         />
+      </UFormField>
+
+      <!-- Author Comment for NEWS -->
+      <UFormField v-if="state.postType === 'NEWS'" name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
+        <UTextarea v-model="state.authorComment" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.authorCommentPlaceholder')" />
       </UFormField>
 
       <!-- Source Texts Section -->
@@ -359,6 +375,11 @@ function handleDeleteAllSourceTexts() {
         />
       </UFormField>
 
+      <!-- Post Date for ARTICLE -->
+      <UFormField v-if="state.postType === 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
+        <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
+      </UFormField>
+
       <!-- Linking Section -->
       <UFormField name="translationGroupId" :label="t('publication.linkTranslation')" :help="t('publication.linkTranslationHelp')">
         <div class="flex gap-2">
@@ -405,7 +426,7 @@ function handleDeleteAllSourceTexts() {
 
       <!-- Advanced Configuration Section -->
       <UiFormAdvancedSection v-model="showAdvancedFields">
-        <UFormField name="description" :help="t('post.descriptionPlaceholder')">
+        <UFormField v-if="state.postType !== 'ARTICLE'" name="description" :help="t('post.descriptionPlaceholder')">
           <template #label>
             <div class="flex items-center gap-1.5">
               <span>{{ t('post.description') }}</span>
@@ -415,11 +436,11 @@ function handleDeleteAllSourceTexts() {
           <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
         </UFormField>
 
-        <UFormField name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
+        <UFormField v-if="state.postType !== 'NEWS'" name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
           <UTextarea v-model="state.authorComment" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.authorCommentPlaceholder')" />
         </UFormField>
 
-        <UFormField name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
+        <UFormField v-if="state.postType !== 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
           <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
         </UFormField>
 
@@ -428,8 +449,6 @@ function handleDeleteAllSourceTexts() {
         <UFormField name="note" :label="t('post.note')" :help="t('post.noteHint')">
           <UTextarea v-model="state.note" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.notePlaceholder')" />
         </UFormField>
-
-
       </UiFormAdvancedSection>
 
       <UiFormActions
