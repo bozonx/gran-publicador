@@ -109,6 +109,8 @@ async function bootstrap() {
       },
     },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     xFrameOptions: false,
   });
 
