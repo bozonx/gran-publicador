@@ -308,26 +308,14 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
               timestamp: new Date().toISOString(),
               successCount,
               totalCount: results.length,
-              results: results.map(r => ({
-                postId: r.postId,
-                channelId: r.channelId,
-                success: r.success,
-                url: r.url,
-                error: r.error
-              }))
+
             }
           ],
           lastResult: {
             timestamp: new Date().toISOString(),
             successCount,
             totalCount: results.length,
-            results: results.map(r => ({
-              postId: r.postId,
-              channelId: r.channelId,
-              success: r.success,
-              url: r.url,
-              error: r.error
-            }))
+
           }
         }
       },
@@ -399,13 +387,7 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
         timestamp: new Date().toISOString(),
         successCount,
         totalCount: allPosts.length,
-        results: allPosts.map(p => ({
-            postId: p.id,
-            channelId: p.channelId,
-            success: p.status === PostStatus.PUBLISHED,
-            // We might not have URL easily available here without fetching meta, but this is acceptable for single update
-            error: p.errorMessage 
-        }))
+
       };
 
       await this.prisma.publication.update({
