@@ -224,7 +224,11 @@ export class PublicationsController {
    * Publish all posts of a publication to their respective channels.
    */
   @Post(':id/publish')
-  public async publish(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+  public async publish(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Query('force', new DefaultValuePipe(false), ParseBoolPipe) force: boolean,
+  ) {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
     if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
@@ -234,6 +238,6 @@ export class PublicationsController {
       });
     }
 
-    return this.socialPostingService.publishPublication(id);
+    return this.socialPostingService.publishPublication(id, { force });
   }
 }

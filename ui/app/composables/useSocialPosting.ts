@@ -28,12 +28,12 @@ export const useSocialPosting = () => {
   /**
    * Publish all posts of a publication
    */
-  const publishPublication = async (publicationId: string): Promise<PublishResponse> => {
+  const publishPublication = async (publicationId: string, force = false): Promise<PublishResponse> => {
     isPublishing.value = true;
     publishError.value = null;
 
     try {
-      const response = await api.post<PublishResponse>(`/publications/${publicationId}/publish`);
+      const response = await api.post<PublishResponse>(`/publications/${publicationId}/publish?force=${force}`);
 
       return response;
     } catch (error: any) {

@@ -161,9 +161,9 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
    */
   async publishPublication(
     publicationId: string,
-    options: { skipLock?: boolean } = {},
+    options: { skipLock?: boolean; force?: boolean } = {},
   ): Promise<PublishResponseDto> {
-    this.logger.log(`[publishPublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}`);
+    this.logger.log(`[publishPublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}${options.force ? ' (force)' : ''}`);
 
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
@@ -244,8 +244,8 @@ export class SocialPostingService implements OnModuleInit, OnModuleDestroy {
     const now = new Date();
     for (const post of publicationWithPosts.posts) {
       // Filter posts that need publishing:
-      // 1. Status PENDING
-      if (post.status !== PostStatus.PENDING) {
+      // 1. Status PENDING (unless forced)
+      if (post.status !== PostStatus.PENDING && !options.force) {
         this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status})`);
         continue;
       }

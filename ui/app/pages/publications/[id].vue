@@ -48,6 +48,7 @@ const isCreatingPost = ref(false)
 const isFormCollapsed = ref(true)
 const isDeleteModalOpen = ref(false)
 const isDeleting = ref(false)
+const isRepublishModalOpen = ref(false)
 
 const { updatePost } = usePosts()
 const toast = useToast()
@@ -373,8 +374,33 @@ function formatDate(dateString: string | null | undefined): string {
 async function handlePublishNow() {
   if (!currentPublication.value) return
   
+  // If publication contains published posts (PUBLISHED or PARTIAL), warn about duplication
+  if (['PUBLISHED', 'PARTIAL'].includes(currentPublication.value.status)) {
+    isRepublishModalOpen.value = true
+    return
+  }
+
+  // If FAILED, we strictly need force=true to retry failed posts (as backend skips non-pending by default)
+  // No warning needed as there are no successful posts to duplicate (if status is FAILED, it implies mostly failure)
+  // However, FAILED status is strictly "All posts failed".
+  if (currentPublication.value.status === 'FAILED') {
+      await executePublish(true)
+      return
+  }
+  
+  await executePublish(false)
+}
+
+async function handleConfirmRepublish() {
+    isRepublishModalOpen.value = false
+    await executePublish(true)
+}
+
+async function executePublish(force: boolean) {
+  if (!currentPublication.value) return
+
   try {
-    const result = await publishPublication(currentPublication.value.id)
+    const result = await publishPublication(currentPublication.value.id, force)
     
     if (result.success) {
       const totalPosts = (result.data?.publishedCount || 0) + (result.data?.failedCount || 0)
@@ -437,6 +463,39 @@ async function handlePublishNow() {
               :label="t('common.delete')"
               :loading="isDeleting"
               @click="handleDelete"
+            ></UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Republish Confirmation Modal -->
+    <UModal v-model:open="isRepublishModalOpen">
+      <template #content>
+        <div class="p-6">
+          <div class="flex items-center gap-3 text-warning-500 mb-4">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
+            <h3 class="text-lg font-medium">
+              {{ t('publication.republishConfirm', 'Republish Confirmation') }}
+            </h3>
+          </div>
+
+          <p class="text-gray-500 dark:text-gray-400 mb-6">
+            {{ t('publication.republishWarning', 'This publication has already been published. Do you want to publish it again? This may result in duplicate posts.') }}
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :label="t('common.cancel')"
+              @click="isRepublishModalOpen = false"
+            ></UButton>
+            <UButton
+              color="warning"
+              :label="t('publication.republish', 'Republish')"
+              :loading="isPublishing"
+              @click="handleConfirmRepublish"
             ></UButton>
           </div>
         </div>
@@ -670,7 +729,7 @@ async function handlePublishNow() {
                             {{ currentPublication.creator.fullName || currentPublication.creator.telegramUsername || t('common.unknown') }}
                         </div>
                         
-                        <div v-if="!allPostsPublished || currentPublication.scheduledAt" class="mt-2 border-t border-gray-100 dark:border-gray-700/50 pt-2">
+                        <div class="mt-2 border-t border-gray-100 dark:border-gray-700/50 pt-2">
                              <div class="text-gray-500 dark:text-gray-400 text-xs mb-1">
                                 {{ t('post.scheduledAt') }}
                              </div>

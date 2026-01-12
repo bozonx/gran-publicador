@@ -189,40 +189,6 @@ model Publication {
   @@map("publications")
 }
 
-model Media {
-  id          String      @id @default(uuid())
-  type        MediaType
-  storageType StorageType @map("storage_type")
-  storagePath String      @map("storage_path")
-  filename    String?
-  mimeType    String?     @map("mime_type")
-  sizeBytes   Int?        @map("size_bytes")
-  meta        Json
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-
-  publicationMedia PublicationMedia[]
-
-  @@index([type])
-  @@index([storageType])
-  @@map("media")
-}
-
-model PublicationMedia {
-  id             String   @id @default(uuid())
-  publicationId  String   @map("publication_id")
-  mediaId        String?  @map("media_id")
-  order          Int      @default(0)
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  media       Media?      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-
-  @@index([publicationId])
-  @@index([mediaId])
-  @@map("publication_media")
-}
-
 model Post {
   id            String    @id @default(uuid())
   // Link to parent publication
@@ -260,6 +226,40 @@ model Post {
   @@index([channelId, createdAt])
   @@index([publicationId])
   @@map("posts")
+}
+
+model Media {
+  id          String      @id @default(uuid())
+  type        MediaType
+  storageType StorageType @map("storage_type")
+  storagePath String      @map("storage_path")
+  filename    String?
+  mimeType    String?     @map("mime_type")
+  sizeBytes   Int?        @map("size_bytes")
+  meta        Json
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  publicationMedia PublicationMedia[]
+
+  @@index([type])
+  @@index([storageType])
+  @@map("media")
+}
+
+model PublicationMedia {
+  id             String   @id @default(uuid())
+  publicationId  String   @map("publication_id")
+  mediaId        String?  @map("media_id")
+  order          Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  media       Media?      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId])
+  @@index([mediaId])
+  @@map("publication_media")
 }
 
 enum ProjectRole {

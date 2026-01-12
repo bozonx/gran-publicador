@@ -178,6 +178,7 @@ async function handleSave() {
 }
 
 const isDeleteModalOpen = ref(false)
+const isRepublishModalOpen = ref(false)
 
 async function handleDelete() {
   isDeleteModalOpen.value = true
@@ -237,7 +238,24 @@ const isValid = computed(() => {
 
 async function handlePublishPost() {
   if (!props.post) return
+
+  // Check if already published
+  if (props.post.status === 'PUBLISHED') {
+      isRepublishModalOpen.value = true
+      return
+  }
   
+  await executePublish()
+}
+
+async function handleConfirmRepublish() {
+    isRepublishModalOpen.value = false
+    await executePublish()
+}
+
+async function executePublish() {
+  if (!props.post) return
+
   const toast = useToast()
   try {
     const result = await publishPost(props.post.id)
@@ -306,6 +324,39 @@ const metaYaml = computed(() => {
               :label="t('common.delete')"
               :loading="isDeleting"
               @click="confirmDelete"
+            ></UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Republish Confirmation Modal -->
+    <UModal v-model:open="isRepublishModalOpen">
+      <template #content>
+        <div class="p-6">
+          <div class="flex items-center gap-3 text-warning-500 mb-4">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
+            <h3 class="text-lg font-medium">
+              {{ t('publication.republishConfirm', 'Republish Confirmation') }}
+            </h3>
+          </div>
+
+          <p class="text-gray-500 dark:text-gray-400 mb-6">
+            {{ t('publication.republishPostWarning', 'This post has already been published. Do you want to publish it again?') }}
+          </p>
+
+          <div class="flex justify-end gap-3">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :label="t('common.cancel')"
+              @click="isRepublishModalOpen = false"
+            ></UButton>
+            <UButton
+              color="warning"
+              :label="t('publication.republish', 'Republish')"
+              :loading="isPublishing"
+              @click="handleConfirmRepublish"
             ></UButton>
           </div>
         </div>
