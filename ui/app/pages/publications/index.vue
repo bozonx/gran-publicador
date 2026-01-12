@@ -775,11 +775,13 @@ async function handleDelete() {
           <!-- Set Status -->
           <UDropdownMenu
             :items="[
-              statusOptions.map(opt => ({
-                label: opt.label,
-                icon: 'i-heroicons-tag',
-                click: () => handleBulkAction('SET_STATUS', opt.value as any)
-              }))
+              statusOptions
+                .filter(opt => ['DRAFT', 'READY'].includes(opt.value))
+                .map(opt => ({
+                  label: opt.label,
+                  icon: 'i-heroicons-tag',
+                  click: () => handleBulkAction('SET_STATUS', opt.value as any)
+                }))
             ]"
             :popper="{ placement: 'top' }"
           >
