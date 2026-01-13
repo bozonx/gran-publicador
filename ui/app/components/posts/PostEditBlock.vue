@@ -150,8 +150,22 @@ function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
 }
 
+const isDeleteModalOpen = ref(false)
+const isRepublishModalOpen = ref(false)
+const isArchiveWarningModalOpen = ref(false)
+const showValidationWarning = ref(false)
+const archiveWarningMessage = ref('')
+
 async function handleSave() {
-  console.log('[PostEditBlock] handleSave formData:', JSON.parse(JSON.stringify(formData)))
+  if (!validationResult.value.isValid) {
+    showValidationWarning.value = true
+    return
+  }
+  await performSave()
+}
+
+async function performSave() {
+  console.log('[PostEditBlock] performSave formData:', JSON.parse(JSON.stringify(formData)))
   try {
     if (props.isCreating) {
         if (!formData.channelId || !props.publication) return 
@@ -202,11 +216,6 @@ async function handleSave() {
     })
   }
 }
-
-const isDeleteModalOpen = ref(false)
-const isRepublishModalOpen = ref(false)
-const isArchiveWarningModalOpen = ref(false)
-const archiveWarningMessage = ref('')
 
 async function handleDelete() {
   isDeleteModalOpen.value = true
@@ -350,10 +359,9 @@ onMounted(() => {
     saveOriginalState()
 })
 
-const isValid = computed(() => {
-    if (!validationResult.value.isValid) return false
-    if (props.isCreating) return !!formData.channelId
-    return true
+const isSaveDisabled = computed(() => {
+    if (props.isCreating) return !formData.channelId
+    return false
 })
 
 async function handlePublishPost() {
@@ -713,14 +721,14 @@ const metaYaml = computed(() => {
             </div>
         </div>
 
-        <!-- Social Media Validation Errors (Global for entire post) -->
+        <!-- Social Media Validation Warning (Global for entire post) -->
         <UAlert
           v-if="!validationResult.isValid"
-          color="error"
+          color="warning"
           variant="soft"
           class="mb-4"
-          icon="i-heroicons-exclamation-circle"
-          :title="t('validation.errorTitle', 'Content Validation Error')"
+          icon="i-heroicons-exclamation-triangle"
+          :title="t('validation.validationWarningTitle')"
         >
           <template #description>
              <ul class="list-disc list-inside">
@@ -728,7 +736,10 @@ const metaYaml = computed(() => {
                   {{ error.message }}
                 </li>
              </ul>
-             <p v-if="!isPostContentOverride" class="text-xs mt-2 italic text-red-600 dark:text-red-400">
+             <p class="text-xs mt-2 opacity-80">
+              {{ t('validation.failedStatusExplanation') }}
+            </p>
+             <p v-if="!isPostContentOverride" class="text-xs mt-2 italic text-warning-600 dark:text-warning-400">
                {{ t('validation.inheritedContentError', 'This error is from inherited publication content. Shorten the publication content or override it for this post.') }}
              </p>
           </template>
@@ -910,12 +921,20 @@ const metaYaml = computed(() => {
             <UiSaveButton
               ref="saveButtonRef"
               :loading="isLoading"
-              :disabled="!isValid"
+              :disabled="isSaveDisabled"
               :label="isCreating ? t('common.create') : t('common.save')"
               @click="handleSave"
             />
         </div>
       </div>
+
+      <!-- Validation Warning Modal -->
+      <ModalsValidationWarningModal
+        v-model:open="showValidationWarning"
+        :errors="validationResult.errors.map(err => err.message)"
+        entity-type="post"
+        @confirm="performSave"
+      />
 
       <!-- Meta Data YAML -->
       <div v-if="metaYaml" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
