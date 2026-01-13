@@ -16,7 +16,10 @@ interface Props {
   /** Whether to prevent closing when clicking outside or pressing ESC */
   preventClose?: boolean
   /** Nuxt UI modal configuration */
-  ui?: any
+  ui?: {
+    content?: string
+    [key: string]: unknown
+  }
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -37,28 +40,28 @@ function handleClose() {
 <template>
   <UModal
     v-model:open="isOpen"
-    :prevent-close="preventClose"
-    :ui="ui"
+    :prevent-close="props.preventClose"
+    :ui="props.ui"
   >
     <div 
       class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full sm:max-w-lg mx-auto"
-      :class="ui?.content"
+      :class="props.ui?.content"
     >
       <!-- Header -->
-      <div v-if="title || $slots.header || closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+      <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="min-w-0 flex-1">
           <slot name="header">
-            <h3 v-if="title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-              {{ title }}
+            <h3 v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+              {{ props.title }}
             </h3>
-            <p v-if="description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ description }}
+            <p v-if="props.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ props.description }}
             </p>
           </slot>
         </div>
         
         <UButton
-          v-if="closeButton"
+          v-if="props.closeButton"
           color="neutral"
           variant="ghost"
           icon="i-heroicons-x-mark"
