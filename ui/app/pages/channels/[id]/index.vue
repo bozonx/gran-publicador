@@ -28,6 +28,9 @@ const {
   getSocialMediaDisplayName,
   toggleChannelActive,
   unarchiveChannel,
+  // Problem detection
+  getChannelProblems,
+  getChannelProblemLevel
 } = useChannels()
 
 const {
@@ -275,11 +278,6 @@ const daysSinceActivity = computed(() => {
 })
 
 // Channel problems detection
-const { 
-  getChannelProblems, 
-  getChannelProblemLevel 
-} = useChannels()
-
 const channelProblems = computed(() => {
   if (!channel.value) return []
   return getChannelProblems(channel.value)
@@ -403,30 +401,37 @@ const channelProblems = computed(() => {
                     <UButton 
                         icon="i-heroicons-plus" 
                         color="primary" 
+                        size="sm"
                         @click="openCreatePublicationModal"
                     >
                         {{ t('post.createPost') }}
                     </UButton>
 
-                    <div class="flex items-center gap-4 text-sm font-medium">
-                        <NuxtLink 
+                    <div class="flex items-center gap-2">
+                        <UButton 
+                            variant="ghost" 
+                            color="neutral" 
+                            size="sm"
                             :to="`/publications?channelId=${channelId}`"
-                            class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         >
                             {{ t('publication.filter.all') }}
-                        </NuxtLink>
-                        <NuxtLink 
+                        </UButton>
+                        <UButton 
+                            variant="ghost" 
+                            color="warning" 
+                            size="sm"
                             :to="`/publications?channelId=${channelId}&status=READY`"
-                            class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         >
                             {{ t('publication.filter.ready') }}
-                        </NuxtLink>
-                        <NuxtLink 
+                        </UButton>
+                        <UButton 
+                            variant="ghost" 
+                            color="success" 
+                            size="sm"
                             :to="`/publications?channelId=${channelId}&status=PUBLISHED`"
-                            class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         >
                             {{ t('publication.filter.published') }}
-                        </NuxtLink>
+                        </UButton>
                     </div>
                 </div>
             </div>
@@ -451,6 +456,7 @@ const channelProblems = computed(() => {
             <!-- Problems Banner -->
             <CommonProblemBanner
               v-if="channelProblems.length > 0"
+              id="channel-problem-banner"
               :problems="channelProblems"
               entity-type="channel"
               class="mb-6"

@@ -6,6 +6,7 @@ import { useProjects } from '~/composables/useProjects'
 import { useChannels } from '~/composables/useChannels'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { isChannelCredentialsEmpty } from '~/utils/channels'
 
 definePageMeta({
   middleware: 'auth',
@@ -154,13 +155,13 @@ const {
 } = usePublications()
 
 const { 
+  getProjectProblems 
+} = useProjects()
+
+const { 
   getChannelProblems, 
   getChannelProblemLevel 
 } = useChannels()
-
-const { 
-  getProjectProblems 
-} = useProjects()
 
 const projectProblems = computed(() => {
   if (!currentProject.value) return []
@@ -169,7 +170,7 @@ const projectProblems = computed(() => {
   // Enrich with locally loaded channels data if available
   // This ensures missing credentials problems are shown even if project stats are incomplete
   if (channels.value && channels.value.length > 0) {
-     const noCredsCount = channels.value.filter(c => !c.credentials || Object.keys(c.credentials).length === 0).length
+     const noCredsCount = channels.value.filter(c => isChannelCredentialsEmpty(c.credentials, c.socialMedia)).length
      
      // Update or add 'noCredentials' problem
      const existingProblem = problems.find(p => p.key === 'noCredentials')
@@ -252,7 +253,7 @@ const projectProblems = computed(() => {
     <!-- View mode -->
     <div v-else>
       <!-- Page header -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
         <div class="p-6">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
@@ -294,50 +295,6 @@ const projectProblems = computed(() => {
                 </div>
               </div>
 
-              <!-- Create publication buttons & Quick filters -->
-              <div v-if="availableLanguages.length > 0" class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
-                 <div class="flex flex-wrap gap-2">
-                  <UButton
-                    v-for="lang in availableLanguages"
-                    :key="lang"
-                    color="primary"
-                    variant="soft"
-                    size="xs"
-                    icon="i-heroicons-plus"
-                    @click="openCreateModal(lang)"
-                  >
-                    Публикация {{ lang }}
-                  </UButton>
-                </div>
-
-                <!-- Quick filters -->
-                <div class="flex flex-wrap gap-2">
-                  <UButton
-                    variant="ghost"
-                    color="neutral"
-                    size="xs"
-                    :to="`/publications?projectId=${projectId}`"
-                  >
-                    {{ t('publication.filter.all') }}
-                  </UButton>
-                  <UButton
-                    variant="ghost"
-                    color="warning"
-                    size="xs"
-                    :to="`/publications?projectId=${projectId}&status=READY`"
-                  >
-                    {{ t('publication.filter.ready') }}
-                  </UButton>
-                  <UButton
-                    variant="ghost"
-                    color="success"
-                    size="xs"
-                    :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
-                  >
-                    {{ t('publication.filter.published') }}
-                  </UButton>
-                </div>
-              </div>
             </div>
 
             <!-- Actions -->
@@ -350,6 +307,51 @@ const projectProblems = computed(() => {
                 :to="`/projects/${currentProject.id}/settings`"
               />
             </div>
+          </div>
+        </div>
+
+        <!-- Actions Footer -->
+        <div v-if="availableLanguages.length > 0" class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              v-for="lang in availableLanguages"
+              :key="lang"
+              color="primary"
+              variant="solid"
+              size="sm"
+              icon="i-heroicons-plus"
+              @click="openCreateModal(lang)"
+            >
+              Публикация {{ lang }}
+            </UButton>
+          </div>
+
+          <!-- Quick filters -->
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              :to="`/publications?projectId=${projectId}`"
+            >
+              {{ t('publication.filter.all') }}
+            </UButton>
+            <UButton
+              variant="ghost"
+              color="warning"
+              size="sm"
+              :to="`/publications?projectId=${projectId}&status=READY`"
+            >
+              {{ t('publication.filter.ready') }}
+            </UButton>
+            <UButton
+              variant="ghost"
+              color="success"
+              size="sm"
+              :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
+            >
+              {{ t('publication.filter.published') }}
+            </UButton>
           </div>
         </div>
       </div>

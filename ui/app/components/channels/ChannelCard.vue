@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { ChannelWithProject } from '~/composables/useChannels'
 
+import { isChannelCredentialsEmpty } from '~/utils/channels'
+
 const props = defineProps<{
   channel: ChannelWithProject
   isArchived?: boolean
@@ -10,10 +12,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const { formatDateShort } = useFormatters()
 
-const hasCredentials = computed(() => {
-  if (!props.channel.credentials) return false
-  return Object.keys(props.channel.credentials).length > 0
-})
+const hasCredentials = computed(() => !isChannelCredentialsEmpty(props.channel.credentials, props.channel.socialMedia))
 
 const { getChannelProblemLevel } = useChannels()
 const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel))

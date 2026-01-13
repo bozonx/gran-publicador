@@ -2,6 +2,7 @@
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { getSocialMediaDisplayName } from '~/utils/socialMedia'
 import SocialIcon from '~/components/common/SocialIcon.vue'
+import { isChannelCredentialsEmpty } from '~/utils/channels'
 
 const props = defineProps<{
   channel: ChannelWithProject
@@ -18,10 +19,7 @@ function formatDate(date: string | null | undefined): string {
   return d(dObj, 'short')
 }
 
-const hasCredentials = computed(() => {
-  if (!props.channel.credentials) return false
-  return Object.keys(props.channel.credentials).length > 0
-})
+const hasCredentials = computed(() => !isChannelCredentialsEmpty(props.channel.credentials, props.channel.socialMedia))
 
 const { getChannelProblemLevel } = useChannels()
 const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel))

@@ -4,6 +4,8 @@ import { ArchiveEntityType } from '~/types/archive.types'
 import { getSocialMediaColor as getColorBase, getSocialMediaIcon as getIconBase, getSocialMediaOptions } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
 import type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, ChannelFooter } from '~/types/channels'
+import { useI18n } from 'vue-i18n'
+import { isChannelCredentialsEmpty } from '~/utils/channels'
 
 export type { SocialMedia }
 export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, ChannelFooter }
@@ -268,15 +270,7 @@ export function useChannels() {
         const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
         
         // Critical: No credentials
-        // Critical: No credentials
-        // Check if credentials object is missing, empty, or has all empty values
-        const creds = channel.credentials
-        const hasCreds = creds && 
-                         typeof creds === 'object' && 
-                         Object.keys(creds).length > 0 && 
-                         Object.values(creds).some((v: any) => v !== null && v !== undefined && String(v).trim() !== '')
-
-        if (!hasCreds) {
+        if (isChannelCredentialsEmpty(channel.credentials, channel.socialMedia)) {
             problems.push({ type: 'critical', key: 'noCredentials' })
         }
         
