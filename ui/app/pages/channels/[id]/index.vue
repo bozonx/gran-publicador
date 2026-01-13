@@ -315,7 +315,7 @@ const channelProblems = computed(() => {
              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 {{ t('channel.notFound', 'Channel not found') }}
              </h3>
-             <UButton @click="goBack">{{ t('common.back') }}</UButton>
+             <UButton to="/">{{ t('common.toHome') }}</UButton>
         </div>
 
         <!-- Channel Content -->

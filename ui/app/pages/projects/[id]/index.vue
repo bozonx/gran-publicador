@@ -212,8 +212,8 @@ const projectProblems = computed(() => {
         <p class="text-red-700 dark:text-red-300">{{ error }}</p>
       </div>
       <div class="mt-4">
-        <UButton variant="outline" color="neutral" @click="goBack">
-          {{ t('common.back') }}
+        <UButton variant="outline" color="neutral" to="/">
+          {{ t('common.toHome') }}
         </UButton>
       </div>
     </div>
@@ -244,8 +244,8 @@ const projectProblems = computed(() => {
       <p class="text-gray-500 dark:text-gray-400 mb-6">
         The project you're looking for doesn't exist or you don't have access to it.
       </p>
-      <UButton @click="goBack">
-        {{ t('common.back') }}
+      <UButton to="/">
+        {{ t('common.toHome') }}
       </UButton>
     </div>
 

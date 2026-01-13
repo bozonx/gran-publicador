@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ProjectRole } from '../../generated/prisma/client.js';
 
 import { PrismaService } from '../../modules/prisma/prisma.service.js';
@@ -31,7 +31,7 @@ export class PermissionsService {
     });
 
     if (!project) {
-      throw new ForbiddenException('Project not found');
+      throw new NotFoundException('Project not found');
     }
 
     if (project.ownerId === userId) {
@@ -67,7 +67,7 @@ export class PermissionsService {
     });
 
     if (!project) {
-      throw new ForbiddenException('Project not found');
+      throw new NotFoundException('Project not found');
     }
 
     // Owner always has access

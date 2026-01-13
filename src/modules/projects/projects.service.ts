@@ -283,9 +283,6 @@ export class ProjectsService {
   }
 
   public async findOne(projectId: string, userId: string, allowArchived = false): Promise<any> {
-    const role = await this.permissions.getUserProjectRole(projectId, userId);
-    if (!role) throw new ForbiddenException('You are not a member of this project');
-
     const project = await this.prisma.project.findUnique({
       where: { id: projectId, ...(allowArchived ? {} : { archivedAt: null }) },
       include: {
@@ -324,6 +321,9 @@ export class ProjectsService {
     });
 
     if (!project) throw new NotFoundException('Project not found');
+
+    const role = await this.permissions.getUserProjectRole(projectId, userId);
+    if (!role) throw new ForbiddenException('You are not a member of this project');
 
     const projectPrefs = (project.preferences as any) || {};
     let staleChannelsCount = 0;
