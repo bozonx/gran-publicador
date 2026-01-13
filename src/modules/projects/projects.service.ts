@@ -544,6 +544,7 @@ export class ProjectsService {
   }
 
   public async removeMember(projectId: string, userId: string, memberUserId: string) {
+    this.logger.log(`removeMember: projectId=${projectId}, actor=${userId}, target=${memberUserId}`);
     await this.permissions.checkProjectPermission(projectId, userId, [
       ProjectRole.ADMIN,
     ]);
@@ -553,6 +554,7 @@ export class ProjectsService {
     });
 
     if (!member) {
+      this.logger.warn(`removeMember: Member not found. projectId=${projectId}, memberUserId=${memberUserId}`);
       throw new NotFoundException('Member not found in this project');
     }
 

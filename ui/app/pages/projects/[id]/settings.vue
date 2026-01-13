@@ -24,7 +24,10 @@ const {
   canEdit,
   canDelete,
   canManageMembers,
+  fetchMembers,
 } = useProjects()
+
+const isInviteModalOpen = ref(false)
 
 const projectId = computed(() => route.params.id as string)
 
@@ -198,15 +201,34 @@ function cancelDelete() {
         <!-- Members Management -->
         <UCard v-if="canManageMembers(currentProject)">
           <template #header>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('project.members', 'Members') }}
-            </h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ t('project.members_desc', 'Manage who has access to this project') }}
-            </p>
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  {{ t('project.members', 'Members') }}
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ t('project.members_desc', 'Manage who has access to this project') }}
+                </p>
+              </div>
+              <UButton
+                v-if="canManageMembers(currentProject)"
+                icon="i-heroicons-user-plus"
+                size="sm"
+                color="primary"
+                @click="isInviteModalOpen = true"
+              >
+                {{ t('projectMember.invite') }}
+              </UButton>
+            </div>
           </template>
 
           <ProjectsProjectMembersList :project-id="currentProject.id" />
+
+          <ProjectsInviteMemberModal
+            v-model="isInviteModalOpen"
+            :project-id="currentProject.id"
+            @success="fetchMembers(currentProject.id)"
+          />
         </UCard>
 
         <!-- Archive Project -->

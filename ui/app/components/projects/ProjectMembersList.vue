@@ -21,7 +21,6 @@ const {
   canManageMembers,
 } = useProjects()
 
-const isInviteModalOpen = ref(false)
 
 // Init
 onMounted(() => {
@@ -90,26 +89,11 @@ async function handleRemove(row: any) {
 
 <template>
   <div class="space-y-4">
-    <div class="flex justify-between items-center">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-        {{ t('projectMember.titlePlural') }}
-      </h3>
-      <UButton
-        v-if="canManage"
-        icon="i-heroicons-user-plus"
-        size="sm"
-        color="primary"
-        @click="isInviteModalOpen = true"
-      >
-        {{ t('projectMember.invite') }}
-      </UButton>
-    </div>
-
     <UTable
       :data="members"
       :columns="columns"
       :loading="isLoading"
-      :empty-state="{ icon: 'i-heroicons-users', label: t('common.noData') }"
+      :empty-state="{ icon: 'i-heroicons-user-group', label: t('common.noData') }"
       class="w-full"
     >
       <template #user-cell="{ row }">
@@ -153,10 +137,5 @@ async function handleRemove(row: any) {
       </template>
     </UTable>
 
-    <ProjectsInviteMemberModal
-      v-model="isInviteModalOpen"
-      :project-id="projectId"
-      @success="fetchMembers(projectId)"
-    />
   </div>
 </template>
