@@ -63,7 +63,7 @@ function handleDelete(e: Event) {
     </div>
 
     <!-- Header: Title, Status, Delete -->
-    <div class="flex items-start justify-between gap-3 mb-2" :class="{ 'pl-8': true }">
+    <div class="flex items-start justify-between gap-3 mb-2" :class="{ 'pl-8': showCheckbox }">
       <div class="flex-1 min-w-0">
         <div v-if="showProjectInfo && publication.project" class="flex items-center gap-1.5 mb-1 text-xs text-gray-500 dark:text-gray-400">
           <UIcon name="i-heroicons-briefcase" class="w-3 h-3 text-gray-400" />
@@ -105,6 +105,7 @@ function handleDelete(e: Event) {
           icon="i-heroicons-pencil-square"
           size="xs"
           :to="`/publications/${publication.id}/edit`"
+          class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           @click.stop
         />
         <UButton
@@ -112,6 +113,7 @@ function handleDelete(e: Event) {
           variant="ghost"
           icon="i-heroicons-trash"
           size="xs"
+          class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           @click="handleDelete"
         />
       </div>
