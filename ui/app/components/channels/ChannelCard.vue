@@ -71,7 +71,7 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
       <UTooltip v-if="!hasCredentials" :text="t('channel.noCredentials')">
         <UIcon 
           name="i-heroicons-exclamation-triangle" 
-          class="w-4 h-4 text-warning-500" 
+          class="w-4 h-4 text-red-500" 
         />
       </UTooltip>
 

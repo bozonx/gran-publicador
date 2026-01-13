@@ -37,6 +37,7 @@ const { updatePost, deletePost, createPost, isLoading, statusOptions: postStatus
 const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
 const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
+const { getChannelProblemLevel } = useChannels()
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -108,7 +109,7 @@ const channelOptions = computed(() => {
         label: c.name,
         socialMedia: c.socialMedia,
         language: c.language,
-        problemLevel: getPostProblemLevel({ channel: c })
+        problemLevel: getChannelProblemLevel(c)
     })) || []
 })
 

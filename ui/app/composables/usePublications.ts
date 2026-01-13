@@ -422,17 +422,6 @@ export function usePublications() {
             return 'critical'
         }
         
-        // Check channel problems
-        const channel = post.channel
-        if (channel) {
-            const hasNoCredentials = !channel.credentials || Object.keys(channel.credentials).length === 0
-            if (hasNoCredentials) return 'critical'
-            
-            const isStale = channel.isStale === true
-            const isInactive = channel.isActive === false
-            if (isStale || isInactive) return 'warning'
-        }
-        
         return null
     }
 

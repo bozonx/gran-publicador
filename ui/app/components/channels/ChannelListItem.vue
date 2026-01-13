@@ -79,7 +79,7 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
              >
               <UIcon 
                 name="i-heroicons-exclamation-triangle" 
-                class="w-5 h-5 text-warning-500 hover:text-warning-600 transition-colors" 
+                class="w-5 h-5 text-red-500 hover:text-red-600 transition-colors" 
               />
              </NuxtLink>
           </UTooltip>
