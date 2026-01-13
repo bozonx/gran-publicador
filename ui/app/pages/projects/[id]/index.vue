@@ -318,7 +318,7 @@ const projectProblems = computed(() => {
                     size="xs"
                     :to="`/publications?projectId=${projectId}`"
                   >
-                    {{ t('common.all') }}
+                    {{ t('publication.filter.all') }}
                   </UButton>
                   <UButton
                     variant="ghost"
@@ -326,7 +326,7 @@ const projectProblems = computed(() => {
                     size="xs"
                     :to="`/publications?projectId=${projectId}&status=READY`"
                   >
-                    {{ t('publicationStatus.ready') }}
+                    {{ t('publication.filter.ready') }}
                   </UButton>
                   <UButton
                     variant="ghost"
@@ -334,7 +334,7 @@ const projectProblems = computed(() => {
                     size="xs"
                     :to="`/publications?projectId=${projectId}&status=PUBLISHED`"
                   >
-                    {{ t('publicationStatus.published') }}
+                    {{ t('publication.filter.published') }}
                   </UButton>
                 </div>
               </div>

@@ -254,8 +254,12 @@ function goToPublication(pub: PublicationWithRelations) {
 }
 
 const statusFilterOptions = computed(() => [
-  { value: null, label: t('common.all') },
-  ...statusOptions.value,
+  { value: null, label: t('publication.filter.all') },
+  ...statusOptions.value.map(opt => {
+    if (opt.value === 'READY') return { ...opt, label: t('publication.filter.ready') }
+    if (opt.value === 'PUBLISHED') return { ...opt, label: t('publication.filter.published') }
+    return opt
+  }),
 ])
 
 const hasActiveFilters = computed(() => {

@@ -413,19 +413,19 @@ const channelProblems = computed(() => {
                             :to="`/publications?channelId=${channelId}`"
                             class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         >
-                            {{ t('common.all', 'All') }}
+                            {{ t('publication.filter.all') }}
                         </NuxtLink>
                         <NuxtLink 
                             :to="`/publications?channelId=${channelId}&status=READY`"
                             class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         >
-                            {{ t('publication.status.ready', 'Ready') }}
+                            {{ t('publication.filter.ready') }}
                         </NuxtLink>
                         <NuxtLink 
                             :to="`/publications?channelId=${channelId}&status=PUBLISHED`"
                             class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         >
-                            {{ t('publication.status.published', 'Published') }}
+                            {{ t('publication.filter.published') }}
                         </NuxtLink>
                     </div>
                 </div>

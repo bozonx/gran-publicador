@@ -531,7 +531,10 @@
       "archiveStatus": {
         "tooltip": "OFF: only non-archived publications. ON: only archived publications."
       },
-      "badgeCountTooltip": "Number of non-archived publications (excluding filters)"
+      "badgeCountTooltip": "Number of non-archived publications (excluding filters)",
+      "all": "All Publications",
+      "ready": "Ready",
+      "published": "Published"
     },
     "sort": {
       "chronology": "Chronology (future → past)",

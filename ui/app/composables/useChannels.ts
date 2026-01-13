@@ -270,9 +270,13 @@ export function useChannels() {
         // Critical: No credentials
         // Critical: No credentials
         // Check if credentials object is missing, empty, or has all empty values
-        if (!channel.credentials || 
-            Object.keys(channel.credentials).length === 0 ||
-            Object.values(channel.credentials).every(v => !v || v === '')) {
+        const creds = channel.credentials
+        const hasCreds = creds && 
+                         typeof creds === 'object' && 
+                         Object.keys(creds).length > 0 && 
+                         Object.values(creds).some((v: any) => v !== null && v !== undefined && String(v).trim() !== '')
+
+        if (!hasCreds) {
             problems.push({ type: 'critical', key: 'noCredentials' })
         }
         
