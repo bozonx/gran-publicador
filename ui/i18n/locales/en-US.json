@@ -739,6 +739,13 @@
     "jsonInvalid": "Invalid JSON format",
     "invalidYaml": "Must be a valid YAML object (key-value pairs), not a list or value",
     "checkFormErrors": "Please check the form for errors",
+    "invalidContent": "Invalid Content",
+    "validationWarningTitle": "Warning: Validation Errors Detected",
+    "publicationValidationWarning": "The publication content exceeds the allowed limits for some social networks. If you save the publication, it will be set to FAILED status and will not be published automatically.",
+    "postValidationWarning": "The post content exceeds the allowed limits for the selected social network. If you save the post, it will be set to FAILED status and will not be published automatically.",
+    "errors": "Validation Errors",
+    "failedStatusExplanation": "Publications and posts with FAILED status will not be published automatically. You can fix the content later and change the status manually.",
+    "saveAnyway": "Save Anyway",
     "socialMedia": {
       "captionTooLong": "Caption length ({current}) exceeds maximum allowed ({max}) for {platform}",
       "textTooLong": "Text length ({current}) exceeds maximum allowed ({max}) for {platform}",

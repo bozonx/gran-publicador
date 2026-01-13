@@ -673,15 +673,13 @@ export class PublicationsService {
 
         if (inheritingPosts.length > 0) {
             const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
-            // We need to know final media count also? 
-            // If media is updating, use new media count. If not, use existing.
-            // Using existing from DB since update happens later? 
-            // Actually 'update' is transactional below... we need to estimate media count.
             
             let mediaCount = publication.media?.length || 0;
             if (data.media !== undefined || data.existingMediaIds !== undefined) {
                  mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
             }
+
+            const failedPosts: Array<{ postId: string; channelName: string; errors: string[] }> = [];
 
             for (const post of inheritingPosts) {
                  const validationResult = validatePostContent({
@@ -691,9 +689,34 @@ export class PublicationsService {
                  });
 
                  if (!validationResult.isValid) {
-                     // We should ideally list all, but failing fast is okay.
-                     throw new BadRequestException(`Unable to update publication content: Content is too long for channel "${post.channel.name}" (${post.channel.socialMedia}). Errors: ${validationResult.errors.join('; ')}`);
+                     failedPosts.push({
+                         postId: post.id,
+                         channelName: post.channel.name,
+                         errors: validationResult.errors
+                     });
                  }
+            }
+
+            // If any posts have validation errors, set them to FAILED status
+            if (failedPosts.length > 0) {
+                this.logger.warn(`Publication ${id} update: ${failedPosts.length} posts have validation errors`);
+                
+                // Update each failed post with FAILED status and error message
+                for (const failed of failedPosts) {
+                    const errorMessage = `Validation failed for ${failed.channelName}: ${failed.errors.join('; ')}`;
+                    await this.prisma.post.update({
+                        where: { id: failed.postId },
+                        data: {
+                            status: PostStatus.FAILED,
+                            errorMessage
+                        }
+                    });
+                    this.logger.warn(`Set post ${failed.postId} to FAILED: ${errorMessage}`);
+                }
+
+                // Set publication status to FAILED as well
+                data.status = PublicationStatus.FAILED;
+                this.logger.warn(`Setting publication ${id} to FAILED due to validation errors in ${failedPosts.length} posts`);
             }
         }
     }

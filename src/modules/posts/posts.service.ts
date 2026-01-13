@@ -97,12 +97,18 @@ export class PostsService {
 
     const validationResult = validatePostContent({
         content: effectiveContent,
-        mediaCount: mediaCount, // Approximate, assuming publication media are used
+        mediaCount: mediaCount,
         socialMedia: socialMedia
     });
 
+    // If validation fails, set status to FAILED and record error message
+    let postStatus = data.status ?? PostStatus.PENDING;
+    let errorMessage: string | null = null;
+
     if (!validationResult.isValid) {
-        throw new BadRequestException(`Validation failed for ${socialMedia}: ${validationResult.errors.join('; ')}`);
+        postStatus = PostStatus.FAILED;
+        errorMessage = `Validation failed for ${socialMedia}: ${validationResult.errors.join('; ')}`;
+        this.logger.warn(`Creating post with FAILED status due to validation errors: ${errorMessage}`);
     }
 
     const post = await this.prisma.post.create({
@@ -111,11 +117,12 @@ export class PostsService {
         publicationId: data.publicationId,
         socialMedia: data.socialMedia ?? channel.socialMedia,
         tags: data.tags,
-        status: data.status ?? PostStatus.PENDING,
+        status: postStatus,
         scheduledAt: data.scheduledAt,
         content: data.content,
         meta: {},
         platformOptions: data.platformOptions,
+        errorMessage,
       },
       include: {
         channel: true,
@@ -430,10 +437,6 @@ export class PostsService {
     }
 
     // Validation: Check content limits if content is being updated or if inheritance might change
-    // We strictly check on any update if content is involved, or we can check always to be safe?
-    // Let's check whenever content is touched or effectively used.
-    // If data.content is undefined, it means we don't change it. But wait, `update` might not include content if it's just status update.
-    // However, if we do update content (even to null -> inherit), we MUST validate.
     if (data.content !== undefined) {
          const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
          
@@ -454,8 +457,11 @@ export class PostsService {
                  socialMedia: channel.socialMedia as any
              });
 
+             // If validation fails, set status to FAILED and record error message
              if (!validationResult.isValid) {
-                 throw new BadRequestException(`Validation failed for ${channel.socialMedia}: ${validationResult.errors.join('; ')}`);
+                 data.status = PostStatus.FAILED;
+                 data.errorMessage = `Validation failed for ${channel.socialMedia}: ${validationResult.errors.join('; ')}`;
+                 this.logger.warn(`Updating post ${id} with FAILED status due to validation errors: ${data.errorMessage}`);
              }
          }
     }

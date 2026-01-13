@@ -50,6 +50,8 @@ const { schema } = usePublicationFormValidation(t)
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const showAdvancedFields = ref(false)
 const linkedPublicationId = ref<string | undefined>(undefined)
+const showValidationWarning = ref(false)
+const pendingSubmitData = ref<any>(null)
 
 const isEditMode = computed(() => !!props.publication?.id)
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
@@ -180,18 +182,21 @@ function handleUnlink() {
  * Handle form submission
  */
 async function handleSubmit(event: FormSubmitEvent<any>) {
+  // If there are validation errors, show warning modal
   if (!isValid.value) {
-      toast.add({
-          title: t('common.error'),
-          description: t('publication.validation.contentOrMediaRequired') + ' (Check validation errors)', // Fallback msg
-          color: 'error'
-      })
-      formActionsRef.value?.showError()
+      pendingSubmitData.value = event.data
+      showValidationWarning.value = true
       return
   }
 
+  await performSubmit(event.data)
+}
+
+/**
+ * Perform actual submission (called directly or after warning confirmation)
+ */
+async function performSubmit(data: any) {
   try {
-    const data = event.data
     const commonData = {
       title: data.title || undefined,
       description: data.description || undefined,
@@ -260,6 +265,17 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       color: 'error'
     })
   }
+}
+
+function handleValidationWarningConfirm() {
+  if (pendingSubmitData.value) {
+    performSubmit(pendingSubmitData.value)
+    pendingSubmitData.value = null
+  }
+}
+
+function handleValidationWarningCancel() {
+  pendingSubmitData.value = null
 }
 
 function handleError(event: any) {
@@ -393,12 +409,18 @@ function handleDeleteAllSourceTexts() {
           class="mb-3"
         />
 
-        <UAlert v-if="validationErrors.length > 0" color="error" variant="soft" title="Validation Error" class="mb-3">
+        <UAlert v-if="validationErrors.length > 0" color="warning" variant="soft" icon="i-heroicons-exclamation-triangle" title="Validation Warning" class="mb-3">
+            <template #title>
+              <span>{{ t('validation.validationWarningTitle') }}</span>
+            </template>
             <ul class="list-disc list-inside text-sm mt-1">
                 <li v-for="(err, index) in validationErrors" :key="index">
                     {{ err }}
                 </li>
             </ul>
+            <p class="text-xs mt-2 opacity-80">
+              {{ t('validation.failedStatusExplanation') }}
+            </p>
         </UAlert>
 
         <EditorTiptapEditor
@@ -547,9 +569,17 @@ function handleDeleteAllSourceTexts() {
         :loading="isLoading"
         :is-dirty="isDirty"
         :save-label="isEditMode ? t('common.save') : t('common.create')"
-        :disabled="!isValid"
         hide-cancel
         @reset="handleReset"
       />
     </UForm>
+
+    <!-- Validation Warning Modal -->
+    <ModalsValidationWarningModal
+      v-model="showValidationWarning"
+      :errors="validationErrors"
+      entity-type="publication"
+      @confirm="handleValidationWarningConfirm"
+      @cancel="handleValidationWarningCancel"
+    />
 </template>
