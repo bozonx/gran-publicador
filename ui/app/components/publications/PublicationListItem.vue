@@ -33,6 +33,7 @@ const displayTitle = computed(() => {
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
+const showCheckbox = computed(() => route.path === '/publications')
 
 function handleClick() {
 
@@ -53,7 +54,7 @@ function handleDelete(e: Event) {
     <div class="flex flex-col h-full">
       <div class="flex items-start gap-4">
         <!-- Checkbox for bulk operations -->
-        <div class="px-3 pb-3 pt-4 -m-3 cursor-default" @click.stop="emit('update:selected', !selected)">
+        <div v-if="showCheckbox" class="px-3 pb-3 pt-4 -m-3 cursor-default" @click.stop="emit('update:selected', !selected)">
           <UCheckbox
             :model-value="selected"
             @update:model-value="(val) => emit('update:selected', !!val)"
@@ -94,6 +95,14 @@ function handleDelete(e: Event) {
         
         <div class="flex items-center gap-1 group-hover:opacity-100 transition-opacity -mt-1 -mr-1">
           <slot name="actions" />
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-pencil-square"
+            size="xs"
+            :to="`/publications/${publication.id}/edit`"
+            @click.stop
+          />
           <UButton
             color="neutral"
             variant="ghost"
