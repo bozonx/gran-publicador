@@ -23,7 +23,6 @@ const { t } = useI18n();
 
 const handleConfirm = () => {
     emit('confirm');
-    isOpen.value = false;
 };
 
 const handleClose = () => {

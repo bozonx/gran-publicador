@@ -22,7 +22,8 @@ const {
   publications: draftPublications, 
   fetchUserPublications: fetchDrafts, 
   totalCount: draftsCount, 
-  isLoading: draftsLoading 
+  isLoading: draftsLoading,
+  deletePublication
 } = usePublications()
 
 // Scheduled data
@@ -128,6 +129,28 @@ function goToPublication(pub: PublicationWithRelations) {
         router.push(`/publications/${pub.id}`)
     }
 }
+
+// Delete Publication (Drafts)
+const showDeletePublicationModal = ref(false)
+const publicationToDelete = ref<PublicationWithRelations | null>(null)
+const isDeletingPublication = ref(false)
+
+function confirmDeletePublication(pub: PublicationWithRelations) {
+  publicationToDelete.value = pub
+  showDeletePublicationModal.value = true
+}
+
+async function handleDeletePublication() {
+  if (!publicationToDelete.value) return
+  isDeletingPublication.value = true
+  const success = await deletePublication(publicationToDelete.value.id)
+  isDeletingPublication.value = false
+  if (success) {
+    showDeletePublicationModal.value = false
+    publicationToDelete.value = null
+    fetchDrafts({ status: 'DRAFT', limit: 5 })
+  }
+}
 </script>
 
 <template>
@@ -149,6 +172,7 @@ function goToPublication(pub: PublicationWithRelations) {
         :loading="draftsLoading"
         view-all-to="/publications?status=DRAFT"
         show-project-info
+        @delete="confirmDeletePublication"
       />
 
       <!-- 2. Scheduled and Problems Columns -->
@@ -323,6 +347,17 @@ function goToPublication(pub: PublicationWithRelations) {
            <ChannelsDashboardPanel />
          </div>
       </div>
-    </div>
+      </div>
+    <UiConfirmModal
+      v-if="showDeletePublicationModal"
+      v-model:open="showDeletePublicationModal"
+      :title="t('publication.deleteConfirm')"
+      :description="t('publication.deleteCascadeWarning')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeletingPublication"
+      @confirm="handleDeletePublication"
+    />
   </div>
 </template>

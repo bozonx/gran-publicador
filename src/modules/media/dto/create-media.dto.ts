@@ -15,6 +15,14 @@ export class CreateMediaDto {
   @IsString()
   @IsOptional()
   filename?: string;
+  
+  @IsString()
+  @IsOptional()
+  alt?: string;
+  
+  @IsString()
+  @IsOptional()
+  description?: string;
 
   @IsString()
   @IsOptional()

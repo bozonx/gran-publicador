@@ -233,6 +233,8 @@ model Media {
   storageType StorageType @map("storage_type")
   storagePath String      @map("storage_path")
   filename    String?
+  alt         String?
+  description String?
   mimeType    String?     @map("mime_type")
   sizeBytes   Int?        @map("size_bytes")
   meta        Json

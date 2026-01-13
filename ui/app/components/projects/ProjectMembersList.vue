@@ -2,6 +2,7 @@
 import type { Database } from '~/types/database.types'
 import type { ProjectMemberWithUser } from '~/stores/projects'
 import type { TableColumn } from '@nuxt/ui'
+import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 
 // Re-defining BadgeColor locally as it matches UBadge prop type
 type BadgeColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'

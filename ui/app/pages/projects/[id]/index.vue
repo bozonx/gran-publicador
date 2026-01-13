@@ -33,6 +33,7 @@ const {
   isLoading: isDraftsLoading,
   totalCount: draftTotal,
   fetchPublicationsByProject: fetchDrafts,
+  deletePublication
 } = usePublications()
 
 const {
@@ -183,6 +184,28 @@ const projectProblems = computed(() => {
 
   return problems
 })
+
+// Delete Publication Logic
+const showDeleteModal = ref(false)
+const publicationToDelete = ref<PublicationWithRelations | null>(null)
+const isDeleting = ref(false)
+
+function confirmDelete(pub: PublicationWithRelations) {
+  publicationToDelete.value = pub
+  showDeleteModal.value = true
+}
+
+async function handleDelete() {
+  if (!publicationToDelete.value) return
+  isDeleting.value = true
+  const success = await deletePublication(publicationToDelete.value.id)
+  isDeleting.value = false
+  if (success) {
+    showDeleteModal.value = false
+    publicationToDelete.value = null
+    fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 })
+  }
+}
 </script>
 
 <template>
@@ -381,6 +404,7 @@ const projectProblems = computed(() => {
           :total-count="draftTotal"
           :loading="isDraftsLoading"
           :view-all-to="`/publications?projectId=${projectId}&status=DRAFT`"
+          @delete="confirmDelete"
         />
 
         <!-- Scheduled and Problems Columns -->
@@ -518,6 +542,17 @@ const projectProblems = computed(() => {
       <div id="channels-section" class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6 p-6">
         <FeaturesChannelsList :project-id="currentProject.id" />
       </div>
-    </div>
+      </div>
+    <UiConfirmModal
+      v-if="showDeleteModal"
+      v-model:open="showDeleteModal"
+      :title="t('publication.deleteConfirm')"
+      :description="t('publication.deleteCascadeWarning')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="handleDelete"
+    />
   </div>
 </template>

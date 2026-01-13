@@ -62,7 +62,8 @@ const {
   publications: draftPublications,
   fetchPublicationsByProject: fetchDrafts,
   totalCount: draftsCount,
-  isLoading: draftsLoading
+  isLoading: draftsLoading,
+  deletePublication
 } = usePublications()
 
 // Import utility function for getting post title
@@ -190,6 +191,40 @@ async function handleDeletePost() {
     showDeletePostModal.value = false
     postToDelete.value = null
     resetAndFetchPosts()
+  }
+}
+
+function handleDeletePostFromPublication(pub: PublicationWithRelations) {
+  if (pub.posts && pub.posts.length > 0) {
+    confirmDeletePost(pub.posts[0])
+  }
+}
+
+// Handle Publication Deletion (Drafts)
+const showDeletePublicationModal = ref(false)
+const publicationToDelete = ref<PublicationWithRelations | null>(null)
+const isDeletingPublication = ref(false)
+
+function confirmDeletePublication(pub: PublicationWithRelations) {
+  publicationToDelete.value = pub
+  showDeletePublicationModal.value = true
+}
+
+async function handleDeletePublication() {
+  if (!publicationToDelete.value) return
+  
+  isDeletingPublication.value = true
+  const success = await deletePublication(publicationToDelete.value.id)
+  isDeletingPublication.value = false
+  
+  if (success) {
+    showDeletePublicationModal.value = false
+    publicationToDelete.value = null
+    fetchDrafts(projectId.value, { 
+        channelId: channelId.value, 
+        status: 'DRAFT', 
+        limit: 5 
+    })
   }
 }
 
@@ -495,6 +530,7 @@ const channelProblems = computed(() => {
                 :loading="draftsLoading"
                 :view-all-to="`/publications?channelId=${channelId}&status=DRAFT`"
                 class="mb-8"
+                @delete="confirmDeletePublication"
             />
 
             <!-- Scheduled and Problems Columns -->
@@ -625,6 +661,7 @@ const channelProblems = computed(() => {
                         :key="post.id"
                         :publication="mapPostToPublication(post)"
                         @click="goToPost(post.id)"
+                        @delete="handleDeletePostFromPublication"
                     />
                 </div>
 
@@ -635,6 +672,7 @@ const channelProblems = computed(() => {
                         :key="post.id"
                         :publication="mapPostToPublication(post)"
                         @click="goToPost(post.id)"
+                        @delete="handleDeletePostFromPublication"
                     />
                 </div>
 
@@ -674,6 +712,19 @@ const channelProblems = computed(() => {
            icon="i-heroicons-exclamation-triangle"
            :loading="isDeletingPost"
            @confirm="handleDeletePost"
+         />
+
+        <!-- Delete Publication Modal (Drafts) -->
+         <UiConfirmModal
+           v-if="showDeletePublicationModal"
+           v-model:open="showDeletePublicationModal"
+           :title="t('publication.deleteConfirm')"
+           :description="t('publication.deleteCascadeWarning')"
+           :confirm-text="t('common.delete')"
+           color="error"
+           icon="i-heroicons-exclamation-triangle"
+           :loading="isDeletingPublication"
+           @confirm="handleDeletePublication"
          />
     </div>
 </template>

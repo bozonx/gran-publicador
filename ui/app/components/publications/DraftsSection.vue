@@ -13,6 +13,10 @@ const props = withDefaults(defineProps<Props>(), {
   showProjectInfo: false,
 })
 
+const emit = defineEmits<{
+  (e: 'delete', publication: PublicationWithRelations): void
+}>()
+
 const { t } = useI18n()
 const router = useRouter()
 
@@ -54,6 +58,7 @@ function goToPublication(pub: PublicationWithRelations) {
         :show-project-info="showProjectInfo"
         class="w-64 shrink-0 transition-transform duration-200 hover:scale-[1.02]"
         @click="goToPublication"
+        @delete="(p) => emit('delete', p)"
       />
       <CommonViewAllCard
         v-if="totalCount > 5"
