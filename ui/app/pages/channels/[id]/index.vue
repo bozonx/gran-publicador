@@ -657,40 +657,15 @@ const channelProblems = computed(() => {
         />
 
         <!-- Delete Post Modal -->
-         <UModal v-model:open="showDeletePostModal">
-            <template #content>
-                <div class="p-6">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                    <UIcon
-                        name="i-heroicons-exclamation-triangle"
-                        class="w-6 h-6 text-red-600 dark:text-red-400"
-                    />
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    {{ t('post.deletePost') }}
-                    </h3>
-                </div>
-
-                <p class="text-gray-600 dark:text-gray-400 mb-6">
-                    {{ t('post.deleteConfirm') }}
-                </p>
-
-                <div class="flex justify-end gap-3">
-                    <UButton
-                    color="neutral"
-                    variant="ghost"
-                    :disabled="isDeletingPost"
-                    @click="showDeletePostModal = false"
-                    >
-                    {{ t('common.cancel') }}
-                    </UButton>
-                    <UButton color="error" :loading="isDeletingPost" @click="handleDeletePost">
-                    {{ t('common.delete') }}
-                    </UButton>
-                </div>
-                </div>
-            </template>
-        </UModal>
+         <UiConfirmModal
+           v-model:open="showDeletePostModal"
+           :title="t('post.deletePost')"
+           :description="t('post.deleteConfirm')"
+           :confirm-text="t('common.delete')"
+           color="error"
+           icon="i-heroicons-exclamation-triangle"
+           :loading="isDeletingPost"
+           @confirm="handleDeletePost"
+         />
     </div>
 </template>

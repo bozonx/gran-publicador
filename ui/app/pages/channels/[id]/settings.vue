@@ -356,55 +356,39 @@ async function handleDelete() {
     </div>
 
     <!-- Delete confirmation modal -->
-    <UModal v-model:open="showDeleteModal">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <UIcon
-                name="i-heroicons-exclamation-triangle"
-                class="w-6 h-6 text-red-600 dark:text-red-400"
-              />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('channel.deleteChannel', 'Delete Channel') }}
-            </h3>
-          </div>
+    <AppModal v-model:open="showDeleteModal" :title="t('channel.deleteChannel', 'Delete Channel')">
+      <div v-if="channel" class="mb-6">
+        <p class="text-gray-600 dark:text-gray-400 mb-2">
+          {{ t('channel.deleteConfirmWithInput') }}
+          <span class="font-bold text-gray-900 dark:text-white">{{ channel.name }}</span>
+        </p>
+        <p class="text-sm text-red-500 font-medium">
+          {{ t('channel.deleteCascadeInfo') }}
+        </p>
+      </div>
 
-          <div v-if="channel" class="mb-6">
-            <p class="text-gray-600 dark:text-gray-400 mb-2">
-              {{ t('channel.deleteConfirmWithInput') }}
-              <span class="font-bold text-gray-900 dark:text-white">{{ channel.name }}</span>
-            </p>
-            <p class="text-sm text-red-500 font-medium">
-              {{ t('channel.deleteCascadeInfo') }}
-            </p>
-          </div>
+      <UInput
+        v-if="channel"
+        v-model="deleteConfirmationInput"
+        :placeholder="channel.name"
+        class="mb-6"
+        autofocus
+        @keyup.enter="deleteConfirmationInput === channel.name ? handleDelete() : null"
+      />
 
-          <UInput
-            v-if="channel"
-            v-model="deleteConfirmationInput"
-            :placeholder="channel.name"
-            class="mb-6"
-            autofocus
-            @keyup.enter="deleteConfirmationInput === channel.name ? handleDelete() : null"
-          />
-
-          <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" :disabled="isDeleting" @click="showDeleteModal = false">
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton 
-              color="error" 
-              :loading="isDeleting" 
-              :disabled="!channel || deleteConfirmationInput !== channel.name"
-              @click="handleDelete"
-            >
-              {{ t('common.delete') }}
-            </UButton>
-          </div>
-        </div>
+      <template #footer>
+        <UButton color="neutral" variant="ghost" :disabled="isDeleting" @click="showDeleteModal = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton 
+          color="error" 
+          :loading="isDeleting" 
+          :disabled="!channel || deleteConfirmationInput !== channel.name"
+          @click="handleDelete"
+        >
+          {{ t('common.delete') }}
+        </UButton>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>

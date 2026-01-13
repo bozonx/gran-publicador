@@ -316,36 +316,25 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
 
 
     <!-- Create Project Modal -->
-    <UModal v-model:open="isCreateModalOpen">
-      <template #content>
-        <div class="p-6 min-w-[500px]">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              {{ t('project.createProject') }}
-            </h2>
-            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" size="sm" @click="isCreateModalOpen = false" />
-          </div>
+    <AppModal v-model:open="isCreateModalOpen" :title="t('project.createProject')">
+      <form id="create-project-form" @submit.prevent="handleCreateProject" class="space-y-6">
+        <UFormField :label="t('project.name')" required>
+          <UInput v-model="createFormState.name" :placeholder="t('project.namePlaceholder')" autofocus class="w-full" size="lg" />
+        </UFormField>
 
-          <form @submit.prevent="handleCreateProject" class="space-y-6">
-            <UFormField :label="t('project.name')" required>
-              <UInput v-model="createFormState.name" :placeholder="t('project.namePlaceholder')" autofocus class="w-full" size="lg" />
-            </UFormField>
+        <UFormField :label="t('project.description')" :help="t('common.optional')">
+          <UTextarea v-model="createFormState.description" :placeholder="t('project.descriptionPlaceholder')" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
+        </UFormField>
+      </form>
 
-            <UFormField :label="t('project.description')" :help="t('common.optional')">
-              <UTextarea v-model="createFormState.description" :placeholder="t('project.descriptionPlaceholder')" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
-            </UFormField>
-
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-               <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isCreateModalOpen = false">
-                  {{ t('common.cancel') }}
-               </UButton>
-               <UButton color="primary" :loading="isCreating" :disabled="!createFormState.name || createFormState.name.length < 2" @click="handleCreateProject">
-                  {{ t('common.create') }}
-               </UButton>
-            </div>
-          </form>
-        </div>
+      <template #footer>
+        <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isCreateModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton color="primary" type="submit" form="create-project-form" :loading="isCreating" :disabled="!createFormState.name || createFormState.name.length < 2">
+          {{ t('common.create') }}
+        </UButton>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>

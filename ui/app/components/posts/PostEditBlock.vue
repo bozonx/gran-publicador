@@ -473,106 +473,40 @@ const metaYaml = computed(() => {
   <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden mb-4 shadow-sm"
        :class="{ 'ring-2 ring-primary-500/20': isCreating }">
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="isDeleteModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('post.deleteConfirm') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('archive.delete_permanent_warning') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isDeleteModalOpen = false"
-            ></UButton>
-            <UButton
-              color="error"
-              :label="t('common.delete')"
-              :loading="isDeleting"
-              @click="confirmDelete"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <UiConfirmModal
+      v-model:open="isDeleteModalOpen"
+      :title="t('post.deleteConfirm')"
+      :description="t('archive.delete_permanent_warning')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="confirmDelete"
+    />
 
     <!-- Republish Confirmation Modal -->
-    <UModal v-model:open="isRepublishModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-warning-500 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.republishConfirm') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ props.post?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishPostWarning') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isRepublishModalOpen = false"
-            ></UButton>
-            <UButton
-              color="warning"
-              :label="t('publication.republish', 'Republish')"
-              :loading="isPublishing"
-              @click="handleConfirmRepublish"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <UiConfirmModal
+      v-model:open="isRepublishModalOpen"
+      :title="t('publication.republishConfirm')"
+      :description="props.post?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishPostWarning')"
+      :confirm-text="t('publication.republish', 'Republish')"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isPublishing"
+      @confirm="handleConfirmRepublish"
+    />
 
     <!-- Archive Warning Modal -->
-    <UModal v-model:open="isArchiveWarningModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-warning-500 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.archiveWarning.title') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-6 font-medium">
-            {{ archiveWarningMessage }}
-          </p>
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('publication.archiveWarning.confirm') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isArchiveWarningModalOpen = false"
-            ></UButton>
-            <UButton
-              color="warning"
-              :label="t('publication.archiveWarning.publishAnyway')"
-              :loading="isPublishing"
-              @click="handleConfirmArchivePublish"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <UiConfirmModal
+      v-model:open="isArchiveWarningModalOpen"
+      :title="t('publication.archiveWarning.title')"
+      :description="archiveWarningMessage + '\n\n' + t('publication.archiveWarning.confirm')"
+      :confirm-text="t('publication.archiveWarning.publishAnyway')"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isPublishing"
+      @confirm="handleConfirmArchivePublish"
+    />
 
     <!-- Header -->
     <div 

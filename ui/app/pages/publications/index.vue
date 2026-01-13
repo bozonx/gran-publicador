@@ -830,68 +830,26 @@ async function handleDelete() {
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <UModal v-model:open="showDeleteModal">
-    <template #content>
-      <div class="p-6">
-        <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
-          <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6" />
-          <h3 class="text-lg font-medium">
-            {{ t('publication.deleteConfirm') }}
-          </h3>
-        </div>
-
-        <p class="text-gray-500 dark:text-gray-400 mb-6">
-          {{ t('publication.deleteCascadeWarning') }}
-        </p>
-
-        <div class="flex justify-end gap-3">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :label="t('common.cancel')"
-            @click="showDeleteModal = false"
-          />
-          <UButton
-            color="error"
-            :label="t('common.delete')"
-            :loading="isDeleting"
-            @click="handleDelete"
-          />
-        </div>
-      </div>
-    </template>
-  </UModal>
+  <UiConfirmModal
+    v-model:open="showDeleteModal"
+    :title="t('publication.deleteConfirm')"
+    :description="t('publication.deleteCascadeWarning')"
+    :confirm-text="t('common.delete')"
+    color="error"
+    icon="i-heroicons-exclamation-triangle"
+    :loading="isDeleting"
+    @confirm="handleDelete"
+  />
 
   <!-- Bulk Delete Confirmation Modal -->
-  <UModal v-model:open="showBulkDeleteModal">
-    <template #content>
-      <div class="p-6">
-        <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
-          <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6" />
-          <h3 class="text-lg font-medium">
-            {{ t('publication.bulkDeleteConfirm', { count: selectedIds.length }) }}
-          </h3>
-        </div>
-
-        <p class="text-gray-500 dark:text-gray-400 mb-6">
-          {{ t('publication.deleteCascadeWarning') }}
-        </p>
-
-        <div class="flex justify-end gap-3">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :label="t('common.cancel')"
-            @click="showBulkDeleteModal = false"
-          />
-          <UButton
-            color="error"
-            :label="t('common.delete')"
-            :loading="bulkActionPending"
-            @click="handleBulkAction('DELETE')"
-          />
-        </div>
-      </div>
-    </template>
-  </UModal>
+  <UiConfirmModal
+    v-model:open="showBulkDeleteModal"
+    :title="t('publication.bulkDeleteConfirm', { count: selectedIds.length })"
+    :description="t('publication.deleteCascadeWarning')"
+    :confirm-text="t('common.delete')"
+    color="error"
+    icon="i-heroicons-exclamation-triangle"
+    :loading="bulkActionPending"
+    @confirm="handleBulkAction('DELETE')"
+  />
 </template>

@@ -317,22 +317,10 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
     </div>
 
     <!-- Template Edit Modal -->
-    <UModal v-model:open="isModalOpen">
-      <template #content>
-        <UCard :ui="{ body: 'p-0' }">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">
-                  {{ editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate') }}
-                </h3>
-                <p class="sr-only">
-                  {{ editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate') }}
-                </p>
-              </div>
-              <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" class="-my-1" @click="isModalOpen = false" />
-            </div>
-          </template>
+    <AppModal 
+      v-model:open="isModalOpen"
+      :title="editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate')"
+    >
 
           <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
             <!-- Basic info -->
@@ -481,45 +469,17 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
               </UButton>
             </div>
           </template>
-        </UCard>
-      </template>
-    </UModal>
+    </AppModal>
 
     <!-- Delete Warning Modal -->
-    <UModal v-model:open="isDeleteWarningModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-amber-500 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('channel.templateUpdateWarning') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-4">
-             {{ t('channel.templateInUseWarning', { count: affectedPostsCount }, `This template is used in ${affectedPostsCount} scheduled posts. Deleting it will cause these posts to use the default template.`) }}
-          </p>
-          
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('common.areYouSure') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isDeleteWarningModalOpen = false"
-            ></UButton>
-            <UButton
-              color="warning"
-              :label="t('common.delete')"
-              @click="confirmDeleteTemplate"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <UiConfirmModal
+      v-model:open="isDeleteWarningModalOpen"
+      :title="t('channel.templateUpdateWarning')"
+      :description="t('channel.templateInUseWarning', { count: affectedPostsCount }, `This template is used in ${affectedPostsCount} scheduled posts. Deleting it will cause these posts to use the default template.`) + '\n\n' + t('common.areYouSure')"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      @confirm="confirmDeleteTemplate"
+    />
   </div>
 </template>
 

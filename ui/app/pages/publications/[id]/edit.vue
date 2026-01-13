@@ -517,219 +517,111 @@ async function executePublish(force: boolean) {
         </NuxtLink>
       </nav>
     </div>
-    <!-- Delete Confirmation Modal (Moved to top level for better portal handling) -->
-    <UModal v-model:open="isDeleteModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.deleteConfirm') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('publication.deleteCascadeWarning') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isDeleteModalOpen = false"
-            ></UButton>
-            <UButton
-              color="error"
-              :label="t('common.delete')"
-              :loading="isDeleting"
-              @click="handleDelete"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <!-- Delete Confirmation Modal -->
+    <UiConfirmModal
+      v-model:open="isDeleteModalOpen"
+      :title="t('publication.deleteConfirm')"
+      :description="t('publication.deleteCascadeWarning')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="handleDelete"
+    />
 
     <!-- Republish Confirmation Modal -->
-    <UModal v-model:open="isRepublishModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-warning-500 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.republishConfirm') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ currentPublication?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishWarning') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isRepublishModalOpen = false"
-            ></UButton>
-            <UButton
-              color="warning"
-              :label="t('publication.republish', 'Republish')"
-              :loading="isPublishing"
-              @click="handleConfirmRepublish"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <UiConfirmModal
+      v-model:open="isRepublishModalOpen"
+      :title="t('publication.republishConfirm')"
+      :description="currentPublication?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishWarning')"
+      :confirm-text="t('publication.republish', 'Republish')"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isPublishing"
+      @confirm="handleConfirmRepublish"
+    />
 
     <!-- Archive Warning Modal -->
-    <UModal v-model:open="isArchiveWarningModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-warning-500 mb-4">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.archiveWarning.title') }}
-            </h3>
-          </div>
-
-          <p class="text-gray-500 dark:text-gray-400 mb-6 font-medium">
-            {{ archiveWarningMessage }}
-          </p>
-          <p class="text-gray-500 dark:text-gray-400 mb-6">
-            {{ t('publication.archiveWarning.confirm') }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isArchiveWarningModalOpen = false"
-            ></UButton>
-            <UButton
-              color="warning"
-              :label="t('publication.archiveWarning.publishAnyway')"
-              :loading="isPublishing"
-              @click="handleConfirmArchivePublish"
-            ></UButton>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <UiConfirmModal
+      v-model:open="isArchiveWarningModalOpen"
+      :title="t('publication.archiveWarning.title')"
+      :description="archiveWarningMessage + '\n\n' + t('publication.archiveWarning.confirm')"
+      :confirm-text="t('publication.archiveWarning.publishAnyway')"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isPublishing"
+      @confirm="handleConfirmArchivePublish"
+    />
 
     <!-- Schedule Modal -->
-    <UModal v-model:open="isScheduleModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-gray-900 dark:text-white mb-4">
-            <UIcon name="i-heroicons-clock" class="w-6 h-6 text-primary-500"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.changeScheduleTitle') }}
-            </h3>
-          </div>
+    <AppModal v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
+      <p class="text-gray-500 dark:text-gray-400 mb-4">
+        {{ t('publication.changeScheduleInfo') }}
+      </p>
 
-          <p class="text-gray-500 dark:text-gray-400 mb-4">
-            {{ t('publication.changeScheduleInfo') }}
-          </p>
+      <UFormField :label="t('publication.newScheduleTime')" required>
+        <UInput v-model="newScheduledDate" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
+      </UFormField>
 
-          <UFormField :label="t('publication.newScheduleTime')" required class="mb-6">
-            <UInput v-model="newScheduledDate" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
-          </UFormField>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isScheduleModalOpen = false"
-            ></UButton>
-            <UButton
-              color="primary"
-              :label="t('common.save')"
-              :loading="isBulkScheduling"
-              @click="handleBulkSchedule"
-            ></UButton>
-          </div>
-        </div>
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :label="t('common.cancel')"
+          @click="isScheduleModalOpen = false"
+        />
+        <UButton
+          color="primary"
+          :label="t('common.save')"
+          :loading="isBulkScheduling"
+          @click="handleBulkSchedule"
+        />
       </template>
-    </UModal>
+    </AppModal>
 
     <!-- Language Change Modal -->
-    <UModal v-model:open="isLanguageModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-3 text-gray-900 dark:text-white mb-4">
-            <UIcon name="i-heroicons-language" class="w-6 h-6 text-primary-500"></UIcon>
-            <h3 class="text-lg font-medium">
-              {{ t('publication.changeLanguage') }}
-            </h3>
-          </div>
+    <AppModal v-model:open="isLanguageModalOpen" :title="t('publication.changeLanguage')">
+      <UFormField :label="t('common.language')" required>
+         <USelectMenu
+            v-model="newLanguage"
+            :items="languageOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+        />
+      </UFormField>
 
-          <UFormField :label="t('common.language')" required class="mb-6">
-             <USelectMenu
-                v-model="newLanguage"
-                :items="languageOptions"
-                value-key="value"
-                label-key="label"
-                class="w-full"
-            />
-          </UFormField>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :label="t('common.cancel')"
-              @click="isLanguageModalOpen = false"
-            ></UButton>
-            <UButton
-              color="primary"
-              :label="t('common.save')"
-              :loading="isUpdatingLanguage"
-              @click="handleUpdateLanguage"
-            ></UButton>
-          </div>
-        </div>
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :label="t('common.cancel')"
+          @click="isLanguageModalOpen = false"
+        />
+        <UButton
+          color="primary"
+          :label="t('common.save')"
+          :loading="isUpdatingLanguage"
+          @click="handleUpdateLanguage"
+        />
       </template>
-    </UModal>
+    </AppModal>
 
     <!-- Post Type Change Modal -->
-    <UModal v-model:open="isTypeModalOpen">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3 text-gray-900 dark:text-white">
-              <UIcon name="i-heroicons-document-duplicate" class="w-6 h-6 text-primary-500"></UIcon>
-              <h3 class="text-lg font-medium">
-                {{ t('publication.changeType') }}
-              </h3>
-            </div>
-            <UButton
-              icon="i-heroicons-x-mark"
-              variant="ghost"
-              color="neutral"
-              size="sm"
-              @click="isTypeModalOpen = false"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <UButton
-              v-for="option in typeOptions"
-              :key="option.value"
-              :label="option.label"
-              :variant="currentPublication?.postType === option.value ? 'soft' : 'ghost'"
-              :color="currentPublication?.postType === option.value ? 'primary' : 'neutral'"
-              class="w-full justify-start"
-              :loading="isUpdatingType && newPostType === option.value"
-              @click="handleUpdateTypeOption(option.value as PostType)"
-            />
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <AppModal v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
+      <div class="space-y-2">
+        <UButton
+          v-for="option in typeOptions"
+          :key="option.value"
+          :label="option.label"
+          :variant="currentPublication?.postType === option.value ? 'soft' : 'ghost'"
+          :color="currentPublication?.postType === option.value ? 'primary' : 'neutral'"
+          class="w-full justify-start"
+          :loading="isUpdatingType && newPostType === option.value"
+          @click="handleUpdateTypeOption(option.value as PostType)"
+        />
+      </div>
+    </AppModal>
 
     <!-- Status Change Modal removed in favor of button group -->
 

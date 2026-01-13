@@ -514,181 +514,85 @@ const hasActiveFilters = computed(() => {
     </div>
 
     <!-- Confirm toggle admin modal -->
-    <UModal v-model:open="showConfirmModal">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-4 mb-4">
-            <div
-              class="p-2 rounded-lg"
-              :class="
-                userToToggle?.is_admin
-                  ? 'bg-amber-100 dark:bg-amber-900/30'
-                  : 'bg-green-100 dark:bg-green-900/30'
-              "
-            >
-              <UIcon
-                :name="
-                  userToToggle?.is_admin
-                    ? 'i-heroicons-shield-exclamation'
-                    : 'i-heroicons-shield-check'
-                "
-                class="w-6 h-6"
-                :class="
-                  userToToggle?.is_admin
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-green-600 dark:text-green-400'
-                "
-              />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{
-                userToToggle?.is_admin
-                  ? t('admin.revokeAdmin', 'Revoke admin')
-                  : t('admin.grantAdmin', 'Grant admin')
-              }}
-            </h3>
+    <UiConfirmModal
+      v-model:open="showConfirmModal"
+      :title="userToToggle?.is_admin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
+      :description="userToToggle?.is_admin ? t('admin.revokeAdminConfirm', 'Are you sure you want to revoke admin rights from this user?') : t('admin.grantAdminConfirm', 'Are you sure you want to grant admin rights to this user?')"
+      :confirm-text="userToToggle?.is_admin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
+      :color="userToToggle?.is_admin ? 'warning' : 'success'"
+      :icon="userToToggle?.is_admin ? 'i-heroicons-shield-exclamation' : 'i-heroicons-shield-check'"
+      :loading="isToggling"
+      @confirm="handleToggleAdmin"
+    >
+      <div
+        v-if="userToToggle"
+        class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+      >
+        <UAvatar
+          :src="userToToggle.avatar_url ?? undefined"
+          :alt="getUserDisplayName(userToToggle)"
+          size="sm"
+        />
+        <div>
+          <div class="font-medium text-gray-900 dark:text-white">
+            {{ getUserDisplayName(userToToggle) }}
           </div>
-
-          <p class="text-gray-600 dark:text-gray-400 mb-2">
-            {{
-              userToToggle?.is_admin
-                ? t(
-                    'admin.revokeAdminConfirm',
-                    'Are you sure you want to revoke admin rights from this user?'
-                  )
-                : t(
-                    'admin.grantAdminConfirm',
-                    'Are you sure you want to grant admin rights to this user?'
-                  )
-            }}
-          </p>
-
-          <div
-            v-if="userToToggle"
-            class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-6"
-          >
-            <UAvatar
-              :src="userToToggle.avatar_url ?? undefined"
-              :alt="getUserDisplayName(userToToggle)"
-              size="sm"
-            />
-            <div>
-              <div class="font-medium text-gray-900 dark:text-white">
-                {{ getUserDisplayName(userToToggle) }}
-              </div>
-              <div class="text-sm text-gray-500">
-                {{ userToToggle.telegram_username }}
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :disabled="isToggling"
-              @click="cancelToggle"
-            >
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton
-              :color="userToToggle?.is_admin ? 'warning' : 'success'"
-              :loading="isToggling"
-              @click="handleToggleAdmin"
-            >
-              {{
-                userToToggle?.is_admin
-                  ? t('admin.revokeAdmin', 'Revoke admin')
-                  : t('admin.grantAdmin', 'Grant admin')
-              }}
-            </UButton>
+          <div class="text-sm text-gray-500">
+            {{ userToToggle.telegram_username }}
           </div>
         </div>
-      </template>
-    </UModal>
+      </div>
+    </UiConfirmModal>
 
     <!-- Ban user modal -->
-    <UModal v-model:open="showBanModal">
-      <template #content>
-        <div class="p-6">
-          <div class="flex items-center gap-4 mb-4">
-            <div
-              class="p-2 rounded-lg"
-              :class="
-                userToBan?.isBanned
-                  ? 'bg-green-100 dark:bg-green-900/30'
-                  : 'bg-red-100 dark:bg-red-900/30'
-              "
-            >
-              <UIcon
-                :name="
-                  userToBan?.isBanned
-                    ? 'i-heroicons-lock-open'
-                    : 'i-heroicons-lock-closed'
-                "
-                class="w-6 h-6"
-                :class="
-                  userToBan?.isBanned
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-600 dark:text-red-400'
-                "
-              />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{
-                userToBan?.isBanned
-                  ? t('admin.unbanUser', 'Unban User')
-                  : t('admin.banUser', 'Ban User')
-              }}
-            </h3>
-          </div>
+    <AppModal
+      v-model:open="showBanModal"
+      :title="userToBan?.isBanned ? t('admin.unbanUser', 'Unban User') : t('admin.banUser', 'Ban User')"
+    >
+      <div v-if="!userToBan?.isBanned" class="mb-4">
+         <UTextarea
+           v-model="banReason"
+           :placeholder="t('admin.banReason', 'Reason for blocking (optional)...')"
+           :rows="FORM_STYLES.textareaRows"
+           autoresize
+         />
+      </div>
 
-          <div v-if="!userToBan?.isBanned" class="mb-4">
-             <UTextarea
-               v-model="banReason"
-               :placeholder="t('admin.banReason', 'Reason for blocking (optional)...')"
-               :rows="FORM_STYLES.textareaRows"
-               autoresize
-             />
-          </div>
+      <p class="text-gray-600 dark:text-gray-400">
+        {{
+          userToBan?.isBanned
+            ? t(
+                'admin.unbanConfirm',
+                'Are you sure you want to unban this user? They will regain access to the platform.'
+              )
+            : t(
+                'admin.banConfirm',
+                'Are you sure you want to ban this user? They will lose access to the platform immediately.'
+              )
+        }}
+      </p>
 
-          <p class="text-gray-600 dark:text-gray-400 mb-6">
-            {{
-              userToBan?.isBanned
-                ? t(
-                    'admin.unbanConfirm',
-                    'Are you sure you want to unban this user? They will regain access to the platform.'
-                  )
-                : t(
-                    'admin.banConfirm',
-                    'Are you sure you want to ban this user? They will lose access to the platform immediately.'
-                  )
-            }}
-          </p>
-
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :disabled="isBanning"
-              @click="cancelBan"
-            >
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton
-              :color="userToBan?.isBanned ? 'primary' : 'error'"
-              :loading="isBanning"
-              @click="handleBan"
-            >
-              {{
-                userToBan?.isBanned
-                  ? t('admin.unban', 'Unban')
-                  : t('admin.ban', 'Ban')
-              }}
-            </UButton>
-          </div>
-        </div>
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :disabled="isBanning"
+          @click="cancelBan"
+        >
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          :color="userToBan?.isBanned ? 'primary' : 'error'"
+          :loading="isBanning"
+          @click="handleBan"
+        >
+          {{
+            userToBan?.isBanned
+              ? t('admin.unban', 'Unban')
+              : t('admin.ban', 'Ban')
+          }}
+        </UButton>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>

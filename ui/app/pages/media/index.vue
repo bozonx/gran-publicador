@@ -71,7 +71,7 @@ async function saveMediaMeta() {
     
     // Update in local list
     const index = mediaItems.value.findIndex(m => m.id === selectedMedia.value?.id)
-    if (index !== -1) {
+    if (index !== -1 && updated) {
       mediaItems.value[index].meta = updated.meta
     }
   } catch (error: any) {
@@ -183,120 +183,104 @@ function formatSizeMB(bytes?: number): string {
     </div>
 
     <!-- Modal -->
-    <UModal v-model:open="isModalOpen" :ui="{ content: 'sm:max-w-6xl' }">
-      <template #content>
-        <div class="flex flex-col min-h-[500px] max-h-[90vh]">
-          <div class="p-6 pb-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-              {{ selectedMedia?.filename || t('media.preview') }}
-            </h3>
-            <UButton
-              icon="i-heroicons-x-mark"
-              variant="ghost"
-              color="neutral"
-              @click="closeMediaModal"
-            />
+    <AppModal v-model:open="isModalOpen" :title="selectedMedia?.filename || t('media.preview')" :ui="{ content: 'sm:max-w-6xl' }">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left: Preview -->
+        <div class="flex flex-col gap-4">
+          <div class="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center relative group">
+            <template v-if="selectedMedia">
+              <img
+                v-if="selectedMedia.type === 'IMAGE'"
+                :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                class="max-w-full max-h-full object-contain"
+              />
+              <video
+                v-else-if="selectedMedia.type === 'VIDEO'"
+                :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                controls
+                class="max-w-full max-h-full"
+              ></video>
+              <audio
+                v-else-if="selectedMedia.type === 'AUDIO'"
+                :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                controls
+                class="w-full max-w-md"
+              ></audio>
+              <div v-else class="text-white flex flex-col items-center">
+                <UIcon name="i-heroicons-document" class="w-16 h-16 mb-4 opacity-50" />
+                <span>{{ selectedMedia.mimeType }}</span>
+              </div>
+            </template>
           </div>
 
-          <div class="p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Left: Preview -->
-            <div class="flex flex-col gap-4">
-              <div class="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center relative group">
-                <template v-if="selectedMedia">
-                  <img
-                    v-if="selectedMedia.type === 'IMAGE'"
-                    :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
-                    class="max-w-full max-h-full object-contain"
-                  />
-                  <video
-                    v-else-if="selectedMedia.type === 'VIDEO'"
-                    :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
-                    controls
-                    class="max-w-full max-h-full"
-                  ></video>
-                  <audio
-                    v-else-if="selectedMedia.type === 'AUDIO'"
-                    :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
-                    controls
-                    class="w-full max-w-md"
-                  ></audio>
-                  <div v-else class="text-white flex flex-col items-center">
-                    <UIcon name="i-heroicons-document" class="w-16 h-16 mb-4 opacity-50" />
-                    <span>{{ selectedMedia.mimeType }}</span>
-                  </div>
-                </template>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <UButton
-                  icon="i-heroicons-arrow-down-tray"
-                  block
-                  @click="downloadMediaFile(selectedMedia!)"
-                >
-                  {{ t('common.download') }}
-                </UButton>
-                <UButton
-                  icon="i-heroicons-trash"
-                  color="error"
-                  variant="soft"
-                  @click="handleDeleteMedia"
-                >
-                  {{ t('common.delete') }}
-                </UButton>
-              </div>
-            </div>
-
-            <!-- Right: Info & Meta -->
-            <div class="space-y-6">
-              <section>
-                <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
-                  {{ t('media.file_info', 'Информация о файле') }}
-                </h4>
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span class="text-gray-400 block">{{ t('media.size', 'Размер') }}</span>
-                    <span class="text-gray-900 dark:text-white font-medium">{{ formatSizeMB(selectedMedia?.sizeBytes) }}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-400 block">{{ t('media.type', 'Тип') }}</span>
-                    <span class="text-gray-900 dark:text-white font-medium">{{ selectedMedia?.type }}</span>
-                  </div>
-                  <div class="col-span-2">
-                    <span class="text-gray-400 block">{{ t('media.created_at', 'Загружено') }}</span>
-                    <span class="text-gray-900 dark:text-white font-medium">
-                      {{ selectedMedia ? new Date(selectedMedia.createdAt).toLocaleString() : '' }}
-                    </span>
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                    {{ t('media.metadata', 'Метаданные (JSON)') }}
-                  </h4>
-                </div>
-                
-                <CommonYamlEditor
-                  v-model="editableMetadata"
-                  class="h-48"
-                />
-
-                <div class="mt-2 flex justify-end">
-                  <UButton
-                    size="sm"
-                    :loading="isSavingMeta"
-                    @click="saveMediaMeta"
-                  >
-                    {{ t('common.save') }}
-                  </UButton>
-                </div>
-              </section>
-
-            </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              icon="i-heroicons-arrow-down-tray"
+              block
+              @click="downloadMediaFile(selectedMedia!)"
+            >
+              {{ t('common.download') }}
+            </UButton>
+            <UButton
+              icon="i-heroicons-trash"
+              color="error"
+              variant="soft"
+              @click="handleDeleteMedia"
+            >
+              {{ t('common.delete') }}
+            </UButton>
           </div>
         </div>
-      </template>
-    </UModal>
+
+        <!-- Right: Info & Meta -->
+        <div class="space-y-6">
+          <section>
+            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
+              {{ t('media.file_info', 'Информация о файле') }}
+            </h4>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-gray-400 block">{{ t('media.size', 'Размер') }}</span>
+                <span class="text-gray-900 dark:text-white font-medium">{{ formatSizeMB(selectedMedia?.sizeBytes) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-400 block">{{ t('media.type', 'Тип') }}</span>
+                <span class="text-gray-900 dark:text-white font-medium">{{ selectedMedia?.type }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="text-gray-400 block">{{ t('media.created_at', 'Загружено') }}</span>
+                <span class="text-gray-900 dark:text-white font-medium">
+                  {{ selectedMedia ? new Date(selectedMedia.createdAt).toLocaleString() : '' }}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('media.metadata', 'Метаданные (JSON)') }}
+              </h4>
+            </div>
+            
+            <CommonYamlEditor
+              v-model="editableMetadata"
+              class="h-48"
+            />
+
+            <div class="mt-2 flex justify-end">
+              <UButton
+                size="sm"
+                :loading="isSavingMeta"
+                @click="saveMediaMeta"
+              >
+                {{ t('common.save') }}
+              </UButton>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </AppModal>
   </div>
 </template>

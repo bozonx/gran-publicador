@@ -703,155 +703,144 @@ const emit = defineEmits<Emits>()
   </div>
 
   <!-- Media viewer modal -->
-  <UModal v-model:open="isModalOpen" :ui="{ content: 'sm:max-w-6xl' }">
-    <template #content>
-      <div class="flex flex-col min-w-[500px] max-w-7xl max-h-[90vh]">
-        <!-- Fixed header -->
-        <div class="p-6 pb-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
-          <div class="flex items-center justify-between gap-4">
-            <DialogTitle as-child>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
-                {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
-              </h3>
-            </DialogTitle>
-            <VisuallyHidden>
-              <DialogDescription>{{ t('media.metadata', 'Metadata') }}</DialogDescription>
-            </VisuallyHidden>
-            <div class="flex items-center gap-2 shrink-0">
-              <!-- Position indicator -->
-              <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
+  <AppModal 
+    v-model:open="isModalOpen" 
+    :ui="{ content: 'sm:max-w-6xl' }"
+    :title="selectedMedia?.filename || t('media.preview', 'Media Preview')"
+  >
+    <template #header>
+      <div class="flex items-center justify-between gap-4 w-full">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
+          {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
+        </h3>
+        <div class="flex items-center gap-2 shrink-0">
+          <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+            {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
+          </span>
+          <UButton
+            icon="i-heroicons-x-mark"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            @click="closeMediaModal"
+          />
+        </div>
+      </div>
+    </template>
+
+    <div class="p-6 overflow-y-auto">
+      <!-- Image preview with navigation buttons -->
+      <div v-if="selectedMedia" class="mb-6 relative">
+        <!-- Previous button -->
+        <UButton
+          v-if="hasPreviousMedia"
+          icon="i-heroicons-chevron-left"
+          variant="solid"
+          color="neutral"
+          size="lg"
+          class="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
+          @click="navigateToPreviousMedia"
+        />
+        
+        <!-- Media content -->
+        <div 
+          ref="swipeElement"
+          class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden touch-pan-y relative min-h-[40vh] max-h-[70vh]"
+        >
+          <Transition :name="transitionName">
+            <div :key="selectedMedia.id" class="absolute inset-0 flex items-center justify-center">
+              <img
+                v-if="selectedMedia.type === 'IMAGE'"
+                :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                :alt="selectedMedia.filename || 'Media'"
+                class="max-w-full max-h-full object-contain"
+              />
+              <div v-else class="flex items-center justify-center h-full w-full">
+                <UIcon
+                  :name="getMediaIcon(selectedMedia.type)"
+                  class="w-24 h-24 text-gray-400"
+                />
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Next button -->
+        <UButton
+          v-if="hasNextMedia"
+          icon="i-heroicons-chevron-right"
+          variant="solid"
+          color="neutral"
+          size="lg"
+          class="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
+          @click="navigateToNextMedia"
+        />
+      </div>
+
+      <!-- Metadata -->
+      <div v-if="selectedMedia" class="w-full">
+        <!-- Read-only fields -->
+        <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono overflow-x-auto">
+          <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">type:</span>
+            <span class="text-gray-900 dark:text-gray-200">
+              {{ selectedMedia.storageType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
+            </span>
+          </div>
+          <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">size:</span>
+            <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
+          </div>
+          <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">path:</span>
+            <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.storagePath }}</span>
+          </div>
+          <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">filename:</span>
+            <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.filename }}</span>
+          </div>
+          <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">id:</span>
+            <div class="flex items-center gap-2">
+              <span 
+                class="text-gray-900 dark:text-gray-200 truncate cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                @click="downloadMediaFile(selectedMedia)"
+              >
+                {{ selectedMedia.id }}
               </span>
-              <UButton
-                icon="i-heroicons-x-mark"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                @click="closeMediaModal"
+              <UIcon 
+                name="i-heroicons-arrow-down-tray" 
+                class="w-4 h-4 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors shrink-0"
+                @click="downloadMediaFile(selectedMedia)"
               />
             </div>
           </div>
         </div>
 
-        <!-- Scrollable content -->
-        <div class="p-6 pt-4 overflow-y-auto flex-1">
-
-          <!-- Image preview with navigation buttons -->
-          <div v-if="selectedMedia" class="mb-6 relative">
-          <!-- Previous button -->
-          <UButton
-            v-if="hasPreviousMedia"
-            icon="i-heroicons-chevron-left"
-            variant="solid"
-            color="neutral"
-            size="lg"
-            class="absolute left-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
-            @click="navigateToPreviousMedia"
-          />
-          
-          <!-- Media content -->
-          <div 
-            ref="swipeElement"
-            class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden touch-pan-y relative h-[70vh]"
-          >
-            <Transition :name="transitionName">
-              <div :key="selectedMedia.id" class="absolute inset-0 flex items-center justify-center">
-                <img
-                  v-if="selectedMedia.type === 'IMAGE'"
-                  :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
-                  :alt="selectedMedia.filename || 'Media'"
-                  class="max-w-full max-h-full object-contain"
-                />
-                <div v-else class="flex items-center justify-center h-full w-full">
-                  <UIcon
-                    :name="getMediaIcon(selectedMedia.type)"
-                    class="w-24 h-24 text-gray-400"
-                  />
-                </div>
-              </div>
-            </Transition>
-          </div>
-
-          <!-- Next button -->
-          <UButton
-            v-if="hasNextMedia"
-            icon="i-heroicons-chevron-right"
-            variant="solid"
-            color="neutral"
-            size="lg"
-            class="absolute right-2 top-1/2 -translate-y-1/2 z-10 opacity-70 hover:opacity-100 transition-opacity"
-            @click="navigateToNextMedia"
-          />
-          </div>
-
-          <!-- Metadata -->
-          <div v-if="selectedMedia" class="w-full">
-            <!-- Read-only fields -->
-            <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono overflow-x-auto">
-              <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-                <span class="text-gray-500 shrink-0">type:</span>
-                <span class="text-gray-900 dark:text-gray-200">
-                  {{ selectedMedia.storageType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
-                </span>
-              </div>
-              <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-                <span class="text-gray-500 shrink-0">size:</span>
-                <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
-              </div>
-              <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-                <span class="text-gray-500 shrink-0">path:</span>
-                <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.storagePath }}</span>
-              </div>
-              <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-                <span class="text-gray-500 shrink-0">filename:</span>
-                <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.filename }}</span>
-              </div>
-              <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-                <span class="text-gray-500 shrink-0">id:</span>
-                <div class="flex items-center gap-2">
-                  <span 
-                    class="text-gray-900 dark:text-gray-200 truncate cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                    @click="downloadMediaFile(selectedMedia)"
-                  >
-                    {{ selectedMedia.id }}
-                  </span>
-                  <UIcon 
-                    name="i-heroicons-arrow-down-tray" 
-                    class="w-4 h-4 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors shrink-0"
-                    @click="downloadMediaFile(selectedMedia)"
-                  />
-                </div>
-              </div>
+        <CommonYamlEditor
+          v-model="editableMetadata"
+          :disabled="!editable"
+          :rows="8"
+        >
+          <template #actions>
+            <div class="flex items-center gap-2">
+              <UButton
+                v-if="editable"
+                icon="i-heroicons-check"
+                variant="solid"
+                color="primary"
+                size="sm"
+                :loading="isSavingMeta"
+                @click="saveMediaMeta"
+              >
+                {{ t('common.save', 'Save') }}
+              </UButton>
             </div>
-
-            <CommonYamlEditor
-              v-model="editableMetadata"
-              :disabled="!editable"
-              :rows="8"
-            >
-              <template #actions>
-                <div class="flex items-center gap-2">
-                  
-                  <UButton
-                    v-if="editable"
-                    icon="i-heroicons-check"
-                    variant="solid"
-                    color="primary"
-                    size="sm"
-                    :loading="isSavingMeta"
-                    @click="saveMediaMeta"
-                  >
-                    {{ t('common.save', 'Save') }}
-                  </UButton>
-                </div>
-              </template>
-            </CommonYamlEditor>
-
-          </div>
-        </div>
+          </template>
+        </CommonYamlEditor>
       </div>
-    </template>
-  </UModal>
+    </div>
+  </AppModal>
 </template>
 
 <style scoped>
