@@ -193,6 +193,11 @@ function handleCancel() {
   goBack()
 }
 
+const tabs = computed(() => [
+  { label: t('common.view', 'View'), icon: 'i-heroicons-eye', to: `/publications/${publicationId.value}` },
+  { label: t('common.edit', 'Edit'), icon: 'i-heroicons-pencil-square', to: `/publications/${publicationId.value}/edit` }
+])
+
 async function handleArchiveToggle() {
     if (!currentPublication.value) return
     await fetchPublication(currentPublication.value.id)
@@ -493,6 +498,25 @@ async function executePublish(force: boolean) {
 
 <template>
   <div class="w-full">
+    <!-- Tab Switcher -->
+    <div class="mb-8 border-b border-gray-200 dark:border-gray-700">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <NuxtLink
+          v-for="tab in tabs"
+          :key="tab.to"
+          :to="tab.to"
+          class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors"
+          :class="[
+            route.path === tab.to
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          ]"
+        >
+          <UIcon :name="tab.icon" class="mr-2 h-5 w-5" :class="[route.path === tab.to ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500']" />
+          {{ tab.label }}
+        </NuxtLink>
+      </nav>
+    </div>
     <!-- Delete Confirmation Modal (Moved to top level for better portal handling) -->
     <UModal v-model:open="isDeleteModalOpen">
       <template #content>
