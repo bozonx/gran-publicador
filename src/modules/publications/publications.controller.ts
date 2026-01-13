@@ -41,7 +41,7 @@ import { SocialPostingService } from '../social-posting/social-posting.service.j
 @Controller('publications')
 @UseGuards(JwtOrApiTokenGuard)
 export class PublicationsController {
-  private readonly MAX_LIMIT = 100;
+  private readonly MAX_LIMIT = 1000;
 
   constructor(
     private readonly publicationsService: PublicationsService,

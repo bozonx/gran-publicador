@@ -27,7 +27,7 @@ import { SocialPostingService } from '../social-posting/social-posting.service.j
 @Controller('channels')
 @UseGuards(JwtOrApiTokenGuard)
 export class ChannelsController {
-  private readonly MAX_LIMIT = 100;
+  private readonly MAX_LIMIT = 1000;
 
   constructor(
     private readonly channelsService: ChannelsService,

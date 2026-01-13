@@ -151,11 +151,13 @@ export class ChannelsService {
     const validatedLimit = Math.min(filters.limit || 50, 1000);
     const offset = filters.offset || 0;
 
-    const userProjects = await this.prisma.projectMember.findMany({
-      where: { userId },
-      select: { projectId: true },
+    const userProjects = await this.prisma.project.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: { id: true },
     });
-    const userAllowedProjectIds = userProjects.map(p => p.projectId);
+    const userAllowedProjectIds = userProjects.map(p => p.id);
 
     if (userAllowedProjectIds.length === 0) return { items: [], total: 0 };
 

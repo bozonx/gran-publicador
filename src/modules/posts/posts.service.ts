@@ -231,7 +231,7 @@ export class PostsService {
     if (!filters?.includeArchived) {
       where.channel = {
         project: {
-          members: { some: { userId } },
+          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
           archivedAt: null,
         },
         archivedAt: null,
@@ -247,7 +247,7 @@ export class PostsService {
       where.channel = {
         ...where.channel,
         project: {
-          members: { some: { userId } },
+          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
         },
       };
     }

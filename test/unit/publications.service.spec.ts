@@ -5,10 +5,7 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
 import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/client.js';
-import {
-  IssueType,
-  OwnershipType,
-} from '../../src/modules/publications/dto/index.js';
+import { IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -29,6 +26,7 @@ describe('PublicationsService (unit)', () => {
     },
     project: {
       findUnique: jest.fn() as any,
+      findMany: jest.fn() as any,
     },
     channel: {
       findMany: jest.fn() as any,
@@ -496,25 +494,23 @@ describe('PublicationsService (unit)', () => {
   describe('findAllForUser', () => {
     it('should return publications from all user projects', async () => {
       const userId = 'u1';
-      mockPrismaService.projectMember.findMany.mockResolvedValue([
-        { projectId: 'p1' },
-        { projectId: 'p2' },
-      ]);
+      mockPrismaService.project.findMany.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]);
       mockPrismaService.publication.findMany.mockResolvedValue([]);
       mockPrismaService.publication.count.mockResolvedValue(0);
 
       await service.findAllForUser(userId);
 
-      expect(mockPrismaService.projectMember.findMany).toHaveBeenCalledWith({
-        where: { userId },
-        select: { projectId: true },
+      expect(mockPrismaService.project.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+        },
+        select: { id: true },
       });
-      // Check that it calls findMany with proper where clause including projectIds
       expect(mockPrismaService.publication.findMany).toHaveBeenCalled();
     });
 
     it('should return empty list if user has no projects', async () => {
-      mockPrismaService.projectMember.findMany.mockResolvedValue([]);
+      mockPrismaService.project.findMany.mockResolvedValue([]);
       const res = await service.findAllForUser('u1');
       expect(res.items).toEqual([]);
       expect(res.total).toBe(0);

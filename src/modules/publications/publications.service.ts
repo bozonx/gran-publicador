@@ -343,12 +343,14 @@ export class PublicationsService {
     this.logger.log(
       `findAllForUser called for user ${userId} with search: "${filters?.search || ''}"`,
     );
-    // 1. Get all projects where user is a member
-    const userProjects = await this.prisma.projectMember.findMany({
-      where: { userId },
-      select: { projectId: true },
+    // 1. Get all projects where user is a member or owner
+    const userProjects = await this.prisma.project.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: { id: true },
     });
-    const userProjectIds = userProjects.map(p => p.projectId);
+    const userProjectIds = userProjects.map(p => p.id);
 
     if (userProjectIds.length === 0) {
       return { items: [], total: 0 };
