@@ -243,6 +243,7 @@ describe('PublicationsService (unit)', () => {
           status: PostStatus.PENDING,
           scheduledAt: null,
           errorMessage: null,
+          publishedAt: null,
         },
       });
     });
@@ -272,6 +273,7 @@ describe('PublicationsService (unit)', () => {
           status: PostStatus.PENDING,
           scheduledAt: null,
           errorMessage: null,
+          publishedAt: null,
         },
       });
     });

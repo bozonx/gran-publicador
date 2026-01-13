@@ -69,7 +69,7 @@ describe('SocialPostingBodyFormatter', () => {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [mockChannel.preferences.templates[0]]
+        templates: [{ ...mockChannel.preferences.templates[0], isDefault: true }]
       }
     };
 
@@ -85,7 +85,7 @@ describe('SocialPostingBodyFormatter', () => {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [mockChannel.preferences.templates[1]] // t2 has footerId: null
+        templates: [{ ...mockChannel.preferences.templates[1], isDefault: true }] // t2 has footerId: null
       }
     };
 
@@ -101,7 +101,7 @@ describe('SocialPostingBodyFormatter', () => {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [mockChannel.preferences.templates[2]] // t3 has non-existent footerId
+        templates: [{ ...mockChannel.preferences.templates[2], isDefault: true }] // t3 has non-existent footerId
       }
     };
 
@@ -132,7 +132,7 @@ describe('SocialPostingBodyFormatter', () => {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [mockChannel.preferences.templates[3]] // t4 has empty footer
+        templates: [{ ...mockChannel.preferences.templates[3], isDefault: true }] // t4 has empty footer
       }
     };
 

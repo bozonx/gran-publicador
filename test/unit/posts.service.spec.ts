@@ -155,8 +155,9 @@ describe('PostsService (unit)', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             scheduledAt: updateDto.scheduledAt,
+            publishedAt: null,
             status: PostStatus.PENDING,
-            errorMessage: undefined,
+            errorMessage: null,
           }),
         }),
       );
@@ -187,7 +188,8 @@ describe('PostsService (unit)', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             status: PostStatus.PENDING,
-            errorMessage: undefined,
+            publishedAt: null,
+            errorMessage: null,
           }),
         }),
       );
@@ -216,7 +218,7 @@ describe('PostsService (unit)', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             scheduledAt: null,
-            errorMessage: undefined,
+            errorMessage: null,
           }),
         }),
       );

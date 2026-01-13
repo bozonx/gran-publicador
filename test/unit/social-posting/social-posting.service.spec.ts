@@ -69,6 +69,7 @@ describe('SocialPostingService', () => {
     // Mock instance fetch
     (service as any).fetch = mockFetch;
     (mockFetch as any).mockReset();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -166,6 +167,76 @@ describe('SocialPostingService', () => {
         expect.objectContaining({
             where: { id: postId },
             data: expect.objectContaining({ status: PostStatus.PUBLISHED })
+        })
+      );
+    });
+  });
+  describe('publishPublication', () => {
+    it('should publish all posts in publication', async () => {
+      const publicationId = 'pub-1';
+      const mockPublication = {
+        id: publicationId,
+        status: PublicationStatus.SCHEDULED,
+        content: 'Test content',
+        media: [],
+        posts: [
+          {
+            id: 'post-1',
+            status: PostStatus.PENDING,
+            channelId: 'chan-1',
+            channel: {
+              id: 'chan-1',
+              socialMedia: 'TELEGRAM',
+              channelIdentifier: '@test',
+              isActive: true,
+              credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11' },
+            },
+            meta: {},
+          },
+        ],
+      };
+
+      // Mock database calls
+      // 1. Initial find (before lock)
+      (mockPrismaService.publication.findUnique as any)
+        .mockResolvedValueOnce(mockPublication) // first check
+        .mockResolvedValueOnce(mockPublication); // second check (with posts)
+      
+      // 2. Lock
+      (mockPrismaService.publication.updateMany as any).mockResolvedValue({ count: 1 });
+      
+      // 3. Post update (publishSinglePost)
+      (mockPrismaService.post.update as any).mockResolvedValue({});
+
+      // 4. Final update
+      (mockPrismaService.publication.update as any).mockResolvedValue({});
+
+      // Mock Fetch for microservice
+      (mockFetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+            success: true,
+            data: { url: 'http://test.com', publishedAt: new Date().toISOString() }
+        }),
+      });
+
+      const result = await service.publishPublication(publicationId);
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaService.publication.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+            where: { 
+              id: publicationId,
+              status: { not: PublicationStatus.PROCESSING } 
+            },
+            data: expect.objectContaining({ status: PublicationStatus.PROCESSING })
+        })
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+            where: { id: publicationId },
+            data: expect.objectContaining({ status: PublicationStatus.PUBLISHED })
         })
       );
     });
