@@ -10,7 +10,6 @@
 */
 
 export const ProjectRole = {
-  OWNER: 'OWNER',
   ADMIN: 'ADMIN',
   EDITOR: 'EDITOR',
   VIEWER: 'VIEWER'

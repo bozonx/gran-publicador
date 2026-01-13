@@ -46,7 +46,7 @@ function getRoleBadgeColor(role: string | undefined): BadgeColor {
     editor: 'info',
     viewer: 'neutral',
   }
-  return colors[role || 'viewer'] || 'neutral'
+  return colors[(role || 'viewer').toLowerCase()] || 'neutral'
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,11 +54,11 @@ function getActionItems(row: any) {
   const actions = []
 
   // Role change actions
-  const roles: Database['public']['Enums']['project_role'][] = ['admin', 'editor', 'viewer']
+  const roles = ['ADMIN', 'EDITOR', 'VIEWER']
   const roleActions = roles
-    .filter((r) => r !== row.role)
+    .filter((r) => r !== row.role?.toUpperCase())
     .map((role) => ({
-      label: t(`roles.${role}`),
+      label: t(`roles.${role.toLowerCase()}`),
       icon: 'i-heroicons-arrow-path',
       click: () => updateMemberRole(props.projectId, row.user.id, role),
     }))
@@ -130,17 +130,17 @@ async function handleRemove(row: any) {
 
       <template #role-cell="{ row }">
         <UBadge
-          :color="getRoleBadgeColor(row.original.role ?? undefined)"
+          :color="getRoleBadgeColor(row.original.role)"
           size="xs"
           variant="subtle"
         >
-          {{ t(`roles.${row.original.role ?? 'viewer'}`) }}
+          {{ t(`roles.${(row.original.role ?? 'viewer').toLowerCase()}`) }}
         </UBadge>
       </template>
 
       <template #actions-cell="{ row }">
         <UDropdownMenu
-          v-if="canManage && row.original.role !== 'owner'"
+          v-if="canManage && row.original.role?.toUpperCase() !== 'OWNER'"
           :items="getActionItems(row.original)"
         >
           <UButton

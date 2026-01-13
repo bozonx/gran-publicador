@@ -492,7 +492,6 @@ export class PublicationsService {
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.OWNER,
         ProjectRole.ADMIN,
       ]);
     }
@@ -791,7 +790,6 @@ export class PublicationsService {
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.OWNER,
         ProjectRole.ADMIN,
       ]);
     }
@@ -832,7 +830,6 @@ export class PublicationsService {
       try {
         if (pub.createdBy !== userId) {
           await this.permissions.checkProjectPermission(pub.projectId, userId, [
-            ProjectRole.OWNER,
             ProjectRole.ADMIN,
           ]);
         }
@@ -992,7 +989,6 @@ export class PublicationsService {
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.OWNER,
         ProjectRole.ADMIN,
       ]);
     }
@@ -1055,7 +1051,6 @@ export class PublicationsService {
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.OWNER,
         ProjectRole.ADMIN,
       ]);
     }
@@ -1098,7 +1093,6 @@ export class PublicationsService {
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.OWNER,
         ProjectRole.ADMIN,
       ]);
     }

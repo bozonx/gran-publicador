@@ -2,7 +2,8 @@
 import type { Database } from '~/types/database.types'
 import { useProjects } from '~/composables/useProjects'
 
-type ProjectRole = Database['public']['Enums']['project_role']
+// type ProjectRole = Database['public']['Enums']['project_role']
+type ProjectRole = 'ADMIN' | 'EDITOR' | 'VIEWER'
 
 const props = defineProps<{
   modelValue: boolean
@@ -24,12 +25,12 @@ const isOpen = computed({
 
 const isLoading = ref(false)
 const username = ref('')
-const selectedRole = ref<ProjectRole>('viewer')
+const selectedRole = ref<ProjectRole>('VIEWER')
 
 const roleOptions = computed(() => [
-  { label: t('roles.admin'), value: 'admin' },
-  { label: t('roles.editor'), value: 'editor' },
-  { label: t('roles.viewer'), value: 'viewer' },
+  { label: t('roles.admin'), value: 'ADMIN' },
+  { label: t('roles.editor'), value: 'EDITOR' },
+  { label: t('roles.viewer'), value: 'VIEWER' },
 ])
 
 async function handleInvite() {
@@ -55,10 +56,10 @@ function closeModal() {
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('projectMember.invite')">
     <form class="space-y-4" @submit.prevent="handleInvite" id="invite-member-form">
-      <UFormField :label="t('projectMember.userUsername', 'Telegram Username')" required>
+      <UFormField :label="t('projectMember.userUsernameOrId', 'Telegram Username or ID')" required>
         <UInput
           v-model="username"
-          :placeholder="t('projectMember.searchPlaceholderUsername', '@username')"
+          :placeholder="t('projectMember.searchPlaceholder', '@username or 123456789')"
           autofocus
           class="w-full"
         />

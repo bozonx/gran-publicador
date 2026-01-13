@@ -23,7 +23,6 @@ export class ChannelsService {
     data: Omit<CreateChannelDto, 'projectId'>,
   ) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
     ]);
@@ -406,7 +405,6 @@ export class ChannelsService {
   public async update(id: string, userId: string, data: UpdateChannelDto) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
     ]);
@@ -429,7 +427,6 @@ export class ChannelsService {
   public async remove(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
     return this.prisma.channel.delete({ where: { id } });
@@ -438,7 +435,6 @@ export class ChannelsService {
   public async archive(id: string, userId: string) {
     const channel = await this.findOne(id, userId);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
     ]);
@@ -452,7 +448,6 @@ export class ChannelsService {
   public async unarchive(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
     ]);

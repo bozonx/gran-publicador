@@ -85,7 +85,7 @@ CREATE TABLE "publications" (
     "scheduled_at" DATETIME,
     "processing_started_at" DATETIME,
     "post_type" TEXT NOT NULL DEFAULT 'POST',
-    "language" TEXT NOT NULL DEFAULT 'ru-US',
+    "language" TEXT NOT NULL DEFAULT 'en-US',
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "title" TEXT,
     "description" TEXT,
@@ -98,6 +98,27 @@ CREATE TABLE "publications" (
     "source_texts" JSONB NOT NULL,
     CONSTRAINT "publications_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "publications_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "posts" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "publication_id" TEXT NOT NULL,
+    "channel_id" TEXT NOT NULL,
+    "social_media" TEXT NOT NULL,
+    "tags" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "error_message" TEXT,
+    "meta" JSONB NOT NULL,
+    "template" JSONB,
+    "content" TEXT,
+    "platform_options" JSONB,
+    "scheduled_at" DATETIME,
+    "published_at" DATETIME,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "posts_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "posts_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "channels" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -122,26 +143,7 @@ CREATE TABLE "publication_media" (
     "order" INTEGER NOT NULL DEFAULT 0,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "publication_media_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "publication_media_media_id_fkey" FOREIGN KEY ("media_id") REFERENCES "media" ("id") ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "posts" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "publication_id" TEXT NOT NULL,
-    "channel_id" TEXT NOT NULL,
-    "social_media" TEXT NOT NULL,
-    "tags" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'PENDING',
-    "error_message" TEXT,
-    "meta" JSONB NOT NULL,
-    "content" TEXT,
-    "scheduled_at" DATETIME,
-    "published_at" DATETIME,
-    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "posts_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "posts_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "channels" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "publication_media_media_id_fkey" FOREIGN KEY ("media_id") REFERENCES "media" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -175,6 +177,15 @@ CREATE INDEX "publications_project_id_created_at_idx" ON "publications"("project
 CREATE INDEX "publications_project_id_scheduled_at_idx" ON "publications"("project_id", "scheduled_at");
 
 -- CreateIndex
+CREATE INDEX "posts_status_scheduled_at_idx" ON "posts"("status", "scheduled_at");
+
+-- CreateIndex
+CREATE INDEX "posts_channel_id_created_at_idx" ON "posts"("channel_id", "created_at");
+
+-- CreateIndex
+CREATE INDEX "posts_publication_id_idx" ON "posts"("publication_id");
+
+-- CreateIndex
 CREATE INDEX "media_type_idx" ON "media"("type");
 
 -- CreateIndex
@@ -185,12 +196,3 @@ CREATE INDEX "publication_media_publication_id_idx" ON "publication_media"("publ
 
 -- CreateIndex
 CREATE INDEX "publication_media_media_id_idx" ON "publication_media"("media_id");
-
--- CreateIndex
-CREATE INDEX "posts_status_scheduled_at_idx" ON "posts"("status", "scheduled_at");
-
--- CreateIndex
-CREATE INDEX "posts_channel_id_created_at_idx" ON "posts"("channel_id", "created_at");
-
--- CreateIndex
-CREATE INDEX "posts_publication_id_idx" ON "posts"("publication_id");

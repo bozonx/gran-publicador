@@ -262,7 +262,6 @@ model PublicationMedia {
 }
 
 enum ProjectRole {
-  OWNER
   ADMIN
   EDITOR
   VIEWER

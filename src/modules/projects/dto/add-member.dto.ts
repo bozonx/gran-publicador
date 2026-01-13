@@ -9,3 +9,4 @@ export class AddMemberDto {
   @IsEnum(ProjectRole)
   public role!: ProjectRole;
 }
+// Force rebuild

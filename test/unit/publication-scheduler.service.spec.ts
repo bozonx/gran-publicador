@@ -31,6 +31,7 @@ const mockPrismaService = {
   post: {
     update: jest.fn() as any,
     updateMany: jest.fn(() => Promise.resolve({ count: 0 })) as any,
+    findMany: jest.fn() as any,
   },
 };
 

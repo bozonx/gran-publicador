@@ -35,14 +35,6 @@ export class ProjectsService {
           },
         });
 
-        await tx.projectMember.create({
-          data: {
-            projectId: project.id,
-            userId: userId,
-            role: ProjectRole.OWNER,
-          },
-        });
-
         return project;
       },
       {
@@ -59,7 +51,7 @@ export class ProjectsService {
     const { search, includeArchived, limit } = options || {};
 
     const where: any = {
-      members: { some: { userId } },
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
       ...(includeArchived !== undefined
         ? { archivedAt: includeArchived ? { not: null } : null }
         : { archivedAt: null }),
@@ -201,7 +193,7 @@ export class ProjectsService {
       return {
         ...project,
         channels: [],
-        role: userMember?.role?.toLowerCase(),
+        role: (project.ownerId === userId ? 'owner' : userMember?.role?.toLowerCase()),
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
         lastPublicationAt,
@@ -219,7 +211,10 @@ export class ProjectsService {
 
   public async findArchivedForUser(userId: string) {
     const projects = await this.prisma.project.findMany({
-      where: { archivedAt: { not: null }, members: { some: { userId } } },
+      where: {
+        archivedAt: { not: null },
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
       include: {
         members: { where: { userId }, select: { role: true } },
         _count: { select: { channels: true, publications: true } },
@@ -274,7 +269,7 @@ export class ProjectsService {
       return {
         ...project,
         channels: mappedChannels,
-        role: project.members[0]?.role?.toLowerCase(),
+        role: (project.ownerId === userId ? 'owner' : project.members[0]?.role?.toLowerCase()),
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
         lastPublicationAt: project.publications[0]?.createdAt || null,
@@ -412,7 +407,6 @@ export class ProjectsService {
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
     return this.prisma.project.update({
@@ -423,7 +417,6 @@ export class ProjectsService {
 
   public async remove(projectId: string, userId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
     return this.prisma.project.delete({ where: { id: projectId } });
@@ -431,7 +424,6 @@ export class ProjectsService {
 
   public async archive(projectId: string, userId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
     return this.prisma.project.update({
@@ -442,7 +434,6 @@ export class ProjectsService {
 
   public async unarchive(projectId: string, userId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
     return this.prisma.project.update({
@@ -453,30 +444,60 @@ export class ProjectsService {
 
   public async findMembers(projectId: string, userId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
+      // ProjectRole.OWNER, // Implicitly checked
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
       ProjectRole.VIEWER,
     ]);
 
-    return this.prisma.projectMember.findMany({
+    const members = await this.prisma.projectMember.findMany({
       where: { projectId },
       include: { user: true },
     });
+
+    // Manually fetch owner to append to the list (since OWNER role is removed from members table)
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { owner: true },
+    });
+
+    if (project && project.owner) {
+       // Create a virtual member object for the owner
+       // We cast to any to avoid type issues with the strictly generated ProjectMember type
+       const ownerMember: any = {
+         id: 'owner',
+         projectId: project.id,
+         userId: project.ownerId,
+         role: 'OWNER', // Virtual role
+         createdAt: project.createdAt,
+         user: project.owner
+       };
+       return [ownerMember, ...members];
+    }
+
+    return members;
   }
 
   public async addMember(projectId: string, userId: string, data: AddMemberDto) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
 
-    const userToAdd = await this.prisma.user.findFirst({
-      where: { telegramUsername: data.username.replace(/^@/, '') },
-    });
+    let userToAdd;
+    
+    // Check if input is a Telegram ID (numeric)
+    if (/^\d+$/.test(data.username)) {
+      userToAdd = await this.prisma.user.findUnique({
+        where: { telegramId: BigInt(data.username) },
+      });
+    } else {
+      userToAdd = await this.prisma.user.findFirst({
+        where: { telegramUsername: data.username.replace(/^@/, '') },
+      });
+    }
 
     if (!userToAdd) {
-      throw new NotFoundException(`User with username @${data.username} not found`);
+      throw new NotFoundException(`User with identifier ${data.username} not found`);
     }
 
     const existingMember = await this.prisma.projectMember.findUnique({
@@ -504,7 +525,6 @@ export class ProjectsService {
     data: UpdateMemberDto,
   ) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
 
@@ -514,10 +534,6 @@ export class ProjectsService {
 
     if (!member) {
       throw new NotFoundException('Member not found in this project');
-    }
-
-    if (member.role === ProjectRole.OWNER && data.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException('Cannot change roles of the project owner');
     }
 
     return this.prisma.projectMember.update({
@@ -529,7 +545,6 @@ export class ProjectsService {
 
   public async removeMember(projectId: string, userId: string, memberUserId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
     ]);
 
@@ -541,12 +556,9 @@ export class ProjectsService {
       throw new NotFoundException('Member not found in this project');
     }
 
-    if (member.role === ProjectRole.OWNER) {
-      throw new ForbiddenException('Cannot remove the project owner');
-    }
-
     return this.prisma.projectMember.delete({
       where: { id: member.id },
     });
   }
 }
+// Force rebuild

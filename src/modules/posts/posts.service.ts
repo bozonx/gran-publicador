@@ -70,7 +70,6 @@ export class PostsService {
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.OWNER,
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
     ]);
@@ -395,7 +394,6 @@ export class PostsService {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          ProjectRole.OWNER,
           ProjectRole.ADMIN,
         ]);
       } else {
@@ -504,7 +502,6 @@ export class PostsService {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          ProjectRole.OWNER,
           ProjectRole.ADMIN,
         ]);
       } else {

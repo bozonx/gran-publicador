@@ -11,10 +11,10 @@ describe('PermissionsService (unit)', () => {
 
   const mockPrismaService = {
     project: {
-      findUnique: jest.fn(),
+      findUnique: jest.fn() as any,
     },
     projectMember: {
-      findUnique: jest.fn(),
+      findUnique: jest.fn() as any,
     },
   };
 
@@ -145,7 +145,7 @@ describe('PermissionsService (unit)', () => {
       mockPrismaService.project.findUnique.mockResolvedValue({ id: projectId, ownerId: userId });
 
       const role = await service.getUserProjectRole(projectId, userId);
-      expect(role).toBe(ProjectRole.OWNER);
+      expect(role).toBe('OWNER');
     });
 
     it('should return member role if user is member', async () => {

@@ -26,14 +26,13 @@ export class ArchiveService {
 
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        await this.permissions.checkProjectPermission(id, userId, ['OWNER', 'ADMIN']);
+        await this.permissions.checkProjectPermission(id, userId, ['ADMIN']);
         return this.prisma.project.update({ where: { id }, data });
       }
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          'OWNER',
           'ADMIN',
           'EDITOR',
         ]);
@@ -45,7 +44,6 @@ export class ArchiveService {
         // Author or Admin/Owner
         if (publication.createdBy !== userId) {
           await this.permissions.checkProjectPermission(publication.projectId, userId, [
-            'OWNER',
             'ADMIN',
           ]);
         }
@@ -69,14 +67,13 @@ export class ArchiveService {
 
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        await this.permissions.checkProjectPermission(id, userId, ['OWNER', 'ADMIN']);
+        await this.permissions.checkProjectPermission(id, userId, ['ADMIN']);
         return this.prisma.project.update({ where: { id }, data });
       }
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          'OWNER',
           'ADMIN',
           'EDITOR',
         ]);
@@ -87,7 +84,6 @@ export class ArchiveService {
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
           await this.permissions.checkProjectPermission(publication.projectId, userId, [
-            'OWNER',
             'ADMIN',
           ]);
         }
@@ -106,14 +102,14 @@ export class ArchiveService {
   ): Promise<ArchivableEntity> {
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        await this.permissions.checkProjectPermission(id, userId, ['OWNER']);
+        // OWNER is checked implicitly by permissions check before roles
+        await this.permissions.checkProjectPermission(id, userId, []);
         return this.prisma.project.delete({ where: { id } });
       }
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          'OWNER',
           'ADMIN',
         ]);
         return this.prisma.channel.delete({ where: { id } });
@@ -123,7 +119,6 @@ export class ArchiveService {
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
           await this.permissions.checkProjectPermission(publication.projectId, userId, [
-            'OWNER',
             'ADMIN',
           ]);
         }

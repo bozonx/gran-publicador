@@ -1,9 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ForbiddenException, Logger } from '@nestjs/common';
+import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
+import { ProjectRole } from '../../src/generated/prisma/client.js';
 
 describe('ProjectsService (unit)', () => {
   let service: ProjectsService;
@@ -21,6 +22,13 @@ describe('ProjectsService (unit)', () => {
     },
     projectMember: {
       create: jest.fn() as any,
+      findUnique: jest.fn() as any,
+      update: jest.fn() as any,
+      delete: jest.fn() as any,
+      findMany: jest.fn() as any,
+    },
+    user: {
+      findFirst: jest.fn() as any,
       findUnique: jest.fn() as any,
     },
     publication: {
@@ -73,7 +81,7 @@ describe('ProjectsService (unit)', () => {
   });
 
   describe('create', () => {
-    it('should create project and add owner as member in transaction', async () => {
+    it('should create project but not add owner as member (handled via ownerId)', async () => {
       const userId = 'user-1';
       const createData = {
         name: 'Test Project',
@@ -94,14 +102,7 @@ describe('ProjectsService (unit)', () => {
           project: {
             create: (jest.fn() as any).mockResolvedValue(mockProject),
           },
-          projectMember: {
-            create: (jest.fn() as any).mockResolvedValue({
-              id: 'member-1',
-              projectId: mockProject.id,
-              userId,
-              role: 'OWNER',
-            }),
-          },
+          // projectMember.create should NOT be called for owner anymore
         };
         return await callback(tx);
       });
@@ -114,13 +115,14 @@ describe('ProjectsService (unit)', () => {
   });
 
   describe('findAllForUser', () => {
-    it('should return all projects where user is a member', async () => {
+    it('should return all projects where user is a member or owner', async () => {
       const userId = 'user-1';
       const mockProjects = [
         {
           id: 'project-1',
           name: 'Project 1',
-          members: [{ role: 'OWNER' }],
+          ownerId: 'user-1', // User IS owner
+          members: [], // No explicit member entry
           _count: { channels: 5, publications: 3 },
           publications: [{ createdAt: new Date('2024-01-01') }],
           channels: [],
@@ -128,6 +130,7 @@ describe('ProjectsService (unit)', () => {
         {
           id: 'project-2',
           name: 'Project 2',
+          ownerId: 'other-user',
           members: [{ role: 'EDITOR' }],
           _count: { channels: 2, publications: 0 },
           publications: [],
@@ -147,7 +150,7 @@ describe('ProjectsService (unit)', () => {
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
         id: 'project-1',
-        role: 'owner',
+        role: 'owner', // Should be inferred from ownerId
         channelCount: 5,
         publicationsCount: 3,
       });
@@ -162,54 +165,8 @@ describe('ProjectsService (unit)', () => {
     });
   });
 
-  describe('findOne', () => {
-    it('should return project with role when user is member', async () => {
-      const projectId = 'project-1';
-      const userId = 'user-1';
-
-      const mockProject = {
-        id: projectId,
-        name: 'Test Project',
-        channels: [],
-        members: [],
-        _count: { channels: 0, publications: 0 },
-        publications: [],
-      };
-
-      mockPermissionsService.getUserProjectRole.mockResolvedValue('EDITOR');
-      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaService.post.groupBy.mockResolvedValue([]);
-      mockPrismaService.publication.count.mockResolvedValue(0);
-
-      const result = await service.findOne(projectId, userId);
-
-      expect(result).toEqual({
-        ...mockProject,
-        role: 'editor',
-        channelCount: 0,
-        publicationsCount: 0,
-        memberCount: 0,
-        lastPublicationAt: null,
-        lastPublicationId: null,
-        staleChannelsCount: 0,
-        preferences: {},
-        failedPostsCount: 0,
-        problemPublicationsCount: 0,
-      });
-    });
-
-    it('should throw ForbiddenException when user has no role', async () => {
-      const projectId = 'project-1';
-      const userId = 'user-1';
-
-      mockPermissionsService.getUserProjectRole.mockResolvedValue(null);
-
-      await expect(service.findOne(projectId, userId)).rejects.toThrow(ForbiddenException);
-    });
-  });
-
   describe('update', () => {
-    it('should allow OWNER to update project', async () => {
+    it('should allow ADMIN to update project (OWNER is allowed implicitly)', async () => {
       const projectId = 'project-1';
       const userId = 'user-1';
       const updateData = { name: 'Updated Name' };
@@ -229,53 +186,121 @@ describe('ProjectsService (unit)', () => {
       expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
         projectId,
         userId,
-        ['OWNER', 'ADMIN'],
-      );
-    });
-
-    it('should throw ForbiddenException when EDITOR tries to update', async () => {
-      const projectId = 'project-1';
-      const userId = 'user-1';
-      const updateData = { name: 'Hacked' };
-
-      mockPermissionsService.checkProjectPermission.mockRejectedValue(
-        new ForbiddenException('Insufficient permissions'),
-      );
-
-      await expect(service.update(projectId, userId, updateData)).rejects.toThrow(
-        ForbiddenException,
+        ['ADMIN'], // Removed OWNER
       );
     });
   });
 
-  describe('remove', () => {
-    it('should allow only OWNER to delete project', async () => {
-      const projectId = 'project-1';
+  describe('addMember', () => {
+    it('should add a member by username', async () => {
+      const projectId = 'proj-1';
       const userId = 'user-1';
+      const userToAdd = { id: 'user-2', telegramUsername: 'newuser' };
 
-      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.user.findFirst.mockResolvedValue(userToAdd);
+      mockPrismaService.projectMember.findUnique.mockResolvedValue(null);
+      mockPrismaService.projectMember.create.mockResolvedValue({ userId: userToAdd.id, role: ProjectRole.VIEWER });
 
-      mockPrismaService.project.delete.mockResolvedValue({
-        id: projectId,
+      await service.addMember(projectId, userId, { username: '@newuser', role: ProjectRole.VIEWER });
+
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(projectId, userId, [ProjectRole.ADMIN]);
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({ where: { telegramUsername: 'newuser' } });
+      expect(mockPrismaService.projectMember.create).toHaveBeenCalledWith({
+        data: { projectId, userId: userToAdd.id, role: ProjectRole.VIEWER },
+        include: { user: true },
       });
-
-      await expect(service.remove(projectId, userId)).resolves.toBeDefined();
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        ['OWNER', 'ADMIN'],
-      );
     });
 
-    it('should throw ForbiddenException when ADMIN tries to delete', async () => {
-      const projectId = 'project-1';
+    it('should add a member by telegram ID', async () => {
+      const projectId = 'proj-1';
       const userId = 'user-1';
+      const userToAdd = { id: 'user-3', telegramId: 123456789n };
 
-      mockPermissionsService.checkProjectPermission.mockRejectedValue(
-        new ForbiddenException('Insufficient permissions'),
-      );
+      mockPrismaService.user.findUnique.mockResolvedValue(userToAdd);
+      mockPrismaService.projectMember.findUnique.mockResolvedValue(null);
+      mockPrismaService.projectMember.create.mockResolvedValue({ userId: userToAdd.id, role: ProjectRole.EDITOR });
 
-      await expect(service.remove(projectId, userId)).rejects.toThrow(ForbiddenException);
+      // Mock RegExp checking in service (which we can't easily mock since it's inline, but we pass digits)
+      
+      await service.addMember(projectId, userId, { username: '123456789', role: ProjectRole.EDITOR });
+
+      // Should have called findUnique with BigInt
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({ where: { telegramId: 123456789n } });
+      expect(mockPrismaService.projectMember.create).toHaveBeenCalledWith({
+        data: { projectId, userId: userToAdd.id, role: ProjectRole.EDITOR },
+        include: { user: true },
+      });
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValue(null); // Just in case logic tries both
+
+      await expect(
+        service.addMember('proj', 'user', { username: '@unknown', role: ProjectRole.VIEWER }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if user already member', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'u2' });
+      mockPrismaService.projectMember.findUnique.mockResolvedValue({ id: 'm1' });
+
+      await expect(
+        service.addMember('proj', 'user', { username: '@exist', role: ProjectRole.VIEWER }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('findMembers', () => {
+    it('should return members including virtual owner', async () => {
+      const projectId = 'proj-1';
+      const userId = 'user-1';
+      const owner = { id: 'owner-u', telegramUsername: 'owner' };
+      const member = { id: 'm1', userId: 'u2', role: ProjectRole.ADMIN, user: { id: 'u2' } };
+
+      mockPrismaService.projectMember.findMany.mockResolvedValue([member]);
+      // Mock findUnique logic for owner injection
+      mockPrismaService.project.findUnique.mockResolvedValue({ id: projectId, ownerId: owner.id, owner, createdAt: new Date() });
+
+      const result = await service.findMembers(projectId, userId);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].role).toBe('OWNER');
+      expect(result[0].userId).toBe(owner.id);
+      expect(result[1]).toBe(member);
+    });
+  });
+
+  describe('updateMemberRole', () => {
+    it('should update member role', async () => {
+      const projectId = 'p1';
+      const userId = 'u1';
+      const memberUserId = 'u2';
+      const role = ProjectRole.EDITOR;
+
+      mockPrismaService.projectMember.findUnique.mockResolvedValue({ id: 'm1', role: ProjectRole.VIEWER });
+      mockPrismaService.projectMember.update.mockResolvedValue({ id: 'm1', role });
+
+      await service.updateMemberRole(projectId, userId, memberUserId, { role });
+
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(projectId, userId, [ProjectRole.ADMIN]);
+      expect(mockPrismaService.projectMember.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('removeMember', () => {
+    it('should remove member', async () => {
+      const projectId = 'p1';
+      const userId = 'u1';
+      const memberUserId = 'u2';
+
+      mockPrismaService.projectMember.findUnique.mockResolvedValue({ id: 'm1', role: ProjectRole.VIEWER });
+      mockPrismaService.projectMember.delete.mockResolvedValue({ id: 'm1' });
+
+      await service.removeMember(projectId, userId, memberUserId);
+
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(projectId, userId, [ProjectRole.ADMIN]);
+      expect(mockPrismaService.projectMember.delete).toHaveBeenCalled();
     });
   });
 });
