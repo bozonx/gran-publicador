@@ -456,7 +456,6 @@ const channelProblems = computed(() => {
             <!-- Problems Banner -->
             <CommonProblemBanner
               v-if="channelProblems.length > 0"
-              id="channel-problem-banner"
               :problems="channelProblems"
               entity-type="channel"
               class="mb-6"
