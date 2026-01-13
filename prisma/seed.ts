@@ -149,19 +149,11 @@ async function main() {
         });
     }
 
-    // 4. PROJECT MEMBERSHIPS
+    // 4. PROJECT MEMBERSHIPS (Owners are handled via ownerId, only adding collaborators here)
     const memberships = [
-        { projectId: projectData[0].id, userId: devUser.id, role: ProjectRole.OWNER },
         { projectId: projectData[0].id, userId: editorUser.id, role: ProjectRole.EDITOR },
         { projectId: projectData[0].id, userId: viewerUser.id, role: ProjectRole.VIEWER },
-        { projectId: projectData[1].id, userId: devUser.id, role: ProjectRole.OWNER },
-        { projectId: projectData[2].id, userId: adminUser.id, role: ProjectRole.OWNER },
         { projectId: projectData[2].id, userId: devUser.id, role: ProjectRole.ADMIN },
-        { projectId: projectData[3].id, userId: devUser.id, role: ProjectRole.OWNER },
-        { projectId: projectData[4].id, userId: devUser.id, role: ProjectRole.OWNER },
-        { projectId: projectData[5].id, userId: devUser.id, role: ProjectRole.OWNER },
-        { projectId: projectData[6].id, userId: devUser.id, role: ProjectRole.OWNER },
-        { projectId: projectData[7].id, userId: devUser.id, role: ProjectRole.OWNER },
     ];
 
     for (const m of memberships) {
