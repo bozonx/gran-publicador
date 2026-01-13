@@ -207,7 +207,10 @@
     "updateSuccess": "Member role updated successfully",
     "removeSuccess": "Member removed successfully",
     "searchPlaceholderUsername": "{'@'}username",
-    "userUsername": "Telegram Username"
+    "userUsername": "Telegram Username",
+    "changeRoleConfirm": "Are you sure you want to change the role for {user} to {role}?",
+    "changeRoleTitle": "Change Role",
+    "removeTitle": "Remove Member"
   },
   "roles": {
     "owner": "Owner",
@@ -622,6 +625,7 @@
     "reorderSuccess": "Media reordered successfully",
     "reorderError": "Failed to reorder media",
     "loadError": "File unavailable",
+    "deleteConfirm": "Are you sure you want to delete this media file?",
     "addFromUrl": "Add from URL or Telegram",
     "dropHere": "Drop file here",
     "preview": "Preview",

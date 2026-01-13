@@ -52,10 +52,12 @@ function handleDelete(e: Event) {
     @click="handleClick"
   >
     <!-- Checkbox for bulk operations -->
-    <div class="absolute top-4 left-4 z-10" @click.stop>
+    <div class="absolute top-1 left-1 p-3 z-10 cursor-default" @click.stop="emit('update:selected', !selected)">
       <UCheckbox
         :model-value="selected"
         @update:model-value="(val) => emit('update:selected', !!val)"
+        @click.stop
+        :ui="{ wrapper: 'pointer-events-none' }"
       />
     </div>
 

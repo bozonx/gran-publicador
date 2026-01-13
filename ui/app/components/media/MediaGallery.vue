@@ -72,6 +72,10 @@ const isModalOpen = ref(false)
 const editableMetadata = ref<Record<string, any> | null>(null)
 const isSavingMeta = ref(false)
 
+const isDeleteModalOpen = ref(false)
+const mediaToDeleteId = ref<string | null>(null)
+const isDeleting = ref(false)
+
 // Create a local reactive copy of media for drag and drop
 const localMedia = ref([...props.media])
 
@@ -259,9 +263,17 @@ async function addMedia() {
   }
 }
 
-async function removeMedia(mediaId: string) {
+function handleDeleteClick(mediaId: string) {
+  mediaToDeleteId.value = mediaId
+  isDeleteModalOpen.value = true
+}
+
+async function confirmRemoveMedia() {
+  if (!mediaToDeleteId.value) return
+
+  isDeleting.value = true
   try {
-    await removeMediaFromPublication(props.publicationId, mediaId)
+    await removeMediaFromPublication(props.publicationId, mediaToDeleteId.value)
     
     toast.add({
       title: t('common.success'),
@@ -277,6 +289,10 @@ async function removeMedia(mediaId: string) {
       description: error.message || t('media.removeError', 'Failed to remove media'),
       color: 'error',
     })
+  } finally {
+    isDeleting.value = false
+    isDeleteModalOpen.value = false
+    mediaToDeleteId.value = null
   }
 }
 
@@ -469,6 +485,18 @@ const emit = defineEmits<Emits>()
 
 <template>
   <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
+    <!-- Delete Confirmation Modal -->
+    <UiConfirmModal
+      v-model:open="isDeleteModalOpen"
+      :title="t('media.deleteConfirm')"
+      :description="t('archive.delete_permanent_warning')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="confirmRemoveMedia"
+    />
+
     <div class="p-6">
       <div class="flex items-center gap-2 mb-4">
         <UIcon name="i-heroicons-photo" class="w-5 h-5 text-gray-500"></UIcon>
@@ -581,7 +609,7 @@ const emit = defineEmits<Emits>()
                       color="error"
                       variant="solid"
                       size="xs"
-                      @click.stop="removeMedia(item.media.id)"
+                      @click.stop="handleDeleteClick(item.media.id)"
                     />
                   </div>
 

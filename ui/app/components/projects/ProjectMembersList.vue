@@ -48,6 +48,52 @@ function getRoleBadgeColor(role: string | undefined): BadgeColor {
   return colors[(role || 'viewer').toLowerCase()] || 'neutral'
 }
 
+// Confirmation Modal State
+const isConfirmModalOpen = ref(false)
+const isConfirming = ref(false)
+const confirmModalConfig = ref({
+    title: '',
+    description: '',
+    confirmText: '',
+    color: 'primary' as 'primary' | 'error' | 'warning',
+    action: async () => {},
+})
+
+/**
+ * Open confirmation modal with specific configuration
+ */
+function openConfirmModal(config: {
+    title: string
+    description: string
+    confirmText?: string
+    color?: 'primary' | 'error' | 'warning'
+    action: () => Promise<any>
+}) {
+    confirmModalConfig.value = {
+        title: config.title,
+        description: config.description,
+        confirmText: config.confirmText || t('common.confirm'),
+        color: config.color || 'primary',
+        action: config.action
+    }
+    isConfirmModalOpen.value = true
+}
+
+/**
+ * Handle the actual confirmation action
+ */
+async function handleConfirm() {
+    isConfirming.value = true
+    try {
+        await confirmModalConfig.value.action()
+        isConfirmModalOpen.value = false
+    } catch (e) {
+        console.error('Action failed:', e)
+    } finally {
+        isConfirming.value = false
+    }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getActionItems(row: any) {
   const actions = []
@@ -59,7 +105,15 @@ function getActionItems(row: any) {
     .map((role) => ({
       label: t(`roles.${role.toLowerCase()}`),
       icon: 'i-heroicons-arrow-path',
-      click: () => updateMemberRole(props.projectId, row.user.id, role),
+      click: () => openConfirmModal({
+          title: t('projectMember.changeRoleTitle'),
+          description: t('projectMember.changeRoleConfirm', { 
+              user: row.user.fullName || row.user.telegramUsername, 
+              role: t(`roles.${role.toLowerCase()}`) 
+          }),
+          confirmText: t('common.save'),
+          action: () => updateMemberRole(props.projectId, row.user.id, role)
+      }),
     }))
 
   if (roleActions.length > 0) {
@@ -71,19 +125,20 @@ function getActionItems(row: any) {
     {
       label: t('projectMember.remove'),
       icon: 'i-heroicons-trash-20-solid',
-      click: () => handleRemove(row),
+      click: () => openConfirmModal({
+          title: t('projectMember.removeTitle'),
+          description: t('projectMember.removeConfirm', { 
+              user: row.user.fullName || row.user.telegramUsername 
+          }),
+          color: 'error',
+          confirmText: t('common.delete'),
+          action: () => removeMember(props.projectId, row.user.id)
+      }),
       class: 'text-red-500 dark:text-red-400',
     },
   ])
 
   return actions
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleRemove(row: any) {
-  if (confirm(t('projectMember.removeConfirm'))) {
-    await removeMember(props.projectId, row.user.id)
-  }
 }
 </script>
 
@@ -137,5 +192,14 @@ async function handleRemove(row: any) {
       </template>
     </UTable>
 
+    <UiConfirmModal
+        v-model:open="isConfirmModalOpen"
+        :title="confirmModalConfig.title"
+        :description="confirmModalConfig.description"
+        :confirm-text="confirmModalConfig.confirmText"
+        :color="confirmModalConfig.color"
+        :loading="isConfirming"
+        @confirm="handleConfirm"
+    />
   </div>
 </template>

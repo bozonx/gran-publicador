@@ -133,6 +133,7 @@
     "firstName": "Имя",
     "lastName": "Фамилия",
     "displayName": "Отображаемое имя",
+    "userUsername": "Имя пользователя Telegram",
     "telegramId": "Telegram ID",
     "role": "Роль",
     "adminStatus": "Статус администратора",
@@ -208,7 +209,10 @@
     "updateSuccess": "Роль участника обновлена",
     "removeSuccess": "Участник успешно удалён",
     "searchPlaceholderUsername": "{'@'}username",
-    "userUsername": "Имя пользователя Telegram"
+    "userUsername": "Имя пользователя Telegram",
+    "changeRoleConfirm": "Вы уверены, что хотите изменить роль для {user} на {role}?",
+    "changeRoleTitle": "Изменение роли",
+    "removeTitle": "Удаление участника"
   },
   "roles": {
     "owner": "Владелец",
@@ -680,6 +684,7 @@
     "reorderSuccess": "Порядок медиа успешно изменен",
     "reorderError": "Ошибка изменения порядка медиа",
     "loadError": "Файл недоступен",
+    "deleteConfirm": "Вы уверены, что хотите удалить этот медиа-файл?",
     "addFromUrl": "Добавить из URL или Telegram",
     "dropHere": "Перетащите файл сюда",
     "preview": "Просмотр",
