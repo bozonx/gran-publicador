@@ -91,12 +91,7 @@ async function syncName() {
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-        {{ t('auth.profile') }}
-      </h2>
-    </template>
+  <UiAppCard :title="t('auth.profile')" title-class="text-lg font-medium text-gray-900 dark:text-white">
     
     <!-- Avatar and basic info -->
     <div class="flex items-start gap-4 mb-6">
@@ -193,5 +188,5 @@ async function syncName() {
         </dd>
       </div>
     </dl>
-  </UCard>
+  </UiAppCard>
 </template>

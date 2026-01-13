@@ -138,21 +138,16 @@ function formatDate(date: string | null | undefined): string {
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-          API Tokens
-        </h2>
-        <UButton
-          color="primary"
-          size="sm"
-          icon="i-heroicons-plus"
-          @click="showCreateTokenModal = true"
-        >
-          {{ t('settings.createToken', 'Create Token') }}
-        </UButton>
-      </div>
+  <UiAppCard title="API Tokens" title-class="text-lg font-medium text-gray-900 dark:text-white">
+    <template #actions>
+      <UButton
+        color="primary"
+        size="sm"
+        icon="i-heroicons-plus"
+        @click="showCreateTokenModal = true"
+      >
+        {{ t('settings.createToken', 'Create Token') }}
+      </UButton>
     </template>
 
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -323,5 +318,5 @@ function formatDate(date: string | null | undefined): string {
       :loading="tokensLoading"
       @confirm="confirmDeleteToken"
     />
-  </UCard>
+  </UiAppCard>
 </template>

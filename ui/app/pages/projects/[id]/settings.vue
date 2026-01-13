@@ -153,15 +153,11 @@ function cancelDelete() {
 
       <div class="grid grid-cols-1 gap-8">
         <!-- General Settings -->
-        <UCard v-if="canEdit(currentProject)">
-          <template #header>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('project.general_settings', 'General Settings') }}
-            </h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ t('project.general_settings_desc', 'Update your project name and description') }}
-            </p>
-          </template>
+        <UiAppCard
+          v-if="canEdit(currentProject)"
+          :title="t('project.general_settings', 'General Settings')"
+          :description="t('project.general_settings_desc', 'Update your project name and description')"
+        >
           
           <FormsProjectForm
             :project="currentProject"
@@ -173,18 +169,14 @@ function cancelDelete() {
             hide-cancel
             flat
           />
-        </UCard>
+        </UiAppCard>
 
         <!-- Preferences -->
-        <UCard v-if="canEdit(currentProject)">
-          <template #header>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('settings.preferences', 'Preferences') }}
-            </h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ t('project.preferences_desc', 'Configure project-wide settings and defaults') }}
-            </p>
-          </template>
+        <UiAppCard
+          v-if="canEdit(currentProject)"
+          :title="t('settings.preferences', 'Preferences')"
+          :description="t('project.preferences_desc', 'Configure project-wide settings and defaults')"
+        >
           
           <FormsProjectForm
             :project="currentProject"
@@ -196,30 +188,24 @@ function cancelDelete() {
             hide-cancel
             flat
           />
-        </UCard>
+        </UiAppCard>
 
         <!-- Members Management -->
-        <UCard v-if="canManageMembers(currentProject)">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                  {{ t('project.members', 'Members') }}
-                </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ t('project.members_desc', 'Manage who has access to this project') }}
-                </p>
-              </div>
-              <UButton
-                v-if="canManageMembers(currentProject)"
-                icon="i-heroicons-user-plus"
-                size="sm"
-                color="primary"
-                @click="isInviteModalOpen = true"
-              >
-                {{ t('projectMember.invite') }}
-              </UButton>
-            </div>
+        <UiAppCard
+          v-if="canManageMembers(currentProject)"
+          :title="t('project.members', 'Members')"
+          :description="t('project.members_desc', 'Manage who has access to this project')"
+        >
+          <template #actions>
+            <UButton
+              v-if="canManageMembers(currentProject)"
+              icon="i-heroicons-user-plus"
+              size="sm"
+              color="primary"
+              @click="isInviteModalOpen = true"
+            >
+              {{ t('projectMember.invite') }}
+            </UButton>
           </template>
 
           <ProjectsProjectMembersList :project-id="currentProject.id" />
@@ -229,15 +215,13 @@ function cancelDelete() {
             :project-id="currentProject.id"
             @success="fetchMembers(currentProject.id)"
           />
-        </UCard>
+        </UiAppCard>
 
         <!-- Archive Project -->
-        <UCard v-if="canEdit(currentProject)">
-          <template #header>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ currentProject.archivedAt ? t('project.unarchiveProject', 'Unarchive Project') : t('project.archiveProject', 'Archive Project') }}
-            </h2>
-          </template>
+        <UiAppCard
+          v-if="canEdit(currentProject)"
+          :title="currentProject.archivedAt ? t('project.unarchiveProject', 'Unarchive Project') : t('project.archiveProject', 'Archive Project')"
+        >
 
           <div class="flex items-center justify-between">
             <div>
@@ -256,15 +240,15 @@ function cancelDelete() {
               @toggle="() => fetchProject(projectId)"
             />
           </div>
-        </UCard>
+        </UiAppCard>
 
         <!-- Danger Zone -->
-        <UCard v-if="canDelete(currentProject)" class="border-red-200 dark:border-red-900">
-          <template #header>
-            <h2 class="text-lg font-semibold text-red-600 dark:text-red-400">
-              {{ t('common.danger_zone', 'Danger Zone') }}
-            </h2>
-          </template>
+        <UiAppCard
+          v-if="canDelete(currentProject)"
+          :title="t('common.danger_zone', 'Danger Zone')"
+          title-class="text-lg font-semibold text-red-600 dark:text-red-400"
+          class="border border-red-200 dark:border-red-900"
+        >
           
           <div class="flex items-center justify-between">
             <div>
@@ -285,7 +269,7 @@ function cancelDelete() {
               {{ t('project.deleteProject') }}
             </UButton>
           </div>
-        </UCard>
+        </UiAppCard>
       </div>
     </div>
 

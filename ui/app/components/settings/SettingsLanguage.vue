@@ -26,12 +26,7 @@ function changeLanguage(newLocale: string) {
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-        {{ t('settings.language') }}
-      </h2>
-    </template>
+  <UiAppCard :title="t('settings.language')" title-class="text-lg font-medium text-gray-900 dark:text-white">
     
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
       {{ t('settings.selectLanguage', 'Select your preferred language for the interface') }}
@@ -48,5 +43,5 @@ function changeLanguage(newLocale: string) {
         {{ lang.label }}
       </UButton>
     </div>
-  </UCard>
+  </UiAppCard>
 </template>
