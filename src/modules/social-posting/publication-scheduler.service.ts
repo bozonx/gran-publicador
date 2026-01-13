@@ -67,33 +67,56 @@ export class PublicationSchedulerService implements OnModuleInit {
   }
 
   private async markExpired(windowStart: Date) {
-    // Mark publications EXPIRED
-    const expiredPubs = await this.prisma.publication.updateMany({
+    // 1. Find and Mark Publications
+    const pubsToExpire = await this.prisma.publication.findMany({
       where: {
         status: PublicationStatus.SCHEDULED,
         scheduledAt: { lt: windowStart },
+        archivedAt: null,
+        project: { archivedAt: null },
       },
-      data: { status: PublicationStatus.EXPIRED },
+      select: { id: true },
     });
 
-    if (expiredPubs.count > 0) {
-      this.logger.log(`Marked ${expiredPubs.count} publications as EXPIRED`);
+    if (pubsToExpire.length > 0) {
+      const expiredPubs = await this.prisma.publication.updateMany({
+        where: { id: { in: pubsToExpire.map((p) => p.id) } },
+        data: { status: PublicationStatus.EXPIRED },
+      });
+      if (expiredPubs.count > 0) {
+        this.logger.log(`Marked ${expiredPubs.count} publications as EXPIRED`);
+      }
     }
 
-    // Mark individual posts as EXPIRED (FAILED with error message)
-    const expiredPosts = await this.prisma.post.updateMany({
+    // 2. Find and Mark Posts
+    const postsToExpire = await this.prisma.post.findMany({
       where: {
         status: PostStatus.PENDING,
         scheduledAt: { lt: windowStart },
+        publication: {
+          archivedAt: null,
+          project: { archivedAt: null },
+        },
+        channel: {
+          isActive: true,
+          archivedAt: null,
+        },
       },
-      data: {
-        status: PostStatus.FAILED,
-        errorMessage: 'EXPIRED',
-      },
+      select: { id: true },
     });
 
-    if (expiredPosts.count > 0) {
-      this.logger.log(`Marked ${expiredPosts.count} posts as EXPIRED`);
+    if (postsToExpire.length > 0) {
+      const expiredPosts = await this.prisma.post.updateMany({
+        where: { id: { in: postsToExpire.map((p) => p.id) } },
+        data: {
+          status: PostStatus.FAILED,
+          errorMessage: 'EXPIRED',
+        },
+      });
+
+      if (expiredPosts.count > 0) {
+        this.logger.log(`Marked ${expiredPosts.count} posts as EXPIRED`);
+      }
     }
   }
 
@@ -103,6 +126,8 @@ export class PublicationSchedulerService implements OnModuleInit {
     // Also including createdAt as secondary sort for identical scheduledAt times
     const publications = await this.prisma.publication.findMany({
       where: {
+        archivedAt: null,
+        project: { archivedAt: null },
         OR: [
           // 1. Classic scheduled publication
           { 

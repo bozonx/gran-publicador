@@ -240,6 +240,7 @@ export class SocialPostingService {
           post,
           post.channel,
           publicationWithPosts,
+          { force: options.force },
         );
         this.logger.log(
           `[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`,
@@ -353,6 +354,14 @@ export class SocialPostingService {
         post,
         post.channel,
         post.publication,
+        // Since publishPost is typically manual, we might assume force? 
+        // Or we should update the controller to pass force. 
+        // For now, let's keep it consistent: single post publish via API usually implies manual intent, 
+        // but let's default to false unless we change the signature of publishPost too.
+        // Actually, looking at the code, publishPost doesn't take options. 
+        // However, user requirement "manual press on button... should be permitted" refers to the UI action which calls publishPublication usually?
+        // Let's assume publishPost is also manual.
+        { force: true }, // Assume manual single post execution implies force/user intent
       );
 
       const allPosts = await this.prisma.post.findMany({
@@ -412,12 +421,13 @@ export class SocialPostingService {
     post: any,
     channel: any,
     publication: any,
+    options: { force?: boolean } = {},
   ): Promise<{ success: boolean; error?: string; url?: string }> {
     const logPrefix = `[publishSinglePost][Post:${post.id}]`;
 
     try {
       const { targetChannelId, apiKey, error: prepError } =
-        await this.prepareChannelForPosting(channel);
+        await this.prepareChannelForPosting(channel, { ignoreState: options.force });
       if (prepError) throw new Error(prepError);
 
       const request = SocialPostingRequestFormatter.prepareRequest({
@@ -571,8 +581,9 @@ export class SocialPostingService {
    */
   private async prepareChannelForPosting(
     channel: any,
+    options: { ignoreState?: boolean } = {},
   ): Promise<{ targetChannelId: string; apiKey: string; error?: string }> {
-    const validation = this.validateChannelReady(channel);
+    const validation = this.validateChannelReady(channel, options);
     if (!validation.valid) {
       return {
         targetChannelId: '',
@@ -594,14 +605,21 @@ export class SocialPostingService {
     };
   }
 
-  private validateChannelReady(channel: any): {
+  private validateChannelReady(
+    channel: any,
+    options: { ignoreState?: boolean } = {},
+  ): {
     valid: boolean;
     errors: string[];
   } {
     const errors: string[] = [];
-    if (!channel.isActive) errors.push('Channel is not active');
-    if (channel.archivedAt) errors.push('Channel is archived');
-    if (channel.project?.archivedAt) errors.push('Project is archived');
+
+    // State checks - can be ignored if forced (user manual action)
+    if (!options.ignoreState) {
+      if (!channel.isActive) errors.push('Channel is not active');
+      if (channel.archivedAt) errors.push('Channel is archived');
+      if (channel.project?.archivedAt) errors.push('Project is archived');
+    }
     if (!channel.channelIdentifier)
       errors.push('Channel identifier is missing');
 

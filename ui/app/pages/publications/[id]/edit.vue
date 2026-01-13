@@ -425,7 +425,7 @@ async function handleConfirmArchivePublish() {
         return
     }
 
-    await executePublish(false)
+    await executePublish(true)
 }
 
 async function handleConfirmRepublish() {
