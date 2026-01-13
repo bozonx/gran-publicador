@@ -444,7 +444,6 @@ export class ProjectsService {
 
   public async findMembers(projectId: string, userId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      // ProjectRole.OWNER, // Implicitly checked
       ProjectRole.ADMIN,
       ProjectRole.EDITOR,
       ProjectRole.VIEWER,
