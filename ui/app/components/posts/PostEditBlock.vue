@@ -13,6 +13,7 @@ import {
 } from '~/composables/usePosts'
 import type { ChannelPostTemplate } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
+import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'

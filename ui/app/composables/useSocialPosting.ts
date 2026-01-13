@@ -72,8 +72,11 @@ export const useSocialPosting = () => {
     // Check if publication has content or media
     const hasContent = !isTextContentEmpty(publication.content);
     const hasMedia = Array.isArray(publication.media) && publication.media.length > 0;
+    
+    // Check if publication has at least one post
+    const hasPosts = Array.isArray(publication.posts) && publication.posts.length > 0;
 
-    return hasContent || hasMedia;
+    return (hasContent || hasMedia) && hasPosts;
   };
 
   /**

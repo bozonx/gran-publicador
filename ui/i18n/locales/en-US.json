@@ -738,7 +738,13 @@
     "min": "Minimum value: {min}",
     "jsonInvalid": "Invalid JSON format",
     "invalidYaml": "Must be a valid YAML object (key-value pairs), not a list or value",
-    "checkFormErrors": "Please check the form for errors"
+    "checkFormErrors": "Please check the form for errors",
+    "socialMedia": {
+      "captionTooLong": "Caption length ({current}) exceeds maximum allowed ({max}) for {platform}",
+      "textTooLong": "Text length ({current}) exceeds maximum allowed ({max}) for {platform}",
+      "tooManyMedia": "Media count ({current}) exceeds maximum allowed ({max}) for {platform}",
+      "notEnoughMedia": "Media count ({current}) is below minimum required ({min}) for {platform}"
+    }
   },
   "errors": {
     "generic": "An error occurred. Please try again.",

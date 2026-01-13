@@ -868,7 +868,7 @@ async function executePublish(force: boolean) {
                                         ></UButton>
                                     </UTooltip>
                                     
-                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!canPublishPublication(currentPublication) ? t('publication.cannotPublish') : '')">
+                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? t('publication.cannotPublish') : ''))">
                                         <UButton
                                             :label="t('publication.publishNow')"
                                             icon="i-heroicons-paper-airplane"
