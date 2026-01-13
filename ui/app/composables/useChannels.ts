@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { eventBus } from '~/utils/events'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { getSocialMediaColor as getColorBase, getSocialMediaIcon as getIconBase, getSocialMediaOptions } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
@@ -116,6 +117,7 @@ export function useChannels() {
             if (data.projectId) {
                 await fetchChannels({ projectId: data.projectId })
             }
+            eventBus.emit('channel:created', channel)
             return channel
         } catch (err: any) {
             const message = err.message || 'Failed to create channel'

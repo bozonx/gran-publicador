@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SocialMedia } from '~/types/socialMedia'
+import { getSocialMediaOptions } from '~/utils/socialMedia'
 import { FORM_STYLES } from '~/utils/design-tokens'
 
 const { t } = useI18n()
@@ -11,8 +12,12 @@ const emit = defineEmits<{
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
+const props = defineProps<{
+  initialProjectId?: string
+}>()
+
 const { projects, fetchProjects } = useProjects()
-const { createChannel, isLoading } = useChannels()
+const { createChannel, isLoading, getSocialMediaIcon } = useChannels()
 const { languageOptions } = useLanguages()
 
 const formState = reactive({
@@ -33,7 +38,7 @@ watch(isOpen, async (open) => {
 })
 
 function resetForm() {
-  formState.projectId = projects.value[0]?.id || ''
+  formState.projectId = props.initialProjectId || projects.value[0]?.id || ''
   formState.name = ''
   formState.socialMedia = '' as SocialMedia | ''
   formState.language = 'ru-RU'
@@ -42,17 +47,10 @@ function resetForm() {
 }
 
 // Social media options
-const socialMediaOptions = computed(() => [
-  { value: 'TELEGRAM', label: t('socialMedia.telegram'), icon: 'i-heroicons-paper-airplane' },
-  { value: 'VK', label: t('socialMedia.vk'), icon: 'i-heroicons-share' },
-  { value: 'YOUTUBE', label: t('socialMedia.youtube'), icon: 'i-heroicons-video-camera' },
-  { value: 'INSTAGRAM', label: t('socialMedia.instagram'), icon: 'i-heroicons-camera' },
-  { value: 'TIKTOK', label: t('socialMedia.tiktok'), icon: 'i-heroicons-musical-note' },
-  { value: 'X', label: t('socialMedia.x'), icon: 'i-heroicons-at-symbol' },
-  { value: 'FACEBOOK', label: t('socialMedia.facebook'), icon: 'i-heroicons-user-group' },
-  { value: 'LINKEDIN', label: t('socialMedia.linkedin'), icon: 'i-heroicons-briefcase' },
-  { value: 'SITE', label: t('socialMedia.site'), icon: 'i-heroicons-globe-alt' }
-])
+const socialMediaOptions = computed(() => getSocialMediaOptions(t).map(opt => ({
+  ...opt,
+  icon: getSocialMediaIcon(opt.value as SocialMedia)
+})))
 
 // Project options
 const projectOptions = computed(() => 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { eventBus } from '~/utils/events'
 import type { ProjectWithRole } from '~/stores/projects'
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { getSocialMediaIcon, getSocialMediaColor } from '~/utils/socialMedia'
@@ -80,7 +81,18 @@ const areChannelsLoading = ref<Record<string, boolean>>({})
 onMounted(async () => {
   await fetchProjects()
   checkActiveRoute()
+  eventBus.on('channel:created', handleChannelCreatedEvent)
 })
+
+onUnmounted(() => {
+  eventBus.off('channel:created', handleChannelCreatedEvent)
+})
+
+function handleChannelCreatedEvent(channel: any) {
+  if (channel && channel.projectId) {
+    fetchProjectChannels(channel.projectId)
+  }
+}
 
 // Watch route to auto-expand
 watch(() => route.path, () => {

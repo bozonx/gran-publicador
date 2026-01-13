@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { eventBus } from '~/utils/events'
+import type { SocialMedia } from '~/types/socialMedia'
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { SOCIAL_MEDIA_WEIGHTS } from '~/utils/socialMedia'
 import { useViewMode } from '~/composables/useViewMode'
@@ -103,15 +105,32 @@ const showArchived = ref(false)
 
 onMounted(async () => {
   if (props.projectId) {
-    // Fetch all channels including archived at once
-    const fetchedChannels = await fetchChannels({ 
-      projectId: props.projectId, 
-      includeArchived: true,
-      limit: 1000 // Fetch all (max 1000) channels for the project view
-    })
-    allChannels.value = fetchedChannels
+    await refreshChannels()
   }
+  eventBus.on('channel:created', handleChannelCreatedEvent)
 })
+
+onUnmounted(() => {
+  eventBus.off('channel:created', handleChannelCreatedEvent)
+})
+
+async function refreshChannels() {
+  if (!props.projectId) return
+  
+  // Fetch all channels including archived at once
+  const fetchedChannels = await fetchChannels({ 
+    projectId: props.projectId, 
+    includeArchived: true,
+    limit: 1000 // Fetch all (max 1000) channels for the project view
+  })
+  allChannels.value = fetchedChannels
+}
+
+function handleChannelCreatedEvent(channel: any) {
+  if (channel && channel.projectId === props.projectId) {
+    refreshChannels()
+  }
+}
 
 
 const isCreateModalOpen = ref(false)
@@ -177,16 +196,13 @@ async function handleCreateChannel() {
  * Get identifier placeholder based on selected social media
  */
 function getIdentifierPlaceholder(socialMedia: SocialMedia): string {
-  const placeholders: Record<SocialMedia, string> = {
+  const placeholders: Record<string, string> = {
     TELEGRAM: '@channel_name',
-    INSTAGRAM: '@username',
     VK: 'club123456789',
     YOUTUBE: '@channelhandle',
     TIKTOK: '@username',
-    X: '@username',
     FACEBOOK: 'page_username',
     SITE: 'https://example.com',
-    LINKEDIN: 'username',
   }
   return placeholders[socialMedia] || ''
 }

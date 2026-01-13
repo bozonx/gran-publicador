@@ -3,6 +3,7 @@ import type { PostType } from '~/types/posts'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 
 const props = withDefaults(defineProps<{
@@ -347,6 +348,7 @@ function closePublicationModal() {
     <!-- Create Channel Modal -->
     <ModalsCreateChannelModal
       v-model:open="isChannelModalOpen"
+      :initial-project-id="route.params.id as string"
       @created="handleChannelCreated"
     />
   </div>

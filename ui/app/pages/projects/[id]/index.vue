@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { eventBus } from '~/utils/events'
 import { useProjects } from '~/composables/useProjects'
 import { useChannels } from '~/composables/useChannels'
 import { ArchiveEntityType } from '~/types/archive.types'
@@ -65,28 +66,41 @@ const projectId = computed(() => route.params.id as string)
 // Fetch project on mount
 onMounted(async () => {
   if (projectId.value) {
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    await Promise.all([
-      fetchProject(projectId.value),
-      fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
-      fetchRecentPublished(projectId.value, { 
-        status: 'PUBLISHED', 
-        publishedAfter: yesterday,
-        limit: 10,
-        sortBy: 'byPublished',
-        sortOrder: 'desc'
-      }),
-      fetchScheduled(projectId.value, { status: 'SCHEDULED', limit: 5 }),
-      fetchProblems(projectId.value, { status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 5 }),
-      fetchChannels({ projectId: projectId.value, limit: 1000 })
-    ])
+    await initialFetch()
   }
+  eventBus.on('channel:created', handleChannelCreatedEvent)
 })
 
 // Clean up on unmount
 onUnmounted(() => {
   clearCurrentProject()
+  eventBus.off('channel:created', handleChannelCreatedEvent)
 })
+
+async function initialFetch() {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  await Promise.all([
+    fetchProject(projectId.value),
+    fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
+    fetchRecentPublished(projectId.value, { 
+      status: 'PUBLISHED', 
+      publishedAfter: yesterday,
+      limit: 10,
+      sortBy: 'byPublished',
+      sortOrder: 'desc'
+    }),
+    fetchScheduled(projectId.value, { status: 'SCHEDULED', limit: 5 }),
+    fetchProblems(projectId.value, { status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 5 }),
+    fetchChannels({ projectId: projectId.value, limit: 1000 })
+  ])
+}
+
+function handleChannelCreatedEvent(channel: any) {
+  if (channel && channel.projectId === projectId.value) {
+    // We only need to refresh channels specifically
+    fetchChannels({ projectId: projectId.value, limit: 1000 })
+  }
+}
 
 /**
  * Navigate back to projects list
