@@ -22,8 +22,11 @@ async function main() {
 
     // 1. CLEAR OLD DATA
     console.log('  Cleaning up old data...');
+    // Delete in order to respect FK constraints
     await prisma.apiToken.deleteMany({});
     await prisma.post.deleteMany({});
+    await prisma.publicationMedia.deleteMany({});
+    await prisma.media.deleteMany({});
     await prisma.publication.deleteMany({});
     await prisma.channel.deleteMany({});
     await prisma.projectMember.deleteMany({});
@@ -358,6 +361,65 @@ async function main() {
             update: {}
         });
     }
+
+    // 9. MEDIA & PUBLICATION MEDIA
+    console.log('  Generating media data...');
+    const mediaSamples = [
+        {
+            id: '99999999-9999-9999-9999-000000000001',
+            type: 'IMAGE' as const,
+            storageType: 'FS' as const,
+            storagePath: 'samples/image1.jpg',
+            filename: 'image1.jpg',
+            mimeType: 'image/jpeg',
+            sizeBytes: 1024 * 100,
+            meta: {},
+        },
+        {
+            id: '99999999-9999-9999-9999-000000000002',
+            type: 'VIDEO' as const,
+            storageType: 'FS' as const,
+            storagePath: 'samples/video1.mp4',
+            filename: 'video1.mp4',
+            mimeType: 'video/mp4',
+            sizeBytes: 1024 * 1024 * 5,
+            meta: {},
+        }
+    ];
+
+    for (const m of mediaSamples) {
+        await prisma.media.upsert({
+            where: { id: m.id },
+            update: m,
+            create: m,
+        });
+    }
+
+    await prisma.publicationMedia.upsert({
+        where: { id: '99999999-9999-9999-9999-100000000001' },
+        update: {},
+        create: {
+            id: '99999999-9999-9999-9999-100000000001',
+            publicationId: publications[0].id,
+            mediaId: mediaSamples[0].id,
+            order: 0,
+        }
+    });
+
+    // 10. API TOKENS
+    console.log('  Generating API tokens...');
+    await prisma.apiToken.upsert({
+        where: { hashedToken: 'mock-hashed-dev-token' },
+        update: {},
+        create: {
+            id: '00000000-0000-0000-0000-00000000000a',
+            userId: devUser.id,
+            name: 'Dev Local Token',
+            hashedToken: 'mock-hashed-dev-token',
+            encryptedToken: 'mock-encrypted-dev-token',
+            scopeProjectIds: [projectData[0].id],
+        }
+    });
 
     console.log('✅ Seeding complete!');
 }

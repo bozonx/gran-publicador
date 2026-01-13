@@ -86,7 +86,7 @@ model ProjectMember {
   id        String      @id @default(uuid())
   projectId String      @map("project_id")
   userId    String      @map("user_id")
-  // User's role in the project (OWNER, ADMIN, EDITOR, VIEWER)
+  // User's role in the project (ADMIN, EDITOR, VIEWER)
   role      ProjectRole @default(VIEWER)
   createdAt DateTime    @default(now()) @map("created_at")
 
