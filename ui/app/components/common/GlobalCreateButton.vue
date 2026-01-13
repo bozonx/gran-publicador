@@ -159,7 +159,7 @@ async function handleCreatePublication() {
       })
       
       isPublicationModalOpen.value = false
-      router.push(`/publications/${publication.id}?new=true`)
+      router.push(`/publications/${publication.id}/edit`)
     }
   } catch (error) {
     console.error('Failed to create publication:', error)

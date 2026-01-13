@@ -45,7 +45,7 @@ const publicationProblems = computed(() => {
 })
 
 const isCreatingPost = ref(false)
-const isFormCollapsed = ref(true)
+const isFormCollapsed = ref(false)
 const isDeleteModalOpen = ref(false)
 const isDeleting = ref(false)
 const isRepublishModalOpen = ref(false)
@@ -132,14 +132,6 @@ const majoritySchedule = computed(() => {
 })
 
 onMounted(async () => {
-    // Check if this is a newly created publication (from modal)
-    const isNewlyCreated = route.query.new === 'true'
-    if (isNewlyCreated) {
-        isFormCollapsed.value = false
-        // Clean up query param
-        router.replace({ query: {} })
-    }
-    
     // Fetch publication first to get projectId
     if (publicationId.value) {
         await fetchPublication(publicationId.value)

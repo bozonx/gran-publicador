@@ -144,7 +144,7 @@ function handleCreateSuccess(publicationId: string) {
     isCreateModalOpen.value = false
     // Navigate to the new publication or refresh list
     // The user wanted the modal to just work. Navigate to the new publication seems appropriate.
-    router.push(`/publications/${publicationId}?new=true`)
+    router.push(`/publications/${publicationId}/edit`)
 }
 
 // Project problems detection
