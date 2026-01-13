@@ -3,7 +3,6 @@
 type ButtonColor = 'primary' | 'secondary' | 'neutral' | 'error' | 'warning' | 'success' | 'info';
 
 const props = withDefaults(defineProps<{
-    modelValue: boolean;
     title: string;
     description?: string;
     confirmText?: string;
@@ -16,23 +15,25 @@ const props = withDefaults(defineProps<{
     loading: false
 });
 
-const emit = defineEmits(['update:modelValue', 'confirm']);
+const emit = defineEmits(['confirm']);
+
+const isOpen = defineModel<boolean>('open', { required: true });
 
 const { t } = useI18n();
 
 const handleConfirm = () => {
     emit('confirm');
+    isOpen.value = false;
 };
 
 const handleClose = () => {
-    emit('update:modelValue', false);
+    isOpen.value = false;
 };
 </script>
 
 <template>
   <AppModal 
-    :open="modelValue" 
-    @update:open="emit('update:modelValue', $event)"
+    v-model:open="isOpen"
     :title="title"
     :ui="{ content: 'sm:max-w-lg' }"
   >

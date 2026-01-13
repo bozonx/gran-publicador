@@ -2,13 +2,14 @@
 import { ArchiveEntityType } from '~/types/archive.types';
 
 const props = defineProps<{
-    modelValue: boolean;
     entityType: ArchiveEntityType;
     entityId: string;
     currentParentId: string;
 }>();
 
-const emit = defineEmits(['update:modelValue', 'moved']);
+const emit = defineEmits(['moved']);
+
+const isOpen = defineModel<boolean>('open', { required: true });
 
 const { t } = useI18n();
 const { moveEntity } = useArchive();
@@ -40,7 +41,7 @@ const handleMove = async () => {
     try {
         await moveEntity(props.entityType, props.entityId, selectedTargetId.value);
         emit('moved');
-        emit('update:modelValue', false);
+        isOpen.value = false;
     } catch (error) {
         // Error handled in useArchive
     } finally {
@@ -51,8 +52,7 @@ const handleMove = async () => {
 
 <template>
     <AppModal 
-        :open="modelValue" 
-        @update:open="emit('update:modelValue', $event)"
+        v-model:open="isOpen"
         :title="t('archive.move_entity_title')"
     >
         <template #header>
@@ -84,7 +84,7 @@ const handleMove = async () => {
             <UButton
                 color="neutral"
                 variant="ghost"
-                @click="emit('update:modelValue', false)"
+                @click="isOpen = false"
                 class="rounded-xl"
             >
                 {{ t('common.cancel') }}

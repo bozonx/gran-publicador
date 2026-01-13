@@ -1,23 +1,23 @@
 <script setup lang="ts">
 const props = defineProps<{
-    modelValue: boolean;
     entityName: string;
 }>();
 
-const emit = defineEmits(['update:modelValue', 'confirm']);
+const emit = defineEmits(['confirm']);
+
+const isOpen = defineModel<boolean>('open', { required: true });
 
 const { t } = useI18n();
 
 const handleConfirm = () => {
     emit('confirm');
-    emit('update:modelValue', false);
+    isOpen.value = false;
 };
 </script>
 
 <template>
     <AppModal 
-        :open="modelValue" 
-        @update:open="emit('update:modelValue', $event)"
+        v-model:open="isOpen"
         :title="t('archive.delete_permanent_title')"
     >
         <template #header>
@@ -43,7 +43,7 @@ const handleConfirm = () => {
             <UButton
                 color="neutral"
                 variant="ghost"
-                @click="emit('update:modelValue', false)"
+                @click="isOpen = false"
                 class="rounded-xl"
             >
                 {{ t('common.cancel') }}

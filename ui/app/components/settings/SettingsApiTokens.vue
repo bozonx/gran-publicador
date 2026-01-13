@@ -314,7 +314,7 @@ function formatDate(date: string | null | undefined): string {
 
     <!-- Delete Token Confirmation Modal -->
     <UiConfirmModal
-      v-model="showDeleteTokenModal"
+      v-model:open="showDeleteTokenModal"
       :title="t('settings.deleteTokenTitle', 'Delete API Token')"
       :description="t('settings.deleteTokenDescription', 'Are you sure you want to delete this API token? This action cannot be undone.')"
       :confirm-text="t('common.delete')"
