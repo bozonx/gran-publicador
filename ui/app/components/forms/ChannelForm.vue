@@ -843,7 +843,7 @@ function setDefaultFooter(id: string) {
     </UForm>
 
     <!-- Footer Modal -->
-    <AppModal 
+    <UiAppModal 
       v-if="visibleSections.includes('footers') || visibleSections.includes('preferences')" 
       v-model:open="isFooterModalOpen"
       :title="editingFooter ? t('channel.editFooter') : t('channel.addFooter')"
@@ -880,6 +880,6 @@ function setDefaultFooter(id: string) {
           {{ t('common.save') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>

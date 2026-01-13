@@ -183,7 +183,7 @@ function formatSizeMB(bytes?: number): string {
     </div>
 
     <!-- Modal -->
-    <AppModal v-model:open="isModalOpen" :title="selectedMedia?.filename || t('media.preview')" :ui="{ content: 'sm:max-w-6xl' }">
+    <UiAppModal v-model:open="isModalOpen" :title="selectedMedia?.filename || t('media.preview')" :ui="{ content: 'sm:max-w-6xl' }">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Left: Preview -->
         <div class="flex flex-col gap-4">
@@ -281,6 +281,6 @@ function formatSizeMB(bytes?: number): string {
 
         </div>
       </div>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>

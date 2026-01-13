@@ -1,13 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  modules: [
-    '@nuxt/ui',
-    '@nuxt/icon',
-    '@nuxtjs/i18n',
-    '@pinia/nuxt',
-    '@vueuse/nuxt',
-  ],
+  modules: ['@nuxt/ui', '@nuxt/icon', '@nuxtjs/i18n', '@pinia/nuxt', '@vueuse/nuxt'],
 
   i18n: {
     locales: [
@@ -36,9 +30,7 @@ export default defineNuxtConfig({
       title: 'Gran Publicador',
       viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
       meta: [{ name: 'theme-color', content: '#000000' }],
-      script: [
-        { src: 'https://telegram.org/js/telegram-web-app.js' }
-      ]
+      script: [{ src: 'https://telegram.org/js/telegram-web-app.js' }],
     },
   },
 
@@ -55,7 +47,12 @@ export default defineNuxtConfig({
     },
   },
 
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: true,
+    },
+  ],
 
-
-  devtools: { enabled: true }
-})
+  devtools: { enabled: true },
+});

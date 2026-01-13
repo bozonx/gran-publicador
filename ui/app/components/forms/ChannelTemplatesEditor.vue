@@ -317,7 +317,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
     </div>
 
     <!-- Template Edit Modal -->
-    <AppModal 
+    <UiAppModal 
       v-model:open="isModalOpen"
       :title="editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate')"
     >
@@ -469,7 +469,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
               </UButton>
             </div>
           </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Delete Warning Modal -->
     <UiConfirmModal

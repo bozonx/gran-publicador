@@ -92,6 +92,8 @@ function handleClose(close?: () => void) {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

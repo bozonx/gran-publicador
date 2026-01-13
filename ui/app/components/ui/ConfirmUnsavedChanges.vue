@@ -17,7 +17,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <AppModal v-model:open="confirmModalState.isOpen" :title="t('form.unsavedChanges', 'Unsaved Changes')">
+  <UiAppModal v-model:open="confirmModalState.isOpen" :title="t('form.unsavedChanges', 'Unsaved Changes')">
     <template #header>
       <div class="flex items-center gap-3">
         <UIcon name="i-heroicons-exclamation-triangle" class="text-orange-500 w-6 h-6" />
@@ -39,5 +39,5 @@ function handleCancel() {
         {{ t('common.leave', 'Leave without saving') }}
       </UButton>
     </template>
-  </AppModal>
+  </UiAppModal>
 </template>

@@ -316,7 +316,7 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
 
 
     <!-- Create Project Modal -->
-    <AppModal v-model:open="isCreateModalOpen" :title="t('project.createProject')">
+    <UiAppModal v-model:open="isCreateModalOpen" :title="t('project.createProject')">
       <form id="create-project-form" @submit.prevent="handleCreateProject" class="space-y-6">
         <UFormField :label="t('project.name')" required>
           <UInput v-model="createFormState.name" :placeholder="t('project.namePlaceholder')" autofocus class="w-full" size="lg" />
@@ -335,6 +335,6 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
           {{ t('common.create') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>

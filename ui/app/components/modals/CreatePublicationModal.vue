@@ -150,7 +150,7 @@ function handleClose() {
 </script>
 
 <template>
-  <AppModal v-model:open="isOpen" :title="t('publication.create')">
+  <UiAppModal v-model:open="isOpen" :title="t('publication.create')">
     <!-- Form -->
     <form id="create-publication-form" class="space-y-6" @submit.prevent="handleCreate">
       <!-- Language -->
@@ -249,5 +249,5 @@ function handleClose() {
         {{ t('common.create') }}
       </UButton>
     </template>
-  </AppModal>
+  </UiAppModal>
 </template>

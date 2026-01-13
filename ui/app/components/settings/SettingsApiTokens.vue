@@ -234,7 +234,7 @@ function formatDate(date: string | null | undefined): string {
     </div>
 
     <!-- Create Token Modal -->
-    <AppModal 
+    <UiAppModal 
       v-model:open="showCreateTokenModal" 
       :title="t('settings.createToken', 'Create API Token')"
     >
@@ -271,10 +271,10 @@ function formatDate(date: string | null | undefined): string {
           {{ t('common.create') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Edit Token Modal -->
-    <AppModal 
+    <UiAppModal 
       v-model:open="showEditTokenModal" 
       :title="t('settings.editToken', 'Edit API Token')"
     >
@@ -310,7 +310,7 @@ function formatDate(date: string | null | undefined): string {
           {{ t('common.save') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Delete Token Confirmation Modal -->
     <UiConfirmModal

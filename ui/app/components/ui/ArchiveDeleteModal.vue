@@ -16,7 +16,7 @@ const handleConfirm = () => {
 </script>
 
 <template>
-    <AppModal 
+    <UiAppModal 
         v-model:open="isOpen"
         :title="t('archive.delete_permanent_title')"
     >
@@ -57,5 +57,5 @@ const handleConfirm = () => {
                 {{ t('archive.confirm_delete') }}
             </UButton>
         </template>
-    </AppModal>
+    </UiAppModal>
 </template>

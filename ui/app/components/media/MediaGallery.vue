@@ -703,7 +703,7 @@ const emit = defineEmits<Emits>()
   </div>
 
   <!-- Media viewer modal -->
-  <AppModal 
+  <UiAppModal 
     v-model:open="isModalOpen" 
     :ui="{ content: 'sm:max-w-6xl' }"
     :title="selectedMedia?.filename || t('media.preview', 'Media Preview')"
@@ -840,7 +840,7 @@ const emit = defineEmits<Emits>()
         </CommonYamlEditor>
       </div>
     </div>
-  </AppModal>
+  </UiAppModal>
 </template>
 
 <style scoped>

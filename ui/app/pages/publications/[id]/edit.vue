@@ -557,7 +557,7 @@ async function executePublish(force: boolean) {
     />
 
     <!-- Schedule Modal -->
-    <AppModal v-if="isScheduleModalOpen" v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
+    <UiAppModal v-if="isScheduleModalOpen" v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
       <p class="text-gray-500 dark:text-gray-400 mb-4">
         {{ t('publication.changeScheduleInfo') }}
       </p>
@@ -580,10 +580,10 @@ async function executePublish(force: boolean) {
           @click="handleBulkSchedule"
         />
       </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Language Change Modal -->
-    <AppModal v-if="isLanguageModalOpen" v-model:open="isLanguageModalOpen" :title="t('publication.changeLanguage')">
+    <UiAppModal v-if="isLanguageModalOpen" v-model:open="isLanguageModalOpen" :title="t('publication.changeLanguage')">
       <UFormField :label="t('common.language')" required>
          <USelectMenu
             v-model="newLanguage"
@@ -608,10 +608,10 @@ async function executePublish(force: boolean) {
           @click="handleUpdateLanguage"
         />
       </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Post Type Change Modal -->
-    <AppModal v-if="isTypeModalOpen" v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
+    <UiAppModal v-if="isTypeModalOpen" v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
       <div class="space-y-2">
         <UButton
           v-for="option in typeOptions"
@@ -624,7 +624,7 @@ async function executePublish(force: boolean) {
           @click="handleUpdateTypeOption(option.value as PostType)"
         />
       </div>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Status Change Modal removed in favor of button group -->
 

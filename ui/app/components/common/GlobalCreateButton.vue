@@ -229,7 +229,7 @@ function closePublicationModal() {
     </div>
 
     <!-- Create Publication Modal -->
-    <AppModal v-model:open="isPublicationModalOpen" :title="t('publication.create')">
+    <UiAppModal v-model:open="isPublicationModalOpen" :title="t('publication.create')">
       <form id="global-create-publication-form" class="space-y-6" @submit.prevent="handleCreatePublication">
         <!-- Project -->
         <UFormField :label="t('project.title')" required>
@@ -336,7 +336,7 @@ function closePublicationModal() {
           {{ t('common.create') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Create Project Modal -->
     <ModalsCreateProjectModal

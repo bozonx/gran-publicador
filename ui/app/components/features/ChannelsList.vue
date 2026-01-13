@@ -344,7 +344,7 @@ function toggleArchivedChannels() {
     </div>
 
     <!-- Create Channel Modal -->
-    <AppModal v-model:open="isCreateModalOpen" :title="t('channel.createChannel')">
+    <UiAppModal v-model:open="isCreateModalOpen" :title="t('channel.createChannel')">
       <form @submit.prevent="handleCreateChannel" id="create-channel-form" class="space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField :label="t('channel.language')" required>
@@ -393,6 +393,6 @@ function toggleArchivedChannels() {
           {{ t('common.create') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>

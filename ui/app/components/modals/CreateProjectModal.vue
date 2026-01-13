@@ -64,7 +64,7 @@ watch(isOpen, (open) => {
 </script>
 
 <template>
-  <AppModal v-model:open="isOpen" :title="t('project.createProject')">
+  <UiAppModal v-model:open="isOpen" :title="t('project.createProject')">
     <form id="create-project-form" @submit.prevent="handleCreate" class="space-y-6">
       <UFormField :label="t('project.name')" required>
         <UInput 
@@ -106,5 +106,5 @@ watch(isOpen, (open) => {
         {{ t('common.create') }}
       </UButton>
     </template>
-  </AppModal>
+  </UiAppModal>
 </template>

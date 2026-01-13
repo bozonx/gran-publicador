@@ -51,7 +51,7 @@ const handleMove = async () => {
 </script>
 
 <template>
-    <AppModal 
+    <UiAppModal 
         v-model:open="isOpen"
         :title="t('archive.move_entity_title')"
     >
@@ -99,5 +99,5 @@ const handleMove = async () => {
                 {{ t('archive.confirm_move') }}
             </UButton>
         </template>
-    </AppModal>
+    </UiAppModal>
 </template>

@@ -268,7 +268,7 @@ function cancelDelete() {
     </div>
 
     <!-- Delete confirmation modal -->
-    <AppModal v-model:open="showDeleteModal" :title="t('project.deleteProject')">
+    <UiAppModal v-model:open="showDeleteModal" :title="t('project.deleteProject')">
       <div v-if="currentProject" class="mb-6">
         <p class="text-gray-600 dark:text-gray-400 mb-2">
           {{ t('project.deleteConfirmWithInput') }}
@@ -301,6 +301,6 @@ function cancelDelete() {
           {{ t('common.delete') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>

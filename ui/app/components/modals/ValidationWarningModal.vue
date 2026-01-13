@@ -28,7 +28,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <AppModal 
+  <UiAppModal 
     v-model:open="isOpen" 
     :title="t('validation.invalidContent')"
     :ui="{ content: 'sm:max-w-2xl' }"
@@ -85,5 +85,5 @@ function handleCancel() {
         {{ t('validation.saveAnyway') }}
       </UButton>
     </template>
-  </AppModal>
+  </UiAppModal>
 </template>

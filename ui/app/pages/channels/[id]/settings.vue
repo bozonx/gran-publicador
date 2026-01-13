@@ -356,7 +356,7 @@ async function handleDelete() {
     </div>
 
     <!-- Delete confirmation modal -->
-    <AppModal v-model:open="showDeleteModal" :title="t('channel.deleteChannel', 'Delete Channel')">
+    <UiAppModal v-model:open="showDeleteModal" :title="t('channel.deleteChannel', 'Delete Channel')">
       <div v-if="channel" class="mb-6">
         <p class="text-gray-600 dark:text-gray-400 mb-2">
           {{ t('channel.deleteConfirmWithInput') }}
@@ -389,6 +389,6 @@ async function handleDelete() {
           {{ t('common.delete') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>

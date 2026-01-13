@@ -546,7 +546,7 @@ const hasActiveFilters = computed(() => {
     </UiConfirmModal>
 
     <!-- Ban user modal -->
-    <AppModal
+    <UiAppModal
       v-if="showBanModal"
       v-model:open="showBanModal"
       :title="userToBan?.isBanned ? t('admin.unbanUser', 'Unban User') : t('admin.banUser', 'Ban User')"
@@ -595,6 +595,6 @@ const hasActiveFilters = computed(() => {
           }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
   </div>
 </template>
