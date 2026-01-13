@@ -72,9 +72,16 @@ export class ProjectsService {
     const projects = await this.prisma.project.findMany({
       where,
       include: {
-        _count: { select: { members: true, channels: true, publications: true } },
+        _count: {
+          select: {
+            members: true,
+            channels: { where: { archivedAt: null } },
+            publications: { where: { archivedAt: null } },
+          },
+        },
         members: { where: { userId }, select: { role: true } },
         publications: {
+          where: { archivedAt: null },
           take: 1,
           orderBy: { createdAt: 'desc' },
           select: { id: true, createdAt: true },
@@ -217,6 +224,7 @@ export class ProjectsService {
         members: { where: { userId }, select: { role: true } },
         _count: { select: { channels: true, publications: true } },
         publications: {
+          where: { archivedAt: null },
           take: 1,
           orderBy: { createdAt: 'desc' },
           select: { id: true, createdAt: true },
@@ -231,7 +239,7 @@ export class ProjectsService {
             preferences: true,
             _count: { select: { posts: true } },
             posts: {
-              where: { status: PostStatus.PUBLISHED },
+              where: { status: PostStatus.PUBLISHED, publication: { archivedAt: null } },
               take: 1,
               orderBy: { publishedAt: 'desc' },
               select: { publishedAt: true },

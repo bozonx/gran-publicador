@@ -66,7 +66,7 @@ export class ChannelsService {
           select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
         },
         posts: {
-          where: publishedPostFilter,
+          where: { ...publishedPostFilter, publication: { archivedAt: null } },
           take: 1,
           orderBy: { publishedAt: 'desc' },
           select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
@@ -215,7 +215,7 @@ export class ChannelsService {
             select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
           },
           posts: {
-            where: { status: 'PUBLISHED' },
+            where: { status: 'PUBLISHED', publication: { archivedAt: null } },
             take: 1,
             orderBy: { publishedAt: 'desc' },
             select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
@@ -286,7 +286,7 @@ export class ChannelsService {
           select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
         },
         posts: {
-          where: { status: 'PUBLISHED' },
+          where: { status: 'PUBLISHED', publication: { archivedAt: null } },
           take: 1,
           orderBy: { publishedAt: 'desc' },
           select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
@@ -321,7 +321,7 @@ export class ChannelsService {
           select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
         },
         posts: {
-          where: { status: 'PUBLISHED' },
+          where: { status: 'PUBLISHED', publication: { archivedAt: null } },
           take: 1,
           orderBy: { publishedAt: 'desc' },
           select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
@@ -353,7 +353,7 @@ export class ChannelsService {
           select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
         },
         posts: {
-          where: { status: 'PUBLISHED' },
+          where: { status: 'PUBLISHED', publication: { archivedAt: null } },
           take: 1,
           orderBy: { publishedAt: 'desc' },
           select: { publishedAt: true, createdAt: true, id: true, publicationId: true },
