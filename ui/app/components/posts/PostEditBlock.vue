@@ -536,13 +536,21 @@ const metaYaml = computed(() => {
         <div class="flex-1 min-w-0 space-y-1">
             <div class="flex items-center gap-2 flex-wrap">
                 <!-- Channel Name or Title -->
-                <span class="font-medium text-gray-900 dark:text-white truncate">
-                  <template v-if="isCreating">
-                      {{ t('post.newPostInChannel', 'New post in channel') }}
-                  </template>
-                  <template v-else>
-                      {{ props.post?.channel?.name || t('common.unknownChannel') }}
-                  </template>
+                <span v-if="isCreating" class="font-medium text-gray-900 dark:text-white truncate">
+                  {{ t('post.newPostInChannel', 'New post in channel') }}
+                </span>
+                <NuxtLink 
+                    v-else-if="selectedChannel?.id"
+                    :to="`/channels/${selectedChannel.id}`"
+                    class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1 group/link min-w-0"
+                    :title="t('channel.viewChannel')"
+                    @click.stop
+                >
+                    <span class="truncate">{{ props.post?.channel?.name || t('common.unknownChannel') }}</span>
+                    <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-3.5 h-3.5 opacity-0 group-hover/link:opacity-100 transition-opacity shrink-0" />
+                </NuxtLink>
+                <span v-else class="font-medium text-gray-900 dark:text-white truncate">
+                    {{ props.post?.channel?.name || t('common.unknownChannel') }}
                 </span>
 
                 <!-- Language Code -->
