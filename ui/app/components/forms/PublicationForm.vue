@@ -576,7 +576,7 @@ function handleDeleteAllSourceTexts() {
 
     <!-- Validation Warning Modal -->
     <ModalsValidationWarningModal
-      v-model="showValidationWarning"
+      v-model:open="showValidationWarning"
       :errors="validationErrors"
       entity-type="publication"
       @confirm="handleValidationWarningConfirm"
