@@ -87,6 +87,24 @@ export class PostsService {
       throw new NotFoundException('Publication not found or does not belong to this project');
     }
 
+    // Validation: Check content limits
+    const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
+    const mediaCount = (await this.prisma.publicationMedia.count({ where: { publicationId: data.publicationId } })) || 0;
+    
+    // Effective content: use specific post content or fallback to publication content
+    const effectiveContent = data.content !== undefined && data.content !== null ? data.content : publication.content;
+    const socialMedia = (data.socialMedia ?? channel.socialMedia) as any;
+
+    const validationResult = validatePostContent({
+        content: effectiveContent,
+        mediaCount: mediaCount, // Approximate, assuming publication media are used
+        socialMedia: socialMedia
+    });
+
+    if (!validationResult.isValid) {
+        throw new BadRequestException(`Validation failed for ${socialMedia}: ${validationResult.errors.join('; ')}`);
+    }
+
     const post = await this.prisma.post.create({
       data: {
         channelId,
@@ -409,6 +427,37 @@ export class PostsService {
     // Business Rule: When removing scheduledAt from post
     if (data.scheduledAt === null) {
       data.errorMessage = null;
+    }
+
+    // Validation: Check content limits if content is being updated or if inheritance might change
+    // We strictly check on any update if content is involved, or we can check always to be safe?
+    // Let's check whenever content is touched or effectively used.
+    // If data.content is undefined, it means we don't change it. But wait, `update` might not include content if it's just status update.
+    // However, if we do update content (even to null -> inherit), we MUST validate.
+    if (data.content !== undefined) {
+         const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
+         
+         // Need media count
+         const mediaCount = (await this.prisma.publicationMedia.count({ where: { publicationId: post.publicationId } })) || 0;
+         
+         // Effective content
+         // If data.content is null, we inherit from post.publication.content
+         // If data.content is string, we use it
+         const effectiveContent = data.content !== null ? data.content : post.publication?.content;
+         
+         // Post social media? It is on the channel.
+         const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
+         if (channel) {
+             const validationResult = validatePostContent({
+                 content: effectiveContent,
+                 mediaCount: mediaCount,
+                 socialMedia: channel.socialMedia as any
+             });
+
+             if (!validationResult.isValid) {
+                 throw new BadRequestException(`Validation failed for ${channel.socialMedia}: ${validationResult.errors.join('; ')}`);
+             }
+         }
     }
 
     this.logger.log(`Updating post ${id}. platformOptions: ${JSON.stringify(data.platformOptions)}`);

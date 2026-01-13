@@ -5,6 +5,7 @@ import type { PostType, PublicationStatus } from '~/types/posts'
 import { usePublicationFormState, usePublicationFormValidation } from '~/composables/usePublicationForm'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 import { isTextContentEmpty } from '~/utils/text'
+import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -38,6 +39,7 @@ const {
 const { channels, fetchChannels } = useChannels()
 const { typeOptions } = usePosts()
 const { languageOptions } = useLanguages()
+const { validatePostContent } = useSocialMediaValidation()
 
 // Form Initialization
 const languageParam = route.query.language as string | undefined
@@ -52,6 +54,52 @@ const linkedPublicationId = ref<string | undefined>(undefined)
 const isEditMode = computed(() => !!props.publication?.id)
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
 const isContentMissing = computed(() => isTextContentEmpty(state.content) && !hasMedia.value)
+
+// Social Media Validation
+const validationErrors = computed(() => {
+    const errors: string[] = []
+    const mediaCount = props.publication?.media?.length || 0
+
+    // 1. Determine relevant channels
+    // Creating: checking selected channelIds
+    if (!isEditMode.value) {
+        state.channelIds.forEach(id => {
+            const channel = channels.value.find(c => c.id === id)
+            if (channel && channel.socialMedia) {
+                const result = validatePostContent(state.content, mediaCount, channel.socialMedia as any)
+                if (!result.isValid) {
+                    result.errors.forEach(err => {
+                        errors.push(`${channel.name}: ${err.message}`)
+                    })
+                }
+            }
+        })
+    } 
+    // Editing: checking existing posts that inherit content
+    else if (props.publication?.posts) {
+         props.publication.posts.forEach((post: any) => {
+             // Check if post inherits content: null, undefined, or empty string.
+             // This aligns with PostEditBlock displaying inherited content when post content is empty.
+             const isInherited = !post.content; 
+             const hasChannel = post.channel && post.channel.socialMedia;
+
+             if (isInherited && hasChannel) {
+                  const result = validatePostContent(state.content, mediaCount, post.channel.socialMedia as any)
+                  
+                  if (!result.isValid) {
+                     result.errors.forEach(err => {
+                         errors.push(`${post.channel.name}: ${err.message}`)
+                     })
+                  }
+             }
+         })
+    }
+
+    return errors
+})
+
+const isValid = computed(() => validationErrors.value.length === 0)
+
 
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
@@ -132,6 +180,16 @@ function handleUnlink() {
  * Handle form submission
  */
 async function handleSubmit(event: FormSubmitEvent<any>) {
+  if (!isValid.value) {
+      toast.add({
+          title: t('common.error'),
+          description: t('publication.validation.contentOrMediaRequired') + ' (Check validation errors)', // Fallback msg
+          color: 'error'
+      })
+      formActionsRef.value?.showError()
+      return
+  }
+
   try {
     const data = event.data
     const commonData = {
@@ -335,6 +393,14 @@ function handleDeleteAllSourceTexts() {
           class="mb-3"
         />
 
+        <UAlert v-if="validationErrors.length > 0" color="error" variant="soft" title="Validation Error" class="mb-3">
+            <ul class="list-disc list-inside text-sm mt-1">
+                <li v-for="(err, index) in validationErrors" :key="index">
+                    {{ err }}
+                </li>
+            </ul>
+        </UAlert>
+
         <EditorTiptapEditor
           v-model="state.content"
           :placeholder="t('post.contentPlaceholder')"
@@ -481,6 +547,7 @@ function handleDeleteAllSourceTexts() {
         :loading="isLoading"
         :is-dirty="isDirty"
         :save-label="isEditMode ? t('common.save') : t('common.create')"
+        :disabled="!isValid"
         hide-cancel
         @reset="handleReset"
       />

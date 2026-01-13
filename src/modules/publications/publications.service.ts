@@ -657,6 +657,47 @@ export class PublicationsService {
       });
     }
 
+    // Validation: If content is updating, we must check all posts that inherit this content
+    if (data.content !== undefined && data.content !== null) {
+        // Find posts with null content (inheriting) that are not published
+        const inheritingPosts = await this.prisma.post.findMany({
+            where: {
+                publicationId: id,
+                content: null,
+                status: { notIn: [PostStatus.PUBLISHED] }
+            },
+            include: {
+                channel: true
+            }
+        });
+
+        if (inheritingPosts.length > 0) {
+            const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
+            // We need to know final media count also? 
+            // If media is updating, use new media count. If not, use existing.
+            // Using existing from DB since update happens later? 
+            // Actually 'update' is transactional below... we need to estimate media count.
+            
+            let mediaCount = publication.media?.length || 0;
+            if (data.media !== undefined || data.existingMediaIds !== undefined) {
+                 mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
+            }
+
+            for (const post of inheritingPosts) {
+                 const validationResult = validatePostContent({
+                     content: data.content,
+                     mediaCount: mediaCount,
+                     socialMedia: post.channel.socialMedia as any
+                 });
+
+                 if (!validationResult.isValid) {
+                     // We should ideally list all, but failing fast is okay.
+                     throw new BadRequestException(`Unable to update publication content: Content is too long for channel "${post.channel.name}" (${post.channel.socialMedia}). Errors: ${validationResult.errors.join('; ')}`);
+                 }
+            }
+        }
+    }
+
     const updated = await this.prisma.publication.update({
       where: { id },
       data: {

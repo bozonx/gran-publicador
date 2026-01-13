@@ -238,6 +238,43 @@ const displayLanguage = computed(() => {
 })
 const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
 
+// Social media validation
+const { validatePostContent, getContentLength, getRemainingCharacters } = useSocialMediaValidation()
+
+const mediaCount = computed(() => {
+    // If post specific media overrides exist we should use them, but currently we only have publication media
+    // So we use publication media count.
+    return props.publication?.media?.length || 0
+})
+
+const validationResult = computed(() => {
+    if (!selectedChannel.value?.socialMedia) {
+        return { isValid: true, errors: [] }
+    }
+    
+    // Use displayContent (effective content)
+    const content = displayContent.value
+    return validatePostContent(
+        content,
+        mediaCount.value,
+        selectedChannel.value.socialMedia as any
+    )
+})
+
+const contentLength = computed(() => {
+    return getContentLength(displayContent.value)
+})
+
+const remainingCharacters = computed(() => {
+    if (!selectedChannel.value?.socialMedia) return null
+    
+    return getRemainingCharacters(
+        displayContent.value,
+        mediaCount.value,
+        selectedChannel.value.socialMedia as any
+    )
+})
+
 const availableTemplates = computed(() => {
     const channel = selectedChannel.value
     // Check if channel has preferences (type guard)
@@ -314,6 +351,7 @@ onMounted(() => {
 })
 
 const isValid = computed(() => {
+    if (!validationResult.value.isValid) return false
     if (props.isCreating) return !!formData.channelId
     return true
 })
@@ -642,13 +680,13 @@ const metaYaml = computed(() => {
           :description="props.post.errorMessage"
           class="mb-4"
        />
-       <!-- Channel Selector (Only if Creating) -->
-       <div v-if="isCreating" class="space-y-1">
-           <div class="flex items-center gap-1 mb-1">
-               <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.selectChannel', 'Select Channel') }}</span>
-               <span class="text-red-500">*</span>
-           </div>
-           <USelectMenu
+        <!-- Channel Selector (Only if Creating) -->
+        <div v-if="isCreating" class="space-y-1">
+            <div class="flex items-center gap-1 mb-1">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.selectChannel', 'Select Channel') }}</span>
+                <span class="text-red-500">*</span>
+            </div>
+            <USelectMenu
                 v-model="formData.channelId"
                 :items="channelOptions"
                 value-key="value"
@@ -673,7 +711,28 @@ const metaYaml = computed(() => {
                 <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4" />
                 {{ t('post.languageMismatchWarning', 'Warning: Channel language differs from publication language') }}
             </div>
-       </div>
+        </div>
+
+        <!-- Social Media Validation Errors (Global for entire post) -->
+        <UAlert
+          v-if="!validationResult.isValid"
+          color="error"
+          variant="soft"
+          class="mb-4"
+          icon="i-heroicons-exclamation-circle"
+          :title="t('validation.errorTitle', 'Content Validation Error')"
+        >
+          <template #description>
+             <ul class="list-disc list-inside">
+                <li v-for="(error, index) in validationResult.errors" :key="index">
+                  {{ error.message }}
+                </li>
+             </ul>
+             <p v-if="!isPostContentOverride" class="text-xs mt-2 italic text-red-600 dark:text-red-400">
+               {{ t('validation.inheritedContentError', 'This error is from inherited publication content. Shorten the publication content or override it for this post.') }}
+             </p>
+          </template>
+        </UAlert>
 
 
 
@@ -763,9 +822,21 @@ const metaYaml = computed(() => {
                 :placeholder="t('post.contentOverridePlaceholder')"
                 :min-height="150"
             />
-            <p v-if="!formData.content" class="text-xs text-gray-500 dark:text-gray-400 italic">
-                {{ t('post.contentInheritedFromPublication') }}
-            </p>
+            <div class="flex justify-between items-start text-xs text-gray-500 dark:text-gray-400">
+               <span v-if="!formData.content" class="italic">
+                   {{ t('post.contentInheritedFromPublication') }}
+               </span>
+               <span v-else></span> <!-- Spacer if no inheritance msg -->
+               
+               <!-- Character Counter -->
+                 <span v-if="remainingCharacters !== null" class="flex items-center gap-1" :class="{ 'text-red-500 font-bold': remainingCharacters < 0 }">
+                    <template v-if="remainingCharacters < 0">
+                       <UIcon name="i-heroicons-exclamation-circle" class="w-3.5 h-3.5" />
+                    </template>
+                    {{ contentLength }} / {{ contentLength + remainingCharacters }}
+                    ({{ remainingCharacters >= 0 ? '+' : '' }}{{ remainingCharacters }})
+                </span>
+            </div>
        </div>
 
       <!-- Actions -->

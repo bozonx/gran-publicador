@@ -26,6 +26,9 @@ describe('PostsService (unit)', () => {
     channel: {
       findUnique: jest.fn() as any,
     },
+    publicationMedia: {
+      count: jest.fn() as any,
+    },
   };
 
   const mockChannelsService = {
@@ -103,9 +106,11 @@ describe('PostsService (unit)', () => {
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
       mockChannelsService.findOne.mockResolvedValue({});
-      mockPrismaService.channel.findUnique.mockResolvedValue({ projectId: 'p1' });
+      mockPrismaService.channel.findUnique.mockResolvedValue({ projectId: 'p1', socialMedia: SocialMedia.TELEGRAM });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined); // Authorized
       mockPrismaService.post.update.mockResolvedValue({ ...mockPost, ...updateDto });
+      // Validation mocks
+      mockPrismaService.publicationMedia.count.mockResolvedValue(0);
 
       await service.update(postId, userId, updateDto);
 
@@ -232,7 +237,7 @@ describe('PostsService (unit)', () => {
       const dto = { publicationId: 'pub-1', content: 'hello' };
       const projectId = 'p1';
 
-      mockChannelsService.findOne.mockResolvedValue({ id: channelId, projectId });
+      mockChannelsService.findOne.mockResolvedValue({ id: channelId, projectId, socialMedia: SocialMedia.TELEGRAM });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findFirst.mockResolvedValue({ id: 'pub-1', projectId });
 
@@ -240,6 +245,9 @@ describe('PostsService (unit)', () => {
         id: 'new-post',
         ...dto,
       });
+
+      // Validation mocks
+      mockPrismaService.publicationMedia.count.mockResolvedValue(0);
 
       const result = await service.create(userId, channelId, dto);
       expect(result).toBeDefined();
