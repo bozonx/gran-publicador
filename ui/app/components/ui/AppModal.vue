@@ -32,7 +32,11 @@ const isOpen = defineModel<boolean>('open', { default: false })
 
 const { t } = useI18n()
 
-function handleClose() {
+function handleClose(close?: () => void) {
+  if (close) {
+    close()
+    return
+  }
   isOpen.value = false
 }
 </script>
@@ -40,48 +44,50 @@ function handleClose() {
 <template>
   <UModal
     v-model:open="isOpen"
-    :prevent-close="props.preventClose"
+    :dismissible="!props.preventClose"
     :ui="props.ui"
   >
-    <div 
-      class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full sm:max-w-lg mx-auto"
-      :class="props.ui?.content"
-    >
-      <!-- Header -->
-      <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
-        <div class="min-w-0 flex-1">
-          <slot name="header">
-            <h3 v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-              {{ props.title }}
-            </h3>
-            <p v-if="props.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ props.description }}
-            </p>
-          </slot>
+    <template #content="{ close }">
+      <div 
+        class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full sm:max-w-lg mx-auto"
+        :class="props.ui?.content"
+      >
+        <!-- Header -->
+        <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+          <div class="min-w-0 flex-1">
+            <slot name="header">
+              <h3 v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                {{ props.title }}
+              </h3>
+              <p v-if="props.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ props.description }}
+              </p>
+            </slot>
+          </div>
+          
+          <UButton
+            v-if="props.closeButton"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-x-mark"
+            class="-mr-2 ml-4"
+            size="md"
+            @click="handleClose(close)"
+            :aria-label="t('common.close')"
+          />
         </div>
-        
-        <UButton
-          v-if="props.closeButton"
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-x-mark"
-          class="-mr-2 ml-4"
-          size="md"
-          @click="handleClose"
-          :aria-label="t('common.close')"
-        />
-      </div>
 
-      <!-- Body -->
-      <div class="px-6 py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
-        <slot />
-      </div>
+        <!-- Body -->
+        <div class="px-6 py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+          <slot />
+        </div>
 
-      <!-- Footer -->
-      <div v-if="$slots.footer" class="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/20 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 shrink-0">
-        <slot name="footer" />
+        <!-- Footer -->
+        <div v-if="$slots.footer" class="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/20 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 shrink-0">
+          <slot name="footer" />
+        </div>
       </div>
-    </div>
+    </template>
   </UModal>
 </template>
 
