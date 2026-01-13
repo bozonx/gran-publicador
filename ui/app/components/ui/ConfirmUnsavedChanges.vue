@@ -17,29 +17,27 @@ function handleCancel() {
 </script>
 
 <template>
-  <UModal v-model:open="confirmModalState.isOpen">
-    <template #content>
-      <div class="p-6">
-        <div class="flex items-center gap-3 mb-4">
-          <UIcon name="i-heroicons-exclamation-triangle" class="text-orange-500 w-6 h-6" />
-          <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-            {{ t('form.unsavedChanges', 'Unsaved Changes') }}
-          </h3>
-        </div>
-
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          {{ confirmModalState.description }}
-        </p>
-
-        <div class="flex justify-end gap-3">
-          <UButton color="neutral" variant="ghost" @click="handleCancel">
-            {{ t('common.stay', 'Stay') }}
-          </UButton>
-          <UButton color="warning" @click="handleConfirm">
-            {{ t('common.leave', 'Leave without saving') }}
-          </UButton>
-        </div>
+  <AppModal v-model:open="confirmModalState.isOpen" :title="t('form.unsavedChanges', 'Unsaved Changes')">
+    <template #header>
+      <div class="flex items-center gap-3">
+        <UIcon name="i-heroicons-exclamation-triangle" class="text-orange-500 w-6 h-6" />
+        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+          {{ t('form.unsavedChanges', 'Unsaved Changes') }}
+        </h3>
       </div>
     </template>
-  </UModal>
+
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      {{ confirmModalState.description }}
+    </p>
+
+    <template #footer>
+      <UButton color="neutral" variant="ghost" @click="handleCancel">
+        {{ t('common.stay', 'Stay') }}
+      </UButton>
+      <UButton color="warning" @click="handleConfirm" class="px-6">
+        {{ t('common.leave', 'Leave without saving') }}
+      </UButton>
+    </template>
+  </AppModal>
 </template>

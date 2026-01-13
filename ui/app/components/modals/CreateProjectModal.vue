@@ -64,63 +64,47 @@ watch(isOpen, (open) => {
 </script>
 
 <template>
-  <UModal v-model:open="isOpen">
-    <template #content>
-      <div class="p-6 min-w-[500px]">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            {{ t('project.createProject') }}
-          </h2>
-          <UButton 
-            color="neutral" 
-            variant="ghost" 
-            icon="i-heroicons-x-mark" 
-            size="sm" 
-            @click="handleClose" 
-          />
-        </div>
+  <AppModal v-model:open="isOpen" :title="t('project.createProject')">
+    <form id="create-project-form" @submit.prevent="handleCreate" class="space-y-6">
+      <UFormField :label="t('project.name')" required>
+        <UInput 
+          v-model="formState.name" 
+          :placeholder="t('project.namePlaceholder')" 
+          autofocus 
+          class="w-full" 
+          size="lg" 
+        />
+      </UFormField>
 
-        <form @submit.prevent="handleCreate" class="space-y-6">
-          <UFormField :label="t('project.name')" required>
-            <UInput 
-              v-model="formState.name" 
-              :placeholder="t('project.namePlaceholder')" 
-              autofocus 
-              class="w-full" 
-              size="lg" 
-            />
-          </UFormField>
+      <UFormField :label="t('project.description')" :help="t('common.optional')">
+        <UTextarea 
+          v-model="formState.description" 
+          :placeholder="t('project.descriptionPlaceholder')" 
+          :rows="FORM_STYLES.textareaRows" 
+          autoresize
+          class="w-full" 
+        />
+      </UFormField>
+    </form>
 
-          <UFormField :label="t('project.description')" :help="t('common.optional')">
-            <UTextarea 
-              v-model="formState.description" 
-              :placeholder="t('project.descriptionPlaceholder')" 
-              :rows="FORM_STYLES.textareaRows" 
-              autoresize
-              class="w-full" 
-            />
-          </UFormField>
-
-          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <UButton 
-              color="neutral" 
-              variant="ghost" 
-              :disabled="isCreating" 
-              @click="handleClose"
-            >
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton 
-              color="primary" 
-              :loading="isCreating" 
-              :disabled="!formState.name || formState.name.length < 2" 
-              type="submit"
-            >
-              {{ t('common.create') }}
-            </UButton>
-          </div>
-        </form>
-      </div>
+    <template #footer>
+      <UButton 
+        color="neutral" 
+        variant="ghost" 
+        :disabled="isCreating" 
+        @click="handleClose"
+      >
+        {{ t('common.cancel') }}
+      </UButton>
+      <UButton 
+        color="primary" 
+        :loading="isCreating" 
+        :disabled="!formState.name || formState.name.length < 2" 
+        form="create-project-form"
+        type="submit"
+      >
+        {{ t('common.create') }}
+      </UButton>
     </template>
-  </UModal>
+  </AppModal>
 </template>

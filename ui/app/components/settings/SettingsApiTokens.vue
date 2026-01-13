@@ -234,93 +234,83 @@ function formatDate(date: string | null | undefined): string {
     </div>
 
     <!-- Create Token Modal -->
-    <UModal 
+    <AppModal 
       v-model:open="showCreateTokenModal" 
       :title="t('settings.createToken', 'Create API Token')"
-      :ui="{ content: 'sm:max-w-md' }"
     >
-      <template #body>
-        <div class="space-y-4">
-          <UFormField :label="t('settings.tokenName', 'Token Name')" required>
-            <UInput v-model="newTokenName" placeholder="My Integration Token" class="w-full" />
-          </UFormField>
+      <div class="space-y-4">
+        <UFormField :label="t('settings.tokenName', 'Token Name')" required>
+          <UInput v-model="newTokenName" placeholder="My Integration Token" class="w-full" />
+        </UFormField>
 
-          <UFormField>
-            <UCheckbox
-              v-model="limitToProjects"
-              :label="t('settings.limitToProjects', 'Limit to specific projects')"
-            />
-          </UFormField>
+        <UFormField>
+          <UCheckbox
+            v-model="limitToProjects"
+            :label="t('settings.limitToProjects', 'Limit to specific projects')"
+          />
+        </UFormField>
 
-          <UFormField v-if="limitToProjects" :label="t('settings.selectProjects', 'Select Projects')">
-            <USelectMenu
-              v-model="newTokenScope"
-              :items="projects || []"
-              label-key="name"
-              value-key="id"
-              multiple
-              placeholder="Select projects..."
-              class="w-full"
-            />
-          </UFormField>
-        </div>
-      </template>
+        <UFormField v-if="limitToProjects" :label="t('settings.selectProjects', 'Select Projects')">
+          <USelectMenu
+            v-model="newTokenScope"
+            :items="projects || []"
+            label-key="name"
+            value-key="id"
+            multiple
+            placeholder="Select projects..."
+            class="w-full"
+          />
+        </UFormField>
+      </div>
 
       <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" @click="showCreateTokenModal = false">
-            {{ t('common.cancel') }}
-          </UButton>
-          <UButton color="primary" @click="handleCreateToken" :loading="tokensLoading">
-            {{ t('common.create') }}
-          </UButton>
-        </div>
+        <UButton color="neutral" variant="outline" @click="showCreateTokenModal = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton color="primary" @click="handleCreateToken" :loading="tokensLoading">
+          {{ t('common.create') }}
+        </UButton>
       </template>
-    </UModal>
+    </AppModal>
 
     <!-- Edit Token Modal -->
-    <UModal 
+    <AppModal 
       v-model:open="showEditTokenModal" 
       :title="t('settings.editToken', 'Edit API Token')"
-      :ui="{ content: 'sm:max-w-md' }"
     >
-      <template #body>
-        <div class="space-y-4">
-          <UFormField :label="t('settings.tokenName', 'Token Name')" required>
-            <UInput v-model="newTokenName" class="w-full" />
-          </UFormField>
+      <div class="space-y-4">
+        <UFormField :label="t('settings.tokenName', 'Token Name')" required>
+          <UInput v-model="newTokenName" class="w-full" />
+        </UFormField>
 
-          <UFormField>
-            <UCheckbox
-              v-model="limitToProjects"
-              :label="t('settings.limitToProjects', 'Limit to specific projects')"
-            />
-          </UFormField>
+        <UFormField>
+          <UCheckbox
+            v-model="limitToProjects"
+            :label="t('settings.limitToProjects', 'Limit to specific projects')"
+          />
+        </UFormField>
 
-          <UFormField v-if="limitToProjects" :label="t('settings.selectProjects', 'Select Projects')">
-            <USelectMenu
-              v-model="newTokenScope"
-              :items="projects || []"
-              label-key="name"
-              value-key="id"
-              multiple
-              class="w-full"
-            />
-          </UFormField>
-        </div>
-      </template>
+        <UFormField v-if="limitToProjects" :label="t('settings.selectProjects', 'Select Projects')">
+          <USelectMenu
+            v-model="newTokenScope"
+            :items="projects || []"
+            label-key="name"
+            value-key="id"
+            multiple
+            class="w-full"
+          />
+        </UFormField>
+      </div>
 
       <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" @click="showEditTokenModal = false">
-            {{ t('common.cancel') }}
-          </UButton>
-          <UButton color="primary" @click="handleUpdateToken" :loading="tokensLoading">
-            {{ t('common.save') }}
-          </UButton>
-        </div>
+        <UButton color="neutral" variant="outline" @click="showEditTokenModal = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton color="primary" @click="handleUpdateToken" :loading="tokensLoading">
+          {{ t('common.save') }}
+        </UButton>
       </template>
-    </UModal>
+    </AppModal>
 
     <!-- Delete Token Confirmation Modal -->
     <UiConfirmModal

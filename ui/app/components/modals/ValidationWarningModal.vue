@@ -28,68 +28,62 @@ function handleCancel() {
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" :ui="{ content: 'sm:max-w-2xl' }">
-    <template #content>
-      <UCard :ui="{ 
-        body: 'p-0',
-        header: 'p-4',
-        footer: 'p-4'
-      }">
-        <template #header>
-          <div class="flex items-center gap-3">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-warning-500" />
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('validation.invalidContent') }}
-            </h3>
-          </div>
-        </template>
+  <AppModal 
+    v-model:open="isOpen" 
+    :title="t('validation.invalidContent')"
+    :ui="{ content: 'sm:max-w-2xl' }"
+  >
+    <template #header>
+      <div class="flex items-center gap-3">
+        <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-warning-500" />
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('validation.invalidContent') }}
+        </h3>
+      </div>
+    </template>
 
-        <div class="p-6 space-y-4">
-          <UAlert
-            color="warning"
-            variant="soft"
-            icon="i-heroicons-exclamation-triangle"
-            :title="t('validation.validationWarningTitle')"
-          />
+    <div class="space-y-4">
+      <UAlert
+        color="warning"
+        variant="soft"
+        icon="i-heroicons-exclamation-triangle"
+        :title="t('validation.validationWarningTitle')"
+      />
 
-          <div class="text-sm text-gray-700 dark:text-gray-300">
-            <p class="mb-3">
-              {{ t(`validation.${entityType}ValidationWarning`) }}
-            </p>
-            
-            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <p class="font-medium mb-2 text-gray-900 dark:text-white">{{ t('validation.errors') }}:</p>
-              <ul class="list-disc list-inside space-y-1 text-sm">
-                <li v-for="(error, index) in errors" :key="index" class="text-error-600 dark:text-error-400">
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
-
-            <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
-              {{ t('validation.failedStatusExplanation') }}
-            </p>
-          </div>
+      <div class="text-sm text-gray-700 dark:text-gray-300">
+        <p class="mb-3">
+          {{ t(`validation.${entityType}ValidationWarning`) }}
+        </p>
+        
+        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <p class="font-medium mb-2 text-gray-900 dark:text-white">{{ t('validation.errors') }}:</p>
+          <ul class="list-disc list-inside space-y-1 text-sm">
+            <li v-for="(error, index) in errors" :key="index" class="text-error-600 dark:text-error-400">
+              {{ error }}
+            </li>
+          </ul>
         </div>
 
-        <template #footer>
-          <div class="flex justify-end gap-3">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              @click="handleCancel"
-            >
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton
-              color="warning"
-              @click="handleConfirm"
-            >
-              {{ t('validation.saveAnyway') }}
-            </UButton>
-          </div>
-        </template>
-      </UCard>
+        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          {{ t('validation.failedStatusExplanation') }}
+        </p>
+      </div>
+    </div>
+
+    <template #footer>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        @click="handleCancel"
+      >
+        {{ t('common.cancel') }}
+      </UButton>
+      <UButton
+        color="warning"
+        @click="handleConfirm"
+      >
+        {{ t('validation.saveAnyway') }}
+      </UButton>
     </template>
-  </UModal>
+  </AppModal>
 </template>

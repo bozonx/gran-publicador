@@ -843,61 +843,43 @@ function setDefaultFooter(id: string) {
     </UForm>
 
     <!-- Footer Modal -->
-    <UModal v-if="visibleSections.includes('footers') || visibleSections.includes('preferences')" v-model:open="isFooterModalOpen">
-      <template #content>
-      <UCard :ui="{ header: 'divide-y divide-gray-100 dark:divide-gray-800' }">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <DialogTitle as-child>
-              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                {{ editingFooter ? t('channel.editFooter') : t('channel.addFooter') }}
-              </h3>
-            </DialogTitle>
-            <VisuallyHidden>
-              <DialogDescription>
-                {{ editingFooter ? t('channel.editFooter') : t('channel.addFooter') }}
-              </DialogDescription>
-            </VisuallyHidden>
-            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" class="-my-1" @click="isFooterModalOpen = false" />
-          </div>
-        </template>
-
-        <div class="space-y-4 py-2">
-          <UFormField :label="t('channel.footerName')" required>
-            <UInput
-              v-model="footerForm.name"
-              :placeholder="t('channel.footerNamePlaceholder')"
-              class="w-full"
-            />
-          </UFormField>
-
-          <UFormField :label="t('channel.footerContent')" required>
-            <UTextarea
-              v-model="footerForm.content"
-              :placeholder="t('channel.footerContentPlaceholder')"
-              :rows="4"
-              class="w-full"
-            />
-          </UFormField>
-
-          <UCheckbox
-            v-model="footerForm.isDefault"
-            :label="t('channel.footerDefault')"
+    <AppModal 
+      v-if="visibleSections.includes('footers') || visibleSections.includes('preferences')" 
+      v-model:open="isFooterModalOpen"
+      :title="editingFooter ? t('channel.editFooter') : t('channel.addFooter')"
+    >
+      <div class="space-y-4">
+        <UFormField :label="t('channel.footerName')" required>
+          <UInput
+            v-model="footerForm.name"
+            :placeholder="t('channel.footerNamePlaceholder')"
+            class="w-full"
           />
-        </div>
+        </UFormField>
 
-        <template #footer>
-          <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" @click="isFooterModalOpen = false">
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton color="primary" @click="saveFooter">
-              {{ t('common.save') }}
-            </UButton>
-          </div>
-        </template>
-      </UCard>
+        <UFormField :label="t('channel.footerContent')" required>
+          <UTextarea
+            v-model="footerForm.content"
+            :placeholder="t('channel.footerContentPlaceholder')"
+            :rows="4"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UCheckbox
+          v-model="footerForm.isDefault"
+          :label="t('channel.footerDefault')"
+        />
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isFooterModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton color="primary" @click="saveFooter">
+          {{ t('common.save') }}
+        </UButton>
       </template>
-    </UModal>
+    </AppModal>
   </div>
 </template>

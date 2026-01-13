@@ -53,39 +53,35 @@ function closeModal() {
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" :title="t('projectMember.invite')">
-    <template #body>
-      <form class="space-y-4" @submit.prevent="handleInvite" id="invite-member-form">
-        <UFormField :label="t('projectMember.userUsername', 'Telegram Username')" required>
-          <UInput
-            v-model="username"
-            :placeholder="t('projectMember.searchPlaceholderUsername', '@username')"
-            autofocus
-            class="w-full"
-          />
-        </UFormField>
+  <AppModal v-model:open="isOpen" :title="t('projectMember.invite')">
+    <form class="space-y-4" @submit.prevent="handleInvite" id="invite-member-form">
+      <UFormField :label="t('projectMember.userUsername', 'Telegram Username')" required>
+        <UInput
+          v-model="username"
+          :placeholder="t('projectMember.searchPlaceholderUsername', '@username')"
+          autofocus
+          class="w-full"
+        />
+      </UFormField>
 
-        <UFormField :label="t('common.role')">
-          <USelectMenu
-            v-model="selectedRole"
-            :items="roleOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-      </form>
-    </template>
+      <UFormField :label="t('common.role')">
+        <USelectMenu
+          v-model="selectedRole"
+          :items="roleOptions"
+          value-key="value"
+          label-key="label"
+          class="w-full"
+        />
+      </UFormField>
+    </form>
 
     <template #footer>
-      <div class="flex justify-end gap-3 w-full">
-        <UButton color="neutral" variant="ghost" @click="closeModal">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton type="submit" form="invite-member-form" color="primary" :loading="isLoading" :disabled="!username">
-          {{ t('projectMember.invite') }}
-        </UButton>
-      </div>
+      <UButton color="neutral" variant="ghost" @click="closeModal">
+        {{ t('common.cancel') }}
+      </UButton>
+      <UButton type="submit" form="invite-member-form" color="primary" :loading="isLoading" :disabled="!username">
+        {{ t('projectMember.invite') }}
+      </UButton>
     </template>
-  </UModal>
+  </AppModal>
 </template>
