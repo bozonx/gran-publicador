@@ -216,6 +216,7 @@
     "viewer": "Viewer"
   },
   "channel": {
+    "viewChannel": "Go to channel page",
     "title": "Channel",
     "titlePlural": "Channels",
     "filter": {
@@ -682,7 +683,8 @@
       "noCredentials": "{count} channel without credentials | {count} channels without credentials",
       "inactiveChannels": "{count} inactive channel (disabled) | {count} inactive channels (disabled)",
       "staleChannels": "{count} stale channel | {count} stale channels",
-      "noRecentActivity": "No activity for more than 3 days"
+      "noRecentActivity": "No activity for more than 3 days",
+      "noChannels": "Project has no channels"
     }
   },
   "settings": {

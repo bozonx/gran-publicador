@@ -377,6 +377,14 @@ export function useProjects() {
             })
         }
 
+        // Check for no channels (critical)
+        if (project.channelCount === 0) {
+            problems.push({ 
+                type: 'critical', 
+                key: 'noChannels'
+            })
+        }
+
         return problems
     }
 
