@@ -23,18 +23,29 @@ export class ProjectsService {
     private permissions: PermissionsService,
   ) {}
 
-  private hasNoCredentials(creds: any): boolean {
-    if (!creds) return true;
-    if (typeof creds === 'object') {
-        // Check if it is an empty object
-        if (Object.keys(creds).length === 0) return true;
-        
-        // Handle array separately if needed, but Object.values handles it.
-        // Check if all values are empty
-        return Object.values(creds).every((v: any) => !v || v === '');
+  private hasNoCredentials(creds: any, socialMedia?: string): boolean {
+    if (!creds || typeof creds !== 'object') return true;
+
+    // Platform-specific required fields
+    if (socialMedia === 'TELEGRAM') {
+      const { telegramBotToken, telegramChannelId } = creds;
+      if (!telegramBotToken || !telegramChannelId || 
+          String(telegramBotToken).trim().length === 0 || 
+          String(telegramChannelId).trim().length === 0) {
+        return true;
+      }
+    } else if (socialMedia === 'VK') {
+      const { vkAccessToken } = creds;
+      if (!vkAccessToken || String(vkAccessToken).trim().length === 0) {
+        return true;
+      }
     }
-    // If it is a primitive and truthy (e.g. string "token"), we consider it as having credentials
-    return false;
+
+    // Default/Legacy check: Is it an empty object or has only empty values?
+    const values = Object.values(creds);
+    if (values.length === 0) return true;
+    
+    return values.every((v: any) => !v || String(v).trim().length === 0);
   }
 
   public async create(userId: string, data: CreateProjectDto): Promise<Project> {
@@ -145,7 +156,7 @@ export class ProjectsService {
           projectId: { in: projectIds },
           archivedAt: null,
         },
-        select: { id: true, projectId: true, credentials: true }, // Select credentials to check manually
+        select: { id: true, projectId: true, credentials: true, socialMedia: true }, // Select credentials and socialMedia to check manually
       }),
       this.prisma.channel.groupBy({
         by: ['projectId'],
@@ -189,7 +200,7 @@ export class ProjectsService {
     // Manually count credential problems
     // Manually count credential problems
     noCredentialsRaw.forEach((row: any) => {
-        if (this.hasNoCredentials(row.credentials)) {
+        if (this.hasNoCredentials(row.credentials, row.socialMedia)) {
              noCredentialsMap.set(row.projectId, (noCredentialsMap.get(row.projectId) || 0) + 1);
         }
     });
@@ -409,7 +420,7 @@ export class ProjectsService {
       failedPostsCount: Array.from(failedCountsMap.values()).reduce((a, b) => a + b, 0),
       problemPublicationsCount: problemCount,
       // Calculate no credentials count from mapped channels
-      noCredentialsChannelsCount: mappedChannels.filter(c => this.hasNoCredentials(c.credentials)).length,
+      noCredentialsChannelsCount: mappedChannels.filter(c => this.hasNoCredentials(c.credentials, c.socialMedia)).length,
       inactiveChannelsCount: inactiveCount,
     };
   }
