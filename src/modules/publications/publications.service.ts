@@ -80,10 +80,7 @@ export class PublicationsService {
    * Prepare Prisma orderBy clauses.
    */
   private prepareOrderBy(sortField?: string, sortDirection?: 'asc' | 'desc') {
-    return PublicationQueryBuilder.getOrderBy(
-      sortField || 'chronology',
-      sortDirection || 'desc',
-    );
+    return PublicationQueryBuilder.getOrderBy(sortField || 'chronology', sortDirection || 'desc');
   }
 
   /**
@@ -658,66 +655,71 @@ export class PublicationsService {
 
     // Validation: If content is updating, we must check all posts that inherit this content
     if (data.content !== undefined && data.content !== null) {
-        // Find posts with null content (inheriting) that are not published
-        const inheritingPosts = await this.prisma.post.findMany({
-            where: {
-                publicationId: id,
-                content: null,
-                status: { notIn: [PostStatus.PUBLISHED] }
-            },
-            include: {
-                channel: true
-            }
-        });
+      // Find posts with null content (inheriting) that are not published
+      const inheritingPosts = await this.prisma.post.findMany({
+        where: {
+          publicationId: id,
+          OR: [{ content: null }, { content: '' }],
+          status: { notIn: [PostStatus.PUBLISHED] },
+        },
+        include: {
+          channel: true,
+        },
+      });
 
-        if (inheritingPosts.length > 0) {
-            const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
-            
-            let mediaCount = publication.media?.length || 0;
-            if (data.media !== undefined || data.existingMediaIds !== undefined) {
-                 mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
-            }
+      if (inheritingPosts.length > 0) {
+        const { validatePostContent } =
+          await import('../../common/validators/social-media-validation.validator.js');
 
-            const failedPosts: Array<{ postId: string; channelName: string; errors: string[] }> = [];
-
-            for (const post of inheritingPosts) {
-                 const validationResult = validatePostContent({
-                     content: data.content,
-                     mediaCount: mediaCount,
-                     socialMedia: post.channel.socialMedia as any
-                 });
-
-                 if (!validationResult.isValid) {
-                     failedPosts.push({
-                         postId: post.id,
-                         channelName: post.channel.name,
-                         errors: validationResult.errors
-                     });
-                 }
-            }
-
-            // If any posts have validation errors, set them to FAILED status
-            if (failedPosts.length > 0) {
-                this.logger.warn(`Publication ${id} update: ${failedPosts.length} posts have validation errors`);
-                
-                // Update each failed post with FAILED status and error message
-                for (const failed of failedPosts) {
-                    const errorMessage = `Validation failed for ${failed.channelName}: ${failed.errors.join('; ')}`;
-                    await this.prisma.post.update({
-                        where: { id: failed.postId },
-                        data: {
-                            status: PostStatus.FAILED,
-                            errorMessage
-                        }
-                    });
-                    this.logger.warn(`Set post ${failed.postId} to FAILED: ${errorMessage}`);
-                }
-
-                // Set publication status to FAILED as well
-                data.status = PublicationStatus.FAILED;
-                this.logger.warn(`Setting publication ${id} to FAILED due to validation errors in ${failedPosts.length} posts`);
-            }
+        let mediaCount = publication.media?.length || 0;
+        if (data.media !== undefined || data.existingMediaIds !== undefined) {
+          mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
         }
+
+        const failedPosts: Array<{ postId: string; channelName: string; errors: string[] }> = [];
+
+        for (const post of inheritingPosts) {
+          const validationResult = validatePostContent({
+            content: data.content,
+            mediaCount: mediaCount,
+            socialMedia: post.channel.socialMedia as any,
+          });
+
+          if (!validationResult.isValid) {
+            failedPosts.push({
+              postId: post.id,
+              channelName: post.channel.name,
+              errors: validationResult.errors,
+            });
+          }
+        }
+
+        // If any posts have validation errors, set them to FAILED status
+        if (failedPosts.length > 0) {
+          this.logger.warn(
+            `Publication ${id} update: ${failedPosts.length} posts have validation errors`,
+          );
+
+          // Update each failed post with FAILED status and error message
+          for (const failed of failedPosts) {
+            const errorMessage = `Validation failed for ${failed.channelName}: ${failed.errors.join('; ')}`;
+            await this.prisma.post.update({
+              where: { id: failed.postId },
+              data: {
+                status: PostStatus.FAILED,
+                errorMessage,
+              },
+            });
+            this.logger.warn(`Set post ${failed.postId} to FAILED: ${errorMessage}`);
+          }
+
+          // Set publication status to FAILED as well
+          data.status = PublicationStatus.FAILED;
+          this.logger.warn(
+            `Setting publication ${id} to FAILED due to validation errors in ${failedPosts.length} posts`,
+          );
+        }
+      }
     }
 
     const updated = await this.prisma.publication.update({
@@ -756,9 +758,7 @@ export class PublicationsService {
         postType: data.postType,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        meta: data.meta
-          ? { ...(publication.meta as any), ...(data.meta as any) }
-          : undefined,
+        meta: data.meta ? { ...(publication.meta as any), ...(data.meta as any) } : undefined,
         note: data.note,
         sourceTexts:
           data.sourceTexts !== undefined
@@ -829,9 +829,7 @@ export class PublicationsService {
     for (const pub of publications) {
       try {
         if (pub.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(pub.projectId, userId, [
-            ProjectRole.ADMIN,
-          ]);
+          await this.permissions.checkProjectPermission(pub.projectId, userId, [ProjectRole.ADMIN]);
         }
         authorizedIds.push(pub.id);
       } catch (e) {

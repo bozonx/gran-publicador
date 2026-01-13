@@ -12,83 +12,97 @@ export enum SocialMedia {
 }
 
 export interface SocialMediaValidationRules {
-  maxTextLength: number
-  maxCaptionLength: number
-  maxMediaCount: number
-  minMediaCount?: number
+  maxTextLength: number;
+  maxCaptionLength: number;
+  maxMediaCount: number;
+  minMediaCount?: number;
 }
 
-const VALIDATION_RULES: Record<SocialMedia, SocialMediaValidationRules> = {
-  [SocialMedia.TELEGRAM]: {
-    maxTextLength: 4096,
-    maxCaptionLength: 1024,
-    maxMediaCount: 10,
-  },
-  [SocialMedia.VK]: {
-    maxTextLength: 16384,
-    maxCaptionLength: 16384,
-    maxMediaCount: 10,
-  },
-  [SocialMedia.YOUTUBE]: {
-    maxTextLength: 5000,
-    maxCaptionLength: 5000,
-    maxMediaCount: 1,
-    minMediaCount: 1,
-  },
-  [SocialMedia.TIKTOK]: {
-    maxTextLength: 2200,
-    maxCaptionLength: 2200,
-    maxMediaCount: 1,
-    minMediaCount: 1,
-  },
-  [SocialMedia.FACEBOOK]: {
-    maxTextLength: 63206,
-    maxCaptionLength: 63206,
-    maxMediaCount: 10,
-  },
-  [SocialMedia.SITE]: {
-    maxTextLength: 100000,
-    maxCaptionLength: 100000,
-    maxMediaCount: 50,
-  },
+let rulesCache: Record<string, SocialMediaValidationRules> | null = null;
+let rulesPromise: Promise<void> | null = null;
+
+async function ensureRulesLoaded(api: ReturnType<typeof useApi>): Promise<void> {
+  if (rulesCache) return;
+  if (rulesPromise) return rulesPromise;
+
+  rulesPromise = (async () => {
+    const res = await api.get<{ rules: Record<string, SocialMediaValidationRules> }>(
+      '/posts/validation-rules',
+    );
+    rulesCache = res?.rules ?? null;
+  })();
+
+  return rulesPromise;
 }
 
 export interface ValidationError {
-  field: string
-  message: string
+  field: string;
+  message: string;
 }
 
 export interface ValidationResult {
-  isValid: boolean
-  errors: ValidationError[]
+  isValid: boolean;
+  errors: ValidationError[];
 }
 
 /**
  * Strip HTML tags from content for length calculation
  */
 function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, '')
+  return html.replace(/<[^>]*>/g, '');
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#(\d+);/g, (_, code) => {
+      const num = Number(code);
+      return Number.isFinite(num) ? String.fromCodePoint(num) : _;
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => {
+      const num = Number.parseInt(code, 16);
+      return Number.isFinite(num) ? String.fromCodePoint(num) : _;
+    })
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+function getPlainTextForLength(content: string): string {
+  return decodeHtmlEntities(stripHtmlTags(content));
 }
 
 /**
  * Calculate text length without HTML tags
  */
 function getTextLength(content: string | null | undefined): number {
-  if (!content) return 0
-  return stripHtmlTags(content).length
+  if (!content) return 0;
+  return getPlainTextForLength(content).length;
 }
 
 /**
  * Composable for social media post validation
  */
 export function useSocialMediaValidation() {
-  const { t } = useI18n()
+  const { t } = useI18n();
+  const api = useApi();
+
+  void ensureRulesLoaded(api);
 
   /**
    * Get validation rules for a specific platform
    */
   function getValidationRules(socialMedia: SocialMedia): SocialMediaValidationRules {
-    return VALIDATION_RULES[socialMedia]
+    const rules = rulesCache?.[socialMedia];
+    return (
+      rules ?? {
+        maxTextLength: Number.MAX_SAFE_INTEGER,
+        maxCaptionLength: Number.MAX_SAFE_INTEGER,
+        maxMediaCount: Number.MAX_SAFE_INTEGER,
+      }
+    );
   }
 
   /**
@@ -97,13 +111,17 @@ export function useSocialMediaValidation() {
   function validatePostContent(
     content: string | null | undefined,
     mediaCount: number,
-    socialMedia: SocialMedia
+    socialMedia: SocialMedia,
   ): ValidationResult {
-    const errors: ValidationError[] = []
-    const rules = getValidationRules(socialMedia)
-    
-    const contentLength = getTextLength(content)
-    const hasMedia = mediaCount > 0
+    const errors: ValidationError[] = [];
+    const rules = getValidationRules(socialMedia);
+
+    if (!rulesCache) {
+      return { isValid: true, errors: [] };
+    }
+
+    const contentLength = getTextLength(content);
+    const hasMedia = mediaCount > 0;
 
     // Check if content is caption (when media is present) or text post
     if (hasMedia) {
@@ -116,7 +134,7 @@ export function useSocialMediaValidation() {
             max: rules.maxCaptionLength,
             platform: socialMedia,
           }),
-        })
+        });
       }
     } else {
       // Validate text post length
@@ -128,7 +146,7 @@ export function useSocialMediaValidation() {
             max: rules.maxTextLength,
             platform: socialMedia,
           }),
-        })
+        });
       }
     }
 
@@ -141,7 +159,7 @@ export function useSocialMediaValidation() {
           max: rules.maxMediaCount,
           platform: socialMedia,
         }),
-      })
+      });
     }
 
     // Check minimum media count if required
@@ -153,20 +171,20 @@ export function useSocialMediaValidation() {
           min: rules.minMediaCount,
           platform: socialMedia,
         }),
-      })
+      });
     }
 
     return {
       isValid: errors.length === 0,
       errors,
-    }
+    };
   }
 
   /**
    * Get character count for content (without HTML)
    */
   function getContentLength(content: string | null | undefined): number {
-    return getTextLength(content)
+    return getTextLength(content);
   }
 
   /**
@@ -175,20 +193,21 @@ export function useSocialMediaValidation() {
   function getRemainingCharacters(
     content: string | null | undefined,
     mediaCount: number,
-    socialMedia: SocialMedia
+    socialMedia: SocialMedia,
   ): number {
-    const rules = getValidationRules(socialMedia)
-    const contentLength = getTextLength(content)
-    const hasMedia = mediaCount > 0
-    
-    const maxLength = hasMedia ? rules.maxCaptionLength : rules.maxTextLength
-    return maxLength - contentLength
+    const rules = getValidationRules(socialMedia);
+    const contentLength = getTextLength(content);
+    const hasMedia = mediaCount > 0;
+
+    const maxLength = hasMedia ? rules.maxCaptionLength : rules.maxTextLength;
+    return maxLength - contentLength;
   }
 
   return {
+    ensureRulesLoaded: () => ensureRulesLoaded(api),
     getValidationRules,
     validatePostContent,
     getContentLength,
     getRemainingCharacters,
-  }
+  };
 }

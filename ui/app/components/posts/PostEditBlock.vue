@@ -170,12 +170,14 @@ async function performSave() {
     if (props.isCreating) {
         if (!formData.channelId || !props.publication) return 
 
+        const normalizedContent = isTextContentEmpty(formData.content) ? null : formData.content
+
         const newPost = await createPost({
             channelId: formData.channelId,
             publicationId: props.publication.id,
             tags: formData.tags || null,
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
-            content: formData.content || null,
+            content: normalizedContent,
             meta: formData.meta,
             template: formData.template,
             platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
@@ -191,10 +193,12 @@ async function performSave() {
 
     } else {
         if (!props.post) return
+
+        const normalizedContent = isTextContentEmpty(formData.content) ? null : formData.content
         const updatedPost = await updatePost(props.post.id, {
           tags: formData.tags || null,
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
-          content: formData.content || null,
+          content: normalizedContent,
           meta: formData.meta,
           template: formData.template,
           platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
@@ -238,7 +242,8 @@ async function confirmDelete() {
 const displayTitle = computed(() => props.post ? getPostTitle(props.post) : props.publication?.title)
 const isPostContentOverride = computed(() => !isTextContentEmpty(formData.content))
 const displayContent = computed(() => {
-    return formData.content || props.publication?.content
+    if (!isPostContentOverride.value) return props.publication?.content
+    return formData.content
 })
 const displayDescription = computed(() => props.post ? getPostDescription(props.post) : props.publication?.description)
 const displayLanguage = computed(() => {

@@ -19,6 +19,7 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ParsePostStatusPipe } from '../../common/pipes/parse-post-status.pipe.js';
 import { ParsePostTypePipe } from '../../common/pipes/parse-post-type.pipe.js';
+import { SOCIAL_MEDIA_VALIDATION_RULES } from '../../common/validators/social-media-validation.constants.js';
 import { ChannelsService } from '../channels/channels.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
 import { CreatePostDto, UpdatePostDto } from './dto/index.js';
@@ -50,6 +51,13 @@ export class PostsController {
     }
 
     return this.postsService.create(req.user.userId, channelId, data);
+  }
+
+  @Get('validation-rules')
+  public getValidationRules() {
+    return {
+      rules: SOCIAL_MEDIA_VALIDATION_RULES,
+    };
   }
 
   @Get()

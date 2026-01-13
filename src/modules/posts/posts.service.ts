@@ -6,8 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PostStatus, PostType, ProjectRole } from '../../generated/prisma/client.js';
-
 import { PermissionsService } from '../../common/services/permissions.service.js';
+import { normalizeOverrideContent } from '../../common/validators/social-media-validation.validator.js';
+
 import { ChannelsService } from '../channels/channels.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -87,17 +88,22 @@ export class PostsService {
     }
 
     // Validation: Check content limits
-    const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
-    const mediaCount = (await this.prisma.publicationMedia.count({ where: { publicationId: data.publicationId } })) || 0;
-    
+    const { validatePostContent } =
+      await import('../../common/validators/social-media-validation.validator.js');
+    const mediaCount =
+      (await this.prisma.publicationMedia.count({
+        where: { publicationId: data.publicationId },
+      })) || 0;
+    const normalizedOverrideContent = normalizeOverrideContent(data.content);
+
     // Effective content: use specific post content or fallback to publication content
-    const effectiveContent = data.content !== undefined && data.content !== null ? data.content : publication.content;
+    const effectiveContent = normalizedOverrideContent ?? publication.content;
     const socialMedia = (data.socialMedia ?? channel.socialMedia) as any;
 
     const validationResult = validatePostContent({
-        content: effectiveContent,
-        mediaCount: mediaCount,
-        socialMedia: socialMedia
+      content: effectiveContent,
+      mediaCount: mediaCount,
+      socialMedia: socialMedia,
     });
 
     // If validation fails, set status to FAILED and record error message
@@ -105,9 +111,11 @@ export class PostsService {
     let errorMessage: string | null = null;
 
     if (!validationResult.isValid) {
-        postStatus = PostStatus.FAILED;
-        errorMessage = `Validation failed for ${socialMedia}: ${validationResult.errors.join('; ')}`;
-        this.logger.warn(`Creating post with FAILED status due to validation errors: ${errorMessage}`);
+      postStatus = PostStatus.FAILED;
+      errorMessage = `Validation failed for ${socialMedia}: ${validationResult.errors.join('; ')}`;
+      this.logger.warn(
+        `Creating post with FAILED status due to validation errors: ${errorMessage}`,
+      );
     }
 
     const post = await this.prisma.post.create({
@@ -118,7 +126,7 @@ export class PostsService {
         tags: data.tags,
         status: postStatus,
         scheduledAt: data.scheduledAt,
-        content: data.content,
+        content: normalizedOverrideContent ?? null,
         meta: {},
         platformOptions: data.platformOptions,
         errorMessage,
@@ -129,7 +137,9 @@ export class PostsService {
       },
     });
 
-    this.logger.log(`Created post ${post.id}. platformOptions: ${JSON.stringify(data.platformOptions)}`);
+    this.logger.log(
+      `Created post ${post.id}. platformOptions: ${JSON.stringify(data.platformOptions)}`,
+    );
     return post;
   }
 
@@ -436,35 +446,46 @@ export class PostsService {
 
     // Validation: Check content limits if content is being updated or if inheritance might change
     if (data.content !== undefined) {
-         const { validatePostContent } = await import('../../common/validators/social-media-validation.validator.js');
-         
-         // Need media count
-         const mediaCount = (await this.prisma.publicationMedia.count({ where: { publicationId: post.publicationId } })) || 0;
-         
-         // Effective content
-         // If data.content is null, we inherit from post.publication.content
-         // If data.content is string, we use it
-         const effectiveContent = data.content !== null ? data.content : post.publication?.content;
-         
-         // Post social media? It is on the channel.
-         const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
-         if (channel) {
-             const validationResult = validatePostContent({
-                 content: effectiveContent,
-                 mediaCount: mediaCount,
-                 socialMedia: channel.socialMedia as any
-             });
+      const { validatePostContent } =
+        await import('../../common/validators/social-media-validation.validator.js');
+      const normalizedOverrideContent = normalizeOverrideContent(data.content);
 
-             // If validation fails, set status to FAILED and record error message
-             if (!validationResult.isValid) {
-                 data.status = PostStatus.FAILED;
-                 data.errorMessage = `Validation failed for ${channel.socialMedia}: ${validationResult.errors.join('; ')}`;
-                 this.logger.warn(`Updating post ${id} with FAILED status due to validation errors: ${data.errorMessage}`);
-             }
-         }
+      // Need media count
+      const mediaCount =
+        (await this.prisma.publicationMedia.count({
+          where: { publicationId: post.publicationId },
+        })) || 0;
+
+      // Effective content
+      // If data.content is null, we inherit from post.publication.content
+      // If data.content is string, we use it
+      const effectiveContent = normalizedOverrideContent ?? post.publication?.content;
+
+      // Post social media? It is on the channel.
+      const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
+      if (channel) {
+        const validationResult = validatePostContent({
+          content: effectiveContent,
+          mediaCount: mediaCount,
+          socialMedia: channel.socialMedia as any,
+        });
+
+        // If validation fails, set status to FAILED and record error message
+        if (!validationResult.isValid) {
+          data.status = PostStatus.FAILED;
+          data.errorMessage = `Validation failed for ${channel.socialMedia}: ${validationResult.errors.join('; ')}`;
+          this.logger.warn(
+            `Updating post ${id} with FAILED status due to validation errors: ${data.errorMessage}`,
+          );
+        }
+      }
+
+      data.content = normalizedOverrideContent ?? null;
     }
 
-    this.logger.log(`Updating post ${id}. platformOptions: ${JSON.stringify(data.platformOptions)}`);
+    this.logger.log(
+      `Updating post ${id}. platformOptions: ${JSON.stringify(data.platformOptions)}`,
+    );
 
     const updatedPost = await this.prisma.post.update({
       where: { id },
@@ -483,7 +504,9 @@ export class PostsService {
       },
     });
 
-    this.logger.log(`Updated post ${id}. platformOptions in return: ${JSON.stringify(updatedPost.platformOptions)}`);
+    this.logger.log(
+      `Updated post ${id}. platformOptions in return: ${JSON.stringify(updatedPost.platformOptions)}`,
+    );
     return updatedPost;
   }
 

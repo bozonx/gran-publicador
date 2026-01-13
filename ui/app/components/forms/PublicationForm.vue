@@ -82,7 +82,7 @@ const validationErrors = computed(() => {
          props.publication.posts.forEach((post: any) => {
              // Check if post inherits content: null, undefined, or empty string.
              // This aligns with PostEditBlock displaying inherited content when post content is empty.
-             const isInherited = !post.content; 
+             const isInherited = isTextContentEmpty(post.content); 
              const hasChannel = post.channel && post.channel.socialMedia;
 
              if (isInherited && hasChannel) {

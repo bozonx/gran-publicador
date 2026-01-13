@@ -29,20 +29,49 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '');
 }
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#(\d+);/g, (_, code) => {
+      const num = Number(code);
+      return Number.isFinite(num) ? String.fromCodePoint(num) : _;
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => {
+      const num = Number.parseInt(code, 16);
+      return Number.isFinite(num) ? String.fromCodePoint(num) : _;
+    })
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+export function getPlainTextForLength(content: string): string {
+  return decodeHtmlEntities(stripHtmlTags(content));
+}
+
 /**
  * Calculate text length without HTML tags
  */
-function getTextLength(content: string | null | undefined): number {
+export function getTextLength(content: string | null | undefined): number {
   if (!content) return 0;
-  return stripHtmlTags(content).length;
+  return getPlainTextForLength(content).length;
+}
+
+export function normalizeOverrideContent(
+  content: string | null | undefined,
+): string | null | undefined {
+  if (content === undefined) return undefined;
+  if (content === null) return null;
+  if (getPlainTextForLength(content).trim().length === 0) return null;
+  return content;
 }
 
 /**
  * Validate post content based on social media platform rules
  */
-export function validatePostContent(
-  data: PostValidationData,
-): ValidationResult {
+export function validatePostContent(data: PostValidationData): ValidationResult {
   const errors: string[] = [];
   const rules = getValidationRules(data.socialMedia);
 
@@ -89,8 +118,6 @@ export function validatePostContent(
 /**
  * Get validation rules for display in UI
  */
-export function getValidationRulesForDisplay(
-  socialMedia: SocialMedia,
-): SocialMediaValidationRules {
+export function getValidationRulesForDisplay(socialMedia: SocialMedia): SocialMediaValidationRules {
   return getValidationRules(socialMedia);
 }
