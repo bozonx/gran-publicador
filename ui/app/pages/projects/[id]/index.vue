@@ -490,6 +490,7 @@ const projectProblems = computed(() => {
 
         <!-- Create Publication Modal (reused) -->
         <ModalsCreatePublicationModal
+          v-if="isCreateModalOpen"
           v-model:open="isCreateModalOpen"
           :project-id="projectId"
           :preselected-language="selectedLanguage"

@@ -519,6 +519,7 @@ async function executePublish(force: boolean) {
     </div>
     <!-- Delete Confirmation Modal -->
     <UiConfirmModal
+      v-if="isDeleteModalOpen"
       v-model:open="isDeleteModalOpen"
       :title="t('publication.deleteConfirm')"
       :description="t('publication.deleteCascadeWarning')"
@@ -531,6 +532,7 @@ async function executePublish(force: boolean) {
 
     <!-- Republish Confirmation Modal -->
     <UiConfirmModal
+      v-if="isRepublishModalOpen"
       v-model:open="isRepublishModalOpen"
       :title="t('publication.republishConfirm')"
       :description="currentPublication?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishWarning')"
@@ -543,6 +545,7 @@ async function executePublish(force: boolean) {
 
     <!-- Archive Warning Modal -->
     <UiConfirmModal
+      v-if="isArchiveWarningModalOpen"
       v-model:open="isArchiveWarningModalOpen"
       :title="t('publication.archiveWarning.title')"
       :description="archiveWarningMessage + '\n\n' + t('publication.archiveWarning.confirm')"
@@ -554,7 +557,7 @@ async function executePublish(force: boolean) {
     />
 
     <!-- Schedule Modal -->
-    <AppModal v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
+    <AppModal v-if="isScheduleModalOpen" v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
       <p class="text-gray-500 dark:text-gray-400 mb-4">
         {{ t('publication.changeScheduleInfo') }}
       </p>
@@ -580,7 +583,7 @@ async function executePublish(force: boolean) {
     </AppModal>
 
     <!-- Language Change Modal -->
-    <AppModal v-model:open="isLanguageModalOpen" :title="t('publication.changeLanguage')">
+    <AppModal v-if="isLanguageModalOpen" v-model:open="isLanguageModalOpen" :title="t('publication.changeLanguage')">
       <UFormField :label="t('common.language')" required>
          <USelectMenu
             v-model="newLanguage"
@@ -608,7 +611,7 @@ async function executePublish(force: boolean) {
     </AppModal>
 
     <!-- Post Type Change Modal -->
-    <AppModal v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
+    <AppModal v-if="isTypeModalOpen" v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
       <div class="space-y-2">
         <UButton
           v-for="option in typeOptions"

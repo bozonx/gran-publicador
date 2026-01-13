@@ -831,6 +831,7 @@ async function handleDelete() {
 
   <!-- Delete Confirmation Modal -->
   <UiConfirmModal
+    v-if="showDeleteModal"
     v-model:open="showDeleteModal"
     :title="t('publication.deleteConfirm')"
     :description="t('publication.deleteCascadeWarning')"
@@ -843,6 +844,7 @@ async function handleDelete() {
 
   <!-- Bulk Delete Confirmation Modal -->
   <UiConfirmModal
+    v-if="showBulkDeleteModal"
     v-model:open="showBulkDeleteModal"
     :title="t('publication.bulkDeleteConfirm', { count: selectedIds.length })"
     :description="t('publication.deleteCascadeWarning')"

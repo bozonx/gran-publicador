@@ -649,6 +649,7 @@ const channelProblems = computed(() => {
 
         <!-- Create Publication Modal -->
         <ModalsCreatePublicationModal
+          v-if="showCreatePublicationModal"
           v-model:open="showCreatePublicationModal"
           :project-id="projectId"
           :preselected-channel-id="channelId"
@@ -658,6 +659,7 @@ const channelProblems = computed(() => {
 
         <!-- Delete Post Modal -->
          <UiConfirmModal
+           v-if="showDeletePostModal"
            v-model:open="showDeletePostModal"
            :title="t('post.deletePost')"
            :description="t('post.deleteConfirm')"

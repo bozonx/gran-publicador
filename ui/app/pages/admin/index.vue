@@ -515,6 +515,7 @@ const hasActiveFilters = computed(() => {
 
     <!-- Confirm toggle admin modal -->
     <UiConfirmModal
+      v-if="showConfirmModal"
       v-model:open="showConfirmModal"
       :title="userToToggle?.is_admin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
       :description="userToToggle?.is_admin ? t('admin.revokeAdminConfirm', 'Are you sure you want to revoke admin rights from this user?') : t('admin.grantAdminConfirm', 'Are you sure you want to grant admin rights to this user?')"
@@ -546,6 +547,7 @@ const hasActiveFilters = computed(() => {
 
     <!-- Ban user modal -->
     <AppModal
+      v-if="showBanModal"
       v-model:open="showBanModal"
       :title="userToBan?.isBanned ? t('admin.unbanUser', 'Unban User') : t('admin.banUser', 'Ban User')"
     >
