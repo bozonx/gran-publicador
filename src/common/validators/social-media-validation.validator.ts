@@ -1,4 +1,8 @@
 import { SocialMedia } from '../../generated/prisma/enums.js';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import { SKIP, visit } from 'unist-util-visit';
+import { toString } from 'mdast-util-to-string';
 
 import {
   getValidationRules,
@@ -29,6 +33,21 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '');
 }
 
+function getPlainTextFromMarkdown(markdown: string): string {
+  const tree = unified().use(remarkParse).parse(markdown);
+
+  visit(tree as any, 'html', (_node: any, index?: number, parent?: any) => {
+    if (!parent || typeof index !== 'number') return;
+
+    const children = (parent.children ?? []) as any[];
+    children.splice(index, 1);
+
+    return SKIP;
+  });
+
+  return toString(tree as any);
+}
+
 function decodeHtmlEntities(text: string): string {
   return text
     .replace(/&#(\d+);/g, (_, code) => {
@@ -48,7 +67,7 @@ function decodeHtmlEntities(text: string): string {
 }
 
 export function getPlainTextForLength(content: string): string {
-  return decodeHtmlEntities(stripHtmlTags(content));
+  return decodeHtmlEntities(stripHtmlTags(getPlainTextFromMarkdown(content)));
 }
 
 /**

@@ -34,8 +34,12 @@ describe('social-media-validation.validator (unit)', () => {
   });
 
   describe('getTextLength (Telegram-like)', () => {
-    it('strips HTML tags', () => {
-      expect(getTextLength('<p>Hello <b>world</b></p>')).toBe('Hello world'.length);
+    it('extracts plain text from markdown (formatting removed)', () => {
+      expect(getTextLength('Hello **world**')).toBe('Hello world'.length);
+    });
+
+    it('ignores raw HTML inside markdown', () => {
+      expect(getTextLength('Hello <b>world</b>')).toBe('Hello world'.length);
     });
 
     it('decodes HTML entities', () => {
