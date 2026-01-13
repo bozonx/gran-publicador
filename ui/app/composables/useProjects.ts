@@ -171,16 +171,14 @@ export function useProjects() {
 
         try {
             await archiveEntity(ArchiveEntityType.PROJECT, projectId)
-            // Ideally we should just update the state, but fetchProject/fetchProjects might be safer
-            // to ensure backend state consistency if needed. 
-            // For now, let's manual update or re-fetch.
-            // But wait, archiveEntity doesn't return the updated entity in a way we can immediately usage?
-            // it returns void in composable but the api returns entity.
+            // Refetch project to get updated state
+            const updatedProject = await fetchProject(projectId)
+            
+            // Explicitly update the project in the list or remove it if we want it gone immediately
+            if (updatedProject) {
+                store.updateProject(projectId, updatedProject)
+            }
 
-            // Let's refetch to be safe and simple
-            await fetchProject(projectId)
-
-            // Return current project from store
             return store.currentProject
         } catch (err: any) {
             // Error already handled by useArchive
@@ -196,7 +194,12 @@ export function useProjects() {
 
         try {
             await restoreEntity(ArchiveEntityType.PROJECT, projectId)
-            await fetchProject(projectId)
+            const updatedProject = await fetchProject(projectId)
+            
+            if (updatedProject) {
+                store.updateProject(projectId, updatedProject)
+            }
+            
             return store.currentProject
         } catch (err: any) {
             return null

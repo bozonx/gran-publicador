@@ -268,8 +268,11 @@ export function useChannels() {
         const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
         
         // Critical: No credentials
-        // Check if credentials object is missing or empty
-        if (!channel.credentials || Object.keys(channel.credentials).length === 0) {
+        // Critical: No credentials
+        // Check if credentials object is missing, empty, or has all empty values
+        if (!channel.credentials || 
+            Object.keys(channel.credentials).length === 0 ||
+            Object.values(channel.credentials).every(v => !v || v === '')) {
             problems.push({ type: 'critical', key: 'noCredentials' })
         }
         

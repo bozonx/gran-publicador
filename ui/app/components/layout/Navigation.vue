@@ -72,14 +72,14 @@ const { projects, fetchProjects, isLoading: isProjectsLoading, getProjectProblem
 // Instantiate useChannels at the top level
 const { fetchChannels: fetchChannelsApi, getChannelProblemLevel } = useChannels()
 
-const activeProjects = computed(() => projects.value.filter(p => !p.archivedAt))
+const activeProjects = computed(() => projects.value.filter(p => p.archivedAt === null || p.archivedAt === undefined))
 const expandedProjects = ref<Set<string>>(new Set())
 const projectChannels = ref<Record<string, ChannelWithProject[]>>({})
 const areChannelsLoading = ref<Record<string, boolean>>({})
 
 // Initialize
 onMounted(async () => {
-  await fetchProjects()
+  await fetchProjects(false)
   checkActiveRoute()
   eventBus.on('channel:created', handleChannelCreatedEvent)
 })

@@ -23,6 +23,20 @@ export class ProjectsService {
     private permissions: PermissionsService,
   ) {}
 
+  private hasNoCredentials(creds: any): boolean {
+    if (!creds) return true;
+    if (typeof creds === 'object') {
+        // Check if it is an empty object
+        if (Object.keys(creds).length === 0) return true;
+        
+        // Handle array separately if needed, but Object.values handles it.
+        // Check if all values are empty
+        return Object.values(creds).every((v: any) => !v || v === '');
+    }
+    // If it is a primitive and truthy (e.g. string "token"), we consider it as having credentials
+    return false;
+  }
+
   public async create(userId: string, data: CreateProjectDto): Promise<Project> {
     return this.prisma.$transaction(
       async tx => {
@@ -52,9 +66,7 @@ export class ProjectsService {
 
     const where: any = {
       OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-      ...(includeArchived !== undefined
-        ? { archivedAt: includeArchived ? { not: null } : null }
-        : { archivedAt: null }),
+      ...(includeArchived ? {} : { archivedAt: null }),
     };
 
     if (search) {
@@ -128,14 +140,12 @@ export class ProjectsService {
               AND EXISTS (SELECT 1 FROM posts po WHERE po.channel_id = c.id AND po.published_at IS NOT NULL)
               AND ( (SELECT MAX(published_at) FROM posts WHERE channel_id = c.id) < DATETIME('now', '-' || CAST(COALESCE(json_extract(c.preferences, '$.staleChannelsDays'), json_extract(p.preferences, '$.staleChannelsDays'), ${DEFAULT_STALE_CHANNELS_DAYS}) AS TEXT) || ' days') )
             GROUP BY c.project_id`,
-      this.prisma.channel.groupBy({
-        by: ['projectId'],
+      this.prisma.channel.findMany({
         where: {
           projectId: { in: projectIds },
           archivedAt: null,
-          OR: [{ credentials: { equals: {} } }, { credentials: { equals: Prisma.AnyNull } }],
         },
-        _count: { id: true },
+        select: { id: true, projectId: true, credentials: true }, // Select credentials to check manually
       }),
       this.prisma.channel.groupBy({
         by: ['projectId'],
@@ -176,9 +186,13 @@ export class ProjectsService {
     );
 
     const noCredentialsMap = new Map<string, number>();
-    noCredentialsRaw.forEach((row: any) =>
-      noCredentialsMap.set(row.projectId, Number(row._count.id || 0)),
-    );
+    // Manually count credential problems
+    // Manually count credential problems
+    noCredentialsRaw.forEach((row: any) => {
+        if (this.hasNoCredentials(row.credentials)) {
+             noCredentialsMap.set(row.projectId, (noCredentialsMap.get(row.projectId) || 0) + 1);
+        }
+    });
 
     const inactiveMap = new Map<string, number>();
     inactiveRaw.forEach((row: any) => 
@@ -369,7 +383,7 @@ export class ProjectsService {
       };
     });
 
-    const [problemCount, noCredsCount, inactiveCount] = await Promise.all([
+    const [problemCount, inactiveCount] = await Promise.all([
       this.prisma.publication.count({
         where: {
           projectId,
@@ -377,13 +391,7 @@ export class ProjectsService {
           archivedAt: null,
         },
       }),
-      this.prisma.channel.count({
-        where: {
-          projectId,
-          archivedAt: null,
-          OR: [{ credentials: { equals: {} } }, { credentials: { equals: Prisma.AnyNull } }],
-        },
-      }),
+      // No credentials count calculated below from loaded channels
       this.prisma.channel.count({ where: { projectId, archivedAt: null, isActive: false } }),
     ]);
 
@@ -400,7 +408,8 @@ export class ProjectsService {
       staleChannelsCount,
       failedPostsCount: Array.from(failedCountsMap.values()).reduce((a, b) => a + b, 0),
       problemPublicationsCount: problemCount,
-      noCredentialsChannelsCount: noCredsCount,
+      // Calculate no credentials count from mapped channels
+      noCredentialsChannelsCount: mappedChannels.filter(c => this.hasNoCredentials(c.credentials)).length,
       inactiveChannelsCount: inactiveCount,
     };
   }

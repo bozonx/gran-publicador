@@ -49,7 +49,7 @@ const sortedArchivedProjects = computed(() => sortList(archivedProjects.value))
 
 // Fetch all projects (active and archived) in one request
 onMounted(async () => {
-  const data = await fetchProjects() // Changed to undefined for "All" view
+  const data = await fetchProjects(true) // Include archived for the main projects list
   allProjects.value = data
 })
 
