@@ -92,7 +92,7 @@ function handleClose() {
 </script>
 
 <template>
-  <AppModal v-model:open="isOpen" :title="t('channel.createChannel')">
+  <AppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
     <form id="create-channel-form" @submit.prevent="handleCreate" class="space-y-6">
       <!-- Project -->
       <UFormField :label="t('channel.project')" required>
