@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { PostStatus, PostType, ProjectRole } from '../../generated/prisma/client.js';
+import { PostStatus, PostType, ProjectRole, PublicationStatus } from '../../generated/prisma/client.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { normalizeOverrideContent } from '../../common/validators/social-media-validation.validator.js';
 
@@ -33,10 +33,19 @@ export class PostsService {
    */
   private applyCommonFilters(
     where: any,
-    filters?: { status?: PostStatus; postType?: PostType; search?: string },
+    filters?: { status?: PostStatus; postType?: PostType; search?: string; publicationStatus?: PublicationStatus },
   ) {
     if (filters?.status && typeof filters.status === 'string') {
       where.status = filters.status.toUpperCase() as PostStatus;
+    }
+    if (filters?.publicationStatus) {
+      const statuses = Array.isArray(filters.publicationStatus)
+        ? filters.publicationStatus
+        : [filters.publicationStatus];
+      where.publication = {
+        ...where.publication,
+        status: { in: statuses.map((s) => s.toUpperCase() as PublicationStatus) },
+      };
     }
     if (filters?.postType && typeof filters.postType === 'string') {
       where.publication = {

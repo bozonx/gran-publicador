@@ -69,10 +69,11 @@ export class PostsController {
     @Query('postType', new ParsePostTypePipe()) postType?: any,
     @Query('search') search?: string,
     @Query('includeArchived', new DefaultValuePipe(false), ParseBoolPipe) includeArchived?: boolean,
+    @Query('publicationStatus') publicationStatus?: string | string[],
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
   ) {
-    const filters = { status, postType, search, includeArchived, limit, page };
+    const filters = { status, postType, search, includeArchived, limit, page, publicationStatus };
 
     // Validate project scope for API token users
     if (req.user.scopeProjectIds) {

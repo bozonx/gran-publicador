@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { ArchiveEntityType } from '~/types/archive.types'
-import type { PostStatus, PostType } from '~/types/posts'
+import type { PostStatus, PostType, PublicationStatus } from '~/types/posts'
 import {
     getPostStatusOptions,
     getPostTypeOptions,
@@ -89,6 +89,7 @@ export interface PostsFilter {
     limit?: number
     page?: number
     includeArchived?: boolean
+    publicationStatus?: PublicationStatus | PublicationStatus[] | null
 }
 
 export function usePosts() {
@@ -125,6 +126,7 @@ export function usePosts() {
             if (filter.value.limit) params.limit = filter.value.limit
             if (filter.value.page) params.page = filter.value.page
             if (filter.value.includeArchived) params.includeArchived = true
+            if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus
 
             const data = await api.get<PostWithRelations[]>('/posts', { params })
             posts.value = data
@@ -152,6 +154,7 @@ export function usePosts() {
             if (filter.value.limit) params.limit = filter.value.limit
             if (filter.value.page) params.page = filter.value.page
             if (filter.value.includeArchived) params.includeArchived = true
+            if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus
 
             const data = await api.get<PostWithRelations[]>('/posts', { params })
             posts.value = data

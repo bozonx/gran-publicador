@@ -134,10 +134,11 @@ onMounted(async () => {
         })
         await fetchProblemPosts(projectId.value)
 
-        // Fetch scheduled posts (Pending)
+        // Fetch scheduled posts (Pending) - only those from ready/scheduled/processing publications
         setScheduledFilter({
             channelId: channelId.value,
             status: 'PENDING' as PostStatus,
+            publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
             limit: 5
         })
         await fetchScheduledPosts(projectId.value)
@@ -508,7 +509,7 @@ const channelProblems = computed(() => {
                             size="xs"
                             icon="i-heroicons-arrow-right"
                             trailing
-                            :to="`/publications?channelId=${channelId}&status=PENDING`"
+                            :to="`/publications?channelId=${channelId}&status=READY,SCHEDULED,PROCESSING`"
                         >
                             {{ t('common.viewAll') }}
                         </UButton>
