@@ -31,7 +31,8 @@ describe('SocialPostingRequestFormatter', () => {
     channel: mockChannel,
     publication: mockPublication,
     apiKey: 'secret-token',
-    targetChannelId: '@test_channel'
+    targetChannelId: '@test_channel',
+    mediaDir: '/tmp'
   };
 
   it('should format request correctly for Telegram', () => {
@@ -45,6 +46,7 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.body).toContain('Pub Content');
     expect(request.body).toContain('#tag1');
     expect(request.idempotencyKey).toBeDefined();
+    expect(request.postLanguage).toBe('ru-RU');
   });
 
   it('should format request correctly for non-Telegram platforms', () => {
@@ -58,6 +60,18 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.bodyFormat).toBe('html');
     expect(request.title).toBe('Pub Title');
     expect(request.description).toBe('Pub Desc');
+  });
+
+  it('should handle platformOptions disableNotification', () => {
+    const paramsWithOpts = {
+      ...params,
+      post: {
+        ...mockPost,
+        platformOptions: { disableNotification: true }
+      }
+    };
+    const request = SocialPostingRequestFormatter.prepareRequest(paramsWithOpts);
+    expect(request.disableNotification).toBe(true);
   });
 
   it('should handle single media mapping', () => {

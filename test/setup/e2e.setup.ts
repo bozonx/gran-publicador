@@ -20,6 +20,9 @@ beforeAll(() => {
   process.env.JWT_SECRET =
     process.env.JWT_SECRET ?? 'test-secret-key-for-e2e-tests-minimum-32-chars';
   process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? 'test-token';
+  // Config validation requires a valid URL
+  process.env.SOCIAL_POSTING_SERVICE_URL =
+    process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:9999';
   // Note: we don't set NODE_ENV here as it might be set by CLI
 });
 
