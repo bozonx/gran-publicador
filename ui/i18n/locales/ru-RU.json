@@ -396,7 +396,6 @@
     "templateAfterTooltip": "Текст или символы, которые будут вставлены после содержимого блока. Полезно для отступов (\\n) или закрытия тегов.",
     "templateInsertTitle": "Заголовок",
     "templateInsertContent": "Контент",
-    "templateInsertDescription": "Описание",
     "templateInsertTags": "Теги",
     "templateInsertAuthorComment": "Коммент. автора",
     "templateInsertFooter": "Футер",

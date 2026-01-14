@@ -359,7 +359,6 @@
     "templateAfterTooltip": "Text to insert after the block content. Useful for spacing (\\n) or closing tags.",
     "templateInsertTitle": "Title",
     "templateInsertContent": "Content",
-    "templateInsertDescription": "Description",
     "templateInsertTags": "Tags",
     "templateInsertAuthorComment": "Author comment",
     "templateInsertFooter": "Footer",

@@ -45,7 +45,6 @@ const insertOptions = [
   { value: 'title', label: t('channel.templateInsertTitle') },
   { value: 'content', label: t('channel.templateInsertContent') },
   { value: 'authorComment', label: t('channel.templateInsertAuthorComment') },
-  { value: 'description', label: t('channel.templateInsertDescription') },
   { value: 'tags', label: t('channel.templateInsertTags') },
   { value: 'footer', label: t('channel.templateInsertFooter') },
   { value: 'custom', label: t('channel.templateInsertCustom') },
@@ -67,7 +66,6 @@ const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: false, insert: 'title', before: '', after: '' },
   { enabled: true, insert: 'content', before: '', after: '' },
   { enabled: true, insert: 'authorComment', before: '', after: '' },
-  { enabled: true, insert: 'description', before: '', after: '' },
   { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
   { enabled: true, insert: 'custom', before: '', after: '', content: '' },
   { enabled: true, insert: 'footer', before: '', after: '' },
@@ -407,20 +405,16 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
 
                     <USwitch v-model="block.enabled" size="sm" />
 
-                    <USelectMenu
-                      v-model="block.insert"
-                      :items="insertOptions"
-                      value-key="value"
-                      label-key="label"
-                      class="w-40"
-                    />
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
+                      {{ insertOptions.find(o => o.value === block.insert)?.label }}
+                    </span>
 
                     <div class="flex-1"></div>
                   </div>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3" v-if="block.enabled">
+                  <div class="space-y-4 pt-2" v-if="block.enabled">
                     <template v-if="block.insert !== 'custom'">
-                      <UFormField>
+                      <UFormField class="w-full">
                         <template #label>
                           <div class="flex items-center gap-1.5">
                             <span>{{ t('channel.templateBefore') }}</span>
@@ -430,10 +424,11 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                         <UTextarea
                           v-model="block.before"
                           :rows="2"
-                          class="font-mono text-xs"
+                          class="font-mono text-xs w-full"
+                          autoresize
                         />
                       </UFormField>
-                      <UFormField>
+                      <UFormField class="w-full">
                         <template #label>
                           <div class="flex items-center gap-1.5">
                             <span>{{ t('channel.templateAfter') }}</span>
@@ -443,13 +438,14 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                         <UTextarea
                           v-model="block.after"
                           :rows="2"
-                          class="font-mono text-xs"
+                          class="font-mono text-xs w-full"
+                          autoresize
                         />
                       </UFormField>
                     </template>
 
                     <template v-if="block.insert === 'tags'">
-                      <UFormField :label="t('channel.templateTagCase')" class="md:col-span-2">
+                      <UFormField :label="t('channel.templateTagCase')" class="w-full">
                         <USelectMenu
                           v-model="block.tagCase"
                           :items="tagCaseOptions"
@@ -461,7 +457,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                     </template>
 
                     <template v-if="block.insert === 'footer'">
-                      <UFormField :label="t('channel.footers')" class="md:col-span-2">
+                      <UFormField :label="t('channel.footers')" class="w-full">
                         <USelectMenu
                           v-model="block.footerId"
                           :items="footerOptions"
@@ -473,12 +469,13 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                     </template>
 
                     <template v-if="block.insert === 'custom'">
-                      <UFormField :label="t('channel.templateInsertCustom')" class="md:col-span-2">
+                      <UFormField :label="t('channel.templateInsertCustom')" class="w-full">
                         <UTextarea
                           v-model="block.content"
                           :rows="4"
-                          class="font-mono text-xs"
+                          class="font-mono text-xs w-full"
                           :placeholder="t('channel.templateInsertCustomPlaceholder')"
+                          autoresize
                         />
                       </UFormField>
                     </template>

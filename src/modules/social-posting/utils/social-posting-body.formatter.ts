@@ -6,7 +6,7 @@ import {
 
 export interface TemplateBlock {
   enabled: boolean;
-  insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment' | 'footer' | 'custom';
+  insert: 'title' | 'content' | 'tags' | 'authorComment' | 'footer' | 'custom';
   before: string;
   after: string;
   tagCase?: TagCase;
@@ -55,7 +55,6 @@ export class SocialPostingBodyFormatter {
       { enabled: false, insert: 'title', before: '', after: '' },
       { enabled: true, insert: 'content', before: '', after: '' },
       { enabled: true, insert: 'authorComment', before: '', after: '' },
-      { enabled: true, insert: 'description', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
       { enabled: true, insert: 'custom', before: '', after: '', content: '' },
       { enabled: true, insert: 'footer', before: '', after: '' },
@@ -99,9 +98,6 @@ export class SocialPostingBodyFormatter {
           break;
         case 'content':
           value = data.content || '';
-          break;
-        case 'description':
-          value = data.description || '';
           break;
         case 'tags':
           value = TagsFormatter.format(data.tags, {
