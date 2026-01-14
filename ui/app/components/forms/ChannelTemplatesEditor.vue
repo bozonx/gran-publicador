@@ -69,6 +69,7 @@ const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: true, insert: 'authorComment', before: '', after: '' },
   { enabled: true, insert: 'description', before: '', after: '' },
   { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
+  { enabled: true, insert: 'custom', before: '', after: '', content: '' },
   { enabled: true, insert: 'footer', before: '', after: '' },
 ]
 
