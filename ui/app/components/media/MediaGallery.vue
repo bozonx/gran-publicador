@@ -27,7 +27,7 @@ interface Props {
   }>
   publicationId: string
   editable?: boolean
-  socialMedia?: string
+  socialMedia?: string | string[]
   showValidation?: boolean
   postType?: string
 }
@@ -504,13 +504,29 @@ const mediaValidation = computed(() => {
       type: item.media!.type
     }))
   
-  return validatePostContent(
-    '',
-    mediaArray.length,
-    props.socialMedia as any,
-    mediaArray,
-    props.postType
-  )
+  const platforms = Array.isArray(props.socialMedia) ? props.socialMedia : [props.socialMedia]
+  const allErrors: ValidationError[] = []
+  
+  for (const platform of platforms) {
+    const result = validatePostContent(
+      '',
+      mediaArray.length,
+      platform as any,
+      mediaArray,
+      props.postType
+    )
+    if (!result.isValid) {
+      allErrors.push(...result.errors)
+    }
+  }
+  
+  // Deduplicate errors by message
+  const uniqueErrors = Array.from(new Map(allErrors.map(err => [err.message, err])).values())
+  
+  return {
+    isValid: uniqueErrors.length === 0,
+    errors: uniqueErrors
+  }
 })
 
 interface Emits {

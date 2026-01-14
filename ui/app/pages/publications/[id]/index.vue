@@ -4,7 +4,8 @@ import { useProjects } from '~/composables/useProjects'
 import { useFormatters } from '~/composables/useFormatters'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { getStatusColor, getStatusIcon } from '~/utils/publications'
-import { getSocialMediaIcon } from '~/utils/socialMedia'
+import { getSocialMediaIcon, getSocialMediaDisplayName } from '~/utils/socialMedia'
+import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 
 definePageMeta({
@@ -43,6 +44,36 @@ const displayTitle = computed(() => {
   }
   return t('post.untitled')
 })
+
+const isArchived = computed(() => !!currentPublication.value?.archivedAt)
+const isProjectArchived = computed(() => !!currentProject.value?.archivedAt)
+const hasArchivedChannels = computed(() => currentPublication.value?.posts?.some(p => !!p.channel?.archivedAt))
+const hasInactiveChannels = computed(() => currentPublication.value?.posts?.some(p => p.channel?.isActive === false))
+
+const isPreviewModalOpen = ref(false)
+const previewContent = ref('')
+const previewTitle = ref('')
+
+function showPostPreview(post: any) {
+  if (!currentPublication.value) return
+
+  previewTitle.value = getSocialMediaDisplayName(post.channel?.socialMedia || post.socialMedia, t)
+  
+  previewContent.value = SocialPostingBodyFormatter.format(
+    {
+      title: currentPublication.value.title,
+      content: post.content || currentPublication.value.content,
+      description: currentPublication.value.description,
+      tags: post.tags || currentPublication.value.tags,
+      postType: currentPublication.value.postType as any,
+      language: post.language || currentPublication.value.language,
+    },
+    post.channel || post,
+    post.template
+  )
+  
+  isPreviewModalOpen.value = true
+}
 </script>
 
 <template>
@@ -85,6 +116,30 @@ const displayTitle = computed(() => {
 
           <!-- Badge Row -->
           <div class="flex flex-wrap gap-2 mb-6">
+            <!-- Archivied status for publication -->
+            <UBadge v-if="isArchived" color="error" variant="solid" class="flex items-center gap-1 font-bold">
+              <UIcon name="i-heroicons-archive-box" class="w-4 h-4" />
+              {{ t('common.archived') }}
+            </UBadge>
+
+            <!-- Problem: Project Archived -->
+            <UBadge v-if="isProjectArchived" color="warning" variant="subtle" class="flex items-center gap-1 font-medium">
+              <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4" />
+              {{ t('publication.projectArchived') }}
+            </UBadge>
+
+            <!-- Problem: Archived Channels -->
+            <UBadge v-if="hasArchivedChannels" color="warning" variant="subtle" class="flex items-center gap-1 font-medium">
+              <UIcon name="i-heroicons-archive-box" class="w-4 h-4" />
+              {{ t('publication.hasArchivedChannels') }}
+            </UBadge>
+
+            <!-- Problem: Inactive Channels -->
+            <UBadge v-if="hasInactiveChannels" color="warning" variant="subtle" class="flex items-center gap-1 font-medium">
+              <UIcon name="i-heroicons-no-symbol" class="w-4 h-4" />
+              {{ t('publication.hasInactiveChannels') }}
+            </UBadge>
+
             <!-- Language -->
             <UBadge variant="soft" color="neutral" class="font-normal">
               <span class="text-gray-400 mr-1">{{ t('common.language') }}:</span>
@@ -119,9 +174,12 @@ const displayTitle = computed(() => {
           <!-- Social Media & Dates Row -->
           <div v-if="currentPublication.posts?.length" class="flex flex-wrap gap-4 mb-6 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             <div v-for="post in currentPublication.posts" :key="post.id" class="flex items-center gap-2">
-              <UTooltip :text="post.channel?.name || post.socialMedia">
-                <div class="h-8 w-8 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center">
-                  <UIcon :name="getSocialMediaIcon(post.channel?.socialMedia || post.socialMedia)" class="w-4 h-4" />
+              <UTooltip :text="t('post.clickToPreview', 'Click to preview post content')">
+                <div 
+                  class="h-10 w-10 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:scale-110 hover:shadow-md transition-all active:scale-95"
+                  @click="showPostPreview(post)"
+                >
+                  <UIcon :name="getSocialMediaIcon(post.channel?.socialMedia || post.socialMedia)" class="w-5 h-5" />
                 </div>
               </UTooltip>
               <div class="flex flex-col">
@@ -132,7 +190,7 @@ const displayTitle = computed(() => {
                   class="text-xs font-medium"
                   :class="post.publishedAt ? 'text-success-600 dark:text-success-400' : 'text-primary-600 dark:text-primary-400'"
                 >
-                  {{ post.publishedAt ? formatDateWithTime(post.publishedAt) : (post.scheduledAt ? formatDateWithTime(post.scheduledAt) : t('common.none')) }}
+                  {{ post.publishedAt ? formatDateWithTime(post.publishedAt) : (post.scheduledAt ? formatDateWithTime(post.scheduledAt) : (currentPublication.scheduledAt ? formatDateWithTime(currentPublication.scheduledAt) : t('common.none'))) }}
                 </span>
               </div>
             </div>
@@ -199,5 +257,30 @@ const displayTitle = computed(() => {
         </div>
       </div>
     </div>
+
+    <!-- Preview Modal -->
+    <UiAppModal 
+      v-model:open="isPreviewModalOpen"
+      :title="t('post.previewTitle', 'Post Preview')"
+    >
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-paper-airplane" class="w-5 h-5 text-primary-500" />
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+            {{ t('post.previewTitle', 'Post Preview') }}: {{ previewTitle }}
+          </h3>
+        </div>
+      </template>
+
+      <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
+        <pre class="whitespace-pre-wrap font-sans text-sm text-gray-800 dark:text-gray-200">{{ previewContent }}</pre>
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
+          {{ t('common.close') }}
+        </UButton>
+      </template>
+    </UiAppModal>
   </div>
 </template>

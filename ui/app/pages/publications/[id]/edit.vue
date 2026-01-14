@@ -5,6 +5,7 @@ import { useChannels } from '~/composables/useChannels'
 import { usePosts } from '~/composables/usePosts'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { useSocialPosting } from '~/composables/useSocialPosting'
+import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
@@ -19,6 +20,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { fetchProject, currentProject } = useProjects()
+const { validatePostContent } = useSocialMediaValidation()
 const { 
   fetchPublication, 
   currentPublication, 
@@ -39,9 +41,37 @@ const {
   getPublicationProblemLevel 
 } = usePublications()
 
+const linkedSocialMedia = computed(() => {
+    if (!currentPublication.value?.posts) return []
+    const platforms = currentPublication.value.posts.map((p: any) => p.channel?.socialMedia).filter(Boolean)
+    return [...new Set(platforms)]
+})
+
 const publicationProblems = computed(() => {
   if (!currentPublication.value) return []
-  return getPublicationProblems(currentPublication.value)
+  const problems = getPublicationProblems(currentPublication.value)
+  
+  // Media validation problems for publication-level media
+  if (currentPublication.value.media && currentPublication.value.media.length > 0) {
+      const mediaCount = currentPublication.value.media.length
+      const mediaArray = currentPublication.value.media.map(m => ({ type: m.media?.type || 'UNKNOWN' }))
+      const postType = currentPublication.value.postType
+      
+      let hasMediaError = false
+      for (const platform of linkedSocialMedia.value) {
+          const result = validatePostContent('', mediaCount, platform as any, mediaArray, postType)
+          if (!result.isValid) {
+              hasMediaError = true
+              break
+          }
+      }
+      
+      if (hasMediaError) {
+          problems.push({ type: 'critical', key: 'mediaValidation' })
+      }
+  }
+  
+  return problems
 })
 
 const isCreatingPost = ref(false)
@@ -878,6 +908,7 @@ async function executePublish(force: boolean) {
           :publication-id="currentPublication.id"
           :editable="true"
           :post-type="currentPublication.postType"
+          :social-media="linkedSocialMedia"
           @refresh="() => fetchPublication(publicationId)"
         />
 

@@ -429,6 +429,8 @@
     "authorComment": "Author comment",
     "note": "Internal note",
     "tags": "Tags",
+    "clickToPreview": "Click to preview post content",
+    "previewTitle": "Post Preview",
     "postDate": "Content date",
     "postType": "Post type",
     "postTypeTooltip": "Determines how the content is treated. 'Article' allows rich text. 'News' is for short updates. 'Video' and others optimize for specific media.",
@@ -526,6 +528,10 @@
     "changeStatusWarning": "Warning! This will change the status for all linked posts.",
     "linkedPostsInfo": "Linked Posts",
     "linkedPostsInfoDescription": "Changes to this publication will automatically apply to {count} linked posts",
+    "deleteError": "Failed to delete publication",
+    "projectArchived": "Project Archived",
+    "hasArchivedChannels": "Archived Channels",
+    "hasInactiveChannels": "Inactive Channels",
     "createError": "Failed to create publication",
     "filter": {
       "ownership": {
@@ -689,7 +695,8 @@
       "somePostsFailed": "{count} posts failed",
       "publicationExpired": "Publication window missed",
       "channelProblems": "Channel problems",
-      "failedPosts": "{count} posts failed"
+      "failedPosts": "{count} posts failed",
+      "mediaValidation": "Media upload rules violated for social networks"
     },
     "channel": {
       "noCredentials": "No credentials provided",

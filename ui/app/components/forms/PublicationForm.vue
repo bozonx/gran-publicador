@@ -61,6 +61,8 @@ const isContentMissing = computed(() => isTextContentEmpty(state.content) && !ha
 const validationErrors = computed(() => {
     const errors: string[] = []
     const mediaCount = props.publication?.media?.length || 0
+    const mediaArray = props.publication?.media?.map(m => ({ type: m.media?.type || 'UNKNOWN' })) || []
+    const postType = state.postType
 
     // 1. Determine relevant channels
     // Creating: checking selected channelIds
@@ -68,7 +70,7 @@ const validationErrors = computed(() => {
         state.channelIds.forEach(id => {
             const channel = channels.value.find(c => c.id === id)
             if (channel && channel.socialMedia) {
-                const result = validatePostContent(state.content, mediaCount, channel.socialMedia as any)
+                const result = validatePostContent(state.content, mediaCount, channel.socialMedia as any, mediaArray, postType)
                 if (!result.isValid) {
                     result.errors.forEach(err => {
                         errors.push(`${channel.name}: ${err.message}`)
@@ -81,12 +83,11 @@ const validationErrors = computed(() => {
     else if (props.publication?.posts) {
          props.publication.posts.forEach((post: any) => {
              // Check if post inherits content: null, undefined, or empty string.
-             // This aligns with PostEditBlock displaying inherited content when post content is empty.
              const isInherited = isTextContentEmpty(post.content); 
              const hasChannel = post.channel && post.channel.socialMedia;
 
              if (isInherited && hasChannel) {
-                  const result = validatePostContent(state.content, mediaCount, post.channel.socialMedia as any)
+                  const result = validatePostContent(state.content, mediaCount, post.channel.socialMedia as any, mediaArray, postType)
                   
                   if (!result.isValid) {
                      result.errors.forEach(err => {
