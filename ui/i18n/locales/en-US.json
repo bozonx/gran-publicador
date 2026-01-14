@@ -921,5 +921,25 @@
     "banReason": "Ban reason",
     "userBanned": "User banned",
     "userUnbanned": "User unbanned"
+  },
+  "llm": {
+    "generate": "Generate with AI",
+    "generating": "Generating...",
+    "promptLabel": "AI Prompt",
+    "promptPlaceholder": "Describe what you want to generate...",
+    "promptRequired": "Please enter a prompt",
+    "resultLabel": "Result",
+    "insertContent": "Insert into Content",
+    "advancedSettings": "Advanced Settings",
+    "temperature": "Temperature",
+    "temperatureHelp": "Controls randomness of the response (0-2)",
+    "maxTokens": "Max Tokens",
+    "maxTokensHelp": "Maximum length of the response",
+    "error": "Generation Error",
+    "errorMessage": "Failed to generate content. Please try again.",
+    "tooltip": "Generate content with AI",
+    "provider": "Provider",
+    "model": "Model",
+    "fallbackUsed": "Fallback model was used"
   }
 }

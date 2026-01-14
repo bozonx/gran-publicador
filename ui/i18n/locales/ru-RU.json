@@ -971,5 +971,25 @@
     "banReason": "Причина блокировки",
     "userBanned": "Пользователь заблокирован",
     "userUnbanned": "Пользователь разблокирован"
+  },
+  "llm": {
+    "generate": "Сгенерировать с AI",
+    "generating": "Генерация...",
+    "promptLabel": "Запрос к AI",
+    "promptPlaceholder": "Опишите, что вы хотите сгенерировать...",
+    "promptRequired": "Введите запрос",
+    "resultLabel": "Результат",
+    "insertContent": "Вставить в контент",
+    "advancedSettings": "Расширенные настройки",
+    "temperature": "Temperature",
+    "temperatureHelp": "Контролирует случайность ответа (0-2)",
+    "maxTokens": "Макс. токенов",
+    "maxTokensHelp": "Максимальная длина ответа",
+    "error": "Ошибка генерации",
+    "errorMessage": "Не удалось сгенерировать контент. Попробуйте еще раз.",
+    "tooltip": "Сгенерировать контент с помощью AI",
+    "provider": "Провайдер",
+    "model": "Модель",
+    "fallbackUsed": "Использована резервная модель"
   }
 }
