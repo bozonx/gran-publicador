@@ -61,7 +61,7 @@ async function handleClick() {
           <p class="text-sm font-semibold truncate">{{ notification.title }}</p>
           <div v-if="!notification.readAt" class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
         </div>
-        <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+        <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 whitespace-pre-line">
           {{ notification.message }}
         </p>
         <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">

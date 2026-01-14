@@ -541,13 +541,19 @@ export class ProjectsService {
 
     // Notify user about project invitation
     try {
-      const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+      const [project, inviter] = await Promise.all([
+        this.prisma.project.findUnique({ where: { id: projectId } }),
+        this.prisma.user.findUnique({ where: { id: userId } }),
+      ]);
+
+      const inviterName = inviter?.fullName || (inviter?.telegramUsername ? `@${inviter.telegramUsername}` : 'Someone');
+
       await this.notifications.create({
         userId: userToAdd.id,
         type: 'PROJECT_INVITE' as any,
         title: 'Project Invitation',
-        message: `You have been added to project "${project?.name || 'Unknown'}"`,
-        meta: { projectId },
+        message: `${inviterName} invited you to project "${project?.name || 'Unknown'}"`,
+        meta: { projectId, invitedBy: userId },
       });
     } catch (error: any) {
       this.logger.error(`Failed to send project invitation notification: ${error.message}`);

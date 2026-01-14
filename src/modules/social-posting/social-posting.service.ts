@@ -190,6 +190,8 @@ export class SocialPostingService {
     const results: Array<{
       postId: string;
       channelId: string;
+      channelName: string;
+      platform: string;
       success: boolean;
       url?: string;
       error?: string;
@@ -232,6 +234,8 @@ export class SocialPostingService {
         results.push({
           postId: post.id,
           channelId: post.channelId,
+          channelName: post.channel.name,
+          platform: post.channel.socialMedia,
           success: false,
           error: 'Publication aborted due to system shutdown',
         });
@@ -251,6 +255,8 @@ export class SocialPostingService {
         results.push({
           postId: post.id,
           channelId: post.channelId,
+          channelName: post.channel.name,
+          platform: post.channel.socialMedia,
           success: result.success,
           url: result.url,
           error: result.error,
@@ -263,6 +269,8 @@ export class SocialPostingService {
         results.push({
           postId: post.id,
           channelId: post.channelId,
+          channelName: post.channel.name,
+          platform: post.channel.socialMedia,
           success: false,
           error: error.message,
         });
@@ -304,11 +312,18 @@ export class SocialPostingService {
     // Notify creator about failed or partial publication
     if ((finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) && publication.createdBy) {
       try {
+        const successList = results.filter(r => r.success).map(r => `${r.channelName} (${r.platform})`).join(', ');
+        const failedList = results.filter(r => !r.success).map(r => `${r.channelName} (${r.platform})`).join(', ');
+        
+        let detailMessage = '';
+        if (successList) detailMessage += `\n✅ Success: ${successList}`;
+        if (failedList) detailMessage += `\n❌ Failed: ${failedList}`;
+
         await this.notifications.create({
           userId: publication.createdBy,
           type: NotificationType.PUBLICATION_FAILED,
           title: finalStatus === PublicationStatus.FAILED ? 'Publication Failed' : 'Publication Partially Failed',
-          message: `Publication "${publication.content?.substring(0, 50)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}`,
+          message: `Publication "${publication.title || publication.content?.substring(0, 30)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.${detailMessage}`,
           meta: { publicationId: publication.id, projectId: publication.projectId },
         });
       } catch (error: any) {
@@ -421,11 +436,14 @@ export class SocialPostingService {
       // Notify creator about failed or partial publication
       if ((finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) && post.publication.createdBy) {
         try {
+          const statusIcon = result.success ? '✅' : '❌';
+          const statusText = result.success ? 'Success' : 'Failed';
+          
           await this.notifications.create({
             userId: post.publication.createdBy,
             type: NotificationType.PUBLICATION_FAILED,
             title: finalStatus === PublicationStatus.FAILED ? 'Publication Failed' : 'Publication Partially Failed',
-            message: `Publication "${post.publication.content?.substring(0, 50)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}`,
+            message: `Publication "${post.publication.title || post.publication.content?.substring(0, 30)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.\n${statusIcon} ${post.channel.name} (${post.channel.socialMedia}): ${statusText}${result.error ? ` (${result.error})` : ''}`,
             meta: { publicationId: post.publicationId, projectId: post.publication.projectId },
           });
         } catch (error: any) {

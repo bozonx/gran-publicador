@@ -108,13 +108,13 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
         for (const pub of pubsToExpire) {
           try {
              // We need to fetch the creator ID
-             const fullPub = await this.prisma.publication.findUnique({ where: { id: pub.id }, select: { createdBy: true, content: true, projectId: true } });
+             const fullPub = await this.prisma.publication.findUnique({ where: { id: pub.id }, select: { createdBy: true, title: true, content: true, projectId: true } });
              if (fullPub?.createdBy) {
                 await this.notifications.create({
                   userId: fullPub.createdBy,
                   type: NotificationType.PUBLICATION_FAILED,
                   title: 'Publication Expired',
-                  message: `Publication "${fullPub.content?.substring(0, 50)}..." has expired`,
+                  message: `Publication "${fullPub.title || fullPub.content?.substring(0, 30)}..." has expired`,
                   meta: { publicationId: pub.id, projectId: fullPub.projectId },
                 });
              }
