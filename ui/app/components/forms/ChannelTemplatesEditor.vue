@@ -61,10 +61,10 @@ const tagCaseOptions = [
 ]
 
 const getDefaultBlocks = (): TemplateBlock[] => [
-  { enabled: false, insert: 'title', before: '', after: '\n\n' },
+  { enabled: false, insert: 'title', before: '', after: '' },
   { enabled: true, insert: 'content', before: '', after: '' },
-  { enabled: true, insert: 'description', before: '\n\n', after: '' },
-  { enabled: true, insert: 'tags', before: '\n\n', after: '', tagCase: 'none' },
+  { enabled: true, insert: 'description', before: '', after: '' },
+  { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'none' },
 ]
 
 const templates = ref<ChannelPostTemplate[]>(props.channel.preferences?.templates || [])
@@ -435,8 +435,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                       </template>
                       <UTextarea
                         v-model="block.before"
-                        :rows="1"
-                        autoresize
+                        :rows="3"
                         class="font-mono text-xs"
                       />
                     </UFormField>
@@ -449,8 +448,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                       </template>
                       <UTextarea
                         v-model="block.after"
-                        :rows="1"
-                        autoresize
+                        :rows="3"
                         class="font-mono text-xs"
                       />
                     </UFormField>

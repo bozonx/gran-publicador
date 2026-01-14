@@ -49,10 +49,10 @@ export class SocialPostingBodyFormatter {
    */
   private static getDefaultBlocks(): TemplateBlock[] {
     return [
-      { enabled: false, insert: 'title', before: '', after: '\n\n' },
+      { enabled: false, insert: 'title', before: '', after: '' },
       { enabled: true, insert: 'content', before: '', after: '' },
-      { enabled: true, insert: 'description', before: '\n\n', after: '' },
-      { enabled: true, insert: 'tags', before: '\n\n', after: '' },
+      { enabled: true, insert: 'description', before: '', after: '' },
+      { enabled: true, insert: 'tags', before: '', after: '' },
     ];
   }
 
@@ -60,33 +60,28 @@ export class SocialPostingBodyFormatter {
    * Formats the body text based on channel templates or default template.
    */
   static format(
-    data: PublicationData, 
+    data: PublicationData,
     channel: { language: string; preferences?: any },
-    templateOverride?: { id: string } | null
+    templateOverride?: { id: string } | null,
   ): string {
-    const templates: ChannelPostTemplate[] = channel.preferences?.templates || [];
-    
+    const templates: ChannelPostTemplate[] =
+      channel.preferences?.templates || [];
+
     let template: ChannelPostTemplate | null | undefined = null;
 
     // 1. Explicit selection (Highest Priority)
     if (templateOverride?.id) {
-      template = templates.find(t => t.id === templateOverride.id);
-      
-      // If explicit template is not found, user requested to use Default template.
-      // We don't fail here, just proceed to look for default.
+      template = templates.find((t) => t.id === templateOverride.id);
     }
 
-    // 2. Channel Default (if no explicit found, or explicit was invalid)
+    // 2. Channel Default
     if (!template) {
-         template = templates.find(t => t.isDefault);
+      template = templates.find((t) => t.isDefault);
     }
 
-    // 3. System Default (if even channel default is missing)
-    // Implicitly handled: if template is null, we use getDefaultBlocks()
-    
     const blocks = template ? template.template : this.getDefaultBlocks();
-    
-    let result = '';
+
+    const formattedBlocks: string[] = [];
 
     for (const block of blocks) {
       if (!block.enabled) continue;
@@ -109,27 +104,42 @@ export class SocialPostingBodyFormatter {
           break;
       }
 
-      if (value && value.trim()) {
-        result += block.before + value.trim() + block.after;
+      const trimmedValue = value.trim();
+      if (trimmedValue) {
+        // Requirement: if insertion exists, it's placed between text before and after with spaces,
+        // and everything is trimmed such that only 1 space remains.
+        const blockParts = [
+          block.before?.trim(),
+          trimmedValue,
+          block.after?.trim(),
+        ].filter(Boolean);
+
+        formattedBlocks.push(blockParts.join(' '));
       }
     }
+
+    // Join all blocks with double newline (one empty line between them)
+    let result = formattedBlocks.join('\n\n');
 
     // Append Footer
     const footers: ChannelFooter[] = channel.preferences?.footers || [];
     let footerObj: ChannelFooter | undefined;
 
     if (template && template.footerId) {
-       // A specific footer is selected
-       footerObj = footers.find(f => f.id === template.footerId);
+      footerObj = footers.find((f) => f.id === template.footerId);
     } else {
-       // If no specific footer or using System Default, check for Default Footer
-       footerObj = footers.find(f => f.isDefault);
+      footerObj = footers.find((f) => f.isDefault);
     }
 
     if (footerObj && footerObj.content && footerObj.content.trim()) {
-      result += '\n\n' + footerObj.content.trim();
+      const trimmedFooter = footerObj.content.trim();
+      if (result) {
+        result += '\n\n' + trimmedFooter;
+      } else {
+        result = trimmedFooter;
+      }
     }
 
-    return result.trim();
+    return result.trim().replace(/\n{3,}/g, '\n\n');
   }
 }
