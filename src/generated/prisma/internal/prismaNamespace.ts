@@ -1248,6 +1248,8 @@ export const MediaScalarFieldEnum = {
   storageType: 'storageType',
   storagePath: 'storagePath',
   filename: 'filename',
+  alt: 'alt',
+  description: 'description',
   mimeType: 'mimeType',
   sizeBytes: 'sizeBytes',
   meta: 'meta',

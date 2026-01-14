@@ -1,7 +1,8 @@
 {
   "sourceTexts": {
     "title": "Source Texts",
-    "add": "Add Text",
+    "add": "Add Source Text",
+    "placeholder": "Enter source text here...",
     "empty": "No source texts yet",
     "source": "Source",
     "manual": "Manual",
