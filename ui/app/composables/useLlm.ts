@@ -36,17 +36,20 @@ export function useLlm() {
   ): Promise<LlmResponse | null> {
     isGenerating.value = true
     error.value = null
+    console.log('LLM: Starting generation with prompt:', prompt)
 
     try {
       const response = await post<LlmResponse>('/llm/generate', {
         prompt,
         ...options,
       })
+      console.log('LLM: Generation successful:', response)
 
       return response
     } catch (err: any) {
-      error.value = err.data?.message || err.message || 'Failed to generate content'
-      console.error('LLM generation error:', err)
+      const msg = err.data?.message || err.message || 'Failed to generate content'
+      error.value = msg
+      console.error('LLM: Generation error:', err)
       return null
     } finally {
       isGenerating.value = false

@@ -34,29 +34,33 @@ watch(isOpen, (open) => {
 })
 
 async function handleGenerate() {
+  console.log('Modal: handleGenerate clicked');
   if (!prompt.value.trim()) {
+    console.log('Modal: Prompt is empty');
     toast.add({
-      title: t('common.error'),
-      description: t('llm.promptRequired', 'Please enter a prompt'),
-      color: 'error',
-    })
-    return
+      title: t('llm.promptRequired'),
+      color: 'red',
+    });
+    return;
   }
 
+  console.log('Modal: Calling generateContent');
   const response = await generateContent(prompt.value, {
     temperature: temperature.value,
     max_tokens: maxTokens.value,
-  })
+  });
 
   if (response) {
-    result.value = response.content
-    metadata.value = response.metadata
-  } else if (error.value) {
+    console.log('Modal: Response received', response);
+    result.value = response.content;
+    metadata.value = response._router || null;
+  } else {
+    console.log('Modal: No response (error)');
     toast.add({
       title: t('llm.error'),
-      description: error.value,
-      color: 'error',
-    })
+      description: error.value || t('llm.errorMessage'),
+      color: 'red',
+    });
   }
 }
 
