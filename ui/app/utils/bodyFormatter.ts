@@ -187,12 +187,12 @@ export class SocialPostingBodyFormatter {
       const trimmedValue = value.trim();
       if (trimmedValue) {
         const blockParts = [
-          block.before?.trim(),
+          block.before || '',
           trimmedValue,
-          block.after?.trim(),
-        ].filter(Boolean);
+          block.after || '',
+        ];
 
-        formattedBlocks.push(blockParts.join(' '));
+        formattedBlocks.push(blockParts.join(''));
       }
     }
 

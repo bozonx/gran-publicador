@@ -128,15 +128,13 @@ export class SocialPostingBodyFormatter {
 
       const trimmedValue = value.trim();
       if (trimmedValue) {
-        // Requirement: if insertion exists, it's placed between text before and after with spaces,
-        // and everything is trimmed such that only 1 space remains.
         const blockParts = [
-          block.before?.trim(),
+          block.before || '',
           trimmedValue,
-          block.after?.trim(),
-        ].filter(Boolean);
+          block.after || '',
+        ];
 
-        formattedBlocks.push(blockParts.join(' '));
+        formattedBlocks.push(blockParts.join(''));
       }
     }
 

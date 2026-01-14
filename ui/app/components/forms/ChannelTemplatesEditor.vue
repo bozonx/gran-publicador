@@ -481,6 +481,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                             class="font-mono text-xs w-full"
                             autoresize
                           />
+                          <CommonWhitespaceVisualizer :text="block.before" class="mt-1" />
                         </UFormField>
                         <UFormField class="w-full">
                           <template #label>
@@ -495,6 +496,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                             class="font-mono text-xs w-full"
                             autoresize
                           />
+                          <CommonWhitespaceVisualizer :text="block.after" class="mt-1" />
                         </UFormField>
                       </div>
                     </template>
@@ -532,6 +534,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                           :placeholder="t('channel.templateInsertCustomPlaceholder')"
                           autoresize
                         />
+                        <CommonWhitespaceVisualizer :text="block.content" class="mt-1" />
                       </UFormField>
                     </template>
                   </div>
