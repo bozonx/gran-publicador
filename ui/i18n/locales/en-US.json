@@ -583,7 +583,8 @@
     "delete": "Delete Publication",
     "validation": {
       "contentRequired": "Fill content field to schedule publication",
-      "contentOrMediaRequired": "Content or Media is required"
+      "contentOrMediaRequired": "Content or Media is required",
+      "fixMediaErrors": "Fix media validation errors before publishing"
     },
     "status": {
       "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",

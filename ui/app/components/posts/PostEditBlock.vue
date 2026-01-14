@@ -862,7 +862,7 @@ const metaYaml = computed(() => {
             
             <UTooltip 
               v-if="!isCreating" 
-              :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!canPublishPost(props.post, props.publication) ? t('publication.cannotPublish') : '')"
+              :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!canPublishPost(props.post, props.publication) ? (!validationResult.isValid ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish')) : '')"
             >
               <UButton
                 :label="t('publication.publishNow')"

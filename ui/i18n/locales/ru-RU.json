@@ -628,7 +628,8 @@
     "media": "Медиа-файлы",
     "validation": {
       "contentRequired": "Заполните поле контента, чтобы запланировать публикацию",
-      "contentOrMediaRequired": "Требуется контент или медиа"
+      "contentOrMediaRequired": "Требуется контент или медиа",
+      "fixMediaErrors": "Исправьте ошибки медиа перед публикацией"
     },
     "status": {
       "draft": "Черновик",

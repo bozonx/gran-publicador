@@ -52,6 +52,7 @@ const hasArchivedChannels = computed(() => currentPublication.value?.posts?.some
 const hasInactiveChannels = computed(() => currentPublication.value?.posts?.some(p => p.channel?.isActive === false))
 
 const isPreviewModalOpen = ref(false)
+const isMetaVisible = ref(false)
 const previewContent = ref('')
 const previewTitle = ref('')
 
@@ -287,11 +288,24 @@ const metaYaml = computed(() => {
 
             <!-- Meta Data Section -->
             <div v-if="metaYaml" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
-              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <UIcon name="i-heroicons-code-bracket" class="w-4 h-4" />
-                {{ t('post.metadata') }}
-              </h3>
-              <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/50 rounded-lg">
+              <button 
+                class="flex items-center justify-between w-full text-left group"
+                @click="isMetaVisible = !isMetaVisible"
+              >
+                <div class="flex items-center gap-1.5">
+                  <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                  <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+                    {{ t('post.metadata') }}
+                  </h3>
+                </div>
+                <UIcon 
+                  name="i-heroicons-chevron-down" 
+                  class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                  :class="{ '-rotate-90': !isMetaVisible }"
+                />
+              </button>
+              
+              <div v-if="isMetaVisible" class="mt-3 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/50 rounded-lg">
                 <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">{{ metaYaml }}</pre>
               </div>
             </div>

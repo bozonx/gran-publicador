@@ -777,19 +777,19 @@ async function executePublish(force: boolean) {
                                  </div>
 
                                  <div class="flex flex-row gap-2 mt-1">
-                                     <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (isContentOrMediaMissing ? t('publication.validation.contentOrMediaRequired') : '')">
+                                     <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (isContentOrMediaMissing ? t('publication.validation.contentOrMediaRequired') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.scheduleLabel')))">
                                         <UButton
                                             :label="currentPublication.scheduledAt ? t('publication.changeSchedule') : t('publication.status.scheduleTime')"
-                                            icon="i-heroicons-clock"
+                                            icon="i-heroicons-calendar-days"
                                             variant="soft"
                                             size="xs"
                                             color="primary"
-                                            :disabled="isContentOrMediaMissing || !!currentPublication.archivedAt"
+                                            :disabled="isContentOrMediaMissing || hasMediaValidationErrors || !!currentPublication.archivedAt"
                                             @click="openScheduleModal"
                                         ></UButton>
                                     </UTooltip>
                                     
-                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? t('publication.cannotPublish') : ''))">
+                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish')) : ''))">
                                         <UButton
                                             :label="t('publication.publishNow')"
                                             icon="i-heroicons-paper-airplane"
