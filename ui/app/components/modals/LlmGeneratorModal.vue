@@ -9,7 +9,8 @@ interface Emits {
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, transcribeAudio, isTranscribing, error } = useLlm()
+const { generateContent, isGenerating, error } = useLlm()
+const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
   recordingDuration,
@@ -107,7 +108,7 @@ async function handleVoiceRecording() {
     } else {
       toast.add({
         title: t('llm.transcriptionError'),
-        description: error.value || t('llm.errorMessage'),
+        description: sttError.value || t('llm.errorMessage'),
         color: 'error',
       })
     }
