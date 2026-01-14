@@ -7,6 +7,8 @@ export interface MediaItem {
   storageType: 'TELEGRAM' | 'FS'
   storagePath: string
   filename?: string
+  alt?: string
+  description?: string
   mimeType?: string
   sizeBytes?: number
   meta?: Record<string, any>
@@ -20,6 +22,8 @@ export interface CreateMediaInput {
   storageType?: 'TELEGRAM' | 'FS'
   storagePath?: string
   filename?: string
+  alt?: string
+  description?: string
   mimeType?: string
   sizeBytes?: number
   meta?: Record<string, any>

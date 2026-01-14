@@ -664,6 +664,10 @@
       "audio": "Аудио",
       "document": "Документ"
     },
+    "alt": "Альтернативный текст",
+    "altPlaceholder": "Альтернативный текст для изображения",
+    "description": "Описание",
+    "descriptionPlaceholder": "Описание медиа-файла",
     "sourceType": {
       "upload": "Загрузить файл"
     },

@@ -11,6 +11,8 @@ interface MediaItem {
   storageType: string
   storagePath: string
   filename?: string
+  alt?: string
+  description?: string
   mimeType?: string
   sizeBytes?: number
   meta?: Record<string, any>
@@ -69,7 +71,10 @@ const addMediaButtonLabel = computed(() => {
 const isDragging = ref(false)
 const selectedMedia = ref<MediaItem | null>(null)
 const isModalOpen = ref(false)
+
 const editableMetadata = ref<Record<string, any> | null>(null)
+const editableAlt = ref('')
+const editableDescription = ref('')
 const isSavingMeta = ref(false)
 
 const isDeleteModalOpen = ref(false)
@@ -177,11 +182,15 @@ async function saveMediaMeta() {
     const metaToSave = editableMetadata.value || {}
 
     const updated = await updateMedia(selectedMedia.value.id, {
-      meta: metaToSave
+      meta: metaToSave,
+      alt: editableAlt.value,
+      description: editableDescription.value
     })
 
     // Update local state
     selectedMedia.value.meta = updated.meta
+    selectedMedia.value.alt = updated.alt
+    selectedMedia.value.description = updated.description
     
     toast.add({
       title: t('common.success'),
@@ -380,6 +389,8 @@ function openMediaModal(media: MediaItem) {
   selectedMedia.value = media
   // editableMetadata is now a JSON object, not a YAML string
   editableMetadata.value = media.meta || {}
+  editableAlt.value = media.alt || ''
+  editableDescription.value = media.description || ''
   isModalOpen.value = true
 }
 
@@ -826,29 +837,46 @@ const emit = defineEmits<Emits>()
           </div>
         </div>
 
+        <div v-if="editable" class="space-y-4 mb-4">
+          <UFormField :label="t('media.alt', 'Alt Text')">
+            <UInput 
+              v-model="editableAlt" 
+              :placeholder="t('media.altPlaceholder', 'Alt text for the image')" 
+              class="w-full"
+            />
+          </UFormField>
+          
+          <UFormField :label="t('media.description', 'Description')">
+            <UTextarea 
+              v-model="editableDescription" 
+              :placeholder="t('media.descriptionPlaceholder', 'Description of the media')" 
+              :rows="3"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+
         <CommonYamlEditor
           v-model="editableMetadata"
           :disabled="!editable"
           :rows="8"
-        >
-          <template #actions>
-            <div class="flex items-center gap-2">
-              <UButton
-                v-if="editable"
-                icon="i-heroicons-check"
-                variant="solid"
-                color="primary"
-                size="sm"
-                :loading="isSavingMeta"
-                @click="saveMediaMeta"
-              >
-                {{ t('common.save', 'Save') }}
-              </UButton>
-            </div>
-          </template>
-        </CommonYamlEditor>
+        />
       </div>
     </div>
+    
+    <template #footer>
+      <div v-if="editable" class="flex justify-end gap-2 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800">
+        <UButton
+          icon="i-heroicons-check"
+          variant="solid"
+          color="primary"
+          :loading="isSavingMeta"
+          @click="saveMediaMeta"
+        >
+          {{ t('common.save', 'Save') }}
+        </UButton>
+      </div>
+    </template>
   </MediaViewerModal>
 </template>
 

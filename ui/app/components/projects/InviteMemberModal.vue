@@ -49,7 +49,7 @@ async function handleInvite() {
 function closeModal() {
   isOpen.value = false
   username.value = ''
-  selectedRole.value = 'viewer'
+  selectedRole.value = 'VIEWER'
 }
 </script>
 
