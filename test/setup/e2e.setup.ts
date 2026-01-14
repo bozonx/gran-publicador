@@ -19,11 +19,20 @@ beforeAll(() => {
   process.env.DATA_DIR = process.env.DATA_DIR ?? './test-data';
   process.env.JWT_SECRET =
     process.env.JWT_SECRET ?? 'test-secret-key-for-e2e-tests-minimum-32-chars';
-  process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? 'test-token';
+  process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'test-token';
   // Config validation requires a valid URL
   process.env.SOCIAL_POSTING_SERVICE_URL =
-    process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:9999';
-  // Note: we don't set NODE_ENV here as it might be set by CLI
+    process.env.SOCIAL_POSTING_SERVICE_URL || 'http://localhost:9999';
+  process.env.FREE_LLM_ROUTER_URL =
+    process.env.FREE_LLM_ROUTER_URL || 'http://localhost:9999';
+  process.env.TRANSLATE_SERVICE_URL =
+    process.env.TRANSLATE_SERVICE_URL || 'http://localhost:9999';
+  process.env.STT_SERVICE_URL =
+    process.env.STT_SERVICE_URL || 'http://localhost:9999';
+
+  // Redis for tests (can use defaults, but set just in case)
+  process.env.REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+  process.env.REDIS_PORT = process.env.REDIS_PORT || '6379';
 });
 
 // Set global timeout for all e2e tests to 30 seconds

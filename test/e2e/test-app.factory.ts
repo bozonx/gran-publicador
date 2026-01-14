@@ -3,6 +3,8 @@ process.env.DATA_DIR = process.env.DATA_DIR ?? './test-data';
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-key-for-e2e-tests-minimum-32-chars';
 process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? 'test-token';
 process.env.TELEGRAM_ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ?? '123456789';
+process.env.FREE_LLM_ROUTER_URL = process.env.FREE_LLM_ROUTER_URL ?? 'http://localhost:8080/llm';
+process.env.SOCIAL_POSTING_SERVICE_URL = process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:8081/social';
 process.env.NODE_ENV = 'test';
 
 import { Test } from '@nestjs/testing';
@@ -45,6 +47,22 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
             media: {
               maxFileSize: 52428800,
             },
+          },
+          redis: {
+            host: 'localhost',
+            port: 6379,
+            ttlMs: 3600000,
+            db: 0,
+          },
+          llm: {
+            serviceUrl: 'http://localhost:8080/llm',
+            defaultTags: ['fast'],
+          },
+          stt: {
+            serviceUrl: 'http://localhost:8081/stt',
+          },
+          translate: {
+            serviceUrl: 'http://localhost:8082/translate',
           },
         };
         // Flatten keys manually for the mock or handle simple dot notation
