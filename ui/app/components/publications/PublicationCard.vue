@@ -106,6 +106,7 @@ function handleDelete(e: Event) {
           size="xs"
           :to="`/publications/${publication.id}/edit`"
           class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          :title="t('common.edit')"
           @click.stop
         />
         <UButton
@@ -114,6 +115,7 @@ function handleDelete(e: Event) {
           icon="i-heroicons-trash"
           size="xs"
           class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          :title="t('common.delete')"
           @click="handleDelete"
         />
       </div>

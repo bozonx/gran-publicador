@@ -128,9 +128,7 @@ function getSourceUrl(source?: string): string | undefined {
         <h3 class="text-sm font-medium text-gray-900 dark:text-white">
           {{ t('sourceTexts.title') }}
         </h3>
-        <UTooltip :text="t('sourceTexts.help')">
-          <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4 text-gray-400" />
-        </UTooltip>
+        <CommonInfoTooltip :text="t('sourceTexts.help')" />
       </div>
       <UButton
         color="neutral"

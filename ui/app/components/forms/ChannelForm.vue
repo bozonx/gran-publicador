@@ -592,10 +592,15 @@ function setDefaultFooter(id: string) {
         <!-- Channel identifier -->
         <UFormField
           name="channelIdentifier"
-          :label="t('channel.identifier')"
           required
           :help="getIdentifierHelp(currentSocialMedia)"
         >
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('channel.identifier') }}</span>
+              <CommonInfoTooltip :text="t('channel.identifierTooltip')" />
+            </div>
+          </template>
           <UInput
             v-model="state.channelIdentifier"
             :placeholder="getIdentifierPlaceholder(currentSocialMedia)"
@@ -621,8 +626,9 @@ function setDefaultFooter(id: string) {
       <!-- Telegram credentials -->
       <div v-if="visibleSections.includes('credentials') && currentSocialMedia === 'TELEGRAM'" :class="FORM_SPACING.fields">
         <div v-if="!hideHeader && visibleSections.includes('general')" :class="FORM_SPACING.sectionDivider">
-          <h3 :class="FORM_STYLES.sectionTitle">
-            {{ t('channel.telegramCredentials', 'Telegram Credentials') }}
+          <h3 :class="FORM_STYLES.sectionTitle" class="flex items-center gap-2">
+            <span>{{ t('channel.telegramCredentials', 'Telegram Credentials') }}</span>
+            <CommonInfoTooltip :text="t('channel.telegramCredentialsTooltip')" />
           </h3>
         </div>
           

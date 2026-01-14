@@ -838,7 +838,13 @@ const emit = defineEmits<Emits>()
         </div>
 
         <div v-if="editable" class="space-y-4 mb-4">
-          <UFormField :label="t('media.description', 'Description')">
+          <UFormField>
+            <template #label>
+              <div class="flex items-center gap-1.5">
+                <span>{{ t('media.description') }}</span>
+                <CommonInfoTooltip :text="t('media.descriptionTooltip')" />
+              </div>
+            </template>
             <UTextarea 
               v-model="editableDescription" 
               :placeholder="t('media.descriptionPlaceholder', 'Description of the media')" 
@@ -847,7 +853,13 @@ const emit = defineEmits<Emits>()
             />
           </UFormField>
 
-          <UFormField :label="t('media.alt', 'Alt Text')">
+          <UFormField>
+            <template #label>
+              <div class="flex items-center gap-1.5">
+                <span>{{ t('media.alt') }}</span>
+                <CommonInfoTooltip :text="t('media.altTooltip')" />
+              </div>
+            </template>
             <UInput 
               v-model="editableAlt" 
               :placeholder="t('media.altPlaceholder', 'Alt text for the image')" 

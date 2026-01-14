@@ -381,8 +381,9 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
             <!-- Blocks Editor -->
             <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <h4 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-                  {{ t('channel.templateBlocks') }}
+                <h4 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <span>{{ t('channel.templateBlocks') }}</span>
+                  <CommonInfoTooltip :text="t('channel.templateBlocksTooltip')" />
                 </h4>
                 <UButton
                   size="xs"
@@ -425,7 +426,13 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                   </div>
 
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3" v-if="block.enabled">
-                    <UFormField :label="t('channel.templateBefore')">
+                    <UFormField>
+                      <template #label>
+                        <div class="flex items-center gap-1.5">
+                          <span>{{ t('channel.templateBefore') }}</span>
+                          <CommonInfoTooltip :text="t('channel.templateBeforeTooltip')" />
+                        </div>
+                      </template>
                       <UTextarea
                         v-model="block.before"
                         :rows="1"
@@ -433,7 +440,13 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                         class="font-mono text-xs"
                       />
                     </UFormField>
-                    <UFormField :label="t('channel.templateAfter')">
+                    <UFormField>
+                      <template #label>
+                        <div class="flex items-center gap-1.5">
+                          <span>{{ t('channel.templateAfter') }}</span>
+                          <CommonInfoTooltip :text="t('channel.templateAfterTooltip')" />
+                        </div>
+                      </template>
                       <UTextarea
                         v-model="block.after"
                         :rows="1"

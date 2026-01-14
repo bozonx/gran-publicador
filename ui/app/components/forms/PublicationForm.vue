@@ -351,7 +351,13 @@ function handleDeleteAllSourceTexts() {
       
       <!-- Channels Selection Section -->
       <div v-if="!isEditMode">
-        <UFormField name="channelIds" :label="t('channel.titlePlural')" :help="t('publication.channelsHelp')">
+        <UFormField name="channelIds" :help="t('publication.channelsHelp')">
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('channel.titlePlural') }}</span>
+              <CommonInfoTooltip :text="t('publication.channelsTooltip')" />
+            </div>
+          </template>
             <FormsPublicationChannelSelector 
               v-model="state.channelIds"
               :channels="channels"
@@ -362,7 +368,13 @@ function handleDeleteAllSourceTexts() {
 
       <div :class="GRID_LAYOUTS.twoColumn">
         <!-- Status (Only when creating) -->
-        <UFormField v-if="!isEditMode" name="status" :label="t('post.statusLabel')" required>
+        <UFormField v-if="!isEditMode" name="status" required>
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('post.statusLabel') }}</span>
+              <CommonInfoTooltip :text="t('post.statusTooltip')" />
+            </div>
+          </template>
           <FormsPublicationStatusSelector 
             v-model="state.status"
             :is-content-missing="isContentMissing"
@@ -375,7 +387,13 @@ function handleDeleteAllSourceTexts() {
         </UFormField>
 
         <!-- Language -->
-        <UFormField v-if="!isEditMode" name="language" :label="t('common.language')" required>
+        <UFormField v-if="!isEditMode" name="language" required>
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('common.language') }}</span>
+              <CommonInfoTooltip :text="t('common.languageTooltip')" />
+            </div>
+          </template>
           <USelectMenu
             v-model="state.language"
             :items="languageOptions"
@@ -387,13 +405,20 @@ function handleDeleteAllSourceTexts() {
         </UFormField>
 
         <!-- Post Type -->
-        <UFormField v-if="!isEditMode" name="postType" :label="t('post.postType')" required>
+        <UFormField v-if="!isEditMode" name="postType" required>
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('post.postType') }}</span>
+              <CommonInfoTooltip :text="t('post.postTypeTooltip')" />
+            </div>
+          </template>
           <USelectMenu
             v-model="state.postType"
             :items="typeOptions"
             value-key="value"
             label-key="label"
             class="w-full"
+            icon="i-heroicons-information-circle"
           />
         </UFormField>
       </div>
@@ -607,7 +632,13 @@ function handleDeleteAllSourceTexts() {
       </UFormField>
 
       <!-- Linking Section -->
-      <UFormField name="translationGroupId" :label="t('publication.linkTranslation')" :help="t('publication.linkTranslationHelp')">
+      <UFormField name="translationGroupId" :help="t('publication.linkTranslationHelp')">
+        <template #label>
+          <div class="flex items-center gap-1.5">
+            <span>{{ t('publication.linkTranslation') }}</span>
+            <CommonInfoTooltip :text="t('publication.linkTranslationTooltip')" />
+          </div>
+        </template>
         <div class="flex gap-2">
             <USelectMenu
                 :model-value="linkedPublicationId"
