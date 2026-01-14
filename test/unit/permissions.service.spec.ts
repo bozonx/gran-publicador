@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ProjectRole } from '../../src/generated/prisma/client.js';
 import { jest } from '@jest/globals';
 
@@ -68,7 +68,7 @@ describe('PermissionsService (unit)', () => {
       mockPrismaService.project.findUnique.mockResolvedValue(null);
 
       await expect(service.checkProjectAccess(projectId, userId)).rejects.toThrow(
-        ForbiddenException,
+        NotFoundException,
       );
     });
 
@@ -135,7 +135,7 @@ describe('PermissionsService (unit)', () => {
       mockPrismaService.project.findUnique.mockResolvedValue(null);
 
       await expect(service.checkProjectPermission(projectId, userId, allowedRoles)).rejects.toThrow(
-        ForbiddenException,
+        NotFoundException,
       );
     });
   });

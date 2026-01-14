@@ -49,9 +49,10 @@ describe('PublicationSchedulerService', () => {
   let service: PublicationSchedulerService;
   let prisma: typeof mockPrismaService;
   let socialPostingService: typeof mockSocialPostingService;
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         PublicationSchedulerService,
         { provide: ConfigService, useValue: mockConfigService },
@@ -66,6 +67,12 @@ describe('PublicationSchedulerService', () => {
     socialPostingService = module.get(SocialPostingService);
 
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should mark publication as EXPIRED if scheduledAt is too old and no posts', async () => {

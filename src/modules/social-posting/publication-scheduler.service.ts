@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { PostStatus, PublicationStatus } from '../../generated/prisma/client.js';
@@ -7,9 +7,10 @@ import { SocialPostingService } from './social-posting.service.js';
 import { AppConfig } from '../../config/app.config.js';
 
 @Injectable()
-export class PublicationSchedulerService implements OnModuleInit {
+export class PublicationSchedulerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PublicationSchedulerService.name);
   private isProcessing = false;
+  private initialTimeout: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -31,7 +32,7 @@ export class PublicationSchedulerService implements OnModuleInit {
 
     this.logger.log(`Aligning scheduler: first run in ${delay}ms`);
 
-    setTimeout(() => {
+    this.initialTimeout = setTimeout(() => {
         this.handleCron();
         const interval = setInterval(() => this.handleCron(), intervalMs);
         this.schedulerRegistry.addInterval('publication-scheduler', interval);
@@ -40,6 +41,21 @@ export class PublicationSchedulerService implements OnModuleInit {
     this.logger.log(
       `Publication Scheduler initialized with dynamic interval ${appConfig.schedulerIntervalSeconds}s and window ${appConfig.schedulerWindowMinutes}m`,
     );
+  }
+
+  onModuleDestroy() {
+    if (this.initialTimeout) {
+      clearTimeout(this.initialTimeout);
+      this.initialTimeout = null;
+    }
+    
+    try {
+      if (this.schedulerRegistry.doesExist('interval', 'publication-scheduler')) {
+         this.schedulerRegistry.deleteInterval('publication-scheduler');
+      }
+    } catch (e) {
+      // Ignore errors if interval doesn't exist
+    }
   }
 
   async handleCron() {

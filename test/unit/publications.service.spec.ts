@@ -34,6 +34,7 @@ describe('PublicationsService (unit)', () => {
     post: {
       create: jest.fn() as any,
       updateMany: jest.fn() as any,
+      findMany: jest.fn() as any,
     },
   };
 
@@ -317,6 +318,7 @@ describe('PublicationsService (unit)', () => {
         status: PublicationStatus.SCHEDULED,
         scheduledAt,
       });
+      mockPrismaService.post.findMany.mockResolvedValue([]);
 
       const result = await service.update(publicationId, userId, updateDto);
 
@@ -375,6 +377,7 @@ describe('PublicationsService (unit)', () => {
         ...mockPublication,
         scheduledAt: newScheduledAt,
       });
+      mockPrismaService.post.findMany.mockResolvedValue([]);
 
       await service.update(publicationId, userId, updateDto);
 

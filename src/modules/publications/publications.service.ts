@@ -660,7 +660,7 @@ export class PublicationsService {
                   select: { type: true },
                 })) as any),
               ]
-            : publication.media.map(m => ({ type: m.media.type })),
+            : publication.media?.filter(m => m.media).map(m => ({ type: m.media!.type })) || [],
           postType: data.postType || publication.postType,
         });
 
@@ -710,7 +710,7 @@ export class PublicationsService {
           await import('../../common/validators/social-media-validation.validator.js');
 
         let mediaCount = publication.media?.length || 0;
-        let mediaArray = publication.media?.map(m => ({ type: m.media.type })) || [];
+        let mediaArray = publication.media?.filter(m => m.media).map(m => ({ type: m.media!.type })) || [];
 
         if (isMediaUpdating) {
           mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);

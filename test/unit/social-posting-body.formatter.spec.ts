@@ -63,7 +63,7 @@ describe('SocialPostingBodyFormatter', () => {
            language: null,
            template: [
              { enabled: true, insert: 'content', before: '', after: '' },
-             { enabled: true, insert: 'authorComment', before: 'Note:', after: '' }
+             { enabled: true, insert: 'authorComment', before: 'Note: ', after: '' }
            ]
         }
       ]

@@ -55,14 +55,14 @@ describe('TagsFormatter', () => {
 
   it('should apply low case (words with spaces)', () => {
     const result = TagsFormatter.format('camelCaseTag, tag_two', {
-      tagCase: 'lowercase'
+      tagCase: 'lower_case'
     });
     expect(result).toBe('#camel case tag #tag two');
   });
 
   it('should apply UPPER CASE (words with spaces)', () => {
     const result = TagsFormatter.format('camelCaseTag, tag_two', {
-      tagCase: 'uppercase'
+      tagCase: 'upper_case'
     });
     expect(result).toBe('#CAMEL CASE TAG #TAG TWO');
   });

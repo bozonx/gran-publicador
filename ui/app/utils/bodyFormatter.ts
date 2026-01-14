@@ -78,32 +78,7 @@ export class TagsFormatter {
   }
 }
 
-export interface TemplateBlock {
-  enabled: boolean;
-  insert: 'title' | 'content' | 'tags' | 'authorComment' | 'footer' | 'custom';
-  before?: string;
-  after?: string;
-  tagCase?: TagCase;
-  footerId?: string | null;
-  content?: string;
-}
-
-export interface ChannelFooter {
-  id: string;
-  name: string;
-  content: string;
-  isDefault: boolean;
-}
-
-export interface ChannelPostTemplate {
-  id: string;
-  name: string;
-  order: number;
-  postType: string | null;
-  language: string | null;
-  template: TemplateBlock[];
-  isDefault?: boolean;
-}
+import type { TemplateBlock, ChannelFooter, ChannelPostTemplate } from '~/types/channels';
 
 export interface PublicationDataForFormatting {
   title?: string | null;
