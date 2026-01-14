@@ -104,7 +104,7 @@ export class LlmConfig {
 
 export default registerAs('llm', (): LlmConfig => {
   const config = plainToClass(LlmConfig, {
-    serviceUrl: process.env.FREE_LLM_ROUTER_URL,
+    serviceUrl: process.env.FREE_LLM_ROUTER_URL || 'http://localhost:8080/api/v1',
     defaultTags: process.env.FREE_LLM_ROUTER_TAGS?.split(',').map(t => t.trim()),
     defaultType: process.env.FREE_LLM_ROUTER_TYPE as 'fast' | 'reasoning' | undefined,
     maxModelSwitches: process.env.FREE_LLM_ROUTER_MAX_MODEL_SWITCHES

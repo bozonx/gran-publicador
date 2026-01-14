@@ -13,11 +13,20 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from '../../src/app.module.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
+import { REDIS_CLIENT } from '../../src/common/redis/redis.module.js';
 
 export async function createTestApp(): Promise<NestFastifyApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
   })
+    .overrideProvider(REDIS_CLIENT)
+    .useValue({
+      get: async () => null,
+      set: async () => 'OK',
+      del: async () => 0,
+      on: () => {},
+      quit: async () => 'OK',
+    })
     .overrideProvider(PrismaService)
     .useValue({
       $connect: async () => {},

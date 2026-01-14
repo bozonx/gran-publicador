@@ -11,6 +11,10 @@ import socialPostingConfig from './config/social-posting.config.js';
 import llmConfig from './config/llm.config.js';
 import sttConfig from './config/stt.config.js';
 import translateConfig from './config/translate.config.js';
+import redisConfig, { RedisConfig } from './config/redis.config.js';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
+import { RedisModule } from './common/redis/redis.module.js';
 import { ApiTokensModule } from './modules/api-tokens/api-tokens.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChannelsModule } from './modules/channels/channels.module.js';
@@ -33,7 +37,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig],
+      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, redisConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),
@@ -113,6 +117,35 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
         };
       },
     }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const config = configService.get<RedisConfig>('redis')!;
+        const appConfig = configService.get<AppConfig>('app')!;
+
+        // Use memory store for tests to avoid Redis dependency
+        if (appConfig.nodeEnv === 'test') {
+          return {
+            store: 'memory',
+            ttl: config.ttlMs,
+          };
+        }
+
+        return {
+          store: await redisStore({
+            socket: {
+              host: config.host,
+              port: config.port,
+            },
+            password: config.password,
+            database: config.db,
+            ttl: config.ttlMs,
+          }),
+        };
+      },
+    }),
+    RedisModule,
     ScheduleModule.forRoot(),
     ShutdownModule,
     HealthModule,
