@@ -351,6 +351,7 @@
     "templateLanguage": "Language",
     "templateEnabled": "Enabled",
     "templateIsDefault": "Default",
+    "templateIsDefaultHelp": "This template will be automatically selected for this channel",
     "templateInsert": "Insert",
     "templateBefore": "Text BEFORE",
     "templateBeforeTooltip": "Text to insert before the block content. Use for formatting (e.g. markdown or special chars).",

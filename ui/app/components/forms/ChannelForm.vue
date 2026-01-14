@@ -95,7 +95,7 @@ const state = reactive({
   },
   preferences: {
     staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined as number | undefined,
-    footers: (props.channel?.preferences?.footers || []) as ChannelFooter[],
+    footers: props.channel?.preferences?.footers ? JSON.parse(JSON.stringify(props.channel.preferences.footers)) : [] as ChannelFooter[],
   },
   tags: props.channel?.tags || '',
 })
@@ -152,7 +152,37 @@ const schema = computed(() => z.object({
 type Schema = z.output<typeof schema.value>
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
+// Dirty state tracking helper function
+function isFormDirty(original: any, current: any) {
+  if (props.visibleSections.includes('general')) {
+    if (original.name !== current.name) return true
+    if (original.description !== current.description) return true
+    if (original.socialMedia !== current.socialMedia) return true
+    if (original.channelIdentifier !== current.channelIdentifier) return true
+    if (original.language !== current.language) return true
+    if (original.projectId !== current.projectId) return true
+    if (original.isActive !== current.isActive) return true
+    if (original.tags !== current.tags) return true
+  }
+  
+  if (props.visibleSections.includes('credentials')) {
+    if (JSON.stringify(original.credentials) !== JSON.stringify(current.credentials)) return true
+  }
+  
+  if (props.visibleSections.includes('preferences')) {
+    if (original.preferences?.staleChannelsDays !== current.preferences?.staleChannelsDays) return true
+  }
+  
+  if (props.visibleSections.includes('footers')) {
+    if (JSON.stringify(original.preferences?.footers) !== JSON.stringify(current.preferences?.footers)) return true
+  }
+  
+  return false
+}
+
+const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state, {
+  compareFn: isFormDirty
+})
 
 // Save original state when component mounts or channel changes
 watch(() => props.channel, () => {
@@ -170,7 +200,7 @@ watch(() => props.channel, () => {
   }
   state.preferences = {
     staleChannelsDays: props.channel?.preferences?.staleChannelsDays || undefined,
-    footers: (props.channel?.preferences?.footers || []) as ChannelFooter[],
+    footers: props.channel?.preferences?.footers ? JSON.parse(JSON.stringify(props.channel.preferences.footers)) : [],
   }
   state.tags = props.channel?.tags || ''
   nextTick(() => {

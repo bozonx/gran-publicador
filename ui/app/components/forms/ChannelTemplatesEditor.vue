@@ -363,7 +363,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                             {{ t('channel.templateIsDefault') }}
                         </div>
                         <div class="text-xs text-gray-500">
-                             {{ t('channel.footerDefaultHelp') }}
+                             {{ t('channel.templateIsDefaultHelp') }}
                         </div>
                     </div>
                  </div>

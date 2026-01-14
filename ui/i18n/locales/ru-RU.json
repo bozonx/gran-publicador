@@ -388,6 +388,7 @@
     "templateLanguage": "Язык",
     "templateEnabled": "Включен",
     "templateIsDefault": "По умолчанию",
+    "templateIsDefaultHelp": "Этот шаблон будет автоматически выбираться для этого канала",
     "templateInsert": "Вставить",
     "templateBefore": "Текст ДО",
     "templateBeforeTooltip": "Текст или символы, которые будут вставлены перед содержимым блока. Используйте для форматирования (например, спецсимволы или markdown).",
