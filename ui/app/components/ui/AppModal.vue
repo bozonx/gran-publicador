@@ -18,6 +18,9 @@ interface Props {
   /** Nuxt UI modal configuration */
   ui?: {
     content?: string
+    body?: string
+    header?: string
+    footer?: string
     [key: string]: unknown
   }
 }
@@ -32,6 +35,27 @@ const isOpen = defineModel<boolean>('open', { default: false })
 
 const { t } = useI18n()
 
+const modalUi = computed(() => {
+  const { content: _content, body: _body, header: _header, footer: _footer, ...rest } = props.ui || {}
+  return rest
+})
+
+const contentClass = computed(() => {
+  return props.ui?.content || 'sm:max-w-lg'
+})
+
+const headerClass = computed(() => {
+  return props.ui?.header
+})
+
+const bodyClass = computed(() => {
+  return props.ui?.body
+})
+
+const footerClass = computed(() => {
+  return props.ui?.footer
+})
+
 function handleClose(close?: () => void) {
   if (close) {
     close()
@@ -45,15 +69,15 @@ function handleClose(close?: () => void) {
   <UModal
     v-model:open="isOpen"
     :dismissible="!props.preventClose"
-    :ui="props.ui"
+    :ui="modalUi"
   >
     <template #content="{ close }">
       <div 
-        class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full sm:max-w-lg mx-auto"
-        :class="props.ui?.content"
+        class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full mx-auto"
+        :class="contentClass"
       >
         <!-- Header -->
-        <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0" :class="headerClass">
           <div class="min-w-0 flex-1">
             <slot name="header">
               <h3 v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
@@ -78,12 +102,12 @@ function handleClose(close?: () => void) {
         </div>
 
         <!-- Body -->
-        <div class="px-6 py-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+        <div class="px-6 py-6 w-full overflow-y-auto flex-1 min-h-0 custom-scrollbar" :class="bodyClass">
           <slot />
         </div>
 
         <!-- Footer -->
-        <div v-if="$slots.footer" class="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/20 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 shrink-0">
+        <div v-if="$slots.footer" class="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/20 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 shrink-0" :class="footerClass">
           <slot name="footer" />
         </div>
       </div>

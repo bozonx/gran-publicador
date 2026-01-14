@@ -731,32 +731,13 @@ const emit = defineEmits<Emits>()
   </div>
 
   <!-- Media viewer modal -->
-  <UiAppModal 
-    v-model:open="isModalOpen" 
-    :ui="{ content: 'sm:max-w-6xl' }"
+  <MediaViewerModal
+    v-model:open="isModalOpen"
     :title="selectedMedia?.filename || t('media.preview', 'Media Preview')"
+    :counter-text="currentMediaIndex >= 0 ? `${currentMediaIndex + 1} / ${localMedia.length}` : undefined"
+    @close="closeMediaModal"
   >
-    <template #header>
-      <div class="flex items-center justify-between gap-4 w-full">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
-          {{ selectedMedia?.filename || t('media.preview', 'Media Preview') }}
-        </h3>
-        <div class="flex items-center gap-2 shrink-0">
-          <span v-if="currentMediaIndex >= 0" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-            {{ currentMediaIndex + 1 }} / {{ localMedia.length }}
-          </span>
-          <UButton
-            icon="i-heroicons-x-mark"
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            @click="closeMediaModal"
-          />
-        </div>
-      </div>
-    </template>
-
-    <div class="p-6 overflow-y-auto">
+    <div class="p-6 w-full overflow-y-auto">
       <!-- Image preview with navigation buttons -->
       <div v-if="selectedMedia" class="mb-6 relative">
         <!-- Previous button -->
@@ -868,7 +849,7 @@ const emit = defineEmits<Emits>()
         </CommonYamlEditor>
       </div>
     </div>
-  </UiAppModal>
+  </MediaViewerModal>
 </template>
 
 <style scoped>
