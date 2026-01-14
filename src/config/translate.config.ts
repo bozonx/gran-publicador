@@ -90,7 +90,7 @@ export class TranslateConfig {
 
 export default registerAs('translate', (): TranslateConfig => {
   const config = plainToClass(TranslateConfig, {
-    serviceUrl: process.env.TRANSLATE_SERVICE_URL || 'http://localhost:8080/api/v1',
+    serviceUrl: process.env.TRANSLATE_SERVICE_URL || 'http://localhost:8081/api/v1',
     defaultProvider: process.env.TRANSLATE_DEFAULT_PROVIDER || undefined,
     defaultModel: process.env.TRANSLATE_DEFAULT_MODEL || undefined,
     timeoutSec: process.env.TRANSLATE_TIMEOUT_SEC
