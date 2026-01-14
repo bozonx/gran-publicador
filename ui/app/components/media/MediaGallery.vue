@@ -29,6 +29,7 @@ interface Props {
   editable?: boolean
   socialMedia?: string
   showValidation?: boolean
+  postType?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -507,7 +508,8 @@ const mediaValidation = computed(() => {
     '',
     mediaArray.length,
     props.socialMedia as any,
-    mediaArray
+    mediaArray,
+    props.postType
   )
 })
 

@@ -280,7 +280,8 @@ const validationResult = computed(() => {
         content,
         mediaCount.value,
         selectedChannel.value.socialMedia as any,
-        mediaArray.value
+        mediaArray.value,
+        displayType.value
     )
 })
 

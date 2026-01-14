@@ -16,6 +16,22 @@ export enum SocialMedia {
   SITE = 'SITE',
 }
 
+export enum PostType {
+  POST = 'POST',
+  ARTICLE = 'ARTICLE',
+  NEWS = 'NEWS',
+  VIDEO = 'VIDEO',
+  SHORT = 'SHORT',
+  STORY = 'STORY',
+}
+
+export enum MediaType {
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
+  DOCUMENT = 'DOCUMENT',
+}
+
 export interface SocialMediaValidationRules {
   maxTextLength: number;
   maxCaptionLength: number;
@@ -112,12 +128,31 @@ function validateMediaTypes(
   media: Array<{ type: string }>,
   rules: SocialMediaValidationRules,
   platform: string,
+  postType?: string,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const mediaCount = media.length;
 
   // Check if this is a gallery (2+ files) or single file
   const isGallery = mediaCount > 1;
+
+  // Telegram ARTICLE override: only 1 IMAGE allowed
+  if (platform === SocialMedia.TELEGRAM && postType === PostType.ARTICLE) {
+    if (isGallery) {
+      errors.push({
+        field: 'media',
+        message: 'Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.',
+      });
+    } else if (mediaCount === 1) {
+      if (media[0].type !== MediaType.IMAGE) {
+        errors.push({
+          field: 'media',
+          message: `Telegram Article (telegra.ph) only allows IMAGE type, but found: ${media[0].type}`,
+        });
+      }
+    }
+    return errors;
+  }
 
   if (isGallery) {
     // Validate gallery media types
@@ -190,6 +225,7 @@ export function useSocialMediaValidation() {
     mediaCount: number,
     socialMedia: SocialMedia,
     media?: Array<{ type: string }>,
+    postType?: string,
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const rules = getValidationRules(socialMedia);
@@ -254,7 +290,7 @@ export function useSocialMediaValidation() {
 
     // Validate media types if media array is provided
     if (media && media.length > 0) {
-      const mediaTypeErrors = validateMediaTypes(media, rules, socialMedia);
+      const mediaTypeErrors = validateMediaTypes(media, rules, socialMedia, postType);
       errors.push(...mediaTypeErrors);
     }
 

@@ -1,4 +1,4 @@
-import { SocialMedia } from '../../generated/prisma/enums.js';
+import { SocialMedia, PostType, MediaType } from '../../generated/prisma/enums.js';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import { SKIP, visit } from 'unist-util-visit';
@@ -25,6 +25,7 @@ export interface PostValidationData {
   mediaCount: number;
   socialMedia: SocialMedia;
   media?: Array<{ type: string }>;
+  postType?: PostType;
 }
 
 /**
@@ -95,12 +96,25 @@ function validateMediaTypes(
   media: Array<{ type: string }>,
   rules: SocialMediaValidationRules,
   socialMedia: SocialMedia,
+  postType?: PostType,
 ): string[] {
   const errors: string[] = [];
   const mediaCount = media.length;
 
   // Check if this is a gallery (2+ files) or single file
   const isGallery = mediaCount > 1;
+
+  // Telegram ARTICLE override: only 1 IMAGE allowed
+  if (socialMedia === SocialMedia.TELEGRAM && postType === PostType.ARTICLE) {
+    if (isGallery) {
+      errors.push(`Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.`);
+    } else if (mediaCount === 1) {
+      if (media[0].type !== MediaType.IMAGE) {
+        errors.push(`Telegram Article (telegra.ph) only allows IMAGE type, but found: ${media[0].type}`);
+      }
+    }
+    return errors;
+  }
 
   if (isGallery) {
     // Validate gallery media types
@@ -182,7 +196,7 @@ export function validatePostContent(data: PostValidationData): ValidationResult 
 
   // Validate media types if media array is provided
   if (data.media && data.media.length > 0) {
-    const mediaTypeErrors = validateMediaTypes(data.media, rules, data.socialMedia);
+    const mediaTypeErrors = validateMediaTypes(data.media, rules, data.socialMedia, data.postType);
     errors.push(...mediaTypeErrors);
   }
 

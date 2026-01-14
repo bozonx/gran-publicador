@@ -877,6 +877,7 @@ async function executePublish(force: boolean) {
           :media="currentPublication.media || []"
           :publication-id="currentPublication.id"
           :editable="true"
+          :post-type="currentPublication.postType"
           @refresh="() => fetchPublication(publicationId)"
         />
 

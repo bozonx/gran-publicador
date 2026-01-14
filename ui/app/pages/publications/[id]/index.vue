@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
+import { useFormatters } from '~/composables/useFormatters'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { getStatusColor, getStatusIcon } from '~/utils/publications'
+import { getSocialMediaIcon } from '~/utils/socialMedia'
+import MediaGallery from '~/components/media/MediaGallery.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -12,6 +15,7 @@ const { t } = useI18n()
 const route = useRoute()
 const { fetchPublication, currentPublication, isLoading } = usePublications()
 const { fetchProject, currentProject } = useProjects()
+const { formatDateWithTime, formatDateShort } = useFormatters()
 
 const publicationId = computed(() => route.params.id as string)
 
@@ -69,83 +73,128 @@ const displayTitle = computed(() => {
     </div>
 
     <!-- Content -->
-    <div v-else-if="currentPublication" class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            {{ displayTitle }}
-          </h1>
-          <UBadge 
-            :color="getStatusColor(currentPublication.status)" 
-            variant="soft"
-            class="flex items-center gap-1"
-          >
-            <UIcon :name="getStatusIcon(currentPublication.status)" class="w-4 h-4" />
-            {{ t(`publicationStatus.${currentPublication.status.toLowerCase()}`) }}
-          </UBadge>
-        </div>
-
-        <div class="space-y-6">
-          <!-- Main Content -->
-          <div v-if="currentPublication.content" class="prose dark:prose-invert max-w-none">
-            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">{{ t('common.content') }}</h3>
-            <div v-html="currentPublication.content" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-md"></div>
+    <div v-else-if="currentPublication" class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+        <div class="p-6">
+          <!-- Title Section -->
+          <div class="mb-4">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+              {{ displayTitle }}
+            </h1>
           </div>
 
-          <!-- Media -->
-          <div v-if="currentPublication.media?.length">
-            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">{{ t('common.media') }}</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div v-for="media in currentPublication.media" :key="media.id" class="relative aspect-square rounded-lg overflow-hidden">
-                <img :src="media.url" :alt="media.filename" class="w-full h-full object-cover" />
+          <!-- Badge Row -->
+          <div class="flex flex-wrap gap-2 mb-6">
+            <!-- Language -->
+            <UBadge variant="soft" color="neutral" class="font-normal">
+              <span class="text-gray-400 mr-1">{{ t('common.language') }}:</span>
+              {{ currentPublication.language }}
+            </UBadge>
+            
+            <!-- Post Type -->
+            <UBadge variant="soft" color="neutral" class="font-normal">
+              <span class="text-gray-400 mr-1">{{ t('common.type') }}:</span>
+              {{ t(`postType.${currentPublication.postType.toLowerCase()}`) }}
+            </UBadge>
+
+            <!-- Status -->
+            <UBadge 
+              :color="getStatusColor(currentPublication.status) as any" 
+              variant="soft"
+              class="flex items-center gap-1 font-medium"
+            >
+              <UIcon :name="getStatusIcon(currentPublication.status)" class="w-4 h-4" />
+              {{ t(`publicationStatus.${currentPublication.status.toLowerCase()}`) }}
+            </UBadge>
+
+            <!-- Project Link -->
+            <NuxtLink v-if="currentProject" :to="`/projects/${currentProject.id}`">
+              <UBadge variant="soft" color="primary" class="hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors cursor-pointer font-normal">
+                <UIcon name="i-heroicons-folder" class="w-4 h-4 mr-1 text-primary-500" />
+                {{ currentProject.name }}
+              </UBadge>
+            </NuxtLink>
+          </div>
+
+          <!-- Social Media & Dates Row -->
+          <div v-if="currentPublication.posts?.length" class="flex flex-wrap gap-4 mb-6 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <div v-for="post in currentPublication.posts" :key="post.id" class="flex items-center gap-2">
+              <UTooltip :text="post.channel?.name || post.socialMedia">
+                <div class="h-8 w-8 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+                  <UIcon :name="getSocialMediaIcon(post.channel?.socialMedia || post.socialMedia)" class="w-4 h-4" />
+                </div>
+              </UTooltip>
+              <div class="flex flex-col">
+                <span class="text-[10px] uppercase tracking-wider text-gray-400 leading-none mb-0.5">
+                  {{ post.publishedAt ? t('post.publishedAt') : t('post.scheduledAt') }}
+                </span>
+                <span 
+                  class="text-xs font-medium"
+                  :class="post.publishedAt ? 'text-success-600 dark:text-success-400' : 'text-primary-600 dark:text-primary-400'"
+                >
+                  {{ post.publishedAt ? formatDateWithTime(post.publishedAt) : (post.scheduledAt ? formatDateWithTime(post.scheduledAt) : t('common.none')) }}
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- Metadata -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-700 pt-6">
-            <div>
-              <p class="text-sm font-medium text-gray-500">{{ t('project.title') }}</p>
-              <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                {{ currentProject?.name || '-' }}
-              </p>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-500">{{ t('common.language') }}</p>
-              <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                {{ currentPublication.language }}
-              </p>
-            </div>
-            <div v-if="currentPublication.scheduledAt">
-              <p class="text-sm font-medium text-gray-500">{{ t('publication.scheduled') }}</p>
-              <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                {{ new Date(currentPublication.scheduledAt).toLocaleString() }}
-              </p>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-500">{{ t('common.type') }}</p>
-              <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                {{ currentPublication.postType }}
-              </p>
-            </div>
+          <!-- Note Section -->
+          <div v-if="currentPublication.note" class="mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg">
+            <h3 class="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <UIcon name="i-heroicons-pencil-square" class="w-4 h-4" />
+              {{ t('post.note') }}
+            </h3>
+            <p class="text-sm text-amber-800 dark:text-amber-300 italic">
+              {{ currentPublication.note }}
+            </p>
           </div>
 
-          <!-- Channels/Posts -->
-          <div v-if="currentPublication.posts?.length" class="border-t border-gray-100 dark:border-gray-700 pt-6">
-             <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">{{ t('common.channels') }}</h3>
-             <div class="space-y-3">
-               <div v-for="post in currentPublication.posts" :key="post.id" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                 <div class="flex items-center gap-3">
-                   <div v-if="post.channel" class="flex items-center gap-2">
-                     <span class="font-medium">{{ post.channel.name }}</span>
-                     <UBadge size="sm" variant="outline">{{ post.channel.platform }}</UBadge>
-                   </div>
-                 </div>
-                 <UBadge :color="post.publishedAt ? 'success' : 'neutral'" size="sm">
-                   {{ post.publishedAt ? t('publicationStatus.published') : t('publicationStatus.pending') }}
-                 </UBadge>
-               </div>
-             </div>
+          <!-- Media Gallery -->
+          <div class="mb-8">
+            <MediaGallery 
+              v-if="currentPublication.media"
+              :media="currentPublication.media" 
+              :publication-id="currentPublication.id"
+              :editable="false"
+              @refresh="() => fetchPublication(publicationId)"
+            />
+          </div>
+
+          <!-- Content Section -->
+          <div class="space-y-6">
+            <div v-if="currentPublication.content" class="prose dark:prose-invert max-w-none">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('post.content') }}</h3>
+              <div v-html="currentPublication.content" class="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/50"></div>
+            </div>
+
+            <!-- Author Comment -->
+            <div v-if="currentPublication.authorComment" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-4 h-4" />
+                {{ t('post.authorComment') }}
+              </h3>
+              <div class="p-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                {{ currentPublication.authorComment }}
+              </div>
+            </div>
+
+            <!-- Meta Footer (Date & Tags) -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-sm">
+              <div v-if="currentPublication.postDate" class="flex items-center gap-2">
+                <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-gray-400" />
+                <span class="text-gray-500">{{ t('post.postDate') }}:</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ formatDateShort(currentPublication.postDate) }}</span>
+              </div>
+              
+              <div v-if="currentPublication.tags" class="flex items-center gap-2">
+                <UIcon name="i-heroicons-tag" class="w-5 h-5 text-gray-400" />
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="tag in currentPublication.tags.split(',')" :key="tag" class="text-primary-600 dark:text-primary-400 font-medium">
+                    #{{ tag.trim() }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
