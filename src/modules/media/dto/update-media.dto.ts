@@ -17,11 +17,11 @@ export class UpdateMediaDto {
   @IsString()
   @IsOptional()
   filename?: string;
-  
+
   @IsString()
   @IsOptional()
   alt?: string;
-  
+
   @IsString()
   @IsOptional()
   description?: string;

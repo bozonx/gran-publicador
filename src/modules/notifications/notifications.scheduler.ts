@@ -15,10 +15,10 @@ export class NotificationsScheduler {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCleanup() {
     this.logger.debug('Starting notifications cleanup job');
-    
+
     // Get cleanup days from config, default to 30
     const cleanupDays = this.configService.get<number>('NOTIFICATIONS_CLEANUP_DAYS', 30);
-    
+
     await this.notificationsService.cleanupOldNotifications(cleanupDays);
   }
 }

@@ -1,4 +1,9 @@
-import { PublicationStatus, PostType, Prisma, SocialMedia } from '../../../generated/prisma/client.js';
+import {
+  PublicationStatus,
+  PostType,
+  type Prisma,
+  type SocialMedia,
+} from '../../../generated/prisma/client.js';
 import { IssueType, OwnershipType } from '../dto/index.js';
 
 /**
@@ -154,17 +159,11 @@ export class PublicationQueryBuilder {
   ): Prisma.PublicationOrderByWithRelationInput[] {
     if (sortField === 'chronology') {
       // Best approximation for DB-level chronology sort without denormalization
-      return [
-        { scheduledAt: 'desc' },
-        { createdAt: 'desc' },
-      ];
+      return [{ scheduledAt: 'desc' }, { createdAt: 'desc' }];
     }
 
     if (sortField === 'byScheduled') {
-      return [
-        { scheduledAt: sortDirection },
-        { createdAt: 'desc' },
-      ];
+      return [{ scheduledAt: sortDirection }, { createdAt: 'desc' }];
     }
 
     if (sortField === 'byPublished') {

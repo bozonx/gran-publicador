@@ -1,13 +1,6 @@
-import {
-  Injectable,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  PublicationStatus,
-  PostStatus,
-} from '../../generated/prisma/client.js';
+import { PublicationStatus, PostStatus } from '../../generated/prisma/client.js';
 import { getMediaDir } from '../../config/media.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
@@ -17,11 +10,7 @@ import { PublishResponseDto } from './dto/publish-response.dto.js';
 import { ShutdownService } from '../../common/services/shutdown.service.js';
 import { AppConfig } from '../../config/app.config.js';
 import { SocialPostingConfig } from '../../config/social-posting.config.js';
-import {
-  PostRequestDto,
-  PostResponseDto,
-  PreviewResponseDto,
-} from './dto/social-posting.dto.js';
+import { PostRequestDto, PostResponseDto, PreviewResponseDto } from './dto/social-posting.dto.js';
 import { fetch } from 'undici';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { NotificationType } from '../../generated/prisma/client.js';
@@ -41,8 +30,7 @@ export class SocialPostingService {
     private readonly notifications: NotificationsService,
   ) {
     this.mediaDir = getMediaDir();
-    this.socialPostingConfig =
-      this.configService.get<SocialPostingConfig>('socialPosting')!;
+    this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
   }
 
   /**
@@ -51,9 +39,7 @@ export class SocialPostingService {
   async testChannel(
     channelId: string,
   ): Promise<{ success: boolean; message: string; details?: any }> {
-    this.logger.log(
-      `[testChannel] Testing connection for channel: ${channelId}`,
-    );
+    this.logger.log(`[testChannel] Testing connection for channel: ${channelId}`);
 
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
@@ -63,8 +49,11 @@ export class SocialPostingService {
     if (!channel) throw new BadRequestException('Channel not found');
 
     try {
-      const { targetChannelId, apiKey, error: prepError } =
-        await this.prepareChannelForPosting(channel);
+      const {
+        targetChannelId,
+        apiKey,
+        error: prepError,
+      } = await this.prepareChannelForPosting(channel);
       if (prepError) {
         return { success: false, message: `Validation failed: ${prepError}` };
       }
@@ -78,10 +67,7 @@ export class SocialPostingService {
         },
       };
 
-      const response = await this.sendRequest<PreviewResponseDto>(
-        'preview',
-        request,
-      );
+      const response = await this.sendRequest<PreviewResponseDto>('preview', request);
 
       // Check if it's success response based on DTO structure
       if (response.success && 'valid' in (response.data || {})) {
@@ -93,23 +79,21 @@ export class SocialPostingService {
             details: response.data,
           };
         } else {
-             return {
-              success: false,
-              message: 'Platform rejected the preview request',
-              details: (response.data as any)?.errors || response.data,
-            };
+          return {
+            success: false,
+            message: 'Platform rejected the preview request',
+            details: (response.data as any)?.errors || response.data,
+          };
         }
       } else {
-         return {
+        return {
           success: false,
           message: 'Service returned error',
           details: response,
         };
       }
     } catch (error: any) {
-      this.logger.error(
-        `[testChannel] Error testing channel: ${error.message}`,
-      );
+      this.logger.error(`[testChannel] Error testing channel: ${error.message}`);
       return { success: false, message: error.message };
     }
   }
@@ -141,19 +125,13 @@ export class SocialPostingService {
     });
 
     if (!publication) {
-      this.logger.error(
-        `[publishPublication] Publication ${publicationId} not found`,
-      );
+      this.logger.error(`[publishPublication] Publication ${publicationId} not found`);
       throw new BadRequestException('Publication not found');
     }
 
     if (!this.hasContentOrMedia(publication.content, publication.media)) {
-      this.logger.warn(
-        `[publishPublication] Publication ${publicationId} has no content or media`,
-      );
-      throw new BadRequestException(
-        'Publication must have content or at least one media file',
-      );
+      this.logger.warn(`[publishPublication] Publication ${publicationId} has no content or media`);
+      throw new BadRequestException('Publication must have content or at least one media file');
     }
 
     // Atomic status update to prevent race conditions
@@ -221,9 +199,7 @@ export class SocialPostingService {
       // Filter posts that need publishing:
       // 1. Status PENDING (unless forced)
       if (post.status !== PostStatus.PENDING && !options.force) {
-        this.logger.debug(
-          `[publishPublication] Skipping post ${post.id} (Status: ${post.status})`,
-        );
+        this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status})`);
         continue;
       }
 
@@ -243,12 +219,9 @@ export class SocialPostingService {
       }
 
       try {
-        const result = await this.publishSinglePost(
-          post,
-          post.channel,
-          publicationWithPosts,
-          { force: options.force },
-        );
+        const result = await this.publishSinglePost(post, post.channel, publicationWithPosts, {
+          force: options.force,
+        });
         this.logger.log(
           `[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`,
         );
@@ -277,7 +250,7 @@ export class SocialPostingService {
       }
     }
 
-    const successCount = results.filter((r) => r.success).length;
+    const successCount = results.filter(r => r.success).length;
     const finalStatus =
       successCount === results.length
         ? PublicationStatus.PUBLISHED
@@ -310,11 +283,20 @@ export class SocialPostingService {
     });
 
     // Notify creator about failed or partial publication
-    if ((finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) && publication.createdBy) {
+    if (
+      (finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) &&
+      publication.createdBy
+    ) {
       try {
-        const successList = results.filter(r => r.success).map(r => `${r.channelName} (${r.platform})`).join(', ');
-        const failedList = results.filter(r => !r.success).map(r => `${r.channelName} (${r.platform})`).join(', ');
-        
+        const successList = results
+          .filter(r => r.success)
+          .map(r => `${r.channelName} (${r.platform})`)
+          .join(', ');
+        const failedList = results
+          .filter(r => !r.success)
+          .map(r => `${r.channelName} (${r.platform})`)
+          .join(', ');
+
         let detailMessage = '';
         if (successList) detailMessage += `\n✅ Success: ${successList}`;
         if (failedList) detailMessage += `\n❌ Failed: ${failedList}`;
@@ -322,7 +304,10 @@ export class SocialPostingService {
         await this.notifications.create({
           userId: publication.createdBy,
           type: NotificationType.PUBLICATION_FAILED,
-          title: finalStatus === PublicationStatus.FAILED ? 'Publication Failed' : 'Publication Partially Failed',
+          title:
+            finalStatus === PublicationStatus.FAILED
+              ? 'Publication Failed'
+              : 'Publication Partially Failed',
           message: `Publication "${publication.title || publication.content?.substring(0, 30)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.${detailMessage}`,
           meta: { publicationId: publication.id, projectId: publication.projectId },
         });
@@ -387,11 +372,11 @@ export class SocialPostingService {
         post,
         post.channel,
         post.publication,
-        // Since publishPost is typically manual, we might assume force? 
-        // Or we should update the controller to pass force. 
-        // For now, let's keep it consistent: single post publish via API usually implies manual intent, 
+        // Since publishPost is typically manual, we might assume force?
+        // Or we should update the controller to pass force.
+        // For now, let's keep it consistent: single post publish via API usually implies manual intent,
         // but let's default to false unless we change the signature of publishPost too.
-        // Actually, looking at the code, publishPost doesn't take options. 
+        // Actually, looking at the code, publishPost doesn't take options.
         // However, user requirement "manual press on button... should be permitted" refers to the UI action which calls publishPublication usually?
         // Let's assume publishPost is also manual.
         { force: true }, // Assume manual single post execution implies force/user intent
@@ -401,9 +386,7 @@ export class SocialPostingService {
         where: { publicationId: post.publicationId },
       });
 
-      const successCount = allPosts.filter(
-        (p) => p.status === PostStatus.PUBLISHED,
-      ).length;
+      const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
       const finalStatus =
         successCount === allPosts.length
           ? PublicationStatus.PUBLISHED
@@ -424,25 +407,28 @@ export class SocialPostingService {
           processingStartedAt: null,
           meta: this.sanitizeJson({
             ...((post.publication.meta as any) || {}),
-            attempts: [
-              ...((post.publication.meta as any)?.attempts || []),
-              lastResult,
-            ],
+            attempts: [...((post.publication.meta as any)?.attempts || []), lastResult],
             lastResult,
           }),
         },
       });
 
       // Notify creator about failed or partial publication
-      if ((finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) && post.publication.createdBy) {
+      if (
+        (finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) &&
+        post.publication.createdBy
+      ) {
         try {
           const statusIcon = result.success ? '✅' : '❌';
           const statusText = result.success ? 'Success' : 'Failed';
-          
+
           await this.notifications.create({
             userId: post.publication.createdBy,
             type: NotificationType.PUBLICATION_FAILED,
-            title: finalStatus === PublicationStatus.FAILED ? 'Publication Failed' : 'Publication Partially Failed',
+            title:
+              finalStatus === PublicationStatus.FAILED
+                ? 'Publication Failed'
+                : 'Publication Partially Failed',
             message: `Publication "${post.publication.title || post.publication.content?.substring(0, 30)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.\n${statusIcon} ${post.channel.name} (${post.channel.socialMedia}): ${statusText}${result.error ? ` (${result.error})` : ''}`,
             meta: { publicationId: post.publicationId, projectId: post.publication.projectId },
           });
@@ -477,8 +463,11 @@ export class SocialPostingService {
     const logPrefix = `[publishSinglePost][Post:${post.id}]`;
 
     try {
-      const { targetChannelId, apiKey, error: prepError } =
-        await this.prepareChannelForPosting(channel, { ignoreState: options.force });
+      const {
+        targetChannelId,
+        apiKey,
+        error: prepError,
+      } = await this.prepareChannelForPosting(channel, { ignoreState: options.force });
       if (prepError) throw new Error(prepError);
 
       const request = SocialPostingRequestFormatter.prepareRequest({
@@ -512,7 +501,7 @@ export class SocialPostingService {
 
       if (response.success && response.data) {
         // Save response in meta.response as requested
-        const meta = (post.meta as any) || {};
+        const meta = post.meta || {};
         await this.prisma.post.update({
           where: { id: post.id },
           data: {
@@ -535,9 +524,8 @@ export class SocialPostingService {
         return { success: true, url: response.data.url };
       } else {
         const platformError = response;
-        const meta = (post.meta as any) || {};
-        const message =
-          platformError.error?.message || 'Unknown error from microservice';
+        const meta = post.meta || {};
+        const message = platformError.error?.message || 'Unknown error from microservice';
 
         await this.prisma.post.update({
           where: { id: post.id },
@@ -561,7 +549,7 @@ export class SocialPostingService {
       }
     } catch (error: any) {
       this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
-      const meta = (post.meta as any) || {};
+      const meta = post.meta || {};
       const message = error.message;
 
       await this.prisma.post.update({
@@ -615,15 +603,15 @@ export class SocialPostingService {
           // Wrap in our expected structure if not already
           return errorData as T;
         } catch {
-             throw new Error(`Service returned ${response.status} ${response.statusText}`);
+          throw new Error(`Service returned ${response.status} ${response.statusText}`);
         }
       }
 
       return (await response.json()) as T;
     } catch (error: any) {
       // Network errors, timeouts, etc.
-       this.logger.error(`Request to ${url} failed: ${error.message}`);
-       throw new Error(`Microservice request failed: ${error.message}`);
+      this.logger.error(`Request to ${url} failed: ${error.message}`);
+      throw new Error(`Microservice request failed: ${error.message}`);
     }
   }
 
@@ -671,15 +659,11 @@ export class SocialPostingService {
       if (channel.archivedAt) errors.push('Channel is archived');
       if (channel.project?.archivedAt) errors.push('Project is archived');
     }
-    if (!channel.channelIdentifier)
-      errors.push('Channel identifier is missing');
+    if (!channel.channelIdentifier) errors.push('Channel identifier is missing');
 
     try {
       const credentials = channel.credentials || {};
-      const validation = validatePlatformCredentials(
-        channel.socialMedia,
-        credentials,
-      );
+      const validation = validatePlatformCredentials(channel.socialMedia, credentials);
       if (!validation.valid) errors.push(...validation.errors);
     } catch {
       errors.push('Invalid credentials format');
@@ -700,15 +684,11 @@ export class SocialPostingService {
     if (!obj) return obj;
     try {
       return JSON.parse(
-        JSON.stringify(obj, (key, value) =>
-          typeof value === 'bigint' ? value.toString() : value,
-        ),
+        JSON.stringify(obj, (key, value) => (typeof value === 'bigint' ? value.toString() : value)),
       );
     } catch (error: any) {
       if (this.logger) {
-        this.logger.warn(
-          `Failed to sanitize JSON object: ${error?.message || error}`,
-        );
+        this.logger.warn(`Failed to sanitize JSON object: ${error?.message || error}`);
       }
       return {
         _error: 'Sanitization failed',

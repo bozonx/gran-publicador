@@ -5,6 +5,7 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
 import { ProjectRole } from '../../src/generated/prisma/client.js';
+import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 
 describe('ProjectsService (unit)', () => {
   let service: ProjectsService;
@@ -51,6 +52,10 @@ describe('ProjectsService (unit)', () => {
     getUserProjectRole: jest.fn() as any,
   };
 
+  const mockNotificationsService = {
+    create: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -62,6 +67,10 @@ describe('ProjectsService (unit)', () => {
         {
           provide: PermissionsService,
           useValue: mockPermissionsService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();
@@ -199,12 +208,24 @@ describe('ProjectsService (unit)', () => {
 
       mockPrismaService.user.findFirst.mockResolvedValue(userToAdd);
       mockPrismaService.projectMember.findUnique.mockResolvedValue(null);
-      mockPrismaService.projectMember.create.mockResolvedValue({ userId: userToAdd.id, role: ProjectRole.VIEWER });
+      mockPrismaService.projectMember.create.mockResolvedValue({
+        userId: userToAdd.id,
+        role: ProjectRole.VIEWER,
+      });
 
-      await service.addMember(projectId, userId, { username: '@newuser', role: ProjectRole.VIEWER });
+      await service.addMember(projectId, userId, {
+        username: '@newuser',
+        role: ProjectRole.VIEWER,
+      });
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(projectId, userId, [ProjectRole.ADMIN]);
-      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({ where: { telegramUsername: 'newuser' } });
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        [ProjectRole.ADMIN],
+      );
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
+        where: { telegramUsername: 'newuser' },
+      });
       expect(mockPrismaService.projectMember.create).toHaveBeenCalledWith({
         data: { projectId, userId: userToAdd.id, role: ProjectRole.VIEWER },
         include: { user: true },
@@ -218,14 +239,22 @@ describe('ProjectsService (unit)', () => {
 
       mockPrismaService.user.findUnique.mockResolvedValue(userToAdd);
       mockPrismaService.projectMember.findUnique.mockResolvedValue(null);
-      mockPrismaService.projectMember.create.mockResolvedValue({ userId: userToAdd.id, role: ProjectRole.EDITOR });
+      mockPrismaService.projectMember.create.mockResolvedValue({
+        userId: userToAdd.id,
+        role: ProjectRole.EDITOR,
+      });
 
       // Mock RegExp checking in service (which we can't easily mock since it's inline, but we pass digits)
-      
-      await service.addMember(projectId, userId, { username: '123456789', role: ProjectRole.EDITOR });
+
+      await service.addMember(projectId, userId, {
+        username: '123456789',
+        role: ProjectRole.EDITOR,
+      });
 
       // Should have called findUnique with BigInt
-      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({ where: { telegramId: 123456789n } });
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { telegramId: 123456789n },
+      });
       expect(mockPrismaService.projectMember.create).toHaveBeenCalledWith({
         data: { projectId, userId: userToAdd.id, role: ProjectRole.EDITOR },
         include: { user: true },
@@ -260,7 +289,12 @@ describe('ProjectsService (unit)', () => {
 
       mockPrismaService.projectMember.findMany.mockResolvedValue([member]);
       // Mock findUnique logic for owner injection
-      mockPrismaService.project.findUnique.mockResolvedValue({ id: projectId, ownerId: owner.id, owner, createdAt: new Date() });
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: projectId,
+        ownerId: owner.id,
+        owner,
+        createdAt: new Date(),
+      });
 
       const result = await service.findMembers(projectId, userId);
 
@@ -278,12 +312,19 @@ describe('ProjectsService (unit)', () => {
       const memberUserId = 'u2';
       const role = ProjectRole.EDITOR;
 
-      mockPrismaService.projectMember.findUnique.mockResolvedValue({ id: 'm1', role: ProjectRole.VIEWER });
+      mockPrismaService.projectMember.findUnique.mockResolvedValue({
+        id: 'm1',
+        role: ProjectRole.VIEWER,
+      });
       mockPrismaService.projectMember.update.mockResolvedValue({ id: 'm1', role });
 
       await service.updateMemberRole(projectId, userId, memberUserId, { role });
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(projectId, userId, [ProjectRole.ADMIN]);
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        [ProjectRole.ADMIN],
+      );
       expect(mockPrismaService.projectMember.update).toHaveBeenCalled();
     });
   });
@@ -294,12 +335,19 @@ describe('ProjectsService (unit)', () => {
       const userId = 'u1';
       const memberUserId = 'u2';
 
-      mockPrismaService.projectMember.findUnique.mockResolvedValue({ id: 'm1', role: ProjectRole.VIEWER });
+      mockPrismaService.projectMember.findUnique.mockResolvedValue({
+        id: 'm1',
+        role: ProjectRole.VIEWER,
+      });
       mockPrismaService.projectMember.delete.mockResolvedValue({ id: 'm1' });
 
       await service.removeMember(projectId, userId, memberUserId);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(projectId, userId, [ProjectRole.ADMIN]);
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        [ProjectRole.ADMIN],
+      );
       expect(mockPrismaService.projectMember.delete).toHaveBeenCalled();
     });
   });

@@ -597,7 +597,6 @@ export class MediaService {
     }
   }
 
-
   /**
    * Internal helper to extract full EXIF from a buffer.
    */

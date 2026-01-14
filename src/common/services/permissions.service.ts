@@ -94,7 +94,10 @@ export class PermissionsService {
    * @param userId - The ID of the user.
    * @returns 'OWNER' if the user is the owner, the MemberRole if they are a member, or null if unrelated.
    */
-  public async getUserProjectRole(projectId: string, userId: string): Promise<ProjectRole | 'OWNER' | null> {
+  public async getUserProjectRole(
+    projectId: string,
+    userId: string,
+  ): Promise<ProjectRole | 'OWNER' | null> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       select: { ownerId: true },

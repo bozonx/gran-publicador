@@ -1,5 +1,10 @@
 import { SocialPostingRequestFormatter } from '../../src/modules/social-posting/utils/social-posting-request.formatter.js';
-import { PostType, SocialMedia, MediaType, StorageType } from '../../src/generated/prisma/client.js';
+import {
+  PostType,
+  SocialMedia,
+  MediaType,
+  StorageType,
+} from '../../src/generated/prisma/client.js';
 
 describe('SocialPostingRequestFormatter', () => {
   const mockPost = {
@@ -7,13 +12,13 @@ describe('SocialPostingRequestFormatter', () => {
     updatedAt: new Date('2024-01-01T10:00:00Z'),
     content: null,
     tags: null,
-    language: 'ru-RU'
+    language: 'ru-RU',
   };
 
   const mockChannel = {
     socialMedia: SocialMedia.TELEGRAM,
     language: 'ru-RU',
-    preferences: {}
+    preferences: {},
   };
 
   const mockPublication = {
@@ -23,7 +28,7 @@ describe('SocialPostingRequestFormatter', () => {
     tags: 'tag1',
     postType: PostType.POST,
     language: 'ru-RU',
-    media: []
+    media: [],
   };
 
   const params = {
@@ -32,7 +37,7 @@ describe('SocialPostingRequestFormatter', () => {
     publication: mockPublication,
     apiKey: 'secret-token',
     targetChannelId: '@test_channel',
-    mediaDir: '/tmp'
+    mediaDir: '/tmp',
   };
 
   it('should format request correctly for Telegram', () => {
@@ -52,7 +57,7 @@ describe('SocialPostingRequestFormatter', () => {
   it('should format request correctly for non-Telegram platforms', () => {
     const vkParams = {
       ...params,
-      channel: { ...mockChannel, socialMedia: SocialMedia.VK }
+      channel: { ...mockChannel, socialMedia: SocialMedia.VK },
     };
     const request = SocialPostingRequestFormatter.prepareRequest(vkParams);
 
@@ -67,8 +72,8 @@ describe('SocialPostingRequestFormatter', () => {
       ...params,
       post: {
         ...mockPost,
-        platformOptions: { disableNotification: true }
-      }
+        platformOptions: { disableNotification: true },
+      },
     };
     const request = SocialPostingRequestFormatter.prepareRequest(paramsWithOpts);
     expect(request.disableNotification).toBe(true);
@@ -84,11 +89,11 @@ describe('SocialPostingRequestFormatter', () => {
             media: {
               type: MediaType.IMAGE,
               storageType: StorageType.TELEGRAM,
-              storagePath: 'file_id_123'
-            }
-          }
-        ]
-      }
+              storagePath: 'file_id_123',
+            },
+          },
+        ],
+      },
     };
 
     const request = SocialPostingRequestFormatter.prepareRequest(paramsWithMedia);
@@ -106,18 +111,18 @@ describe('SocialPostingRequestFormatter', () => {
             media: {
               type: MediaType.IMAGE,
               storageType: StorageType.TELEGRAM,
-              storagePath: 'file_id_1'
-            }
+              storagePath: 'file_id_1',
+            },
           },
           {
             media: {
               type: MediaType.VIDEO,
               storageType: StorageType.FS,
-              storagePath: 'https://example.com/video.mp4'
-            }
-          }
-        ]
-      }
+              storagePath: 'https://example.com/video.mp4',
+            },
+          },
+        ],
+      },
     };
 
     const request = SocialPostingRequestFormatter.prepareRequest(paramsWithMultiMedia);

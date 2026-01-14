@@ -6,7 +6,7 @@ import { toString } from 'mdast-util-to-string';
 
 import {
   getValidationRules,
-  SocialMediaValidationRules,
+  type SocialMediaValidationRules,
 } from './social-media-validation.constants.js';
 
 /**
@@ -107,10 +107,14 @@ function validateMediaTypes(
   // Telegram ARTICLE override: only 1 IMAGE allowed
   if (socialMedia === SocialMedia.TELEGRAM && postType === PostType.ARTICLE) {
     if (isGallery) {
-      errors.push(`Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.`);
+      errors.push(
+        `Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.`,
+      );
     } else if (mediaCount === 1) {
       if (media[0].type !== MediaType.IMAGE) {
-        errors.push(`Telegram Article (telegra.ph) only allows IMAGE type, but found: ${media[0].type}`);
+        errors.push(
+          `Telegram Article (telegra.ph) only allows IMAGE type, but found: ${media[0].type}`,
+        );
       }
     }
     return errors;
@@ -120,10 +124,10 @@ function validateMediaTypes(
     // Validate gallery media types
     if (rules.allowedGalleryMediaTypes) {
       const invalidMedia = media.filter(
-        (m) => !rules.allowedGalleryMediaTypes!.includes(m.type as any),
+        m => !rules.allowedGalleryMediaTypes!.includes(m.type as any),
       );
       if (invalidMedia.length > 0) {
-        const invalidTypes = [...new Set(invalidMedia.map((m) => m.type))].join(', ');
+        const invalidTypes = [...new Set(invalidMedia.map(m => m.type))].join(', ');
         const allowedTypes = rules.allowedGalleryMediaTypes.join(', ');
         errors.push(
           `Gallery for ${socialMedia} only allows ${allowedTypes}, but found: ${invalidTypes}`,

@@ -85,7 +85,7 @@ export class NotificationsService {
       where: { id },
     });
 
-    if (!notification || notification.userId !== userId) {
+    if (notification?.userId !== userId) {
       throw new NotFoundException('Notification not found');
     }
 
@@ -127,7 +127,7 @@ export class NotificationsService {
     if (result.count > 0) {
       this.logger.log(`Cleaned up ${result.count} old notifications`);
     }
-    
+
     return result;
   }
 }

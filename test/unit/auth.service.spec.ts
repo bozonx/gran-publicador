@@ -144,7 +144,9 @@ describe('AuthService (unit)', () => {
       const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
       const initData = new URLSearchParams({ ...params, hash }).toString();
 
-      await expect(service.loginWithTelegram(initData)).rejects.toThrow('Invalid Telegram init data');
+      await expect(service.loginWithTelegram(initData)).rejects.toThrow(
+        'Invalid Telegram init data',
+      );
     });
 
     it('should throw UnauthorizedException if user data is missing', async () => {

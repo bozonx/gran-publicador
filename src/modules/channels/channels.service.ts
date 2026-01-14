@@ -428,9 +428,7 @@ export class ChannelsService {
 
   public async remove(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(channel.projectId, userId, [ProjectRole.ADMIN]);
     return this.prisma.channel.delete({ where: { id } });
   }
 

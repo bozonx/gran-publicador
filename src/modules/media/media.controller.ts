@@ -127,7 +127,6 @@ export class MediaController {
     return this.mediaService.findOne(id);
   }
 
-
   @Patch(':id')
   @UseGuards(JwtOrApiTokenGuard)
   update(@Param('id') id: string, @Body() updateMediaDto: UpdateMediaDto) {

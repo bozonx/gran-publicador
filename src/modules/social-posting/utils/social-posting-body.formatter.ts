@@ -1,8 +1,5 @@
-import { PostType } from '../../../generated/prisma/client.js';
-import { 
-  TagsFormatter, 
-  TagCase
-} from './tags.formatter.js';
+import type { PostType } from '../../../generated/prisma/client.js';
+import { TagsFormatter, type TagCase } from './tags.formatter.js';
 
 export interface TemplateBlock {
   enabled: boolean;
@@ -69,19 +66,18 @@ export class SocialPostingBodyFormatter {
     channel: { language: string; preferences?: any },
     templateOverride?: { id: string } | null,
   ): string {
-    const templates: ChannelPostTemplate[] =
-      channel.preferences?.templates || [];
+    const templates: ChannelPostTemplate[] = channel.preferences?.templates || [];
 
     let template: ChannelPostTemplate | null | undefined = null;
 
     // 1. Explicit selection (Highest Priority)
     if (templateOverride?.id) {
-      template = templates.find((t) => t.id === templateOverride.id);
+      template = templates.find(t => t.id === templateOverride.id);
     }
 
     // 2. Channel Default
     if (!template) {
-      template = templates.find((t) => t.isDefault);
+      template = templates.find(t => t.isDefault);
     }
 
     const blocks = template ? template.template : this.getDefaultBlocks();
@@ -113,14 +109,14 @@ export class SocialPostingBodyFormatter {
         case 'footer': {
           const footers: ChannelFooter[] = channel.preferences?.footers || [];
           let footerObj: ChannelFooter | undefined;
-          
+
           if (block.footerId) {
-            footerObj = footers.find((f) => f.id === block.footerId);
+            footerObj = footers.find(f => f.id === block.footerId);
           } else {
             // Find default footer if none specified in block
-            footerObj = footers.find((f) => f.isDefault);
+            footerObj = footers.find(f => f.isDefault);
           }
-          
+
           value = footerObj?.content || '';
           break;
         }
@@ -128,11 +124,7 @@ export class SocialPostingBodyFormatter {
 
       const trimmedValue = value.trim();
       if (trimmedValue) {
-        const blockParts = [
-          block.before || '',
-          trimmedValue,
-          block.after || '',
-        ];
+        const blockParts = [block.before || '', trimmedValue, block.after || ''];
 
         formattedBlocks.push(blockParts.join(''));
       }

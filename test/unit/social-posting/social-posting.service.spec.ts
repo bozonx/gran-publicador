@@ -1,9 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { SocialPostingService } from '../../../src/modules/social-posting/social-posting.service.js';
 import { PrismaService } from '../../../src/modules/prisma/prisma.service.js';
 import { ShutdownService } from '../../../src/common/services/shutdown.service.js';
 import { PostStatus, PublicationStatus } from '../../../src/generated/prisma/client.js';
+import { NotificationsService } from '../../../src/modules/notifications/notifications.service.js';
 import { jest } from '@jest/globals';
 
 // Mock undici
@@ -11,8 +12,7 @@ const mockFetch = jest.fn();
 
 describe('SocialPostingService', () => {
   let service: SocialPostingService;
-  let prismaService: any;
-  
+
   // Set fallback env var
   process.env.MEDIA_DIR = '/tmp/media';
 
@@ -55,6 +55,10 @@ describe('SocialPostingService', () => {
     isShutdownInProgress: jest.fn().mockReturnValue(false),
   };
 
+  const mockNotificationsService = {
+    create: jest.fn() as any,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,6 +66,7 @@ describe('SocialPostingService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ShutdownService, useValue: mockShutdownService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 
@@ -94,10 +99,12 @@ describe('SocialPostingService', () => {
       (mockPrismaService.channel.findUnique as any).mockResolvedValue(mockChannel);
       (mockFetch as any).mockResolvedValue({
         ok: true,
-        json: async () => ({
-          success: true,
-          data: { valid: true },
-        }),
+        json: async () => {
+          return {
+            success: true,
+            data: { valid: true },
+          };
+        },
       });
 
       const result = await service.testChannel(channelId);
@@ -122,9 +129,9 @@ describe('SocialPostingService', () => {
         publicationId: 'pub-1',
         channelId: 'chan-1',
         publication: {
-           id: 'pub-1',
-           meta: {},
-           media: [],
+          id: 'pub-1',
+          meta: {},
+          media: [],
         },
         channel: {
           id: 'chan-1',
@@ -145,13 +152,15 @@ describe('SocialPostingService', () => {
 
       (mockFetch as any).mockResolvedValue({
         ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            url: 'http://t.me/post/1',
-            publishedAt: new Date().toISOString(),
-          },
-        }),
+        json: async () => {
+          return {
+            success: true,
+            data: {
+              url: 'http://t.me/post/1',
+              publishedAt: new Date().toISOString(),
+            },
+          };
+        },
       });
 
       const result = await service.publishPost(postId);
@@ -165,9 +174,9 @@ describe('SocialPostingService', () => {
       );
       expect(mockPrismaService.post.update).toHaveBeenCalledWith(
         expect.objectContaining({
-            where: { id: postId },
-            data: expect.objectContaining({ status: PostStatus.PUBLISHED })
-        })
+          where: { id: postId },
+          data: expect.objectContaining({ status: PostStatus.PUBLISHED }),
+        }),
       );
     });
   });
@@ -201,10 +210,10 @@ describe('SocialPostingService', () => {
       (mockPrismaService.publication.findUnique as any)
         .mockResolvedValueOnce(mockPublication) // first check
         .mockResolvedValueOnce(mockPublication); // second check (with posts)
-      
+
       // 2. Lock
       (mockPrismaService.publication.updateMany as any).mockResolvedValue({ count: 1 });
-      
+
       // 3. Post update (publishSinglePost)
       (mockPrismaService.post.update as any).mockResolvedValue({});
 
@@ -214,10 +223,12 @@ describe('SocialPostingService', () => {
       // Mock Fetch for microservice
       (mockFetch as any).mockResolvedValue({
         ok: true,
-        json: async () => ({
+        json: async () => {
+          return {
             success: true,
-            data: { url: 'http://test.com', publishedAt: new Date().toISOString() }
-        }),
+            data: { url: 'http://test.com', publishedAt: new Date().toISOString() },
+          };
+        },
       });
 
       const result = await service.publishPublication(publicationId);
@@ -225,19 +236,19 @@ describe('SocialPostingService', () => {
       expect(result.success).toBe(true);
       expect(mockPrismaService.publication.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-            where: { 
-              id: publicationId,
-              status: { not: PublicationStatus.PROCESSING } 
-            },
-            data: expect.objectContaining({ status: PublicationStatus.PROCESSING })
-        })
+          where: {
+            id: publicationId,
+            status: { not: PublicationStatus.PROCESSING },
+          },
+          data: expect.objectContaining({ status: PublicationStatus.PROCESSING }),
+        }),
       );
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
-            where: { id: publicationId },
-            data: expect.objectContaining({ status: PublicationStatus.PUBLISHED })
-        })
+          where: { id: publicationId },
+          data: expect.objectContaining({ status: PublicationStatus.PUBLISHED }),
+        }),
       );
     });
   });

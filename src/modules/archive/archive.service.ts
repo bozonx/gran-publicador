@@ -43,9 +43,7 @@ export class ArchiveService {
         if (!publication) throw new NotFoundException('Publication not found');
         // Author or Admin/Owner
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, [
-            'ADMIN',
-          ]);
+          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
         return this.prisma.publication.update({ where: { id }, data });
       }
@@ -83,9 +81,7 @@ export class ArchiveService {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, [
-            'ADMIN',
-          ]);
+          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
         return this.prisma.publication.update({ where: { id }, data });
       }
@@ -109,18 +105,14 @@ export class ArchiveService {
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          'ADMIN',
-        ]);
+        await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
         return this.prisma.channel.delete({ where: { id } });
       }
       case ArchiveEntityType.PUBLICATION: {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, [
-            'ADMIN',
-          ]);
+          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
         return this.prisma.publication.delete({ where: { id } });
       }

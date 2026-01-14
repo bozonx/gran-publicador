@@ -106,7 +106,10 @@ describe('PostsService (unit)', () => {
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
       mockChannelsService.findOne.mockResolvedValue({});
-      mockPrismaService.channel.findUnique.mockResolvedValue({ projectId: 'p1', socialMedia: SocialMedia.TELEGRAM });
+      mockPrismaService.channel.findUnique.mockResolvedValue({
+        projectId: 'p1',
+        socialMedia: SocialMedia.TELEGRAM,
+      });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined); // Authorized
       mockPrismaService.post.update.mockResolvedValue({ ...mockPost, ...updateDto });
       // Validation mocks
@@ -237,7 +240,11 @@ describe('PostsService (unit)', () => {
       const dto = { publicationId: 'pub-1', content: 'hello' };
       const projectId = 'p1';
 
-      mockChannelsService.findOne.mockResolvedValue({ id: channelId, projectId, socialMedia: SocialMedia.TELEGRAM });
+      mockChannelsService.findOne.mockResolvedValue({
+        id: channelId,
+        projectId,
+        socialMedia: SocialMedia.TELEGRAM,
+      });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findFirst.mockResolvedValue({ id: 'pub-1', projectId });
 

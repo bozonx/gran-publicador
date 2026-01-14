@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { jest } from '@jest/globals';
 import { TranslateService } from '../../../../src/modules/translate/translate.service.js';
-import { TranslateTextDto } from '../../../../src/modules/translate/dto/translate-text.dto.js';
+import type { TranslateTextDto } from '../../../../src/modules/translate/dto/translate-text.dto.js';
 
 describe('TranslateService', () => {
   let service: TranslateService;
@@ -86,7 +86,9 @@ describe('TranslateService', () => {
       text: async () => 'Internal Server Error',
     });
 
-    await expect(service.translateText(dto)).rejects.toThrow('Translate Gateway returned 500: Internal Server Error');
+    await expect(service.translateText(dto)).rejects.toThrow(
+      'Translate Gateway returned 500: Internal Server Error',
+    );
   });
 
   it('should override defaults with DTO values', async () => {

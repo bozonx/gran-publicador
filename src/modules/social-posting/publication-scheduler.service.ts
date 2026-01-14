@@ -35,9 +35,9 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
     this.logger.log(`Aligning scheduler: first run in ${delay}ms`);
 
     this.initialTimeout = setTimeout(() => {
-        this.handleCron();
-        const interval = setInterval(() => this.handleCron(), intervalMs);
-        this.schedulerRegistry.addInterval('publication-scheduler', interval);
+      this.handleCron();
+      const interval = setInterval(() => this.handleCron(), intervalMs);
+      this.schedulerRegistry.addInterval('publication-scheduler', interval);
     }, delay);
 
     this.logger.log(
@@ -50,10 +50,10 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
       clearTimeout(this.initialTimeout);
       this.initialTimeout = null;
     }
-    
+
     try {
       if (this.schedulerRegistry.doesExist('interval', 'publication-scheduler')) {
-         this.schedulerRegistry.deleteInterval('publication-scheduler');
+        this.schedulerRegistry.deleteInterval('publication-scheduler');
       }
     } catch (e) {
       // Ignore errors if interval doesn't exist
@@ -98,26 +98,29 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
 
     if (pubsToExpire.length > 0) {
       const expiredPubs = await this.prisma.publication.updateMany({
-        where: { id: { in: pubsToExpire.map((p) => p.id) } },
+        where: { id: { in: pubsToExpire.map(p => p.id) } },
         data: { status: PublicationStatus.EXPIRED },
       });
       if (expiredPubs.count > 0) {
         this.logger.log(`Marked ${expiredPubs.count} publications as EXPIRED`);
-        
+
         // Notify creators of expired publications
         for (const pub of pubsToExpire) {
           try {
-             // We need to fetch the creator ID
-             const fullPub = await this.prisma.publication.findUnique({ where: { id: pub.id }, select: { createdBy: true, title: true, content: true, projectId: true } });
-             if (fullPub?.createdBy) {
-                await this.notifications.create({
-                  userId: fullPub.createdBy,
-                  type: NotificationType.PUBLICATION_FAILED,
-                  title: 'Publication Expired',
-                  message: `Publication "${fullPub.title || fullPub.content?.substring(0, 30)}..." has expired`,
-                  meta: { publicationId: pub.id, projectId: fullPub.projectId },
-                });
-             }
+            // We need to fetch the creator ID
+            const fullPub = await this.prisma.publication.findUnique({
+              where: { id: pub.id },
+              select: { createdBy: true, title: true, content: true, projectId: true },
+            });
+            if (fullPub?.createdBy) {
+              await this.notifications.create({
+                userId: fullPub.createdBy,
+                type: NotificationType.PUBLICATION_FAILED,
+                title: 'Publication Expired',
+                message: `Publication "${fullPub.title || fullPub.content?.substring(0, 30)}..." has expired`,
+                meta: { publicationId: pub.id, projectId: fullPub.projectId },
+              });
+            }
           } catch (e: any) {
             this.logger.error(`Failed to notify about expired publication ${pub.id}: ${e.message}`);
           }
@@ -144,7 +147,7 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
 
     if (postsToExpire.length > 0) {
       const expiredPosts = await this.prisma.post.updateMany({
-        where: { id: { in: postsToExpire.map((p) => p.id) } },
+        where: { id: { in: postsToExpire.map(p => p.id) } },
         data: {
           status: PostStatus.FAILED,
           errorMessage: 'EXPIRED',
@@ -167,20 +170,14 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
         project: { archivedAt: null },
         OR: [
           // 1. Classic scheduled publication
-          { 
+          {
             status: PublicationStatus.SCHEDULED,
-            OR: [
-              { scheduledAt: { lte: now } },
-              { posts: { some: { scheduledAt: { lte: now } } } },
-            ]
+            OR: [{ scheduledAt: { lte: now } }, { posts: { some: { scheduledAt: { lte: now } } } }],
           },
         ],
       },
       select: { id: true, scheduledAt: true, createdAt: true },
-      orderBy: [
-        { scheduledAt: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
     });
 
     if (publications.length === 0) return;
@@ -190,10 +187,9 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
     // Sequential trigger to maintain strict delivery order
     // This is crucial for multi-part messages in the same channel
     for (const pub of publications) {
-        await this.triggerPublication(pub.id);
+      await this.triggerPublication(pub.id);
     }
   }
-
 
   private async triggerPublication(publicationId: string) {
     try {
@@ -217,7 +213,7 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
         await this.socialPostingService.publishPublication(publicationId, { skipLock: true });
       }
     } catch (error: any) {
-        this.logger.error(`Failed to trigger publication ${publicationId}: ${error.message}`);
+      this.logger.error(`Failed to trigger publication ${publicationId}: ${error.message}`);
     }
   }
 }

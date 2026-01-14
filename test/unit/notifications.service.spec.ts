@@ -115,9 +115,11 @@ describe('NotificationsService (unit)', () => {
 
       await service.findAll(userId, filters);
 
-      expect(mockPrismaService.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { userId, readAt: null },
-      }));
+      expect(mockPrismaService.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId, readAt: null },
+        }),
+      );
     });
 
     it('should filter by type', async () => {
@@ -129,9 +131,11 @@ describe('NotificationsService (unit)', () => {
 
       await service.findAll(userId, filters);
 
-      expect(mockPrismaService.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { userId, type: NotificationType.PUBLICATION_FAILED },
-      }));
+      expect(mockPrismaService.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId, type: NotificationType.PUBLICATION_FAILED },
+        }),
+      );
     });
   });
 
@@ -156,7 +160,10 @@ describe('NotificationsService (unit)', () => {
       const mockNotification = { id, userId, readAt: null };
 
       mockPrismaService.notification.findUnique.mockResolvedValue(mockNotification);
-      mockPrismaService.notification.update.mockResolvedValue({ ...mockNotification, readAt: new Date() });
+      mockPrismaService.notification.update.mockResolvedValue({
+        ...mockNotification,
+        readAt: new Date(),
+      });
 
       await service.markAsRead(id, userId);
 

@@ -50,7 +50,7 @@ export class TranslateService {
 
     try {
       const timeoutMs = (dto.timeoutSec || this.config.timeoutSec || 50) * 1000;
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {

@@ -1,4 +1,13 @@
-import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean, IsLocale, IsDate } from 'class-validator';
+import {
+  IsOptional,
+  IsEnum,
+  IsString,
+  IsInt,
+  Min,
+  IsBoolean,
+  IsLocale,
+  IsDate,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client.js';
 

@@ -710,7 +710,8 @@ export class PublicationsService {
           await import('../../common/validators/social-media-validation.validator.js');
 
         let mediaCount = publication.media?.length || 0;
-        let mediaArray = publication.media?.filter(m => m.media).map(m => ({ type: m.media!.type })) || [];
+        let mediaArray =
+          publication.media?.filter(m => m.media).map(m => ({ type: m.media!.type })) || [];
 
         if (isMediaUpdating) {
           mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
@@ -728,7 +729,8 @@ export class PublicationsService {
         const failedPosts: Array<{ postId: string; channelName: string; errors: string[] }> = [];
 
         for (const post of activePosts) {
-          const postContent = post.content || (isContentUpdating ? data.content : publication.content);
+          const postContent =
+            post.content || (isContentUpdating ? data.content : publication.content);
           const validationResult = validatePostContent({
             content: postContent,
             mediaCount: mediaCount,

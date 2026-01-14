@@ -16,7 +16,7 @@ import { Server, Socket } from 'socket.io';
 })
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(NotificationsGateway.name);
-  
+
   @WebSocketServer()
   server!: Server;
 
@@ -27,8 +27,10 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   async handleConnection(client: Socket) {
     try {
       // Get token from handshake auth or headers
-      const token = (client.handshake.auth?.token as string) || (client.handshake.headers?.authorization?.split(' ')[1] as string);
-      
+      const token =
+        (client.handshake.auth?.token as string) ||
+        (client.handshake.headers?.authorization?.split(' ')[1] as string);
+
       if (!token) {
         this.logger.debug(`Client ${client.id} connected without token, disconnecting`);
         client.disconnect();
@@ -37,7 +39,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
       const payload = await this.jwtService.verifyAsync(token);
       const userId = payload.sub;
-      
+
       if (!userId) {
         this.logger.debug(`Client ${client.id} payload has no sub, disconnecting`);
         client.disconnect();
@@ -45,14 +47,14 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       }
 
       client.data.userId = userId;
-      
+
       let sockets = this.userSockets.get(userId);
       if (!sockets) {
         sockets = new Set();
         this.userSockets.set(userId, sockets);
       }
       sockets.add(client.id);
-      
+
       this.logger.debug(`Client ${client.id} (user ${userId}) connected`);
     } catch (error: any) {
       this.logger.debug(`Client ${client.id} connection error: ${error.message}, disconnecting`);

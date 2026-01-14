@@ -1,10 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 import { jest } from '@jest/globals';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { PublicationSchedulerService } from '../../src/modules/social-posting/publication-scheduler.service.js';
 import { SocialPostingService } from '../../src/modules/social-posting/social-posting.service.js';
+import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { Cron, SchedulerRegistry } from '@nestjs/schedule';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { PostStatus, PublicationStatus } from '../../src/generated/prisma/client.js';
 
 // Mock ConfigService
@@ -26,6 +27,7 @@ const mockPrismaService = {
     findMany: jest.fn() as any,
     update: jest.fn() as any,
     updateMany: jest.fn(() => Promise.resolve({ count: 0 })) as any,
+    findUnique: jest.fn() as any,
   },
   post: {
     update: jest.fn() as any,
@@ -45,6 +47,11 @@ const mockSchedulerRegistry = {
   deleteInterval: jest.fn(),
 };
 
+// Mock NotificationsService
+const mockNotificationsService = {
+  create: jest.fn() as any,
+};
+
 describe('PublicationSchedulerService', () => {
   let service: PublicationSchedulerService;
   let prisma: typeof mockPrismaService;
@@ -59,6 +66,7 @@ describe('PublicationSchedulerService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: SocialPostingService, useValue: mockSocialPostingService },
         { provide: SchedulerRegistry, useValue: mockSchedulerRegistry },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 

@@ -19,7 +19,13 @@ import {
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
-import { CreateProjectDto, FindProjectsQueryDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
+import {
+  CreateProjectDto,
+  FindProjectsQueryDto,
+  UpdateProjectDto,
+  AddMemberDto,
+  UpdateMemberDto,
+} from './dto/index.js';
 import { ProjectsService } from './projects.service.js';
 
 /**
@@ -164,7 +170,12 @@ export class ProjectsController {
       });
     }
 
-    return this.projectsService.updateMemberRole(id, req.user.userId, memberUserId, updateMemberDto);
+    return this.projectsService.updateMemberRole(
+      id,
+      req.user.userId,
+      memberUserId,
+      updateMemberDto,
+    );
   }
 
   @Delete(':id/members/:userId')

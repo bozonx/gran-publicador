@@ -13,7 +13,6 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
 
-
 import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
@@ -32,9 +31,12 @@ export class ProjectsService {
     // Platform-specific required fields
     if (socialMedia === 'TELEGRAM') {
       const { telegramBotToken, telegramChannelId } = creds;
-      if (!telegramBotToken || !telegramChannelId || 
-          String(telegramBotToken).trim().length === 0 || 
-          String(telegramChannelId).trim().length === 0) {
+      if (
+        !telegramBotToken ||
+        !telegramChannelId ||
+        String(telegramBotToken).trim().length === 0 ||
+        String(telegramChannelId).trim().length === 0
+      ) {
         return true;
       }
     } else if (socialMedia === 'VK') {
@@ -47,7 +49,7 @@ export class ProjectsService {
     // Default/Legacy check: Is it an empty object or has only empty values?
     const values = Object.values(creds);
     if (values.length === 0) return true;
-    
+
     return values.every((v: any) => !v || String(v).trim().length === 0);
   }
 
@@ -127,17 +129,19 @@ export class ProjectsService {
         by: ['projectId'],
         where: {
           projectId: { in: projectIds },
-          status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL, PublicationStatus.EXPIRED] },
+          status: {
+            in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL, PublicationStatus.EXPIRED],
+          },
           archivedAt: null,
         },
         _count: { id: true },
       }),
       this.prisma.post.groupBy({
         by: ['channelId'],
-        where: { 
-          status: PostStatus.FAILED, 
+        where: {
+          status: PostStatus.FAILED,
           channel: { projectId: { in: projectIds } },
-          publication: { archivedAt: null }
+          publication: { archivedAt: null },
         },
         _count: { id: true },
       }),
@@ -178,7 +182,7 @@ export class ProjectsService {
 
     const channelProjectMap = new Map<string, string>();
     const languageMap = new Map<string, string[]>();
-    
+
     projectLanguages.forEach(l => {
       channelProjectMap.set(l.id, l.projectId);
       if (!languageMap.has(l.projectId)) languageMap.set(l.projectId, []);
@@ -190,7 +194,10 @@ export class ProjectsService {
     failedPostsRaw.forEach((row: any) => {
       const projectId = channelProjectMap.get(row.channelId);
       if (projectId) {
-        failedPostsMap.set(projectId, (failedPostsMap.get(projectId) || 0) + Number(row._count.id || 0));
+        failedPostsMap.set(
+          projectId,
+          (failedPostsMap.get(projectId) || 0) + Number(row._count.id || 0),
+        );
       }
     });
 
@@ -203,15 +210,13 @@ export class ProjectsService {
     // Manually count credential problems
     // Manually count credential problems
     noCredentialsRaw.forEach((row: any) => {
-        if (this.hasNoCredentials(row.credentials, row.socialMedia)) {
-             noCredentialsMap.set(row.projectId, (noCredentialsMap.get(row.projectId) || 0) + 1);
-        }
+      if (this.hasNoCredentials(row.credentials, row.socialMedia)) {
+        noCredentialsMap.set(row.projectId, (noCredentialsMap.get(row.projectId) || 0) + 1);
+      }
     });
 
     const inactiveMap = new Map<string, number>();
-    inactiveRaw.forEach((row: any) => 
-      inactiveMap.set(row.projectId, Number(row._count.id || 0))
-    );
+    inactiveRaw.forEach((row: any) => inactiveMap.set(row.projectId, Number(row._count.id || 0)));
 
     return projects.map(project => {
       const userMember = project.members[0];
@@ -221,7 +226,7 @@ export class ProjectsService {
       return {
         ...project,
         channels: [],
-        role: (project.ownerId === userId ? 'owner' : userMember?.role?.toLowerCase()),
+        role: project.ownerId === userId ? 'owner' : userMember?.role?.toLowerCase(),
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
         lastPublicationAt,
@@ -297,7 +302,7 @@ export class ProjectsService {
       return {
         ...project,
         channels: mappedChannels,
-        role: (project.ownerId === userId ? 'owner' : project.members[0]?.role?.toLowerCase()),
+        role: project.ownerId === userId ? 'owner' : project.members[0]?.role?.toLowerCase(),
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
         lastPublicationAt: project.publications[0]?.createdAt || null,
@@ -360,10 +365,10 @@ export class ProjectsService {
       channelIds.length > 0
         ? await this.prisma.post.groupBy({
             by: ['channelId'],
-            where: { 
-              channelId: { in: channelIds }, 
+            where: {
+              channelId: { in: channelIds },
               status: PostStatus.FAILED,
-              publication: { archivedAt: null }
+              publication: { archivedAt: null },
             },
             _count: { id: true },
           })
@@ -401,7 +406,9 @@ export class ProjectsService {
       this.prisma.publication.count({
         where: {
           projectId,
-          status: { in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL, PublicationStatus.EXPIRED] },
+          status: {
+            in: [PublicationStatus.FAILED, PublicationStatus.PARTIAL, PublicationStatus.EXPIRED],
+          },
           archivedAt: null,
         },
       }),
@@ -423,15 +430,15 @@ export class ProjectsService {
       failedPostsCount: Array.from(failedCountsMap.values()).reduce((a, b) => a + b, 0),
       problemPublicationsCount: problemCount,
       // Calculate no credentials count from mapped channels
-      noCredentialsChannelsCount: mappedChannels.filter(c => this.hasNoCredentials(c.credentials, c.socialMedia)).length,
+      noCredentialsChannelsCount: mappedChannels.filter(c =>
+        this.hasNoCredentials(c.credentials, c.socialMedia),
+      ).length,
       inactiveChannelsCount: inactiveCount,
     };
   }
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
     return this.prisma.project.update({
       where: { id: projectId },
       data: { ...data, preferences: data.preferences ? (data.preferences as any) : undefined },
@@ -439,16 +446,12 @@ export class ProjectsService {
   }
 
   public async remove(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
     return this.prisma.project.delete({ where: { id: projectId } });
   }
 
   public async archive(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: new Date(), archivedBy: userId },
@@ -456,9 +459,7 @@ export class ProjectsService {
   }
 
   public async unarchive(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: null, archivedBy: null },
@@ -484,29 +485,27 @@ export class ProjectsService {
     });
 
     if (project && project.owner) {
-       // Create a virtual member object for the owner
-       // We cast to any to avoid type issues with the strictly generated ProjectMember type
-       const ownerMember: any = {
-         id: 'owner',
-         projectId: project.id,
-         userId: project.ownerId,
-         role: 'OWNER', // Virtual role
-         createdAt: project.createdAt,
-         user: project.owner
-       };
-       return [ownerMember, ...members];
+      // Create a virtual member object for the owner
+      // We cast to any to avoid type issues with the strictly generated ProjectMember type
+      const ownerMember: any = {
+        id: 'owner',
+        projectId: project.id,
+        userId: project.ownerId,
+        role: 'OWNER', // Virtual role
+        createdAt: project.createdAt,
+        user: project.owner,
+      };
+      return [ownerMember, ...members];
     }
 
     return members;
   }
 
   public async addMember(projectId: string, userId: string, data: AddMemberDto) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
 
     let userToAdd;
-    
+
     // Check if input is a Telegram ID (numeric)
     if (/^\d+$/.test(data.username)) {
       userToAdd = await this.prisma.user.findUnique({
@@ -546,7 +545,9 @@ export class ProjectsService {
         this.prisma.user.findUnique({ where: { id: userId } }),
       ]);
 
-      const inviterName = inviter?.fullName || (inviter?.telegramUsername ? `@${inviter.telegramUsername}` : 'Someone');
+      const inviterName =
+        inviter?.fullName ||
+        (inviter?.telegramUsername ? `@${inviter.telegramUsername}` : 'Someone');
 
       await this.notifications.create({
         userId: userToAdd.id,
@@ -568,9 +569,7 @@ export class ProjectsService {
     memberUserId: string,
     data: UpdateMemberDto,
   ) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
@@ -588,17 +587,19 @@ export class ProjectsService {
   }
 
   public async removeMember(projectId: string, userId: string, memberUserId: string) {
-    this.logger.log(`removeMember: projectId=${projectId}, actor=${userId}, target=${memberUserId}`);
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-    ]);
+    this.logger.log(
+      `removeMember: projectId=${projectId}, actor=${userId}, target=${memberUserId}`,
+    );
+    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
     });
 
     if (!member) {
-      this.logger.warn(`removeMember: Member not found. projectId=${projectId}, memberUserId=${memberUserId}`);
+      this.logger.warn(
+        `removeMember: Member not found. projectId=${projectId}, memberUserId=${memberUserId}`,
+      );
       throw new NotFoundException('Member not found in this project');
     }
 

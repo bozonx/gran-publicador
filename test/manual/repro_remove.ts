@@ -1,4 +1,3 @@
-
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module.js';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
@@ -19,10 +18,10 @@ async function run() {
 
   console.log('Attempting to remove member...');
   try {
-      await projectsService.removeMember(projectId, ownerId, memberId);
-      console.log('Success!');
+    await projectsService.removeMember(projectId, ownerId, memberId);
+    console.log('Success!');
   } catch (e) {
-      console.error('Failed:', e);
+    console.error('Failed:', e);
   }
 
   await app.close();

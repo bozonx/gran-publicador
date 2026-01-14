@@ -1,6 +1,5 @@
 import { SocialMedia, MediaType } from '../../generated/prisma/enums.js';
 
-
 /**
  * Validation rules for different social media platforms
  */
@@ -24,10 +23,7 @@ export interface SocialMediaValidationRules {
 /**
  * Platform-specific validation rules
  */
-export const SOCIAL_MEDIA_VALIDATION_RULES: Record<
-  SocialMedia,
-  SocialMediaValidationRules
-> = {
+export const SOCIAL_MEDIA_VALIDATION_RULES: Record<SocialMedia, SocialMediaValidationRules> = {
   [SocialMedia.TELEGRAM]: {
     maxTextLength: 4096,
     maxCaptionLength: 1024,
@@ -69,8 +65,6 @@ export const SOCIAL_MEDIA_VALIDATION_RULES: Record<
 /**
  * Get validation rules for a specific social media platform
  */
-export function getValidationRules(
-  socialMedia: SocialMedia,
-): SocialMediaValidationRules {
+export function getValidationRules(socialMedia: SocialMedia): SocialMediaValidationRules {
   return SOCIAL_MEDIA_VALIDATION_RULES[socialMedia];
 }

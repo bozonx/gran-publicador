@@ -17,9 +17,15 @@ export class SttService {
    * Currently saves the file locally and returns a stub response.
    * TODO: Integrate with real STT microservice.
    */
-  async transcribeAudio(file: { buffer: Buffer; originalname: string; mimetype: string }): Promise<{ text: string }> {
+  async transcribeAudio(file: {
+    buffer: Buffer;
+    originalname: string;
+    mimetype: string;
+  }): Promise<{ text: string }> {
     try {
-      this.logger.log(`Received audio file: ${file.originalname} (${file.mimetype}), size: ${file.buffer.length} bytes`);
+      this.logger.log(
+        `Received audio file: ${file.originalname} (${file.mimetype}), size: ${file.buffer.length} bytes`,
+      );
 
       // Ensure temp directory exists
       await mkdir(this.tempDir, { recursive: true });

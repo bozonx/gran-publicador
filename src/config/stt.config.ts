@@ -39,9 +39,7 @@ export class SttConfig {
 export default registerAs('stt', (): SttConfig => {
   const config = plainToClass(SttConfig, {
     serviceUrl: process.env.STT_SERVICE_URL,
-    timeoutMs: process.env.STT_TIMEOUT_MS
-      ? parseInt(process.env.STT_TIMEOUT_MS, 10)
-      : undefined,
+    timeoutMs: process.env.STT_TIMEOUT_MS ? parseInt(process.env.STT_TIMEOUT_MS, 10) : undefined,
     maxFileSize: process.env.STT_MAX_FILE_SIZE
       ? parseInt(process.env.STT_MAX_FILE_SIZE, 10)
       : undefined,

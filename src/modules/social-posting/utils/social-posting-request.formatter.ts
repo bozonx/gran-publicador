@@ -1,11 +1,11 @@
 import { join } from 'path';
-import { PostRequestDto } from '../dto/social-posting.dto.js';
-import { 
-  Post, 
-  Channel, 
-  Publication, 
-  MediaType, 
-  StorageType 
+import type { PostRequestDto } from '../dto/social-posting.dto.js';
+import {
+  Post,
+  Channel,
+  Publication,
+  MediaType,
+  StorageType,
 } from '../../../generated/prisma/client.js';
 import { SocialPostingBodyFormatter } from './social-posting-body.formatter.js';
 import { TagsFormatter } from './tags.formatter.js';
@@ -38,7 +38,7 @@ export class SocialPostingRequestFormatter {
         language: post.language || publication.language,
       },
       channel,
-      post.template // Pass the template override
+      post.template, // Pass the template override
     );
 
     const mediaMapping = this.mapMedia(publication.media, mediaDir);
@@ -58,10 +58,11 @@ export class SocialPostingRequestFormatter {
 
     // Apply platform options from post
     if (post.platformOptions) {
-      const opts = typeof post.platformOptions === 'string' 
-        ? JSON.parse(post.platformOptions) 
-        : post.platformOptions;
-      
+      const opts =
+        typeof post.platformOptions === 'string'
+          ? JSON.parse(post.platformOptions)
+          : post.platformOptions;
+
       // Map specific known options
       // Support both camelCase and snake_case for disableNotification
       const disableNotification = opts.disableNotification ?? opts.disable_notification;
@@ -69,15 +70,15 @@ export class SocialPostingRequestFormatter {
       if (disableNotification !== undefined) {
         request.disableNotification = !!disableNotification;
       }
-      
+
       // Pass the rest as general options if any
       // Remove both variants from options to avoid duplication
       const { disableNotification: _, disable_notification: __, ...rest } = opts;
-      
+
       if (Object.keys(rest).length > 0) {
         request.options = {
           ...(request.options || {}),
-          ...rest
+          ...rest,
         };
       }
     }
@@ -97,7 +98,7 @@ export class SocialPostingRequestFormatter {
       // For other platforms we can provide title and description if available
       if (publication.title) request.title = publication.title;
       if (publication.description) request.description = publication.description;
-      
+
       // Add tags as separate field if present
       const tagsString = post.tags || publication.tags;
       if (tagsString) {
@@ -114,7 +115,7 @@ export class SocialPostingRequestFormatter {
     if (publicationMedia.length === 1) {
       const item = publicationMedia[0].media;
       const src = this.getMediaSrc(item, mediaDir);
-      
+
       switch (item.type) {
         case MediaType.IMAGE:
           return { cover: { src } };
