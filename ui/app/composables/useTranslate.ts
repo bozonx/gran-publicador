@@ -19,6 +19,7 @@ export interface TranslateResponse {
 }
 
 export function useTranslate() {
+  const { post } = useApi()
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -27,10 +28,7 @@ export function useTranslate() {
     error.value = null
 
     try {
-      const response = await $fetch<TranslateResponse>('/api/v1/translate', {
-        method: 'POST',
-        body: params,
-      })
+      const response = await post<TranslateResponse>('/translate', params)
       return response
     } catch (err: any) {
       const msg = err.data?.message || err.message || 'Translation failed'
