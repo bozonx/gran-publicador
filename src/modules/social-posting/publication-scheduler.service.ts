@@ -1,9 +1,10 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
-import { PostStatus, PublicationStatus } from '../../generated/prisma/client.js';
+import { PostStatus, PublicationStatus, NotificationType } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SocialPostingService } from './social-posting.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { AppConfig } from '../../config/app.config.js';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
     private readonly socialPostingService: SocialPostingService,
     private readonly configService: ConfigService,
     private readonly schedulerRegistry: SchedulerRegistry,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit() {
@@ -101,6 +103,25 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
       });
       if (expiredPubs.count > 0) {
         this.logger.log(`Marked ${expiredPubs.count} publications as EXPIRED`);
+        
+        // Notify creators of expired publications
+        for (const pub of pubsToExpire) {
+          try {
+             // We need to fetch the creator ID
+             const fullPub = await this.prisma.publication.findUnique({ where: { id: pub.id }, select: { createdBy: true, content: true, projectId: true } });
+             if (fullPub?.createdBy) {
+                await this.notifications.create({
+                  userId: fullPub.createdBy,
+                  type: NotificationType.PUBLICATION_FAILED,
+                  title: 'Publication Expired',
+                  message: `Publication "${fullPub.content?.substring(0, 50)}..." has expired`,
+                  meta: { publicationId: pub.id, projectId: fullPub.projectId },
+                });
+             }
+          } catch (e: any) {
+            this.logger.error(`Failed to notify about expired publication ${pub.id}: ${e.message}`);
+          }
+        }
       }
     }
 

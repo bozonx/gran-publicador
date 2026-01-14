@@ -972,5 +972,10 @@
     "microphoneNotAvailable": "Microphone not available",
     "recordingError": "Recording error",
     "transcriptionError": "Transcription error"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "markAllRead": "Mark all as read"
   }
 }

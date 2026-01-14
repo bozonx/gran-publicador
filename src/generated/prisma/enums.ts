@@ -65,6 +65,15 @@ export const PostStatus = {
 export type PostStatus = (typeof PostStatus)[keyof typeof PostStatus]
 
 
+export const NotificationType = {
+  PUBLICATION_FAILED: 'PUBLICATION_FAILED',
+  PROJECT_INVITE: 'PROJECT_INVITE',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+
 export const MediaType = {
   IMAGE: 'IMAGE',
   VIDEO: 'VIDEO',

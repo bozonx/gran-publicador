@@ -1022,5 +1022,10 @@
     "microphoneNotAvailable": "Микрофон недоступен",
     "recordingError": "Ошибка записи",
     "transcriptionError": "Ошибка распознавания речи"
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "empty": "Уведомлений пока нет",
+    "markAllRead": "Прочитать все"
   }
 }

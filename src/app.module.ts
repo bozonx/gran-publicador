@@ -27,6 +27,7 @@ import { ShutdownModule } from './common/services/shutdown.module.js';
 import { LlmModule } from './modules/llm/llm.module.js';
 import { SttModule } from './modules/stt/stt.module.js';
 import { TranslateModule } from './modules/translate/translate.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -129,6 +130,7 @@ import { TranslateModule } from './modules/translate/translate.module.js';
     LlmModule,
     SttModule,
     TranslateModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [

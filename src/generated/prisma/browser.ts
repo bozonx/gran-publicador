@@ -62,3 +62,8 @@ export type Media = Prisma.MediaModel
  * 
  */
 export type PublicationMedia = Prisma.PublicationMediaModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel

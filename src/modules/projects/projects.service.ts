@@ -14,6 +14,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
 
 
+import { NotificationsService } from '../notifications/notifications.service.js';
+
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
@@ -21,6 +23,7 @@ export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private permissions: PermissionsService,
+    private notifications: NotificationsService,
   ) {}
 
   private hasNoCredentials(creds: any, socialMedia?: string): boolean {
@@ -527,7 +530,7 @@ export class ProjectsService {
       throw new ForbiddenException('User is already a member of this project');
     }
 
-    return this.prisma.projectMember.create({
+    const member = await this.prisma.projectMember.create({
       data: {
         projectId,
         userId: userToAdd.id,
@@ -535,6 +538,22 @@ export class ProjectsService {
       },
       include: { user: true },
     });
+
+    // Notify user about project invitation
+    try {
+      const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+      await this.notifications.create({
+        userId: userToAdd.id,
+        type: 'PROJECT_INVITE' as any,
+        title: 'Project Invitation',
+        message: `You have been added to project "${project?.name || 'Unknown'}"`,
+        meta: { projectId },
+      });
+    } catch (error: any) {
+      this.logger.error(`Failed to send project invitation notification: ${error.message}`);
+    }
+
+    return member;
   }
 
   public async updateMemberRole(

@@ -40,6 +40,8 @@ const emit = defineEmits<{
         
         <CommonGlobalSearch :disable-shortcut="true" variant="icon" class="lg:hidden" />
 
+        <CommonNotificationsNotificationBell />
+
         <UTooltip :text="t('navigation.settings')">
           <UButton
             to="/settings"

@@ -23,6 +23,8 @@ import {
   PreviewResponseDto,
 } from './dto/social-posting.dto.js';
 import { fetch } from 'undici';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationType } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class SocialPostingService {
@@ -36,6 +38,7 @@ export class SocialPostingService {
     private readonly prisma: PrismaService,
     private readonly shutdownService: ShutdownService,
     private readonly configService: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {
     this.mediaDir = getMediaDir();
     this.socialPostingConfig =
@@ -298,6 +301,21 @@ export class SocialPostingService {
       },
     });
 
+    // Notify creator about failed or partial publication
+    if ((finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) && publication.createdBy) {
+      try {
+        await this.notifications.create({
+          userId: publication.createdBy,
+          type: NotificationType.PUBLICATION_FAILED,
+          title: finalStatus === PublicationStatus.FAILED ? 'Publication Failed' : 'Publication Partially Failed',
+          message: `Publication "${publication.content?.substring(0, 50)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}`,
+          meta: { publicationId: publication.id, projectId: publication.projectId },
+        });
+      } catch (error: any) {
+        this.logger.error(`Failed to send publication notification: ${error.message}`);
+      }
+    }
+
     return {
       success: successCount === results.length && results.length > 0,
       message:
@@ -399,6 +417,21 @@ export class SocialPostingService {
           }),
         },
       });
+
+      // Notify creator about failed or partial publication
+      if ((finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) && post.publication.createdBy) {
+        try {
+          await this.notifications.create({
+            userId: post.publication.createdBy,
+            type: NotificationType.PUBLICATION_FAILED,
+            title: finalStatus === PublicationStatus.FAILED ? 'Publication Failed' : 'Publication Partially Failed',
+            message: `Publication "${post.publication.content?.substring(0, 50)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}`,
+            meta: { publicationId: post.publicationId, projectId: post.publication.projectId },
+          });
+        } catch (error: any) {
+          this.logger.error(`Failed to send publication notification: ${error.message}`);
+        }
+      }
 
       return {
         success: result.success,

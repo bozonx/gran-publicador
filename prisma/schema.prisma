@@ -33,6 +33,7 @@ model User {
   projectMembers ProjectMember[]
   publications       Publication[] @relation("PublicationCreator")
   apiTokens      ApiToken[]
+  notifications  Notification[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -263,6 +264,24 @@ model PublicationMedia {
   @@map("publication_media")
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  // JSON metadata: { publicationId?, postId?, channelId?, projectId? }
+  meta      Json
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
 enum ProjectRole {
   ADMIN
   EDITOR
@@ -308,6 +327,12 @@ enum PostStatus {
   PENDING    // Post has not yet been attempted to publish
   FAILED     // Publication failed
   PUBLISHED  // Post was successfully published to the channel
+}
+
+enum NotificationType {
+  PUBLICATION_FAILED     // Проблема при публикации (failed/partial)
+  PROJECT_INVITE        // Приглашение в проект
+  SYSTEM                // Системное уведомление
 }
 
 enum MediaType {
