@@ -35,8 +35,13 @@ const languageSelectOptions = computed(() => [
 
 const footerOptions = computed(() => {
   const footers = props.channel.preferences?.footers || []
+  const defaultFooter = footers.find(f => f.isDefault)
+  const defaultLabel = defaultFooter 
+    ? `${t('channel.footerDefault')} (${defaultFooter.name})`
+    : t('channel.footerDefault')
+    
   return [
-    { value: null, label: t('channel.footerDefault', 'Default') },
+    { value: null, label: defaultLabel },
     ...footers.map(f => ({ value: f.id, label: f.name }))
   ]
 })
@@ -462,34 +467,36 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
 
                   <div class="space-y-4 pt-2" v-if="block.enabled">
                     <template v-if="block.insert !== 'custom'">
-                      <UFormField class="w-full">
-                        <template #label>
-                          <div class="flex items-center gap-1.5">
-                            <span>{{ t('channel.templateBefore') }}</span>
-                            <CommonInfoTooltip :text="t('channel.templateBeforeTooltip')" />
-                          </div>
-                        </template>
-                        <UTextarea
-                          v-model="block.before"
-                          :rows="2"
-                          class="font-mono text-xs w-full"
-                          autoresize
-                        />
-                      </UFormField>
-                      <UFormField class="w-full">
-                        <template #label>
-                          <div class="flex items-center gap-1.5">
-                            <span>{{ t('channel.templateAfter') }}</span>
-                            <CommonInfoTooltip :text="t('channel.templateAfterTooltip')" />
-                          </div>
-                        </template>
-                        <UTextarea
-                          v-model="block.after"
-                          :rows="2"
-                          class="font-mono text-xs w-full"
-                          autoresize
-                        />
-                      </UFormField>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <UFormField class="w-full">
+                          <template #label>
+                            <div class="flex items-center gap-1.5">
+                              <span>{{ t('channel.templateBefore') }}</span>
+                              <CommonInfoTooltip :text="t('channel.templateBeforeTooltip')" />
+                            </div>
+                          </template>
+                          <UTextarea
+                            v-model="block.before"
+                            :rows="2"
+                            class="font-mono text-xs w-full"
+                            autoresize
+                          />
+                        </UFormField>
+                        <UFormField class="w-full">
+                          <template #label>
+                            <div class="flex items-center gap-1.5">
+                              <span>{{ t('channel.templateAfter') }}</span>
+                              <CommonInfoTooltip :text="t('channel.templateAfterTooltip')" />
+                            </div>
+                          </template>
+                          <UTextarea
+                            v-model="block.after"
+                            :rows="2"
+                            class="font-mono text-xs w-full"
+                            autoresize
+                          />
+                        </UFormField>
+                      </div>
                     </template>
 
                     <template v-if="block.insert === 'tags'">
