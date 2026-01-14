@@ -198,6 +198,9 @@ async function checkTemplateUsage(id: string): Promise<number> {
     }
 }
 
+const deletedTemplates = ref<ChannelPostTemplate[]>([])
+const showDeleted = ref(false)
+
 async function handleDeleteRequest(id: string) {
     templateToDeleteId.value = id
     isCheckingUsage.value = true
@@ -209,19 +212,28 @@ async function handleDeleteRequest(id: string) {
     if (count > 0) {
         isDeleteWarningModalOpen.value = true
     } else {
-        if (confirm(t('channel.templateDeleteConfirm'))) {
-             confirmDeleteTemplate()
-        }
+        confirmDeleteTemplate()
     }
 }
 
 function confirmDeleteTemplate() {
   if (!templateToDeleteId.value) return
   
+  const template = templates.value.find(t => t.id === templateToDeleteId.value)
+  if (template) {
+      deletedTemplates.value.push({ ...template })
+  }
+  
   templates.value = templates.value.filter(t => t.id !== templateToDeleteId.value)
   saveTemplates()
   isDeleteWarningModalOpen.value = false
   templateToDeleteId.value = null
+}
+
+function restoreTemplate(template: ChannelPostTemplate) {
+  templates.value.push({ ...template })
+  deletedTemplates.value = deletedTemplates.value.filter(t => t.id !== template.id)
+  saveTemplates()
 }
 
 function resetBlocks() {
@@ -265,29 +277,27 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
       </p>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div v-else class="space-y-3">
       <div
         v-for="template in templates"
         :key="template.id"
-        class="group flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-all"
+        class="group flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
+        @click="openEditTemplate(template)"
       >
-        <div class="flex items-center gap-4 overflow-hidden">
-          <div class="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div class="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors">
             <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-primary-600 dark:text-primary-400" />
           </div>
           <div class="min-w-0">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
               {{ template.name }}
             </h4>
-            <div class="flex items-center gap-2 mt-1">
+            <div class="flex items-center gap-2 mt-0.5">
               <UBadge v-if="template.postType" size="xs" color="neutral" variant="subtle">
                 {{ postTypeOptions.find(o => o.value === template.postType)?.label }}
               </UBadge>
               <UBadge v-if="template.language" size="xs" color="neutral" variant="subtle">
                 {{ languageOptions.find(o => o.value === template.language)?.label }}
-              </UBadge>
-              <UBadge v-if="template.isDefault" size="xs" color="primary" variant="soft">
-                {{ t('channel.templateIsDefault') }}
               </UBadge>
               <span v-if="!template.postType && !template.language" class="text-xs text-gray-400 italic">
                 {{ t('common.all') }}
@@ -296,21 +306,59 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
           </div>
         </div>
         
-        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <UButton
-            icon="i-heroicons-pencil-square"
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            @click="openEditTemplate(template)"
+        <div class="flex items-center gap-1">
+          <UIcon 
+            v-if="template.isDefault" 
+            name="i-heroicons-star-20-solid" 
+            class="w-4 h-4 text-primary-500 mr-2" 
           />
+          <div class="w-4 h-4 mr-2" v-else></div>
+
           <UButton
             icon="i-heroicons-trash"
             size="xs"
             variant="ghost"
             color="error"
-            @click="handleDeleteRequest(template.id)"
+            @click.stop="handleDeleteRequest(template.id)"
           />
+        </div>
+      </div>
+
+      <!-- Deleted Templates (Session only) -->
+      <div v-if="deletedTemplates.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :icon="showDeleted ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
+          @click="showDeleted = !showDeleted"
+        >
+          {{ t('channel.deletedTemplates', { count: deletedTemplates.length }) }}
+        </UButton>
+        
+        <div v-if="showDeleted" class="mt-2 space-y-2">
+          <div
+            v-for="template in deletedTemplates"
+            :key="template.id"
+            class="flex items-center justify-between py-1.5 px-3 bg-gray-50/30 dark:bg-gray-800/20 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50 hover:opacity-80 transition-opacity"
+          >
+            <div class="flex items-center gap-3">
+              <UIcon name="i-heroicons-trash" class="w-3.5 h-3.5 text-gray-400" />
+              <div class="text-xs truncate max-w-[200px]">
+                <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ template.name }}</span>
+              </div>
+            </div>
+            <UButton
+              icon="i-heroicons-arrow-path"
+              size="xs"
+              variant="ghost"
+              color="primary"
+              class="scale-90"
+              @click="restoreTemplate(template)"
+            >
+              {{ t('common.restore', 'Restore') }}
+            </UButton>
+          </div>
         </div>
       </div>
     </div>
