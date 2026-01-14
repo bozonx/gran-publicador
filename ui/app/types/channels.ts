@@ -10,9 +10,11 @@ export interface ChannelFooter {
 export interface TemplateBlock {
     enabled: boolean
     before?: string
-    insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment'
+    insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment' | 'footer' | 'custom'
     after?: string
-    tagCase?: 'camelCase' | 'pascalCase' | 'snake_case' | 'SNAKE_CASE' | 'kebab-case' | 'KEBAB-CASE' | 'lowercase' | 'uppercase' | 'none'
+    tagCase?: 'camelCase' | 'pascalCase' | 'snake_case' | 'SNAKE_CASE' | 'kebab-case' | 'KEBAB-CASE' | 'lower_case' | 'upper_case' | 'none'
+    footerId?: string | null
+    content?: string
 }
 
 export interface ChannelPostTemplate {

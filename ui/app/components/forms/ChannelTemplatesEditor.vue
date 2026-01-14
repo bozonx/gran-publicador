@@ -47,6 +47,8 @@ const insertOptions = [
   { value: 'authorComment', label: t('channel.templateInsertAuthorComment') },
   { value: 'description', label: t('channel.templateInsertDescription') },
   { value: 'tags', label: t('channel.templateInsertTags') },
+  { value: 'footer', label: t('channel.templateInsertFooter') },
+  { value: 'custom', label: t('channel.templateInsertCustom') },
 ]
 
 const tagCaseOptions = [
@@ -57,8 +59,8 @@ const tagCaseOptions = [
   { value: 'SNAKE_CASE', label: t('channel.tagCaseOptions.SNAKE_CASE') },
   { value: 'kebab-case', label: t('channel.tagCaseOptions.kebab-case') },
   { value: 'KEBAB-CASE', label: t('channel.tagCaseOptions.KEBAB-CASE') },
-  { value: 'lowercase', label: t('channel.tagCaseOptions.lowercase') },
-  { value: 'uppercase', label: t('channel.tagCaseOptions.uppercase') },
+  { value: 'lower_case', label: t('channel.tagCaseOptions.lower_case') },
+  { value: 'upper_case', label: t('channel.tagCaseOptions.upper_case') },
 ]
 
 const getDefaultBlocks = (): TemplateBlock[] => [
@@ -66,7 +68,8 @@ const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: true, insert: 'content', before: '', after: '' },
   { enabled: true, insert: 'authorComment', before: '', after: '' },
   { enabled: true, insert: 'description', before: '', after: '' },
-  { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'none' },
+  { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
+  { enabled: true, insert: 'footer', before: '', after: '' },
 ]
 
 const templates = ref<ChannelPostTemplate[]>(props.channel.preferences?.templates || [])
@@ -78,7 +81,6 @@ const templateForm = reactive({
   name: '',
   postType: null as string | null,
   language: null as string | null,
-  footerId: null as string | null,
   isDefault: false,
   template: [] as TemplateBlock[]
 })
@@ -89,7 +91,6 @@ function openAddTemplate() {
   templateForm.name = ''
   templateForm.postType = null
   templateForm.language = null
-  templateForm.footerId = null
   templateForm.isDefault = false
   templateForm.template = getDefaultBlocks()
   isModalOpen.value = true
@@ -101,7 +102,6 @@ function openEditTemplate(template: ChannelPostTemplate) {
   templateForm.name = template.name
   templateForm.postType = template.postType || null
   templateForm.language = template.language || null
-  templateForm.footerId = template.footerId || null
   templateForm.isDefault = !!template.isDefault
   templateForm.template = JSON.parse(JSON.stringify(template.template))
   isModalOpen.value = true
@@ -129,7 +129,6 @@ function handleSaveTemplate() {
         order: templates.value[index].order,
         postType: templateForm.postType,
         language: templateForm.language,
-        footerId: templateForm.footerId,
         isDefault: templateForm.isDefault,
         template: JSON.parse(JSON.stringify(templateForm.template))
       }
@@ -141,7 +140,6 @@ function handleSaveTemplate() {
       order: templates.value.length,
       postType: templateForm.postType,
       language: templateForm.language,
-      footerId: templateForm.footerId,
       isDefault: templateForm.isDefault,
       template: JSON.parse(JSON.stringify(templateForm.template))
     })
@@ -355,15 +353,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                 />
               </UFormField>
 
-              <UFormField :label="t('channel.templateFooter')">
-                <USelectMenu
-                  v-model="templateForm.footerId"
-                  :items="footerOptions"
-                  value-key="value"
-                  label-key="label"
-                  class="w-full"
-                />
-              </UFormField>
+
 
               <div class="md:col-span-2">
                  <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50">
@@ -428,32 +418,34 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                   </div>
 
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3" v-if="block.enabled">
-                    <UFormField>
-                      <template #label>
-                        <div class="flex items-center gap-1.5">
-                          <span>{{ t('channel.templateBefore') }}</span>
-                          <CommonInfoTooltip :text="t('channel.templateBeforeTooltip')" />
-                        </div>
-                      </template>
-                      <UTextarea
-                        v-model="block.before"
-                        :rows="2"
-                        class="font-mono text-xs"
-                      />
-                    </UFormField>
-                    <UFormField>
-                      <template #label>
-                        <div class="flex items-center gap-1.5">
-                          <span>{{ t('channel.templateAfter') }}</span>
-                          <CommonInfoTooltip :text="t('channel.templateAfterTooltip')" />
-                        </div>
-                      </template>
-                      <UTextarea
-                        v-model="block.after"
-                        :rows="2"
-                        class="font-mono text-xs"
-                      />
-                    </UFormField>
+                    <template v-if="block.insert !== 'custom'">
+                      <UFormField>
+                        <template #label>
+                          <div class="flex items-center gap-1.5">
+                            <span>{{ t('channel.templateBefore') }}</span>
+                            <CommonInfoTooltip :text="t('channel.templateBeforeTooltip')" />
+                          </div>
+                        </template>
+                        <UTextarea
+                          v-model="block.before"
+                          :rows="2"
+                          class="font-mono text-xs"
+                        />
+                      </UFormField>
+                      <UFormField>
+                        <template #label>
+                          <div class="flex items-center gap-1.5">
+                            <span>{{ t('channel.templateAfter') }}</span>
+                            <CommonInfoTooltip :text="t('channel.templateAfterTooltip')" />
+                          </div>
+                        </template>
+                        <UTextarea
+                          v-model="block.after"
+                          :rows="2"
+                          class="font-mono text-xs"
+                        />
+                      </UFormField>
+                    </template>
 
                     <template v-if="block.insert === 'tags'">
                       <UFormField :label="t('channel.templateTagCase')" class="md:col-span-2">
@@ -463,6 +455,29 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                           value-key="value"
                           label-key="label"
                           class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+
+                    <template v-if="block.insert === 'footer'">
+                      <UFormField :label="t('channel.footers')" class="md:col-span-2">
+                        <USelectMenu
+                          v-model="block.footerId"
+                          :items="footerOptions"
+                          value-key="value"
+                          label-key="label"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+
+                    <template v-if="block.insert === 'custom'">
+                      <UFormField :label="t('channel.templateInsertCustom')" class="md:col-span-2">
+                        <UTextarea
+                          v-model="block.content"
+                          :rows="4"
+                          class="font-mono text-xs"
+                          :placeholder="t('channel.templateInsertCustomPlaceholder')"
                         />
                       </UFormField>
                     </template>

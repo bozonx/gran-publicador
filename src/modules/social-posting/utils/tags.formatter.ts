@@ -5,8 +5,8 @@ export type TagCase =
   | 'SNAKE_CASE' 
   | 'kebab-case' 
   | 'KEBAB-CASE' 
-  | 'lowercase' 
-  | 'uppercase' 
+  | 'lower_case' 
+  | 'upper_case' 
   | 'none';
 
 export interface TagFormatOptions {
@@ -81,9 +81,9 @@ export class TagsFormatter {
         return words.join('-');
       case 'KEBAB-CASE':
         return words.join('-').toUpperCase();
-      case 'lowercase':
+      case 'lower_case':
         return words.join(' ');
-      case 'uppercase':
+      case 'upper_case':
         return words.join(' ').toUpperCase();
       default:
         return str;

@@ -398,6 +398,9 @@
     "templateInsertDescription": "Описание",
     "templateInsertTags": "Теги",
     "templateInsertAuthorComment": "Коммент. автора",
+    "templateInsertFooter": "Футер",
+    "templateInsertCustom": "Свой текст",
+    "templateInsertCustomPlaceholder": "Введите произвольный Markdown текст...",
     "templateBlocks": "Блоки шаблона",
     "templateBlocksTooltip": "Конструктор структуры поста. Перетаскивайте блоки для изменения порядка. Включайте/выключайте блоки, чтобы определить состав контента.",
     "templateSettings": "Настройки шаблона",
@@ -413,8 +416,8 @@
       "SNAKE_CASE": "SNAKE_CASE",
       "kebab-case": "kebab-case",
       "KEBAB-CASE": "KEBAB-CASE",
-      "lowercase": "low case (пробелы)",
-      "uppercase": "UPPER CASE (пробелы)"
+      "lower_case": "lower case (пробелы)",
+      "upper_case": "UPPER CASE (пробелы)"
     },
     "noFooters": "Нет созданных футеров",
     "footerDeleteConfirm": "Вы уверены, что хотите удалить этот футер?",

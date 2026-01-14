@@ -6,10 +6,12 @@ import {
 
 export interface TemplateBlock {
   enabled: boolean;
-  insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment';
+  insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment' | 'footer' | 'custom';
   before: string;
   after: string;
   tagCase?: TagCase;
+  footerId?: string | null;
+  content?: string;
 }
 
 export interface ChannelFooter {
@@ -54,7 +56,8 @@ export class SocialPostingBodyFormatter {
       { enabled: true, insert: 'content', before: '', after: '' },
       { enabled: true, insert: 'authorComment', before: '', after: '' },
       { enabled: true, insert: 'description', before: '', after: '' },
-      { enabled: true, insert: 'tags', before: '', after: '' },
+      { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
+      { enabled: true, insert: 'footer', before: '', after: '' },
     ];
   }
 
@@ -107,6 +110,23 @@ export class SocialPostingBodyFormatter {
         case 'authorComment':
           value = data.authorComment || '';
           break;
+        case 'custom':
+          value = block.content || '';
+          break;
+        case 'footer': {
+          const footers: ChannelFooter[] = channel.preferences?.footers || [];
+          let footerObj: ChannelFooter | undefined;
+          
+          if (block.footerId) {
+            footerObj = footers.find((f) => f.id === block.footerId);
+          } else {
+            // Find default footer if none specified in block
+            footerObj = footers.find((f) => f.isDefault);
+          }
+          
+          value = footerObj?.content || '';
+          break;
+        }
       }
 
       const trimmedValue = value.trim();
@@ -124,26 +144,7 @@ export class SocialPostingBodyFormatter {
     }
 
     // Join all blocks with double newline (one empty line between them)
-    let result = formattedBlocks.join('\n\n');
-
-    // Append Footer
-    const footers: ChannelFooter[] = channel.preferences?.footers || [];
-    let footerObj: ChannelFooter | undefined;
-
-    if (template && template.footerId) {
-      footerObj = footers.find((f) => f.id === template.footerId);
-    } else {
-      footerObj = footers.find((f) => f.isDefault);
-    }
-
-    if (footerObj && footerObj.content && footerObj.content.trim()) {
-      const trimmedFooter = footerObj.content.trim();
-      if (result) {
-        result += '\n\n' + trimmedFooter;
-      } else {
-        result = trimmedFooter;
-      }
-    }
+    const result = formattedBlocks.join('\n\n');
 
     return result.trim().replace(/\n{3,}/g, '\n\n');
   }
