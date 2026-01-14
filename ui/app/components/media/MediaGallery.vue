@@ -188,8 +188,8 @@ async function saveMediaMeta() {
 
     const updated = await updateMedia(selectedMedia.value.id, {
       meta: metaToSave,
-      alt: editableAlt.value,
-      description: editableDescription.value
+      alt: editableAlt.value || null,
+      description: editableDescription.value || null
     })
 
     // Update local state

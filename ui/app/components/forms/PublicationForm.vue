@@ -199,16 +199,16 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
 async function performSubmit(data: any) {
   try {
     const commonData = {
-      title: data.title || undefined,
-      description: data.description || undefined,
+      title: data.title || null,
+      description: data.description || null,
       content: isTextContentEmpty(data.content) ? null : (data.content || null),
       authorComment: data.authorComment || null,
       note: data.note || null,
-      tags: data.tags || undefined,
+      tags: data.tags || null,
       language: data.language,
       postType: data.postType,
       meta: data.meta || {},
-      postDate: data.postDate ? new Date(data.postDate).toISOString() : undefined,
+      postDate: data.postDate ? new Date(data.postDate).toISOString() : null,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : undefined,
       sourceTexts: data.sourceTexts || [],
     }

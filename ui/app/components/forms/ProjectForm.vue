@@ -109,7 +109,7 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
 
     if (props.visibleSections.includes('general')) {
       updateData.name = event.data.name
-      updateData.description = event.data.description || '' // Handle optional description
+      updateData.description = event.data.description || null // Handle optional description
     }
 
     if (props.visibleSections.includes('preferences')) {

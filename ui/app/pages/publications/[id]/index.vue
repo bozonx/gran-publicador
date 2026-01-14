@@ -39,10 +39,6 @@ const displayTitle = computed(() => {
   if (currentPublication.value?.title) {
     return stripHtmlAndSpecialChars(currentPublication.value.title)
   }
-  if (currentPublication.value?.content) {
-    const cleaned = stripHtmlAndSpecialChars(currentPublication.value.content)
-    if (cleaned) return cleaned
-  }
   return t('post.untitled')
 })
 
@@ -258,9 +254,8 @@ const metaYaml = computed(() => {
           </div>
 
           <!-- Media Gallery -->
-          <div class="mb-8">
+          <div class="mb-8" v-if="currentPublication.media && currentPublication.media.length > 0">
             <MediaGallery 
-              v-if="currentPublication.media"
               :media="currentPublication.media" 
               :publication-id="currentPublication.id"
               :editable="false"
@@ -268,66 +263,80 @@ const metaYaml = computed(() => {
             />
           </div>
 
-          <!-- Content Section -->
-          <div class="space-y-6">
-            <div v-if="currentPublication.content" class="prose dark:prose-invert max-w-none">
-              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ t('post.content') }}</h3>
-              <div v-html="currentPublication.content" class="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/50"></div>
-            </div>
-
-            <!-- Author Comment -->
-            <div v-if="currentPublication.authorComment" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
-              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-4 h-4" />
-                {{ t('post.authorComment') }}
-              </h3>
-              <div class="p-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
-                {{ currentPublication.authorComment }}
-              </div>
-            </div>
-
-            <!-- Meta Data Section -->
-            <div v-if="metaYaml" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
-              <button 
-                class="flex items-center justify-between w-full text-left group"
-                @click="isMetaVisible = !isMetaVisible"
-              >
-                <div class="flex items-center gap-1.5">
-                  <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
-                  <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-                    {{ t('post.metadata') }}
-                  </h3>
-                </div>
-                <UIcon 
-                  name="i-heroicons-chevron-down" 
-                  class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                  :class="{ '-rotate-90': !isMetaVisible }"
-                />
-              </button>
-              
-              <div v-if="isMetaVisible" class="mt-3 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/50 rounded-lg">
-                <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">{{ metaYaml }}</pre>
-              </div>
-            </div>
-
-            <!-- Meta Footer (Date & Tags) -->
-            <div class="flex flex-wrap items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-sm">
-              <div v-if="currentPublication.postDate" class="flex items-center gap-2">
-                <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-gray-400" />
-                <span class="text-gray-500">{{ t('post.postDate') }}:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ formatDateShort(currentPublication.postDate) }}</span>
-              </div>
-              
-              <div v-if="currentPublication.tags" class="flex items-center gap-2">
-                <UIcon name="i-heroicons-tag" class="w-5 h-5 text-gray-400" />
-                <div class="flex flex-wrap gap-1">
-                  <span v-for="tag in currentPublication.tags.split(',')" :key="tag" class="text-primary-600 dark:text-primary-400 font-medium">
-                    #{{ tag.trim() }}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <!-- Post Date -->
+          <div v-if="currentPublication.postDate" class="mb-6 flex items-center gap-2" :title="t('post.postDate')">
+             <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-gray-400" />
+             <span class="font-medium text-gray-900 dark:text-white">{{ formatDateShort(currentPublication.postDate) }}</span>
           </div>
+
+            <!-- Content Section -->
+            <div class="space-y-6">
+              <div v-if="currentPublication.content" class="max-w-none">
+                <div class="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/50 font-mono text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                  {{ currentPublication.content }}
+                </div>
+              </div>
+
+              <!-- Author Comment -->
+              <div v-if="currentPublication.authorComment" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-4 h-4" />
+                  {{ t('post.authorComment') }}
+                </h3>
+                <div class="p-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                  {{ currentPublication.authorComment }}
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div v-if="currentPublication.description" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
+                  {{ t('post.description') }}
+                </h3>
+                <div class="text-sm text-gray-700 dark:text-gray-300">
+                  {{ currentPublication.description }}
+                </div>
+              </div>
+
+ 
+
+              <!-- Meta Data Section -->
+              <div v-if="metaYaml" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+                <button 
+                  class="flex items-center justify-between w-full text-left group"
+                  @click="isMetaVisible = !isMetaVisible"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+                      {{ t('post.metadata') }}
+                    </h3>
+                  </div>
+                  <UIcon 
+                    name="i-heroicons-chevron-down" 
+                    class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                    :class="{ '-rotate-90': !isMetaVisible }"
+                  />
+                </button>
+                
+                <div v-if="isMetaVisible" class="mt-3 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/50 rounded-lg">
+                  <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">{{ metaYaml }}</pre>
+                </div>
+              </div>
+
+              <!-- Meta Footer (Tags) -->
+              <div v-if="currentPublication.tags" class="flex flex-wrap items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-sm">
+                 <div class="flex items-center gap-2">
+                    <UIcon name="i-heroicons-tag" class="w-5 h-5 text-gray-400" />
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="tag in currentPublication.tags.split(',')" :key="tag" class="text-primary-600 dark:text-primary-400 font-medium">
+                        #{{ tag.trim() }}
+                      </span>
+                    </div>
+                  </div>
+              </div>
+            </div>
         </div>
       </div>
     </div>

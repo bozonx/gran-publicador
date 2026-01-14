@@ -220,9 +220,9 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       // Update existing channel
       if (props.visibleSections.includes('general')) {
         updateData.name = event.data.name
-        updateData.description = event.data.description
+        updateData.description = event.data.description || null
         updateData.channelIdentifier = event.data.channelIdentifier
-        updateData.tags = event.data.tags
+        updateData.tags = event.data.tags || null
       }
 
       // Add preferences
