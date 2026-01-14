@@ -772,7 +772,7 @@ function handleInsertLlmContent(content: string) {
       @cancel="handleValidationWarningCancel"
     />
 
-    <TranslateModal
+    <ModalsTranslateModal
       v-model:open="isTranslateModalOpen"
       :source-text="translationSourceText"
       :default-target-lang="state.language"
