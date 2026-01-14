@@ -24,6 +24,7 @@ export const useSocialPosting = () => {
   const api = useApi();
   const isPublishing = ref(false);
   const publishError = ref<string | null>(null);
+  const { validatePostContent } = useSocialMediaValidation();
 
   /**
    * Publish all posts of a publication
@@ -76,7 +77,28 @@ export const useSocialPosting = () => {
     // Check if publication has at least one post
     const hasPosts = Array.isArray(publication.posts) && publication.posts.length > 0;
 
-    return (hasContent || hasMedia) && hasPosts;
+    if (!(hasContent || hasMedia) || !hasPosts) return false;
+
+    // Validate against social media rules
+    if (publication.posts) {
+        const mediaArray = publication.media?.map((m: any) => ({ type: m.media?.type })) || [];
+        const mediaCount = mediaArray.length;
+
+        for (const post of publication.posts) {
+            if (post.channel?.socialMedia) {
+                const result = validatePostContent(
+                    post.content || publication.content,
+                    mediaCount,
+                    post.channel.socialMedia,
+                    mediaArray,
+                    publication.postType
+                );
+                if (!result.isValid) return false;
+            }
+        }
+    }
+
+    return true;
   };
 
   /**
@@ -89,10 +111,25 @@ export const useSocialPosting = () => {
     const pub = publication || post.publication;
     if (!pub) return false;
 
-    const hasContent = !isTextContentEmpty(pub.content);
+    const hasContent = !isTextContentEmpty(post.content || pub.content);
     const hasMedia = Array.isArray(pub.media) && pub.media.length > 0;
 
-    return hasContent || hasMedia;
+    if (!(hasContent || hasMedia)) return false;
+
+    // Validate against social media rules
+    if (post.channel?.socialMedia) {
+        const mediaArray = pub.media?.map((m: any) => ({ type: m.media?.type })) || [];
+        const result = validatePostContent(
+            post.content || pub.content,
+            mediaArray.length,
+            post.channel.socialMedia,
+            mediaArray,
+            pub.postType
+        );
+        if (!result.isValid) return false;
+    }
+
+    return true;
   };
 
   /**

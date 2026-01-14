@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import yaml from 'js-yaml'
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useFormatters } from '~/composables/useFormatters'
@@ -74,6 +75,54 @@ function showPostPreview(post: any) {
   
   isPreviewModalOpen.value = true
 }
+
+/**
+ * Recursively parse nested JSON strings in metadata.
+ */
+function recursivelyParseJson(data: any, maxDepth = 5): any {
+  if (maxDepth <= 0) return data
+  
+  if (typeof data === 'string') {
+    try {
+      const trimmed = data.trim()
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        const parsed = JSON.parse(data)
+        return recursivelyParseJson(parsed, maxDepth - 1)
+      }
+    } catch {
+      return data
+    }
+  } else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    const result: Record<string, any> = {}
+    for (const [key, value] of Object.entries(data)) {
+      result[key] = recursivelyParseJson(value, maxDepth)
+    }
+    return result
+  }
+  
+  return data
+}
+
+const metaYaml = computed(() => {
+  if (!currentPublication.value?.meta || (typeof currentPublication.value.meta === 'object' && Object.keys(currentPublication.value.meta).length === 0)) {
+    return ''
+  }
+  
+  const cleanData = recursivelyParseJson(currentPublication.value.meta)
+  
+  try {
+    return yaml.dump(cleanData, {
+      indent: 2,
+      lineWidth: -1,
+      noRefs: true,
+      sortKeys: false
+    })
+  } catch (e) {
+    console.error('Failed to convert to YAML:', e)
+    return ''
+  }
+})
 </script>
 
 <template>
@@ -233,6 +282,17 @@ function showPostPreview(post: any) {
               </h3>
               <div class="p-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
                 {{ currentPublication.authorComment }}
+              </div>
+            </div>
+
+            <!-- Meta Data Section -->
+            <div v-if="metaYaml" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+              <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <UIcon name="i-heroicons-code-bracket" class="w-4 h-4" />
+                {{ t('post.metadata') }}
+              </h3>
+              <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/50 rounded-lg">
+                <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">{{ metaYaml }}</pre>
               </div>
             </div>
 

@@ -74,6 +74,10 @@ const publicationProblems = computed(() => {
   return problems
 })
 
+const hasMediaValidationErrors = computed(() => {
+    return publicationProblems.value.some(p => p.key === 'mediaValidation')
+})
+
 const isCreatingPost = ref(false)
 const isFormCollapsed = ref(false)
 const isDeleteModalOpen = ref(false)

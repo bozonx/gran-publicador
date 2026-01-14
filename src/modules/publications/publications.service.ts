@@ -637,6 +637,40 @@ export class PublicationsService {
         throw new BadRequestException('Content or Media is required when setting scheduledAt');
       }
 
+      // STRICT VALIDATION: Check media and content against all channels
+      const { validatePostContent } =
+        await import('../../common/validators/social-media-validation.validator.js');
+
+      const posts = await this.prisma.post.findMany({
+        where: { publicationId: id },
+        include: { channel: true },
+      });
+
+      for (const post of posts) {
+        const postContent = post.content || contentToCheck;
+        const validationResult = validatePostContent({
+          content: postContent,
+          mediaCount: hasMedia ? (isMediaUpdating ? newMediaCount : publication.media.length) : 0,
+          socialMedia: post.channel.socialMedia as any,
+          media: isMediaUpdating
+            ? [
+                ...(data.media || []).map(m => ({ type: m.type })),
+                ...((await this.prisma.media.findMany({
+                  where: { id: { in: data.existingMediaIds || [] } },
+                  select: { type: true },
+                })) as any),
+              ]
+            : publication.media.map(m => ({ type: m.media.type })),
+          postType: data.postType || publication.postType,
+        });
+
+        if (!validationResult.isValid) {
+          throw new BadRequestException(
+            `Cannot schedule: Media/Content validation failed for ${post.channel.name}: ${validationResult.errors.join('; ')}`,
+          );
+        }
+      }
+
       // Automatically set status to SCHEDULED
       data.status = PublicationStatus.SCHEDULED;
 
@@ -655,13 +689,15 @@ export class PublicationsService {
       });
     }
 
-    // Validation: If content is updating, we must check all posts that inherit this content
-    if (data.content !== undefined && data.content !== null) {
-      // Find posts with null content (inheriting) that are not published
-      const inheritingPosts = await this.prisma.post.findMany({
+    // Validation: If content OR media is updating, we must check all posts that inherit this content/media
+    const isMediaUpdating = data.media !== undefined || data.existingMediaIds !== undefined;
+    const isContentUpdating = data.content !== undefined && data.content !== null;
+
+    if (isContentUpdating || isMediaUpdating) {
+      // Find posts that are not published
+      const activePosts = await this.prisma.post.findMany({
         where: {
           publicationId: id,
-          OR: [{ content: null }, { content: '' }],
           status: { notIn: [PostStatus.PUBLISHED] },
         },
         include: {
@@ -669,22 +705,36 @@ export class PublicationsService {
         },
       });
 
-      if (inheritingPosts.length > 0) {
+      if (activePosts.length > 0) {
         const { validatePostContent } =
           await import('../../common/validators/social-media-validation.validator.js');
 
         let mediaCount = publication.media?.length || 0;
-        if (data.media !== undefined || data.existingMediaIds !== undefined) {
+        let mediaArray = publication.media?.map(m => ({ type: m.media.type })) || [];
+
+        if (isMediaUpdating) {
           mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
+          // For simplicity in reactive Failure, we'll fetch the media types if needed or just use passed DTO
+          // In practice, if media is updating, we have the new array in DTO (merged in logic above)
+          mediaArray = [
+            ...(data.media || []).map(m => ({ type: m.type })),
+            ...((await this.prisma.media.findMany({
+              where: { id: { in: data.existingMediaIds || [] } },
+              select: { type: true },
+            })) as any),
+          ];
         }
 
         const failedPosts: Array<{ postId: string; channelName: string; errors: string[] }> = [];
 
-        for (const post of inheritingPosts) {
+        for (const post of activePosts) {
+          const postContent = post.content || (isContentUpdating ? data.content : publication.content);
           const validationResult = validatePostContent({
-            content: data.content,
+            content: postContent,
             mediaCount: mediaCount,
             socialMedia: post.channel.socialMedia as any,
+            media: mediaArray,
+            postType: data.postType || publication.postType,
           });
 
           if (!validationResult.isValid) {
@@ -696,30 +746,38 @@ export class PublicationsService {
           }
         }
 
-        // If any posts have validation errors, set them to FAILED status
+        // If any posts have validation errors
         if (failedPosts.length > 0) {
-          this.logger.warn(
-            `Publication ${id} update: ${failedPosts.length} posts have validation errors`,
-          );
+          // Rule: If status is non-draft/non-ready, drop to FAILED
+          const currentStatus = data.status || publication.status;
+          const shouldDropToFailed =
+            currentStatus !== PublicationStatus.DRAFT && currentStatus !== PublicationStatus.READY;
 
-          // Update each failed post with FAILED status and error message
-          for (const failed of failedPosts) {
-            const errorMessage = `Validation failed for ${failed.channelName}: ${failed.errors.join('; ')}`;
-            await this.prisma.post.update({
-              where: { id: failed.postId },
-              data: {
-                status: PostStatus.FAILED,
-                errorMessage,
-              },
-            });
-            this.logger.warn(`Set post ${failed.postId} to FAILED: ${errorMessage}`);
+          if (shouldDropToFailed) {
+            this.logger.warn(
+              `Publication ${id} update: ${failedPosts.length} posts have validation errors. Dropping to FAILED.`,
+            );
+
+            // Update each failed post with FAILED status and error message
+            for (const failed of failedPosts) {
+              const errorMessage = `Validation failed for ${failed.channelName}: ${failed.errors.join('; ')}`;
+              await this.prisma.post.update({
+                where: { id: failed.postId },
+                data: {
+                  status: PostStatus.FAILED,
+                  errorMessage,
+                },
+              });
+            }
+
+            // Set publication status to FAILED as well
+            data.status = PublicationStatus.FAILED;
+          } else {
+            // If it's DRAFT or READY, we just log it, UI handles blocking
+            this.logger.log(
+              `Publication ${id} (${currentStatus}) has ${failedPosts.length} validation errors but remains in current status.`,
+            );
           }
-
-          // Set publication status to FAILED as well
-          data.status = PublicationStatus.FAILED;
-          this.logger.warn(
-            `Setting publication ${id} to FAILED due to validation errors in ${failedPosts.length} posts`,
-          );
         }
       }
     }
