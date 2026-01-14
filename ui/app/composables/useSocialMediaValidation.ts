@@ -118,7 +118,7 @@ function getPlainTextForLength(content: string): string {
  */
 function getTextLength(content: string | null | undefined): number {
   if (!content) return 0;
-  return getPlainTextForLength(content).length;
+  return getPlainTextForLength(content).trim().length;
 }
 
 /**
@@ -143,7 +143,7 @@ function validateMediaTypes(
         field: 'media',
         message: 'Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.',
       });
-    } else if (mediaCount === 1) {
+    } else if (mediaCount === 1 && media[0]) {
       if (media[0].type !== MediaType.IMAGE) {
         errors.push({
           field: 'media',

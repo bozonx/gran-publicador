@@ -201,7 +201,7 @@ async function performSubmit(data: any) {
     const commonData = {
       title: data.title || undefined,
       description: data.description || undefined,
-      content: data.content || undefined,
+      content: isTextContentEmpty(data.content) ? null : (data.content || null),
       authorComment: data.authorComment || null,
       note: data.note || null,
       tags: data.tags || undefined,
@@ -218,7 +218,9 @@ async function performSubmit(data: any) {
     if (isEditMode.value && publicationId) {
       await updatePublication(publicationId, {
         ...commonData,
-        status: data.status,
+        // Status is managed by separate actions in edit mode, don't send it back 
+        // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
+        status: undefined,
         linkToPublicationId: linkedPublicationId.value || undefined,
         translationGroupId: state.translationGroupId === null ? null : undefined,
       })
