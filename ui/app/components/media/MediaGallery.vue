@@ -838,19 +838,19 @@ const emit = defineEmits<Emits>()
         </div>
 
         <div v-if="editable" class="space-y-4 mb-4">
-          <UFormField :label="t('media.alt', 'Alt Text')">
-            <UInput 
-              v-model="editableAlt" 
-              :placeholder="t('media.altPlaceholder', 'Alt text for the image')" 
-              class="w-full"
-            />
-          </UFormField>
-          
           <UFormField :label="t('media.description', 'Description')">
             <UTextarea 
               v-model="editableDescription" 
               :placeholder="t('media.descriptionPlaceholder', 'Description of the media')" 
               :rows="3"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField :label="t('media.alt', 'Alt Text')">
+            <UInput 
+              v-model="editableAlt" 
+              :placeholder="t('media.altPlaceholder', 'Alt text for the image')" 
               class="w-full"
             />
           </UFormField>
