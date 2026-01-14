@@ -36,12 +36,7 @@ const isOpen = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
 
 const modalUi = computed(() => {
-  const { content: _content, body: _body, header: _header, footer: _footer, ...rest } = props.ui || {}
-  return rest
-})
-
-const contentClass = computed(() => {
-  return props.ui?.content || 'sm:max-w-lg'
+  return props.ui || {}
 })
 
 const headerClass = computed(() => {
@@ -73,8 +68,7 @@ function handleClose(close?: () => void) {
   >
     <template #content="{ close }">
       <div 
-        class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full mx-auto"
-        :class="contentClass"
+        class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full"
       >
         <!-- Header -->
         <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0" :class="headerClass">

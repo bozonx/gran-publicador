@@ -26,7 +26,7 @@ interface Emits {
 const emit = defineEmits<Emits>()
 
 const mergedUi = computed(() => {
-  const content = props.ui?.content || 'sm:max-w-6xl'
+  const content = props.ui?.content || 'w-[92vw] sm:max-w-6xl xl:max-w-7xl 2xl:max-w-[1600px]'
   const body = props.ui?.body || 'p-0'
 
   return {
