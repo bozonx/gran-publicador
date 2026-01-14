@@ -990,6 +990,16 @@
     "tooltip": "Сгенерировать контент с помощью AI",
     "provider": "Провайдер",
     "model": "Модель",
-    "fallbackUsed": "Использована резервная модель"
+    "fallbackUsed": "Использована резервная модель",
+    "voiceInput": "Голосовой ввод",
+    "startRecording": "Начать запись",
+    "stopRecording": "Остановить запись",
+    "recording": "Идет запись...",
+    "transcribing": "Распознавание речи...",
+    "transcriptionSuccess": "Речь успешно распознана",
+    "microphonePermissionDenied": "Доступ к микрофону запрещен",
+    "microphoneNotAvailable": "Микрофон недоступен",
+    "recordingError": "Ошибка записи",
+    "transcriptionError": "Ошибка распознавания речи"
   }
 }

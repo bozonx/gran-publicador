@@ -25,6 +25,7 @@ interface LlmResponse {
 export function useLlm() {
   const { post } = useApi()
   const isGenerating = ref(false)
+  const isTranscribing = ref(false)
   const error = ref<string | null>(null)
 
   /**
@@ -56,9 +57,41 @@ export function useLlm() {
     }
   }
 
+  /**
+   * Transcribe audio using STT API.
+   */
+  async function transcribeAudio(audioBlob: Blob): Promise<string | null> {
+    isTranscribing.value = true
+    error.value = null
+    console.log('LLM: Starting audio transcription')
+
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+
+      const response = await post<{ text: string }>('/stt/transcribe', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      console.log('LLM: Transcription successful:', response)
+
+      return response.text
+    } catch (err: any) {
+      const msg = err.data?.message || err.message || 'Failed to transcribe audio'
+      error.value = msg
+      console.error('LLM: Transcription error:', err)
+      return null
+    } finally {
+      isTranscribing.value = false
+    }
+  }
+
   return {
     isGenerating,
+    isTranscribing,
     error,
     generateContent,
+    transcribeAudio,
   }
 }

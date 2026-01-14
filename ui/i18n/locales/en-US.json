@@ -940,6 +940,16 @@
     "tooltip": "Generate content with AI",
     "provider": "Provider",
     "model": "Model",
-    "fallbackUsed": "Fallback model was used"
+    "fallbackUsed": "Fallback model was used",
+    "voiceInput": "Voice Input",
+    "startRecording": "Start Recording",
+    "stopRecording": "Stop Recording",
+    "recording": "Recording...",
+    "transcribing": "Transcribing...",
+    "transcriptionSuccess": "Transcription successful",
+    "microphonePermissionDenied": "Microphone access denied",
+    "microphoneNotAvailable": "Microphone not available",
+    "recordingError": "Recording error",
+    "transcriptionError": "Transcription error"
   }
 }

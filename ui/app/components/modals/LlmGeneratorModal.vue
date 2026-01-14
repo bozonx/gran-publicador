@@ -9,7 +9,14 @@ interface Emits {
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, error } = useLlm()
+const { generateContent, isGenerating, transcribeAudio, isTranscribing, error } = useLlm()
+const {
+  isRecording,
+  recordingDuration,
+  error: voiceError,
+  startRecording,
+  stopRecording,
+} = useVoiceRecorder()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
@@ -33,13 +40,24 @@ watch(isOpen, (open) => {
   }
 })
 
+// Watch for voice recording errors
+watch(voiceError, (err) => {
+  if (err) {
+    toast.add({
+      title: t('llm.recordingError'),
+      description: t(`llm.${err}`),
+      color: 'error',
+    })
+  }
+})
+
 async function handleGenerate() {
   console.log('Modal: handleGenerate clicked');
   if (!prompt.value.trim()) {
     console.log('Modal: Prompt is empty');
     toast.add({
       title: t('llm.promptRequired'),
-      color: 'red',
+      color: 'error',
     });
     return;
   }
@@ -53,16 +71,64 @@ async function handleGenerate() {
   if (response) {
     console.log('Modal: Response received', response);
     result.value = response.content;
-    metadata.value = response._router || null;
+    metadata.value = response.metadata || null;
   } else {
     console.log('Modal: No response (error)');
     toast.add({
       title: t('llm.error'),
       description: error.value || t('llm.errorMessage'),
-      color: 'red',
+      color: 'error',
     });
   }
 }
+
+async function handleVoiceRecording() {
+  if (isRecording.value) {
+    // Stop recording
+    const audioBlob = await stopRecording()
+    
+    if (!audioBlob) {
+      toast.add({
+        title: t('llm.recordingError'),
+        color: 'error',
+      })
+      return
+    }
+
+    // Transcribe audio
+    const text = await transcribeAudio(audioBlob)
+    
+    if (text) {
+      prompt.value = text
+      toast.add({
+        title: t('llm.transcriptionSuccess', 'Transcription successful'),
+        color: 'success',
+      })
+    } else {
+      toast.add({
+        title: t('llm.transcriptionError'),
+        description: error.value || t('llm.errorMessage'),
+        color: 'error',
+      })
+    }
+  } else {
+    // Start recording
+    const success = await startRecording()
+    
+    if (!success) {
+      toast.add({
+        title: t('llm.recordingError'),
+        color: 'error',
+      })
+    }
+  }
+}
+
+const formattedDuration = computed(() => {
+  const minutes = Math.floor(recordingDuration.value / 60)
+  const seconds = recordingDuration.value % 60
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+})
 
 function handleInsert() {
   if (result.value) {
@@ -79,23 +145,55 @@ function handleClose() {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('llm.generate')" size="2xl">
-    <template #title>
+    <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
-        <span>{{ t('llm.generate') }}</span>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+          {{ t('llm.generate') }}
+        </h3>
       </div>
     </template>
     <div :class="FORM_SPACING.section">
       <!-- Prompt Input -->
       <UFormField :label="t('llm.promptLabel')" required>
-        <UTextarea
-          v-model="prompt"
-          :placeholder="t('llm.promptPlaceholder')"
-          :rows="4"
-          autoresize
-          :disabled="isGenerating"
-          class="w-full"
-        />
+        <div class="relative">
+          <UTextarea
+            v-model="prompt"
+            :placeholder="t('llm.promptPlaceholder')"
+            :rows="4"
+            autoresize
+            :disabled="isGenerating || isRecording || isTranscribing"
+            class="w-full"
+          />
+          
+          <!-- Voice Recording Button -->
+          <div class="absolute bottom-2 right-2 flex items-center gap-2">
+            <!-- Recording indicator -->
+            <div v-if="isRecording" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span class="font-mono">{{ formattedDuration }}</span>
+            </div>
+            
+            <!-- Transcribing indicator -->
+            <div v-if="isTranscribing" class="text-sm text-gray-600 dark:text-gray-400">
+              <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 animate-spin" />
+            </div>
+            
+            <!-- Microphone button -->
+            <UButton
+              :icon="isRecording ? 'i-heroicons-stop' : 'i-heroicons-microphone'"
+              :color="isRecording ? 'error' : 'neutral'"
+              :variant="isRecording ? 'solid' : 'ghost'"
+              size="sm"
+              :disabled="isGenerating || isTranscribing"
+              :title="isRecording ? t('llm.stopRecording') : t('llm.startRecording')"
+              @click="handleVoiceRecording"
+            />
+          </div>
+        </div>
       </UFormField>
 
       <!-- Advanced Settings -->
@@ -153,7 +251,7 @@ function handleClose() {
         <UButton
           color="primary"
           :loading="isGenerating"
-          :disabled="!prompt.trim()"
+          :disabled="!prompt.trim() || isRecording || isTranscribing"
           block
           @click="handleGenerate"
         >
@@ -195,14 +293,14 @@ function handleClose() {
       <UButton
         color="neutral"
         variant="ghost"
-        :disabled="isGenerating"
+        :disabled="isGenerating || isRecording || isTranscribing"
         @click="handleClose"
       >
         {{ t('common.cancel') }}
       </UButton>
       <UButton
         color="primary"
-        :disabled="!result || isGenerating"
+        :disabled="!result || isGenerating || isRecording || isTranscribing"
         @click="handleInsert"
       >
         {{ t('llm.insertContent') }}

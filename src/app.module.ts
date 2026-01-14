@@ -9,6 +9,7 @@ import { PermissionsModule } from './common/services/permissions.module.js';
 import appConfig, { AppConfig } from './config/app.config.js';
 import socialPostingConfig from './config/social-posting.config.js';
 import llmConfig from './config/llm.config.js';
+import sttConfig from './config/stt.config.js';
 import { ApiTokensModule } from './modules/api-tokens/api-tokens.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChannelsModule } from './modules/channels/channels.module.js';
@@ -23,12 +24,13 @@ import { ArchiveModule } from './modules/archive/archive.module.js';
 import { MediaModule } from './modules/media/media.module.js';
 import { ShutdownModule } from './common/services/shutdown.module.js';
 import { LlmModule } from './modules/llm/llm.module.js';
+import { SttModule } from './modules/stt/stt.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, socialPostingConfig, llmConfig],
+      load: [appConfig, socialPostingConfig, llmConfig, sttConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),
@@ -123,6 +125,7 @@ import { LlmModule } from './modules/llm/llm.module.js';
     ArchiveModule,
     MediaModule,
     LlmModule,
+    SttModule,
   ],
   controllers: [],
   providers: [
