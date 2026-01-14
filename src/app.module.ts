@@ -10,6 +10,7 @@ import appConfig, { AppConfig } from './config/app.config.js';
 import socialPostingConfig from './config/social-posting.config.js';
 import llmConfig from './config/llm.config.js';
 import sttConfig from './config/stt.config.js';
+import translateConfig from './config/translate.config.js';
 import { ApiTokensModule } from './modules/api-tokens/api-tokens.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChannelsModule } from './modules/channels/channels.module.js';
@@ -25,12 +26,13 @@ import { MediaModule } from './modules/media/media.module.js';
 import { ShutdownModule } from './common/services/shutdown.module.js';
 import { LlmModule } from './modules/llm/llm.module.js';
 import { SttModule } from './modules/stt/stt.module.js';
+import { TranslateModule } from './modules/translate/translate.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, socialPostingConfig, llmConfig, sttConfig],
+      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),
@@ -126,6 +128,7 @@ import { SttModule } from './modules/stt/stt.module.js';
     MediaModule,
     LlmModule,
     SttModule,
+    TranslateModule,
   ],
   controllers: [],
   providers: [

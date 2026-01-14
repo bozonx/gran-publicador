@@ -10,7 +10,28 @@
     "help": "Additional texts collected from Telegram bot or other sources. Use for AI summarization or manual content assembly.",
     "view": "View source texts",
     "hide": "Hide source texts",
-    "deleteAll": "Delete all"
+    "deleteAll": "Delete all",
+    "translate": "Translate this text"
+  },
+  "translate": {
+    "title": "Translate Text",
+    "targetLanguage": "Target Language",
+    "splitter": "Text Splitter",
+    "splitterOptions": {
+      "paragraph": "Paragraph",
+      "markdown": "Markdown",
+      "sentence": "Sentence",
+      "off": "Off (No chunking)"
+    },
+    "maxChunkLength": "Max Chunk Length",
+    "maxChunkLengthHelp": "Maximum length for text chunks (optional)",
+    "translateButton": "Translate",
+    "translating": "Translating...",
+    "translateSuccess": "Translation completed",
+    "translateError": "Translation failed",
+    "cancel": "Cancel",
+    "insertAsContent": "Insert as main content",
+    "addAsSourceText": "Add as new source text"
   },
   "common": {
     "appName": "Gran Publicador",

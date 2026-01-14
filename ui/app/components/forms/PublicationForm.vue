@@ -305,6 +305,28 @@ const newSourceTextContent = ref('')
 const editingSourceTextIndex = ref<number | null>(null)
 const editingSourceTextContent = ref('')
 
+// Translation Logic
+const isTranslateModalOpen = ref(false)
+const translationSourceText = ref('')
+
+function handleOpenTranslateModal(text: string) {
+    translationSourceText.value = text
+    isTranslateModalOpen.value = true
+}
+
+function handleTranslated(result: { translatedText: string; action: 'insert' | 'add' }) {
+    if (result.action === 'insert') {
+        state.content = result.translatedText
+    } else {
+        if (!state.sourceTexts) state.sourceTexts = []
+        state.sourceTexts.push({
+            content: result.translatedText,
+            source: 'translation',
+            order: state.sourceTexts.length
+        })
+    }
+}
+
 function handleAddSourceText() {
     if (!newSourceTextContent.value.trim()) return
     if (!state.sourceTexts) state.sourceTexts = []
@@ -591,6 +613,14 @@ function handleInsertLlmContent(content: string) {
                                     @click="handleStartEditingSourceText(index)"
                                 />
                                 <UButton
+                                    color="primary"
+                                    variant="ghost"
+                                    size="xs"
+                                    icon="i-heroicons-language"
+                                    :title="t('sourceTexts.translate')"
+                                    @click="handleOpenTranslateModal(item.content)"
+                                />
+                                <UButton
                                     color="neutral"
                                     variant="ghost"
                                     size="xs"
@@ -740,6 +770,13 @@ function handleInsertLlmContent(content: string) {
       entity-type="publication"
       @confirm="handleValidationWarningConfirm"
       @cancel="handleValidationWarningCancel"
+    />
+
+    <TranslateModal
+      v-model:open="isTranslateModalOpen"
+      :source-text="translationSourceText"
+      :default-target-lang="state.language"
+      @translated="handleTranslated"
     />
 
     <!-- LLM Generator Modal -->

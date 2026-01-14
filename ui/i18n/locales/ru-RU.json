@@ -10,7 +10,28 @@
     "help": "Дополнительные тексты, собранные из Telegram бота или других источников. Используйте для AI суммаризации или ручной сборки контента.",
     "view": "Посмотреть исходные тексты",
     "hide": "Скрыть исходные тексты",
-    "deleteAll": "Удалить все"
+    "deleteAll": "Удалить все",
+    "translate": "Перевести этот текст"
+  },
+  "translate": {
+    "title": "Перевод текста",
+    "targetLanguage": "Язык перевода",
+    "splitter": "Разделитель текста",
+    "splitterOptions": {
+      "paragraph": "Абзац",
+      "markdown": "Markdown",
+      "sentence": "Предложение",
+      "off": "Выкл (без разбивки)"
+    },
+    "maxChunkLength": "Макс. длина чанка",
+    "maxChunkLengthHelp": "Максимальная длина куска текста (опционально)",
+    "translateButton": "Перевести",
+    "translating": "Перевод...",
+    "translateSuccess": "Перевод завершен",
+    "translateError": "Ошибка перевода",
+    "cancel": "Отмена",
+    "insertAsContent": "Вставить как основной текст",
+    "addAsSourceText": "Добавить как исходный текст"
   },
   "common": {
     "appName": "Gran Publicador",
