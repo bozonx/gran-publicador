@@ -5,8 +5,8 @@ export type TagCase =
   | 'SNAKE_CASE' 
   | 'kebab-case' 
   | 'KEBAB-CASE' 
-  | 'lowercase' 
-  | 'uppercase' 
+  | 'lower_case' 
+  | 'upper_case' 
   | 'none';
 
 export interface TagFormatOptions {
@@ -47,7 +47,7 @@ export class TagsFormatter {
 
   private static convertStringCase(str: string, targetCase: TagCase): string {
     const words = str
-      .replace(/([a-z])([A-Z])/g, '$1 $2') // Simple regex for camelCase splitting (frontend doesn't always support \p{L})
+      .replace(/([a-z])([A-Z])/g, '$1 $2') // Basic camelCase split for frontend compatibility
       .replace(/[-_]/g, ' ')                 
       .split(/\s+/)
       .map(w => w.toLowerCase())
@@ -68,9 +68,9 @@ export class TagsFormatter {
         return words.join('-');
       case 'KEBAB-CASE':
         return words.join('-').toUpperCase();
-      case 'lowercase':
+      case 'lower_case':
         return words.join(' ');
-      case 'uppercase':
+      case 'upper_case':
         return words.join(' ').toUpperCase();
       default:
         return str;
@@ -80,10 +80,12 @@ export class TagsFormatter {
 
 export interface TemplateBlock {
   enabled: boolean;
-  insert: 'title' | 'content' | 'description' | 'tags';
-  before: string;
-  after: string;
+  insert: 'title' | 'content' | 'tags' | 'authorComment' | 'footer' | 'custom';
+  before?: string;
+  after?: string;
   tagCase?: TagCase;
+  footerId?: string | null;
+  content?: string;
 }
 
 export interface ChannelFooter {
@@ -99,7 +101,6 @@ export interface ChannelPostTemplate {
   order: number;
   postType: string | null;
   language: string | null;
-  footerId?: string | null;
   template: TemplateBlock[];
   isDefault?: boolean;
 }
@@ -107,8 +108,8 @@ export interface ChannelPostTemplate {
 export interface PublicationDataForFormatting {
   title?: string | null;
   content?: string | null;
-  description?: string | null;
   tags?: string | null;
+  authorComment?: string | null;
   postType?: string;
   language?: string;
 }
@@ -116,10 +117,12 @@ export interface PublicationDataForFormatting {
 export class SocialPostingBodyFormatter {
   private static getDefaultBlocks(): TemplateBlock[] {
     return [
-      { enabled: false, insert: 'title', before: '', after: '\n\n' },
+      { enabled: false, insert: 'title', before: '', after: '' },
       { enabled: true, insert: 'content', before: '', after: '' },
-      { enabled: true, insert: 'description', before: '\n\n', after: '' },
-      { enabled: true, insert: 'tags', before: '\n\n', after: '' },
+      { enabled: true, insert: 'authorComment', before: '', after: '' },
+      { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
+      { enabled: true, insert: 'custom', before: '', after: '', content: '' },
+      { enabled: true, insert: 'footer', before: '', after: '' },
     ];
   }
 
@@ -142,8 +145,7 @@ export class SocialPostingBodyFormatter {
     }
 
     const blocks = template ? template.template : this.getDefaultBlocks();
-    
-    let result = '';
+    const formattedBlocks: string[] = [];
 
     for (const block of blocks) {
       if (!block.enabled) continue;
@@ -156,34 +158,45 @@ export class SocialPostingBodyFormatter {
         case 'content':
           value = data.content || '';
           break;
-        case 'description':
-          value = data.description || '';
-          break;
         case 'tags':
           value = TagsFormatter.format(data.tags, {
             tagCase: block.tagCase,
           });
           break;
+        case 'authorComment':
+          value = data.authorComment || '';
+          break;
+        case 'custom':
+          value = block.content || '';
+          break;
+        case 'footer': {
+          const footers: ChannelFooter[] = preferences?.footers || [];
+          let footerObj: ChannelFooter | undefined;
+          
+          if (block.footerId) {
+            footerObj = footers.find((f) => f.id === block.footerId);
+          } else {
+            footerObj = footers.find((f) => f.isDefault);
+          }
+          
+          value = footerObj?.content || '';
+          break;
+        }
       }
 
-      if (value && value.trim()) {
-        result += block.before + value.trim() + block.after;
+      const trimmedValue = value.trim();
+      if (trimmedValue) {
+        const blockParts = [
+          block.before?.trim(),
+          trimmedValue,
+          block.after?.trim(),
+        ].filter(Boolean);
+
+        formattedBlocks.push(blockParts.join(' '));
       }
     }
 
-    const footers: ChannelFooter[] = preferences?.footers || [];
-    let footerObj: ChannelFooter | undefined;
-
-    if (template && template.footerId) {
-       footerObj = footers.find(f => f.id === template.footerId);
-    } else {
-       footerObj = footers.find(f => f.isDefault);
-    }
-
-    if (footerObj && footerObj.content && footerObj.content.trim()) {
-      result += '\n\n' + footerObj.content.trim();
-    }
-
-    return result.trim();
+    const result = formattedBlocks.join('\n\n');
+    return result.trim().replace(/\n{3,}/g, '\n\n');
   }
 }

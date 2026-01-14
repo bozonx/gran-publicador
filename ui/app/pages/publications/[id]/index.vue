@@ -65,10 +65,10 @@ function showPostPreview(post: any) {
     {
       title: currentPublication.value.title,
       content: post.content || currentPublication.value.content,
-      description: currentPublication.value.description,
       tags: post.tags || currentPublication.value.tags,
       postType: currentPublication.value.postType as any,
       language: post.language || currentPublication.value.language,
+      authorComment: currentPublication.value.authorComment,
     },
     post.channel || post,
     post.template

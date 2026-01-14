@@ -32,7 +32,6 @@ export class SocialPostingRequestFormatter {
       {
         title: publication.title,
         content: post.content || publication.content,
-        description: publication.description,
         tags: post.tags || publication.tags,
         authorComment: publication.authorComment,
         postType: publication.postType,

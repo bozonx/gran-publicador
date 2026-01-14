@@ -1,5 +1,4 @@
 import { SocialPostingBodyFormatter } from '../../src/modules/social-posting/utils/social-posting-body.formatter.js';
-import { PostType } from '../../src/generated/prisma/client.js';
 
 describe('SocialPostingBodyFormatter', () => {
   const mockChannel = {
@@ -18,9 +17,9 @@ describe('SocialPostingBodyFormatter', () => {
           order: 0,
           postType: null,
           language: null,
-          footerId: 'f1',
           template: [
-            { enabled: true, insert: 'content', before: '', after: '' }
+            { enabled: true, insert: 'content', before: '', after: '' },
+            { enabled: true, insert: 'footer', before: '', after: '', footerId: 'f1' }
           ]
         },
         {
@@ -29,9 +28,9 @@ describe('SocialPostingBodyFormatter', () => {
           order: 0,
           postType: null,
           language: null,
-          footerId: null, // Should use default
           template: [
-            { enabled: true, insert: 'content', before: '', after: '' }
+            { enabled: true, insert: 'content', before: '', after: '' },
+            { enabled: true, insert: 'footer', before: '', after: '', footerId: null } // Should use default
           ]
         },
         {
@@ -40,9 +39,9 @@ describe('SocialPostingBodyFormatter', () => {
           order: 0,
           postType: null,
           language: null,
-          footerId: 'non-existent', // Should handle gracefully
           template: [
-            { enabled: true, insert: 'content', before: '', after: '' }
+            { enabled: true, insert: 'content', before: '', after: '' },
+            { enabled: true, insert: 'footer', before: '', after: '', footerId: 'non-existent' } // Should handle gracefully
           ]
         },
         {
@@ -51,20 +50,32 @@ describe('SocialPostingBodyFormatter', () => {
           order: 0,
           postType: null,
           language: null,
-          footerId: 'f3', // Empty content
           template: [
-            { enabled: true, insert: 'content', before: '', after: '' }
+            { enabled: true, insert: 'content', before: '', after: '' },
+            { enabled: true, insert: 'footer', before: '', after: '', footerId: 'f3' } // Empty content
           ]
+        },
+        {
+           id: 't5',
+           name: 'Template with Author Comment',
+           order: 0,
+           postType: null,
+           language: null,
+           template: [
+             { enabled: true, insert: 'content', before: '', after: '' },
+             { enabled: true, insert: 'authorComment', before: 'Note:', after: '' }
+           ]
         }
       ]
     }
   };
 
   const mockData = {
-    content: 'Main Content'
+    content: 'Main Content',
+    authorComment: 'Author Note'
   };
 
-  it('should use specific footer when selected in template', () => {
+  it('should use specific footer when selected in block', () => {
     const channelWithT1 = {
       ...mockChannel,
       preferences: {
@@ -80,12 +91,12 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).not.toContain('Default Footer Content');
   });
 
-  it('should use default footer when no footer selected in template (footerId is null)', () => {
+  it('should use default footer when no footer selected in block (footerId is null)', () => {
     const channelWithT2 = {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [{ ...mockChannel.preferences.templates[1], isDefault: true }] // t2 has footerId: null
+        templates: [{ ...mockChannel.preferences.templates[1], isDefault: true }]
       }
     };
 
@@ -101,7 +112,7 @@ describe('SocialPostingBodyFormatter', () => {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [{ ...mockChannel.preferences.templates[2], isDefault: true }] // t3 has non-existent footerId
+        templates: [{ ...mockChannel.preferences.templates[2], isDefault: true }]
       }
     };
 
@@ -132,12 +143,26 @@ describe('SocialPostingBodyFormatter', () => {
       ...mockChannel,
       preferences: {
         ...mockChannel.preferences,
-        templates: [{ ...mockChannel.preferences.templates[3], isDefault: true }] // t4 has empty footer
+        templates: [{ ...mockChannel.preferences.templates[3], isDefault: true }]
       }
     };
 
     // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT4);
     expect(result).toBe('Main Content');
+  });
+
+  it('should include author comment correctly', () => {
+    const channelWithT5 = {
+      ...mockChannel,
+      preferences: {
+        ...mockChannel.preferences,
+        templates: [{ ...mockChannel.preferences.templates[4], isDefault: true }]
+      }
+    };
+
+    // @ts-ignore
+    const result = SocialPostingBodyFormatter.format(mockData, channelWithT5);
+    expect(result).toBe('Main Content\n\nNote: Author Note');
   });
 });

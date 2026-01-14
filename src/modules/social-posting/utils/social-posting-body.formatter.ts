@@ -27,7 +27,6 @@ export interface ChannelPostTemplate {
   order: number;
   postType: PostType | null;
   language: string | null;
-  footerId?: string | null;
   template: TemplateBlock[];
   isDefault?: boolean;
 }
@@ -35,7 +34,6 @@ export interface ChannelPostTemplate {
 export interface PublicationData {
   title?: string | null;
   content?: string | null;
-  description?: string | null;
   tags?: string | null;
   authorComment?: string | null;
   postType?: PostType;
@@ -47,8 +45,10 @@ export class SocialPostingBodyFormatter {
    * Default template blocks as defined in the requirements and UI.
    * - Title: disabled by default
    * - Content: enabled
-   * - Description: enabled (with \n\n before)
-   * - Tags: enabled (with \n\n before)
+   * - Author Comment: enabled
+   * - Tags: enabled (snake_case)
+   * - Custom: enabled (empty)
+   * - Footer: enabled (default footer)
    */
   private static getDefaultBlocks(): TemplateBlock[] {
     return [
