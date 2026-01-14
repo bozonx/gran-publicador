@@ -296,15 +296,48 @@ function handleReset() {
 }
 
 const isSourceTextsOpen = ref(false)
+const isAddingSourceText = ref(false)
+const newSourceTextContent = ref('')
+const editingSourceTextIndex = ref<number | null>(null)
+const editingSourceTextContent = ref('')
+
+function handleAddSourceText() {
+    if (!newSourceTextContent.value.trim()) return
+    if (!state.sourceTexts) state.sourceTexts = []
+    
+    state.sourceTexts.push({
+        content: newSourceTextContent.value,
+        source: 'manual',
+        order: state.sourceTexts.length
+    })
+    newSourceTextContent.value = ''
+    isAddingSourceText.value = false
+    isSourceTextsOpen.value = true // Ensure list is visible
+}
+
+function handleStartEditingSourceText(index: number) {
+    if (!state.sourceTexts) return
+    editingSourceTextIndex.value = index
+    editingSourceTextContent.value = state.sourceTexts[index].content
+}
+
+function handleSaveEditingSourceText() {
+    if (editingSourceTextIndex.value === null || !state.sourceTexts) return
+    state.sourceTexts[editingSourceTextIndex.value].content = editingSourceTextContent.value
+    editingSourceTextIndex.value = null
+    editingSourceTextContent.value = ''
+}
+
+function handleCancelEditingSourceText() {
+    editingSourceTextIndex.value = null
+    editingSourceTextContent.value = ''
+}
 
 function handleDeleteSourceText(index: number) {
     if (!state.sourceTexts) return
     const newList = [...state.sourceTexts]
     newList.splice(index, 1)
     state.sourceTexts = newList
-    if (state.sourceTexts.length === 0) {
-        isSourceTextsOpen.value = false
-    }
 }
 
 function handleDeleteAllSourceTexts() {
@@ -436,19 +469,58 @@ function handleDeleteAllSourceTexts() {
       </UFormField>
 
       <!-- Source Texts Section -->
-      <div v-if="state.sourceTexts && state.sourceTexts.length > 0" class="mb-6 ml-1">
-            <UButton
-                variant="ghost"
-                color="primary"
-                size="sm"
-                :icon="isSourceTextsOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-                class="mb-2"
-                @click="isSourceTextsOpen = !isSourceTextsOpen"
-            >
-                {{ isSourceTextsOpen ? t('sourceTexts.hide') : t('sourceTexts.view') }} ({{ state.sourceTexts.length }})
-            </UButton>
+      <!-- Source Texts Section -->
+      <div class="mb-6 ml-1">
+            <div class="flex items-center gap-2 mb-2">
+                <UButton
+                    variant="ghost"
+                    color="primary"
+                    size="sm"
+                    :icon="isSourceTextsOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+                    @click="isSourceTextsOpen = !isSourceTextsOpen"
+                >
+                    {{ isSourceTextsOpen ? t('sourceTexts.hide') : t('sourceTexts.view') }} ({{ state.sourceTexts?.length || 0 }})
+                </UButton>
+                
+                <UButton
+                    v-if="!isAddingSourceText"
+                    variant="soft"
+                    color="primary"
+                    size="xs"
+                    icon="i-heroicons-plus"
+                    :label="t('sourceTexts.add', 'Add Source Text')"
+                    @click="isAddingSourceText = true"
+                />
+            </div>
 
-            <div v-if="isSourceTextsOpen" class="space-y-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+            <!-- Add New Source Text Form -->
+            <div v-if="isAddingSourceText" class="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+                 <UTextarea
+                    v-model="newSourceTextContent"
+                    :placeholder="t('sourceTexts.placeholder', 'Enter source text here...')"
+                    autoresize
+                    :rows="3"
+                    class="w-full mb-2"
+                 />
+                 <div class="flex justify-end gap-2">
+                     <UButton
+                        color="neutral"
+                        variant="ghost"
+                        size="sm"
+                        :label="t('common.cancel')"
+                        @click="isAddingSourceText = false"
+                     />
+                     <UButton
+                        color="primary"
+                        size="sm"
+                        :label="t('common.add')"
+                        :disabled="!newSourceTextContent.trim()"
+                        @click="handleAddSourceText"
+                     />
+                 </div>
+            </div>
+
+            <div v-if="isSourceTextsOpen && state.sourceTexts && state.sourceTexts.length > 0" class="space-y-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
                 <div class="flex justify-end">
                     <UButton
                         color="error"
@@ -462,21 +534,59 @@ function handleDeleteAllSourceTexts() {
                 </div>
 
                 <div v-for="(item, index) in state.sourceTexts" :key="index" class="p-3 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-800 text-sm group hover:border-primary-200 dark:hover:border-primary-800/50 transition-colors">
-                    <div class="flex justify-between items-start gap-3">
-                        <div class="whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300 leading-relaxed font-normal">{{ item.content }}</div>
-                        <UButton
-                            color="neutral"
-                            variant="ghost"
-                            size="xs"
-                            icon="i-heroicons-trash"
-                            class="opacity-0 group-hover:opacity-100 transition-opacity"
-                            @click="handleDeleteSourceText(index as number)"
+                    
+                    <!-- View Mode -->
+                    <div v-if="editingSourceTextIndex !== index">
+                        <div class="flex justify-between items-start gap-3">
+                            <div class="whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300 leading-relaxed font-normal">{{ item.content }}</div>
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <UButton
+                                    color="primary"
+                                    variant="ghost"
+                                    size="xs"
+                                    icon="i-heroicons-pencil-square"
+                                    @click="handleStartEditingSourceText(index)"
+                                />
+                                <UButton
+                                    color="neutral"
+                                    variant="ghost"
+                                    size="xs"
+                                    icon="i-heroicons-trash"
+                                    @click="handleDeleteSourceText(index)"
+                                />
+                            </div>
+                        </div>
+                        <div v-if="item.source && item.source !== 'manual'" class="mt-2 text-xs text-gray-400 font-mono flex items-center gap-1">
+                            <UIcon name="i-heroicons-link" class="w-3 h-3" />
+                            {{ item.source }}
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div v-else>
+                        <UTextarea
+                            v-model="editingSourceTextContent"
+                            autoresize
+                            :rows="3"
+                            class="w-full mb-2"
                         />
+                        <div class="flex justify-end gap-2">
+                             <UButton
+                                color="neutral"
+                                variant="ghost"
+                                size="xs"
+                                :label="t('common.cancel')"
+                                @click="handleCancelEditingSourceText"
+                             />
+                             <UButton
+                                color="primary"
+                                size="xs"
+                                :label="t('common.save')"
+                                @click="handleSaveEditingSourceText"
+                             />
+                        </div>
                     </div>
-                    <div v-if="item.source && item.source !== 'manual'" class="mt-2 text-xs text-gray-400 font-mono flex items-center gap-1">
-                        <UIcon name="i-heroicons-link" class="w-3 h-3" />
-                        {{ item.source }}
-                    </div>
+
                 </div>
             </div>
       </div>
