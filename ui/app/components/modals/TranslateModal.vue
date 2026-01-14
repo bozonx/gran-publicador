@@ -36,12 +36,12 @@ const languages = [
   { label: 'Japanese', value: 'ja-JP' },
 ]
 
-const splitterOptions = [
+const splitterOptions = computed(() => [
   { label: t('translate.splitterOptions.paragraph'), value: 'paragraph' },
   { label: t('translate.splitterOptions.markdown'), value: 'markdown' },
   { label: t('translate.splitterOptions.sentence'), value: 'sentence' },
   { label: t('translate.splitterOptions.off'), value: 'off' },
-]
+])
 
 async function handleTranslate() {
   try {
@@ -77,17 +77,20 @@ watch(() => props.defaultTargetLang, (newVal) => {
   >
     <div class="space-y-4 py-2">
       <UFormGroup :label="t('translate.targetLanguage')">
-        <USelect
+        <USelectMenu
           v-model="targetLang"
-          :options="languages"
-          option-attribute="label"
+          :items="languages"
+          value-key="value"
+          label-key="label"
         />
       </UFormGroup>
 
       <UFormGroup :label="t('translate.splitter')">
-        <USelect
+        <USelectMenu
           v-model="splitter"
-          :options="splitterOptions"
+          :items="splitterOptions"
+          value-key="value"
+          label-key="label"
         />
       </UFormGroup>
 
