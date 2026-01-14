@@ -75,6 +75,12 @@ function handleClose() {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('llm.generate')" size="2xl">
+    <template #title>
+      <div class="flex items-center gap-2">
+        <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
+        <span>{{ t('llm.generate') }}</span>
+      </div>
+    </template>
     <div :class="FORM_SPACING.section">
       <!-- Prompt Input -->
       <UFormField :label="t('llm.promptLabel')" required>
@@ -113,7 +119,7 @@ function handleClose() {
                 :disabled="isGenerating"
                 class="w-24"
               />
-              <URange
+              <USlider
                 v-model="temperature"
                 :min="0"
                 :max="2"

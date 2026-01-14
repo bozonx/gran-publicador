@@ -23,6 +23,7 @@ interface LlmResponse {
 }
 
 export function useLlm() {
+  const { post } = useApi()
   const isGenerating = ref(false)
   const error = ref<string | null>(null)
 
@@ -37,17 +38,14 @@ export function useLlm() {
     error.value = null
 
     try {
-      const response = await $fetch<LlmResponse>('/api/v1/llm/generate', {
-        method: 'POST',
-        body: {
-          prompt,
-          ...options,
-        },
+      const response = await post<LlmResponse>('/llm/generate', {
+        prompt,
+        ...options,
       })
 
       return response
     } catch (err: any) {
-      error.value = err.message || 'Failed to generate content'
+      error.value = err.data?.message || err.message || 'Failed to generate content'
       console.error('LLM generation error:', err)
       return null
     } finally {
