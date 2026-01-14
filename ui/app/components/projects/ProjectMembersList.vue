@@ -106,7 +106,7 @@ function getActionItems(row: any) {
     .map((role) => ({
       label: t(`roles.${role.toLowerCase()}`),
       icon: 'i-heroicons-arrow-path',
-      click: () => openConfirmModal({
+      onSelect: () => openConfirmModal({
           title: t('projectMember.changeRoleTitle'),
           description: t('projectMember.changeRoleConfirm', { 
               user: row.user.fullName || row.user.telegramUsername, 
@@ -126,7 +126,7 @@ function getActionItems(row: any) {
     {
       label: t('projectMember.remove'),
       icon: 'i-heroicons-trash-20-solid',
-      click: () => openConfirmModal({
+      onSelect: () => openConfirmModal({
           title: t('projectMember.removeTitle'),
           description: t('projectMember.removeConfirm', { 
               user: row.user.fullName || row.user.telegramUsername 
