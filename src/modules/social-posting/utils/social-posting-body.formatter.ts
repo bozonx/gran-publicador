@@ -6,7 +6,7 @@ import {
 
 export interface TemplateBlock {
   enabled: boolean;
-  insert: 'title' | 'content' | 'description' | 'tags';
+  insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment';
   before: string;
   after: string;
   tagCase?: TagCase;
@@ -35,6 +35,7 @@ export interface PublicationData {
   content?: string | null;
   description?: string | null;
   tags?: string | null;
+  authorComment?: string | null;
   postType?: PostType;
   language?: string;
 }
@@ -51,6 +52,7 @@ export class SocialPostingBodyFormatter {
     return [
       { enabled: false, insert: 'title', before: '', after: '' },
       { enabled: true, insert: 'content', before: '', after: '' },
+      { enabled: true, insert: 'authorComment', before: '', after: '' },
       { enabled: true, insert: 'description', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '' },
     ];
@@ -101,6 +103,9 @@ export class SocialPostingBodyFormatter {
           value = TagsFormatter.format(data.tags, {
             tagCase: block.tagCase,
           });
+          break;
+        case 'authorComment':
+          value = data.authorComment || '';
           break;
       }
 

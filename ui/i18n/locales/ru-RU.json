@@ -397,6 +397,7 @@
     "templateInsertContent": "Контент",
     "templateInsertDescription": "Описание",
     "templateInsertTags": "Теги",
+    "templateInsertAuthorComment": "Коммент. автора",
     "templateBlocks": "Блоки шаблона",
     "templateBlocksTooltip": "Конструктор структуры поста. Перетаскивайте блоки для изменения порядка. Включайте/выключайте блоки, чтобы определить состав контента.",
     "templateSettings": "Настройки шаблона",

@@ -10,7 +10,7 @@ export interface ChannelFooter {
 export interface TemplateBlock {
     enabled: boolean
     before?: string
-    insert: 'title' | 'content' | 'description' | 'tags'
+    insert: 'title' | 'content' | 'description' | 'tags' | 'authorComment'
     after?: string
     tagCase?: 'camelCase' | 'pascalCase' | 'snake_case' | 'SNAKE_CASE' | 'kebab-case' | 'KEBAB-CASE' | 'lowercase' | 'uppercase' | 'none'
 }

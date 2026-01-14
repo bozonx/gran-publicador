@@ -44,6 +44,7 @@ const footerOptions = computed(() => {
 const insertOptions = [
   { value: 'title', label: t('channel.templateInsertTitle') },
   { value: 'content', label: t('channel.templateInsertContent') },
+  { value: 'authorComment', label: t('channel.templateInsertAuthorComment') },
   { value: 'description', label: t('channel.templateInsertDescription') },
   { value: 'tags', label: t('channel.templateInsertTags') },
 ]
@@ -63,6 +64,7 @@ const tagCaseOptions = [
 const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: false, insert: 'title', before: '', after: '' },
   { enabled: true, insert: 'content', before: '', after: '' },
+  { enabled: true, insert: 'authorComment', before: '', after: '' },
   { enabled: true, insert: 'description', before: '', after: '' },
   { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'none' },
 ]
@@ -435,7 +437,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                       </template>
                       <UTextarea
                         v-model="block.before"
-                        :rows="3"
+                        :rows="2"
                         class="font-mono text-xs"
                       />
                     </UFormField>
@@ -448,7 +450,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
                       </template>
                       <UTextarea
                         v-model="block.after"
-                        :rows="3"
+                        :rows="2"
                         class="font-mono text-xs"
                       />
                     </UFormField>

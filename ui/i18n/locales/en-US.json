@@ -360,6 +360,7 @@
     "templateInsertContent": "Content",
     "templateInsertDescription": "Description",
     "templateInsertTags": "Tags",
+    "templateInsertAuthorComment": "Author comment",
     "templateBlocks": "Template Blocks",
     "templateBlocksTooltip": "Post structure builder. Drag to reorder blocks. Toggle to include/exclude content parts.",
     "templateSettings": "Template Settings",
