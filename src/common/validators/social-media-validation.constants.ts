@@ -1,4 +1,4 @@
-import { SocialMedia } from '../../generated/prisma/enums.js';
+import { SocialMedia, MediaType } from '../../generated/prisma/enums.js';
 
 
 /**
@@ -13,6 +13,12 @@ export interface SocialMediaValidationRules {
   maxMediaCount: number;
   // Minimum media count (if media is required)
   minMediaCount?: number;
+  // Allowed media types for single file (when mediaCount === 1)
+  allowedMediaTypes?: MediaType[];
+  // Allowed media types for gallery (when mediaCount > 1)
+  allowedGalleryMediaTypes?: MediaType[];
+  // Maximum number of media files for gallery (when mediaCount > 1)
+  maxMediaCountForGallery?: number;
 }
 
 /**
@@ -26,6 +32,9 @@ export const SOCIAL_MEDIA_VALIDATION_RULES: Record<
     maxTextLength: 4096,
     maxCaptionLength: 1024,
     maxMediaCount: 10,
+    maxMediaCountForGallery: 10,
+    allowedMediaTypes: [MediaType.IMAGE, MediaType.VIDEO, MediaType.AUDIO, MediaType.DOCUMENT],
+    allowedGalleryMediaTypes: [MediaType.IMAGE, MediaType.VIDEO],
   },
   [SocialMedia.VK]: {
     maxTextLength: 16384,
@@ -52,7 +61,8 @@ export const SOCIAL_MEDIA_VALIDATION_RULES: Record<
   [SocialMedia.SITE]: {
     maxTextLength: 100000,
     maxCaptionLength: 100000,
-    maxMediaCount: 50,
+    maxMediaCount: 1,
+    allowedMediaTypes: [MediaType.IMAGE],
   },
 };
 

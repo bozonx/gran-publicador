@@ -21,6 +21,9 @@ export interface SocialMediaValidationRules {
   maxCaptionLength: number;
   maxMediaCount: number;
   minMediaCount?: number;
+  allowedMediaTypes?: string[];
+  allowedGalleryMediaTypes?: string[];
+  maxMediaCountForGallery?: number;
 }
 
 let rulesCache: Record<string, SocialMediaValidationRules> | null = null;
@@ -103,6 +106,60 @@ function getTextLength(content: string | null | undefined): number {
 }
 
 /**
+ * Validate media types based on platform rules
+ */
+function validateMediaTypes(
+  media: Array<{ type: string }>,
+  rules: SocialMediaValidationRules,
+  platform: string,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const mediaCount = media.length;
+
+  // Check if this is a gallery (2+ files) or single file
+  const isGallery = mediaCount > 1;
+
+  if (isGallery) {
+    // Validate gallery media types
+    if (rules.allowedGalleryMediaTypes && rules.allowedGalleryMediaTypes.length > 0) {
+      const invalidMedia = media.filter(
+        (m) => !rules.allowedGalleryMediaTypes!.includes(m.type),
+      );
+      if (invalidMedia.length > 0) {
+        const invalidTypes = [...new Set(invalidMedia.map((m) => m.type))].join(', ');
+        const allowedTypes = rules.allowedGalleryMediaTypes.join(', ');
+        errors.push({
+          field: 'media',
+          message: `Gallery for ${platform} only allows ${allowedTypes}, but found: ${invalidTypes}`,
+        });
+      }
+    }
+
+    // Validate gallery count
+    if (rules.maxMediaCountForGallery && mediaCount > rules.maxMediaCountForGallery) {
+      errors.push({
+        field: 'media',
+        message: `Gallery has too many files (${mediaCount}) for ${platform}. Maximum for gallery: ${rules.maxMediaCountForGallery}`,
+      });
+    }
+  } else if (mediaCount === 1) {
+    // Validate single file media type
+    if (rules.allowedMediaTypes && media[0]) {
+      const mediaType = media[0].type;
+      if (!rules.allowedMediaTypes.includes(mediaType)) {
+        const allowedTypes = rules.allowedMediaTypes.join(', ');
+        errors.push({
+          field: 'media',
+          message: `Media type ${mediaType} is not allowed for ${platform}. Allowed types: ${allowedTypes}`,
+        });
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Composable for social media post validation
  */
 export function useSocialMediaValidation() {
@@ -132,6 +189,7 @@ export function useSocialMediaValidation() {
     content: string | null | undefined,
     mediaCount: number,
     socialMedia: SocialMedia,
+    media?: Array<{ type: string }>,
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const rules = getValidationRules(socialMedia);
@@ -192,6 +250,12 @@ export function useSocialMediaValidation() {
           platform: socialMedia,
         }),
       });
+    }
+
+    // Validate media types if media array is provided
+    if (media && media.length > 0) {
+      const mediaTypeErrors = validateMediaTypes(media, rules, socialMedia);
+      errors.push(...mediaTypeErrors);
     }
 
     return {

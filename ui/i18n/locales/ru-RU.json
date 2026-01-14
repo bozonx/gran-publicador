@@ -841,7 +841,11 @@
       "captionTooLong": "Длина подписи ({current}) превышает максимально допустимую ({max}) для {platform}",
       "textTooLong": "Длина текста ({current}) превышает максимально допустимую ({max}) для {platform}",
       "tooManyMedia": "Количество медиа ({current}) превышает максимально допустимое ({max}) для {platform}",
-      "notEnoughMedia": "Количество медиа ({current}) меньше минимально необходимого ({min}) для {platform}"
+      "notEnoughMedia": "Количество медиа ({current}) меньше минимально необходимого ({min}) для {platform}",
+      "invalidMediaType": "Недопустимый тип медиа ({type}) для {platform}",
+      "invalidGalleryMediaType": "В галерее для {platform} разрешены только {allowedTypes}",
+      "tooManyMediaInGallery": "Слишком много медиа файлов в галерее ({current}) для {platform}. Максимум: {max}",
+      "galleryNotAllowed": "Галерея не поддерживается для {platform}. Разрешен только один файл"
     }
   },
   "errors": {

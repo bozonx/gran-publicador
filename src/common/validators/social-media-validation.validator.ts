@@ -24,6 +24,7 @@ export interface PostValidationData {
   content?: string | null;
   mediaCount: number;
   socialMedia: SocialMedia;
+  media?: Array<{ type: string }>;
 }
 
 /**
@@ -88,6 +89,57 @@ export function normalizeOverrideContent(
 }
 
 /**
+ * Validate media types based on platform rules
+ */
+function validateMediaTypes(
+  media: Array<{ type: string }>,
+  rules: SocialMediaValidationRules,
+  socialMedia: SocialMedia,
+): string[] {
+  const errors: string[] = [];
+  const mediaCount = media.length;
+
+  // Check if this is a gallery (2+ files) or single file
+  const isGallery = mediaCount > 1;
+
+  if (isGallery) {
+    // Validate gallery media types
+    if (rules.allowedGalleryMediaTypes) {
+      const invalidMedia = media.filter(
+        (m) => !rules.allowedGalleryMediaTypes!.includes(m.type as any),
+      );
+      if (invalidMedia.length > 0) {
+        const invalidTypes = [...new Set(invalidMedia.map((m) => m.type))].join(', ');
+        const allowedTypes = rules.allowedGalleryMediaTypes.join(', ');
+        errors.push(
+          `Gallery for ${socialMedia} only allows ${allowedTypes}, but found: ${invalidTypes}`,
+        );
+      }
+    }
+
+    // Validate gallery count
+    if (rules.maxMediaCountForGallery && mediaCount > rules.maxMediaCountForGallery) {
+      errors.push(
+        `Gallery has too many files (${mediaCount}) for ${socialMedia}. Maximum for gallery: ${rules.maxMediaCountForGallery}`,
+      );
+    }
+  } else if (mediaCount === 1) {
+    // Validate single file media type
+    if (rules.allowedMediaTypes) {
+      const mediaType = media[0].type;
+      if (!rules.allowedMediaTypes.includes(mediaType as any)) {
+        const allowedTypes = rules.allowedMediaTypes.join(', ');
+        errors.push(
+          `Media type ${mediaType} is not allowed for ${socialMedia}. Allowed types: ${allowedTypes}`,
+        );
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Validate post content based on social media platform rules
  */
 export function validatePostContent(data: PostValidationData): ValidationResult {
@@ -126,6 +178,12 @@ export function validatePostContent(data: PostValidationData): ValidationResult 
     errors.push(
       `Media count (${data.mediaCount}) is below minimum required (${rules.minMediaCount}) for ${data.socialMedia}`,
     );
+  }
+
+  // Validate media types if media array is provided
+  if (data.media && data.media.length > 0) {
+    const mediaTypeErrors = validateMediaTypes(data.media, rules, data.socialMedia);
+    errors.push(...mediaTypeErrors);
   }
 
   return {

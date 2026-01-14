@@ -779,7 +779,11 @@
       "captionTooLong": "Caption length ({current}) exceeds maximum allowed ({max}) for {platform}",
       "textTooLong": "Text length ({current}) exceeds maximum allowed ({max}) for {platform}",
       "tooManyMedia": "Media count ({current}) exceeds maximum allowed ({max}) for {platform}",
-      "notEnoughMedia": "Media count ({current}) is below minimum required ({min}) for {platform}"
+      "notEnoughMedia": "Media count ({current}) is below minimum required ({min}) for {platform}",
+      "invalidMediaType": "Invalid media type ({type}) for {platform}",
+      "invalidGalleryMediaType": "Gallery for {platform} only allows {allowedTypes}",
+      "tooManyMediaInGallery": "Too many media files in gallery ({current}) for {platform}. Maximum: {max}",
+      "galleryNotAllowed": "Gallery is not supported for {platform}. Only one file allowed"
     }
   },
   "errors": {

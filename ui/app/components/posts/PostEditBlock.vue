@@ -262,6 +262,13 @@ const mediaCount = computed(() => {
     return props.publication?.media?.length || 0
 })
 
+const mediaArray = computed(() => {
+    // Map publication media to validation format
+    return props.publication?.media?.map(m => ({
+        type: m.media?.type || 'UNKNOWN'
+    })) || []
+})
+
 const validationResult = computed(() => {
     if (!selectedChannel.value?.socialMedia) {
         return { isValid: true, errors: [] }
@@ -272,7 +279,8 @@ const validationResult = computed(() => {
     return validatePostContent(
         content,
         mediaCount.value,
-        selectedChannel.value.socialMedia as any
+        selectedChannel.value.socialMedia as any,
+        mediaArray.value
     )
 })
 

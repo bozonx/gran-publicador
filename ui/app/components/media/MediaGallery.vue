@@ -27,10 +27,13 @@ interface Props {
   }>
   publicationId: string
   editable?: boolean
+  socialMedia?: string
+  showValidation?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   editable: true,
+  showValidation: true,
 })
 
 const { t } = useI18n()
@@ -43,6 +46,7 @@ const {
   removeMediaFromPublication, 
   reorderMediaInPublication,
 } = useMedia()
+const { validatePostContent } = useSocialMediaValidation()
 const toast = useToast()
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -487,6 +491,26 @@ function downloadMediaFile(media: MediaItem) {
   document.body.removeChild(link)
 }
 
+// Media validation
+const mediaValidation = computed(() => {
+  if (!props.showValidation || !props.socialMedia) {
+    return { isValid: true, errors: [] }
+  }
+  
+  const mediaArray = localMedia.value
+    .filter(item => item.media)
+    .map(item => ({
+      type: item.media!.type
+    }))
+  
+  return validatePostContent(
+    '',
+    mediaArray.length,
+    props.socialMedia as any,
+    mediaArray
+  )
+})
+
 interface Emits {
   (e: 'refresh'): void
 }
@@ -515,6 +539,24 @@ const emit = defineEmits<Emits>()
           {{ t('publication.media', 'Media Files') }}
         </h3>
       </div>
+
+      <!-- Media Validation Error Alert -->
+      <UAlert
+        v-if="!mediaValidation.isValid && mediaValidation.errors.length > 0"
+        color="error"
+        variant="soft"
+        class="mb-4"
+        icon="i-heroicons-exclamation-triangle"
+        :title="t('validation.validationWarningTitle', 'Validation Warning')"
+      >
+        <template #description>
+          <ul class="list-disc list-inside">
+            <li v-for="(error, index) in mediaValidation.errors" :key="index">
+              {{ error.message }}
+            </li>
+          </ul>
+        </template>
+      </UAlert>
 
       <!-- Horizontal scrollable media gallery -->
       <CommonHorizontalScroll class="-mx-6 px-6">
