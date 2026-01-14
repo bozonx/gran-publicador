@@ -976,6 +976,9 @@
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications yet",
-    "markAllRead": "Mark all as read"
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all",
+    "manage_notifs": "Manage and view your recent activity notifications",
+    "empty_desc": "You don't have any notifications at the moment. We'll let you know when something important happens."
   }
 }

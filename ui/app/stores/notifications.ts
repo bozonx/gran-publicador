@@ -35,16 +35,22 @@ export const useNotificationsStore = defineStore('notifications', () => {
   /**
    * Fetch notification history from REST API
    */
-  async function fetchNotifications(limit = 20, offset = 0) {
+  async function fetchNotifications(limit = 20, offset = 0, append = false) {
     isLoading.value = true;
     try {
       const response = await api.get<{ items: Notification[]; total: number }>('/notifications', {
         params: { limit, offset },
       });
-      items.value = response.items;
+      if (append) {
+        items.value = [...items.value, ...response.items];
+      } else {
+        items.value = response.items;
+      }
       await fetchUnreadCount();
+      return response;
     } catch (error) {
       console.error('Failed to fetch notifications', error);
+      return { items: [], total: 0 };
     } finally {
       isLoading.value = false;
     }

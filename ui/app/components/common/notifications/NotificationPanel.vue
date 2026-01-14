@@ -56,11 +56,11 @@ function handleNotificationClick() {
       </div>
     </div>
     
-    <!-- Footer (Optional) -->
-    <!-- <div class="p-3 border-t dark:border-gray-800 text-center">
-      <UButton variant="ghost" size="sm" class="text-gray-500 w-full" to="/notifications">
-        Показать все
+    <!-- Footer -->
+    <div class="p-3 border-t dark:border-gray-800 text-center">
+      <UButton variant="ghost" size="sm" class="text-gray-500 w-full" to="/notifications" @click="$emit('close')">
+        {{ t('notifications.viewAll') }}
       </UButton>
-    </div> -->
+    </div>
   </div>
 </template>
