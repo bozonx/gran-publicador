@@ -1,4 +1,4 @@
-import { PrismaClient, ProjectRole, SocialMedia, PostType, PostStatus, PublicationStatus } from '../src/generated/prisma/client.js';
+import { PrismaClient, ProjectRole, SocialMedia, PostType, PostStatus, PublicationStatus, NotificationType } from '../src/generated/prisma/client.js';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { config } from 'dotenv';
 import path from 'path';
@@ -24,6 +24,7 @@ async function main() {
     console.log('  Cleaning up old data...');
     // Delete in order to respect FK constraints
     await prisma.apiToken.deleteMany({});
+    await prisma.notification.deleteMany({});
     await prisma.post.deleteMany({});
     await prisma.publicationMedia.deleteMany({});
     await prisma.media.deleteMany({});
@@ -420,6 +421,49 @@ async function main() {
             scopeProjectIds: [projectData[0].id],
         }
     });
+    
+    // 11. NOTIFICATIONS
+    console.log('  Generating notifications...');
+    const notificationData = [
+        {
+            id: 'ccccccc1-cccc-cccc-cccc-cccccccccccc',
+            userId: devUser.id,
+            type: NotificationType.PUBLICATION_FAILED,
+            title: 'Ошибка публикации',
+            message: 'Не удалось опубликовать пост "Знакомство с Nuxt 4" в Telegram.',
+            meta: { publicationId: publications[0].id, channelId: channelData[0].id },
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+            readAt: null,
+        },
+        {
+            id: 'ccccccc2-cccc-cccc-cccc-cccccccccccc',
+            userId: devUser.id,
+            type: NotificationType.PROJECT_INVITE,
+            title: 'Приглашение в проект',
+            message: 'Алексей Админ пригласил вас в проект "Финансы и Крипто 💰".',
+            meta: { projectId: projectData[2].id },
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+            readAt: new Date(Date.now() - 1000 * 60 * 60 * 23),
+        },
+        {
+            id: 'ccccccc3-cccc-cccc-cccc-cccccccccccc',
+            userId: devUser.id,
+            type: NotificationType.SYSTEM,
+            title: 'Обновление системы',
+            message: 'Система была обновлена до версии 1.2.0. Ознакомьтесь с новыми функциями.',
+            meta: {},
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
+            readAt: null,
+        }
+    ];
+
+    for (const n of notificationData) {
+        await (prisma as any).notification.upsert({
+            where: { id: n.id },
+            update: n,
+            create: n,
+        });
+    }
 
     console.log('✅ Seeding complete!');
 }
