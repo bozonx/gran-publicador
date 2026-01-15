@@ -44,6 +44,10 @@ export class LlmService {
   private readonly config: LlmConfig;
   private readonly fetch = global.fetch;
 
+  /**
+   * Initializes the LlmService.
+   * @param configService - NestJS Configuration service to retrieve LLM settings.
+   */
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<LlmConfig>('llm')!;
   }
@@ -113,7 +117,11 @@ export class LlmService {
   }
 
   /**
-   * Builds the full prompt including context if provided.
+   * Builds the full prompt string combining user prompt with formatted context.
+   * 
+   * @param dto - The generate content DTO containing prompt and context sources.
+   * @returns A fully constructed prompt string ready for LLM consumption.
+   * @private
    */
   private buildFullPrompt(dto: GenerateContentDto): string {
     // Filter source texts if specific indexes are selected
@@ -141,7 +149,16 @@ export class LlmService {
   }
 
   /**
-   * Send request with retry logic.
+   * Sends an HTTP request with exponential backoff retry logic.
+   * Retries on 5xx server errors and 429 rate limits.
+   * 
+   * @param url - The service endpoint URL.
+   * @param body - The request body object.
+   * @param maxRetries - Maximum number of retry attempts (default: 3).
+   * @param timeoutMs - Request timeout in milliseconds (default: 60000).
+   * @returns The parsed JSON response of type T.
+   * @throws Error on non-retryable client errors or after all retry attempts fail.
+   * @private
    */
   private async sendRequestWithRetry<T>(
     url: string,
@@ -197,7 +214,10 @@ export class LlmService {
   }
 
   /**
-   * Extract content from LLM response.
+   * Helper method to extract the text content from a standard LLM Router response.
+   * 
+   * @param response - The raw response from the LLM Router.
+   * @returns The text content of the first choice message, or an empty string if not found.
    */
   extractContent(response: LlmResponse): string {
     return response.choices[0]?.message?.content || '';

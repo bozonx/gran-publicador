@@ -10,8 +10,12 @@ export class LlmPromptTemplatesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Creates a new LLM prompt template.
-   * Automatically calculates the order field based on existing templates.
+   * Creates a new LLM prompt template for either a user or a project.
+   * 
+   * @param createDto - Data for creating the template (name, description, prompt, userId/projectId).
+   * @returns The newly created template record.
+   * @throws BadRequestException if both OR neither userId and projectId are provided.
+   * @throws BadRequestException if prompt exceeds the character limit.
    */
   async create(createDto: CreateLlmPromptTemplateDto) {
     // Validate that either userId or projectId is provided, but not both
@@ -53,7 +57,12 @@ export class LlmPromptTemplatesService {
   }
 
   /**
-   * Gets the maximum order value for a user or project's templates.
+   * Retrieves the maximum order value among existing templates for the given owner.
+   * 
+   * @param userId - Optional user ID for personal templates.
+   * @param projectId - Optional project ID for project templates.
+   * @returns The maximum order value found, or -1 if no templates exist.
+   * @private
    */
   private async getMaxOrder(
     userId?: string,
@@ -67,6 +76,12 @@ export class LlmPromptTemplatesService {
     return result._max.order ?? -1;
   }
 
+  /**
+   * Retrieves all personal templates for a specific user.
+   * 
+   * @param userId - ID of the user whose templates to retrieve.
+   * @returns Array of prompt templates ordered by display order.
+   */
   async findAllByUser(userId: string) {
     return this.prisma.llmPromptTemplate.findMany({
       where: { userId },
@@ -74,6 +89,12 @@ export class LlmPromptTemplatesService {
     });
   }
 
+  /**
+   * Retrieves all project-specific templates for a specific project.
+   * 
+   * @param projectId - ID of the project whose templates to retrieve.
+   * @returns Array of prompt templates ordered by display order.
+   */
   async findAllByProject(projectId: string) {
     return this.prisma.llmPromptTemplate.findMany({
       where: { projectId },
@@ -81,6 +102,13 @@ export class LlmPromptTemplatesService {
     });
   }
 
+  /**
+   * Retrieves a single template by its unique ID.
+   * 
+   * @param id - The UUID of the template.
+   * @returns The template record.
+   * @throws NotFoundException if the template does not exist.
+   */
   async findOne(id: string) {
     const template = await this.prisma.llmPromptTemplate.findUnique({
       where: { id },
@@ -93,6 +121,15 @@ export class LlmPromptTemplatesService {
     return template;
   }
 
+  /**
+   * Updates an existing template.
+   * 
+   * @param id - The UUID of the template to update.
+   * @param updateDto - The fields to update.
+   * @returns The updated template record.
+   * @throws NotFoundException if the template does not exist.
+   * @throws BadRequestException if the new prompt exceeds character limit.
+   */
   async update(id: string, updateDto: UpdateLlmPromptTemplateDto) {
     await this.findOne(id);
 
@@ -109,6 +146,13 @@ export class LlmPromptTemplatesService {
     });
   }
 
+  /**
+   * Permanently deletes a template.
+   * 
+   * @param id - The UUID of the template to delete.
+   * @returns The deleted template record.
+   * @throws NotFoundException if the template does not exist.
+   */
   async remove(id: string) {
     await this.findOne(id);
 
@@ -118,8 +162,15 @@ export class LlmPromptTemplatesService {
   }
 
   /**
-   * Reorders templates by updating their order field.
-   * Validates that all templates belong to the same scope (user or project).
+   * Updates the display order of multiple templates simultaneously.
+   * All templates in the list must belong to the same scope (same user or same project).
+   * 
+   * @param ids - Ordered list of template UUIDs.
+   * @param userId - ID of the user performing the reorder (for permission verification).
+   * @returns Success status indicator.
+   * @throws NotFoundException if any of the IDs do not exist.
+   * @throws BadRequestException if templates from different scopes are mixed.
+   * @throws ForbiddenException if user lacks permission for any of the templates.
    */
   async reorder(ids: string[], userId: string) {
     if (ids.length === 0) {
@@ -196,8 +247,13 @@ export class LlmPromptTemplatesService {
   }
 
   /**
-   * Verifies that a user owns or has access to a template.
-   * Used by guards and controllers for permission checks.
+   * Verifies that a specific user has access to a specific template.
+   * For personal templates: user must be the owner (userId matches).
+   * For project templates: user must be a member or the owner of the project.
+   * 
+   * @param templateId - ID of the template to check.
+   * @param userId - ID of the user to verify access for.
+   * @returns True if access is granted, False otherwise.
    */
   async verifyOwnership(templateId: string, userId: string): Promise<boolean> {
     const template = await this.prisma.llmPromptTemplate.findUnique({

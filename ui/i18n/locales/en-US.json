@@ -1021,7 +1021,20 @@
     "manageTemplates": "Manage Prompt Templates",
     "userTemplates": "Personal Prompt Templates",
     "projectTemplates_desc": "Project Prompt Templates",
-    "userTemplates_desc": "Your personal prompt templates available in all projects"
+    "userTemplates_desc": "Your personal prompt templates available in all projects",
+    "estimatedTokens": "Approximately {count} tokens",
+    "searchTemplates": "Search templates...",
+    "noTemplatesFound": "No templates found",
+    "noTemplatesDescription": "Create prompt templates for quick access to frequently used AI requests",
+    "createFirstTemplate": "Create first template",
+    "networkError": "Network Error",
+    "networkErrorMessage": "Failed to connect to server. Check your internet connection.",
+    "timeoutError": "Timeout Error",
+    "timeoutErrorMessage": "Request took too long. Please try again.",
+    "rateLimitError": "Rate Limit Exceeded",
+    "rateLimitErrorMessage": "Too many requests. Please wait a moment.",
+    "serverError": "Server Error",
+    "serverErrorMessage": "A server error occurred. Please try later."
   },
   "drafts": {
     "page_title": "Drafts and Templates",
