@@ -45,6 +45,7 @@ export class MediaService {
   private readonly mediaDir: string;
   private readonly thumbnailsDir: string;
   private readonly maxFileSize: number;
+  private readonly fetch = global.fetch;
 
   constructor(
     private prisma: PrismaService,
@@ -527,19 +528,44 @@ export class MediaService {
     // Write stream to file
     const fileStream = fs.createWriteStream(filePath);
     let size = 0;
+    let sizeExceeded = false;
 
     await new Promise<void>((resolve, reject) => {
       stream.on('data', chunk => {
+        if (sizeExceeded) return;
+
         size += chunk.length;
         if (size > this.maxFileSize) {
+          sizeExceeded = true;
           fileStream.destroy();
-          reject(new BadRequestException(`File exceeds size limit`));
+          stream.destroy();
+
+          // Delete partial file
+          unlink(filePath).catch(err => {
+            this.logger.error(`Failed to delete oversized file: ${err.message}`);
+          });
+
+          reject(
+            new BadRequestException(
+              `File exceeds size limit of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`,
+            ),
+          );
         }
       });
+
       stream.pipe(fileStream);
-      fileStream.on('finish', resolve);
+
+      fileStream.on('finish', () => {
+        if (!sizeExceeded) resolve();
+      });
+
       fileStream.on('error', reject);
+      stream.on('error', reject);
     });
+
+    if (sizeExceeded) {
+      throw new BadRequestException('File size validation failed');
+    }
 
     // Detect media info (since we don't have the buffer now, we rely on mimetype and filename)
     // In future, we could have read the first chunk for better detection.
@@ -700,7 +726,7 @@ export class MediaService {
     this.logger.debug(`Downloading file from URL: ${url}`);
 
     try {
-      const response = await fetch(url);
+      const response = await this.fetch(url);
       if (!response.ok) {
         throw new BadRequestException(`Failed to download (status: ${response.status})`);
       }
@@ -708,8 +734,13 @@ export class MediaService {
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
       const contentLength = response.headers.get('content-length');
 
-      if (contentLength && parseInt(contentLength) > this.maxFileSize) {
-        throw new BadRequestException(`File too large (${contentLength} bytes)`);
+      if (contentLength) {
+        const size = parseInt(contentLength, 10);
+        if (isNaN(size) || size < 0) {
+          this.logger.warn(`Invalid content-length header: ${contentLength}`);
+        } else if (size > this.maxFileSize) {
+          throw new BadRequestException(`File too large (${size} bytes, max: ${this.maxFileSize})`);
+        }
       }
 
       if (!response.body) {
@@ -940,7 +971,7 @@ export class MediaService {
       // Step 1: Get file path from Telegram
       const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(media.storagePath)}`;
 
-      const getFileResponse = await fetch(getFileUrl, {
+      const getFileResponse = await this.fetch(getFileUrl, {
         signal: AbortSignal.timeout(10000),
       });
 
@@ -952,7 +983,7 @@ export class MediaService {
         throw new Error(`Failed to get file info (status ${getFileResponse.status})`);
       }
 
-      const fileInfo = await getFileResponse.json();
+      const fileInfo = (await getFileResponse.json()) as any;
 
       if (!fileInfo.ok || !fileInfo.result?.file_path) {
         this.logger.warn(`Invalid Telegram file_id or file not found: ${media.storagePath}`);
@@ -962,7 +993,7 @@ export class MediaService {
       // Step 2: Download file from Telegram
       const fileUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${fileInfo.result.file_path}`;
 
-      const fileResponse = await fetch(fileUrl, {
+      const fileResponse = await this.fetch(fileUrl, {
         signal: AbortSignal.timeout(60000),
       });
 

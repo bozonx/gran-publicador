@@ -4,7 +4,8 @@ process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-key-for-e2e-test
 process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? 'test-token';
 process.env.TELEGRAM_ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ?? '123456789';
 process.env.FREE_LLM_ROUTER_URL = process.env.FREE_LLM_ROUTER_URL ?? 'http://localhost:8080/llm';
-process.env.SOCIAL_POSTING_SERVICE_URL = process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:8081/social';
+process.env.SOCIAL_POSTING_SERVICE_URL =
+  process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:8081/social';
 process.env.NODE_ENV = 'test';
 
 import { Test } from '@nestjs/testing';

@@ -117,7 +117,7 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
                 userId: fullPub.createdBy,
                 type: NotificationType.PUBLICATION_FAILED,
                 title: 'Publication Expired',
-                message: `Publication "${fullPub.title || fullPub.content?.substring(0, 30)}..." has expired`,
+                message: `Publication "${fullPub.title || (fullPub.content ? fullPub.content.substring(0, 30) : 'Untitled')}..." has expired`,
                 meta: { publicationId: pub.id, projectId: fullPub.projectId },
               });
             }

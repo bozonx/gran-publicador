@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TranslateConfig } from '../../config/translate.config.js';
 import { TranslateTextDto } from './dto/translate-text.dto.js';
@@ -11,6 +11,7 @@ import { TranslateResponseDto } from './dto/translate-response.dto.js';
 export class TranslateService {
   private readonly logger = new Logger(TranslateService.name);
   private readonly config: TranslateConfig;
+  private readonly fetch = global.fetch;
 
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<TranslateConfig>('translate')!;
@@ -51,22 +52,12 @@ export class TranslateService {
     try {
       const timeoutMs = (dto.timeoutSec || this.config.timeoutSec || 50) * 1000;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      const data = await this.sendRequestWithRetry<TranslateResponseDto>(
+        url,
+        requestBody,
+        timeoutMs,
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`Translate Gateway error: ${response.status} ${errorText}`);
-        throw new Error(`Translate Gateway returned ${response.status}: ${errorText}`);
-      }
-
-      const data = (await response.json()) as TranslateResponseDto;
       this.logger.debug(
         `Translation successful: provider=${data.provider}, model=${data.model}, chunks=${data.chunksCount}`,
       );
@@ -76,5 +67,60 @@ export class TranslateService {
       this.logger.error(`Failed to translate text: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  /**
+   * Send request with retry logic.
+   */
+  private async sendRequestWithRetry<T>(url: string, body: any, timeoutMs: number): Promise<T> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await this.fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            throw new Error(`Translate Gateway returned ${response.status}: ${errorText}`);
+          }
+
+          throw new Error(`Server error ${response.status}: ${errorText}`);
+        }
+
+        const data = (await response.json()) as T;
+
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid response format from Translate Gateway');
+        }
+
+        return data;
+      } catch (error: any) {
+        lastError = error;
+
+        if (error.name === 'AbortError' || error.message.includes('returned 4')) {
+          throw error;
+        }
+
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          this.logger.warn(
+            `Translation request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms`,
+          );
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError ?? new Error('All retry attempts failed');
   }
 }

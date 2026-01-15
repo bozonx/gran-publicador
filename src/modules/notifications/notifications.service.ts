@@ -17,6 +17,10 @@ export class NotificationsService {
    * Create a new notification and send it via WebSocket if user is online.
    */
   async create(data: CreateNotificationDto) {
+    if (!data.userId || !data.type || !data.message) {
+      throw new Error('Missing required notification fields');
+    }
+
     const notification = await (this.prisma as any).notification.create({
       data: {
         userId: data.userId,
@@ -27,8 +31,12 @@ export class NotificationsService {
       },
     });
 
-    // Notify user via WebSocket
-    this.gateway.sendToUser(data.userId, notification);
+    // Notify user via WebSocket safely
+    try {
+      this.gateway.sendToUser(data.userId, notification);
+    } catch (error: any) {
+      this.logger.error(`Failed to send notification via WebSocket: ${error.message}`);
+    }
 
     return notification;
   }
@@ -85,7 +93,11 @@ export class NotificationsService {
       where: { id },
     });
 
-    if (notification?.userId !== userId) {
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    if (notification.userId !== userId) {
       throw new NotFoundException('Notification not found');
     }
 

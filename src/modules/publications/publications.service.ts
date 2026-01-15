@@ -458,15 +458,16 @@ export class PublicationsService {
     }
 
     // Parse meta JSON for media items
-    const parsedMedia = publication.media?.map(pm => ({
-      ...pm,
-      media: pm.media
-        ? {
-            ...pm.media,
-            meta: this.parseMetaJson(pm.media.meta),
-          }
-        : pm.media,
-    }));
+    const parsedMedia = publication.media?.map(pm => {
+      if (!pm.media) return pm;
+      return {
+        ...pm,
+        media: {
+          ...pm.media,
+          meta: this.parseMetaJson(pm.media.meta),
+        },
+      };
+    });
 
     return {
       ...publication,

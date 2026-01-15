@@ -11,7 +11,6 @@ import { ShutdownService } from '../../common/services/shutdown.service.js';
 import { AppConfig } from '../../config/app.config.js';
 import { SocialPostingConfig } from '../../config/social-posting.config.js';
 import { PostRequestDto, PostResponseDto, PreviewResponseDto } from './dto/social-posting.dto.js';
-import { fetch } from 'undici';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { NotificationType } from '../../generated/prisma/client.js';
 
@@ -70,25 +69,34 @@ export class SocialPostingService {
       const response = await this.sendRequest<PreviewResponseDto>('preview', request);
 
       // Check if it's success response based on DTO structure
-      if (response.success && 'valid' in (response.data || {})) {
-        const data = response.data as any;
-        if (data.valid) {
+      if (!response || typeof response !== 'object') {
+        return {
+          success: false,
+          message: 'Invalid response from service',
+          details: response,
+        };
+      }
+
+      const responseAny = response as any;
+      if (responseAny.success && responseAny.data && typeof responseAny.data === 'object') {
+        const data = responseAny.data;
+        if ('valid' in data && data.valid === true) {
           return {
             success: true,
             message: 'Connection and credentials are valid (Preview mode)',
-            details: response.data,
+            details: responseAny.data,
           };
         } else {
           return {
             success: false,
             message: 'Platform rejected the preview request',
-            details: (response.data as any)?.errors || response.data,
+            details: data.errors || responseAny.data,
           };
         }
       } else {
         return {
           success: false,
-          message: 'Service returned error',
+          message: responseAny.error?.message || 'Service returned error',
           details: response,
         };
       }
@@ -308,7 +316,7 @@ export class SocialPostingService {
             finalStatus === PublicationStatus.FAILED
               ? 'Publication Failed'
               : 'Publication Partially Failed',
-          message: `Publication "${publication.title || publication.content?.substring(0, 30)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.${detailMessage}`,
+          message: `Publication "${publication.title || (publication.content ? publication.content.substring(0, 30) : 'Untitled')}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.${detailMessage}`,
           meta: { publicationId: publication.id, projectId: publication.projectId },
         });
       } catch (error: any) {
@@ -429,7 +437,7 @@ export class SocialPostingService {
               finalStatus === PublicationStatus.FAILED
                 ? 'Publication Failed'
                 : 'Publication Partially Failed',
-            message: `Publication "${post.publication.title || post.publication.content?.substring(0, 30)}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.\n${statusIcon} ${post.channel.name} (${post.channel.socialMedia}): ${statusText}${result.error ? ` (${result.error})` : ''}`,
+            message: `Publication "${post.publication.title || (post.publication.content ? post.publication.content.substring(0, 30) : 'Untitled')}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.\n${statusIcon} ${post.channel.name} (${post.channel.socialMedia}): ${statusText}${result.error ? ` (${result.error})` : ''}`,
             meta: { publicationId: post.publicationId, projectId: post.publication.projectId },
           });
         } catch (error: any) {
@@ -500,13 +508,25 @@ export class SocialPostingService {
       const response = await this.sendRequest<PostResponseDto>('post', request);
 
       if (response.success && response.data) {
+        // Validate publishedAt
+        let publishedAt: Date;
+        try {
+          publishedAt = new Date(response.data.publishedAt);
+          if (isNaN(publishedAt.getTime())) {
+            throw new Error('Invalid date');
+          }
+        } catch (error) {
+          this.logger.warn(`Invalid publishedAt from microservice, using current time`);
+          publishedAt = new Date();
+        }
+
         // Save response in meta.response as requested
         const meta = post.meta || {};
         await this.prisma.post.update({
           where: { id: post.id },
           data: {
             status: PostStatus.PUBLISHED,
-            publishedAt: new Date(response.data.publishedAt),
+            publishedAt,
             meta: this.sanitizeJson({
               ...meta,
               attempts: [

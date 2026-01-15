@@ -23,12 +23,9 @@ beforeAll(() => {
   // Config validation requires a valid URL
   process.env.SOCIAL_POSTING_SERVICE_URL =
     process.env.SOCIAL_POSTING_SERVICE_URL || 'http://localhost:9999';
-  process.env.FREE_LLM_ROUTER_URL =
-    process.env.FREE_LLM_ROUTER_URL || 'http://localhost:9999';
-  process.env.TRANSLATE_SERVICE_URL =
-    process.env.TRANSLATE_SERVICE_URL || 'http://localhost:9999';
-  process.env.STT_SERVICE_URL =
-    process.env.STT_SERVICE_URL || 'http://localhost:9999';
+  process.env.FREE_LLM_ROUTER_URL = process.env.FREE_LLM_ROUTER_URL || 'http://localhost:9999';
+  process.env.TRANSLATE_SERVICE_URL = process.env.TRANSLATE_SERVICE_URL || 'http://localhost:9999';
+  process.env.STT_SERVICE_URL = process.env.STT_SERVICE_URL || 'http://localhost:9999';
 
   // Redis for tests (can use defaults, but set just in case)
   process.env.REDIS_HOST = process.env.REDIS_HOST || 'localhost';

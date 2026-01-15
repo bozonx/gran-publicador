@@ -40,6 +40,7 @@ export interface LlmResponse {
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly config: LlmConfig;
+  private readonly fetch = global.fetch;
 
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<LlmConfig>('llm')!;
@@ -96,22 +97,18 @@ export class LlmService {
     this.logger.debug(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout((this.config.timeoutSecs || 60) * 1000),
-      });
+      const data = await this.sendRequestWithRetry<LlmResponse>(
+        url,
+        requestBody,
+        3, // maxRetries
+        (this.config.timeoutSecs || 60) * 1000,
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`LLM Router error: ${response.status} ${errorText}`);
-        throw new Error(`LLM Router returned ${response.status}: ${errorText}`);
+      // Validate response structure
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('LLM Router returned empty choices array');
       }
 
-      const data = (await response.json()) as LlmResponse;
       this.logger.debug(`LLM Router response: ${JSON.stringify(data._router, null, 2)}`);
 
       return data;
@@ -119,6 +116,62 @@ export class LlmService {
       this.logger.error(`Failed to generate content: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  /**
+   * Send request with retry logic.
+   */
+  private async sendRequestWithRetry<T>(
+    url: string,
+    body: any,
+    maxRetries: number = 3,
+    timeoutMs: number = 60000,
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await this.fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+
+          // Do not retry for client errors (4xx) except maybe 429
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            throw new Error(`LLM Router returned ${response.status}: ${errorText}`);
+          }
+
+          // Retry for server errors (5xx) or rate limits (429)
+          throw new Error(`Server error ${response.status}: ${errorText}`);
+        }
+
+        return (await response.json()) as T;
+      } catch (error: any) {
+        lastError = error;
+
+        // Do not retry for explicit aborts or specific client errors already thrown above
+        if (error.name === 'AbortError' || error.message.includes('returned 4')) {
+          throw error;
+        }
+
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          this.logger.warn(
+            `LLM request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms: ${error.message}`,
+          );
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError ?? new Error('All retry attempts failed');
   }
 
   /**

@@ -19,6 +19,9 @@ describe('TranslateService', () => {
   };
 
   beforeEach(async () => {
+    // Mock global fetch before creating the module
+    global.fetch = jest.fn() as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TranslateService,
@@ -33,9 +36,6 @@ describe('TranslateService', () => {
 
     service = module.get<TranslateService>(TranslateService);
     configService = module.get<ConfigService>(ConfigService);
-
-    // Mock global fetch
-    global.fetch = jest.fn();
   });
 
   afterEach(() => {
@@ -57,7 +57,7 @@ describe('TranslateService', () => {
       provider: 'test-provider',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockResponse,
     });
@@ -80,14 +80,15 @@ describe('TranslateService', () => {
       targetLang: 'ru-RU',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    // Use mockResolvedValue (not Once) to handle retries
+    (global.fetch as jest.Mock<any>).mockResolvedValue({
       ok: false,
       status: 500,
       text: async () => 'Internal Server Error',
     });
 
     await expect(service.translateText(dto)).rejects.toThrow(
-      'Translate Gateway returned 500: Internal Server Error',
+      'Server error 500: Internal Server Error',
     );
   });
 
@@ -99,14 +100,16 @@ describe('TranslateService', () => {
       maxChunkLength: 500,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ translatedText: 'Привет' }),
     });
 
     await service.translateText(dto);
 
-    const callBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    const fetchMock = global.fetch as jest.Mock<any>;
+    const callArgs = fetchMock.mock.calls[0] as any[];
+    const callBody = JSON.parse(callArgs[1].body);
     expect(callBody.provider).toBe('override-provider');
     expect(callBody.maxChunkLength).toBe(500);
     expect(callBody.timeoutSec).toBe(mockConfig.timeoutSec);

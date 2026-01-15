@@ -219,7 +219,7 @@ export class ProjectsService {
     inactiveRaw.forEach((row: any) => inactiveMap.set(row.projectId, Number(row._count.id || 0)));
 
     return projects.map(project => {
-      const userMember = project.members[0];
+      const userMember = project.members.length > 0 ? project.members[0] : null;
       const lastPublicationAt = project.publications[0]?.createdAt || null;
       const lastPublicationId = project.publications[0]?.id || null;
 
@@ -302,7 +302,12 @@ export class ProjectsService {
       return {
         ...project,
         channels: mappedChannels,
-        role: project.ownerId === userId ? 'owner' : project.members[0]?.role?.toLowerCase(),
+        role:
+          project.ownerId === userId
+            ? 'owner'
+            : project.members.length > 0
+              ? project.members[0].role?.toLowerCase()
+              : 'viewer',
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
         lastPublicationAt: project.publications[0]?.createdAt || null,
@@ -545,9 +550,10 @@ export class ProjectsService {
         this.prisma.user.findUnique({ where: { id: userId } }),
       ]);
 
-      const inviterName =
-        inviter?.fullName ||
-        (inviter?.telegramUsername ? `@${inviter.telegramUsername}` : 'Someone');
+      const inviterName = inviter
+        ? inviter.fullName ||
+          (inviter.telegramUsername ? `@${inviter.telegramUsername}` : 'Unknown User')
+        : 'System';
 
       await this.notifications.create({
         userId: userToAdd.id,

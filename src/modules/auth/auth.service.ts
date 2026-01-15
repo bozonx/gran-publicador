@@ -155,8 +155,21 @@ export class AuthService {
   private validateTelegramWidgetData(data: TelegramWidgetLoginDto): boolean {
     const { hash, ...rest } = data;
 
-    // Check if auth_date is older than 24 hours
     const now = Math.floor(Date.now() / 1000);
+
+    // Validate auth_date type and range
+    if (typeof data.auth_date !== 'number' || data.auth_date < 0) {
+      this.logger.warn('Invalid auth_date value');
+      return false;
+    }
+
+    // Prevent future dates (allow 5min clock skew)
+    if (data.auth_date > now + 300) {
+      this.logger.warn('auth_date is in the future');
+      return false;
+    }
+
+    // Check if auth_date is older than 24 hours
     if (now - data.auth_date > 86400) {
       this.logger.warn('Telegram widget data expired');
       return false;
@@ -191,9 +204,23 @@ export class AuthService {
       return false;
     }
 
-    // Check if auth_date is older than 24 hours
     const now = Math.floor(Date.now() / 1000);
-    if (now - Number(authDate) > 86400) {
+    const authDateNum = Number(authDate);
+
+    // Validate auth_date range
+    if (isNaN(authDateNum) || authDateNum < 0) {
+      this.logger.warn('Invalid auth_date value');
+      return false;
+    }
+
+    // Prevent future dates (allow 5min clock skew)
+    if (authDateNum > now + 300) {
+      this.logger.warn('auth_date is in the future');
+      return false;
+    }
+
+    // Check if auth_date is older than 24 hours
+    if (now - authDateNum > 86400) {
       this.logger.warn('Telegram init data expired');
       return false;
     }
