@@ -181,10 +181,6 @@ You can now:
 6. Update session metadata in Redis (reset TTL)
 7. Edit menu message to show updated stats
 
-**Limits:**
-- Max source texts: 50 (configurable via `TELEGRAM_MAX_SOURCE_TEXTS`)
-- Max media: 20 (configurable via `TELEGRAM_MAX_MEDIA`)
-
 **Error Handling:**
 - If publication not found: Clear session, send error, return to "no menu"
 - If limit reached: Send warning message, don't add content
@@ -271,10 +267,8 @@ Add to `.env.development.example`:
 # Telegram Bot Session Configuration
 # Session TTL in minutes (default: 10)
 TELEGRAM_SESSION_TTL_MINUTES=10
-# Maximum source texts per publication (default: 50)
-TELEGRAM_MAX_SOURCE_TEXTS=50
-# Maximum media items per publication (default: 20)
-TELEGRAM_MAX_MEDIA=20
+# Frontend URL for publication links in bot messages
+FRONTEND_URL="http://localhost:3000"
 ```
 
 ## Database Schema Considerations
@@ -289,35 +283,37 @@ TELEGRAM_MAX_MEDIA=20
 
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure
-1. Create `TelegramSessionService` for Redis operations
-2. Add environment variables and configuration
-3. Create user validation middleware/helper
-4. Add i18n keys for all messages
+### Phase 1: Core Infrastructure ✅ COMPLETED
+1. ✅ Create `TelegramSessionService` for Redis operations
+2. ✅ Add environment variables and configuration
+3. ✅ Create user validation middleware/helper
+4. ✅ Add i18n keys for all messages
 
-### Phase 2: User Management
-1. Implement user validation flow
-2. Update `/start` command handler
-3. Add error messages for banned/not found users
+### Phase 2: User Management ✅ COMPLETED
+1. ✅ Implement user validation flow
+2. ✅ Update `/start` command handler
+3. ✅ Add error messages for banned/not found users
 
-### Phase 3: Menu System
-1. Implement session state machine
-2. Create `home` menu handler
-3. Create `collect` menu handler
-4. Implement inline keyboard handlers
+### Phase 3: Menu System ✅ COMPLETED
+1. ✅ Implement session state machine
+2. ✅ Create `home` menu handler
+3. ✅ Create `collect` menu handler
+4. ✅ Implement inline keyboard handlers
 
-### Phase 4: Content Processing
-1. Implement repost/forward detection
-2. Create publication draft creation logic
-3. Implement media handling (photos, videos, documents)
-4. Add source text extraction and formatting
+### Phase 4: Content Processing ✅ COMPLETED
+1. ✅ Implement repost/forward detection
+2. ✅ Create publication draft creation logic
+3. ✅ Implement media handling (photos, videos, documents)
+4. ✅ Add source text extraction and formatting
 
-### Phase 5: Polish
-1. Add limits and validation
-2. Implement error handling
-3. Add logging and monitoring
-4. Write unit tests
-5. Write E2E tests
+### Phase 5: Polish (TODO)
+1. ⏳ Add logging and monitoring
+2. ⏳ Write unit tests
+3. ⏳ Write E2E tests
+
+## Notes
+
+**Limits Removed:** As per user request, there are NO limits on source texts or media count. Users can add as much content as they need through the bot.
 
 ## Testing Strategy
 

@@ -71,6 +71,22 @@ export class AppConfig {
   public telegramBotEnabled!: boolean;
 
   /**
+   * Session TTL in minutes for Telegram bot.
+   * Defined by TELEGRAM_SESSION_TTL_MINUTES environment variable.
+   * Default: 10
+   */
+  @IsInt()
+  @Min(1)
+  public telegramSessionTtlMinutes!: number;
+
+  /**
+   * Frontend URL for publication links in bot messages.
+   * Defined by FRONTEND_URL environment variable.
+   */
+  @IsString()
+  public frontendUrl!: string;
+
+  /**
    * JWT Secret for auth.
    */
   @IsString()
@@ -148,6 +164,8 @@ export default registerAs('app', (): AppConfig => {
     adminTelegramId: process.env.TELEGRAM_ADMIN_ID,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
+    telegramSessionTtlMinutes: parseInt(process.env.TELEGRAM_SESSION_TTL_MINUTES ?? '10', 10),
+    frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
     jwtSecret: process.env.JWT_SECRET,
 
     // Media Config

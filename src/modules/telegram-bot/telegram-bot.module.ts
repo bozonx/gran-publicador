@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { UsersModule } from '../users/users.module.js';
+import { PublicationsModule } from '../publications/publications.module.js';
+import { MediaModule } from '../media/media.module.js';
 import { TelegramBotService } from './telegram-bot.service.js';
 import { TelegramBotUpdate } from './telegram-bot.update.js';
+import { TelegramSessionService } from './telegram-session.service.js';
 
 @Module({
-  imports: [UsersModule],
-  providers: [TelegramBotService, TelegramBotUpdate],
+  imports: [UsersModule, PublicationsModule, MediaModule],
+  providers: [TelegramBotService, TelegramBotUpdate, TelegramSessionService],
   exports: [TelegramBotService],
 })
 export class TelegramBotModule {}

@@ -1,6 +1,15 @@
 {
-  "welcome_new": "Hello, {name}! 👋\n\nI will help you collect interesting posts and reposts for your projects.\n\nJust forward me a message from any channel and I will save it as \"Source Text\" in your personal draft.",
-  "welcome_existing": "Welcome back, {name}! 👋\n\nSend me a repost from a channel, and I will help you save it.",
-  "repost_received": "I received your repost! Soon I will learn to save it to the database.",
-  "send_repost": "Hello! Send me a repost from a channel, and I will help you save it."
+  "welcome_new": "Hello, {name}! 👋\n\nI will help you collect interesting posts and reposts for your projects.\n\nJust forward me a message from any channel and I will save it as a draft publication.",
+  "welcome_existing": "Welcome back, {name}! 👋\n\nSend me a repost or message, and I will create a draft publication.",
+  "user_not_found": "❌ User not found in the system.\n\nPlease send /start to begin.",
+  "user_banned": "🚫 Your account has been banned.\nReason: {reason}\n\nIf you believe this is a mistake, please contact support.",
+  "draft_created": "✅ Draft created!\n\n📝 Content: {content}\n📎 Media: {mediaCount}\n📄 Source texts: {sourceTextsCount}\n\nYou can now:\n• Send more messages to add source texts\n• Send media to attach to publication\n• Click \"Done\" when ready",
+  "draft_updated": "✅ Draft updated!\n\n📝 Content: {content}\n📎 Media: {mediaCount}\n📄 Source texts: {sourceTextsCount}",
+  "draft_completed": "✅ Draft publication saved!\n\nYou can edit it in Gran Publicador:\n{url}\n\nSend another message to create a new draft.",
+  "draft_cancelled": "❌ Draft cancelled.\n\nSend a message to create a new draft.",
+  "error_publication_not_found": "❌ Publication not found. It may have been deleted.\n\nSend a new message to create a draft.",
+  "error_session_expired": "⏱ Session expired.\n\nSend a new message to create a draft.",
+  "error_creating_draft": "❌ Error creating draft.\n\nPlease try again or contact support.",
+  "button_done": "✅ Done",
+  "button_cancel": "🗑 Cancel"
 }

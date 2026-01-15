@@ -32,6 +32,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     // Register handlers
     this.bot.command('start', (ctx) => this.telegramBotUpdate.onStart(ctx));
     this.bot.on('message', (ctx) => this.telegramBotUpdate.onMessage(ctx));
+    this.bot.on('callback_query:data', (ctx) => this.telegramBotUpdate.onCallbackQuery(ctx));
 
     // Start bot
     this.bot.start({
