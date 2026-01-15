@@ -5,17 +5,26 @@ interface Props {
   modelValue: PublicationStatus
   disabled?: boolean
   isContentMissing?: boolean
+  isPersonal?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    isPersonal: false
+})
 const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
 
-const options = [
-  { value: 'DRAFT', label: t('publicationStatus.draft') },
-  { value: 'READY', label: t('publicationStatus.ready') }
-]
+const options = computed(() => {
+    const opts = [
+        { value: 'DRAFT', label: t('publicationStatus.draft') },
+        { value: 'READY', label: t('publicationStatus.ready') }
+    ]
+    if (!props.isPersonal) {
+        opts.push({ value: 'SCHEDULED', label: t('publicationStatus.scheduled') })
+    }
+    return opts
+})
 
 function selectStatus(status: string) {
   if (status === 'READY' && props.isContentMissing && props.modelValue === 'DRAFT') {

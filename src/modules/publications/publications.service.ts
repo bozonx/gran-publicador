@@ -93,9 +93,28 @@ export class PublicationsService {
    * @returns The created publication.
    */
   public async create(data: CreatePublicationDto, userId?: string) {
-    if (userId) {
+    if (userId && data.projectId) {
       // Check if user has access to the project
       await this.permissions.checkProjectAccess(data.projectId, userId);
+    }
+
+    // Validation for personal drafts (no project)
+    if (!data.projectId) {
+      if (
+        data.status &&
+        data.status !== PublicationStatus.DRAFT &&
+        data.status !== PublicationStatus.READY
+      ) {
+        throw new BadRequestException('Personal drafts can only have DRAFT or READY status');
+      }
+
+      if (data.scheduledAt) {
+        throw new BadRequestException('Personal drafts cannot be scheduled');
+      }
+
+      if (data.channelIds?.length) {
+        throw new BadRequestException('Cannot create posts for personal drafts');
+      }
     }
 
     let translationGroupId = data.translationGroupId;
@@ -118,7 +137,7 @@ export class PublicationsService {
 
       // 3. Validate Project Scope (Issue 2)
       if (targetPub.projectId !== data.projectId) {
-        throw new BadRequestException('Cannot link publications from different projects');
+        throw new BadRequestException('Cannot link publications from different projects or contexts');
       }
 
       // 4. Validate Post Type Compatibility (User Request)
@@ -163,7 +182,7 @@ export class PublicationsService {
 
     const publication = await this.prisma.publication.create({
       data: {
-        projectId: data.projectId,
+        projectId: data.projectId ?? null,
         createdBy: userId ?? null,
         title: data.title,
         description: data.description,
@@ -199,8 +218,9 @@ export class PublicationsService {
     });
 
     const author = userId ? `user ${userId}` : 'external system';
+    const projectInfo = data.projectId ? `project ${data.projectId}` : 'personal drafts';
     this.logger.log(
-      `Publication "${publication.title ?? publication.id}" created in project ${data.projectId} by ${author}`,
+      `Publication "${publication.title ?? publication.id}" created in ${projectInfo} by ${author}`,
     );
 
     // Automatically create posts for specified channels
@@ -288,6 +308,85 @@ export class PublicationsService {
             select: {
               id: true,
               name: true,
+            },
+          },
+        },
+        orderBy,
+        take: filters?.limit,
+        skip: filters?.offset,
+      }),
+      this.prisma.publication.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item: any) => ({
+        ...item,
+        meta: this.parseMetaJson(item.meta),
+        sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
+      })),
+      total,
+    };
+  }
+
+  /**
+   * Retrieve all personal drafts for a user.
+   *
+   * @param userId - The ID of the user.
+   * @param filters - Optional filters.
+   * @returns Publications with total count for pagination.
+   */
+  public async findUserDrafts(
+    userId: string,
+    filters?: {
+      status?: PublicationStatus | PublicationStatus[];
+      limit?: number;
+      offset?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      search?: string;
+    },
+  ) {
+    const where: Prisma.PublicationWhereInput = {
+      projectId: null as any,
+      createdBy: userId,
+      archivedAt: null,
+    };
+
+    if (filters?.status) {
+      where.status = Array.isArray(filters.status) ? { in: filters.status } : filters.status;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search } },
+        { content: { contains: filters.search } },
+      ];
+    }
+
+    const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
+
+    const [items, total] = await Promise.all([
+      this.prisma.publication.findMany({
+        where,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
+          media: {
+            include: {
+              media: true,
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
+          _count: {
+            select: {
+              posts: true,
             },
           },
         },
@@ -434,7 +533,14 @@ export class PublicationsService {
       throw new NotFoundException('Publication not found');
     }
 
-    await this.permissions.checkProjectAccess(publication.projectId, userId);
+    if (publication.projectId) {
+      await this.permissions.checkProjectAccess(publication.projectId, userId);
+    } else {
+      // For personal drafts, only creator can see it
+      if (publication.createdBy !== userId) {
+        throw new NotFoundException('Publication not found'); // Use 404 to avoid leaking existence
+      }
+    }
 
     // Fetch other publications in the same translation group
     let translations: any[] = [];
@@ -491,9 +597,27 @@ export class PublicationsService {
 
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
+      if (!publication.projectId) {
+        throw new NotFoundException('Publication not found');
+      }
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
         ProjectRole.ADMIN,
       ]);
+    }
+
+    // Additional validations for personal drafts
+    if (!publication.projectId) {
+      if (
+        data.status &&
+        data.status !== PublicationStatus.DRAFT &&
+        data.status !== PublicationStatus.READY
+      ) {
+        throw new BadRequestException('Personal drafts can only have DRAFT or READY status');
+      }
+
+      if (data.scheduledAt) {
+        throw new BadRequestException('Personal drafts cannot be scheduled');
+      }
     }
 
     let translationGroupId = data.translationGroupId;

@@ -56,8 +56,8 @@ export class PublicationsController {
     @Request() req: UnifiedAuthRequest,
     @Body() createPublicationDto: CreatePublicationDto,
   ) {
-    // Validate project scope for API token users
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
+    // Validate project scope for API token users if projectId is provided
+    if (createPublicationDto.projectId && req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
       ApiTokenGuard.validateProjectScope(createPublicationDto.projectId, req.user.scopeProjectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
@@ -132,6 +132,36 @@ export class PublicationsController {
   }
 
   /**
+   * Get all personal drafts for the current user.
+   */
+  @Get('user/drafts')
+  public async findUserDrafts(
+    @Request() req: UnifiedAuthRequest,
+    @Query() query: FindPublicationsQueryDto,
+  ): Promise<PaginatedResponse<any>> {
+    const { limit = 20, offset = 0, status, sortBy, sortOrder, search } = query;
+    const validatedLimit = Math.min(limit, this.MAX_LIMIT);
+
+    const result = await this.publicationsService.findUserDrafts(req.user.userId, {
+      limit: validatedLimit,
+      offset,
+      status,
+      sortBy,
+      sortOrder,
+      search,
+    });
+
+    return {
+      items: result.items,
+      meta: {
+        total: result.total,
+        limit: validatedLimit,
+        offset: offset || 0,
+      },
+    };
+  }
+
+  /**
    * Get a single publication by ID.
    */
   @Get(':id')
@@ -181,7 +211,7 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
+    if (publication.projectId && req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
       ApiTokenGuard.validateProjectScope(publication.projectId, req.user.scopeProjectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
@@ -243,7 +273,7 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
+    if (publication.projectId && req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
       ApiTokenGuard.validateProjectScope(publication.projectId, req.user.scopeProjectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,

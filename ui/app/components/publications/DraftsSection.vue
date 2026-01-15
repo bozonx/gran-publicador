@@ -7,10 +7,12 @@ interface Props {
   loading: boolean
   viewAllTo: string
   showProjectInfo?: boolean
+  title?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showProjectInfo: false,
+  title: '',
 })
 
 const emit = defineEmits<{
@@ -30,8 +32,8 @@ function goToPublication(pub: PublicationWithRelations) {
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
         <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
-        {{ t('publicationStatus.draft') }}
-        <CommonCountBadge :count="totalCount" :title="t('publicationStatus.draft')" />
+        {{ title || t('publicationStatus.draft') }}
+        <CommonCountBadge :count="totalCount" :title="title || t('publicationStatus.draft')" />
       </h2>
       <UButton
         v-if="totalCount > 0"

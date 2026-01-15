@@ -32,7 +32,7 @@ const {
 const { fetchChannels, channels } = useChannels()
 const { canGoBack, goBack } = useNavigation()
 
-const projectId = computed(() => currentPublication.value?.projectId || '')
+const projectId = computed(() => currentPublication.value?.projectId || null)
 const publicationId = computed(() => route.params.id as string)
 
 // Publication problems detection
@@ -239,8 +239,12 @@ async function handleDelete() {
     isDeleting.value = false
     if (success) {
         isDeleteModalOpen.value = false
-        // Navigate to project page as the parent context
-        router.push(`/projects/${pid}`)
+        // Navigate to project page or drafts page
+        if (pid) {
+            router.push(`/projects/${pid}`)
+        } else {
+            router.push('/drafts')
+        }
     }
 }
 

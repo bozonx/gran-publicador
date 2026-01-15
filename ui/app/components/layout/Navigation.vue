@@ -43,6 +43,11 @@ const mainNavItems = computed<NavItem[]>(() => [
     to: '/media',
     icon: 'i-heroicons-photo',
   },
+  {
+    label: t('navigation.drafts_and_templates', 'Черновики и заготовки'),
+    to: '/drafts',
+    icon: 'i-heroicons-pencil-square',
+  },
 ])
 
 

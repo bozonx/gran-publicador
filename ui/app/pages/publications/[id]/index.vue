@@ -215,6 +215,10 @@ const metaYaml = computed(() => {
                 {{ currentProject.name }}
               </UBadge>
             </NuxtLink>
+            <UBadge v-else variant="soft" color="neutral" class="font-normal">
+              <UIcon name="i-heroicons-user" class="w-4 h-4 mr-1 text-gray-500" />
+              {{ t('publication.personal_draft') }}
+            </UBadge>
           </div>
 
           <!-- Social Media & Dates Row -->

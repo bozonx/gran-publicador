@@ -1,0 +1,209 @@
+<script setup lang="ts">
+import { usePublications } from '~/composables/usePublications'
+import type { PublicationWithRelations } from '~/composables/usePublications'
+import { useViewMode } from '~/composables/useViewMode'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { LANGUAGE_OPTIONS } from '~/utils/languages'
+
+definePageMeta({
+  middleware: 'auth',
+})
+
+const { t } = useI18n()
+const router = useRouter()
+const route = useRoute()
+
+const {
+  publications,
+  isLoading,
+  totalCount,
+  fetchUserDrafts,
+  deletePublication
+} = usePublications()
+
+const currentPage = ref(
+  route.query.page && typeof route.query.page === 'string' 
+    ? Math.max(1, parseInt(route.query.page, 10) || 1)
+    : 1
+)
+
+const limit = ref(DEFAULT_PAGE_SIZE)
+const searchQuery = ref((route.query.search as string) || '')
+const debouncedSearch = refDebounced(searchQuery, 300)
+
+const sortBy = ref((route.query.sortBy as string) || 'createdAt')
+const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')
+
+const { viewMode, isListView } = useViewMode('drafts-view', 'cards')
+
+async function fetchDrafts() {
+  await fetchUserDrafts({
+    limit: limit.value,
+    offset: (currentPage.value - 1) * limit.value,
+    search: debouncedSearch.value,
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+  })
+}
+
+onMounted(() => {
+  fetchDrafts()
+})
+
+watch([debouncedSearch, sortBy, sortOrder], () => {
+    currentPage.value = 1
+    fetchDrafts()
+})
+
+watch(currentPage, () => {
+    fetchDrafts()
+})
+
+function goToDraft(pub: PublicationWithRelations) {
+    router.push(`/publications/${pub.id}`)
+}
+
+const isCreateModalOpen = ref(false)
+
+function openCreateModal() {
+    isCreateModalOpen.value = true
+}
+
+const showDeleteModal = ref(false)
+const publicationToDelete = ref<PublicationWithRelations | null>(null)
+const isDeleting = ref(false)
+
+function confirmDelete(pub: PublicationWithRelations) {
+  publicationToDelete.value = pub
+  showDeleteModal.value = true
+}
+
+async function handleDelete() {
+  if (!publicationToDelete.value) return
+  isDeleting.value = true
+  const success = await deletePublication(publicationToDelete.value.id)
+  isDeleting.value = false
+  if (success) {
+    showDeleteModal.value = false
+    publicationToDelete.value = null
+    fetchDrafts()
+  }
+}
+</script>
+
+<template>
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          {{ t('drafts.page_title') }}
+          <CommonCountBadge :count="totalCount" />
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {{ t('drafts.description') }}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <CommonViewToggle v-model="viewMode" />
+        <UButton
+          icon="i-heroicons-plus"
+          color="primary"
+          @click="openCreateModal"
+        >
+          {{ t('common.create') }}
+        </UButton>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+      <UInput
+        v-model="searchQuery"
+        icon="i-heroicons-magnifying-glass"
+        :placeholder="t('common.search')"
+        size="md"
+        class="w-full"
+        :loading="isLoading && searchQuery !== debouncedSearch"
+      />
+    </div>
+
+    <div v-if="isLoading && publications.length === 0" class="flex items-center justify-center py-12">
+        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+    </div>
+
+    <div v-else-if="publications.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+        <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+          <UIcon name="i-heroicons-pencil-square" class="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          {{ t('drafts.no_drafts') }}
+        </h3>
+        <UButton color="primary" variant="subtle" @click="openCreateModal">
+          {{ t('drafts.create_first') }}
+        </UButton>
+    </div>
+
+    <div v-else :class="isListView ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'">
+        <template v-if="isListView">
+          <PublicationsPublicationListItem
+            v-for="pub in publications"
+            :key="pub.id"
+            :publication="pub"
+            @click="goToDraft"
+            @delete="confirmDelete"
+          />
+        </template>
+        <template v-else>
+          <PublicationsPublicationCard
+            v-for="pub in publications"
+            :key="pub.id"
+            :publication="pub"
+            @click="goToDraft"
+            @delete="confirmDelete"
+          />
+        </template>
+    </div>
+
+    <div v-if="totalCount > limit" class="flex justify-center mt-6">
+      <UPagination
+        v-model="currentPage"
+        :total="totalCount"
+        :page-count="limit"
+      />
+    </div>
+
+    <UModal v-model="showDeleteModal">
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+              {{ t('publication.delete') }}
+            </h3>
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark-20-solid" @click="showDeleteModal = false" />
+          </div>
+        </template>
+        <div class="p-4">
+          <p class="text-sm text-gray-500">
+            {{ t('publication.deleteConfirm') }}
+          </p>
+        </div>
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="neutral" variant="ghost" @click="showDeleteModal = false">
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton color="error" :loading="isDeleting" @click="handleDelete">
+              {{ t('common.delete') }}
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
+
+    <ModalsCreatePublicationModal
+      v-if="isCreateModalOpen"
+      v-model:open="isCreateModalOpen"
+      @success="fetchDrafts"
+    />
+  </div>
+</template>

@@ -115,8 +115,9 @@
     "users": "Users",
     "settings": "Settings",
     "admin": "Administration",
-    "my_projects": "MY PROJECTS",
-    "archive": "Archive"
+    "my_projects": "My Projects",
+    "archive": "Archive",
+    "drafts_and_templates": "Drafts and Templates"
   },
   "auth": {
     "login": "Log in",
@@ -170,6 +171,7 @@
     "description": "Description",
     "descriptionPlaceholder": "Enter project description",
     "createProject": "Create Project",
+    "selectProject": "Select Project",
     "createDescription": "Fill in the details to create a new project",
     "editProject": "Edit Project",
     "editDescription": "Update your project information below",
@@ -571,6 +573,14 @@
     "projectArchived": "Project Archived",
     "hasArchivedChannels": "Archived Channels",
     "hasInactiveChannels": "Inactive Channels",
+    "personal_draft": "Personal Draft",
+    "project_publication": "Project Publication",
+    "create_personal_draft": "Create Personal Draft",
+    "personal_draft_help": "Personal drafts are not linked to projects and are only visible to you",
+    "project_publication_help": "Publication will be linked to the selected project and visible to its members",
+    "projectSelectorHelp": "Select a project to move this publication to, or leave as Personal Draft",
+    "cannot_schedule_personal": "Personal drafts cannot be scheduled. Move to a project to schedule.",
+    "cannot_create_posts_personal": "To publish to channels, move the draft to a project",
     "createError": "Failed to create publication",
     "filter": {
       "ownership": {
@@ -860,7 +870,10 @@
     "group_owner": "Your projects",
     "group_admin": "Projects where you are an admin",
     "group_editor": "Projects where you are an editor",
-    "group_viewer": "Projects where you are a viewer"
+    "group_viewer": "Projects where you are a viewer",
+    "your_recent_drafts": "Your Recent Drafts",
+    "no_drafts_yet": "You don't have any drafts yet",
+    "create_first_draft": "Create your first draft"
   },
   "editor": {
     "characters": "characters",
@@ -982,5 +995,12 @@
     "empty_desc": "You don't have any notifications at the moment. We'll let you know when something important happens.",
     "view_publication": "View publication",
     "view_project": "Go to project"
+  },
+  "drafts": {
+    "page_title": "Drafts and Templates",
+    "description": "Personal drafts and publication templates",
+    "no_drafts": "You don't have any drafts yet",
+    "create_first": "Create your first draft",
+    "filter_by_status": "Filter by status"
   }
 }

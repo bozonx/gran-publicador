@@ -8,8 +8,8 @@ import { isTextContentEmpty } from '~/utils/text'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 
 interface Props {
-  /** Project ID for fetching channels */
-  projectId: string
+  /** Project ID for fetching channels (optional for personal drafts) */
+  projectId?: string | null
   /** Publication data for editing, null for creating new */
   publication?: PublicationWithRelations | null
 }
@@ -20,6 +20,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  projectId: null,
   publication: null,
 })
 
@@ -37,6 +38,7 @@ const {
   publications 
 } = usePublications()
 const { channels, fetchChannels } = useChannels()
+const { projects, fetchProjects } = useProjects()
 const { typeOptions } = usePosts()
 const { languageOptions } = useLanguages()
 const { validatePostContent } = useSocialMediaValidation()
@@ -45,6 +47,8 @@ const { validatePostContent } = useSocialMediaValidation()
 const languageParam = route.query.language as string | undefined
 const channelIdParam = route.query.channelId as string | undefined
 const state = usePublicationFormState(props.publication, languageParam)
+// Add project ID to state if we want to allow changing it
+const currentProjectId = ref<string | null>(props.publication?.projectId || props.projectId || null)
 const { schema } = usePublicationFormValidation(t)
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
@@ -109,12 +113,15 @@ const isValid = computed(() => validationErrors.value.length === 0)
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
 
 onMounted(async () => {
-  if (props.projectId) {
-    await Promise.all([
-      fetchChannels({ projectId: props.projectId }),
-      fetchPublicationsByProject(props.projectId, { limit: 50 })
-    ])
-    
+    // If we have any project ID (from props or from existing publication), load its data
+    if (currentProjectId.value) {
+        await loadProjectData(currentProjectId.value)
+    }
+
+    if (projects.value.length === 0) {
+        await fetchProjects()
+    }
+
     // Auto-select channel if channelId parameter is provided
     if (channelIdParam && !isEditMode.value) {
       const selectedChannel = channels.value.find(ch => ch.id === channelIdParam)
@@ -129,7 +136,40 @@ onMounted(async () => {
     }
     
     nextTick(() => saveOriginalState())
-  }
+})
+
+async function loadProjectData(id: string) {
+    await Promise.all([
+      fetchChannels({ projectId: id }),
+      fetchPublicationsByProject(id, { limit: 50 })
+    ])
+}
+
+const activeProjectsOptions = computed(() => {
+    return [
+        { value: null, label: t('publication.personal_draft') },
+        ...projects.value
+            .filter(p => !p.archivedAt)
+            .map(p => ({
+                value: p.id,
+                label: p.name
+            }))
+    ]
+})
+
+// Watch for project change to load new channels
+watch(currentProjectId, async (newId) => {
+    if (newId) {
+        await loadProjectData(newId)
+    } else {
+        channels.value = []
+        state.channelIds = []
+        // Personal drafts cannot be scheduled
+        if (state.status === 'SCHEDULED') {
+            state.status = 'DRAFT'
+        }
+        state.scheduledAt = ''
+    }
 })
 
 // Watch for external publication updates (e.g. from modals)
@@ -222,6 +262,7 @@ async function performSubmit(data: any) {
         // Status is managed by separate actions in edit mode, don't send it back 
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,
+        projectId: currentProjectId.value || null,
         linkToPublicationId: linkedPublicationId.value || undefined,
         translationGroupId: state.translationGroupId === null ? null : undefined,
       })
@@ -239,8 +280,8 @@ async function performSubmit(data: any) {
     } else {
       const createData = {
         ...commonData,
-        projectId: props.projectId,
-        status: data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : data.status,
+        projectId: currentProjectId.value || undefined,
+        status: data.status === 'SCHEDULED' && (!currentProjectId.value || state.channelIds.length === 0) ? 'DRAFT' : data.status,
         linkToPublicationId: linkedPublicationId.value || undefined,
       }
 
@@ -380,8 +421,24 @@ function handleInsertLlmContent(content: string) {
 <template>
     <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit" @error="handleError">
       
+      <!-- Project Selection -->
+      <UFormField :label="t('project.title')" :help="t('publication.projectSelectorHelp')">
+        <USelectMenu
+          v-model="currentProjectId"
+          :items="activeProjectsOptions"
+          value-key="value"
+          label-key="label"
+          class="w-full"
+          :placeholder="t('project.selectProject')"
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
+      </UFormField>
+
       <!-- Channels Selection Section -->
-      <div v-if="!isEditMode">
+      <div v-if="currentProjectId">
         <UFormField name="channelIds" :help="t('publication.channelsHelp')">
           <template #label>
             <div class="flex items-center gap-1.5">
@@ -409,6 +466,7 @@ function handleInsertLlmContent(content: string) {
           <FormsPublicationStatusSelector 
             v-model="state.status"
             :is-content-missing="isContentMissing"
+            :is-personal="!currentProjectId"
           />
         </UFormField>
 

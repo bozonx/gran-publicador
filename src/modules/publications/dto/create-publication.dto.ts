@@ -39,8 +39,8 @@ export class SourceTextDto {
  */
 export class CreatePublicationDto {
   @IsString()
-  @IsNotEmpty()
-  public projectId!: string;
+  @IsOptional()
+  public projectId?: string;
 
   @IsString()
   @IsOptional()
