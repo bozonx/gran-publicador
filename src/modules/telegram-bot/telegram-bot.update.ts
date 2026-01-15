@@ -55,12 +55,7 @@ export class TelegramBotUpdate {
     await this.sessionService.deleteSession(String(from.id));
 
     // Delete previous menu message if exists
-    const lastMenuMessageId = await this.sessionService.getLastMenuMessageId(String(from.id));
-    if (lastMenuMessageId) {
-      ctx.api.deleteMessage(ctx.chat!.id, lastMenuMessageId).catch((error) => {
-        this.logger.debug(`Could not delete previous menu message: ${error.message}`);
-      });
-    }
+    await this.deletePreviousMenu(ctx, from.id);
 
     const lang = from.language_code;
     const messageKey = isNew ? 'telegram.welcome_new' : 'telegram.welcome_existing';
@@ -90,6 +85,9 @@ export class TelegramBotUpdate {
     );
 
     const lang = from.language_code;
+
+    // Delete previous menu message if exists
+    await this.deletePreviousMenu(ctx, from.id);
 
     // Validate user
     const validationResult = await this.validateUser(from.id, lang, ctx);
@@ -157,12 +155,6 @@ export class TelegramBotUpdate {
   ): Promise<{ valid: boolean; user?: any }> {
     const user = await this.usersService.findByTelegramId(BigInt(telegramId));
 
-    // Delete previous menu/error message if exists
-    const lastId = await this.sessionService.getLastMenuMessageId(String(telegramId));
-    if (lastId) {
-      ctx.api.deleteMessage(ctx.chat!.id, lastId).catch(() => {});
-    }
-
     if (!user) {
       const message = this.i18n.t('telegram.user_not_found', { lang });
       const msg = await ctx.reply(String(message));
@@ -194,14 +186,7 @@ export class TelegramBotUpdate {
     message: any,
   ): Promise<void> {
     try {
-      // Delete previous menu message if exists (async, don't wait)
-      const lastMenuMessageId = await this.sessionService.getLastMenuMessageId(String(telegramId));
-      if (lastMenuMessageId) {
-        // Delete asynchronously without waiting
-        ctx.api.deleteMessage(message.chat.id, lastMenuMessageId).catch((error) => {
-          this.logger.debug(`Could not delete previous menu message: ${error.message}`);
-        });
-      }
+      // (Previous menu already deleted in onMessage)
 
       // Extract content from message
       const extracted = extractMessageContent(message);
@@ -467,6 +452,28 @@ export class TelegramBotUpdate {
 
       // Store menu message ID even on error
       await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
+    }
+  }
+
+  /**
+   * Delete previous menu message from Telegram and Redis
+   */
+  private async deletePreviousMenu(ctx: Context, telegramId: number): Promise<void> {
+    try {
+      const lastMenuMessageId = await this.sessionService.getLastMenuMessageId(String(telegramId));
+      if (lastMenuMessageId) {
+        // Delete from Telegram
+        const chatId = ctx.chat?.id || ctx.message?.chat.id;
+        if (chatId) {
+          await ctx.api.deleteMessage(chatId, lastMenuMessageId).catch((error) => {
+            this.logger.debug(`Could not delete previous menu message: ${error.message}`);
+          });
+        }
+        // Always delete from Redis to avoid duplicate attempts
+        await this.sessionService.deleteLastMenuMessageId(String(telegramId));
+      }
+    } catch (error) {
+      this.logger.error(`Error in deletePreviousMenu: ${error}`);
     }
   }
 }
