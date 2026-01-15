@@ -54,15 +54,26 @@ export class TelegramBotUpdate {
     // Clear any existing session
     await this.sessionService.deleteSession(String(from.id));
 
+    // Delete previous menu message if exists
+    const lastMenuMessageId = await this.sessionService.getLastMenuMessageId(String(from.id));
+    if (lastMenuMessageId) {
+      ctx.api.deleteMessage(ctx.chat!.id, lastMenuMessageId).catch((error) => {
+        this.logger.debug(`Could not delete previous menu message: ${error.message}`);
+      });
+    }
+
     const lang = from.language_code;
     const messageKey = isNew ? 'telegram.welcome_new' : 'telegram.welcome_existing';
 
-    const message = this.i18n.t(messageKey, {
+    const welcomeMessageText = this.i18n.t(messageKey, {
       lang,
       args: { name: user.fullName || 'friend' },
     });
 
-    await ctx.reply(String(message));
+    const sentMessage = await ctx.reply(String(welcomeMessageText));
+
+    // Store this message as the "last menu" so it can be deleted when user sends content
+    await this.sessionService.setLastMenuMessageId(String(from.id), sentMessage.message_id);
   }
 
   /**
@@ -146,9 +157,16 @@ export class TelegramBotUpdate {
   ): Promise<{ valid: boolean; user?: any }> {
     const user = await this.usersService.findByTelegramId(BigInt(telegramId));
 
+    // Delete previous menu/error message if exists
+    const lastId = await this.sessionService.getLastMenuMessageId(String(telegramId));
+    if (lastId) {
+      ctx.api.deleteMessage(ctx.chat!.id, lastId).catch(() => {});
+    }
+
     if (!user) {
       const message = this.i18n.t('telegram.user_not_found', { lang });
-      await ctx.reply(String(message));
+      const msg = await ctx.reply(String(message));
+      await this.sessionService.setLastMenuMessageId(String(telegramId), msg.message_id);
       return { valid: false };
     }
 
@@ -157,7 +175,8 @@ export class TelegramBotUpdate {
         lang,
         args: { reason: user.banReason || 'No reason provided' },
       });
-      await ctx.reply(String(message));
+      const msg = await ctx.reply(String(message));
+      await this.sessionService.setLastMenuMessageId(String(telegramId), msg.message_id);
       return { valid: false };
     }
 
@@ -270,7 +289,8 @@ export class TelegramBotUpdate {
     } catch (error) {
       this.logger.error(`Error creating draft: ${error}`);
       const errorMessage = this.i18n.t('telegram.error_creating_draft', { lang });
-      await ctx.reply(String(errorMessage));
+      const msg = await ctx.reply(String(errorMessage));
+      await this.sessionService.setLastMenuMessageId(String(telegramId), msg.message_id);
     }
   }
 
@@ -383,7 +403,8 @@ export class TelegramBotUpdate {
   } catch (error) {
     this.logger.error(`Error updating draft: ${error}`);
     const errorMessage = this.i18n.t('telegram.error_creating_draft', { lang });
-    await ctx.reply(String(errorMessage));
+    const msg = await ctx.reply(String(errorMessage));
+    await this.sessionService.setLastMenuMessageId(String(telegramId), msg.message_id);
   }
 }
 
