@@ -66,6 +66,11 @@ export class AppConfig {
   public telegramBotToken!: string;
 
   /**
+   * Whether the Telegram bot for repost collection is enabled.
+   */
+  public telegramBotEnabled!: boolean;
+
+  /**
    * JWT Secret for auth.
    */
   @IsString()
@@ -142,6 +147,7 @@ export default registerAs('app', (): AppConfig => {
 
     adminTelegramId: process.env.TELEGRAM_ADMIN_ID,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+    telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
     jwtSecret: process.env.JWT_SECRET,
 
     // Media Config

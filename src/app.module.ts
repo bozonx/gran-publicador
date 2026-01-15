@@ -33,6 +33,7 @@ import { SttModule } from './modules/stt/stt.module.js';
 import { TranslateModule } from './modules/translate/translate.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { LlmPromptTemplatesModule } from './modules/llm-prompt-templates/llm-prompt-templates.module.js';
+import { TelegramBotModule } from './modules/telegram-bot/index.js';
 
 @Module({
   imports: [
@@ -177,6 +178,7 @@ import { LlmPromptTemplatesModule } from './modules/llm-prompt-templates/llm-pro
     TranslateModule,
     NotificationsModule,
     LlmPromptTemplatesModule,
+    ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],
   providers: [
