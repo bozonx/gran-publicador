@@ -2,8 +2,12 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 import { getDatabaseUrl } from '../../config/database.config.js';
 import { dirname } from 'path';
+
+const { Pool } = pg;
 
 /**
  * Service that extends PrismaClient to handle database connections.
@@ -38,12 +42,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       clientConfig.adapter = adapter;
       internalLogger.log('📦 Using SQLite with better-sqlite3 adapter');
     } else if (url.startsWith('postgresql://') || url.startsWith('postgres://')) {
-      // PostgreSQL uses native driver by default, no adapter needed here
-      // but we could use @prisma/adapter-pg if required
-      internalLogger.log('🐘 Using PostgreSQL native client');
-      // For PG, the URL is passed via environment or datasource property
-      // But since we are using Prisma 7 and potentially overriding datasource in prisma.config.ts,
-      // we don't need to do much here unless we want to use an adapter.
+      // Use @prisma/adapter-pg for PostgreSQL (required for Prisma 7 with config file)
+      const pool = new Pool({ connectionString: url });
+      const adapter = new PrismaPg(pool);
+      clientConfig.adapter = adapter;
+      internalLogger.log('🐘 Using PostgreSQL with @prisma/adapter-pg');
     }
 
     super(clientConfig);

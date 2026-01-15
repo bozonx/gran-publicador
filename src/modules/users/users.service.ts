@@ -94,9 +94,7 @@ export class UsersService {
 
     if (search) {
       where.OR = [
-        // @ts-expect-error: Prisma types mismatch for SQLite insensitive mode on nullable fields
         { fullName: { contains: search, mode: 'insensitive' } },
-        // @ts-expect-error: Prisma types mismatch for SQLite insensitive mode on nullable fields
         { telegramUsername: { contains: search, mode: 'insensitive' } },
       ];
     }
