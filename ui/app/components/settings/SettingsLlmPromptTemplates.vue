@@ -112,7 +112,7 @@ const confirmDelete = async () => {
 
 // Reorder Action
 const handleReorder = async () => {
-  const ids = templates.value.map(tpl => tpl.id)
+  const ids = templates.value.map((tpl: LlmPromptTemplate) => tpl.id)
   await reorderTemplates(ids)
 }
 

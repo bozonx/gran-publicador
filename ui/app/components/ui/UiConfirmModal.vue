@@ -34,6 +34,7 @@ const handleClose = () => {
   <UiAppModal 
     v-model:open="isOpen"
     :title="title"
+    :description="description"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <div class="flex flex-col gap-4">
@@ -53,9 +54,9 @@ const handleClose = () => {
               />
           </div>
           <div class="flex-1">
-              <p v-if="description" class="text-sm text-gray-500 dark:text-gray-400">
+              <UDialogDescription v-if="description" class="text-sm text-gray-500 dark:text-gray-400">
                   {{ description }}
-              </p>
+              </UDialogDescription>
               <slot v-else />
           </div>
       </div>

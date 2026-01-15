@@ -74,12 +74,15 @@ function handleClose(close?: () => void) {
         <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0" :class="headerClass">
           <div class="min-w-0 flex-1">
             <slot name="header">
-              <h3 v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+              <UDialogTitle v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {{ props.title }}
-              </h3>
-              <p v-if="props.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              </UDialogTitle>
+              <UDialogDescription v-if="props.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {{ props.description }}
-              </p>
+              </UDialogDescription>
+              <UDialogDescription v-else class="sr-only">
+                {{ props.title }}
+              </UDialogDescription>
             </slot>
           </div>
           
