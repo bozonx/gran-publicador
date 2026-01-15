@@ -259,6 +259,22 @@ await redis.set(
 await redis.del(`telegram:session:${telegramUserId}`);
 ```
 
+### Last Menu Message Tracking
+
+To prevent old menu messages from accumulating in the chat, we track the last menu message ID separately:
+
+**Key format:** `telegram:last_menu:{telegramUserId}`  
+**TTL:** 24 hours
+
+**Purpose:** When creating a new draft, the bot deletes the previous menu message (if it exists) before sending the new one. This keeps the chat clean and prevents confusion.
+
+**Flow:**
+1. When creating a new draft (`handleHomeMenu`), delete the previous menu message asynchronously
+2. After sending the new menu message, store its ID
+3. When completing/cancelling a draft (`handleDone`/`handleCancel`), store the menu message ID
+4. The stored ID will be used to delete the message when creating the next draft
+
+
 ## Environment Variables
 
 Add to `.env.development.example`:

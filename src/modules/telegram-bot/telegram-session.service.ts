@@ -148,4 +148,64 @@ export class TelegramSessionService {
     this.inMemoryStore.delete(telegramUserId);
     this.logger.debug(`Session deleted from memory for user ${telegramUserId}`);
   }
+
+  /**
+   * Get last menu message ID key for Redis
+   */
+  private getLastMenuMessageKey(telegramUserId: string): string {
+    return `telegram:last_menu:${telegramUserId}`;
+  }
+
+  /**
+   * Store the last menu message ID (with 24h TTL)
+   * This allows us to delete old menu messages when creating new ones
+   */
+  async setLastMenuMessageId(telegramUserId: string, messageId: number): Promise<void> {
+    const key = this.getLastMenuMessageKey(telegramUserId);
+    const ttl = 24 * 60 * 60; // 24 hours
+
+    if (this.redis) {
+      try {
+        await this.redis.set(key, String(messageId), 'EX', ttl);
+        this.logger.debug(`Last menu message ID set for user ${telegramUserId}: ${messageId}`);
+      } catch (error) {
+        this.logger.error(`Failed to set last menu message ID in Redis: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Get the last menu message ID
+   */
+  async getLastMenuMessageId(telegramUserId: string): Promise<number | null> {
+    const key = this.getLastMenuMessageKey(telegramUserId);
+
+    if (this.redis) {
+      try {
+        const data = await this.redis.get(key);
+        return data ? parseInt(data, 10) : null;
+      } catch (error) {
+        this.logger.error(`Failed to get last menu message ID from Redis: ${error}`);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Delete the last menu message ID
+   */
+  async deleteLastMenuMessageId(telegramUserId: string): Promise<void> {
+    const key = this.getLastMenuMessageKey(telegramUserId);
+
+    if (this.redis) {
+      try {
+        await this.redis.del(key);
+        this.logger.debug(`Last menu message ID deleted for user ${telegramUserId}`);
+      } catch (error) {
+        this.logger.error(`Failed to delete last menu message ID from Redis: ${error}`);
+      }
+    }
+  }
 }

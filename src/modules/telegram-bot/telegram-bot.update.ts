@@ -175,6 +175,15 @@ export class TelegramBotUpdate {
     message: any,
   ): Promise<void> {
     try {
+      // Delete previous menu message if exists (async, don't wait)
+      const lastMenuMessageId = await this.sessionService.getLastMenuMessageId(String(telegramId));
+      if (lastMenuMessageId) {
+        // Delete asynchronously without waiting
+        ctx.api.deleteMessage(message.chat.id, lastMenuMessageId).catch((error) => {
+          this.logger.debug(`Could not delete previous menu message: ${error.message}`);
+        });
+      }
+
       // Extract content from message
       const extracted = extractMessageContent(message);
       const sourceText = extracted.text || '';
@@ -243,6 +252,9 @@ export class TelegramBotUpdate {
         ),
         { reply_markup: keyboard },
       );
+
+      // Store last menu message ID for future deletion
+      await this.sessionService.setLastMenuMessageId(String(telegramId), menuMessage.message_id);
 
       // Create session
       await this.sessionService.setSession(String(telegramId), {
@@ -327,37 +339,53 @@ export class TelegramBotUpdate {
       }
 
       // Update session metadata
-      await this.sessionService.updateMetadata(String(telegramId), {
+    await this.sessionService.updateMetadata(String(telegramId), {
+      sourceTextsCount: newSourceTexts.length,
+      mediaCount: session.metadata.mediaCount + newMediaCount,
+    });
+
+    // Delete old menu message asynchronously
+    ctx.api.deleteMessage(message.chat.id, session.menuMessageId).catch((error) => {
+      this.logger.debug(`Could not delete old menu message during update: ${error.message}`);
+    });
+
+    // Prepare updated menu message
+    const keyboard = new InlineKeyboard()
+      .text(String(this.i18n.t('telegram.button_done', { lang })), 'done')
+      .text(String(this.i18n.t('telegram.button_cancel', { lang })), 'cancel');
+
+    const menuMessage = await ctx.reply(
+      String(
+        this.i18n.t('telegram.draft_updated', {
+          lang,
+          args: {
+            content: truncateText(publication.content || ''),
+            mediaCount: session.metadata.mediaCount + newMediaCount,
+            sourceTextsCount: newSourceTexts.length,
+          },
+        }),
+      ),
+      { reply_markup: keyboard },
+    );
+
+    // Update session with new menu message ID
+    await this.sessionService.setSession(String(telegramId), {
+      ...session,
+      menuMessageId: menuMessage.message_id,
+      metadata: {
         sourceTextsCount: newSourceTexts.length,
         mediaCount: session.metadata.mediaCount + newMediaCount,
-      });
+      },
+    });
 
-      // Update menu message
-      const keyboard = new InlineKeyboard()
-        .text(String(this.i18n.t('telegram.button_done', { lang })), 'done')
-        .text(String(this.i18n.t('telegram.button_cancel', { lang })), 'cancel');
-
-      await ctx.api.editMessageText(
-        message.chat.id,
-        session.menuMessageId,
-        String(
-          this.i18n.t('telegram.draft_updated', {
-            lang,
-            args: {
-              content: truncateText(publication.content || ''),
-              mediaCount: session.metadata.mediaCount + newMediaCount,
-              sourceTextsCount: newSourceTexts.length,
-            },
-          }),
-        ),
-        { reply_markup: keyboard },
-      );
-    } catch (error) {
-      this.logger.error(`Error updating draft: ${error}`);
-      const errorMessage = this.i18n.t('telegram.error_creating_draft', { lang });
-      await ctx.reply(String(errorMessage));
-    }
+    // Update last menu message ID for future reference
+    await this.sessionService.setLastMenuMessageId(String(telegramId), menuMessage.message_id);
+  } catch (error) {
+    this.logger.error(`Error updating draft: ${error}`);
+    const errorMessage = this.i18n.t('telegram.error_creating_draft', { lang });
+    await ctx.reply(String(errorMessage));
   }
+}
 
   /**
    * Handle "Done" button
@@ -380,6 +408,9 @@ export class TelegramBotUpdate {
     });
 
     await ctx.editMessageText(String(message));
+
+    // Store menu message ID so it can be deleted when creating new draft
+    await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
   }
 
   /**
@@ -402,6 +433,9 @@ export class TelegramBotUpdate {
       // Send cancellation message
       const message = this.i18n.t('telegram.draft_cancelled', { lang });
       await ctx.editMessageText(String(message));
+
+      // Store menu message ID so it can be deleted when creating new draft
+      await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
     } catch (error) {
       this.logger.error(`Error cancelling draft: ${error}`);
       // Still delete session even if publication deletion fails
@@ -409,6 +443,9 @@ export class TelegramBotUpdate {
 
       const message = this.i18n.t('telegram.draft_cancelled', { lang });
       await ctx.editMessageText(String(message));
+
+      // Store menu message ID even on error
+      await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
     }
   }
 }
