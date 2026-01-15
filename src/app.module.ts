@@ -124,25 +124,36 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
         const config = configService.get<RedisConfig>('redis')!;
         const appConfig = configService.get<AppConfig>('app')!;
 
-        // Use memory store for tests to avoid Redis dependency
-        if (appConfig.nodeEnv === 'test') {
+        // Use memory store for tests or if Redis is disabled to avoid dependency
+        if (appConfig.nodeEnv === 'test' || !config.enabled) {
           return {
             store: 'memory',
             ttl: config.ttlMs,
           };
         }
 
-        return {
-          store: await redisStore({
+        try {
+          const store = await redisStore({
             socket: {
               host: config.host,
               port: config.port,
+              connectTimeout: 2000, // Fail fast if redis is down
             },
             password: config.password,
             database: config.db,
             ttl: config.ttlMs,
-          }),
-        };
+          });
+
+          return {
+            store,
+          };
+        } catch (error: any) {
+          console.warn(`Redis connection failed: ${error.message}. Falling back to memory store.`);
+          return {
+            store: 'memory',
+            ttl: config.ttlMs,
+          };
+        }
       },
     }),
     RedisModule,

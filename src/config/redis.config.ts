@@ -7,10 +7,14 @@ import { registerAs } from '@nestjs/config';
  */
 export class RedisConfig {
   /**
-   * Redis host.
-   * Defined by REDIS_HOST environment variable.
-   * Default: localhost
+   * Whether Redis is enabled.
+   * If disabled, the application will fall back to in-memory store.
+   * Defined by REDIS_ENABLED environment variable.
+   * Default: true
    */
+  @IsOptional()
+  public enabled: boolean = true;
+
   @IsString()
   public host: string = 'localhost';
 
@@ -54,6 +58,7 @@ export class RedisConfig {
 
 export default registerAs('redis', (): RedisConfig => {
   const config = plainToClass(RedisConfig, {
+    enabled: process.env.REDIS_ENABLED !== 'false',
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379,
     password: process.env.REDIS_PASSWORD || undefined,
