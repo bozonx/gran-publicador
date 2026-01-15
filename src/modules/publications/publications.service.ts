@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import {
   PublicationStatus,
   PostStatus,
@@ -131,8 +131,10 @@ export class PublicationsService {
       }
 
       // 2. Validate Access (if user context provided)
-      if (userId) {
+      if (userId && targetPub.projectId) {
         await this.permissions.checkProjectAccess(targetPub.projectId, userId);
+      } else if (userId && targetPub.createdBy !== userId) {
+        throw new ForbiddenException('Access denied to personal draft');
       }
 
       // 3. Validate Project Scope (Issue 2)
@@ -644,8 +646,11 @@ export class PublicationsService {
 
       // 3. Access Check
       if (publication.createdBy !== userId) {
-        // Use original permission context or check again
-        await this.permissions.checkProjectAccess(targetPub.projectId, userId);
+        if (targetPub.projectId) {
+          await this.permissions.checkProjectAccess(targetPub.projectId, userId);
+        } else if (targetPub.createdBy !== userId) {
+          throw new ForbiddenException('Access denied to personal draft');
+        }
       }
 
       // 4. Project Scope
@@ -976,9 +981,13 @@ export class PublicationsService {
 
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
-      await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.ADMIN,
-      ]);
+      if (publication.projectId) {
+        await this.permissions.checkProjectPermission(publication.projectId, userId, [
+          ProjectRole.ADMIN,
+        ]);
+      } else {
+        throw new ForbiddenException('Access denied to personal draft');
+      }
     }
 
     return this.prisma.publication.delete({
@@ -1016,7 +1025,11 @@ export class PublicationsService {
     for (const pub of publications) {
       try {
         if (pub.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(pub.projectId, userId, [ProjectRole.ADMIN]);
+          if (pub.projectId) {
+            await this.permissions.checkProjectPermission(pub.projectId, userId, [ProjectRole.ADMIN]);
+          } else {
+            throw new ForbiddenException('Access denied to personal draft');
+          }
         }
         authorizedIds.push(pub.id);
       } catch (e) {
@@ -1123,6 +1136,10 @@ export class PublicationsService {
       }
     }
 
+    if (!publication.projectId) {
+      throw new BadRequestException('Cannot create posts for personal drafts');
+    }
+
     // Verify all channels belong to the same project
     const channels = await this.prisma.channel.findMany({
       where: {
@@ -1173,9 +1190,13 @@ export class PublicationsService {
 
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
-      await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.ADMIN,
-      ]);
+      if (publication.projectId) {
+        await this.permissions.checkProjectPermission(publication.projectId, userId, [
+          ProjectRole.ADMIN,
+        ]);
+      } else {
+        throw new ForbiddenException('Access denied to personal draft');
+      }
     }
 
     // Get the current max order
@@ -1235,9 +1256,13 @@ export class PublicationsService {
 
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
-      await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.ADMIN,
-      ]);
+      if (publication.projectId) {
+        await this.permissions.checkProjectPermission(publication.projectId, userId, [
+          ProjectRole.ADMIN,
+        ]);
+      } else {
+        throw new ForbiddenException('Access denied to personal draft');
+      }
     }
 
     // Find the publication media entry
@@ -1277,9 +1302,13 @@ export class PublicationsService {
 
     // Check if user is author or has admin rights
     if (publication.createdBy !== userId) {
-      await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.ADMIN,
-      ]);
+      if (publication.projectId) {
+        await this.permissions.checkProjectPermission(publication.projectId, userId, [
+          ProjectRole.ADMIN,
+        ]);
+      } else {
+        throw new ForbiddenException('Access denied to personal draft');
+      }
     }
 
     // Update order for each media item in a transaction
