@@ -842,6 +842,7 @@ function handleInsertLlmContent(content: string) {
       v-model:open="showLlmModal"
       :content="state.content"
       :source-texts="state.sourceTexts"
+      :project-id="currentProjectId"
       @insert="handleInsertLlmContent"
     />
 </template>

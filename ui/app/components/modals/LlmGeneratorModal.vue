@@ -303,13 +303,16 @@ function handleClose() {
         </div>
       </div>
 
-      <!-- Template Selector --  >
+      <!-- Template Selector -->
       <UFormField v-if="templateOptions.length > 1" :label="t('llm.selectTemplate')">
-        <USelect
+        <USelectMenu
           v-model="selectedTemplateId"
-          :options="templateOptions"
+          :items="templateOptions"
+          value-key="value"
+          label-key="label"
           :loading="isLoadingTemplates"
           :disabled="isGenerating || isRecording || isTranscribing"
+          class="w-full"
         />
       </UFormField>
 
