@@ -47,7 +47,7 @@ async function handleClick() {
   // Navigation logic
   const meta = props.notification.meta || {};
   if (props.notification.type === NotificationType.PUBLICATION_FAILED && meta.publicationId) {
-    router.push(`/projects/${meta.projectId}/publications/${meta.publicationId}`);
+    router.push(`/publications/${meta.publicationId}`);
   } else if (props.notification.type === NotificationType.PROJECT_INVITE && meta.projectId) {
     router.push(`/projects/${meta.projectId}`);
   }
