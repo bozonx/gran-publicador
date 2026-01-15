@@ -1,18 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Context } from 'grammy';
+import { I18nService } from 'nestjs-i18n';
 import { UsersService } from '../users/users.service.js';
 
 @Injectable()
 export class TelegramBotUpdate {
   private readonly logger = new Logger(TelegramBotUpdate.name);
 
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly i18n: I18nService,
+  ) {}
 
   public async onStart(ctx: Context): Promise<void> {
     const from = ctx.from;
     if (!from) return;
 
     this.logger.debug(`Received /start from ${from.id} (${from.username})`);
+
+    const existingUser = await this.usersService.findByTelegramId(BigInt(from.id));
+    const isNew = !existingUser;
 
     const user = await this.usersService.findOrCreateTelegramUser({
       telegramId: BigInt(from.id),
@@ -21,7 +28,15 @@ export class TelegramBotUpdate {
       lastName: from.last_name,
     });
 
-    await ctx.reply(`Привет, ${user.fullName || 'друг'}! 👋\n\nЯ помогу тебе собирать интересные посты и репосты для твоих проектов.\n\nПросто перешли мне сообщение из любого канала, и я сохраню его как "Source Text" в личном черновике.`);
+    const lang = from.language_code;
+    const messageKey = isNew ? 'telegram.welcome_new' : 'telegram.welcome_existing';
+
+    const message = this.i18n.t(messageKey, {
+      lang,
+      args: { name: user.fullName || 'friend' },
+    });
+
+    await ctx.reply(String(message));
   }
 
   public async onMessage(ctx: Context): Promise<void> {
@@ -42,11 +57,15 @@ export class TelegramBotUpdate {
       lastName: from.last_name,
     });
 
+    const lang = from.language_code;
+
     if (message?.forward_origin) {
       this.logger.debug(`Message is a forward from: ${JSON.stringify(message.forward_origin)}`);
-      await ctx.reply('Я получил ваш репост! Скоро я научусь его сохранять в базу данных.');
+      const text = this.i18n.t('telegram.repost_received', { lang });
+      await ctx.reply(String(text));
     } else {
-      await ctx.reply('Привет! Пришли мне репост из канала, и я помогу его сохранить.');
+      const text = this.i18n.t('telegram.send_repost', { lang });
+      await ctx.reply(String(text));
     }
   }
 }

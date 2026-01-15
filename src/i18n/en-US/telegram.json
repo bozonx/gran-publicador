@@ -1,0 +1,6 @@
+{
+  "welcome_new": "Hello, {name}! 👋\n\nI will help you collect interesting posts and reposts for your projects.\n\nJust forward me a message from any channel and I will save it as \"Source Text\" in your personal draft.",
+  "welcome_existing": "Welcome back, {name}! 👋\n\nSend me a repost from a channel, and I will help you save it.",
+  "repost_received": "I received your repost! Soon I will learn to save it to the database.",
+  "send_repost": "Hello! Send me a repost from a channel, and I will help you save it."
+}
