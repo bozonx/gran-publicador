@@ -54,9 +54,9 @@ const handleClose = () => {
               />
           </div>
           <div class="flex-1">
-              <UDialogDescription v-if="description" class="text-sm text-gray-500 dark:text-gray-400">
+              <p v-if="description" class="text-sm text-gray-500 dark:text-gray-400">
                   {{ description }}
-              </UDialogDescription>
+              </p>
               <slot v-else />
           </div>
       </div>
