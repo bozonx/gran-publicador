@@ -879,6 +879,7 @@ export type PublicationCreateOrConnectWithoutCreatorInput = {
 
 export type PublicationCreateManyCreatorInputEnvelope = {
   data: Prisma.PublicationCreateManyCreatorInput | Prisma.PublicationCreateManyCreatorInput[]
+  skipDuplicates?: boolean
 }
 
 export type PublicationUpsertWithWhereUniqueWithoutCreatorInput = {
@@ -984,6 +985,7 @@ export type PublicationCreateOrConnectWithoutProjectInput = {
 
 export type PublicationCreateManyProjectInputEnvelope = {
   data: Prisma.PublicationCreateManyProjectInput | Prisma.PublicationCreateManyProjectInput[]
+  skipDuplicates?: boolean
 }
 
 export type PublicationUpsertWithWhereUniqueWithoutProjectInput = {
@@ -2317,6 +2319,7 @@ export type PublicationCreateManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * The data used to create many Publications.
    */
   data: Prisma.PublicationCreateManyInput | Prisma.PublicationCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -2335,6 +2338,7 @@ export type PublicationCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ext
    * The data used to create many Publications.
    */
   data: Prisma.PublicationCreateManyInput | Prisma.PublicationCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

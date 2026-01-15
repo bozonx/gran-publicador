@@ -474,6 +474,7 @@ export type ApiTokenCreateOrConnectWithoutUserInput = {
 
 export type ApiTokenCreateManyUserInputEnvelope = {
   data: Prisma.ApiTokenCreateManyUserInput | Prisma.ApiTokenCreateManyUserInput[]
+  skipDuplicates?: boolean
 }
 
 export type ApiTokenUpsertWithWhereUniqueWithoutUserInput = {
@@ -1292,6 +1293,7 @@ export type ApiTokenCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * The data used to create many ApiTokens.
    */
   data: Prisma.ApiTokenCreateManyInput | Prisma.ApiTokenCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1310,6 +1312,7 @@ export type ApiTokenCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extens
    * The data used to create many ApiTokens.
    */
   data: Prisma.ApiTokenCreateManyInput | Prisma.ApiTokenCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

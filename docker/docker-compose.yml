@@ -13,7 +13,7 @@ services:
       - LISTEN_HOST=0.0.0.0
       - LISTEN_PORT=8080
       - LOG_LEVEL=warn
-      - DATABASE_URL=file:/data/db/db.db
+      - DATABASE_URL=postgresql://gran:gran_password@postgres:5432/gran_db?schema=public
       - MEDIA_DIR=/data/media
       - THUMBNAILS_DIR=/data/thumbnails
       - JWT_SECRET=slkdf923598ksfdo7853kjlksdfu4oi5jkssf908kj
@@ -25,6 +25,7 @@ services:
       - ./data:/data
     depends_on:
       - redis
+      - postgres
     healthcheck:
       test: [ 'CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/api/v1/health || exit 1' ]
       interval: 30s
@@ -41,5 +42,24 @@ services:
     volumes:
       - redis_data:/data
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gran
+      POSTGRES_PASSWORD: gran_password
+      POSTGRES_DB: gran_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gran -d gran_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   redis_data:
+  postgres_data:

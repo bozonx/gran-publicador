@@ -646,6 +646,8 @@ touch src/modules/new-module/dto/update-new-module.dto.ts
 ### Code Style
 
 - **Backend**: ESLint + Prettier
+- **Database:** PostgreSQL (via Prisma ORM)
+- **Caching:** Redis (Optional, falls back to in-memory)
 - **Frontend**: ESLint + Prettier (конфигурация Nuxt)
 - **Commits**: Conventional Commits (рекомендуется)
 

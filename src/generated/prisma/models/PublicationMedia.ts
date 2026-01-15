@@ -476,6 +476,7 @@ export type PublicationMediaCreateOrConnectWithoutPublicationInput = {
 
 export type PublicationMediaCreateManyPublicationInputEnvelope = {
   data: Prisma.PublicationMediaCreateManyPublicationInput | Prisma.PublicationMediaCreateManyPublicationInput[]
+  skipDuplicates?: boolean
 }
 
 export type PublicationMediaUpsertWithWhereUniqueWithoutPublicationInput = {
@@ -526,6 +527,7 @@ export type PublicationMediaCreateOrConnectWithoutMediaInput = {
 
 export type PublicationMediaCreateManyMediaInputEnvelope = {
   data: Prisma.PublicationMediaCreateManyMediaInput | Prisma.PublicationMediaCreateManyMediaInput[]
+  skipDuplicates?: boolean
 }
 
 export type PublicationMediaUpsertWithWhereUniqueWithoutMediaInput = {
@@ -1325,6 +1327,7 @@ export type PublicationMediaCreateManyArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many PublicationMedias.
    */
   data: Prisma.PublicationMediaCreateManyInput | Prisma.PublicationMediaCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1343,6 +1346,7 @@ export type PublicationMediaCreateManyAndReturnArgs<ExtArgs extends runtime.Type
    * The data used to create many PublicationMedias.
    */
   data: Prisma.PublicationMediaCreateManyInput | Prisma.PublicationMediaCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

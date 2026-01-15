@@ -640,6 +640,7 @@ export type ChannelCreateOrConnectWithoutProjectInput = {
 
 export type ChannelCreateManyProjectInputEnvelope = {
   data: Prisma.ChannelCreateManyProjectInput | Prisma.ChannelCreateManyProjectInput[]
+  skipDuplicates?: boolean
 }
 
 export type ChannelUpsertWithWhereUniqueWithoutProjectInput = {
@@ -1649,6 +1650,7 @@ export type ChannelCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * The data used to create many Channels.
    */
   data: Prisma.ChannelCreateManyInput | Prisma.ChannelCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1667,6 +1669,7 @@ export type ChannelCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many Channels.
    */
   data: Prisma.ChannelCreateManyInput | Prisma.ChannelCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

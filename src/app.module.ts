@@ -2,6 +2,12 @@ import { ClassSerializerInterceptor, Module, ValidationPipe } from '@nestjs/comm
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
+import { AcceptLanguageResolver, HeaderResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import pkg from '../package.json' with { type: 'json' };
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
@@ -42,6 +48,22 @@ import { TelegramBotModule } from './modules/telegram-bot/index.js';
       load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, redisConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
+    }),
+    I18nModule.forRoot({
+      fallbackLanguage: 'en-US',
+      fallbacks: {
+        'en-*': 'en-US',
+        'ru-*': 'ru-RU',
+      },
+      loaderOptions: {
+        path: join(__dirname, 'i18n'),
+        watch: true,
+      },
+      resolvers: [
+        { use: QueryResolver, options: ['lang'] },
+        AcceptLanguageResolver,
+        new HeaderResolver(['x-custom-lang']),
+      ],
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],

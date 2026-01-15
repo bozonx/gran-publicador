@@ -564,6 +564,7 @@ export type LlmPromptTemplateCreateOrConnectWithoutUserInput = {
 
 export type LlmPromptTemplateCreateManyUserInputEnvelope = {
   data: Prisma.LlmPromptTemplateCreateManyUserInput | Prisma.LlmPromptTemplateCreateManyUserInput[]
+  skipDuplicates?: boolean
 }
 
 export type LlmPromptTemplateUpsertWithWhereUniqueWithoutUserInput = {
@@ -626,6 +627,7 @@ export type LlmPromptTemplateCreateOrConnectWithoutProjectInput = {
 
 export type LlmPromptTemplateCreateManyProjectInputEnvelope = {
   data: Prisma.LlmPromptTemplateCreateManyProjectInput | Prisma.LlmPromptTemplateCreateManyProjectInput[]
+  skipDuplicates?: boolean
 }
 
 export type LlmPromptTemplateUpsertWithWhereUniqueWithoutProjectInput = {
@@ -1481,6 +1483,7 @@ export type LlmPromptTemplateCreateManyArgs<ExtArgs extends runtime.Types.Extens
    * The data used to create many LlmPromptTemplates.
    */
   data: Prisma.LlmPromptTemplateCreateManyInput | Prisma.LlmPromptTemplateCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1499,6 +1502,7 @@ export type LlmPromptTemplateCreateManyAndReturnArgs<ExtArgs extends runtime.Typ
    * The data used to create many LlmPromptTemplates.
    */
   data: Prisma.LlmPromptTemplateCreateManyInput | Prisma.LlmPromptTemplateCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */
