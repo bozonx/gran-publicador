@@ -34,6 +34,26 @@ const formData = reactive({
   prompt: ''
 })
 
+// Search
+const searchQuery = ref('')
+
+// Filtered templates based on search
+const filteredTemplates = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return templates.value
+  }
+  
+  const query = searchQuery.value.toLowerCase()
+  return templates.value.filter(tpl => 
+    tpl.name.toLowerCase().includes(query) ||
+    (tpl.description && tpl.description.toLowerCase().includes(query)) ||
+    tpl.prompt.toLowerCase().includes(query)
+  )
+})
+
+// Character count for prompt
+const promptCharCount = computed(() => formData.prompt.length)
+
 // Validation
 const canSubmit = computed(() => {
   return formData.name.trim().length > 0 && formData.prompt.trim().length > 0
@@ -117,6 +137,15 @@ const handleReorder = async () => {
 }
 
 const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : t('llm.userTemplates_desc'))
+
+// Use filtered templates for draggable
+const displayTemplates = computed({
+  get: () => filteredTemplates.value,
+  set: (value) => {
+    // When reordering, update the original templates array
+    templates.value = value
+  }
+})
 </script>
 
 <template>
@@ -133,20 +162,59 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
       </UButton>
     </template>
 
+    <!-- Search Field -->
+    <div v-if="templates.length > 0" class="mb-4">
+      <UInput
+        v-model="searchQuery"
+        icon="i-heroicons-magnifying-glass"
+        :placeholder="t('llm.searchTemplates')"
+      >
+        <template v-if="searchQuery" #trailing>
+          <UButton
+            color="neutral"
+            variant="link"
+            icon="i-heroicons-x-mark"
+            :padded="false"
+            @click="searchQuery = ''"
+          />
+        </template>
+      </UInput>
+    </div>
+
     <!-- Templates List -->
     <div v-if="isLoading && templates.length === 0" class="py-4 text-center">
       <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-gray-400 mx-auto" />
     </div>
     
-    <div v-else-if="templates.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-      {{ t('llm.noTemplates') }}
+    <div v-else-if="templates.length === 0" class="text-center py-12 px-4">
+      <div class="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+        <UIcon name="i-heroicons-document-text" class="w-8 h-8 text-gray-400" />
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        {{ t('llm.noTemplates') }}
+      </h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        {{ t('llm.noTemplatesDescription') }}
+      </p>
+      <UButton
+        icon="i-heroicons-plus"
+        color="primary"
+        @click="openCreateModal"
+      >
+        {{ t('llm.createFirstTemplate') }}
+      </UButton>
+    </div>
+
+    <div v-else-if="filteredTemplates.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+      {{ t('llm.noTemplatesFound') }}
     </div>
 
     <VueDraggable
-      v-else
-      v-model="templates"
+      v-else-if="filteredTemplates.length > 0"
+      v-model="displayTemplates"
       handle=".drag-handle"
       class="space-y-3"
+      :disabled="searchQuery.length > 0"
       @end="handleReorder"
     >
       <div

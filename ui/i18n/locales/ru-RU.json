@@ -1061,7 +1061,20 @@
     "manageTemplates": "Управление шаблонами промптов",
     "userTemplates": "Личные шаблоны промптов",
     "projectTemplates_desc": "Шаблоны промптов проекта",
-    "userTemplates_desc": "Ваши личные шаблоны промптов, доступные во всех проектах"
+    "userTemplates_desc": "Ваши личные шаблоны промптов, доступные во всех проектах",
+    "estimatedTokens": "Примерно {count} токенов",
+    "searchTemplates": "Поиск шаблонов...",
+    "noTemplatesFound": "Шаблоны не найдены",
+    "noTemplatesDescription": "Создайте шаблоны промптов для быстрого доступа к часто используемым запросам AI",
+    "createFirstTemplate": "Создать первый шаблон",
+    "networkError": "Ошибка сети",
+    "networkErrorMessage": "Не удалось подключиться к серверу. Проверьте подключение к интернету.",
+    "timeoutError": "Превышено время ожидания",
+    "timeoutErrorMessage": "Запрос занял слишком много времени. Попробуйте еще раз.",
+    "rateLimitError": "Превышен лимит запросов",
+    "rateLimitErrorMessage": "Слишком много запросов. Пожалуйста, подождите немного.",
+    "serverError": "Ошибка сервера",
+    "serverErrorMessage": "Произошла ошибка на сервере. Попробуйте позже."
   },
   "notifications": {
     "title": "Уведомления",

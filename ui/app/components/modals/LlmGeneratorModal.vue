@@ -17,7 +17,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, error } = useLlm()
+const { generateContent, isGenerating, error, estimateTokens } = useLlm()
 const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
@@ -66,6 +66,25 @@ function truncateText(text: string, length = 120) {
 
 // Metadata from last generation
 const metadata = ref<any>(null)
+
+// Token counter
+const estimatedTokens = computed(() => {
+  let total = estimateTokens(prompt.value)
+  
+  if (useContent.value && props.content) {
+    total += estimateTokens(props.content)
+  }
+  
+  if (props.sourceTexts && selectedSourceTexts.size > 0) {
+    props.sourceTexts.forEach((st, idx) => {
+      if (selectedSourceTexts.has(idx)) {
+        total += estimateTokens(st.content)
+      }
+    })
+  }
+  
+  return total
+})
 
 // Load templates when modal opens
 watch(isOpen, async (open) => {
@@ -155,31 +174,20 @@ async function handleGenerate() {
     return;
   }
 
-  // Build full prompt with context
-  let fullPrompt = ''
-  if (useContent.value && props.content) {
-    fullPrompt += `CONTEXT CONTENT:\n${props.content}\n\n`
-  }
-  
-  if (props.sourceTexts && selectedSourceTexts.size > 0) {
-    fullPrompt += `CONTEXT SOURCES:\n`
-    props.sourceTexts.forEach((st, idx) => {
-      if (selectedSourceTexts.has(idx)) {
-        fullPrompt += `--- SOURCE ${idx + 1} ---\n${st.content}\n\n`
-      }
-    })
-  }
-  
-  if (fullPrompt) {
-    fullPrompt += `USER REQUEST:\n${prompt.value}`
-  } else {
-    fullPrompt = prompt.value
-  }
+  // Prepare source texts for selected indexes
+  const selectedSourceTextsArray = props.sourceTexts && selectedSourceTexts.size > 0
+    ? Array.from(selectedSourceTexts)
+        .map(idx => props.sourceTexts![idx])
+        .filter((st): st is NonNullable<typeof st> => st !== undefined)
+    : undefined;
 
   console.log('Modal: Calling generateContent');
-  const response = await generateContent(fullPrompt, {
+  const response = await generateContent(prompt.value, {
     temperature: temperature.value,
     max_tokens: maxTokens.value,
+    content: props.content,
+    sourceTexts: selectedSourceTextsArray,
+    useContent: useContent.value,
   });
 
   if (response) {
@@ -188,9 +196,37 @@ async function handleGenerate() {
     metadata.value = response.metadata || null;
   } else {
     console.log('Modal: No response (error)');
+    
+    // Show specific error message based on error type
+    let errorTitle = t('llm.error');
+    let errorDescription = t('llm.errorMessage');
+    
+    if (error.value) {
+      switch (error.value.type) {
+        case 'network':
+          errorTitle = t('llm.networkError');
+          errorDescription = t('llm.networkErrorMessage');
+          break;
+        case 'timeout':
+          errorTitle = t('llm.timeoutError');
+          errorDescription = t('llm.timeoutErrorMessage');
+          break;
+        case 'rate_limit':
+          errorTitle = t('llm.rateLimitError');
+          errorDescription = t('llm.rateLimitErrorMessage');
+          break;
+        case 'server':
+          errorTitle = t('llm.serverError');
+          errorDescription = t('llm.serverErrorMessage');
+          break;
+        default:
+          errorDescription = error.value.message || errorDescription;
+      }
+    }
+    
     toast.add({
-      title: t('llm.error'),
-      description: error.value || t('llm.errorMessage'),
+      title: errorTitle,
+      description: errorDescription,
       color: 'error',
     });
   }
@@ -344,17 +380,22 @@ function handleClose() {
               <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 animate-spin" />
             </div>
             
-            <!-- Microphone button -->
+            <!-- Voice button -->
             <UButton
               :icon="isRecording ? 'i-heroicons-stop' : 'i-heroicons-microphone'"
-              :color="isRecording ? 'error' : 'neutral'"
-              :variant="isRecording ? 'solid' : 'ghost'"
+              :color="isRecording ? 'red' : 'gray'"
+              variant="ghost"
               size="sm"
               :disabled="isGenerating || isTranscribing"
-              :title="isRecording ? t('llm.stopRecording') : t('llm.startRecording')"
               @click="handleVoiceRecording"
             />
           </div>
+        </div>
+        
+        <!-- Token Counter -->
+        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <UIcon name="i-heroicons-calculator" class="w-3 h-3" />
+          <span>{{ t('llm.estimatedTokens', { count: estimatedTokens }) }}</span>
         </div>
       </UFormField>
 

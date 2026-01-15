@@ -1,0 +1,395 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { LlmPromptTemplatesService } from './llm-prompt-templates.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
+import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
+
+describe('LlmPromptTemplatesService', () => {
+  let service: LlmPromptTemplatesService;
+  let prisma: PrismaService;
+
+  const mockPrismaService = {
+    llmPromptTemplate: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      aggregate: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LlmPromptTemplatesService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<LlmPromptTemplatesService>(LlmPromptTemplatesService);
+    prisma = module.get<PrismaService>(PrismaService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('create', () => {
+    it('should create a user template with auto-calculated order', async () => {
+      const dto: CreateLlmPromptTemplateDto = {
+        userId: 'user-1',
+        name: 'Test Template',
+        prompt: 'Test prompt',
+      };
+
+      mockPrismaService.llmPromptTemplate.aggregate.mockResolvedValue({
+        _max: { order: 2 },
+      });
+
+      mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
+        id: 'template-1',
+        ...dto,
+        order: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(dto);
+
+      expect(prisma.llmPromptTemplate.aggregate).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        _max: { order: true },
+      });
+
+      expect(prisma.llmPromptTemplate.create).toHaveBeenCalledWith({
+        data: {
+          ...dto,
+          order: 3,
+        },
+      });
+
+      expect(result.order).toBe(3);
+    });
+
+    it('should create a project template', async () => {
+      const dto: CreateLlmPromptTemplateDto = {
+        projectId: 'project-1',
+        name: 'Project Template',
+        prompt: 'Project prompt',
+      };
+
+      mockPrismaService.llmPromptTemplate.aggregate.mockResolvedValue({
+        _max: { order: null },
+      });
+
+      mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
+        id: 'template-1',
+        ...dto,
+        order: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(dto);
+
+      expect(result.order).toBe(0);
+    });
+
+    it('should throw error when both userId and projectId are provided', async () => {
+      const dto: any = {
+        userId: 'user-1',
+        projectId: 'project-1',
+        name: 'Test',
+        prompt: 'Test',
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw error when neither userId nor projectId is provided', async () => {
+      const dto: any = {
+        name: 'Test',
+        prompt: 'Test',
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw error when prompt is too long', async () => {
+      const dto: CreateLlmPromptTemplateDto = {
+        userId: 'user-1',
+        name: 'Test',
+        prompt: 'a'.repeat(5001),
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto)).rejects.toThrow(/too long/);
+    });
+  });
+
+  describe('findAllByUser', () => {
+    it('should return user templates ordered by order field', async () => {
+      const templates = [
+        { id: '1', name: 'Template 1', order: 0 },
+        { id: '2', name: 'Template 2', order: 1 },
+      ];
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+
+      const result = await service.findAllByUser('user-1');
+
+      expect(prisma.llmPromptTemplate.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: { order: 'asc' },
+      });
+
+      expect(result).toEqual(templates);
+    });
+  });
+
+  describe('findAllByProject', () => {
+    it('should return project templates ordered by order field', async () => {
+      const templates = [
+        { id: '1', name: 'Template 1', order: 0 },
+        { id: '2', name: 'Template 2', order: 1 },
+      ];
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+
+      const result = await service.findAllByProject('project-1');
+
+      expect(prisma.llmPromptTemplate.findMany).toHaveBeenCalledWith({
+        where: { projectId: 'project-1' },
+        orderBy: { order: 'asc' },
+      });
+
+      expect(result).toEqual(templates);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a template by id', async () => {
+      const template = { id: 'template-1', name: 'Test' };
+
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue(template);
+
+      const result = await service.findOne('template-1');
+
+      expect(result).toEqual(template);
+    });
+
+    it('should throw NotFoundException when template not found', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should update a template', async () => {
+      const updateDto: UpdateLlmPromptTemplateDto = {
+        name: 'Updated Name',
+        prompt: 'Updated prompt',
+      };
+
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        name: 'Old Name',
+      });
+
+      mockPrismaService.llmPromptTemplate.update.mockResolvedValue({
+        id: 'template-1',
+        ...updateDto,
+      });
+
+      const result = await service.update('template-1', updateDto);
+
+      expect(result.name).toBe('Updated Name');
+    });
+
+    it('should throw error when updating with too long prompt', async () => {
+      const updateDto: UpdateLlmPromptTemplateDto = {
+        prompt: 'a'.repeat(5001),
+      };
+
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+      });
+
+      await expect(service.update('template-1', updateDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete a template', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+      });
+
+      mockPrismaService.llmPromptTemplate.delete.mockResolvedValue({
+        id: 'template-1',
+      });
+
+      const result = await service.remove('template-1');
+
+      expect(prisma.llmPromptTemplate.delete).toHaveBeenCalledWith({
+        where: { id: 'template-1' },
+      });
+
+      expect(result.id).toBe('template-1');
+    });
+  });
+
+  describe('reorder', () => {
+    it('should reorder user templates', async () => {
+      const ids = ['template-1', 'template-2', 'template-3'];
+      const userId = 'user-1';
+
+      const templates = ids.map((id, index) => ({
+        id,
+        userId,
+        projectId: null,
+        name: `Template ${index}`,
+        order: index,
+      }));
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+      mockPrismaService.$transaction.mockResolvedValue([]);
+
+      const result = await service.reorder(ids, userId);
+
+      expect(result.success).toBe(true);
+      expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('should reorder project templates for project member', async () => {
+      const ids = ['template-1', 'template-2'];
+      const userId = 'user-1';
+      const projectId = 'project-1';
+
+      const templates = ids.map((id, index) => ({
+        id,
+        userId: null,
+        projectId,
+        name: `Template ${index}`,
+        order: index,
+        project: {
+          ownerId: 'other-user',
+          members: [{ userId }],
+        },
+      }));
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+      mockPrismaService.$transaction.mockResolvedValue([]);
+
+      const result = await service.reorder(ids, userId);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should throw error when templates not found', async () => {
+      const ids = ['template-1', 'template-2'];
+      const userId = 'user-1';
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue([
+        { id: 'template-1', userId },
+      ]);
+
+      await expect(service.reorder(ids, userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw error when templates belong to different scopes', async () => {
+      const ids = ['template-1', 'template-2'];
+      const userId = 'user-1';
+
+      const templates = [
+        { id: 'template-1', userId, projectId: null },
+        { id: 'template-2', userId: null, projectId: 'project-1' },
+      ];
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+
+      await expect(service.reorder(ids, userId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw error when user does not own templates', async () => {
+      const ids = ['template-1', 'template-2'];
+      const userId = 'user-1';
+
+      const templates = [
+        { id: 'template-1', userId: 'other-user', projectId: null },
+        { id: 'template-2', userId: 'other-user', projectId: null },
+      ];
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+
+      await expect(service.reorder(ids, userId)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+  });
+
+  describe('verifyOwnership', () => {
+    it('should return true for user template owner', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        userId: 'user-1',
+        projectId: null,
+      });
+
+      const result = await service.verifyOwnership('template-1', 'user-1');
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true for project member', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        userId: null,
+        projectId: 'project-1',
+        project: {
+          ownerId: 'other-user',
+          members: [{ userId: 'user-1' }],
+        },
+      });
+
+      const result = await service.verifyOwnership('template-1', 'user-1');
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when template not found', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue(null);
+
+      const result = await service.verifyOwnership('template-1', 'user-1');
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when user does not have access', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        userId: 'other-user',
+        projectId: null,
+      });
+
+      const result = await service.verifyOwnership('template-1', 'user-1');
+
+      expect(result).toBe(false);
+    });
+  });
+});

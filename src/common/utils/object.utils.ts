@@ -1,0 +1,14 @@
+/**
+ * Filters out undefined values from an object.
+ * Useful for building request bodies where undefined values should be omitted.
+ */
+export function filterUndefined<T extends Record<string, any>>(
+  obj: T,
+): Partial<T> {
+  return Object.entries(obj).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      acc[key as keyof T] = value;
+    }
+    return acc;
+  }, {} as Partial<T>);
+}

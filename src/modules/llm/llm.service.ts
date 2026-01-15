@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
+import { buildPromptWithContext, estimateTokens } from './utils/context-formatter.js';
+import { filterUndefined } from '../../common/utils/object.utils.js';
 
 /**
  * Response from LLM Router API.
@@ -48,16 +50,23 @@ export class LlmService {
 
   /**
    * Generate content using LLM Router.
+   * Handles context formatting and token management on the backend.
    */
   async generateContent(dto: GenerateContentDto): Promise<LlmResponse> {
     const url = `${this.config.serviceUrl}/chat/completions`;
 
+    // Build full prompt with context if provided
+    const fullPrompt = this.buildFullPrompt(dto);
+    const estimatedTokens = estimateTokens(fullPrompt);
+
+    this.logger.debug(`Building prompt with ${estimatedTokens} estimated tokens`);
+
     // Build request body with config defaults and DTO overrides
-    const requestBody: any = {
+    const requestBody = {
       messages: [
         {
           role: 'user',
-          content: dto.prompt,
+          content: fullPrompt,
         },
       ],
       temperature: dto.temperature,
@@ -65,33 +74,18 @@ export class LlmService {
       model: dto.model,
       tags: dto.tags || this.config.defaultTags,
       type: this.config.defaultType,
+      // Add optional routing parameters from config
+      ...filterUndefined({
+        max_model_switches: this.config.maxModelSwitches,
+        max_same_model_retries: this.config.maxSameModelRetries,
+        retry_delay: this.config.retryDelay,
+        timeout_secs: this.config.timeoutSecs,
+        fallback_provider: this.config.fallbackProvider,
+        fallback_model: this.config.fallbackModel,
+        min_context_size: this.config.minContextSize,
+        min_max_output_tokens: this.config.minMaxOutputTokens,
+      }),
     };
-
-    // Add optional routing parameters from config
-    if (this.config.maxModelSwitches !== undefined) {
-      requestBody.max_model_switches = this.config.maxModelSwitches;
-    }
-    if (this.config.maxSameModelRetries !== undefined) {
-      requestBody.max_same_model_retries = this.config.maxSameModelRetries;
-    }
-    if (this.config.retryDelay !== undefined) {
-      requestBody.retry_delay = this.config.retryDelay;
-    }
-    if (this.config.timeoutSecs !== undefined) {
-      requestBody.timeout_secs = this.config.timeoutSecs;
-    }
-    if (this.config.fallbackProvider) {
-      requestBody.fallback_provider = this.config.fallbackProvider;
-    }
-    if (this.config.fallbackModel) {
-      requestBody.fallback_model = this.config.fallbackModel;
-    }
-    if (this.config.minContextSize !== undefined) {
-      requestBody.min_context_size = this.config.minContextSize;
-    }
-    if (this.config.minMaxOutputTokens !== undefined) {
-      requestBody.min_max_output_tokens = this.config.minMaxOutputTokens;
-    }
 
     this.logger.debug(`Sending request to LLM Router: ${url}`);
     this.logger.debug(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
@@ -116,6 +110,34 @@ export class LlmService {
       this.logger.error(`Failed to generate content: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  /**
+   * Builds the full prompt including context if provided.
+   */
+  private buildFullPrompt(dto: GenerateContentDto): string {
+    // Filter source texts if specific indexes are selected
+    let sourceTexts = dto.sourceTexts;
+    if (dto.selectedSourceIndexes && dto.selectedSourceIndexes.length > 0 && sourceTexts) {
+      sourceTexts = dto.selectedSourceIndexes
+        .map(index => sourceTexts![index])
+        .filter(Boolean);
+    }
+
+    // Determine content to include
+    const content = dto.useContent ? dto.content : undefined;
+
+    // Calculate max tokens for context (reserve tokens for response)
+    const maxContextTokens = (dto.max_tokens || 2000) < 4000 
+      ? 2000 
+      : 4000;
+
+    return buildPromptWithContext(
+      dto.prompt,
+      content,
+      sourceTexts,
+      { maxTokens: maxContextTokens, includeMetadata: true },
+    );
   }
 
   /**
