@@ -1,7 +1,8 @@
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
+import { useApi } from './useApi'
 
 export function useLlmPromptTemplates() {
-  const { $api } = useNuxtApp()
+  const $api = useApi()
   const toast = useToast()
   const { t } = useI18n()
 
@@ -13,13 +14,13 @@ export function useLlmPromptTemplates() {
     error.value = null
 
     try {
-      const response = await $api<LlmPromptTemplate[]>(`/llm-prompt-templates/user/${userId}`)
+      const response = await $api.get<LlmPromptTemplate[]>(`/llm-prompt-templates/user/${userId}`)
       return response
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch user templates'
       toast.add({
         title: t('common.error'),
-        description: error.value,
+        description: error.value || 'Failed to fetch user templates',
         color: 'error',
       })
       return []
@@ -33,13 +34,13 @@ export function useLlmPromptTemplates() {
     error.value = null
 
     try {
-      const response = await $api<LlmPromptTemplate[]>(`/llm-prompt-templates/project/${projectId}`)
+      const response = await $api.get<LlmPromptTemplate[]>(`/llm-prompt-templates/project/${projectId}`)
       return response
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch project templates'
       toast.add({
         title: t('common.error'),
-        description: error.value,
+        description: error.value || 'Failed to fetch project templates',
         color: 'error',
       })
       return []
@@ -60,10 +61,7 @@ export function useLlmPromptTemplates() {
     error.value = null
 
     try {
-      const response = await $api<LlmPromptTemplate>('/llm-prompt-templates', {
-        method: 'POST',
-        body: data,
-      })
+      const response = await $api.post<LlmPromptTemplate>('/llm-prompt-templates', data)
 
       toast.add({
         title: t('llm.createTemplateSuccess'),
@@ -75,7 +73,7 @@ export function useLlmPromptTemplates() {
       error.value = err.message || 'Failed to create template'
       toast.add({
         title: t('common.error'),
-        description: error.value,
+        description: error.value || 'Failed to create template',
         color: 'error',
       })
       return null
@@ -97,10 +95,7 @@ export function useLlmPromptTemplates() {
     error.value = null
 
     try {
-      const response = await $api<LlmPromptTemplate>(`/llm-prompt-templates/${id}`, {
-        method: 'PATCH',
-        body: data,
-      })
+      const response = await $api.patch<LlmPromptTemplate>(`/llm-prompt-templates/${id}`, data)
 
       toast.add({
         title: t('llm.updateTemplateSuccess'),
@@ -112,7 +107,7 @@ export function useLlmPromptTemplates() {
       error.value = err.message || 'Failed to update template'
       toast.add({
         title: t('common.error'),
-        description: error.value,
+        description: error.value || 'Failed to update template',
         color: 'error',
       })
       return null
@@ -126,9 +121,7 @@ export function useLlmPromptTemplates() {
     error.value = null
 
     try {
-      await $api(`/llm-prompt-templates/${id}`, {
-        method: 'DELETE',
-      })
+      await $api.delete(`/llm-prompt-templates/${id}`)
 
       toast.add({
         title: t('llm.deleteTemplateSuccess'),
@@ -140,7 +133,7 @@ export function useLlmPromptTemplates() {
       error.value = err.message || 'Failed to delete template'
       toast.add({
         title: t('common.error'),
-        description: error.value,
+        description: error.value || 'Failed to delete template',
         color: 'error',
       })
       return false
@@ -154,17 +147,14 @@ export function useLlmPromptTemplates() {
     error.value = null
 
     try {
-      await $api('/llm-prompt-templates/reorder', {
-        method: 'POST',
-        body: { ids },
-      })
+      await $api.post('/llm-prompt-templates/reorder', { ids })
 
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to reorder templates'
       toast.add({
         title: t('common.error'),
-        description: error.value,
+        description: error.value || 'Failed to reorder templates',
         color: 'error',
       })
       return false

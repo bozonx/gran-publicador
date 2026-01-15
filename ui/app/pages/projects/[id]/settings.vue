@@ -190,6 +190,12 @@ function cancelDelete() {
           />
         </UiAppCard>
 
+        <!-- LLM Prompt Templates -->
+        <SettingsLlmPromptTemplates
+          v-if="canEdit(currentProject)"
+          :project-id="currentProject.id"
+        />
+
         <!-- Members Management -->
         <UiAppCard
           v-if="canManageMembers(currentProject)"

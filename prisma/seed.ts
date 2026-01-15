@@ -464,6 +464,53 @@ async function main() {
             create: n,
         });
     }
+    
+    // 12. PROMPT TEMPLATES
+    console.log('  Generating prompt templates...');
+    const promptTemplates = [
+        // Personal templates for devUser
+        {
+            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            userId: devUser.id,
+            name: 'Суммаризация (RU)',
+            description: 'Создание краткой выжимки из текста',
+            prompt: 'Твоя задача — сделать краткую выжимку (summary) из следующего текста. Выдели главные мысли и ключевые факты. Используй маркированные списки.',
+            order: 0
+        },
+        {
+            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaab',
+            userId: devUser.id,
+            name: 'Translate to English (Simple)',
+            description: 'Simple translation to English',
+            prompt: 'Translate the provided text to English. Keep the language simple and accessible. Maintain the original formatting.',
+            order: 1
+        },
+        // Project templates for the first project
+        {
+            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+            projectId: projectData[0].id,
+            name: 'Tech Post Style',
+            description: 'Технический стиль для нашего канала',
+            prompt: 'Напиши пост на основе предоставленной информации в техническом стиле. Используй профессиональную терминологию, но старайся объяснять сложные концепции. Добавь призыв к обсуждению в конце.',
+            order: 0
+        },
+        {
+            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbc',
+            projectId: projectData[0].id,
+            name: 'News Announcement',
+            description: 'Формат новостного анонса',
+            prompt: 'Сформируй короткий новостной анонс (до 500 символов). Начни с броского заголовка. Добавь соответствующие эмодзи. Основную мысль вырази в первом предложении.',
+            order: 1
+        }
+    ];
+
+    for (const pt of promptTemplates) {
+        await prisma.llmPromptTemplate.upsert({
+            where: { id: pt.id },
+            update: pt,
+            create: pt,
+        });
+    }
 
     console.log('✅ Seeding complete!');
 }

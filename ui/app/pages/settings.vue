@@ -22,6 +22,7 @@ const { t } = useI18n()
     <SettingsLanguage />
     <SettingsTheme />
     <SettingsApiTokens />
+    <SettingsLlmPromptTemplates />
   </div>
 </template>
 
