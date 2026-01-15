@@ -89,3 +89,8 @@ export type PublicationMedia = Prisma.PublicationMediaModel
  * 
  */
 export type Notification = Prisma.NotificationModel
+/**
+ * Model LlmPromptTemplate
+ * 
+ */
+export type LlmPromptTemplate = Prisma.LlmPromptTemplateModel

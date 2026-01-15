@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
+import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 
 interface Emits {
   (e: 'insert', content: string): void
   (e: 'close'): void
 }
 
+interface Props {
+  content?: string
+  sourceTexts?: Array<{ content: string }>
+  projectId?: string
+}
+
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
@@ -18,6 +26,8 @@ const {
   startRecording,
   stopRecording,
 } = useVoiceRecorder()
+const { fetchUserTemplates, fetchProjectTemplates } = useLlmPromptTemplates()
+const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
@@ -28,17 +38,99 @@ const showAdvanced = ref(false)
 const temperature = ref(0.7)
 const maxTokens = ref(2000)
 
+// Template selection
+const selectedTemplateId = ref<string | null>(null)
+const userTemplates = ref<LlmPromptTemplate[]>([])
+const projectTemplates = ref<LlmPromptTemplate[]>([])
+const isLoadingTemplates = ref(false)
+
+// Context selection state
+const useContent = ref(false)
+const selectedSourceTexts = reactive(new Set<number>())
+
+function toggleSourceText(index: number) {
+  if (selectedSourceTexts.has(index)) {
+    selectedSourceTexts.delete(index)
+  } else {
+    selectedSourceTexts.add(index)
+  }
+}
+
+function truncateText(text: string, length = 120) {
+  if (!text) return ''
+  // Remove newlines and extra spaces
+  const singleLine = text.replace(/[\r\n]+/g, ' ').trim()
+  if (singleLine.length <= length) return singleLine
+  return singleLine.substring(0, length) + '...'
+}
+
 // Metadata from last generation
 const metadata = ref<any>(null)
 
-// Reset form when modal closes
-watch(isOpen, (open) => {
-  if (!open) {
+// Load templates when modal opens
+watch(isOpen, async (open) => {
+  if (open) {
+    // Load templates
+    isLoadingTemplates.value = true
+    try {
+      if (user.value?.id) {
+        userTemplates.value = await fetchUserTemplates(user.value.id)
+      }
+      if (props.projectId) {
+        projectTemplates.value = await fetchProjectTemplates(props.projectId)
+      }
+    } finally {
+      isLoadingTemplates.value = false
+    }
+  } else {
+    // Reset form when modal closes
     prompt.value = ''
     result.value = ''
     metadata.value = null
     showAdvanced.value = false
+    useContent.value = false
+    selectedSourceTexts.clear()
+    selectedTemplateId.value = null
   }
+})
+
+// Watch template selection and add template text to prompt
+watch(selectedTemplateId, (templateId) => {
+  if (!templateId) return
+  
+  const allTemplates = [...userTemplates.value, ...projectTemplates.value]
+  const template = allTemplates.find(t => t.id === templateId)
+  
+  if (template) {
+    // Add template prompt to existing prompt (don't replace)
+    if (prompt.value && !prompt.value.endsWith('\n')) {
+      prompt.value += '\n\n'
+    }
+    prompt.value += template.prompt
+  }
+})
+
+// Computed options for template select
+const templateOptions = computed(() => {
+  const options: Array<{ label: string; value: string | null; disabled?: boolean }> = [
+    { label: t('llm.noTemplate'), value: null }
+  ]
+  
+  if (userTemplates.value.length > 0) {
+    options.push({ label: t('llm.personalTemplates'), value: 'personal-header', disabled: true })
+    userTemplates.value.forEach(template => {
+      options.push({ label: `  ${template.name}`, value: template.id })
+    })
+  }
+  
+  if (projectTemplates.value.length > 0) {
+    options.push({ label: t('llm.projectTemplates'), value: 'project-header', disabled: true })
+    projectTemplates.value.forEach(template => {
+      options.push({ label: `  ${template.name}`, value: template.id })
+    })
+  }
+  
+  return options
 })
 
 // Watch for voice recording errors
@@ -63,8 +155,29 @@ async function handleGenerate() {
     return;
   }
 
+  // Build full prompt with context
+  let fullPrompt = ''
+  if (useContent.value && props.content) {
+    fullPrompt += `CONTEXT CONTENT:\n${props.content}\n\n`
+  }
+  
+  if (props.sourceTexts && selectedSourceTexts.size > 0) {
+    fullPrompt += `CONTEXT SOURCES:\n`
+    props.sourceTexts.forEach((st, idx) => {
+      if (selectedSourceTexts.has(idx)) {
+        fullPrompt += `--- SOURCE ${idx + 1} ---\n${st.content}\n\n`
+      }
+    })
+  }
+  
+  if (fullPrompt) {
+    fullPrompt += `USER REQUEST:\n${prompt.value}`
+  } else {
+    fullPrompt = prompt.value
+  }
+
   console.log('Modal: Calling generateContent');
-  const response = await generateContent(prompt.value, {
+  const response = await generateContent(fullPrompt, {
     temperature: temperature.value,
     max_tokens: maxTokens.value,
   });
@@ -155,6 +268,51 @@ function handleClose() {
       </div>
     </template>
     <div :class="FORM_SPACING.section">
+      <!-- Context Block -->
+      <div v-if="content || (sourceTexts && sourceTexts.length > 0)" class="mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+        <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+          <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
+          {{ t('llm.context') }}
+        </div>
+        
+        <div class="space-y-2">
+          <!-- Content context -->
+          <div v-if="content" class="flex items-center gap-2">
+            <UCheckbox v-model="useContent" :label="t('llm.useContent')" />
+            <span class="text-xs text-gray-500 truncate flex-1">
+              {{ truncateText(content) }}
+            </span>
+          </div>
+          
+          <!-- Source texts context -->
+          <template v-if="sourceTexts">
+            <div v-for="(st, idx) in sourceTexts" :key="idx" class="flex items-center gap-2">
+              <UCheckbox 
+                :model-value="selectedSourceTexts.has(idx)" 
+                @update:model-value="toggleSourceText(idx)"
+              >
+                <template #label>
+                  <span class="text-sm">{{ t('llm.sourceText') }} #{{ idx + 1 }}</span>
+                </template>
+              </UCheckbox>
+              <span class="text-xs text-gray-500 truncate flex-1">
+                {{ truncateText(st.content) }}
+              </span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Template Selector --  >
+      <UFormField v-if="templateOptions.length > 1" :label="t('llm.selectTemplate')">
+        <USelect
+          v-model="selectedTemplateId"
+          :options="templateOptions"
+          :loading="isLoadingTemplates"
+          :disabled="isGenerating || isRecording || isTranscribing"
+        />
+      </UFormField>
+
       <!-- Prompt Input -->
       <UFormField :label="t('llm.promptLabel')" required>
         <div class="relative">

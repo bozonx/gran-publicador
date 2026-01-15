@@ -60,7 +60,8 @@ export const ModelName = {
   Post: 'Post',
   Media: 'Media',
   PublicationMedia: 'PublicationMedia',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  LlmPromptTemplate: 'LlmPromptTemplate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -245,6 +246,21 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const LlmPromptTemplateScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  projectId: 'projectId',
+  name: 'name',
+  description: 'description',
+  prompt: 'prompt',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LlmPromptTemplateScalarFieldEnum = (typeof LlmPromptTemplateScalarFieldEnum)[keyof typeof LlmPromptTemplateScalarFieldEnum]
 
 
 export const SortOrder = {

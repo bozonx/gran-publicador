@@ -840,6 +840,8 @@ function handleInsertLlmContent(content: string) {
     <!-- LLM Generator Modal -->
     <ModalsLlmGeneratorModal
       v-model:open="showLlmModal"
+      :content="state.content"
+      :source-texts="state.sourceTexts"
       @insert="handleInsertLlmContent"
     />
 </template>

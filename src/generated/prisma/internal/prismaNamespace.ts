@@ -393,7 +393,8 @@ export const ModelName = {
   Post: 'Post',
   Media: 'Media',
   PublicationMedia: 'PublicationMedia',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  LlmPromptTemplate: 'LlmPromptTemplate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "apiToken" | "project" | "projectMember" | "channel" | "publication" | "post" | "media" | "publicationMedia" | "notification"
+    modelProps: "user" | "apiToken" | "project" | "projectMember" | "channel" | "publication" | "post" | "media" | "publicationMedia" | "notification" | "llmPromptTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1153,6 +1154,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    LlmPromptTemplate: {
+      payload: Prisma.$LlmPromptTemplatePayload<ExtArgs>
+      fields: Prisma.LlmPromptTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LlmPromptTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LlmPromptTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.LlmPromptTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LlmPromptTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.LlmPromptTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.LlmPromptTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.LlmPromptTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LlmPromptTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.LlmPromptTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>
+        }
+        update: {
+          args: Prisma.LlmPromptTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.LlmPromptTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LlmPromptTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LlmPromptTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.LlmPromptTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LlmPromptTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.LlmPromptTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLlmPromptTemplate>
+        }
+        groupBy: {
+          args: Prisma.LlmPromptTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LlmPromptTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LlmPromptTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LlmPromptTemplateCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1358,6 +1433,21 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const LlmPromptTemplateScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  projectId: 'projectId',
+  name: 'name',
+  description: 'description',
+  prompt: 'prompt',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LlmPromptTemplateScalarFieldEnum = (typeof LlmPromptTemplateScalarFieldEnum)[keyof typeof LlmPromptTemplateScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1630,6 +1720,7 @@ export type GlobalOmitConfig = {
   media?: Prisma.MediaOmit
   publicationMedia?: Prisma.PublicationMediaOmit
   notification?: Prisma.NotificationOmit
+  llmPromptTemplate?: Prisma.LlmPromptTemplateOmit
 }
 
 /* Types for Logging */

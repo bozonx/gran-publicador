@@ -35,6 +35,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.11",
     "@nestjs/jwt": "^11.0.2",
+    "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-fastify": "^11.1.11",
     "@nestjs/platform-socket.io": "^11.1.11",

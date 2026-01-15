@@ -34,6 +34,7 @@ model User {
   publications       Publication[] @relation("PublicationCreator")
   apiTokens      ApiToken[]
   notifications  Notification[]
+  llmPromptTemplates LlmPromptTemplate[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -79,6 +80,7 @@ model Project {
   members      ProjectMember[]
   channels     Channel[]
   publications Publication[]
+  llmPromptTemplates LlmPromptTemplate[]
 
   @@map("projects")
 }
@@ -282,6 +284,32 @@ model Notification {
   @@index([userId, createdAt])
   @@map("notifications")
 }
+
+model LlmPromptTemplate {
+  id          String   @id @default(uuid())
+  // User ID for personal templates, null for project templates
+  userId      String?  @map("user_id")
+  // Project ID for project templates, null for personal templates
+  projectId   String?  @map("project_id")
+  
+  name        String
+  description String?
+  // The actual prompt template text
+  prompt      String
+  // Display order for UI
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([projectId])
+  @@map("llm_prompt_templates")
+}
+
 
 enum ProjectRole {
   ADMIN

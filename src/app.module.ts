@@ -32,6 +32,7 @@ import { LlmModule } from './modules/llm/llm.module.js';
 import { SttModule } from './modules/stt/stt.module.js';
 import { TranslateModule } from './modules/translate/translate.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { LlmPromptTemplatesModule } from './modules/llm-prompt-templates/llm-prompt-templates.module.js';
 
 @Module({
   imports: [
@@ -50,7 +51,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
         return {
           pinoHttp: {
             level: appConfig.logLevel,
-            timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+            timestamp: () => `,\"timestamp\":\"${new Date().toISOString()}\"`,
             base: {
               service: (pkg as any).name ?? 'app',
               environment: appConfig.nodeEnv,
@@ -175,6 +176,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     SttModule,
     TranslateModule,
     NotificationsModule,
+    LlmPromptTemplatesModule,
   ],
   controllers: [],
   providers: [

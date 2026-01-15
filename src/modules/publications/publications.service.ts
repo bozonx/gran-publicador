@@ -607,6 +607,13 @@ export class PublicationsService {
       ]);
     }
 
+    // Permission check for moving to another project
+    if (data.projectId !== undefined && data.projectId !== publication.projectId) {
+      if (data.projectId) {
+        await this.permissions.checkProjectAccess(data.projectId, userId);
+      }
+    }
+
     // Additional validations for personal drafts
     if (!publication.projectId) {
       if (
@@ -917,6 +924,7 @@ export class PublicationsService {
     const updated = await this.prisma.publication.update({
       where: { id },
       data: {
+        projectId: data.projectId !== undefined ? data.projectId : undefined,
         title: data.title,
         description: data.description,
         content: data.content,

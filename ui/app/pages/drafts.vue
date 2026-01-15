@@ -172,33 +172,17 @@ async function handleDelete() {
       />
     </div>
 
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-              {{ t('publication.delete') }}
-            </h3>
-            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark-20-solid" @click="showDeleteModal = false" />
-          </div>
-        </template>
-        <div class="p-4">
-          <p class="text-sm text-gray-500">
-            {{ t('publication.deleteConfirm') }}
-          </p>
-        </div>
-        <template #footer>
-          <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" @click="showDeleteModal = false">
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton color="error" :loading="isDeleting" @click="handleDelete">
-              {{ t('common.delete') }}
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </UModal>
+    <UiConfirmModal
+      v-if="showDeleteModal"
+      v-model:open="showDeleteModal"
+      :title="t('publication.delete')"
+      :description="t('publication.deleteConfirm')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="handleDelete"
+    />
 
     <ModalsCreatePublicationModal
       v-if="isCreateModalOpen"

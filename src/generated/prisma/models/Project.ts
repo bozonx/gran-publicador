@@ -214,6 +214,7 @@ export type ProjectWhereInput = {
   members?: Prisma.ProjectMemberListRelationFilter
   channels?: Prisma.ChannelListRelationFilter
   publications?: Prisma.PublicationListRelationFilter
+  llmPromptTemplates?: Prisma.LlmPromptTemplateListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -230,6 +231,7 @@ export type ProjectOrderByWithRelationInput = {
   members?: Prisma.ProjectMemberOrderByRelationAggregateInput
   channels?: Prisma.ChannelOrderByRelationAggregateInput
   publications?: Prisma.PublicationOrderByRelationAggregateInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -249,6 +251,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   members?: Prisma.ProjectMemberListRelationFilter
   channels?: Prisma.ChannelListRelationFilter
   publications?: Prisma.PublicationListRelationFilter
+  llmPromptTemplates?: Prisma.LlmPromptTemplateListRelationFilter
 }, "id">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -294,6 +297,7 @@ export type ProjectCreateInput = {
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -309,6 +313,7 @@ export type ProjectUncheckedCreateInput = {
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -324,6 +329,7 @@ export type ProjectUpdateInput = {
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -339,6 +345,7 @@ export type ProjectUncheckedUpdateInput = {
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -516,6 +523,22 @@ export type ProjectUpdateOneWithoutPublicationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutPublicationsInput, Prisma.ProjectUpdateWithoutPublicationsInput>, Prisma.ProjectUncheckedUpdateWithoutPublicationsInput>
 }
 
+export type ProjectCreateNestedOneWithoutLlmPromptTemplatesInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutLlmPromptTemplatesInput, Prisma.ProjectUncheckedCreateWithoutLlmPromptTemplatesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutLlmPromptTemplatesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneWithoutLlmPromptTemplatesNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutLlmPromptTemplatesInput, Prisma.ProjectUncheckedCreateWithoutLlmPromptTemplatesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutLlmPromptTemplatesInput
+  upsert?: Prisma.ProjectUpsertWithoutLlmPromptTemplatesInput
+  disconnect?: Prisma.ProjectWhereInput | boolean
+  delete?: Prisma.ProjectWhereInput | boolean
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutLlmPromptTemplatesInput, Prisma.ProjectUpdateWithoutLlmPromptTemplatesInput>, Prisma.ProjectUncheckedUpdateWithoutLlmPromptTemplatesInput>
+}
+
 export type ProjectCreateWithoutOwnerInput = {
   id?: string
   name: string
@@ -528,6 +551,7 @@ export type ProjectCreateWithoutOwnerInput = {
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutOwnerInput = {
@@ -542,6 +566,7 @@ export type ProjectUncheckedCreateWithoutOwnerInput = {
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutOwnerInput = {
@@ -596,6 +621,7 @@ export type ProjectCreateWithoutMembersInput = {
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMembersInput = {
@@ -610,6 +636,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMembersInput = {
@@ -640,6 +667,7 @@ export type ProjectUpdateWithoutMembersInput = {
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMembersInput = {
@@ -654,6 +682,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutChannelsInput = {
@@ -668,6 +697,7 @@ export type ProjectCreateWithoutChannelsInput = {
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutChannelsInput = {
@@ -682,6 +712,7 @@ export type ProjectUncheckedCreateWithoutChannelsInput = {
   preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutChannelsInput = {
@@ -712,6 +743,7 @@ export type ProjectUpdateWithoutChannelsInput = {
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutChannelsInput = {
@@ -726,6 +758,7 @@ export type ProjectUncheckedUpdateWithoutChannelsInput = {
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutPublicationsInput = {
@@ -740,6 +773,7 @@ export type ProjectCreateWithoutPublicationsInput = {
   owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
   members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutPublicationsInput = {
@@ -754,6 +788,7 @@ export type ProjectUncheckedCreateWithoutPublicationsInput = {
   preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
   channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutPublicationsInput = {
@@ -784,6 +819,7 @@ export type ProjectUpdateWithoutPublicationsInput = {
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutPublicationsInput = {
@@ -798,6 +834,83 @@ export type ProjectUncheckedUpdateWithoutPublicationsInput = {
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutLlmPromptTemplatesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  owner: Prisma.UserCreateNestedOneWithoutOwnedProjectsInput
+  members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
+  channels?: Prisma.ChannelCreateNestedManyWithoutProjectInput
+  publications?: Prisma.PublicationCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutLlmPromptTemplatesInput = {
+  id?: string
+  name: string
+  description?: string | null
+  ownerId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
+  channels?: Prisma.ChannelUncheckedCreateNestedManyWithoutProjectInput
+  publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutLlmPromptTemplatesInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutLlmPromptTemplatesInput, Prisma.ProjectUncheckedCreateWithoutLlmPromptTemplatesInput>
+}
+
+export type ProjectUpsertWithoutLlmPromptTemplatesInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutLlmPromptTemplatesInput, Prisma.ProjectUncheckedUpdateWithoutLlmPromptTemplatesInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutLlmPromptTemplatesInput, Prisma.ProjectUncheckedCreateWithoutLlmPromptTemplatesInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutLlmPromptTemplatesInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutLlmPromptTemplatesInput, Prisma.ProjectUncheckedUpdateWithoutLlmPromptTemplatesInput>
+}
+
+export type ProjectUpdateWithoutLlmPromptTemplatesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedProjectsNestedInput
+  members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
+  channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
+  publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutLlmPromptTemplatesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
+  channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
+  publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyOwnerInput = {
@@ -823,6 +936,7 @@ export type ProjectUpdateWithoutOwnerInput = {
   members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutOwnerInput = {
@@ -837,6 +951,7 @@ export type ProjectUncheckedUpdateWithoutOwnerInput = {
   members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
   channels?: Prisma.ChannelUncheckedUpdateManyWithoutProjectNestedInput
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutProjectNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutOwnerInput = {
@@ -859,12 +974,14 @@ export type ProjectCountOutputType = {
   members: number
   channels: number
   publications: number
+  llmPromptTemplates: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | ProjectCountOutputTypeCountMembersArgs
   channels?: boolean | ProjectCountOutputTypeCountChannelsArgs
   publications?: boolean | ProjectCountOutputTypeCountPublicationsArgs
+  llmPromptTemplates?: boolean | ProjectCountOutputTypeCountLlmPromptTemplatesArgs
 }
 
 /**
@@ -898,6 +1015,13 @@ export type ProjectCountOutputTypeCountPublicationsArgs<ExtArgs extends runtime.
   where?: Prisma.PublicationWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountLlmPromptTemplatesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LlmPromptTemplateWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -913,6 +1037,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   members?: boolean | Prisma.Project$membersArgs<ExtArgs>
   channels?: boolean | Prisma.Project$channelsArgs<ExtArgs>
   publications?: boolean | Prisma.Project$publicationsArgs<ExtArgs>
+  llmPromptTemplates?: boolean | Prisma.Project$llmPromptTemplatesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -960,6 +1085,7 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   members?: boolean | Prisma.Project$membersArgs<ExtArgs>
   channels?: boolean | Prisma.Project$channelsArgs<ExtArgs>
   publications?: boolean | Prisma.Project$publicationsArgs<ExtArgs>
+  llmPromptTemplates?: boolean | Prisma.Project$llmPromptTemplatesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -976,6 +1102,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     members: Prisma.$ProjectMemberPayload<ExtArgs>[]
     channels: Prisma.$ChannelPayload<ExtArgs>[]
     publications: Prisma.$PublicationPayload<ExtArgs>[]
+    llmPromptTemplates: Prisma.$LlmPromptTemplatePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1385,6 +1512,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   members<T extends Prisma.Project$membersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$membersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   channels<T extends Prisma.Project$channelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$channelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   publications<T extends Prisma.Project$publicationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$publicationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PublicationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  llmPromptTemplates<T extends Prisma.Project$llmPromptTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$llmPromptTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LlmPromptTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1886,6 +2014,30 @@ export type Project$publicationsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.PublicationScalarFieldEnum | Prisma.PublicationScalarFieldEnum[]
+}
+
+/**
+ * Project.llmPromptTemplates
+ */
+export type Project$llmPromptTemplatesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LlmPromptTemplate
+   */
+  select?: Prisma.LlmPromptTemplateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LlmPromptTemplate
+   */
+  omit?: Prisma.LlmPromptTemplateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LlmPromptTemplateInclude<ExtArgs> | null
+  where?: Prisma.LlmPromptTemplateWhereInput
+  orderBy?: Prisma.LlmPromptTemplateOrderByWithRelationInput | Prisma.LlmPromptTemplateOrderByWithRelationInput[]
+  cursor?: Prisma.LlmPromptTemplateWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LlmPromptTemplateScalarFieldEnum | Prisma.LlmPromptTemplateScalarFieldEnum[]
 }
 
 /**

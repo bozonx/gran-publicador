@@ -108,6 +108,10 @@ export class UpdatePublicationDto {
   @IsOptional()
   public sourceTexts?: SourceTextDto[];
 
+  @IsString()
+  @IsOptional()
+  public projectId?: string | null;
+
   @IsOptional()
   public appendSourceTexts?: boolean;
 }

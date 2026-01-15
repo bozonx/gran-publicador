@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - LLM config validation error in environments without `FREE_LLM_ROUTER_URL`.
 - E2E tests failing due to missing Redis connection and configuration.
+- Publication save error (400) caused by `projectId` validation in PATCH requests.
 
 ### Changed
 - Required `publicationId` for all posts in the database.
