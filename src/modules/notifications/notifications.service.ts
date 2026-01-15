@@ -21,7 +21,7 @@ export class NotificationsService {
       throw new Error('Missing required notification fields');
     }
 
-    const notification = await (this.prisma as any).notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId: data.userId,
         type: data.type,
@@ -45,7 +45,7 @@ export class NotificationsService {
    * Find all notifications for a user with optional filtering.
    */
   async findAll(userId: string, filters: NotificationFilterDto) {
-    const where: any = {
+    const where: Prisma.NotificationWhereInput = {
       userId,
     };
 
@@ -58,13 +58,13 @@ export class NotificationsService {
     }
 
     const [items, total] = await Promise.all([
-      (this.prisma as any).notification.findMany({
+      this.prisma.notification.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: filters.limit,
         skip: filters.offset,
       }),
-      (this.prisma as any).notification.count({ where }),
+      this.prisma.notification.count({ where }),
     ]);
 
     return {
@@ -77,7 +77,7 @@ export class NotificationsService {
    * Get unread count for a user.
    */
   async getUnreadCount(userId: string) {
-    return (this.prisma as any).notification.count({
+    return this.prisma.notification.count({
       where: {
         userId,
         readAt: null,
@@ -89,7 +89,7 @@ export class NotificationsService {
    * Mark a specific notification as read.
    */
   async markAsRead(id: string, userId: string) {
-    const notification = await (this.prisma as any).notification.findUnique({
+    const notification = await this.prisma.notification.findUnique({
       where: { id },
     });
 
@@ -101,7 +101,7 @@ export class NotificationsService {
       throw new NotFoundException('Notification not found');
     }
 
-    return (this.prisma as any).notification.update({
+    return this.prisma.notification.update({
       where: { id },
       data: { readAt: new Date() },
     });
@@ -111,7 +111,7 @@ export class NotificationsService {
    * Mark all notifications of a user as read.
    */
   async markAllAsRead(userId: string) {
-    return (this.prisma as any).notification.updateMany({
+    return this.prisma.notification.updateMany({
       where: {
         userId,
         readAt: null,
@@ -128,7 +128,7 @@ export class NotificationsService {
     const date = new Date();
     date.setDate(date.getDate() - olderThanDays);
 
-    const result = await (this.prisma as any).notification.deleteMany({
+    const result = await this.prisma.notification.deleteMany({
       where: {
         readAt: {
           lt: date,

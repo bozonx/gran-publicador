@@ -7,8 +7,9 @@ const props = defineProps<{
 
 const emit = defineEmits(['click']);
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const notificationsStore = useNotificationsStore();
+const router = useRouter();
 
 const relativeTime = useTimeAgo(new Date(props.notification.createdAt));
 
@@ -42,6 +43,15 @@ async function handleClick() {
   if (!props.notification.readAt) {
     await notificationsStore.markAsRead(props.notification.id);
   }
+  
+  // Navigation logic
+  const meta = props.notification.meta || {};
+  if (props.notification.type === NotificationType.PUBLICATION_FAILED && meta.publicationId) {
+    router.push(`/projects/${meta.projectId}/publications/${meta.publicationId}`);
+  } else if (props.notification.type === NotificationType.PROJECT_INVITE && meta.projectId) {
+    router.push(`/projects/${meta.projectId}`);
+  }
+  
   emit('click', props.notification);
 }
 </script>
@@ -49,7 +59,10 @@ async function handleClick() {
 <template>
   <div
     class="p-4 border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
-    :class="{ 'bg-blue-50/50 dark:bg-blue-900/10': !notification.readAt }"
+    :class="{ 
+      'bg-blue-50/50 dark:bg-blue-900/10': !notification.readAt,
+      'hover:bg-blue-100/30 dark:hover:bg-blue-800/20': !notification.readAt 
+    }"
     @click="handleClick"
   >
     <div class="flex items-start gap-3">
@@ -61,12 +74,17 @@ async function handleClick() {
           <p class="text-sm font-semibold truncate">{{ notification.title }}</p>
           <div v-if="!notification.readAt" class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
         </div>
-        <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 whitespace-pre-line">
+        <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 whitespace-pre-line leading-relaxed">
           {{ notification.message }}
         </p>
-        <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">
-          {{ relativeTime }}
-        </p>
+        <div class="flex items-center justify-between mt-2">
+          <p class="text-[10px] text-gray-400 uppercase tracking-wider">
+            {{ relativeTime }}
+          </p>
+          <p v-if="notification.meta?.publicationId || notification.meta?.projectId" class="text-[10px] text-blue-500 font-medium hover:underline">
+            {{ notification.type === NotificationType.PUBLICATION_FAILED ? t('notifications.view_publication') : t('notifications.view_project') }} &rarr;
+          </p>
+        </div>
       </div>
     </div>
   </div>

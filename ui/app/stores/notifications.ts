@@ -24,6 +24,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const authStore = useAuthStore();
   const api = useApi();
   const config = useRuntimeConfig();
+  const toast = useToast();
 
   const items = ref<Notification[]>([]);
   const unreadCount = ref(0);
@@ -31,6 +32,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const socket = ref<Socket | null>(null);
 
   const hasUnread = computed(() => unreadCount.value > 0);
+
+  // Maximum number of notifications to keep in memory to prevent memory leaks
+  const MAX_ITEMS = 50;
 
   /**
    * Fetch notification history from REST API
@@ -42,7 +46,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
         params: { limit, offset },
       });
       if (append) {
-        items.value = [...items.value, ...response.items];
+        // Avoid duplicates when appending
+        const existingIds = new Set(items.value.map((i) => i.id));
+        const newItems = response.items.filter((i) => !existingIds.has(i.id));
+        items.value = [...items.value, ...newItems].slice(0, MAX_ITEMS * 2); // Allow more for the full page
       } else {
         items.value = response.items;
       }
@@ -88,6 +95,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
    * Mark all notifications as read
    */
   async function markAllAsRead() {
+    const previousUnread = unreadCount.value;
     try {
       await api.patch('/notifications/read-all');
       items.value.forEach((item) => {
@@ -98,6 +106,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
       unreadCount.value = 0;
     } catch (error) {
       console.error('Failed to mark all notifications as read', error);
+      // Rollback if error (optional)
+      // unreadCount.value = previousUnread;
     }
   }
 
@@ -105,13 +115,20 @@ export const useNotificationsStore = defineStore('notifications', () => {
    * Connect to WebSocket for real-time updates
    */
   function connectWebSocket() {
-    if (socket.value?.connected) return;
+    if (socket.value) return;
 
     // Determine WS URL
-    // If apiBase is http://localhost:8080/api/v1, wsUrl should be http://localhost:8080
-    // If apiBase is /api/v1, it means same host
     const apiBase = config.public.apiBase || '';
-    const wsUrl = apiBase.replace('/api/v1', '') || window.location.origin;
+    let wsUrl = '';
+    
+    if (apiBase.startsWith('http')) {
+      // Full URL: http://localhost:8080/api/v1 -> http://localhost:8080
+      const url = new URL(apiBase);
+      wsUrl = url.origin;
+    } else {
+      // Relative URL or same origin
+      wsUrl = window.location.origin;
+    }
 
     socket.value = io(`${wsUrl}/notifications`, {
       auth: {
@@ -125,12 +142,26 @@ export const useNotificationsStore = defineStore('notifications', () => {
     });
 
     socket.value.on('notification', (notification: Notification) => {
+      // Check for duplicates
+      if (items.value.some((n) => n.id === notification.id)) return;
+
       // Add to the beginning of the list
       items.value.unshift(notification);
+      
+      // Limit list size
+      if (items.value.length > MAX_ITEMS) {
+        items.value = items.value.slice(0, MAX_ITEMS);
+      }
+      
       unreadCount.value++;
       
-      // Optionally show a toast
-      // useToast().add({ title: notification.title, description: notification.message });
+      // Show a toast
+      toast.add({
+        title: notification.title,
+        description: notification.message,
+        icon: getNotificationIcon(notification.type),
+        color: notification.type === NotificationType.PUBLICATION_FAILED ? 'error' : 'primary',
+      });
     });
 
     socket.value.on('disconnect', () => {
@@ -149,6 +180,19 @@ export const useNotificationsStore = defineStore('notifications', () => {
     if (socket.value) {
       socket.value.disconnect();
       socket.value = null;
+    }
+  }
+
+  function getNotificationIcon(type: NotificationType) {
+    switch (type) {
+      case NotificationType.PUBLICATION_FAILED:
+        return 'i-heroicons-exclamation-circle';
+      case NotificationType.PROJECT_INVITE:
+        return 'i-heroicons-user-plus';
+      case NotificationType.SYSTEM:
+        return 'i-heroicons-information-circle';
+      default:
+        return 'i-heroicons-bell';
     }
   }
 

@@ -46,7 +46,7 @@ function handleNotificationClick() {
       </div>
       <div v-else-if="notificationsStore.isLoading" class="p-8 flex flex-col items-center justify-center text-gray-500">
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin mb-2" />
-        <p class="text-sm">Загрузка...</p>
+        <p class="text-sm">{{ t('common.loading') }}</p>
       </div>
       <div v-else class="p-12 flex flex-col items-center justify-center text-center">
         <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
