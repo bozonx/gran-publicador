@@ -1,5 +1,6 @@
 import { PrismaClient, ProjectRole, SocialMedia, PostType, PostStatus, PublicationStatus, NotificationType } from '../src/generated/prisma/client.js';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 import { config } from 'dotenv';
 import path from 'path';
 import { getDatabaseUrl } from '../src/config/database.config.js';
@@ -13,8 +14,8 @@ config();
 const url = getDatabaseUrl();
 console.log('Using DB URL:', url);
 
-const adapter = new PrismaBetterSqlite3({ url });
-
+const pool = new pg.Pool({ connectionString: url });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
