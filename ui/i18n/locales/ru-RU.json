@@ -599,6 +599,7 @@
     "hasArchivedChannels": "Архивные каналы",
     "hasInactiveChannels": "Неактивные каналы",
     "personal_draft": "Личный черновик",
+    "personal_draft_short": "Личный",
     "project_publication": "Публикация в проект",
     "create_personal_draft": "Создать личный черновик",
     "personal_draft_help": "Личные черновики не привязаны к проектам и видны только вам",

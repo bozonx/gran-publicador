@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   PublicationStatus,
   PostStatus,
@@ -139,7 +145,9 @@ export class PublicationsService {
 
       // 3. Validate Project Scope (Issue 2)
       if (targetPub.projectId !== data.projectId) {
-        throw new BadRequestException('Cannot link publications from different projects or contexts');
+        throw new BadRequestException(
+          'Cannot link publications from different projects or contexts',
+        );
       }
 
       // 4. Validate Post Type Compatibility (User Request)
@@ -1034,7 +1042,9 @@ export class PublicationsService {
       try {
         if (pub.createdBy !== userId) {
           if (pub.projectId) {
-            await this.permissions.checkProjectPermission(pub.projectId, userId, [ProjectRole.ADMIN]);
+            await this.permissions.checkProjectPermission(pub.projectId, userId, [
+              ProjectRole.ADMIN,
+            ]);
           } else {
             throw new ForbiddenException('Access denied to personal draft');
           }

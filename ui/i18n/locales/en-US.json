@@ -574,6 +574,7 @@
     "hasArchivedChannels": "Archived Channels",
     "hasInactiveChannels": "Inactive Channels",
     "personal_draft": "Personal Draft",
+    "personal_draft_short": "Personal",
     "project_publication": "Project Publication",
     "create_personal_draft": "Create Personal Draft",
     "personal_draft_help": "Personal drafts are not linked to projects and are only visible to you",

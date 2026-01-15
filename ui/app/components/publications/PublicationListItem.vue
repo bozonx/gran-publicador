@@ -78,6 +78,11 @@ function handleDelete(e: Event) {
           <UBadge v-if="publication.archivedAt && !isArchiveView" color="neutral" size="xs" variant="solid">
             {{ t('common.archived') }}
           </UBadge>
+
+          <UBadge v-if="!publication.projectId" color="neutral" size="xs" variant="soft" class="gap-1">
+            <UIcon name="i-heroicons-user" class="w-3.5 h-3.5 text-gray-400" />
+            {{ t('publication.personal_draft_short', 'Personal') }}
+          </UBadge>
           
           <!-- Problem indicators -->
           <UTooltip 
