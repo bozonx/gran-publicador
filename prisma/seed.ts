@@ -407,8 +407,9 @@ async function main() {
         }
     });
 
-    // 10. API TOKENS
-    console.log('  Generating API tokens...');
+    // 10. API TOKENS (Skipped in seed as they require encryption)
+    // console.log('  Generating API tokens...');
+    /*
     await prisma.apiToken.upsert({
         where: { hashedToken: 'mock-hashed-dev-token' },
         update: {},
@@ -421,6 +422,7 @@ async function main() {
             scopeProjectIds: [projectData[0].id],
         }
     });
+    */
     
     // 11. NOTIFICATIONS
     console.log('  Generating notifications...');

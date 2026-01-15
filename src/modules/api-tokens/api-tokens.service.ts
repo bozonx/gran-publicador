@@ -67,13 +67,22 @@ export class ApiTokensService {
    * Decrypt an encrypted token
    */
   private decryptToken(encryptedToken: string): string {
-    const parts = encryptedToken.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
-    const encryptedText = parts[1];
-    const decipher = createDecipheriv(this.algorithm, this.encryptionKey, iv);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      const parts = encryptedToken.split(':');
+      if (parts.length !== 2) {
+        return '[INVALID_FORMAT]';
+      }
+
+      const iv = Buffer.from(parts[0], 'hex');
+      const encryptedText = parts[1];
+      const decipher = createDecipheriv(this.algorithm, this.encryptionKey, iv);
+      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    } catch (e: any) {
+      this.logger.error(`Failed to decrypt API token: ${e.message}`);
+      return '[DECRYPTION_ERROR]';
+    }
   }
 
   /**
