@@ -530,11 +530,18 @@ Authorization: Bearer <API_TOKEN>
 - **Projects**: `/api/v1/projects/*` - Управление проектами
 - **Channels**: `/api/v1/channels/*` - Управление каналами
 - **Publications**: `/api/v1/publications/*` - Управление публикациями
+    - **GET** `/user/drafts` - Получение личных черновиков пользователя
 - **Posts**: `/api/v1/posts/*` - Управление постами
 - **API Tokens**: `/api/v1/api-tokens/*` - Управление API токенами
 - **Archive**: `/api/v1/archive/*` - Управление архивом
 - **Users**: `/api/v1/users/*` - Управление пользователями
 - **Health**: `/api/v1/health` - Health check
+
+#### Личные черновики (Personal Drafts)
+Личные черновики — это публикации, которые не привязаны к конкретному проекту. Они видны только создателю.
+
+**GET** `/api/v1/publications/user/drafts`
+Параметры: `limit`, `offset`, `search`, `status` (DRAFT, READY).
 
 Полная документация с примерами запросов и ответов: [docs/API.md](docs/API.md)
 

@@ -1,5 +1,5 @@
 /**
- * Utilities for formatting LLM context and managing token limits.
+ * Utilities for formatting LLM context.
  */
 
 export interface SourceText {
@@ -9,7 +9,6 @@ export interface SourceText {
 }
 
 export interface FormatContextOptions {
-  maxTokens?: number;
   includeMetadata?: boolean;
 }
 
@@ -23,38 +22,6 @@ export function estimateTokens(text: string): number {
 }
 
 /**
- * Truncates text to fit within a token limit.
- * Tries to truncate at sentence boundaries when possible.
- */
-export function truncateToTokenLimit(
-  text: string,
-  maxTokens: number,
-): string {
-  const estimatedTokens = estimateTokens(text);
-  
-  if (estimatedTokens <= maxTokens) {
-    return text;
-  }
-
-  // Calculate approximate character limit
-  const maxChars = maxTokens * 4;
-  
-  // Try to find last sentence boundary before limit
-  const truncated = text.substring(0, maxChars);
-  const lastPeriod = truncated.lastIndexOf('.');
-  const lastNewline = truncated.lastIndexOf('\n');
-  const lastBoundary = Math.max(lastPeriod, lastNewline);
-  
-  if (lastBoundary > maxChars * 0.8) {
-    // If we found a good boundary (not too far back), use it
-    return text.substring(0, lastBoundary + 1) + '\n\n[...truncated]';
-  }
-  
-  // Otherwise, hard truncate
-  return truncated + '...\n\n[...truncated]';
-}
-
-/**
  * Formats context for LLM prompt following best practices.
  * Structures the context with clear delimiters and labels.
  */
@@ -63,24 +30,13 @@ export function formatContext(
   sourceTexts: SourceText[] | null | undefined,
   options: FormatContextOptions = {},
 ): string {
-  const { maxTokens = 4000, includeMetadata = false } = options;
+  const { includeMetadata = false } = options;
   
   let context = '';
-  let remainingTokens = maxTokens;
 
   // Add main content if provided
   if (content) {
-    const contentTokens = estimateTokens(content);
-    
-    if (contentTokens > remainingTokens * 0.6) {
-      // If content is too large, truncate it
-      const truncated = truncateToTokenLimit(content, Math.floor(remainingTokens * 0.6));
-      context += `=== MAIN CONTENT ===\n${truncated}\n\n`;
-      remainingTokens -= estimateTokens(truncated);
-    } else {
-      context += `=== MAIN CONTENT ===\n${content}\n\n`;
-      remainingTokens -= contentTokens;
-    }
+    context += `=== MAIN CONTENT ===\n${content}\n\n`;
   }
 
   // Add source texts if provided
@@ -94,31 +50,12 @@ export function formatContext(
 
     for (let i = 0; i < sortedSources.length; i++) {
       const source = sortedSources[i];
-      const sourceTokens = estimateTokens(source.content);
-      
-      // Reserve some tokens for remaining sources
-      const tokensPerSource = Math.floor(remainingTokens / (sortedSources.length - i));
-      
-      let sourceContent = source.content;
-      if (sourceTokens > tokensPerSource) {
-        sourceContent = truncateToTokenLimit(source.content, tokensPerSource);
-      }
       
       context += `--- SOURCE ${i + 1}`;
       if (includeMetadata && source.source) {
         context += ` (${source.source})`;
       }
-      context += ` ---\n${sourceContent}\n\n`;
-      
-      remainingTokens -= estimateTokens(sourceContent);
-      
-      if (remainingTokens <= 100) {
-        // Not enough tokens for more sources
-        if (i < sortedSources.length - 1) {
-          context += `[...${sortedSources.length - i - 1} more sources omitted due to token limit]\n\n`;
-        }
-        break;
-      }
+      context += ` ---\n${source.content}\n\n`;
     }
   }
 

@@ -189,7 +189,7 @@ model Publication {
   @@index([projectId, status])
   @@index([projectId, createdAt])
   @@index([projectId, scheduledAt])
-  @@index([createdBy, projectId])
+  @@index([createdBy, projectId, archivedAt])
   @@map("publications")
 }
 
