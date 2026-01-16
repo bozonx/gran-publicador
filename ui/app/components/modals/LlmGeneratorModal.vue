@@ -51,6 +51,7 @@ const selectedFields = reactive({
   content: false // Default to false if not from Step 1 next, will be updated logic-wise
 })
 const isExtracting = ref(false)
+const isApplying = ref(false)
 
 // Form common state
 const showAdvanced = ref(false)
@@ -65,13 +66,13 @@ const isLoadingTemplates = ref(false)
 
 // Context selection state
 const useContent = ref(false)
-const selectedSourceTexts = reactive(new Set<number>())
+const selectedSourceTexts = ref(new Set<number>())
 
 function toggleSourceText(index: number) {
-  if (selectedSourceTexts.has(index)) {
-    selectedSourceTexts.delete(index)
+  if (selectedSourceTexts.value.has(index)) {
+    selectedSourceTexts.value.delete(index)
   } else {
-    selectedSourceTexts.add(index)
+    selectedSourceTexts.value.add(index)
   }
 }
 
@@ -86,7 +87,7 @@ function truncateText(text: string, length = 120) {
 // Metadata from last generation
 const metadata = ref<any>(null)
 
-// Token counter
+// Token counter with debounce
 const estimatedTokens = computed(() => {
   let total = estimateTokens(prompt.value)
   
@@ -94,15 +95,22 @@ const estimatedTokens = computed(() => {
     total += estimateTokens(props.content)
   }
   
-  if (props.sourceTexts && selectedSourceTexts.size > 0) {
+  if (props.sourceTexts && selectedSourceTexts.value.size > 0) {
     props.sourceTexts.forEach((st, idx) => {
-      if (selectedSourceTexts.has(idx)) {
+      if (selectedSourceTexts.value.has(idx)) {
         total += estimateTokens(st.content)
       }
     })
   }
   
   return total
+})
+
+// Track if there are unsaved changes
+const hasUnsavedChanges = computed(() => {
+  if (step.value === 1 && chatMessages.value.length > 0) return true
+  if (step.value === 2 && extractionResult.value) return true
+  return false
 })
 
 // Load templates when modal opens
@@ -129,9 +137,10 @@ watch(isOpen, async (open) => {
     metadata.value = null
     showAdvanced.value = false
     useContent.value = false
-    selectedSourceTexts.clear()
+    selectedSourceTexts.value.clear()
     selectedTemplateId.value = null
     selectedFields.content = false
+    isApplying.value = false
   }
 })
 
@@ -202,8 +211,8 @@ async function handleGenerate() {
   prompt.value = ''; // clear input
 
   // Prepare source texts for selected indexes
-  const selectedSourceTextsArray = props.sourceTexts && selectedSourceTexts.size > 0
-    ? Array.from(selectedSourceTexts)
+  const selectedSourceTextsArray = props.sourceTexts && selectedSourceTexts.value.size > 0
+    ? Array.from(selectedSourceTexts.value)
         .map(idx => props.sourceTexts![idx])
         .filter((st): st is NonNullable<typeof st> => st !== undefined)
     : undefined;
@@ -231,16 +240,33 @@ async function handleGenerate() {
 }
 
 function handleSkip() {
+  // Skip chat and go directly to Step 2 with current content
   step.value = 2
   selectedFields.content = false // Don't generate content if skipped
-  handleGenerationStep2(props.content || '')
+  // Don't call LLM - user explicitly skipped
+  extractionResult.value = {
+    title: '',
+    description: '',
+    tags: '',
+    content: props.content || ''
+  }
 }
 
 function handleNext() {
-  step.value = 2
   const lastAssistantMessage = [...chatMessages.value].reverse().find(m => m.role === 'assistant')
+  
+  if (!lastAssistantMessage?.content?.trim()) {
+    toast.add({
+      title: t('llm.error'),
+      description: t('llm.lastMessageEmpty'),
+      color: 'error',
+    })
+    return
+  }
+  
+  step.value = 2
   selectedFields.content = true // Generate content if coming from chat
-  handleGenerationStep2(lastAssistantMessage?.content || '')
+  handleGenerationStep2(lastAssistantMessage.content)
 }
 
 async function handleGenerationStep2(contentSource: string) {
@@ -249,11 +275,22 @@ async function handleGenerationStep2(contentSource: string) {
   
   try {
     const response = await extractParameters(contentSource, {
-      temperature: 0.3, // Stable JSON
-      max_tokens: 2000,
+      temperature: temperature.value, // Use user's temperature setting
+      max_tokens: maxTokens.value,
     })
     
     if (response) {
+      // Validate that we got some data
+      const hasData = response.title || response.description || response.tags || response.content
+      
+      if (!hasData) {
+        toast.add({
+          title: t('llm.extractionFailed'),
+          description: t('llm.extractionEmpty'),
+          color: 'warning',
+        })
+      }
+      
       extractionResult.value = response
     } else {
        toast.add({
@@ -284,7 +321,12 @@ async function handleVoiceRecording() {
     const text = await transcribeAudio(audioBlob)
     
     if (text) {
-      prompt.value = text
+      // Append to existing prompt instead of replacing
+      if (prompt.value && !prompt.value.endsWith('\n')) {
+        prompt.value += '\n\n'
+      }
+      prompt.value += text
+      
       toast.add({
         title: t('llm.transcriptionSuccess', 'Transcription successful'),
         color: 'success',
@@ -327,23 +369,60 @@ watch(() => chatMessages.value.length, async () => {
   }
 })
 
-function handleInsert() {
-  if (extractionResult.value) {
-    const data: any = {}
-    if (selectedFields.title) data.title = extractionResult.value.title
-    if (selectedFields.description) data.description = extractionResult.value.description
-    if (selectedFields.tags) data.tags = extractionResult.value.tags
-    if (selectedFields.content) data.content = extractionResult.value.content
-    
-    emit('apply', data)
-    isOpen.value = false
+async function handleInsert() {
+  if (!extractionResult.value) return
+  
+  // Check if at least one field is selected
+  const hasSelection = selectedFields.title || selectedFields.description || 
+                       selectedFields.tags || selectedFields.content
+  
+  if (!hasSelection) {
+    toast.add({
+      title: t('llm.error'),
+      description: t('llm.noFieldsSelected'),
+      color: 'error',
+    })
+    return
   }
+  
+  const data: { title?: string; description?: string; tags?: string; content?: string } = {}
+  if (selectedFields.title && extractionResult.value.title) data.title = extractionResult.value.title
+  if (selectedFields.description && extractionResult.value.description) data.description = extractionResult.value.description
+  if (selectedFields.tags && extractionResult.value.tags) data.tags = extractionResult.value.tags
+  if (selectedFields.content && extractionResult.value.content) data.content = extractionResult.value.content
+  
+  isApplying.value = true
+  emit('apply', data)
+  // Don't close immediately - let parent handle success/error
 }
 
 function handleClose() {
+  // Check for unsaved changes
+  if (hasUnsavedChanges.value) {
+    const confirmed = confirm(t('llm.unsavedChangesMessage'))
+    if (!confirmed) return
+  }
+  
   isOpen.value = false
   emit('close')
 }
+
+// Called by parent after successful save
+function onApplySuccess() {
+  isApplying.value = false
+  isOpen.value = false
+}
+
+// Called by parent after failed save
+function onApplyError() {
+  isApplying.value = false
+}
+
+// Expose methods for parent component
+defineExpose({
+  onApplySuccess,
+  onApplyError
+})
 </script>
 
 <template>
@@ -416,7 +495,7 @@ function handleClose() {
         >
           <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 opacity-60">
              <UIcon name="i-heroicons-chat-bubble-left-right" class="w-12 h-12 mb-2" />
-             <p class="text-sm">{{ t('llm.chatEmpty', 'Start chatting with AI to generate content') }}</p>
+             <p class="text-sm">{{ t('llm.chatEmpty') }}</p>
           </div>
           
           <div 
@@ -473,18 +552,20 @@ function handleClose() {
             autoresize
             :disabled="isGenerating || isRecording || isTranscribing"
             class="w-full pr-12"
-            @keydown.enter.prevent="handleGenerate"
+            @keydown.ctrl.enter="handleGenerate"
           />
           
           <div class="absolute bottom-2 right-2 flex items-center gap-1.5">
-            <UButton
-              icon="i-heroicons-microphone"
-              :color="isRecording ? 'red' : 'gray'"
-              variant="ghost"
-              size="sm"
-              :disabled="isGenerating || isTranscribing"
-              @click="handleVoiceRecording"
-            />
+            <UTooltip :text="t('llm.voiceInputAppend')">
+              <UButton
+                icon="i-heroicons-microphone"
+                :color="isRecording ? 'error' : 'neutral'"
+                variant="ghost"
+                size="sm"
+                :disabled="isGenerating || isTranscribing"
+                @click="handleVoiceRecording"
+              />
+            </UTooltip>
             <UButton
               icon="i-heroicons-paper-airplane"
               color="primary"
@@ -512,11 +593,11 @@ function handleClose() {
       <template v-else-if="step === 2">
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
            <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 text-primary animate-spin" />
-           <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('llm.processingParameters', 'Generating publication parameters...') }}</p>
+           <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('llm.processingParameters') }}</p>
         </div>
         
         <div v-else-if="extractionResult" class="space-y-6">
-           <p class="text-sm text-gray-500 mb-4">{{ t('llm.selectFieldsToApply', 'Select which fields you want to update in the publication:') }}</p>
+           <p class="text-sm text-gray-500 mb-4">{{ t('llm.selectFieldsToApply') }}</p>
            
            <!-- Title -->
            <div class="space-y-2">
@@ -575,8 +656,14 @@ function handleClose() {
                         <UInput v-model.number="maxTokens" type="number" min="100" max="8000" size="sm" />
                     </UFormField>
                     <div class="col-span-2">
-                        <UButton block size="sm" variant="soft" @click="handleGenerationStep2(chatMessages.length > 0 ? chatMessages[chatMessages.length-1]?.content || '' : (content || ''))">
-                            {{ t('llm.regenerate', 'Regenerate Parameters') }}
+                        <UButton 
+                          block 
+                          size="sm" 
+                          variant="soft" 
+                          :disabled="isExtracting"
+                          @click="handleGenerationStep2(chatMessages.length > 0 ? chatMessages[chatMessages.length-1]?.content || '' : (content || ''))"
+                        >
+                            {{ t('llm.regenerate') }}
                         </UButton>
                     </div>
                 </div>
@@ -595,21 +682,25 @@ function handleClose() {
           {{ t('common.cancel') }}
         </UButton>
         <div class="flex gap-2">
-           <UButton
-            color="neutral"
-            variant="soft"
-            @click="handleSkip"
-          >
-            {{ t('common.skip') }}
-          </UButton>
-          <UButton
-            color="primary"
-            class="min-w-[100px]"
-            :disabled="!chatMessages.some(m => m.role === 'assistant')"
-            @click="handleNext"
-          >
-            {{ t('common.next') }}
-          </UButton>
+           <UTooltip :text="t('llm.skipDescription')">
+             <UButton
+              color="neutral"
+              variant="soft"
+              @click="handleSkip"
+            >
+              {{ t('common.skip') }}
+            </UButton>
+           </UTooltip>
+          <UTooltip :text="t('llm.nextDescription')">
+            <UButton
+              color="primary"
+              class="min-w-[100px]"
+              :disabled="!chatMessages.some(m => m.role === 'assistant')"
+              @click="handleNext"
+            >
+              {{ t('common.next') }}
+            </UButton>
+          </UTooltip>
         </div>
       </div>
 
@@ -626,10 +717,11 @@ function handleClose() {
           color="primary"
           class="min-w-[120px]"
           :disabled="isExtracting || !extractionResult"
+          :loading="isApplying"
           icon="i-heroicons-check"
           @click="handleInsert"
         >
-          {{ t('common.apply') }}
+          {{ isApplying ? t('llm.applying') : t('common.apply') }}
         </UButton>
       </div>
     </template>

@@ -92,6 +92,7 @@ const isScheduleModalOpen = ref(false)
 const newScheduledDate = ref('')
 const isBulkScheduling = ref(false)
 const showLlmModal = ref(false)
+const llmModalRef = ref<{ onApplySuccess: () => void; onApplyError: () => void } | null>(null)
 
 // Social posting
 const { 
@@ -255,15 +256,20 @@ async function handleApplyLlm(data: { title?: string; description?: string; tags
     const result = await updatePublication(currentPublication.value.id, data)
     if (result) {
       toast.add({
-        title: t('common.saveSuccess'),
+        title: t('llm.applySuccess'),
         color: 'success'
       })
+      // Notify modal of success
+      llmModalRef.value?.onApplySuccess()
     }
-  } catch (e) {
+  } catch (e: any) {
     toast.add({
-      title: t('common.saveError'),
+      title: t('llm.applyError'),
+      description: e?.message || t('common.saveError'),
       color: 'error'
     })
+    // Notify modal of error so it can stay open
+    llmModalRef.value?.onApplyError()
   }
 }
 
@@ -742,13 +748,15 @@ async function executePublish(force: boolean) {
                     
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2">
-                        <UButton
-                            icon="i-heroicons-sparkles"
-                            color="primary"
-                            variant="soft"
-                            size="sm"
-                            @click="showLlmModal = true"
-                        />
+                        <UTooltip :text="t('llm.tooltip')">
+                          <UButton
+                              icon="i-heroicons-sparkles"
+                              color="primary"
+                              variant="soft"
+                              size="sm"
+                              @click="showLlmModal = true"
+                          />
+                        </UTooltip>
 
                         <UiArchiveButton
                             :key="currentPublication.archivedAt ? 'archived' : 'active'"
@@ -1091,6 +1099,7 @@ async function executePublish(force: boolean) {
     <!-- LLM Generator Modal -->
     <ModalsLlmGeneratorModal
       v-if="currentPublication"
+      ref="llmModalRef"
       v-model:open="showLlmModal"
       :content="currentPublication.content || undefined"
       :source-texts="currentPublication.sourceTexts || undefined"

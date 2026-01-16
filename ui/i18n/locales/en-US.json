@@ -1039,7 +1039,19 @@
     "chatEmpty": "Start chatting with AI to generate content",
     "processingParameters": "Generating publication parameters...",
     "selectFieldsToApply": "Select which fields you want to update in the publication:",
-    "regenerate": "Regenerate parameters"
+    "regenerate": "Regenerate parameters",
+    "skipDescription": "Extract parameters from current content without generating new",
+    "nextDescription": "Use last AI message to extract parameters",
+    "unsavedChanges": "Unsaved changes",
+    "unsavedChangesMessage": "You have unsaved generation results. Are you sure you want to close?",
+    "noFieldsSelected": "Select at least one field to apply",
+    "extractionFailed": "Failed to extract parameters",
+    "extractionEmpty": "LLM returned empty values. Try regenerating.",
+    "applying": "Applying changes...",
+    "applySuccess": "Changes applied successfully",
+    "applyError": "Error applying changes",
+    "voiceInputAppend": "Append voice input to text",
+    "lastMessageEmpty": "Last AI message is empty. Try generating content first."
   },
   "drafts": {
     "page_title": "Drafts and Templates",
