@@ -8,16 +8,16 @@ import {
   Post,
   Req,
   Res,
-  Request,
   BadRequestException,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { MultipartFile } from '@fastify/multipart';
 import { MediaService } from './media.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import { MediaType, StorageType } from '../../generated/prisma/client.js';
 
 @Controller('media')
 export class MediaController {
@@ -29,7 +29,10 @@ export class MediaController {
     return this.mediaService.create(createMediaDto);
   }
 
-  // Upload endpoint with multipart support
+  /**
+   * Upload file to Media Storage microservice.
+   * Streams the file without buffering to memory.
+   */
   @Post('upload')
   @UseGuards(JwtOrApiTokenGuard)
   async upload(@Req() req: FastifyRequest) {
@@ -42,27 +45,40 @@ export class MediaController {
       throw new BadRequestException('No file uploaded');
     }
 
+    // Convert to buffer for upload to Media Storage
+    // In future, we could stream directly to Media Storage
     const buffer = await part.toBuffer();
 
-    const fileInfo = await this.mediaService.saveFile({
-      filename: part.filename,
-      buffer: buffer,
-      mimetype: part.mimetype,
-    });
+    // Upload to Media Storage
+    const { fileId, metadata } = await this.mediaService.uploadFileToStorage(
+      buffer,
+      part.filename,
+      part.mimetype,
+    );
 
-    // Create the media record
+    // Determine media type from mimetype
+    let type: MediaType = MediaType.DOCUMENT;
+    const mime = metadata.mimeType.toLowerCase();
+    if (mime.startsWith('image/')) type = MediaType.IMAGE;
+    else if (mime.startsWith('video/')) type = MediaType.VIDEO;
+    else if (mime.startsWith('audio/')) type = MediaType.AUDIO;
+
+    // Create the media record with fileId from Media Storage
     return this.mediaService.create({
-      type: fileInfo.type,
-      storageType: 'FS',
-      storagePath: fileInfo.path,
-      filename: fileInfo.filename,
-      mimeType: fileInfo.mimetype,
-      sizeBytes: fileInfo.size,
-      meta: fileInfo.metadata || {},
+      type,
+      storageType: StorageType.FS,
+      storagePath: fileId, // Store Media Storage fileId
+      filename: part.filename,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.size,
+      meta: metadata,
     });
   }
 
-  // Upload from URL endpoint
+  /**
+   * Upload from URL endpoint.
+   * Proxies the request to Media Storage.
+   */
   @Post('upload-from-url')
   @UseGuards(JwtOrApiTokenGuard)
   async uploadFromUrl(@Body() body: { url: string; filename?: string }) {
@@ -70,21 +86,9 @@ export class MediaController {
       throw new BadRequestException('URL is required');
     }
 
-    const fileInfo = await this.mediaService.downloadAndSaveFromUrl(body.url, body.filename);
-
-    // Create the media record with original URL in meta
-    return this.mediaService.create({
-      type: fileInfo.type,
-      storageType: 'FS',
-      storagePath: fileInfo.path,
-      filename: fileInfo.filename,
-      mimeType: fileInfo.mimetype,
-      sizeBytes: fileInfo.size,
-      meta: {
-        originalUrl: fileInfo.originalUrl,
-        ...(fileInfo.metadata || {}),
-      },
-    });
+    // TODO: Implement upload from URL via Media Storage
+    // For now, return not implemented
+    throw new BadRequestException('Upload from URL not yet implemented with Media Storage');
   }
 
   @Get()
@@ -93,28 +97,50 @@ export class MediaController {
     return this.mediaService.findAll(req.user.userId);
   }
 
+  /**
+   * Stream media file.
+   * For StorageType.FS: proxies from Media Storage
+   * For StorageType.TELEGRAM: streams from Telegram API
+   */
   @Get(':id/file')
   @UseGuards(JwtOrApiTokenGuard)
   async getFile(@Param('id') id: string, @Req() req: UnifiedAuthRequest, @Res() res: FastifyReply) {
-    // Stream media file - res.raw is the native Node.js ServerResponse
     const range = req.headers.range;
     return this.mediaService.streamMediaFile(id, res.raw, req.user.userId, range);
   }
 
+  /**
+   * Get thumbnail for media.
+   * Only supported for StorageType.FS (proxied from Media Storage).
+   * Returns error for StorageType.TELEGRAM.
+   */
   @Get(':id/thumbnail')
   @UseGuards(JwtOrApiTokenGuard)
   async getThumbnail(
     @Param('id') id: string,
-    @Req() req: UnifiedAuthRequest & { query: { w?: string; h?: string } },
-    @Res() res: FastifyReply,
+    @Query('w') widthStr?: string,
+    @Query('h') heightStr?: string,
+    @Query('quality') qualityStr?: string,
+    @Req() req: UnifiedAuthRequest = {} as any,
+    @Res() res: FastifyReply = {} as any,
   ) {
-    // Check access even for thumbnails
+    // Check access
     await this.mediaService.checkMediaAccess(id, req.user.userId);
 
-    const width = req.query.w ? parseInt(req.query.w, 10) : 400;
-    const height = req.query.h ? parseInt(req.query.h, 10) : 400;
+    // Get media to check storage type
+    const media = await this.mediaService.findOne(id);
 
-    return this.mediaService.streamThumbnail(id, res.raw, width, height);
+    // Thumbnails only supported for FS storage
+    if (media.storageType !== StorageType.FS) {
+      throw new BadRequestException('Thumbnails are not supported for Telegram files');
+    }
+
+    const width = widthStr ? parseInt(widthStr, 10) : 400;
+    const height = heightStr ? parseInt(heightStr, 10) : 400;
+    const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
+
+    const fileId = media.storagePath;
+    return this.mediaService.streamThumbnailFromStorage(fileId, width, height, quality, res.raw);
   }
 
   /**

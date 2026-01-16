@@ -1,30 +1,76 @@
-import { join, resolve } from 'path';
+/**
+ * Media Storage microservice configuration.
+ * Provides configuration for integrating with the external Media Storage service.
+ */
 
 /**
- * Gets the MEDIA_DIR from environment variables.
+ * Gets the Media Storage service URL from environment variables.
  *
- * @returns The absolute path to the media directory.
- * @throws Error if MEDIA_DIR is not set.
+ * @returns The Media Storage microservice URL.
+ * @throws Error if MEDIA_STORAGE_SERVICE_URL is not set.
  */
-export function getMediaDir(): string {
-  if (process.env.MEDIA_DIR) {
-    // Resolve if relative, keep as-is if absolute
-    return resolve(process.cwd(), process.env.MEDIA_DIR);
+export function getMediaStorageServiceUrl(): string {
+  if (process.env.MEDIA_STORAGE_SERVICE_URL) {
+    return process.env.MEDIA_STORAGE_SERVICE_URL;
   }
 
-  throw new Error('MEDIA_DIR environment variable is not set.');
+  throw new Error('MEDIA_STORAGE_SERVICE_URL environment variable is not set.');
 }
 
 /**
- * Gets the THUMBNAILS_DIR from environment variables.
+ * Gets the Media Storage request timeout in seconds.
  *
- * @returns The absolute path to the thumbnails directory.
- * @throws Error if THUMBNAILS_DIR is not set.
+ * @returns Timeout in seconds (default: 60).
  */
-export function getThumbnailsDir(): string {
-  if (process.env.THUMBNAILS_DIR) {
-    return resolve(process.cwd(), process.env.THUMBNAILS_DIR);
+export function getMediaStorageTimeout(): number {
+  const timeout = process.env.MEDIA_STORAGE_TIMEOUT_SECS;
+  return timeout ? parseInt(timeout, 10) : 60;
+}
+
+/**
+ * Gets the maximum file size in megabytes.
+ *
+ * @returns Max file size in MB (default: 100).
+ */
+export function getMediaStorageMaxFileSize(): number {
+  const maxSize = process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB;
+  return maxSize ? parseInt(maxSize, 10) : 100;
+}
+
+/**
+ * Gets optional image compression settings to pass to Media Storage.
+ * If not set, microservice defaults will be used.
+ *
+ * @returns Compression options object or undefined if no options are set.
+ */
+export function getImageCompressionOptions(): Record<string, any> | undefined {
+  const options: Record<string, any> = {};
+
+  if (process.env.IMAGE_COMPRESSION_WEBP_QUALITY) {
+    options.webpQuality = parseInt(process.env.IMAGE_COMPRESSION_WEBP_QUALITY, 10);
   }
 
-  throw new Error('THUMBNAILS_DIR environment variable is not set.');
+  if (process.env.IMAGE_COMPRESSION_WEBP_EFFORT) {
+    options.webpEffort = parseInt(process.env.IMAGE_COMPRESSION_WEBP_EFFORT, 10);
+  }
+
+  if (process.env.IMAGE_COMPRESSION_MAX_WIDTH) {
+    options.maxWidth = parseInt(process.env.IMAGE_COMPRESSION_MAX_WIDTH, 10);
+  }
+
+  if (process.env.IMAGE_COMPRESSION_MAX_HEIGHT) {
+    options.maxHeight = parseInt(process.env.IMAGE_COMPRESSION_MAX_HEIGHT, 10);
+  }
+
+  return Object.keys(options).length > 0 ? options : undefined;
+}
+
+/**
+ * Gets optional thumbnail quality setting.
+ *
+ * @returns Thumbnail quality (1-100) or undefined if not set.
+ */
+export function getThumbnailQuality(): number | undefined {
+  const quality = process.env.THUMBNAIL_QUALITY;
+  return quality ? parseInt(quality, 10) : undefined;
 }
