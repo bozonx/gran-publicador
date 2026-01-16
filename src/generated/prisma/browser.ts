@@ -53,6 +53,11 @@ export type Publication = Prisma.PublicationModel
  */
 export type Post = Prisma.PostModel
 /**
+ * Model AuthorSignature
+ * 
+ */
+export type AuthorSignature = Prisma.AuthorSignatureModel
+/**
  * Model Media
  * 
  */

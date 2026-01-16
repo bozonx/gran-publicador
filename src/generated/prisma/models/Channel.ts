@@ -256,6 +256,7 @@ export type ChannelWhereInput = {
   archivedBy?: Prisma.StringNullableFilter<"Channel"> | string | null
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   posts?: Prisma.PostListRelationFilter
+  authorSignatures?: Prisma.AuthorSignatureListRelationFilter
 }
 
 export type ChannelOrderByWithRelationInput = {
@@ -276,6 +277,7 @@ export type ChannelOrderByWithRelationInput = {
   archivedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
   posts?: Prisma.PostOrderByRelationAggregateInput
+  authorSignatures?: Prisma.AuthorSignatureOrderByRelationAggregateInput
 }
 
 export type ChannelWhereUniqueInput = Prisma.AtLeast<{
@@ -299,6 +301,7 @@ export type ChannelWhereUniqueInput = Prisma.AtLeast<{
   archivedBy?: Prisma.StringNullableFilter<"Channel"> | string | null
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   posts?: Prisma.PostListRelationFilter
+  authorSignatures?: Prisma.AuthorSignatureListRelationFilter
 }, "id">
 
 export type ChannelOrderByWithAggregationInput = {
@@ -360,6 +363,7 @@ export type ChannelCreateInput = {
   archivedBy?: string | null
   project: Prisma.ProjectCreateNestedOneWithoutChannelsInput
   posts?: Prisma.PostCreateNestedManyWithoutChannelInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutChannelInput
 }
 
 export type ChannelUncheckedCreateInput = {
@@ -379,6 +383,7 @@ export type ChannelUncheckedCreateInput = {
   archivedAt?: Date | string | null
   archivedBy?: string | null
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutChannelInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutChannelInput
 }
 
 export type ChannelUpdateInput = {
@@ -398,6 +403,7 @@ export type ChannelUpdateInput = {
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   project?: Prisma.ProjectUpdateOneRequiredWithoutChannelsNestedInput
   posts?: Prisma.PostUpdateManyWithoutChannelNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutChannelNestedInput
 }
 
 export type ChannelUncheckedUpdateInput = {
@@ -417,6 +423,7 @@ export type ChannelUncheckedUpdateInput = {
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   posts?: Prisma.PostUncheckedUpdateManyWithoutChannelNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutChannelNestedInput
 }
 
 export type ChannelCreateManyInput = {
@@ -597,6 +604,20 @@ export type ChannelUpdateOneRequiredWithoutPostsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ChannelUpdateToOneWithWhereWithoutPostsInput, Prisma.ChannelUpdateWithoutPostsInput>, Prisma.ChannelUncheckedUpdateWithoutPostsInput>
 }
 
+export type ChannelCreateNestedOneWithoutAuthorSignaturesInput = {
+  create?: Prisma.XOR<Prisma.ChannelCreateWithoutAuthorSignaturesInput, Prisma.ChannelUncheckedCreateWithoutAuthorSignaturesInput>
+  connectOrCreate?: Prisma.ChannelCreateOrConnectWithoutAuthorSignaturesInput
+  connect?: Prisma.ChannelWhereUniqueInput
+}
+
+export type ChannelUpdateOneRequiredWithoutAuthorSignaturesNestedInput = {
+  create?: Prisma.XOR<Prisma.ChannelCreateWithoutAuthorSignaturesInput, Prisma.ChannelUncheckedCreateWithoutAuthorSignaturesInput>
+  connectOrCreate?: Prisma.ChannelCreateOrConnectWithoutAuthorSignaturesInput
+  upsert?: Prisma.ChannelUpsertWithoutAuthorSignaturesInput
+  connect?: Prisma.ChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ChannelUpdateToOneWithWhereWithoutAuthorSignaturesInput, Prisma.ChannelUpdateWithoutAuthorSignaturesInput>, Prisma.ChannelUncheckedUpdateWithoutAuthorSignaturesInput>
+}
+
 export type ChannelCreateWithoutProjectInput = {
   id?: string
   socialMedia: $Enums.SocialMedia
@@ -613,6 +634,7 @@ export type ChannelCreateWithoutProjectInput = {
   archivedAt?: Date | string | null
   archivedBy?: string | null
   posts?: Prisma.PostCreateNestedManyWithoutChannelInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutChannelInput
 }
 
 export type ChannelUncheckedCreateWithoutProjectInput = {
@@ -631,6 +653,7 @@ export type ChannelUncheckedCreateWithoutProjectInput = {
   archivedAt?: Date | string | null
   archivedBy?: string | null
   posts?: Prisma.PostUncheckedCreateNestedManyWithoutChannelInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutChannelInput
 }
 
 export type ChannelCreateOrConnectWithoutProjectInput = {
@@ -696,6 +719,7 @@ export type ChannelCreateWithoutPostsInput = {
   archivedAt?: Date | string | null
   archivedBy?: string | null
   project: Prisma.ProjectCreateNestedOneWithoutChannelsInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutChannelInput
 }
 
 export type ChannelUncheckedCreateWithoutPostsInput = {
@@ -714,6 +738,7 @@ export type ChannelUncheckedCreateWithoutPostsInput = {
   updatedAt?: Date | string
   archivedAt?: Date | string | null
   archivedBy?: string | null
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutChannelInput
 }
 
 export type ChannelCreateOrConnectWithoutPostsInput = {
@@ -748,6 +773,7 @@ export type ChannelUpdateWithoutPostsInput = {
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   project?: Prisma.ProjectUpdateOneRequiredWithoutChannelsNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutChannelNestedInput
 }
 
 export type ChannelUncheckedUpdateWithoutPostsInput = {
@@ -766,6 +792,99 @@ export type ChannelUncheckedUpdateWithoutPostsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutChannelNestedInput
+}
+
+export type ChannelCreateWithoutAuthorSignaturesInput = {
+  id?: string
+  socialMedia: $Enums.SocialMedia
+  name: string
+  description?: string | null
+  channelIdentifier: string
+  language: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  tags?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  project: Prisma.ProjectCreateNestedOneWithoutChannelsInput
+  posts?: Prisma.PostCreateNestedManyWithoutChannelInput
+}
+
+export type ChannelUncheckedCreateWithoutAuthorSignaturesInput = {
+  id?: string
+  projectId: string
+  socialMedia: $Enums.SocialMedia
+  name: string
+  description?: string | null
+  channelIdentifier: string
+  language: string
+  credentials: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  tags?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  archivedAt?: Date | string | null
+  archivedBy?: string | null
+  posts?: Prisma.PostUncheckedCreateNestedManyWithoutChannelInput
+}
+
+export type ChannelCreateOrConnectWithoutAuthorSignaturesInput = {
+  where: Prisma.ChannelWhereUniqueInput
+  create: Prisma.XOR<Prisma.ChannelCreateWithoutAuthorSignaturesInput, Prisma.ChannelUncheckedCreateWithoutAuthorSignaturesInput>
+}
+
+export type ChannelUpsertWithoutAuthorSignaturesInput = {
+  update: Prisma.XOR<Prisma.ChannelUpdateWithoutAuthorSignaturesInput, Prisma.ChannelUncheckedUpdateWithoutAuthorSignaturesInput>
+  create: Prisma.XOR<Prisma.ChannelCreateWithoutAuthorSignaturesInput, Prisma.ChannelUncheckedCreateWithoutAuthorSignaturesInput>
+  where?: Prisma.ChannelWhereInput
+}
+
+export type ChannelUpdateToOneWithWhereWithoutAuthorSignaturesInput = {
+  where?: Prisma.ChannelWhereInput
+  data: Prisma.XOR<Prisma.ChannelUpdateWithoutAuthorSignaturesInput, Prisma.ChannelUncheckedUpdateWithoutAuthorSignaturesInput>
+}
+
+export type ChannelUpdateWithoutAuthorSignaturesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  socialMedia?: Prisma.EnumSocialMediaFieldUpdateOperationsInput | $Enums.SocialMedia
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  project?: Prisma.ProjectUpdateOneRequiredWithoutChannelsNestedInput
+  posts?: Prisma.PostUpdateManyWithoutChannelNestedInput
+}
+
+export type ChannelUncheckedUpdateWithoutAuthorSignaturesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  socialMedia?: Prisma.EnumSocialMediaFieldUpdateOperationsInput | $Enums.SocialMedia
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelIdentifier?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  credentials?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  tags?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posts?: Prisma.PostUncheckedUpdateManyWithoutChannelNestedInput
 }
 
 export type ChannelCreateManyProjectInput = {
@@ -801,6 +920,7 @@ export type ChannelUpdateWithoutProjectInput = {
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   posts?: Prisma.PostUpdateManyWithoutChannelNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutChannelNestedInput
 }
 
 export type ChannelUncheckedUpdateWithoutProjectInput = {
@@ -819,6 +939,7 @@ export type ChannelUncheckedUpdateWithoutProjectInput = {
   archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   posts?: Prisma.PostUncheckedUpdateManyWithoutChannelNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutChannelNestedInput
 }
 
 export type ChannelUncheckedUpdateManyWithoutProjectInput = {
@@ -845,10 +966,12 @@ export type ChannelUncheckedUpdateManyWithoutProjectInput = {
 
 export type ChannelCountOutputType = {
   posts: number
+  authorSignatures: number
 }
 
 export type ChannelCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   posts?: boolean | ChannelCountOutputTypeCountPostsArgs
+  authorSignatures?: boolean | ChannelCountOutputTypeCountAuthorSignaturesArgs
 }
 
 /**
@@ -866,6 +989,13 @@ export type ChannelCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
  */
 export type ChannelCountOutputTypeCountPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.PostWhereInput
+}
+
+/**
+ * ChannelCountOutputType without action
+ */
+export type ChannelCountOutputTypeCountAuthorSignaturesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AuthorSignatureWhereInput
 }
 
 
@@ -887,6 +1017,7 @@ export type ChannelSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   archivedBy?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   posts?: boolean | Prisma.Channel$postsArgs<ExtArgs>
+  authorSignatures?: boolean | Prisma.Channel$authorSignaturesArgs<ExtArgs>
   _count?: boolean | Prisma.ChannelCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["channel"]>
 
@@ -950,6 +1081,7 @@ export type ChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type ChannelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   posts?: boolean | Prisma.Channel$postsArgs<ExtArgs>
+  authorSignatures?: boolean | Prisma.Channel$authorSignaturesArgs<ExtArgs>
   _count?: boolean | Prisma.ChannelCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ChannelIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -964,6 +1096,7 @@ export type $ChannelPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     project: Prisma.$ProjectPayload<ExtArgs>
     posts: Prisma.$PostPayload<ExtArgs>[]
+    authorSignatures: Prisma.$AuthorSignaturePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1377,6 +1510,7 @@ export interface Prisma__ChannelClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   project<T extends Prisma.ProjectDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProjectDefaultArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   posts<T extends Prisma.Channel$postsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Channel$postsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  authorSignatures<T extends Prisma.Channel$authorSignaturesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Channel$authorSignaturesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthorSignaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1838,6 +1972,30 @@ export type Channel$postsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.PostScalarFieldEnum | Prisma.PostScalarFieldEnum[]
+}
+
+/**
+ * Channel.authorSignatures
+ */
+export type Channel$authorSignaturesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AuthorSignature
+   */
+  select?: Prisma.AuthorSignatureSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AuthorSignature
+   */
+  omit?: Prisma.AuthorSignatureOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuthorSignatureInclude<ExtArgs> | null
+  where?: Prisma.AuthorSignatureWhereInput
+  orderBy?: Prisma.AuthorSignatureOrderByWithRelationInput | Prisma.AuthorSignatureOrderByWithRelationInput[]
+  cursor?: Prisma.AuthorSignatureWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AuthorSignatureScalarFieldEnum | Prisma.AuthorSignatureScalarFieldEnum[]
 }
 
 /**

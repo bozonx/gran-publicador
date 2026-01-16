@@ -246,6 +246,19 @@ async function handleDelete() {
         <UiAppCard v-if="canEdit(channel)">
           <FormsChannelTemplatesEditor :channel="channel" />
         </UiAppCard>
+
+        <!-- Author Signatures -->
+        <UiAppCard 
+          v-if="canEdit(channel)"
+          id="author-signatures"
+          :title="t('authorSignature.user_defined')"
+          :description="t('channel.footers_desc')"
+        >
+          <template #actions>
+            <div id="channel-signatures-actions"></div>
+          </template>
+          <PostsAuthorSignatureManager :channel-id="channelId" />
+        </UiAppCard>
  
         <!-- Channel Control -->
         <UiAppCard

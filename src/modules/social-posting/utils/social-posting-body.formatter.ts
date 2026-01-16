@@ -35,6 +35,7 @@ export interface PublicationData {
   authorComment?: string | null;
   postType?: PostType;
   language?: string;
+  authorSignature?: string | null;
 }
 
 export class SocialPostingBodyFormatter {
@@ -131,7 +132,11 @@ export class SocialPostingBodyFormatter {
     }
 
     // Join all blocks with double newline (one empty line between them)
-    const result = formattedBlocks.join('\n\n');
+    let result = formattedBlocks.join('\n\n');
+
+    // Replace placeholders
+    const signature = data.authorSignature || '';
+    result = result.replace(/\{\{authorSignature\}\}/g, signature);
 
     return result.trim().replace(/\n{3,}/g, '\n\n');
   }

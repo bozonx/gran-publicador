@@ -525,7 +525,8 @@
     "languageMismatchWarning": "Warning: Channel language differs from publication language",
     "metadata": "Metadata",
     "template": "Template",
-    "selectTemplate": "Select template..."
+    "selectTemplate": "Select template...",
+    "authorSignature": "Author Signature"
   },
   "publication": {
     "title": "Publication",
@@ -1066,5 +1067,22 @@
     "no_drafts": "You don't have any drafts yet",
     "create_first": "Create your first draft",
     "filter_by_status": "Filter by status"
+  },
+  "authorSignature": {
+    "none": "No signature",
+    "user_defined": "Custom Signatures",
+    "select": "Select signature",
+    "preview": "Preview",
+    "is_default": "Default",
+    "delete_confirmation": "Are you sure you want to delete this signature?",
+    "presets": {
+      "title": "Preset Signatures",
+      "subscriber": "Subscriber",
+      "subscriberContent": "Shared with subscribers",
+      "copyright": "Copyright",
+      "copyrightContent": "All rights reserved",
+      "thanks": "Thanks",
+      "thanksContent": "Thanks for reading!"
+    }
   }
 }

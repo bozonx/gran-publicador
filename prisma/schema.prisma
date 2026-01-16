@@ -36,6 +36,7 @@ model User {
   apiTokens      ApiToken[]
   notifications  Notification[]
   llmPromptTemplates LlmPromptTemplate[]
+  authorSignatures AuthorSignature[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -130,6 +131,7 @@ model Channel {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   posts   Post[]
+  authorSignatures AuthorSignature[]
 
   @@index([projectId])
   @@map("channels")
@@ -215,6 +217,8 @@ model Post {
   content       String?
   // Platform-specific options (e.g., disableNotification for Telegram)
   platformOptions Json? @map("platform_options")
+  // ID of author signature (can be UUID for user signature or key for preset)
+  authorSignatureId String? @map("author_signature_id")
 
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")
@@ -229,7 +233,36 @@ model Post {
   @@index([status, scheduledAt])
   @@index([channelId, createdAt])
   @@index([publicationId])
+  @@index([authorSignatureId])
   @@map("posts")
+}
+
+model AuthorSignature {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  channelId String   @map("channel_id")
+  
+  // Name of the signature for UI selection
+  name      String
+  // Markdown content of the signature
+  content   String
+  // Is this the default signature for the user on this channel
+  isDefault Boolean  @default(false) @map("is_default")
+  // Display order
+  order       Int      @default(0)
+  
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+  archivedBy String?   @map("archived_by")
+  
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, channelId, name])
+  @@index([userId, channelId])
+  @@index([channelId])
+  @@map("author_signatures")
 }
 
 model Media {

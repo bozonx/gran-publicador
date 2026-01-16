@@ -536,6 +536,7 @@
     "metadata": "Метаданные",
     "template": "Шаблон",
     "selectTemplate": "Выберите шаблон...",
+    "authorSignature": "Подпись автора",
     "status": {
       "pending": "Ожидает",
       "published": "Опубликовано",
@@ -1116,5 +1117,22 @@
     "no_drafts": "У вас пока нет черновиков",
     "create_first": "Создайте первый черновик",
     "filter_by_status": "Фильтр по статусу"
+  },
+  "authorSignature": {
+    "none": "Без подписи",
+    "user_defined": "Собственные подписи",
+    "select": "Выберите подпись",
+    "preview": "Предпросмотр",
+    "is_default": "По умолчанию",
+    "delete_confirmation": "Вы уверены, что хотите удалить эту подпись?",
+    "presets": {
+      "title": "Готовые подписи",
+      "subscriber": "Для подписчиков",
+      "subscriberContent": "Специально для подписчиков",
+      "copyright": "Авторское право",
+      "copyrightContent": "Все права защищены",
+      "thanks": "Благодарность",
+      "thanksContent": "Спасибо за чтение!"
+    }
   }
 }

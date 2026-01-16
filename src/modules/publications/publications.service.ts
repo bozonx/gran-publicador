@@ -1172,8 +1172,18 @@ export class PublicationsService {
 
     // Create posts for each channel (content comes from publication via relation)
     const posts = await Promise.all(
-      channels.map(channel =>
-        this.prisma.post.create({
+      channels.map(async channel => {
+        // Find default signature for this user and channel
+        let authorSignatureId = undefined;
+        if (userId) {
+          const defaultSignature = await this.prisma.authorSignature.findFirst({
+            where: { userId, channelId: channel.id, isDefault: true, archivedAt: null },
+            select: { id: true },
+          });
+          authorSignatureId = defaultSignature?.id || undefined;
+        }
+
+        return this.prisma.post.create({
           data: {
             publicationId: publication.id,
             channelId: channel.id,
@@ -1182,13 +1192,14 @@ export class PublicationsService {
             status: PostStatus.PENDING,
             scheduledAt: scheduledAt ?? publication.scheduledAt,
             meta: {},
+            authorSignatureId,
           },
           include: {
             channel: true,
             publication: true, // Include full publication with content
           },
-        }),
-      ),
+        });
+      }),
     );
 
     return posts;

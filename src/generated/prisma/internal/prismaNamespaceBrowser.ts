@@ -58,6 +58,7 @@ export const ModelName = {
   Channel: 'Channel',
   Publication: 'Publication',
   Post: 'Post',
+  AuthorSignature: 'AuthorSignature',
   Media: 'Media',
   PublicationMedia: 'PublicationMedia',
   Notification: 'Notification',
@@ -199,6 +200,7 @@ export const PostScalarFieldEnum = {
   template: 'template',
   content: 'content',
   platformOptions: 'platformOptions',
+  authorSignatureId: 'authorSignatureId',
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
@@ -206,6 +208,23 @@ export const PostScalarFieldEnum = {
 } as const
 
 export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
+
+
+export const AuthorSignatureScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  channelId: 'channelId',
+  name: 'name',
+  content: 'content',
+  isDefault: 'isDefault',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  archivedAt: 'archivedAt',
+  archivedBy: 'archivedBy'
+} as const
+
+export type AuthorSignatureScalarFieldEnum = (typeof AuthorSignatureScalarFieldEnum)[keyof typeof AuthorSignatureScalarFieldEnum]
 
 
 export const MediaScalarFieldEnum = {

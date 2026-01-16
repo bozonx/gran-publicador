@@ -391,6 +391,7 @@ export const ModelName = {
   Channel: 'Channel',
   Publication: 'Publication',
   Post: 'Post',
+  AuthorSignature: 'AuthorSignature',
   Media: 'Media',
   PublicationMedia: 'PublicationMedia',
   Notification: 'Notification',
@@ -410,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "apiToken" | "project" | "projectMember" | "channel" | "publication" | "post" | "media" | "publicationMedia" | "notification" | "llmPromptTemplate"
+    modelProps: "user" | "apiToken" | "project" | "projectMember" | "channel" | "publication" | "post" | "authorSignature" | "media" | "publicationMedia" | "notification" | "llmPromptTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -932,6 +933,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AuthorSignature: {
+      payload: Prisma.$AuthorSignaturePayload<ExtArgs>
+      fields: Prisma.AuthorSignatureFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AuthorSignatureFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AuthorSignatureFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>
+        }
+        findFirst: {
+          args: Prisma.AuthorSignatureFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AuthorSignatureFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>
+        }
+        findMany: {
+          args: Prisma.AuthorSignatureFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>[]
+        }
+        create: {
+          args: Prisma.AuthorSignatureCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>
+        }
+        createMany: {
+          args: Prisma.AuthorSignatureCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AuthorSignatureCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>[]
+        }
+        delete: {
+          args: Prisma.AuthorSignatureDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>
+        }
+        update: {
+          args: Prisma.AuthorSignatureUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>
+        }
+        deleteMany: {
+          args: Prisma.AuthorSignatureDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AuthorSignatureUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AuthorSignatureUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>[]
+        }
+        upsert: {
+          args: Prisma.AuthorSignatureUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorSignaturePayload>
+        }
+        aggregate: {
+          args: Prisma.AuthorSignatureAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAuthorSignature>
+        }
+        groupBy: {
+          args: Prisma.AuthorSignatureGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuthorSignatureGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AuthorSignatureCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuthorSignatureCountAggregateOutputType> | number
+        }
+      }
+    }
     Media: {
       payload: Prisma.$MediaPayload<ExtArgs>
       fields: Prisma.MediaFieldRefs
@@ -1386,6 +1461,7 @@ export const PostScalarFieldEnum = {
   template: 'template',
   content: 'content',
   platformOptions: 'platformOptions',
+  authorSignatureId: 'authorSignatureId',
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
@@ -1393,6 +1469,23 @@ export const PostScalarFieldEnum = {
 } as const
 
 export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
+
+
+export const AuthorSignatureScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  channelId: 'channelId',
+  name: 'name',
+  content: 'content',
+  isDefault: 'isDefault',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  archivedAt: 'archivedAt',
+  archivedBy: 'archivedBy'
+} as const
+
+export type AuthorSignatureScalarFieldEnum = (typeof AuthorSignatureScalarFieldEnum)[keyof typeof AuthorSignatureScalarFieldEnum]
 
 
 export const MediaScalarFieldEnum = {
@@ -1641,6 +1734,20 @@ export type ListEnumPostStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$P
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'MediaType'
  */
 export type EnumMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MediaType'>
@@ -1665,20 +1772,6 @@ export type EnumStorageTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'StorageType[]'
  */
 export type ListEnumStorageTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StorageType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -1811,6 +1904,7 @@ export type GlobalOmitConfig = {
   channel?: Prisma.ChannelOmit
   publication?: Prisma.PublicationOmit
   post?: Prisma.PostOmit
+  authorSignature?: Prisma.AuthorSignatureOmit
   media?: Prisma.MediaOmit
   publicationMedia?: Prisma.PublicationMediaOmit
   notification?: Prisma.NotificationOmit

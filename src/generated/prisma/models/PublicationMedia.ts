@@ -447,14 +447,6 @@ export type PublicationMediaUncheckedUpdateManyWithoutMediaNestedInput = {
   deleteMany?: Prisma.PublicationMediaScalarWhereInput | Prisma.PublicationMediaScalarWhereInput[]
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type PublicationMediaCreateWithoutPublicationInput = {
   id?: string
   order?: number

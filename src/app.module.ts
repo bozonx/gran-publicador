@@ -40,6 +40,7 @@ import { TranslateModule } from './modules/translate/translate.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { LlmPromptTemplatesModule } from './modules/llm-prompt-templates/llm-prompt-templates.module.js';
 import { TelegramBotModule } from './modules/telegram-bot/index.js';
+import { AuthorSignaturesModule } from './modules/author-signatures/author-signatures.module.js';
 
 @Module({
   imports: [
@@ -203,6 +204,7 @@ import { TelegramBotModule } from './modules/telegram-bot/index.js';
     TranslateModule,
     NotificationsModule,
     LlmPromptTemplatesModule,
+    AuthorSignaturesModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],

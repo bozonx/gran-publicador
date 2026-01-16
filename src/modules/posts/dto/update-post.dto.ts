@@ -31,4 +31,8 @@ export class UpdatePostDto {
 
   @IsOptional()
   public platformOptions?: any;
+
+  @IsString()
+  @IsOptional()
+  public authorSignatureId?: string;
 }

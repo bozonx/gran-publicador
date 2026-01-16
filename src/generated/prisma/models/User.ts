@@ -266,6 +266,7 @@ export type UserWhereInput = {
   apiTokens?: Prisma.ApiTokenListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   llmPromptTemplates?: Prisma.LlmPromptTemplateListRelationFilter
+  authorSignatures?: Prisma.AuthorSignatureListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -286,6 +287,7 @@ export type UserOrderByWithRelationInput = {
   apiTokens?: Prisma.ApiTokenOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateOrderByRelationAggregateInput
+  authorSignatures?: Prisma.AuthorSignatureOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -309,6 +311,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   apiTokens?: Prisma.ApiTokenListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   llmPromptTemplates?: Prisma.LlmPromptTemplateListRelationFilter
+  authorSignatures?: Prisma.AuthorSignatureListRelationFilter
 }, "id" | "telegramId">
 
 export type UserOrderByWithAggregationInput = {
@@ -365,6 +368,7 @@ export type UserCreateInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -385,6 +389,7 @@ export type UserUncheckedCreateInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -405,6 +410,7 @@ export type UserUpdateInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -425,6 +431,7 @@ export type UserUncheckedUpdateInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -609,6 +616,20 @@ export type UserUpdateOneWithoutPublicationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPublicationsInput, Prisma.UserUpdateWithoutPublicationsInput>, Prisma.UserUncheckedUpdateWithoutPublicationsInput>
 }
 
+export type UserCreateNestedOneWithoutAuthorSignaturesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAuthorSignaturesInput, Prisma.UserUncheckedCreateWithoutAuthorSignaturesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuthorSignaturesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAuthorSignaturesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAuthorSignaturesInput, Prisma.UserUncheckedCreateWithoutAuthorSignaturesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuthorSignaturesInput
+  upsert?: Prisma.UserUpsertWithoutAuthorSignaturesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuthorSignaturesInput, Prisma.UserUpdateWithoutAuthorSignaturesInput>, Prisma.UserUncheckedUpdateWithoutAuthorSignaturesInput>
+}
+
 export type UserCreateNestedOneWithoutNotificationsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
@@ -656,6 +677,7 @@ export type UserCreateWithoutApiTokensInput = {
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutApiTokensInput = {
@@ -675,6 +697,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutApiTokensInput = {
@@ -710,6 +733,7 @@ export type UserUpdateWithoutApiTokensInput = {
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApiTokensInput = {
@@ -729,6 +753,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutOwnedProjectsInput = {
@@ -748,6 +773,7 @@ export type UserCreateWithoutOwnedProjectsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOwnedProjectsInput = {
@@ -767,6 +793,7 @@ export type UserUncheckedCreateWithoutOwnedProjectsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOwnedProjectsInput = {
@@ -802,6 +829,7 @@ export type UserUpdateWithoutOwnedProjectsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOwnedProjectsInput = {
@@ -821,6 +849,7 @@ export type UserUncheckedUpdateWithoutOwnedProjectsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProjectMembersInput = {
@@ -840,6 +869,7 @@ export type UserCreateWithoutProjectMembersInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProjectMembersInput = {
@@ -859,6 +889,7 @@ export type UserUncheckedCreateWithoutProjectMembersInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProjectMembersInput = {
@@ -894,6 +925,7 @@ export type UserUpdateWithoutProjectMembersInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProjectMembersInput = {
@@ -913,6 +945,7 @@ export type UserUncheckedUpdateWithoutProjectMembersInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutPublicationsInput = {
@@ -932,6 +965,7 @@ export type UserCreateWithoutPublicationsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutPublicationsInput = {
@@ -951,6 +985,7 @@ export type UserUncheckedCreateWithoutPublicationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutPublicationsInput = {
@@ -986,6 +1021,7 @@ export type UserUpdateWithoutPublicationsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPublicationsInput = {
@@ -1002,6 +1038,103 @@ export type UserUncheckedUpdateWithoutPublicationsInput = {
   preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   ownedProjects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAuthorSignaturesInput = {
+  id?: string
+  fullName?: string | null
+  telegramUsername?: string | null
+  avatarUrl?: string | null
+  telegramId?: bigint | number | null
+  isAdmin?: boolean
+  isBanned?: boolean
+  banReason?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ownedProjects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
+  projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
+  publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAuthorSignaturesInput = {
+  id?: string
+  fullName?: string | null
+  telegramUsername?: string | null
+  avatarUrl?: string | null
+  telegramId?: bigint | number | null
+  isAdmin?: boolean
+  isBanned?: boolean
+  banReason?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preferences: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ownedProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
+  projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
+  publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAuthorSignaturesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAuthorSignaturesInput, Prisma.UserUncheckedCreateWithoutAuthorSignaturesInput>
+}
+
+export type UserUpsertWithoutAuthorSignaturesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAuthorSignaturesInput, Prisma.UserUncheckedUpdateWithoutAuthorSignaturesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAuthorSignaturesInput, Prisma.UserUncheckedCreateWithoutAuthorSignaturesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAuthorSignaturesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAuthorSignaturesInput, Prisma.UserUncheckedUpdateWithoutAuthorSignaturesInput>
+}
+
+export type UserUpdateWithoutAuthorSignaturesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramUsername?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  isAdmin?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ownedProjects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
+  projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
+  publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAuthorSignaturesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramUsername?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  isAdmin?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isBanned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  ownedProjects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
+  projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
+  publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
@@ -1024,6 +1157,7 @@ export type UserCreateWithoutNotificationsInput = {
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -1043,6 +1177,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -1078,6 +1213,7 @@ export type UserUpdateWithoutNotificationsInput = {
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -1097,6 +1233,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   llmPromptTemplates?: Prisma.LlmPromptTemplateUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutLlmPromptTemplatesInput = {
@@ -1116,6 +1253,7 @@ export type UserCreateWithoutLlmPromptTemplatesInput = {
   publications?: Prisma.PublicationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutLlmPromptTemplatesInput = {
@@ -1135,6 +1273,7 @@ export type UserUncheckedCreateWithoutLlmPromptTemplatesInput = {
   publications?: Prisma.PublicationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutLlmPromptTemplatesInput = {
@@ -1170,6 +1309,7 @@ export type UserUpdateWithoutLlmPromptTemplatesInput = {
   publications?: Prisma.PublicationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutLlmPromptTemplatesInput = {
@@ -1189,6 +1329,7 @@ export type UserUncheckedUpdateWithoutLlmPromptTemplatesInput = {
   publications?: Prisma.PublicationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  authorSignatures?: Prisma.AuthorSignatureUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1203,6 +1344,7 @@ export type UserCountOutputType = {
   apiTokens: number
   notifications: number
   llmPromptTemplates: number
+  authorSignatures: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1212,6 +1354,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   apiTokens?: boolean | UserCountOutputTypeCountApiTokensArgs
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
   llmPromptTemplates?: boolean | UserCountOutputTypeCountLlmPromptTemplatesArgs
+  authorSignatures?: boolean | UserCountOutputTypeCountAuthorSignaturesArgs
 }
 
 /**
@@ -1266,6 +1409,13 @@ export type UserCountOutputTypeCountLlmPromptTemplatesArgs<ExtArgs extends runti
   where?: Prisma.LlmPromptTemplateWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAuthorSignaturesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AuthorSignatureWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1285,6 +1435,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   llmPromptTemplates?: boolean | Prisma.User$llmPromptTemplatesArgs<ExtArgs>
+  authorSignatures?: boolean | Prisma.User$authorSignaturesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1338,6 +1489,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   llmPromptTemplates?: boolean | Prisma.User$llmPromptTemplatesArgs<ExtArgs>
+  authorSignatures?: boolean | Prisma.User$authorSignaturesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1352,6 +1504,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     apiTokens: Prisma.$ApiTokenPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     llmPromptTemplates: Prisma.$LlmPromptTemplatePayload<ExtArgs>[]
+    authorSignatures: Prisma.$AuthorSignaturePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1765,6 +1918,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   apiTokens<T extends Prisma.User$apiTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$apiTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApiTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   llmPromptTemplates<T extends Prisma.User$llmPromptTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$llmPromptTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LlmPromptTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  authorSignatures<T extends Prisma.User$authorSignaturesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$authorSignaturesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthorSignaturePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2334,6 +2488,30 @@ export type User$llmPromptTemplatesArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.LlmPromptTemplateScalarFieldEnum | Prisma.LlmPromptTemplateScalarFieldEnum[]
+}
+
+/**
+ * User.authorSignatures
+ */
+export type User$authorSignaturesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AuthorSignature
+   */
+  select?: Prisma.AuthorSignatureSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AuthorSignature
+   */
+  omit?: Prisma.AuthorSignatureOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuthorSignatureInclude<ExtArgs> | null
+  where?: Prisma.AuthorSignatureWhereInput
+  orderBy?: Prisma.AuthorSignatureOrderByWithRelationInput | Prisma.AuthorSignatureOrderByWithRelationInput[]
+  cursor?: Prisma.AuthorSignatureWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AuthorSignatureScalarFieldEnum | Prisma.AuthorSignatureScalarFieldEnum[]
 }
 
 /**

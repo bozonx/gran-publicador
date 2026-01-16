@@ -97,6 +97,7 @@ const formData = reactive({
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
   template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null,
+  authorSignatureId: props.post?.authorSignatureId || null,
   platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
 })
 
@@ -181,6 +182,7 @@ async function performSave() {
             content: normalizedContent,
             meta: formData.meta,
             template: formData.template,
+            authorSignatureId: formData.authorSignatureId,
             platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
 
@@ -202,6 +204,7 @@ async function performSave() {
           content: normalizedContent,
           meta: formData.meta,
           template: formData.template,
+          authorSignatureId: formData.authorSignatureId,
           platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
 
@@ -355,6 +358,7 @@ watch(() => props.post, (newPost) => {
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
     formData.template = (newPost.template && typeof newPost.template === 'string' ? JSON.parse(newPost.template) : (newPost.template || null))
+    formData.authorSignatureId = newPost.authorSignatureId || null
     formData.platformOptions = (newPost.platformOptions && typeof newPost.platformOptions === 'string' ? JSON.parse(newPost.platformOptions) : (newPost.platformOptions || {}))
     
     // Save original state after update
@@ -738,6 +742,7 @@ const metaYaml = computed(() => {
                     class="w-full"
                     :placeholder="t('post.selectTemplate', 'Select template...')"
                 >
+                    <!-- @ts-ignore -->
                     <template #label>
 
                         <span v-if="formData.template" class="truncate" :class="{ 'text-red-500': !availableTemplates.find(t => t.value?.id === formData.template?.id) }">
@@ -753,6 +758,15 @@ const metaYaml = computed(() => {
                         </span>
                     </template>
                 </USelectMenu>
+            </UFormField>
+
+            <!-- Author Signature Selector -->
+            <UFormField :label="t('post.authorSignature', 'Author Signature')">
+                <AuthorSignatureSelector
+                    v-model="formData.authorSignatureId"
+                    :channel-id="formData.channelId || props.post?.channelId || null"
+                    :disabled="isLoading"
+                />
             </UFormField>
 
 

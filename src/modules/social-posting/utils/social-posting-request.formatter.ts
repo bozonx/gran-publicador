@@ -35,6 +35,7 @@ export class SocialPostingRequestFormatter {
         authorComment: publication.authorComment,
         postType: publication.postType,
         language: post.language || publication.language,
+        authorSignature: post.authorSignature,
       },
       channel,
       post.template, // Pass the template override

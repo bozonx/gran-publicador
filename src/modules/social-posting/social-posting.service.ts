@@ -13,6 +13,8 @@ import { SocialPostingConfig } from '../../config/social-posting.config.js';
 import { PostRequestDto, PostResponseDto, PreviewResponseDto } from './dto/social-posting.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { NotificationType } from '../../generated/prisma/client.js';
+import { I18nService } from 'nestjs-i18n';
+import { PRESET_SIGNATURES } from '../author-signatures/constants/preset-signatures.constants.js';
 
 @Injectable()
 export class SocialPostingService {
@@ -27,6 +29,7 @@ export class SocialPostingService {
     private readonly shutdownService: ShutdownService,
     private readonly configService: ConfigService,
     private readonly notifications: NotificationsService,
+    private readonly i18n: I18nService,
   ) {
     this.mediaStorageUrl = getMediaStorageServiceUrl();
     this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
@@ -478,8 +481,25 @@ export class SocialPostingService {
       } = await this.prepareChannelForPosting(channel, { ignoreState: options.force });
       if (prepError) throw new Error(prepError);
 
+      // Resolve author signature
+      let authorSignatureContent = '';
+      if (post.authorSignatureId) {
+        const preset = PRESET_SIGNATURES.find(p => p.id === post.authorSignatureId);
+        if (preset) {
+          const lang = post.language || publication.language || 'ru-RU';
+          authorSignatureContent = this.i18n.t(preset.contentKey, { lang });
+        } else {
+          const userSignature = await this.prisma.authorSignature.findUnique({
+            where: { id: post.authorSignatureId },
+          });
+          if (userSignature) {
+            authorSignatureContent = userSignature.content;
+          }
+        }
+      }
+
       const request = SocialPostingRequestFormatter.prepareRequest({
-        post,
+        post: { ...post, authorSignature: authorSignatureContent },
         channel,
         publication,
         apiKey,

@@ -45,4 +45,8 @@ export class CreatePostDto {
 
   @IsOptional()
   public platformOptions?: any;
+
+  @IsString()
+  @IsOptional()
+  public authorSignatureId?: string;
 }

@@ -86,6 +86,7 @@ export class PostsService {
       scheduledAt?: Date;
       content?: string | null;
       platformOptions?: any;
+      authorSignatureId?: string;
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
@@ -137,6 +138,16 @@ export class PostsService {
       );
     }
 
+    // Author Signature logic
+    let authorSignatureId = data.authorSignatureId;
+    if (authorSignatureId === undefined) {
+      const defaultSignature = await this.prisma.authorSignature.findFirst({
+        where: { userId, channelId, isDefault: true, archivedAt: null },
+        select: { id: true },
+      });
+      authorSignatureId = defaultSignature?.id || undefined;
+    }
+
     const post = await this.prisma.post.create({
       data: {
         channelId,
@@ -148,6 +159,7 @@ export class PostsService {
         content: normalizedOverrideContent ?? null,
         meta: {},
         platformOptions: data.platformOptions,
+        authorSignatureId: authorSignatureId || undefined,
         errorMessage,
       },
       include: {
@@ -414,6 +426,7 @@ export class PostsService {
       errorMessage?: string | null;
       content?: string | null;
       platformOptions?: any;
+      authorSignatureId?: string | null;
     },
   ) {
     const post = await this.findOne(id, userId);
@@ -516,6 +529,7 @@ export class PostsService {
         errorMessage: data.errorMessage,
         content: data.content,
         platformOptions: data.platformOptions,
+        authorSignatureId: data.authorSignatureId,
       },
       include: {
         channel: true,
