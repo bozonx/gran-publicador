@@ -63,7 +63,7 @@ export function useAuthorSignatures() {
     }
   }
 
-  async function deleteSignature(id: string): Promise<boolean> {
+  async function remove(id: string): Promise<boolean> {
     isLoading.value = true
     error.value = null
     try {
@@ -81,7 +81,7 @@ export function useAuthorSignatures() {
     isLoading.value = true
     error.value = null
     try {
-      await api.post(`/author-signatures/${id}/default`, {})
+      await api.patch(`/author-signatures/${id}/set-default`, {})
       return true
     } catch (err: any) {
       error.value = err.message || 'Failed to set default signature'
@@ -98,7 +98,7 @@ export function useAuthorSignatures() {
     fetchPresets,
     create,
     update,
-    deleteSignature,
+    remove,
     setDefault
   }
 }

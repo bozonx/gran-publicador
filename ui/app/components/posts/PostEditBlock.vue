@@ -18,6 +18,7 @@ import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
+import AuthorSignatureSelector from './AuthorSignatureSelector.vue'
 
 interface Props {
   post?: PostWithRelations

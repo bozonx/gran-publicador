@@ -18,19 +18,14 @@ const presetSignatures = ref<PresetSignature[]>([])
 const isLoading = ref(false)
 
 async function loadSignatures() {
-  if (!props.channelId) {
-    userSignatures.value = []
-    return
-  }
-  
   isLoading.value = true
   try {
-    const [user, presets] = await Promise.all([
-      fetchByChannel(props.channelId),
-      fetchPresets()
+    const [presets, user] = await Promise.all([
+      fetchPresets(),
+      props.channelId ? fetchByChannel(props.channelId) : Promise.resolve([])
     ])
-    userSignatures.value = user
     presetSignatures.value = presets
+    userSignatures.value = user
   } finally {
     isLoading.value = false
   }
