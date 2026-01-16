@@ -56,7 +56,10 @@ import { TelegramBotModule } from './modules/telegram-bot/index.js';
         'ru-*': 'ru-RU',
       },
       loaderOptions: {
-        path: join(__dirname, 'i18n'),
+        path: join(
+          process.cwd(),
+          process.env.NODE_ENV === 'production' ? 'dist/src/i18n' : 'src/i18n',
+        ),
         watch: true,
       },
       resolvers: [
