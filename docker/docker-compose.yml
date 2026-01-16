@@ -34,7 +34,7 @@ services:
       start_period: 5s
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: redis
     restart: unless-stopped
     ports:
@@ -43,7 +43,7 @@ services:
       - redis_data:/data
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     container_name: postgres
     restart: unless-stopped
     environment:
