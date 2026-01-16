@@ -1,4 +1,3 @@
-import { join } from 'path';
 import type { PostRequestDto } from '../dto/social-posting.dto.js';
 import {
   Post,
@@ -16,7 +15,7 @@ export interface FormatterParams {
   publication: any; // Publication with media
   apiKey: string;
   targetChannelId: string;
-  mediaDir: string;
+  mediaStorageUrl: string; // Media Storage microservice URL
 }
 
 export class SocialPostingRequestFormatter {
@@ -24,7 +23,7 @@ export class SocialPostingRequestFormatter {
    * Prepares the request object for the posting library.
    */
   static prepareRequest(params: FormatterParams): PostRequestDto {
-    const { post, channel, publication, apiKey, targetChannelId, mediaDir } = params;
+    const { post, channel, publication, apiKey, targetChannelId, mediaStorageUrl } = params;
     const isTelegram = channel.socialMedia === 'TELEGRAM';
 
     // Generate body using templates
@@ -41,7 +40,7 @@ export class SocialPostingRequestFormatter {
       post.template, // Pass the template override
     );
 
-    const mediaMapping = this.mapMedia(publication.media, mediaDir);
+    const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl);
 
     const request: PostRequestDto = {
       platform: channel.socialMedia.toLowerCase(),
@@ -109,12 +108,12 @@ export class SocialPostingRequestFormatter {
     return request;
   }
 
-  private static mapMedia(publicationMedia: any[], mediaDir: string): Partial<PostRequestDto> {
+  private static mapMedia(publicationMedia: any[], mediaStorageUrl: string): Partial<PostRequestDto> {
     if (!publicationMedia || publicationMedia.length === 0) return {};
 
     if (publicationMedia.length === 1) {
       const item = publicationMedia[0].media;
-      const src = this.getMediaSrc(item, mediaDir);
+      const src = this.getMediaSrc(item, mediaStorageUrl);
 
       switch (item.type) {
         case MediaType.IMAGE:
@@ -133,13 +132,13 @@ export class SocialPostingRequestFormatter {
     // Multiple media items
     return {
       media: publicationMedia.map(pm => ({
-        src: this.getMediaSrc(pm.media, mediaDir),
+        src: this.getMediaSrc(pm.media, mediaStorageUrl),
         type: this.mapMediaTypeToLibrary(pm.media.type),
       })),
     };
   }
 
-  private static getMediaSrc(media: any, mediaDir: string): string {
+  private static getMediaSrc(media: any, mediaStorageUrl: string): string {
     // If it's a direct URL, use it
     if (media.storagePath?.startsWith('http')) {
       return media.storagePath;
@@ -150,12 +149,14 @@ export class SocialPostingRequestFormatter {
       return media.storagePath;
     }
 
-    // For FS storage, we return absolute path
+    // For FS storage, storagePath contains Media Storage fileId
+    // Return direct URL from Media Storage microservice
     if (media.storageType === StorageType.FS) {
-      return `file://${join(mediaDir, media.storagePath)}`;
+      const fileId = media.storagePath;
+      return `${mediaStorageUrl}/files/${fileId}/download`;
     }
 
-    // Fallback/Local FS
+    // Fallback
     return media.storagePath;
   }
 

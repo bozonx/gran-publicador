@@ -13,8 +13,10 @@ const mockFetch = jest.fn();
 describe('SocialPostingService', () => {
   let service: SocialPostingService;
 
-  // Set fallback env var
-  process.env.MEDIA_DIR = '/tmp/media';
+  // Set fallback env var for Media Storage
+  process.env.MEDIA_STORAGE_SERVICE_URL = 'http://media-storage/api/v1';
+  process.env.MEDIA_STORAGE_TIMEOUT_SECS = '60';
+  process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB = '100';
 
   const mockConfigService = {
     get: jest.fn((key: string) => {

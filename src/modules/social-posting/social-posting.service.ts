@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PublicationStatus, PostStatus } from '../../generated/prisma/client.js';
-import { getMediaDir } from '../../config/media.config.js';
+import { getMediaStorageServiceUrl } from '../../config/media.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
 import { resolvePlatformParams } from './utils/platform-params-resolver.util.js';
@@ -17,7 +17,7 @@ import { NotificationType } from '../../generated/prisma/client.js';
 @Injectable()
 export class SocialPostingService {
   private readonly logger = new Logger(SocialPostingService.name);
-  private readonly mediaDir: string;
+  private readonly mediaStorageUrl: string;
   private readonly socialPostingConfig: SocialPostingConfig;
   // Instance level fetch for testability
   private fetch = global.fetch;
@@ -28,7 +28,7 @@ export class SocialPostingService {
     private readonly configService: ConfigService,
     private readonly notifications: NotificationsService,
   ) {
-    this.mediaDir = getMediaDir();
+    this.mediaStorageUrl = getMediaStorageServiceUrl();
     this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
   }
 
@@ -484,23 +484,7 @@ export class SocialPostingService {
         publication,
         apiKey,
         targetChannelId,
-        mediaDir: this.mediaDir,
-        // For microservice, we don't need raw file paths usually if we provided URLs,
-        // but formatter might return local paths.
-        // If the microservice runs in docker and shares volume, local paths might work.
-        // Assuming we need to provide public URLs or the microservice has access to these files.
-        // The original library handled local files via 'fs'.
-        // The new microservice (from readme) supports URLs.
-        // If Gran Publicador serves files publicly, we should use those URLs.
-        // However, looking at previous code, it used `this.mediaDir`.
-        // If the microservice is on same machine/network/volume, it might work if paths align.
-        // But typically microservices need HTTP URLs or base64 (if supported).
-        // The README says: "Media fields accept only object format with src property... max 500 characters"
-        // src can be URL or file_id.
-        // If we are passing local paths, the microservice must have access to them.
-        // For now, let's assume the Formatter handles this or we need to ensure they are URLs.
-        // Given the constraints, I will assume the Formatter or the system is set up such that 'src' is correct.
-        // If not, we might need to adjust Formatter later.
+        mediaStorageUrl: this.mediaStorageUrl,
       });
 
       this.logger.log(`${logPrefix} Sending request to microservice...`);

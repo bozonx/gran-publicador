@@ -37,7 +37,7 @@ describe('SocialPostingRequestFormatter', () => {
     publication: mockPublication,
     apiKey: 'secret-token',
     targetChannelId: '@test_channel',
-    mediaDir: '/tmp',
+    mediaStorageUrl: 'http://media-storage/api/v1',
   };
 
   it('should format request correctly for Telegram', () => {
@@ -101,6 +101,27 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.media).toBeUndefined();
   });
 
+  it('should handle single FS media mapping with URL generation', () => {
+    const paramsWithMedia = {
+      ...params,
+      publication: {
+        ...mockPublication,
+        media: [
+          {
+            media: {
+              type: MediaType.IMAGE,
+              storageType: StorageType.FS,
+              storagePath: 'file-123',
+            },
+          },
+        ],
+      },
+    };
+
+    const request = SocialPostingRequestFormatter.prepareRequest(paramsWithMedia);
+    expect(request.cover).toEqual({ src: 'http://media-storage/api/v1/files/file-123/download' });
+  });
+
   it('should handle multiple media mapping', () => {
     const paramsWithMultiMedia = {
       ...params,
@@ -118,7 +139,7 @@ describe('SocialPostingRequestFormatter', () => {
             media: {
               type: MediaType.VIDEO,
               storageType: StorageType.FS,
-              storagePath: 'https://example.com/video.mp4',
+              storagePath: 'file-abc',
             },
           },
         ],
@@ -129,6 +150,6 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.cover).toBeUndefined();
     expect(request.media).toHaveLength(2);
     expect(request.media![0]).toEqual({ type: 'image', src: 'file_id_1' });
-    expect(request.media![1]).toEqual({ type: 'video', src: 'https://example.com/video.mp4' });
+    expect(request.media![1]).toEqual({ type: 'video', src: 'http://media-storage/api/v1/files/file-abc/download' });
   });
 });
