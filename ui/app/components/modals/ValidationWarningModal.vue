@@ -14,6 +14,8 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 
+import { DialogTitle, DialogDescription } from 'reka-ui'
+
 const isOpen = defineModel<boolean>('open', { required: true })
 
 function handleConfirm() {
@@ -36,9 +38,9 @@ function handleCancel() {
     <template #header>
       <div class="flex items-center gap-3">
         <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-warning-500" />
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <DialogTitle class="text-lg font-semibold text-gray-900 dark:text-white">
           {{ t('validation.invalidContent') }}
-        </h3>
+        </DialogTitle>
       </div>
     </template>
 
@@ -50,7 +52,7 @@ function handleCancel() {
         :title="t('validation.validationWarningTitle')"
       />
 
-      <div class="text-sm text-gray-700 dark:text-gray-300">
+      <DialogDescription class="text-sm text-gray-700 dark:text-gray-300">
         <p class="mb-3">
           {{ t(`validation.${entityType}ValidationWarning`) }}
         </p>
@@ -67,7 +69,7 @@ function handleCancel() {
         <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
           {{ t('validation.failedStatusExplanation') }}
         </p>
-      </div>
+      </DialogDescription>
     </div>
 
     <template #footer>

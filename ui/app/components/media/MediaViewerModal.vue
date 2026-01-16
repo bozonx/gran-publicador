@@ -42,21 +42,26 @@ function handleClose() {
   isOpen.value = false
   emit('close')
 }
+
+import { DialogTitle, DialogDescription } from 'reka-ui'
 </script>
 
 <template>
   <UiAppModal
     v-model:open="isOpen"
-    :title="undefined"
+    :title="props.title || t('media.preview', 'Media Preview')"
     :close-button="false"
     :prevent-close="props.preventClose"
     :ui="mergedUi"
   >
     <template #header>
       <div class="flex items-center justify-between gap-4 w-full">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
+        <DialogTitle class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
           {{ props.title || t('media.preview', 'Media Preview') }}
-        </h3>
+        </DialogTitle>
+        <DialogDescription class="sr-only">
+          {{ t('media.preview', 'Media Preview') }}
+        </DialogDescription>
         <div class="flex items-center gap-2 shrink-0">
           <span v-if="props.counterText" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
             {{ props.counterText }}

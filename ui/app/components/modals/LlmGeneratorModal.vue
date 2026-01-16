@@ -435,6 +435,7 @@ defineExpose({
   onApplySuccess,
   onApplyError
 })
+import { DialogTitle, DialogDescription } from 'reka-ui'
 </script>
 
 <template>
@@ -442,9 +443,12 @@ defineExpose({
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+        <DialogTitle class="text-lg font-semibold text-gray-900 dark:text-white truncate">
           {{ t('llm.generate') }}
-        </h3>
+        </DialogTitle>
+        <DialogDescription class="sr-only">
+          {{ modalDescription }}
+        </DialogDescription>
       </div>
     </template>
     <div :class="FORM_SPACING.section">

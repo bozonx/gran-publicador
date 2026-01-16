@@ -638,9 +638,9 @@
     "validation": {
       "contentRequired": "Fill content field to schedule publication",
       "contentOrMediaRequired": "Content or Media is required",
-      "fixMediaErrors": "Fix media validation errors before publishing",
-      "scheduleLabel": "Schedule"
+      "fixMediaErrors": "Fix media validation errors before publishing"
     },
+    "scheduleLabel": "Schedule",
     "status": {
       "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
       "publicationTimeRequired": "Set publication time first"
