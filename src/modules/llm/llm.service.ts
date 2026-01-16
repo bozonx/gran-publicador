@@ -152,7 +152,8 @@ export class LlmService {
       max_tokens: dto.max_tokens || 2000,
       model: dto.model,
       tags: dto.tags || this.config.defaultTags,
-      type: 'json', // Request JSON output if supported by router
+      type: this.config.defaultType,
+      response_format: { type: 'json_object' }, // Request JSON output
       ...filterUndefined({
         max_model_switches: this.config.maxModelSwitches,
         max_same_model_retries: this.config.maxSameModelRetries,
