@@ -66,6 +66,17 @@ describe('SocialPostingBodyFormatter', () => {
             { enabled: true, insert: 'authorComment', before: 'Note: ', after: '' },
           ],
         },
+        {
+          id: 't6',
+          name: 'Template with Author Signature',
+          order: 0,
+          postType: null,
+          language: null,
+          template: [
+            { enabled: true, insert: 'content', before: '', after: '' },
+            { enabled: true, insert: 'authorSignature', before: 'By: ', after: '' },
+          ],
+        },
       ],
     },
   };
@@ -164,5 +175,51 @@ describe('SocialPostingBodyFormatter', () => {
     // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT5);
     expect(result).toBe('Main Content\n\nNote: Author Note');
+  });
+
+  it('should include author signature block correctly', () => {
+    const channelWithT6 = {
+      ...mockChannel,
+      preferences: {
+        ...mockChannel.preferences,
+        templates: [{ ...mockChannel.preferences.templates[5], isDefault: true }],
+      },
+    };
+
+    const dataWithSignature = {
+      ...mockData,
+      authorSignature: 'John Doe',
+    };
+
+    // @ts-ignore
+    const result = SocialPostingBodyFormatter.format(dataWithSignature, channelWithT6);
+    expect(result).toBe('Main Content\n\nBy: John Doe');
+  });
+
+  it('should still support {{authorSignature}} placeholder', () => {
+    const channelWithCustom = {
+      ...mockChannel,
+      preferences: {
+        templates: [
+          {
+            id: 't_custom',
+            name: 'Template with Placeholder',
+            order: 0,
+            isDefault: true,
+            template: [
+              { enabled: true, insert: 'custom', before: '', after: '', content: 'Signature: {{authorSignature}}' },
+            ],
+          },
+        ],
+      },
+    };
+
+    const dataWithSignature = {
+      authorSignature: 'John Doe',
+    };
+
+    // @ts-ignore
+    const result = SocialPostingBodyFormatter.format(dataWithSignature, channelWithCustom);
+    expect(result).toBe('Signature: John Doe');
   });
 });

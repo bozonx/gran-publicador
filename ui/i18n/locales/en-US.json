@@ -386,6 +386,7 @@
     "templateInsertContent": "Content",
     "templateInsertTags": "Tags",
     "templateInsertAuthorComment": "Author comment",
+    "templateInsertAuthorSignature": "Author signature",
     "templateInsertFooter": "Footer",
     "templateInsertCustom": "Custom text",
     "templateInsertCustomPlaceholder": "Enter custom Markdown text...",

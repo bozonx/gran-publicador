@@ -3,7 +3,7 @@ import { TagsFormatter, type TagCase } from './tags.formatter.js';
 
 export interface TemplateBlock {
   enabled: boolean;
-  insert: 'title' | 'content' | 'tags' | 'authorComment' | 'footer' | 'custom';
+  insert: 'title' | 'content' | 'tags' | 'authorComment' | 'authorSignature' | 'footer' | 'custom';
   before: string;
   after: string;
   tagCase?: TagCase;
@@ -53,6 +53,7 @@ export class SocialPostingBodyFormatter {
       { enabled: false, insert: 'title', before: '', after: '' },
       { enabled: true, insert: 'content', before: '', after: '' },
       { enabled: true, insert: 'authorComment', before: '', after: '' },
+      { enabled: true, insert: 'authorSignature', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
       { enabled: true, insert: 'custom', before: '', after: '', content: '' },
       { enabled: true, insert: 'footer', before: '', after: '' },
@@ -103,6 +104,9 @@ export class SocialPostingBodyFormatter {
           break;
         case 'authorComment':
           value = data.authorComment || '';
+          break;
+        case 'authorSignature':
+          value = data.authorSignature || '';
           break;
         case 'custom':
           value = block.content || '';
