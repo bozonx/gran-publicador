@@ -6,6 +6,8 @@ process.env.TELEGRAM_ADMIN_ID = process.env.TELEGRAM_ADMIN_ID ?? '123456789';
 process.env.FREE_LLM_ROUTER_URL = process.env.FREE_LLM_ROUTER_URL ?? 'http://localhost:8080/llm';
 process.env.SOCIAL_POSTING_SERVICE_URL =
   process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:8081/social';
+process.env.MEDIA_STORAGE_SERVICE_URL =
+  process.env.MEDIA_STORAGE_SERVICE_URL ?? 'http://localhost:8083/media';
 process.env.NODE_ENV = 'test';
 
 import { Test } from '@nestjs/testing';
@@ -73,6 +75,9 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
           },
           translate: {
             serviceUrl: 'http://localhost:8082/translate',
+          },
+          media: {
+            serviceUrl: 'http://localhost:8083/media',
           },
         };
         // Flatten keys manually for the mock or handle simple dot notation
