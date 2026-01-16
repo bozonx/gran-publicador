@@ -369,6 +369,14 @@ watch(() => chatMessages.value.length, async () => {
   }
 })
 
+function removeTag(tagToRemove: string) {
+  if (!extractionResult.value || !extractionResult.value.tags) return
+  
+  const tags = extractionResult.value.tags.split(',').map(t => t.trim())
+  const newTags = tags.filter(t => t !== tagToRemove.trim())
+  extractionResult.value.tags = newTags.join(', ')
+}
+
 async function handleInsert() {
   if (!extractionResult.value) return
   
@@ -438,6 +446,8 @@ defineExpose({
     <div :class="FORM_SPACING.section">
       <!-- STEP 1: CHAT -->
       <template v-if="step === 1">
+        <p class="text-sm text-gray-500 mb-4">{{ t('llm.step1Description') }}</p>
+
         <!-- Context Block (Compact) -->
         <UCollapsible v-if="content || (sourceTexts && sourceTexts.length > 0)" class="mb-4">
           <UButton
@@ -544,7 +554,7 @@ defineExpose({
         </div>
 
         <!-- Chat Input -->
-        <div class="relative">
+        <div class="relative mb-4">
           <UTextarea
             v-model="prompt"
             :placeholder="t('llm.promptPlaceholder')"
@@ -578,6 +588,29 @@ defineExpose({
           </div>
         </div>
 
+        <!-- Advanced Settings (Step 1) -->
+        <div class="pt-2">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              :icon="showAdvanced ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+              class="mb-2"
+              @click="showAdvanced = !showAdvanced"
+            >
+              {{ t('llm.advancedSettings') }}
+            </UButton>
+
+            <div v-show="showAdvanced" class="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <UFormField :label="t('llm.temperature')">
+                    <UInput v-model.number="temperature" type="number" step="0.1" min="0" max="2" size="sm" class="w-full" />
+                </UFormField>
+                <UFormField :label="t('llm.maxTokens')">
+                    <UInput v-model.number="maxTokens" type="number" min="100" max="8000" size="sm" class="w-full" />
+                </UFormField>
+            </div>
+        </div>
+
         <!-- Metadata & Stats (Chat) -->
         <div class="mt-2 flex items-center justify-between text-[10px] text-gray-400 px-1">
            <div class="flex items-center gap-2">
@@ -591,20 +624,22 @@ defineExpose({
 
       <!-- STEP 2: PARAMETERS -->
       <template v-else-if="step === 2">
+        <p class="text-sm text-gray-500 mb-4">{{ t('llm.step2Description') }}</p>
+
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
            <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 text-primary animate-spin" />
            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('llm.processingParameters') }}</p>
         </div>
         
         <div v-else-if="extractionResult" class="space-y-6">
-           <p class="text-sm text-gray-500 mb-4">{{ t('llm.selectFieldsToApply') }}</p>
+           <p class="text-sm text-gray-500 mb-4 hidden">{{ t('llm.selectFieldsToApply') }}</p>
            
            <!-- Title -->
            <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.title" :label="t('post.title')" />
               </div>
-              <UInput v-if="selectedFields.title" v-model="extractionResult.title" readonly class="bg-white dark:bg-gray-800" />
+              <UInput v-if="selectedFields.title" v-model="extractionResult.title" class="bg-white dark:bg-gray-800 w-full" />
            </div>
 
            <!-- Description -->
@@ -612,7 +647,7 @@ defineExpose({
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.description" :label="t('post.description')" />
               </div>
-              <UTextarea v-if="selectedFields.description" v-model="extractionResult.description" readonly autoresize :rows="2" />
+              <UTextarea v-if="selectedFields.description" v-model="extractionResult.description" autoresize :rows="2" class="w-full" />
            </div>
 
            <!-- Tags -->
@@ -620,11 +655,23 @@ defineExpose({
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.tags" :label="t('post.tags')" />
               </div>
-              <div v-if="selectedFields.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5">
-                 <span v-for="tag in extractionResult.tags.split(',')" :key="tag" class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-xxs rounded text-gray-600 dark:text-gray-400 font-mono">
-                   #{{ tag.trim() }}
-                 </span>
-                 <span v-if="!extractionResult.tags" class="text-xs text-gray-400 italic">{{ t('common.none') }}</span>
+              <div v-if="selectedFields.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-[40px]">
+                 <template v-if="extractionResult.tags">
+                    <UButton
+                      v-for="tag in extractionResult.tags.split(',')"
+                      :key="tag"
+                      size="xs"
+                      color="neutral"
+                      variant="soft"
+                      class="rounded-full! px-2 py-0.5 h-auto"
+                      :ui="{ rounded: 'rounded-full' }"
+                      @click="removeTag(tag)"
+                    >
+                      #{{ tag.trim() }}
+                      <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100" />
+                    </UButton>
+                 </template>
+                 <span v-else class="text-xs text-gray-400 italic">{{ t('common.none') }}</span>
               </div>
            </div>
 
@@ -633,41 +680,23 @@ defineExpose({
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.content" :label="t('post.contentLabel')" />
               </div>
-              <UTextarea v-if="selectedFields.content" v-model="extractionResult.content" readonly autoresize :rows="5" class="font-mono text-xs" />
+              <UTextarea v-if="selectedFields.content" v-model="extractionResult.content" autoresize :rows="5" class="font-mono text-xs w-full" />
            </div>
-
-            <!-- Advanced Settings (Step 2) -->
-            <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <UButton
-                  variant="ghost"
+           
+           <!-- Regenerate Button for Step 2 -->
+           <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
+               <UButton 
+                  block 
+                  size="sm" 
+                  variant="soft"
                   color="neutral"
-                  size="sm"
-                  :icon="showAdvanced ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-                  @click="showAdvanced = !showAdvanced"
+                  icon="i-heroicons-arrow-path"
+                  :disabled="isExtracting"
+                  @click="handleGenerationStep2(chatMessages.length > 0 ? chatMessages[chatMessages.length-1]?.content || '' : (content || ''))"
                 >
-                  {{ t('llm.advancedSettings') }}
+                    {{ t('llm.regenerate') }}
                 </UButton>
-
-                <div v-if="showAdvanced" class="mt-4 grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <UFormField :label="t('llm.temperature')">
-                        <UInput v-model.number="temperature" type="number" step="0.1" min="0" max="2" size="sm" />
-                    </UFormField>
-                    <UFormField :label="t('llm.maxTokens')">
-                        <UInput v-model.number="maxTokens" type="number" min="100" max="8000" size="sm" />
-                    </UFormField>
-                    <div class="col-span-2">
-                        <UButton 
-                          block 
-                          size="sm" 
-                          variant="soft" 
-                          :disabled="isExtracting"
-                          @click="handleGenerationStep2(chatMessages.length > 0 ? chatMessages[chatMessages.length-1]?.content || '' : (content || ''))"
-                        >
-                            {{ t('llm.regenerate') }}
-                        </UButton>
-                    </div>
-                </div>
-            </div>
+           </div>
         </div>
       </template>
     </div>
