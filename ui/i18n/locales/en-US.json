@@ -1035,7 +1035,11 @@
     "rateLimitError": "Rate Limit Exceeded",
     "rateLimitErrorMessage": "Too many requests. Please wait a moment.",
     "serverError": "Server Error",
-    "serverErrorMessage": "A server error occurred. Please try later."
+    "serverErrorMessage": "A server error occurred. Please try later.",
+    "chatEmpty": "Start chatting with AI to generate content",
+    "processingParameters": "Generating publication parameters...",
+    "selectFieldsToApply": "Select which fields you want to update in the publication:",
+    "regenerate": "Regenerate parameters"
   },
   "drafts": {
     "page_title": "Drafts and Templates",

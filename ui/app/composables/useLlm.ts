@@ -32,6 +32,15 @@ interface LlmResponse {
   }
 }
 
+export interface LlmExtractResponse {
+  title: string
+  description: string
+  tags: string
+  content: string
+  metadata?: LlmResponse['metadata']
+  usage?: LlmResponse['usage']
+}
+
 export enum LlmErrorType {
   NETWORK = 'network',
   TIMEOUT = 'timeout',
@@ -126,10 +135,42 @@ export function useLlm() {
     return Math.ceil(text.length / 4)
   }
 
+  /**
+   * Extract publication parameters using LLM.
+   */
+  async function extractParameters(
+    prompt: string,
+    options?: GenerateLlmOptions
+  ): Promise<LlmExtractResponse | null> {
+    isGenerating.value = true
+    error.value = null
+
+    try {
+      const response = await post<LlmExtractResponse>('/llm/extract-parameters', {
+        prompt,
+        ...options,
+      })
+      return response
+    } catch (err: any) {
+      const errorType = getErrorType(err)
+      const msg = err.data?.message || err.message || 'Failed to extract parameters'
+      
+      error.value = {
+        type: errorType,
+        message: msg,
+        originalError: err,
+      }
+      return null
+    } finally {
+      isGenerating.value = false
+    }
+  }
+
   return {
     isGenerating,
     error,
     generateContent,
+    extractParameters,
     estimateTokens,
   }
 }

@@ -4,6 +4,7 @@ import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
 import { buildPromptWithContext } from './utils/context-formatter.js';
 import { filterUndefined } from '../../common/utils/object.utils.js';
+import { PUBLICATION_EXTRACT_SYSTEM_PROMPT } from './constants/llm.constants.js';
 
 /**
  * Response from LLM Router API.
@@ -128,6 +129,72 @@ export class LlmService {
    * @returns A fully constructed prompt string ready for LLM consumption.
    * @private
    */
+  /**
+   * Extract publication parameters (title, description, tags, content) from text using LLM.
+   */
+  async extractParameters(dto: GenerateContentDto): Promise<LlmResponse> {
+    const url = `${this.config.serviceUrl}/chat/completions`;
+
+    const fullPrompt = this.buildFullPrompt(dto);
+
+    const requestBody = {
+      messages: [
+        {
+          role: 'system',
+          content: PUBLICATION_EXTRACT_SYSTEM_PROMPT,
+        },
+        {
+          role: 'user',
+          content: fullPrompt,
+        },
+      ],
+      temperature: dto.temperature || 0.3, // Lower temperature for more consistent JSON
+      max_tokens: dto.max_tokens || 2000,
+      model: dto.model,
+      tags: dto.tags || this.config.defaultTags,
+      type: 'json', // Request JSON output if supported by router
+      ...filterUndefined({
+        max_model_switches: this.config.maxModelSwitches,
+        max_same_model_retries: this.config.maxSameModelRetries,
+        retry_delay: this.config.retryDelay,
+        timeout_secs: this.config.timeoutSecs,
+        fallback_provider: this.config.fallbackProvider,
+        fallback_model: this.config.fallbackModel,
+        min_context_size: this.config.minContextSize,
+        min_max_output_tokens: this.config.minMaxOutputTokens,
+      }),
+    };
+
+    this.logger.debug(`Sending extraction request to LLM Router: ${url}`);
+
+    try {
+      const response = await this.fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout((this.config.timeoutSecs || 120) * 1000),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LLM Router returned ${response.status}: ${errorText}`);
+      }
+
+      const data = (await response.json()) as LlmResponse;
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('LLM Router returned empty choices array');
+      }
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Failed to extract parameters: ${error.message}`);
+      throw error;
+    }
+  }
+
   private buildFullPrompt(dto: GenerateContentDto): string {
     // Filter source texts if specific indexes are selected
     let sourceTexts = dto.sourceTexts;

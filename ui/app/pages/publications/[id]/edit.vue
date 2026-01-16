@@ -91,6 +91,7 @@ const toast = useToast()
 const isScheduleModalOpen = ref(false)
 const newScheduledDate = ref('')
 const isBulkScheduling = ref(false)
+const showLlmModal = ref(false)
 
 // Social posting
 const { 
@@ -228,7 +229,6 @@ async function handleArchiveToggle() {
     if (!currentPublication.value) return
     await fetchPublication(currentPublication.value.id)
 }
-
 async function handleDelete() {
     if (!currentPublication.value) return
     
@@ -246,6 +246,25 @@ async function handleDelete() {
             router.push('/drafts')
         }
     }
+}
+
+async function handleApplyLlm(data: { title?: string; description?: string; tags?: string; content?: string }) {
+  if (!currentPublication.value) return
+  
+  try {
+    const result = await updatePublication(currentPublication.value.id, data)
+    if (result) {
+      toast.add({
+        title: t('common.saveSuccess'),
+        color: 'success'
+      })
+    }
+  } catch (e) {
+    toast.add({
+      title: t('common.saveError'),
+      color: 'error'
+    })
+  }
 }
 
 function openScheduleModal() {
@@ -723,6 +742,14 @@ async function executePublish(force: boolean) {
                     
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2">
+                        <UButton
+                            icon="i-heroicons-sparkles"
+                            color="primary"
+                            variant="soft"
+                            size="sm"
+                            @click="showLlmModal = true"
+                        />
+
                         <UiArchiveButton
                             :key="currentPublication.archivedAt ? 'archived' : 'active'"
                             :entity-type="ArchiveEntityType.PUBLICATION"
@@ -1061,5 +1088,14 @@ async function executePublish(force: boolean) {
     <div v-else class="text-center py-12">
         <p class="text-gray-500">{{ t('errors.notFound') }}</p>
     </div>
+    <!-- LLM Generator Modal -->
+    <ModalsLlmGeneratorModal
+      v-if="currentPublication"
+      v-model:open="showLlmModal"
+      :content="currentPublication.content || undefined"
+      :source-texts="currentPublication.sourceTexts || undefined"
+      :project-id="projectId || undefined"
+      @apply="handleApplyLlm"
+    />
   </div>
 </template>

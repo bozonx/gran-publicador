@@ -56,7 +56,6 @@ const showAdvancedFields = ref(false)
 const linkedPublicationId = ref<string | undefined>(undefined)
 const showValidationWarning = ref(false)
 const pendingSubmitData = ref<any>(null)
-const showLlmModal = ref(false)
 
 const isEditMode = computed(() => !!props.publication?.id)
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
@@ -412,10 +411,6 @@ function handleDeleteAllSourceTexts() {
     isSourceTextsOpen.value = false
 }
 
-function handleInsertLlmContent(content: string) {
-    state.content = content
-    showLlmModal.value = false
-}
 </script>
 
 <template>
@@ -544,15 +539,6 @@ function handleInsertLlmContent(content: string) {
           <div class="flex items-center gap-1.5">
             <span>{{ t('post.content') }}</span>
             <CommonInfoTooltip :text="t('post.contentTooltip')" />
-            <UTooltip :text="t('llm.tooltip')">
-              <UButton
-                icon="i-heroicons-sparkles"
-                color="primary"
-                variant="ghost"
-                size="xs"
-                @click="showLlmModal = true"
-              />
-            </UTooltip>
           </div>
         </template>
         
@@ -837,12 +823,4 @@ function handleInsertLlmContent(content: string) {
       @translated="handleTranslated"
     />
 
-    <!-- LLM Generator Modal -->
-    <ModalsLlmGeneratorModal
-      v-model:open="showLlmModal"
-      :content="state.content"
-      :source-texts="state.sourceTexts"
-      :project-id="currentProjectId"
-      @insert="handleInsertLlmContent"
-    />
 </template>
