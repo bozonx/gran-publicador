@@ -1130,8 +1130,14 @@
       "title": "Готовые подписи",
       "subscriber": "Для подписчиков",
       "subscriberContent": "Специально для подписчиков",
+      "source": "Источник",
+      "sourceContent": "Источник: Gran Publicador",
+      "fromChannel": "Из канала",
+      "fromChannelContent": "Переслано из канала",
+      "editor": "Редактор",
+      "editorContent": "Отредактировано редактором",
       "copyright": "Авторское право",
-      "copyrightContent": "Все права защищены",
+      "copyrightContent": "© Все права защищены",
       "thanks": "Благодарность",
       "thanksContent": "Спасибо за чтение!"
     }

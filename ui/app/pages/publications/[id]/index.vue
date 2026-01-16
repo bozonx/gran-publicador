@@ -7,6 +7,8 @@ import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { getStatusColor, getStatusIcon } from '~/utils/publications'
 import { getSocialMediaIcon, getSocialMediaDisplayName } from '~/utils/socialMedia'
 import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
+import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
+import type { AuthorSignature, PresetSignature } from '~/types/author-signatures'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 
 definePageMeta({
@@ -18,6 +20,10 @@ const route = useRoute()
 const { fetchPublication, currentPublication, isLoading } = usePublications()
 const { fetchProject, currentProject } = useProjects()
 const { formatDateWithTime, formatDateShort } = useFormatters()
+const { fetchPresets, fetchByChannel } = useAuthorSignatures()
+
+const presets = ref<PresetSignature[]>([])
+const customSignatures = ref<AuthorSignature[]>([])
 
 const publicationId = computed(() => route.params.id as string)
 
@@ -27,6 +33,9 @@ onMounted(async () => {
         if (currentPublication.value?.projectId) {
             await fetchProject(currentPublication.value.projectId)
         }
+        
+        // Fetch presets for signatures
+        presets.value = await fetchPresets()
     }
 })
 
@@ -52,11 +61,30 @@ const isMetaVisible = ref(false)
 const previewContent = ref('')
 const previewTitle = ref('')
 
-function showPostPreview(post: any) {
+async function showPostPreview(post: any) {
   if (!currentPublication.value) return
 
   previewTitle.value = getSocialMediaDisplayName(post.channel?.socialMedia || post.socialMedia, t)
   
+  // Resolve author signature
+  let authorSignatureContent = ''
+  if (post.authorSignatureId) {
+    // Check presets
+    const preset = presets.value.find(p => p.id === post.authorSignatureId)
+    if (preset) {
+        authorSignatureContent = t(preset.contentKey)
+    } else {
+        // Fetch custom signatures for this channel if not already fetched or different channel
+        if (post.channelId) {
+            const signatures = await fetchByChannel(post.channelId)
+            const sig = signatures.find(s => s.id === post.authorSignatureId)
+            if (sig) {
+                authorSignatureContent = sig.content
+            }
+        }
+    }
+  }
+
   previewContent.value = SocialPostingBodyFormatter.format(
     {
       title: currentPublication.value.title,
@@ -65,6 +93,7 @@ function showPostPreview(post: any) {
       postType: currentPublication.value.postType as any,
       language: post.language || currentPublication.value.language,
       authorComment: currentPublication.value.authorComment,
+      authorSignature: authorSignatureContent,
     },
     post.channel || post,
     post.template

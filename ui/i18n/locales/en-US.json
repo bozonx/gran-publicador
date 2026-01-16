@@ -1080,8 +1080,14 @@
       "title": "Preset Signatures",
       "subscriber": "Subscriber",
       "subscriberContent": "Shared with subscribers",
+      "source": "Source",
+      "sourceContent": "Source: Gran Publicador",
+      "fromChannel": "From Channel",
+      "fromChannelContent": "Forwarded from channel",
+      "editor": "Editor",
+      "editorContent": "Edited by editor",
       "copyright": "Copyright",
-      "copyrightContent": "All rights reserved",
+      "copyrightContent": "© All rights reserved",
       "thanks": "Thanks",
       "thanksContent": "Thanks for reading!"
     }

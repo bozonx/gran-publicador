@@ -85,6 +85,7 @@ export interface PublicationDataForFormatting {
   content?: string | null;
   tags?: string | null;
   authorComment?: string | null;
+  authorSignature?: string | null;
   postType?: string;
   language?: string;
 }
@@ -95,6 +96,7 @@ export class SocialPostingBodyFormatter {
       { enabled: false, insert: 'title', before: '', after: '' },
       { enabled: true, insert: 'content', before: '', after: '' },
       { enabled: true, insert: 'authorComment', before: '', after: '' },
+      { enabled: true, insert: 'authorSignature', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
       { enabled: true, insert: 'custom', before: '', after: '', content: '' },
       { enabled: true, insert: 'footer', before: '', after: '' },
@@ -141,6 +143,9 @@ export class SocialPostingBodyFormatter {
         case 'authorComment':
           value = data.authorComment || '';
           break;
+        case 'authorSignature':
+          value = data.authorSignature || '';
+          break;
         case 'custom':
           value = block.content || '';
           break;
@@ -171,7 +176,12 @@ export class SocialPostingBodyFormatter {
       }
     }
 
-    const result = formattedBlocks.join('\n\n');
+    let result = formattedBlocks.join('\n\n');
+    
+    // Replace placeholders
+    const signature = data.authorSignature || '';
+    result = result.replace(/\{\{authorSignature\}\}/g, signature);
+
     return result.trim().replace(/\n{3,}/g, '\n\n');
   }
 }
