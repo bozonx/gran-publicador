@@ -64,6 +64,8 @@ function handleClose(close?: () => void) {
   <UModal
     v-model:open="isOpen"
     :dismissible="!props.preventClose"
+    :title="props.title"
+    :description="props.description"
     :ui="modalUi"
   >
     <template #content="{ close }">

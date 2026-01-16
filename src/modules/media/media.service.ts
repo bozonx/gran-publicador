@@ -12,6 +12,7 @@ import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
+import { pipeline } from 'node:stream/promises';
 import {
   getMediaStorageServiceUrl,
   getMediaStorageTimeout,
@@ -321,52 +322,124 @@ export class MediaService {
   }
 
   /**
-   * Stream file from Media Storage to response.
+   * Proxy a request to Media Storage and return stream details.
    */
-  async streamFileFromStorage(
-    fileId: string,
-    res: ServerResponse,
-    range?: string,
-  ): Promise<void> {
-    this.logger.debug(`Streaming file from Media Storage: ${fileId}`);
+  private async proxyFromStorage(
+    url: string,
+    method: string = 'GET',
+    headers: Record<string, string> = {},
+  ): Promise<{
+    stream: Readable;
+    status: number;
+    headers: Record<string, string>;
+  }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const headers: Record<string, string> = {};
-      if (range) {
-        headers['Range'] = range;
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}/download`, {
-        method: 'GET',
+      const response = await this.fetch(url, {
+        method,
         headers,
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
+      if (!response.ok && response.status !== 206) {
         throw new Error(`Media Storage returned ${response.status}`);
       }
 
-      // Copy headers from Media Storage response
+      const responseHeaders: Record<string, string> = {};
+      const skipHeaders = [
+        'connection',
+        'keep-alive',
+        'transfer-encoding',
+        'proxy-authenticate',
+        'proxy-authorization',
+        'te',
+        'trailer',
+        'upgrade',
+      ];
+
       response.headers.forEach((value, key) => {
-        res.setHeader(key, value);
+        if (!skipHeaders.includes(key.toLowerCase())) {
+          responseHeaders[key] = value;
+        }
       });
 
-      res.statusCode = response.status;
-
-      // Stream the response body
-      if (response.body) {
-        const nodeStream = Readable.fromWeb(response.body as any);
-        nodeStream.pipe(res);
-      } else {
-        res.end();
+      if (!response.body) {
+        throw new Error('Response body is empty');
       }
+
+      return {
+        stream: Readable.fromWeb(response.body as any),
+        status: response.status,
+        headers: responseHeaders,
+      };
     } catch (error) {
-      this.logger.error(`Failed to stream from Media Storage: ${(error as Error).message}`);
+      clearTimeout(timeoutId);
+      this.logger.error(`Failed to proxy from Media Storage (${url}): ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get file stream from Media Storage.
+   */
+  async getFileStream(
+    fileId: string,
+    range?: string,
+  ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
+    const headers: Record<string, string> = {};
+    if (range) {
+      headers['Range'] = range;
+    }
+
+    return this.proxyFromStorage(`${this.mediaStorageUrl}/files/${fileId}/download`, 'GET', headers);
+  }
+
+  /**
+   * Get thumbnail stream from Media Storage.
+   */
+  async getThumbnailStream(
+    fileId: string,
+    width: number,
+    height: number,
+    quality?: number,
+  ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
+    const params = new URLSearchParams({
+      width: width.toString(),
+      height: height.toString(),
+    });
+
+    const finalQuality = quality ?? this.thumbnailQuality;
+    if (finalQuality) {
+      params.append('quality', finalQuality.toString());
+    }
+
+    return this.proxyFromStorage(
+      `${this.mediaStorageUrl}/files/${fileId}/thumbnail?${params.toString()}`,
+    );
+  }
+
+  /**
+   * Stream file from Media Storage to response.
+   * @deprecated Use getFileStream instead
+   */
+  async streamFileFromStorage(
+    fileId: string,
+    res: ServerResponse,
+    range?: string,
+  ): Promise<void> {
+    this.logger.debug(`Streaming file from Media Storage (legacy): ${fileId}`);
+    try {
+      const result = await this.getFileStream(fileId, range);
+      Object.entries(result.headers).forEach(([key, value]) => {
+        res.setHeader(key, value);
+      });
+      res.statusCode = result.status;
+      await pipeline(result.stream, res);
+    } catch (error) {
       if (!res.headersSent) {
         res.statusCode = 500;
         res.end('Failed to stream file');
@@ -376,7 +449,7 @@ export class MediaService {
 
   /**
    * Stream thumbnail from Media Storage to response.
-   * Only supported for StorageType.FS.
+   * @deprecated Use getThumbnailStream instead
    */
   async streamThumbnailFromStorage(
     fileId: string,
@@ -385,53 +458,15 @@ export class MediaService {
     quality: number | undefined,
     res: ServerResponse,
   ): Promise<void> {
-    this.logger.debug(`Streaming thumbnail from Media Storage: ${fileId} (${width}x${height})`);
-
+    this.logger.debug(`Streaming thumbnail from Media Storage (legacy): ${fileId}`);
     try {
-      const params = new URLSearchParams({
-        width: width.toString(),
-        height: height.toString(),
-      });
-
-      // Use provided quality or fall back to configured quality
-      const finalQuality = quality ?? this.thumbnailQuality;
-      if (finalQuality) {
-        params.append('quality', finalQuality.toString());
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-      const response = await this.fetch(
-        `${this.mediaStorageUrl}/files/${fileId}/thumbnail?${params.toString()}`,
-        {
-          method: 'GET',
-          signal: controller.signal,
-        },
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Media Storage returned ${response.status}`);
-      }
-
-      // Copy headers from Media Storage response
-      response.headers.forEach((value, key) => {
+      const result = await this.getThumbnailStream(fileId, width, height, quality);
+      Object.entries(result.headers).forEach(([key, value]) => {
         res.setHeader(key, value);
       });
-
-      res.statusCode = response.status;
-
-      // Stream the response body
-      if (response.body) {
-        const nodeStream = Readable.fromWeb(response.body as any);
-        nodeStream.pipe(res);
-      } else {
-        res.end();
-      }
+      res.statusCode = result.status;
+      await pipeline(result.stream, res);
     } catch (error) {
-      this.logger.error(`Failed to stream thumbnail from Media Storage: ${(error as Error).message}`);
       if (!res.headersSent) {
         res.statusCode = 500;
         res.end('Failed to stream thumbnail');
@@ -567,7 +602,7 @@ export class MediaService {
 
       // Project publication - check project access
       try {
-        await this.permissions.checkProjectAccess(userId, projectId);
+        await this.permissions.checkProjectAccess(projectId, userId);
         return; // User has access to at least one project
       } catch {
         continue;

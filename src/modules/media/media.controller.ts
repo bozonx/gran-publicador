@@ -105,8 +105,25 @@ export class MediaController {
   @Get(':id/file')
   @UseGuards(JwtOrApiTokenGuard)
   async getFile(@Param('id') id: string, @Req() req: UnifiedAuthRequest, @Res() res: FastifyReply) {
+    // Check access
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
+
+    const media = await this.mediaService.findOne(id);
     const range = req.headers.range;
-    return this.mediaService.streamMediaFile(id, res.raw, req.user.userId, range);
+
+    if (media.storageType === StorageType.FS) {
+      const fileId = media.storagePath;
+      const { stream, status, headers } = await this.mediaService.getFileStream(fileId, range);
+
+      res.status(status);
+      res.headers(headers);
+      return res.send(stream);
+    } else if (media.storageType === StorageType.TELEGRAM) {
+      // Use existing legacy streaming for Telegram (it uses res.raw)
+      return this.mediaService.streamMediaFile(id, res.raw, req.user.userId, range);
+    } else {
+      throw new BadRequestException('Unsupported storage type');
+    }
   }
 
   /**
@@ -118,11 +135,11 @@ export class MediaController {
   @UseGuards(JwtOrApiTokenGuard)
   async getThumbnail(
     @Param('id') id: string,
+    @Req() req: UnifiedAuthRequest,
+    @Res() res: FastifyReply,
     @Query('w') widthStr?: string,
     @Query('h') heightStr?: string,
     @Query('quality') qualityStr?: string,
-    @Req() req: UnifiedAuthRequest = {} as any,
-    @Res() res: FastifyReply = {} as any,
   ) {
     // Check access
     await this.mediaService.checkMediaAccess(id, req.user.userId);
@@ -140,7 +157,16 @@ export class MediaController {
     const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
 
     const fileId = media.storagePath;
-    return this.mediaService.streamThumbnailFromStorage(fileId, width, height, quality, res.raw);
+    const { stream, status, headers } = await this.mediaService.getThumbnailStream(
+      fileId,
+      width,
+      height,
+      quality,
+    );
+
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
   }
 
   /**

@@ -104,7 +104,9 @@
     "selectAll": "Select All",
     "deselectAll": "Deselect All",
     "selected": "Selected: {count}",
-    "clearSelection": "Clear"
+    "clearSelection": "Clear",
+    "skip": "Skip",
+    "apply": "Apply"
   },
   "navigation": {
     "home": "Home",
@@ -636,7 +638,8 @@
     "validation": {
       "contentRequired": "Fill content field to schedule publication",
       "contentOrMediaRequired": "Content or Media is required",
-      "fixMediaErrors": "Fix media validation errors before publishing"
+      "fixMediaErrors": "Fix media validation errors before publishing",
+      "scheduleLabel": "Schedule"
     },
     "status": {
       "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
@@ -653,6 +656,7 @@
     "republishWarning": "This publication has already been published. Do you want to publish it again? This may result in duplicate posts.",
     "republishPostWarning": "This post has already been published. Do you want to publish it again?",
     "republishFailedWarning": "You are about to retry a failed publication. Are you sure?",
+    "republish": "Republish",
     "archiveWarning": {
       "title": "Archive Warning",
       "publication": "This publication is archived.",

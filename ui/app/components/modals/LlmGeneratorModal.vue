@@ -42,6 +42,10 @@ interface ChatMessage {
 const chatMessages = ref<ChatMessage[]>([])
 const prompt = ref('')
 
+const modalDescription = computed(() => {
+  return step.value === 1 ? t('llm.step1Description') : t('llm.step2Description')
+})
+
 // Step 2: Extraction state
 const extractionResult = ref<LlmExtractResponse | null>(null)
 const selectedFields = reactive({
@@ -434,7 +438,7 @@ defineExpose({
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('llm.generate')" size="2xl">
+  <UiAppModal v-model:open="isOpen" :title="t('llm.generate')" :description="modalDescription" size="2xl">
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
@@ -446,7 +450,6 @@ defineExpose({
     <div :class="FORM_SPACING.section">
       <!-- STEP 1: CHAT -->
       <template v-if="step === 1">
-        <p class="text-sm text-gray-500 mb-4">{{ t('llm.step1Description') }}</p>
 
         <!-- Context Block (Compact) -->
         <UCollapsible v-if="content || (sourceTexts && sourceTexts.length > 0)" class="mb-4">
@@ -624,7 +627,6 @@ defineExpose({
 
       <!-- STEP 2: PARAMETERS -->
       <template v-else-if="step === 2">
-        <p class="text-sm text-gray-500 mb-4">{{ t('llm.step2Description') }}</p>
 
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
            <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 text-primary animate-spin" />
@@ -664,7 +666,6 @@ defineExpose({
                       color="neutral"
                       variant="soft"
                       class="rounded-full! px-2 py-0.5 h-auto"
-                      :ui="{ rounded: 'rounded-full' }"
                       @click="removeTag(tag)"
                     >
                       #{{ tag.trim() }}

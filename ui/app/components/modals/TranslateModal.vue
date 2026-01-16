@@ -76,25 +76,25 @@ watch(() => props.defaultTargetLang, (newVal) => {
     :description="t('sourceTexts.translate')"
   >
     <div class="space-y-4 py-2">
-      <UFormGroup :label="t('translate.targetLanguage')">
+      <UFormField :label="t('translate.targetLanguage')">
         <USelectMenu
           v-model="targetLang"
           :items="languages"
           value-key="value"
           label-key="label"
         />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup :label="t('translate.splitter')">
+      <UFormField :label="t('translate.splitter')">
         <USelectMenu
           v-model="splitter"
           :items="splitterOptions"
           value-key="value"
           label-key="label"
         />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup
+      <UFormField
         :label="t('translate.maxChunkLength')"
         :help="t('translate.maxChunkLengthHelp')"
       >
@@ -103,9 +103,9 @@ watch(() => props.defaultTargetLang, (newVal) => {
           type="number"
           placeholder="1000"
         />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup :label="t('common.actions')">
+      <UFormField :label="t('common.actions')">
         <URadioGroup
           v-model="action"
           :options="[
@@ -113,7 +113,7 @@ watch(() => props.defaultTargetLang, (newVal) => {
             { label: t('translate.insertAsContent'), value: 'insert' }
           ]"
         />
-      </UFormGroup>
+      </UFormField>
 
       <div
         v-if="error"
