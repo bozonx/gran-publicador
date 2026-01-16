@@ -40,6 +40,7 @@ export class ApiTokenGuard implements CanActivate {
     // Add user info and scope to request for use in controllers
     (request as unknown as ApiTokenRequest).user = {
       userId: tokenData.userId,
+      id: tokenData.userId,
       scopeProjectIds: tokenData.scopeProjectIds,
       tokenId: tokenData.tokenId,
     };

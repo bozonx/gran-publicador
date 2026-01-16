@@ -40,6 +40,7 @@ export class JwtOrApiTokenGuard implements CanActivate {
       const unifiedRequest = request as unknown as UnifiedAuthRequest;
       unifiedRequest.user = {
         userId: apiTokenRequest.user.userId,
+        id: apiTokenRequest.user.userId,
         scopeProjectIds: apiTokenRequest.user.scopeProjectIds,
         tokenId: apiTokenRequest.user.tokenId,
       };
@@ -68,6 +69,7 @@ export class JwtOrApiTokenGuard implements CanActivate {
     const unifiedRequest = request as unknown as UnifiedAuthRequest;
     unifiedRequest.user = {
       userId: jwtPayload.sub,
+      id: jwtPayload.sub,
       scopeProjectIds: undefined, // JWT users have access to all their projects
       tokenId: undefined,
     };

@@ -5,6 +5,10 @@
 export interface JwtPayload {
   /** The subject of the token (user ID). */
   sub: string;
+  /** The unique identifier of the user (alias for sub). */
+  id?: string;
+  /** The unique identifier of the user (alias for sub). */
+  userId?: string;
   /** The Telegram ID of the user (optional). */
   telegramId?: string;
   /** The username of the user (optional). */

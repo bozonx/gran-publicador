@@ -4,6 +4,8 @@
 export interface ApiTokenUser {
   /** The unique identifier of the user who owns the token. */
   userId: string;
+  /** Alias for userId for backward compatibility. */
+  id: string;
   /** List of project IDs this token is allowed to access. Empty means all. */
   scopeProjectIds: string[];
   /** The unique identifier of the API token itself. */

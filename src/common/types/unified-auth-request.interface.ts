@@ -7,6 +7,8 @@ import type { FastifyRequest } from 'fastify';
 export interface UnifiedAuthUser {
   /** The unique identifier of the user (from JWT 'sub' or API token 'userId'). */
   userId: string;
+  /** Alias for userId for backward compatibility. */
+  id: string;
   /** Optional list of project IDs this user/token is allowed to access. Empty or undefined means all. */
   scopeProjectIds?: string[];
   /** Optional token ID if authenticated via API token. */

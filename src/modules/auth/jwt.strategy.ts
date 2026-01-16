@@ -34,9 +34,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    */
   public validate(payload: any): JwtPayload {
     return {
+      sub: payload.sub,
+      id: payload.sub,
+      userId: payload.sub,
       exp: payload.exp,
       iat: payload.iat,
-      sub: payload.sub,
       telegramId: payload.telegramId,
       telegramUsername: payload.telegramUsername,
     };
