@@ -8,6 +8,7 @@ export interface ExtractedMedia {
   fileName?: string;
   mimeType?: string;
   fileSize?: number;
+  hasSpoiler?: boolean;
 }
 
 export interface ExtractedContent {
@@ -51,6 +52,7 @@ export function extractMedia(message: Message): ExtractedMedia[] {
       fileId: largestPhoto.file_id,
       thumbnailFileId: thumbPhoto.file_id,
       fileSize: largestPhoto.file_size,
+      hasSpoiler: message.has_media_spoiler,
     });
   }
 
@@ -63,6 +65,7 @@ export function extractMedia(message: Message): ExtractedMedia[] {
       fileName: message.video.file_name,
       mimeType: message.video.mime_type,
       fileSize: message.video.file_size,
+      hasSpoiler: message.has_media_spoiler,
     });
   }
 

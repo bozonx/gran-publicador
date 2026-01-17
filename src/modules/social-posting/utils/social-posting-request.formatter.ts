@@ -113,20 +113,22 @@ export class SocialPostingRequestFormatter {
     if (!publicationMedia || publicationMedia.length === 0) return {};
 
     if (publicationMedia.length === 1) {
-      const item = publicationMedia[0].media;
+      const pm = publicationMedia[0];
+      const item = pm.media;
       const src = this.getMediaSrc(item, mediaStorageUrl);
+      const hasSpoiler = pm.hasSpoiler ?? item.meta?.telegram?.hasSpoiler ?? false;
 
       switch (item.type) {
         case MediaType.IMAGE:
-          return { cover: { src } };
+          return { cover: { src, hasSpoiler } };
         case MediaType.VIDEO:
-          return { video: { src } };
+          return { video: { src, hasSpoiler } };
         case MediaType.AUDIO:
           return { audio: { src } };
         case MediaType.DOCUMENT:
           return { document: { src } };
         default:
-          return { cover: { src } };
+          return { cover: { src, hasSpoiler } };
       }
     }
 
@@ -135,6 +137,7 @@ export class SocialPostingRequestFormatter {
       media: publicationMedia.map(pm => ({
         src: this.getMediaSrc(pm.media, mediaStorageUrl),
         type: this.mapMediaTypeToLibrary(pm.media.type),
+        hasSpoiler: pm.hasSpoiler ?? pm.media.meta?.telegram?.hasSpoiler ?? false,
       })),
     };
   }

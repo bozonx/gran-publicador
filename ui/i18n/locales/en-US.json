@@ -719,7 +719,11 @@
     "download": "Download",
     "noExif": "No EXIF data found",
     "viewExif": "View EXIF",
-    "yamlHelp": "Additional metadata in YAML format"
+    "yamlHelp": "Additional metadata in YAML format",
+    "spoiler": "Spoiler",
+    "hasSpoiler": "Hide content (spoiler)",
+    "spoilerDescription": "Content will be hidden until user clicks",
+    "originalSpoilerFromTelegram": "Original message from Telegram had spoiler"
   },
   "postType": {
     "post": "Post",

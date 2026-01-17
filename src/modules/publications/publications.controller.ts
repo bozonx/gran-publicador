@@ -263,6 +263,19 @@ export class PublicationsController {
   }
 
   /**
+   * Update a media link (properties like hasSpoiler) in a publication.
+   */
+  @Patch(':id/media/:mediaLinkId')
+  public async updateMediaLink(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Param('mediaLinkId') mediaLinkId: string,
+    @Body() body: { hasSpoiler?: boolean; order?: number },
+  ) {
+    return this.publicationsService.updateMediaLink(id, req.user.userId, mediaLinkId, body);
+  }
+
+  /**
    * Publish all posts of a publication to their respective channels.
    */
   @Post(':id/publish')

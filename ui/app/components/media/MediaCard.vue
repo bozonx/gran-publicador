@@ -17,12 +17,14 @@ interface Props {
   clickable?: boolean
   showOverlay?: boolean
   size?: 'sm' | 'md' | 'lg'
+  hasSpoiler?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   clickable: true,
   showOverlay: true,
   size: 'md',
+  hasSpoiler: false,
 })
 
 const emit = defineEmits<{
@@ -80,23 +82,37 @@ function handleClick() {
     <!-- Image preview with error handling -->
     <div
       v-if="media.type === 'IMAGE' && !imageError"
-      class="w-full h-full"
+      class="w-full h-full relative"
     >
       <img
         v-if="media.storageType === 'FS'"
         :src="getThumbnailUrl(media.id, 400, 400, authStore.token || undefined)"
         :srcset="`${getThumbnailUrl(media.id, 400, 400, authStore.token || undefined)} 1x, ${getThumbnailUrl(media.id, 800, 800, authStore.token || undefined)} 2x`"
         :alt="media.filename || 'Media'"
-        class="w-full h-full object-cover"
+        :class="['w-full h-full object-cover', hasSpoiler && 'blur-xl scale-110']"
         @error="handleImageError"
       />
       <img
         v-else
         :src="getMediaFileUrl(media.id, authStore.token || undefined)"
         :alt="media.filename || 'Media'"
-        class="w-full h-full object-cover"
+        :class="['w-full h-full object-cover', hasSpoiler && 'blur-xl scale-110']"
         @error="handleImageError"
       />
+      
+      <!-- Spoiler Indicator Overlay -->
+      <div 
+        v-if="hasSpoiler" 
+        class="absolute inset-0 flex items-center justify-center bg-black/20"
+      >
+        <UIcon 
+          name="i-heroicons-eye-slash" 
+          :class="[
+            'text-white drop-shadow-md',
+            size === 'sm' ? 'w-6 h-6' : size === 'md' ? 'w-10 h-10' : 'w-14 h-14'
+          ]" 
+        />
+      </div>
     </div>
     
     <!-- Icon for other types or failed images -->
@@ -122,12 +138,22 @@ function handleClick() {
         <UBadge size="xs" color="neutral">
           {{ media.type }}
         </UBadge>
-        <UBadge
-          size="xs"
-          :color="media.storageType === 'TELEGRAM' ? 'secondary' : 'success'"
-        >
-          {{ media.storageType }}
-        </UBadge>
+        <div class="flex gap-1">
+          <UBadge
+            size="xs"
+            :color="media.storageType === 'TELEGRAM' ? 'secondary' : 'success'"
+          >
+            {{ media.storageType }}
+          </UBadge>
+          <UBadge
+            v-if="hasSpoiler"
+            size="xs"
+            color="warning"
+            variant="solid"
+          >
+            SPOILER
+          </UBadge>
+        </div>
       </div>
     </div>
 

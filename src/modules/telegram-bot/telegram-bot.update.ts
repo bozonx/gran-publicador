@@ -230,12 +230,17 @@ export class TelegramBotUpdate {
             meta: {
               telegram: {
                 thumbnailFileId: mediaItem.thumbnailFileId,
+                hasSpoiler: mediaItem.hasSpoiler || false,
               },
             },
           });
 
           await this.publicationsService.addMedia(publication.id, userId, [
-            { mediaId: media.id, order: mediaCount },
+            { 
+              mediaId: media.id, 
+              order: mediaCount,
+              hasSpoiler: mediaItem.hasSpoiler || false,
+            },
           ]);
           mediaCount++;
         }
@@ -340,12 +345,17 @@ export class TelegramBotUpdate {
             meta: {
               telegram: {
                 thumbnailFileId: mediaItem.thumbnailFileId,
+                hasSpoiler: mediaItem.hasSpoiler || false,
               },
             },
           });
 
           await this.publicationsService.addMedia(session.publicationId, userId, [
-            { mediaId: media.id, order: session.metadata.mediaCount + newMediaCount },
+            { 
+              mediaId: media.id, 
+              order: session.metadata.mediaCount + newMediaCount,
+              hasSpoiler: mediaItem.hasSpoiler || false,
+            },
           ]);
           newMediaCount++;
         }

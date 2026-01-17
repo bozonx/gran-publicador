@@ -167,6 +167,24 @@ export function useMedia() {
     }
   }
 
+  async function updateMediaLinkInPublication(
+    publicationId: string,
+    mediaLinkId: string,
+    data: { hasSpoiler?: boolean; order?: number }
+  ): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+    try {
+      await api.patch(`/publications/${publicationId}/media/${mediaLinkId}`, data)
+      return true
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update media link'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
 
   async function fetchAllMedia(): Promise<MediaItem[]> {
     isLoading.value = true
@@ -194,6 +212,7 @@ export function useMedia() {
     addMediaToPublication,
     removeMediaFromPublication,
     reorderMediaInPublication,
+    updateMediaLinkInPublication,
   }
 }
 

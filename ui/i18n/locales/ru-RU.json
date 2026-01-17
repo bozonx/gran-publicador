@@ -764,7 +764,11 @@
     "viewExif": "Просмотр EXIF",
     "yamlHelp": "Дополнительные метаданные в формате YAML",
     "library_description": "Управление и организация всех медиа-файлов",
-    "no_media_found": "Медиа-файлы не найдены по вашему запросу"
+    "no_media_found": "Медиа-файлы не найдены по вашему запросу",
+    "spoiler": "Спойлер",
+    "hasSpoiler": "Скрыть контент (spoiler)",
+    "spoilerDescription": "Контент будет скрыт до клика пользователя",
+    "originalSpoilerFromTelegram": "Исходное сообщение из Telegram содержало spoiler"
   },
   "postType": {
     "post": "Пост",

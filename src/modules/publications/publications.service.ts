@@ -24,6 +24,7 @@ import {
   IssueType,
   OwnershipType,
 } from './dto/index.js';
+import { PublicationMediaInputDto } from './dto/publication-media-input.dto.js';
 
 @Injectable()
 export class PublicationsService {
@@ -87,6 +88,16 @@ export class PublicationsService {
    */
   private prepareOrderBy(sortField?: string, sortDirection?: 'asc' | 'desc') {
     return PublicationQueryBuilder.getOrderBy(sortField || 'chronology', sortDirection || 'desc');
+  }
+
+  /**
+   * Helper to normalize media input from string or object.
+   */
+  private getMediaInput(item: string | PublicationMediaInputDto): { id: string; hasSpoiler: boolean } {
+    if (typeof item === 'string') {
+      return { id: item, hasSpoiler: false };
+    }
+    return { id: item.id, hasSpoiler: !!item.hasSpoiler };
   }
 
   /**
@@ -207,10 +218,14 @@ export class PublicationsService {
               media: { create: { ...m, meta: (m.meta || {}) as any } },
             })),
             // Existing Media
-            ...(data.existingMediaIds || []).map((id, i) => ({
-              order: (data.media?.length || 0) + i,
-              media: { connect: { id } },
-            })),
+            ...(data.existingMediaIds || []).map((item, i) => {
+              const input = this.getMediaInput(item);
+              return {
+                order: (data.media?.length || 0) + i,
+                mediaId: input.id,
+                hasSpoiler: input.hasSpoiler,
+              };
+            }),
           ],
         },
 
@@ -801,7 +816,9 @@ export class PublicationsService {
             ? [
                 ...(data.media || []).map(m => ({ type: m.type })),
                 ...((await this.prisma.media.findMany({
-                  where: { id: { in: data.existingMediaIds || [] } },
+                  where: {
+                    id: { in: (data.existingMediaIds || []).map(item => this.getMediaInput(item).id) },
+                  },
                   select: { type: true },
                 })) as any),
               ]
@@ -865,7 +882,9 @@ export class PublicationsService {
           mediaArray = [
             ...(data.media || []).map(m => ({ type: m.type })),
             ...((await this.prisma.media.findMany({
-              where: { id: { in: data.existingMediaIds || [] } },
+              where: {
+                id: { in: (data.existingMediaIds || []).map(item => this.getMediaInput(item).id) },
+              },
               select: { type: true },
             })) as any),
           ];
@@ -952,10 +971,14 @@ export class PublicationsService {
                     media: { create: { ...m, meta: (m.meta || {}) as any } },
                   })),
                   // Existing Media
-                  ...(data.existingMediaIds || []).map((id, i) => ({
-                    order: (data.media?.length || 0) + i,
-                    media: { connect: { id } },
-                  })),
+                  ...(data.existingMediaIds || []).map((item, i) => {
+                    const input = this.getMediaInput(item);
+                    return {
+                      order: (data.media?.length || 0) + i,
+                      mediaId: input.id,
+                      hasSpoiler: input.hasSpoiler,
+                    };
+                  }),
                 ],
               }
             : undefined,
@@ -1243,7 +1266,9 @@ export class PublicationsService {
     await this.prisma.$transaction(async tx => {
       for (let i = 0; i < media.length; i++) {
         const m = media[i];
-        let mediaId = m.id;
+        const input = this.getMediaInput(m);
+        let mediaId = input.id;
+        const hasSpoiler = input.hasSpoiler;
 
         if (!mediaId) {
           const mediaItem = await tx.media.create({
@@ -1265,6 +1290,7 @@ export class PublicationsService {
             publicationId,
             mediaId,
             order: startOrder + i,
+            hasSpoiler,
           },
         });
       }
@@ -1359,5 +1385,45 @@ export class PublicationsService {
 
     this.logger.log(`Reordered ${mediaOrder.length} media items in publication ${publicationId}`);
     return { success: true };
+  }
+
+  /**
+   * Update a specific media link properties in a publication.
+   *
+   * @param publicationId - The ID of the publication.
+   * @param userId - The ID of the user.
+   * @param mediaLinkId - The ID of the publication-media link (not media itself).
+   * @param data - The data to update (hasSpoiler, order).
+   * @returns The updated media link.
+   */
+  public async updateMediaLink(
+    publicationId: string,
+    userId: string,
+    mediaLinkId: string,
+    data: { hasSpoiler?: boolean; order?: number },
+  ) {
+    const publication = await this.findOne(publicationId, userId);
+
+    // Check if user is author or has admin rights
+    if (publication.createdBy !== userId) {
+      if (publication.projectId) {
+        await this.permissions.checkProjectPermission(publication.projectId, userId, [
+          ProjectRole.ADMIN,
+        ]);
+      } else {
+        throw new ForbiddenException('Access denied to personal draft');
+      }
+    }
+
+    return this.prisma.publicationMedia.update({
+      where: {
+        id: mediaLinkId,
+        publicationId,
+      },
+      data: {
+        hasSpoiler: data.hasSpoiler,
+        order: data.order,
+      },
+    });
   }
 }

@@ -16,6 +16,7 @@ import { PublicationStatus, PostType } from '../../../generated/prisma/client.js
 import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
+import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 
 /**
  * DTO for source text item in publication.
@@ -79,9 +80,10 @@ export class CreatePublicationDto {
   public media?: CreateMediaDto[];
 
   @IsArray()
-  @IsString({ each: true })
+  @ValidateNested({ each: true })
+  @Type(() => PublicationMediaInputDto)
   @IsOptional()
-  public existingMediaIds?: string[];
+  public existingMediaIds?: (string | PublicationMediaInputDto)[];
 
   @IsString()
   @IsOptional()

@@ -24,6 +24,7 @@ interface Props {
     id?: string
     media?: MediaItem
     order: number
+    hasSpoiler?: boolean
   }>
   publicationId: string
   editable?: boolean
@@ -46,6 +47,7 @@ const {
   addMediaToPublication, 
   removeMediaFromPublication, 
   reorderMediaInPublication,
+  updateMediaLinkInPublication,
 } = useMedia()
 const { validatePostContent } = useSocialMediaValidation()
 const toast = useToast()
@@ -75,6 +77,8 @@ const addMediaButtonLabel = computed(() => {
 
 const isDragging = ref(false)
 const selectedMedia = ref<MediaItem | null>(null)
+const selectedMediaLinkId = ref<string | null>(null)
+const editableHasSpoiler = ref(false)
 const isModalOpen = ref(false)
 
 const editableMetadata = ref<Record<string, any> | null>(null)
@@ -212,6 +216,21 @@ async function saveMediaMeta() {
     })
   } finally {
     isSavingMeta.value = false
+  }
+
+  // Handle PublicationMedia.hasSpoiler update
+  if (selectedMediaLinkId.value) {
+    try {
+      await updateMediaLinkInPublication(
+        props.publicationId,
+        selectedMediaLinkId.value,
+        { hasSpoiler: editableHasSpoiler.value }
+      )
+      
+      // Update local state is handled by refreshed props/emit refresh
+    } catch (error: any) {
+      console.error('Failed to update media spoiler', error)
+    }
   }
 }
 
@@ -390,18 +409,27 @@ const hasNextMedia = computed(() => {
   return currentMediaIndex.value >= 0 && currentMediaIndex.value < localMedia.value.length - 1
 })
 
-function openMediaModal(media: MediaItem) {
-  selectedMedia.value = media
+const selectedItem = computed(() => {
+  if (currentMediaIndex.value === -1) return null
+  return localMedia.value[currentMediaIndex.value]
+})
+
+function openMediaModal(item: typeof localMedia.value[0]) {
+  if (!item.media) return
+  selectedMedia.value = item.media
+  selectedMediaLinkId.value = item.id || null
+  editableHasSpoiler.value = !!item.hasSpoiler
   // editableMetadata is now a JSON object, not a YAML string
-  editableMetadata.value = media.meta || {}
-  editableAlt.value = media.alt || ''
-  editableDescription.value = media.description || ''
+  editableMetadata.value = item.media.meta || {}
+  editableAlt.value = item.media.alt || ''
+  editableDescription.value = item.media.description || ''
   isModalOpen.value = true
 }
 
 function closeMediaModal() {
   isModalOpen.value = false
   selectedMedia.value = null
+  selectedMediaLinkId.value = null
 }
 
 const transitionName = ref('slide-next')
@@ -411,7 +439,7 @@ function navigateToPreviousMedia() {
   transitionName.value = 'slide-prev'
   const prevItem = localMedia.value[currentMediaIndex.value - 1]
   if (prevItem?.media) {
-    selectedMedia.value = prevItem.media
+    openMediaModal(prevItem)
   }
 }
 
@@ -420,7 +448,7 @@ function navigateToNextMedia() {
   transitionName.value = 'slide-next'
   const nextItem = localMedia.value[currentMediaIndex.value + 1]
   if (nextItem?.media) {
-    selectedMedia.value = nextItem.media
+    openMediaModal(nextItem)
   }
 }
 
@@ -666,8 +694,9 @@ const emit = defineEmits<Emits>()
               <MediaCard
                 v-if="item.media"
                 :media="item.media"
+                :has-spoiler="item.hasSpoiler"
                 size="md"
-                @click="openMediaModal(item.media)"
+                @click="openMediaModal(item)"
               >
                 <template #actions>
                   <!-- Delete button overlay -->
@@ -894,6 +923,21 @@ const emit = defineEmits<Emits>()
                 @click="downloadMediaFile(selectedMedia)"
               />
             </div>
+          </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="editable" class="mb-6 p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200 dark:border-orange-800/50">
+          <UCheckbox
+            v-model="editableHasSpoiler"
+            :label="t('media.hasSpoiler', 'Hide content (spoiler)')"
+            :description="t('media.spoilerDescription', 'Content will be hidden until user clicks')"
+            color="warning"
+          />
+          <div v-if="selectedMedia.meta?.telegram?.hasSpoiler" class="mt-2 flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
+            <span>{{ t('media.originalSpoilerFromTelegram', 'Original message from Telegram had spoiler') }}</span>
           </div>
         </div>
 

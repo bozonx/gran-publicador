@@ -248,6 +248,7 @@ export const PublicationMediaScalarFieldEnum = {
   publicationId: 'publicationId',
   mediaId: 'mediaId',
   order: 'order',
+  hasSpoiler: 'hasSpoiler',
   createdAt: 'createdAt'
 } as const
 
