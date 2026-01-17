@@ -1,16 +1,14 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
+  UseGuards,
   Delete,
   Get,
   Param,
-  ParseBoolPipe,
   Patch,
   Post,
   Query,
   Request,
-  UseGuards,
 } from '@nestjs/common';
 
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
@@ -18,7 +16,7 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
 import { ChannelsService } from './channels.service.js';
-import { CreateChannelDto, UpdateChannelDto, FindChannelsQueryDto } from './dto/index.js';
+import { CreateChannelDto, UpdateChannelDto, FindChannelsQueryDto, ChannelResponseDto } from './dto/index.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
 
 /**
@@ -42,12 +40,8 @@ export class ChannelsController {
     const { projectId, ...data } = createChannelDto;
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    // Validate project scope for API token users
+    this.validateProjectScope(req, projectId);
 
     return this.channelsService.create(req.user.userId, projectId, data);
   }
@@ -56,7 +50,7 @@ export class ChannelsController {
   public async findAll(
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindChannelsQueryDto,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<ChannelResponseDto>> {
     const {
       projectId,
       search,
@@ -90,12 +84,8 @@ export class ChannelsController {
 
     if (projectId) {
       // Validate project scope for API token users
-      if (req.user.scopeProjectIds) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
-      }
+      // Validate project scope for API token users
+      this.validateProjectScope(req, projectId);
 
       // Note: For project-specific queries, we could use findAllForProject
       // but for consistency, we use findAllForUser with projectIds filter
@@ -121,12 +111,8 @@ export class ChannelsController {
   ) {
     if (projectId) {
       // Validate project scope for API token users
-      if (req.user.scopeProjectIds) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
-      }
+      // Validate project scope for API token users
+      this.validateProjectScope(req, projectId);
 
       return this.channelsService.findArchivedForProject(projectId, req.user.userId);
     }
@@ -136,7 +122,7 @@ export class ChannelsController {
 
     if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
       return channels.filter(
-        c => (c as any).projectId && req.user.scopeProjectIds!.includes((c as any).projectId),
+        c => c.projectId && req.user.scopeProjectIds?.includes(c.projectId),
       );
     }
 
@@ -148,12 +134,8 @@ export class ChannelsController {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    // Validate project scope for API token users
+    this.validateProjectScope(req, channel.projectId);
 
     return channel;
   }
@@ -167,12 +149,8 @@ export class ChannelsController {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    // Validate project scope for API token users
+    this.validateProjectScope(req, channel.projectId);
 
     return this.channelsService.update(id, req.user.userId, updateChannelDto);
   }
@@ -182,12 +160,8 @@ export class ChannelsController {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    // Validate project scope for API token users
+    this.validateProjectScope(req, channel.projectId);
 
     return this.channelsService.remove(id, req.user.userId);
   }
@@ -200,13 +174,20 @@ export class ChannelsController {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
     // Validate project scope for API token users
+    // Validate project scope for API token users
+    this.validateProjectScope(req, channel.projectId);
+
+    return this.socialPostingService.testChannel(id);
+  }
+  /**
+   * Helper to validate project scope for API token users.
+   */
+  private validateProjectScope(req: UnifiedAuthRequest, projectId: string) {
     if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
     }
-
-    return this.socialPostingService.testChannel(id);
   }
 }
