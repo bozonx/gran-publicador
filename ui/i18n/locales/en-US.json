@@ -238,7 +238,9 @@
     "userUsername": "Telegram Username",
     "changeRoleConfirm": "Are you sure you want to change the role for {user} to {role}?",
     "changeRoleTitle": "Change Role",
-    "removeTitle": "Remove Member"
+    "removeTitle": "Remove Member",
+    "searchPlaceholder": "{'@'}username or 123456789",
+    "userUsernameOrId": "Telegram Username or ID"
   },
   "roles": {
     "owner": "Owner",

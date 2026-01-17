@@ -81,8 +81,8 @@ function handleClose(close?: () => void) {
               <DialogTitle v-if="props.title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {{ props.title }}
               </DialogTitle>
-              <DialogDescription v-if="props.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ props.description }}
+              <DialogDescription :class="[props.description ? 'mt-1 text-sm text-gray-500 dark:text-gray-400' : 'sr-only']">
+                {{ props.description || props.title || 'Modal' }}
               </DialogDescription>
             </slot>
           </div>

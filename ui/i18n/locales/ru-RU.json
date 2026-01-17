@@ -240,7 +240,9 @@
     "userUsername": "Имя пользователя Telegram",
     "changeRoleConfirm": "Вы уверены, что хотите изменить роль для {user} на {role}?",
     "changeRoleTitle": "Изменение роли",
-    "removeTitle": "Удаление участника"
+    "removeTitle": "Удаление участника",
+    "searchPlaceholder": "{'@'}username или 123456789",
+    "userUsernameOrId": "Имя пользователя Telegram или ID"
   },
   "roles": {
     "owner": "Владелец",
