@@ -31,7 +31,6 @@ const isSaving = ref(false)
 const isTogglingActive = ref(false)
 const isDeleting = ref(false)
 const showDeleteModal = ref(false)
-const deleteConfirmationInput = ref('')
 const isSavingPreferencesSection = ref(false)
 const isSavingFootersSection = ref(false)
 
@@ -55,10 +54,7 @@ onMounted(async () => {
   }
 })
 
-const isChannelEmpty = computed(() => {
-  if (!channel.value) return true
-  return (channel.value.postsCount || 0) === 0
-})
+
 
 /**
  * Navigate back to channel details
@@ -92,11 +88,6 @@ async function handleToggleActive() {
  * Open delete confirmation modal
  */
 function confirmDelete() {
-  if (isChannelEmpty.value) {
-    handleDelete()
-    return
-  }
-  deleteConfirmationInput.value = ''
   showDeleteModal.value = true
 }
 
@@ -348,39 +339,15 @@ async function handleDelete() {
     </div>
 
     <!-- Delete confirmation modal -->
-    <UiAppModal v-model:open="showDeleteModal" :title="t('channel.deleteChannel', 'Delete Channel')">
-      <div v-if="channel" class="mb-6">
-        <p class="text-gray-600 dark:text-gray-400 mb-2">
-          {{ t('channel.deleteConfirmWithInput') }}
-          <span class="font-bold text-gray-900 dark:text-white">{{ channel.name }}</span>
-        </p>
-        <p class="text-sm text-red-500 font-medium">
-          {{ t('channel.deleteCascadeInfo') }}
-        </p>
-      </div>
-
-      <UInput
-        v-if="channel"
-        v-model="deleteConfirmationInput"
-        :placeholder="channel.name"
-        class="mb-6"
-        autofocus
-        @keyup.enter="deleteConfirmationInput === channel.name ? handleDelete() : null"
-      />
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" :disabled="isDeleting" @click="showDeleteModal = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton 
-          color="error" 
-          :loading="isDeleting" 
-          :disabled="!channel || deleteConfirmationInput !== channel.name"
-          @click="handleDelete"
-        >
-          {{ t('common.delete') }}
-        </UButton>
-      </template>
-    </UiAppModal>
+    <UiConfirmModal
+      v-model:open="showDeleteModal"
+      :title="t('channel.deleteChannel', 'Delete Channel')"
+      :description="t('channel.deleteConfirm', 'Are you sure you want to delete this channel?')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="handleDelete"
+    />
   </div>
 </template>
