@@ -48,5 +48,5 @@ export class CreatePostDto {
 
   @IsString()
   @IsOptional()
-  public authorSignatureId?: string;
+  public authorSignature?: string;
 }

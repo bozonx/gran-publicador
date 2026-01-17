@@ -44,8 +44,6 @@ export type AuthorSignatureMinAggregateOutputType = {
   order: number | null
   createdAt: Date | null
   updatedAt: Date | null
-  archivedAt: Date | null
-  archivedBy: string | null
 }
 
 export type AuthorSignatureMaxAggregateOutputType = {
@@ -58,8 +56,6 @@ export type AuthorSignatureMaxAggregateOutputType = {
   order: number | null
   createdAt: Date | null
   updatedAt: Date | null
-  archivedAt: Date | null
-  archivedBy: string | null
 }
 
 export type AuthorSignatureCountAggregateOutputType = {
@@ -72,8 +68,6 @@ export type AuthorSignatureCountAggregateOutputType = {
   order: number
   createdAt: number
   updatedAt: number
-  archivedAt: number
-  archivedBy: number
   _all: number
 }
 
@@ -96,8 +90,6 @@ export type AuthorSignatureMinAggregateInputType = {
   order?: true
   createdAt?: true
   updatedAt?: true
-  archivedAt?: true
-  archivedBy?: true
 }
 
 export type AuthorSignatureMaxAggregateInputType = {
@@ -110,8 +102,6 @@ export type AuthorSignatureMaxAggregateInputType = {
   order?: true
   createdAt?: true
   updatedAt?: true
-  archivedAt?: true
-  archivedBy?: true
 }
 
 export type AuthorSignatureCountAggregateInputType = {
@@ -124,8 +114,6 @@ export type AuthorSignatureCountAggregateInputType = {
   order?: true
   createdAt?: true
   updatedAt?: true
-  archivedAt?: true
-  archivedBy?: true
   _all?: true
 }
 
@@ -225,8 +213,6 @@ export type AuthorSignatureGroupByOutputType = {
   order: number
   createdAt: Date
   updatedAt: Date
-  archivedAt: Date | null
-  archivedBy: string | null
   _count: AuthorSignatureCountAggregateOutputType | null
   _avg: AuthorSignatureAvgAggregateOutputType | null
   _sum: AuthorSignatureSumAggregateOutputType | null
@@ -262,8 +248,6 @@ export type AuthorSignatureWhereInput = {
   order?: Prisma.IntFilter<"AuthorSignature"> | number
   createdAt?: Prisma.DateTimeFilter<"AuthorSignature"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AuthorSignature"> | Date | string
-  archivedAt?: Prisma.DateTimeNullableFilter<"AuthorSignature"> | Date | string | null
-  archivedBy?: Prisma.StringNullableFilter<"AuthorSignature"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   channel?: Prisma.XOR<Prisma.ChannelScalarRelationFilter, Prisma.ChannelWhereInput>
 }
@@ -278,8 +262,6 @@ export type AuthorSignatureOrderByWithRelationInput = {
   order?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  archivedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  archivedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   channel?: Prisma.ChannelOrderByWithRelationInput
 }
@@ -298,8 +280,6 @@ export type AuthorSignatureWhereUniqueInput = Prisma.AtLeast<{
   order?: Prisma.IntFilter<"AuthorSignature"> | number
   createdAt?: Prisma.DateTimeFilter<"AuthorSignature"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AuthorSignature"> | Date | string
-  archivedAt?: Prisma.DateTimeNullableFilter<"AuthorSignature"> | Date | string | null
-  archivedBy?: Prisma.StringNullableFilter<"AuthorSignature"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   channel?: Prisma.XOR<Prisma.ChannelScalarRelationFilter, Prisma.ChannelWhereInput>
 }, "id" | "userId_channelId_name">
@@ -314,8 +294,6 @@ export type AuthorSignatureOrderByWithAggregationInput = {
   order?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  archivedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  archivedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AuthorSignatureCountOrderByAggregateInput
   _avg?: Prisma.AuthorSignatureAvgOrderByAggregateInput
   _max?: Prisma.AuthorSignatureMaxOrderByAggregateInput
@@ -336,8 +314,6 @@ export type AuthorSignatureScalarWhereWithAggregatesInput = {
   order?: Prisma.IntWithAggregatesFilter<"AuthorSignature"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AuthorSignature"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AuthorSignature"> | Date | string
-  archivedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AuthorSignature"> | Date | string | null
-  archivedBy?: Prisma.StringNullableWithAggregatesFilter<"AuthorSignature"> | string | null
 }
 
 export type AuthorSignatureCreateInput = {
@@ -348,8 +324,6 @@ export type AuthorSignatureCreateInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
   user: Prisma.UserCreateNestedOneWithoutAuthorSignaturesInput
   channel: Prisma.ChannelCreateNestedOneWithoutAuthorSignaturesInput
 }
@@ -364,8 +338,6 @@ export type AuthorSignatureUncheckedCreateInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
 }
 
 export type AuthorSignatureUpdateInput = {
@@ -376,8 +348,6 @@ export type AuthorSignatureUpdateInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutAuthorSignaturesNestedInput
   channel?: Prisma.ChannelUpdateOneRequiredWithoutAuthorSignaturesNestedInput
 }
@@ -392,8 +362,6 @@ export type AuthorSignatureUncheckedUpdateInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AuthorSignatureCreateManyInput = {
@@ -406,8 +374,6 @@ export type AuthorSignatureCreateManyInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
 }
 
 export type AuthorSignatureUpdateManyMutationInput = {
@@ -418,8 +384,6 @@ export type AuthorSignatureUpdateManyMutationInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AuthorSignatureUncheckedUpdateManyInput = {
@@ -432,8 +396,6 @@ export type AuthorSignatureUncheckedUpdateManyInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AuthorSignatureListRelationFilter = {
@@ -462,8 +424,6 @@ export type AuthorSignatureCountOrderByAggregateInput = {
   order?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  archivedAt?: Prisma.SortOrder
-  archivedBy?: Prisma.SortOrder
 }
 
 export type AuthorSignatureAvgOrderByAggregateInput = {
@@ -480,8 +440,6 @@ export type AuthorSignatureMaxOrderByAggregateInput = {
   order?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  archivedAt?: Prisma.SortOrder
-  archivedBy?: Prisma.SortOrder
 }
 
 export type AuthorSignatureMinOrderByAggregateInput = {
@@ -494,8 +452,6 @@ export type AuthorSignatureMinOrderByAggregateInput = {
   order?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  archivedAt?: Prisma.SortOrder
-  archivedBy?: Prisma.SortOrder
 }
 
 export type AuthorSignatureSumOrderByAggregateInput = {
@@ -602,8 +558,6 @@ export type AuthorSignatureCreateWithoutUserInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
   channel: Prisma.ChannelCreateNestedOneWithoutAuthorSignaturesInput
 }
 
@@ -616,8 +570,6 @@ export type AuthorSignatureUncheckedCreateWithoutUserInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
 }
 
 export type AuthorSignatureCreateOrConnectWithoutUserInput = {
@@ -659,8 +611,6 @@ export type AuthorSignatureScalarWhereInput = {
   order?: Prisma.IntFilter<"AuthorSignature"> | number
   createdAt?: Prisma.DateTimeFilter<"AuthorSignature"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AuthorSignature"> | Date | string
-  archivedAt?: Prisma.DateTimeNullableFilter<"AuthorSignature"> | Date | string | null
-  archivedBy?: Prisma.StringNullableFilter<"AuthorSignature"> | string | null
 }
 
 export type AuthorSignatureCreateWithoutChannelInput = {
@@ -671,8 +621,6 @@ export type AuthorSignatureCreateWithoutChannelInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
   user: Prisma.UserCreateNestedOneWithoutAuthorSignaturesInput
 }
 
@@ -685,8 +633,6 @@ export type AuthorSignatureUncheckedCreateWithoutChannelInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
 }
 
 export type AuthorSignatureCreateOrConnectWithoutChannelInput = {
@@ -724,8 +670,6 @@ export type AuthorSignatureCreateManyUserInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
 }
 
 export type AuthorSignatureUpdateWithoutUserInput = {
@@ -736,8 +680,6 @@ export type AuthorSignatureUpdateWithoutUserInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.ChannelUpdateOneRequiredWithoutAuthorSignaturesNestedInput
 }
 
@@ -750,8 +692,6 @@ export type AuthorSignatureUncheckedUpdateWithoutUserInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AuthorSignatureUncheckedUpdateManyWithoutUserInput = {
@@ -763,8 +703,6 @@ export type AuthorSignatureUncheckedUpdateManyWithoutUserInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AuthorSignatureCreateManyChannelInput = {
@@ -776,8 +714,6 @@ export type AuthorSignatureCreateManyChannelInput = {
   order?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  archivedAt?: Date | string | null
-  archivedBy?: string | null
 }
 
 export type AuthorSignatureUpdateWithoutChannelInput = {
@@ -788,8 +724,6 @@ export type AuthorSignatureUpdateWithoutChannelInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutAuthorSignaturesNestedInput
 }
 
@@ -802,8 +736,6 @@ export type AuthorSignatureUncheckedUpdateWithoutChannelInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AuthorSignatureUncheckedUpdateManyWithoutChannelInput = {
@@ -815,8 +747,6 @@ export type AuthorSignatureUncheckedUpdateManyWithoutChannelInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  archivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -831,8 +761,6 @@ export type AuthorSignatureSelect<ExtArgs extends runtime.Types.Extensions.Inter
   order?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  archivedAt?: boolean
-  archivedBy?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["authorSignature"]>
@@ -847,8 +775,6 @@ export type AuthorSignatureSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   order?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  archivedAt?: boolean
-  archivedBy?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["authorSignature"]>
@@ -863,8 +789,6 @@ export type AuthorSignatureSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   order?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  archivedAt?: boolean
-  archivedBy?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["authorSignature"]>
@@ -879,11 +803,9 @@ export type AuthorSignatureSelectScalar = {
   order?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  archivedAt?: boolean
-  archivedBy?: boolean
 }
 
-export type AuthorSignatureOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "channelId" | "name" | "content" | "isDefault" | "order" | "createdAt" | "updatedAt" | "archivedAt" | "archivedBy", ExtArgs["result"]["authorSignature"]>
+export type AuthorSignatureOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "channelId" | "name" | "content" | "isDefault" | "order" | "createdAt" | "updatedAt", ExtArgs["result"]["authorSignature"]>
 export type AuthorSignatureInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
@@ -913,8 +835,6 @@ export type $AuthorSignaturePayload<ExtArgs extends runtime.Types.Extensions.Int
     order: number
     createdAt: Date
     updatedAt: Date
-    archivedAt: Date | null
-    archivedBy: string | null
   }, ExtArgs["result"]["authorSignature"]>
   composites: {}
 }
@@ -1349,8 +1269,6 @@ export interface AuthorSignatureFieldRefs {
   readonly order: Prisma.FieldRef<"AuthorSignature", 'Int'>
   readonly createdAt: Prisma.FieldRef<"AuthorSignature", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AuthorSignature", 'DateTime'>
-  readonly archivedAt: Prisma.FieldRef<"AuthorSignature", 'DateTime'>
-  readonly archivedBy: Prisma.FieldRef<"AuthorSignature", 'String'>
 }
     
 

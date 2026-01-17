@@ -200,7 +200,7 @@ export const PostScalarFieldEnum = {
   template: 'template',
   content: 'content',
   platformOptions: 'platformOptions',
-  authorSignatureId: 'authorSignatureId',
+  authorSignature: 'authorSignature',
   scheduledAt: 'scheduledAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
@@ -219,9 +219,7 @@ export const AuthorSignatureScalarFieldEnum = {
   isDefault: 'isDefault',
   order: 'order',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  archivedAt: 'archivedAt',
-  archivedBy: 'archivedBy'
+  updatedAt: 'updatedAt'
 } as const
 
 export type AuthorSignatureScalarFieldEnum = (typeof AuthorSignatureScalarFieldEnum)[keyof typeof AuthorSignatureScalarFieldEnum]

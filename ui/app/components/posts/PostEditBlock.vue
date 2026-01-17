@@ -98,7 +98,7 @@ const formData = reactive({
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
   template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null,
-  authorSignatureId: props.post?.authorSignatureId || null,
+  authorSignature: props.post?.authorSignature || '',
   platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
 })
 
@@ -183,7 +183,7 @@ async function performSave() {
             content: normalizedContent,
             meta: formData.meta,
             template: formData.template,
-            authorSignatureId: formData.authorSignatureId,
+            authorSignature: formData.authorSignature || null,
             platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
 
@@ -205,7 +205,7 @@ async function performSave() {
           content: normalizedContent,
           meta: formData.meta,
           template: formData.template,
-          authorSignatureId: formData.authorSignatureId,
+          authorSignature: formData.authorSignature || null,
           platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
 
@@ -359,7 +359,7 @@ watch(() => props.post, (newPost) => {
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
     formData.template = (newPost.template && typeof newPost.template === 'string' ? JSON.parse(newPost.template) : (newPost.template || null))
-    formData.authorSignatureId = newPost.authorSignatureId || null
+    formData.authorSignature = newPost.authorSignature || ''
     formData.platformOptions = (newPost.platformOptions && typeof newPost.platformOptions === 'string' ? JSON.parse(newPost.platformOptions) : (newPost.platformOptions || {}))
     
     // Save original state after update
@@ -370,13 +370,13 @@ watch(() => props.post, (newPost) => {
 
 // Auto-select default signature when channel is selected (only in creation mode)
 watch(() => formData.channelId, async (newChannelId) => {
-  if (props.isCreating && newChannelId && !formData.authorSignatureId) {
+  if (props.isCreating && newChannelId && !formData.authorSignature) {
     const { fetchByChannel } = useAuthorSignatures()
     try {
       const signatures = await fetchByChannel(newChannelId)
       const defaultSig = signatures.find(s => s.isDefault)
       if (defaultSig) {
-        formData.authorSignatureId = defaultSig.id
+        formData.authorSignature = defaultSig.content
       }
     } catch (error) {
       // Silently fail - not critical
@@ -778,13 +778,21 @@ const metaYaml = computed(() => {
                 </USelectMenu>
             </UFormField>
 
-            <!-- Author Signature Selector -->
+            <!-- Author Signature Editor -->
             <UFormField :label="t('post.authorSignature', 'Author Signature')">
-                <AuthorSignatureSelector
-                    v-model="formData.authorSignatureId"
-                    :channel-id="formData.channelId || props.post?.channelId || null"
-                    :disabled="isLoading"
-                />
+                <div class="space-y-2">
+                    <UTextarea
+                        v-model="formData.authorSignature"
+                        :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
+                        :disabled="isLoading"
+                        :rows="3"
+                    />
+                    <AuthorSignatureSelector
+                        :channel-id="formData.channelId || props.post?.channelId || null"
+                        :disabled="isLoading"
+                        @select="(content) => formData.authorSignature = content"
+                    />
+                </div>
             </UFormField>
 
 

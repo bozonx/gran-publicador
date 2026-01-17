@@ -481,22 +481,8 @@ export class SocialPostingService {
       } = await this.prepareChannelForPosting(channel, { ignoreState: options.force });
       if (prepError) throw new Error(prepError);
 
-      // Resolve author signature
-      let authorSignatureContent = '';
-      if (post.authorSignatureId) {
-        const preset = PRESET_SIGNATURES.find(p => p.id === post.authorSignatureId);
-        if (preset) {
-          const lang = post.language || publication.language || 'ru-RU';
-          authorSignatureContent = this.i18n.t(preset.contentKey, { lang });
-        } else {
-          const userSignature = await this.prisma.authorSignature.findUnique({
-            where: { id: post.authorSignatureId },
-          });
-          if (userSignature) {
-            authorSignatureContent = userSignature.content;
-          }
-        }
-      }
+      // Author signature is already stored as text in the post
+      const authorSignatureContent = post.authorSignature || '';
 
       const request = SocialPostingRequestFormatter.prepareRequest({
         post: { ...post, authorSignature: authorSignatureContent },

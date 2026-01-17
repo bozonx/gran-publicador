@@ -217,8 +217,8 @@ model Post {
   content       String?
   // Platform-specific options (e.g., disableNotification for Telegram)
   platformOptions Json? @map("platform_options")
-  // ID of author signature (can be UUID for user signature or key for preset)
-  authorSignatureId String? @map("author_signature_id")
+  // Author signature content (markdown text copied from signature template at post creation)
+  authorSignature String? @map("author_signature") @db.Text
 
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")
@@ -233,7 +233,6 @@ model Post {
   @@index([status, scheduledAt])
   @@index([channelId, createdAt])
   @@index([publicationId])
-  @@index([authorSignatureId])
   @@map("posts")
 }
 

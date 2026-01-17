@@ -86,7 +86,7 @@ export class PostsService {
       scheduledAt?: Date;
       content?: string | null;
       platformOptions?: any;
-      authorSignatureId?: string;
+      authorSignature?: string;
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
@@ -138,14 +138,18 @@ export class PostsService {
       );
     }
 
-    // Author Signature logic
-    let authorSignatureId = data.authorSignatureId;
-    if (authorSignatureId === undefined) {
+    // Author Signature logic - resolve content and store as text
+    let authorSignature: string | undefined = undefined;
+    if (data.authorSignature !== undefined) {
+      // User explicitly provided signature content
+      authorSignature = data.authorSignature || undefined;
+    } else {
+      // Auto-select default signature
       const defaultSignature = await this.prisma.authorSignature.findFirst({
-        where: { userId, channelId, isDefault: true, archivedAt: null },
-        select: { id: true },
+        where: { userId, channelId, isDefault: true },
+        select: { content: true },
       });
-      authorSignatureId = defaultSignature?.id || undefined;
+      authorSignature = defaultSignature?.content || undefined;
     }
 
     const post = await this.prisma.post.create({
@@ -159,7 +163,7 @@ export class PostsService {
         content: normalizedOverrideContent ?? null,
         meta: {},
         platformOptions: data.platformOptions,
-        authorSignatureId: authorSignatureId || undefined,
+        authorSignature: authorSignature || undefined,
         errorMessage,
       },
       include: {
@@ -426,7 +430,7 @@ export class PostsService {
       errorMessage?: string | null;
       content?: string | null;
       platformOptions?: any;
-      authorSignatureId?: string | null;
+      authorSignature?: string | null;
     },
   ) {
     const post = await this.findOne(id, userId);
@@ -529,7 +533,7 @@ export class PostsService {
         errorMessage: data.errorMessage,
         content: data.content,
         platformOptions: data.platformOptions,
-        authorSignatureId: data.authorSignatureId,
+        authorSignature: data.authorSignature,
       },
       include: {
         channel: true,

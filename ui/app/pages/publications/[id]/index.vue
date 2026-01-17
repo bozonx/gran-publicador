@@ -7,8 +7,6 @@ import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { getStatusColor, getStatusIcon } from '~/utils/publications'
 import { getSocialMediaIcon, getSocialMediaDisplayName } from '~/utils/socialMedia'
 import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
-import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
-import type { AuthorSignature, PresetSignature } from '~/types/author-signatures'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 
 definePageMeta({
@@ -20,10 +18,6 @@ const route = useRoute()
 const { fetchPublication, currentPublication, isLoading } = usePublications()
 const { fetchProject, currentProject } = useProjects()
 const { formatDateWithTime, formatDateShort } = useFormatters()
-const { fetchPresets, fetchByChannel } = useAuthorSignatures()
-
-const presets = ref<PresetSignature[]>([])
-const customSignatures = ref<AuthorSignature[]>([])
 
 const publicationId = computed(() => route.params.id as string)
 
@@ -33,9 +27,6 @@ onMounted(async () => {
         if (currentPublication.value?.projectId) {
             await fetchProject(currentPublication.value.projectId)
         }
-        
-        // Fetch presets for signatures
-        presets.value = await fetchPresets()
     }
 })
 
@@ -66,24 +57,8 @@ async function showPostPreview(post: any) {
 
   previewTitle.value = getSocialMediaDisplayName(post.channel?.socialMedia || post.socialMedia, t)
   
-  // Resolve author signature
-  let authorSignatureContent = ''
-  if (post.authorSignatureId) {
-    // Check presets
-    const preset = presets.value.find(p => p.id === post.authorSignatureId)
-    if (preset) {
-        authorSignatureContent = t(preset.contentKey)
-    } else {
-        // Fetch custom signatures for this channel if not already fetched or different channel
-        if (post.channelId) {
-            const signatures = await fetchByChannel(post.channelId)
-            const sig = signatures.find(s => s.id === post.authorSignatureId)
-            if (sig) {
-                authorSignatureContent = sig.content
-            }
-        }
-    }
-  }
+  // Author signature is already stored as text in the post
+  const authorSignatureContent = post.authorSignature || ''
 
   previewContent.value = SocialPostingBodyFormatter.format(
     {

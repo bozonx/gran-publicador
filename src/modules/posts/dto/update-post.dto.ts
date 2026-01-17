@@ -34,5 +34,5 @@ export class UpdatePostDto {
 
   @IsString()
   @IsOptional()
-  public authorSignatureId?: string;
+  public authorSignature?: string;
 }

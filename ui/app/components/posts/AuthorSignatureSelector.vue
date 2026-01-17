@@ -2,13 +2,12 @@
 import type { AuthorSignature, PresetSignature } from '~/types/author-signatures'
 
 interface Props {
-  modelValue: string | null
   channelId: string | null
   disabled?: boolean
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['select'])
 
 const { t } = useI18n()
 const { fetchByChannel, fetchPresets } = useAuthorSignatures()
@@ -16,6 +15,7 @@ const { fetchByChannel, fetchPresets } = useAuthorSignatures()
 const userSignatures = ref<AuthorSignature[]>([])
 const presetSignatures = ref<PresetSignature[]>([])
 const isLoading = ref(false)
+const selectedValue = ref<string | null>(null)
 
 async function loadSignatures() {
   isLoading.value = true
@@ -38,11 +38,12 @@ watch(() => props.channelId, () => {
 const options = computed(() => {
   const list: any[] = []
   
-  // Add "None" option
+  // Add \"None\" option
   list.push({
     value: null,
     label: t('authorSignature.none', 'No signature'),
-    icon: 'i-heroicons-no-symbol'
+    icon: 'i-heroicons-no-symbol',
+    content: ''
   })
   
   // Add user defined signatures
@@ -76,33 +77,30 @@ const options = computed(() => {
 })
 
 const selectedLabel = computed(() => {
-  if (!props.modelValue) return t('authorSignature.none', 'No signature')
+  if (!selectedValue.value) return t('authorSignature.select', 'Select signature...')
   
-  const userOpt = userSignatures.value.find(s => s.id === props.modelValue)
+  const userOpt = userSignatures.value.find(s => s.id === selectedValue.value)
   if (userOpt) return userOpt.name
   
-  const presetOpt = presetSignatures.value.find(p => p.id === props.modelValue)
+  const presetOpt = presetSignatures.value.find(p => p.id === selectedValue.value)
   if (presetOpt) return t(presetOpt.nameKey)
   
-  return props.modelValue // Fallback
+  return selectedValue.value // Fallback
 })
 
-const selectedValue = computed({
-  get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
-})
-
-const currentContent = computed(() => {
-  if (!props.modelValue) return null
-  const opt = options.value.find(o => o.value === props.modelValue)
-  return (opt as any)?.content || null
-})
+function handleSelect(value: string | null) {
+  selectedValue.value = value
+  const opt = options.value.find(o => o.value === value)
+  const content = (opt as any)?.content || ''
+  emit('select', content)
+}
 </script>
 
 <template>
   <div class="space-y-1">
     <USelectMenu
       v-model="selectedValue"
+      @update:model-value="handleSelect"
       :items="options"
       value-key="value"
       :disabled="props.disabled || isLoading"
@@ -137,10 +135,5 @@ const currentContent = computed(() => {
         </template>
       </template>
     </USelectMenu>
-    
-    <div v-if="currentContent" class="mt-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded text-[11px] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 font-mono">
-      <div class="font-semibold text-[10px] uppercase mb-0.5 opacity-70">{{ t('authorSignature.preview', 'Preview') }}:</div>
-      <div class="whitespace-pre-line">{{ currentContent }}</div>
-    </div>
   </div>
 </template>

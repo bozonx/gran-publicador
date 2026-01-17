@@ -137,20 +137,6 @@ export class AuthorSignaturesService {
       throw new ForbiddenException('You can only delete your own signatures');
     }
 
-    // Check if signature is used in pending or failed posts
-    const postsUsingSignature = await this.prisma.post.count({
-      where: {
-        authorSignatureId: id,
-        status: { in: ['PENDING', 'FAILED'] }
-      }
-    });
-
-    if (postsUsingSignature > 0) {
-      throw new ForbiddenException(
-        `Cannot delete signature: it is used in ${postsUsingSignature} pending or failed posts`
-      );
-    }
-
     return this.prisma.authorSignature.delete({
       where: { id },
     });

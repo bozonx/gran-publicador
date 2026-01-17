@@ -33,7 +33,7 @@ export type PostMinAggregateOutputType = {
   status: $Enums.PostStatus | null
   errorMessage: string | null
   content: string | null
-  authorSignatureId: string | null
+  authorSignature: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date | null
@@ -49,7 +49,7 @@ export type PostMaxAggregateOutputType = {
   status: $Enums.PostStatus | null
   errorMessage: string | null
   content: string | null
-  authorSignatureId: string | null
+  authorSignature: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date | null
@@ -68,7 +68,7 @@ export type PostCountAggregateOutputType = {
   template: number
   content: number
   platformOptions: number
-  authorSignatureId: number
+  authorSignature: number
   scheduledAt: number
   publishedAt: number
   createdAt: number
@@ -86,7 +86,7 @@ export type PostMinAggregateInputType = {
   status?: true
   errorMessage?: true
   content?: true
-  authorSignatureId?: true
+  authorSignature?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -102,7 +102,7 @@ export type PostMaxAggregateInputType = {
   status?: true
   errorMessage?: true
   content?: true
-  authorSignatureId?: true
+  authorSignature?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -121,7 +121,7 @@ export type PostCountAggregateInputType = {
   template?: true
   content?: true
   platformOptions?: true
-  authorSignatureId?: true
+  authorSignature?: true
   scheduledAt?: true
   publishedAt?: true
   createdAt?: true
@@ -213,7 +213,7 @@ export type PostGroupByOutputType = {
   template: runtime.JsonValue | null
   content: string | null
   platformOptions: runtime.JsonValue | null
-  authorSignatureId: string | null
+  authorSignature: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   createdAt: Date
@@ -253,7 +253,7 @@ export type PostWhereInput = {
   template?: Prisma.JsonNullableFilter<"Post">
   content?: Prisma.StringNullableFilter<"Post"> | string | null
   platformOptions?: Prisma.JsonNullableFilter<"Post">
-  authorSignatureId?: Prisma.StringNullableFilter<"Post"> | string | null
+  authorSignature?: Prisma.StringNullableFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -274,7 +274,7 @@ export type PostOrderByWithRelationInput = {
   template?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   platformOptions?: Prisma.SortOrderInput | Prisma.SortOrder
-  authorSignatureId?: Prisma.SortOrderInput | Prisma.SortOrder
+  authorSignature?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -298,7 +298,7 @@ export type PostWhereUniqueInput = Prisma.AtLeast<{
   template?: Prisma.JsonNullableFilter<"Post">
   content?: Prisma.StringNullableFilter<"Post"> | string | null
   platformOptions?: Prisma.JsonNullableFilter<"Post">
-  authorSignatureId?: Prisma.StringNullableFilter<"Post"> | string | null
+  authorSignature?: Prisma.StringNullableFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -319,7 +319,7 @@ export type PostOrderByWithAggregationInput = {
   template?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   platformOptions?: Prisma.SortOrderInput | Prisma.SortOrder
-  authorSignatureId?: Prisma.SortOrderInput | Prisma.SortOrder
+  authorSignature?: Prisma.SortOrderInput | Prisma.SortOrder
   scheduledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -344,7 +344,7 @@ export type PostScalarWhereWithAggregatesInput = {
   template?: Prisma.JsonNullableWithAggregatesFilter<"Post">
   content?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
   platformOptions?: Prisma.JsonNullableWithAggregatesFilter<"Post">
-  authorSignatureId?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
+  authorSignature?: Prisma.StringNullableWithAggregatesFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Post"> | Date | string
@@ -361,7 +361,7 @@ export type PostCreateInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -382,7 +382,7 @@ export type PostUncheckedCreateInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -399,7 +399,7 @@ export type PostUpdateInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -420,7 +420,7 @@ export type PostUncheckedUpdateInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -439,7 +439,7 @@ export type PostCreateManyInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -456,7 +456,7 @@ export type PostUpdateManyMutationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -475,7 +475,7 @@ export type PostUncheckedUpdateManyInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -504,7 +504,7 @@ export type PostCountOrderByAggregateInput = {
   template?: Prisma.SortOrder
   content?: Prisma.SortOrder
   platformOptions?: Prisma.SortOrder
-  authorSignatureId?: Prisma.SortOrder
+  authorSignature?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -520,7 +520,7 @@ export type PostMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   content?: Prisma.SortOrder
-  authorSignatureId?: Prisma.SortOrder
+  authorSignature?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -536,7 +536,7 @@ export type PostMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   errorMessage?: Prisma.SortOrder
   content?: Prisma.SortOrder
-  authorSignatureId?: Prisma.SortOrder
+  authorSignature?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -641,7 +641,7 @@ export type PostCreateWithoutChannelInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -660,7 +660,7 @@ export type PostUncheckedCreateWithoutChannelInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -708,7 +708,7 @@ export type PostScalarWhereInput = {
   template?: Prisma.JsonNullableFilter<"Post">
   content?: Prisma.StringNullableFilter<"Post"> | string | null
   platformOptions?: Prisma.JsonNullableFilter<"Post">
-  authorSignatureId?: Prisma.StringNullableFilter<"Post"> | string | null
+  authorSignature?: Prisma.StringNullableFilter<"Post"> | string | null
   scheduledAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"Post"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Post"> | Date | string
@@ -725,7 +725,7 @@ export type PostCreateWithoutPublicationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -744,7 +744,7 @@ export type PostUncheckedCreateWithoutPublicationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -788,7 +788,7 @@ export type PostCreateManyChannelInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -805,7 +805,7 @@ export type PostUpdateWithoutChannelInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -824,7 +824,7 @@ export type PostUncheckedUpdateWithoutChannelInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -842,7 +842,7 @@ export type PostUncheckedUpdateManyWithoutChannelInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -860,7 +860,7 @@ export type PostCreateManyPublicationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: string | null
+  authorSignature?: string | null
   scheduledAt?: Date | string | null
   publishedAt?: Date | string | null
   createdAt?: Date | string
@@ -877,7 +877,7 @@ export type PostUpdateWithoutPublicationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -896,7 +896,7 @@ export type PostUncheckedUpdateWithoutPublicationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -914,7 +914,7 @@ export type PostUncheckedUpdateManyWithoutPublicationInput = {
   template?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platformOptions?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  authorSignatureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  authorSignature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scheduledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -935,7 +935,7 @@ export type PostSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   template?: boolean
   content?: boolean
   platformOptions?: boolean
-  authorSignatureId?: boolean
+  authorSignature?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -956,7 +956,7 @@ export type PostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   template?: boolean
   content?: boolean
   platformOptions?: boolean
-  authorSignatureId?: boolean
+  authorSignature?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -977,7 +977,7 @@ export type PostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   template?: boolean
   content?: boolean
   platformOptions?: boolean
-  authorSignatureId?: boolean
+  authorSignature?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
@@ -998,14 +998,14 @@ export type PostSelectScalar = {
   template?: boolean
   content?: boolean
   platformOptions?: boolean
-  authorSignatureId?: boolean
+  authorSignature?: boolean
   scheduledAt?: boolean
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "template" | "content" | "platformOptions" | "authorSignatureId" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
+export type PostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicationId" | "channelId" | "socialMedia" | "tags" | "status" | "errorMessage" | "meta" | "template" | "content" | "platformOptions" | "authorSignature" | "scheduledAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["post"]>
 export type PostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   publication?: boolean | Prisma.PublicationDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.ChannelDefaultArgs<ExtArgs>
@@ -1037,7 +1037,7 @@ export type $PostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     template: runtime.JsonValue | null
     content: string | null
     platformOptions: runtime.JsonValue | null
-    authorSignatureId: string | null
+    authorSignature: string | null
     scheduledAt: Date | null
     publishedAt: Date | null
     createdAt: Date
@@ -1478,7 +1478,7 @@ export interface PostFieldRefs {
   readonly template: Prisma.FieldRef<"Post", 'Json'>
   readonly content: Prisma.FieldRef<"Post", 'String'>
   readonly platformOptions: Prisma.FieldRef<"Post", 'Json'>
-  readonly authorSignatureId: Prisma.FieldRef<"Post", 'String'>
+  readonly authorSignature: Prisma.FieldRef<"Post", 'String'>
   readonly scheduledAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly publishedAt: Prisma.FieldRef<"Post", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Post", 'DateTime'>
