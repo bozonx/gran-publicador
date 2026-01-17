@@ -12,7 +12,7 @@ interface Props {
   channel: ChannelWithProject
 }
 
-const props = defineProps<Props>()
+const { channel } = defineProps<Props>()
 const { t } = useI18n()
 const { updateChannel } = useChannels()
 const { languageOptions } = useLanguages()
@@ -34,7 +34,7 @@ const languageSelectOptions = computed(() => [
 ])
 
 const footerOptions = computed(() => {
-  const footers = props.channel.preferences?.footers || []
+  const footers = channel.preferences?.footers || []
   const defaultFooter = footers.find(f => f.isDefault)
   const defaultLabel = defaultFooter 
     ? `${t('channel.footerDefault')} (${defaultFooter.name})`
@@ -78,7 +78,7 @@ const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: true, insert: 'footer', before: '', after: '' },
 ]
 
-const templates = ref<ChannelPostTemplate[]>(props.channel.preferences?.templates || [])
+const templates = ref<ChannelPostTemplate[]>(channel.preferences?.templates || [])
 
 const isModalOpen = ref(false)
 const editingTemplate = ref<ChannelPostTemplate | null>(null)
@@ -114,8 +114,8 @@ function openEditTemplate(template: ChannelPostTemplate) {
 }
 
 async function saveTemplates() {
-  const currentPreferences = props.channel.preferences || {}
-  await updateChannel(props.channel.id, {
+  const currentPreferences = channel.preferences || {}
+  await updateChannel(channel.id, {
     preferences: {
       ...currentPreferences,
       templates: templates.value
@@ -180,7 +180,7 @@ async function checkTemplateUsage(id: string): Promise<number> {
         // Or better: Assume the user doesn't have thousands of pending posts per channel.
         const posts = await api.get<any[]>('/posts', { 
             params: { 
-                channelId: props.channel.id, 
+                channelId: channel.id, 
                 status: 'PENDING',
                 limit: 100 // Limit check to 100 recent pending posts to avoid heavy load
             } 
@@ -244,7 +244,7 @@ function resetBlocks() {
 }
 
 // Watch for external changes to channel
-watch(() => props.channel.preferences?.templates, (newTemplates) => {
+watch(() => channel.preferences?.templates, (newTemplates) => {
   if (newTemplates) {
     templates.value = newTemplates
   }

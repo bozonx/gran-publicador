@@ -10,7 +10,7 @@ interface Props {
   disabled?: boolean
 }
 
-const props = defineProps<Props>()
+const { channel, disabled = false } = defineProps<Props>()
 const emit = defineEmits(['success'])
 
 const { t } = useI18n()
@@ -19,11 +19,11 @@ const { updateChannel, isLoading } = useChannels()
 
 // State
 const state = reactive({
-  socialMedia: props.channel.socialMedia,
+  socialMedia: channel.socialMedia,
   credentials: {
-    telegramChannelId: props.channel.credentials?.telegramChannelId || '',
-    telegramBotToken: props.channel.credentials?.telegramBotToken || '',
-    vkAccessToken: props.channel.credentials?.vkAccessToken || '',
+    telegramChannelId: channel.credentials?.telegramChannelId || '',
+    telegramBotToken: channel.credentials?.telegramBotToken || '',
+    vkAccessToken: channel.credentials?.vkAccessToken || '',
   }
 })
 
@@ -52,27 +52,27 @@ const schema = computed(() => {
 
 const isDirty = computed(() => {
     return JSON.stringify(state.credentials) !== JSON.stringify({
-        telegramChannelId: props.channel.credentials?.telegramChannelId || '',
-        telegramBotToken: props.channel.credentials?.telegramBotToken || '',
-        vkAccessToken: props.channel.credentials?.vkAccessToken || '',
+        telegramChannelId: channel.credentials?.telegramChannelId || '',
+        telegramBotToken: channel.credentials?.telegramBotToken || '',
+        vkAccessToken: channel.credentials?.vkAccessToken || '',
     })
 })
 
 async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     let credentials = {}
-    if (props.channel.socialMedia === 'TELEGRAM') {
+    if (channel.socialMedia === 'TELEGRAM') {
         credentials = {
             telegramChannelId: event.data.credentials.telegramChannelId,
             telegramBotToken: event.data.credentials.telegramBotToken,
         }
-    } else if (props.channel.socialMedia === 'VK') {
+    } else if (channel.socialMedia === 'VK') {
         credentials = {
             vkAccessToken: event.data.credentials.vkAccessToken,
         }
     }
 
-    const result = await updateChannel(props.channel.id, { credentials })
+    const result = await updateChannel(channel.id, { credentials })
     if (result) {
         emit('success', result)
         toast.add({

@@ -10,7 +10,7 @@ interface Props {
   disabled?: boolean
 }
 
-const props = defineProps<Props>()
+const { channel, disabled = false } = defineProps<Props>()
 const emit = defineEmits(['success'])
 
 const { t } = useI18n()
@@ -19,7 +19,7 @@ const { updateChannel, isLoading } = useChannels()
 
 const state = reactive({
   preferences: {
-    staleChannelsDays: props.channel.preferences?.staleChannelsDays,
+    staleChannelsDays: channel.preferences?.staleChannelsDays,
   }
 })
 
@@ -29,29 +29,20 @@ const schema = computed(() => {
 })
 
 const isDirty = computed(() => {
-    return state.preferences.staleChannelsDays !== props.channel.preferences?.staleChannelsDays
+    return state.preferences.staleChannelsDays !== channel.preferences?.staleChannelsDays
 })
 
 async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     const updateData = {
         preferences: {
-            // Merge with existing preferences to avoid data loss?
-            // Since we only edit staleChannelsDays here, we should be careful.
-            // But updateChannel simply passes data to Prisma.
-            // We should ideally fetch fresh channel or just send what we have.
-            // Wait, if we send { preferences: { stale: 1 } }, does Prisma replacement?
-            // Yes, Prisma JSON set usually replaces the whole object unless we use specific JSON ops which NestJS Prisma service might not do.
-            // But here we are safe if we include footers? NO, we don't include footers here!
-            // This is DANGEROUS duplication logic.
-            // We MUST include other preference fields (like footers) if we are replacing the object.
-            
-            ...(props.channel.preferences || {}),
+            // Merge with existing preferences to avoid data loss
+            ...(channel.preferences || {}),
             staleChannelsDays: event.data.preferences.staleChannelsDays,
         }
     }
 
-    const result = await updateChannel(props.channel.id, updateData)
+    const result = await updateChannel(channel.id, updateData)
     if (result) {
         emit('success', result)
         toast.add({

@@ -7,7 +7,7 @@ interface Props {
   currentSocialMedia: SocialMedia | undefined
 }
 
-const props = defineProps<Props>()
+const { state, currentSocialMedia } = defineProps<Props>()
 const { t } = useI18n()
 </script>
 

@@ -13,7 +13,7 @@ interface Props {
   projectId?: string
 }
 
-const props = defineProps<Props>()
+const { content, sourceTexts, projectId } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
@@ -95,12 +95,12 @@ const metadata = ref<any>(null)
 const estimatedTokens = computed(() => {
   let total = estimateTokens(prompt.value)
   
-  if (useContent.value && props.content) {
-    total += estimateTokens(props.content)
+  if (useContent.value && content) {
+    total += estimateTokens(content)
   }
   
-  if (props.sourceTexts && selectedSourceTexts.value.size > 0) {
-    props.sourceTexts.forEach((st, idx) => {
+  if (sourceTexts && selectedSourceTexts.value.size > 0) {
+    sourceTexts.forEach((st, idx) => {
       if (selectedSourceTexts.value.has(idx)) {
         total += estimateTokens(st.content)
       }
@@ -126,8 +126,8 @@ watch(isOpen, async (open) => {
       if (user.value?.id) {
         userTemplates.value = await fetchUserTemplates(user.value.id)
       }
-      if (props.projectId) {
-        projectTemplates.value = await fetchProjectTemplates(props.projectId)
+      if (projectId) {
+        projectTemplates.value = await fetchProjectTemplates(projectId)
       }
     } finally {
       isLoadingTemplates.value = false
@@ -215,16 +215,16 @@ async function handleGenerate() {
   prompt.value = ''; // clear input
 
   // Prepare source texts for selected indexes
-  const selectedSourceTextsArray = props.sourceTexts && selectedSourceTexts.value.size > 0
+  const selectedSourceTextsArray = sourceTexts && selectedSourceTexts.value.size > 0
     ? Array.from(selectedSourceTexts.value)
-        .map(idx => props.sourceTexts![idx])
+        .map(idx => sourceTexts![idx])
         .filter((st): st is NonNullable<typeof st> => st !== undefined)
     : undefined;
 
   const response = await generateContent(currentPrompt, {
     temperature: temperature.value,
     max_tokens: maxTokens.value,
-    content: props.content,
+    content: content,
     sourceTexts: selectedSourceTextsArray,
     useContent: useContent.value,
   });
@@ -252,7 +252,7 @@ function handleSkip() {
     title: '',
     description: '',
     tags: '',
-    content: props.content || ''
+    content: content || ''
   }
 }
 
@@ -361,7 +361,7 @@ const formattedDuration = computed(() => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 })
 
-const chatContainer = ref<HTMLElement | null>(null)
+const chatContainer = useTemplateRef<HTMLElement>('chatContainer')
 
 watch(() => chatMessages.value.length, async () => {
   await nextTick()

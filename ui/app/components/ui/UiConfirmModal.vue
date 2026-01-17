@@ -2,7 +2,15 @@
 // We define the specific colors supported by UButton to ensure type safety
 type ButtonColor = 'primary' | 'secondary' | 'neutral' | 'error' | 'warning' | 'success' | 'info';
 
-const props = withDefaults(defineProps<{
+const {
+    title,
+    description,
+    confirmText,
+    cancelText,
+    color = 'primary',
+    icon,
+    loading = false
+} = defineProps<{
     title: string;
     description?: string;
     confirmText?: string;
@@ -10,10 +18,7 @@ const props = withDefaults(defineProps<{
     color?: ButtonColor;
     icon?: string;
     loading?: boolean;
-}>(), {
-    color: 'primary',
-    loading: false
-});
+}>();
 
 const emit = defineEmits(['confirm']);
 

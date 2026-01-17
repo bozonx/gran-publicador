@@ -28,22 +28,22 @@ interface Emits {
   (e: 'cancel'): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  loading: false,
-  disabled: false,
-  isDirty: false,
-  saveLabel: undefined,
-  resetLabel: undefined,
-  hideCancel: false,
-  cancelLabel: undefined,
-  showBorder: true,
-})
+const {
+  loading = false,
+  disabled = false,
+  isDirty = false,
+  saveLabel,
+  resetLabel,
+  hideCancel = false,
+  cancelLabel,
+  showBorder = true,
+} = defineProps<Props>()
 
 const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 
-const saveButtonRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
+const saveButtonRef = useTemplateRef<{ showSuccess: () => void; showError: () => void }>('saveButtonRef')
 
 function handleReset() {
   emit('reset')
