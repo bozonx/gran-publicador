@@ -525,68 +525,15 @@ export class MediaService {
   }
 
   /**
-   * Stream file from Media Storage to response.
-   * @deprecated Use getFileStream instead
-   */
-  async streamFileFromStorage(
-    fileId: string,
-    res: ServerResponse,
-    range?: string,
-  ): Promise<void> {
-    this.logger.debug(`Streaming file from Media Storage (legacy): ${fileId}`);
-    try {
-      const result = await this.getFileStream(fileId, range);
-      Object.entries(result.headers).forEach(([key, value]) => {
-        res.setHeader(key, value);
-      });
-      res.statusCode = result.status;
-      await pipeline(result.stream, res);
-    } catch (error) {
-      if (!res.headersSent) {
-        res.statusCode = 500;
-        res.end('Failed to stream file');
-      }
-    }
-  }
-
-  /**
-   * Stream thumbnail from Media Storage to response.
-   * @deprecated Use getThumbnailStream instead
-   */
-  async streamThumbnailFromStorage(
-    fileId: string,
-    width: number,
-    height: number,
-    quality: number | undefined,
-    res: ServerResponse,
-  ): Promise<void> {
-    this.logger.debug(`Streaming thumbnail from Media Storage (legacy): ${fileId}`);
-    try {
-      const result = await this.getThumbnailStream(fileId, width, height, quality);
-      Object.entries(result.headers).forEach(([key, value]) => {
-        res.setHeader(key, value);
-      });
-      res.statusCode = result.status;
-      await pipeline(result.stream, res);
-    } catch (error) {
-      if (!res.headersSent) {
-        res.statusCode = 500;
-        res.end('Failed to stream thumbnail');
-      }
-    }
-  }
-
-  /**
-   * Stream media file to response.
+   * Get media file stream and metadata.
    * For StorageType.FS: proxy from Media Storage
    * For StorageType.TELEGRAM: stream from Telegram API
    */
-  async streamMediaFile(
+  async getMediaFile(
     id: string,
-    res: ServerResponse,
     userId?: string,
     range?: string,
-  ): Promise<void> {
+  ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     // Check access
     if (userId) {
       await this.checkMediaAccess(id, userId);
@@ -597,28 +544,31 @@ export class MediaService {
     if (media.storageType === StorageType.FS) {
       // Proxy from Media Storage
       const fileId = media.storagePath;
-      await this.streamFileFromStorage(fileId, res, range);
+      return this.getFileStream(fileId, range);
     } else if (media.storageType === StorageType.TELEGRAM) {
       // Stream from Telegram API
-      await this.streamFromTelegram(media.storagePath, res, media.mimeType ?? undefined, media.filename ?? undefined);
+      return this.getTelegramStream(
+        media.storagePath,
+        media.mimeType ?? undefined,
+        media.filename ?? undefined,
+      );
     } else {
       throw new BadRequestException('Unsupported storage type');
     }
   }
 
   /**
-   * Stream media thumbnail to response.
+   * Get media thumbnail stream and metadata.
    * For StorageType.FS: proxy from Media Storage
    * For StorageType.TELEGRAM: stream thumbnail file_id from Telegram API
    */
-  async streamMediaThumbnail(
+  async getMediaThumbnail(
     id: string,
-    res: ServerResponse,
     width: number,
     height: number,
     quality?: number,
     userId?: string,
-  ): Promise<void> {
+  ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     // Check access
     if (userId) {
       await this.checkMediaAccess(id, userId);
@@ -629,27 +579,25 @@ export class MediaService {
     if (media.storageType === StorageType.FS) {
       // Proxy from Media Storage
       const fileId = media.storagePath;
-      await this.streamThumbnailFromStorage(fileId, width, height, quality, res);
+      return this.getThumbnailStream(fileId, width, height, quality);
     } else if (media.storageType === StorageType.TELEGRAM) {
       // Use thumbnail file_id if available in meta, otherwise fallback to main file_id
       const thumbnailFileId = media.meta.telegram?.thumbnailFileId || media.storagePath;
       // Telegram thumbnails are usually JPEGs
-      await this.streamFromTelegram(thumbnailFileId, res, 'image/jpeg');
+      return this.getTelegramStream(thumbnailFileId, 'image/jpeg');
     } else {
       throw new BadRequestException('Unsupported storage type');
     }
   }
 
   /**
-   * Stream file from Telegram API.
-   * Kept for StorageType.TELEGRAM support.
+   * Get stream from Telegram API.
    */
-  private async streamFromTelegram(
+  private async getTelegramStream(
     fileId: string,
-    res: ServerResponse,
     mimeType?: string,
     filename?: string,
-  ): Promise<void> {
+  ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     const telegramBotToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!telegramBotToken) {
       throw new InternalServerErrorException('Telegram bot token not configured');
@@ -657,27 +605,20 @@ export class MediaService {
 
     try {
       // The storagePath (or thumbnailFileId) contains the Telegram file_id
-      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
+      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(
+        fileId,
+      )}`;
 
       const getFileResponse = await this.fetch(getFileUrl);
       if (!getFileResponse.ok) {
-        // Handle Telegram API errors (e.g. 404 if file_id is invalid or expired)
         this.logger.warn(`Telegram API error for file_id ${fileId}: ${getFileResponse.status}`);
-        if (!res.headersSent) {
-          res.statusCode = getFileResponse.status === 404 ? 404 : 502;
-          res.end(getFileResponse.status === 404 ? 'File not found in Telegram' : 'Telegram API error');
-        }
-        return;
+        throw new InternalServerErrorException('Telegram API error');
       }
 
       const getFileData = await getFileResponse.json();
       if (!getFileData.ok || !getFileData.result?.file_path) {
         this.logger.warn(`Invalid Telegram file_id or file not found: ${fileId}`);
-        if (!res.headersSent) {
-          res.statusCode = 404;
-          res.end('Invalid file_id or file not found');
-        }
-        return;
+        throw new NotFoundException('File not found in Telegram');
       }
 
       const filePath = getFileData.result.file_path;
@@ -686,34 +627,32 @@ export class MediaService {
       const downloadResponse = await this.fetch(downloadUrl);
       if (!downloadResponse.ok) {
         this.logger.warn(`Failed to download from Telegram (${fileId}): ${downloadResponse.status}`);
-        if (!res.headersSent) {
-          res.statusCode = 502;
-          res.end('Failed to download from Telegram');
-        }
-        return;
+        throw new InternalServerErrorException('Failed to download from Telegram');
       }
 
-      // Set headers
+      const headers: Record<string, string> = {};
       if (mimeType) {
-        res.setHeader('Content-Type', mimeType);
+        headers['Content-Type'] = mimeType;
       }
       if (filename) {
-        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        headers['Content-Disposition'] = `inline; filename="${filename}"`;
       }
 
-      // Stream response
-      if (downloadResponse.body) {
-        const nodeStream = Readable.fromWeb(downloadResponse.body as any);
-        nodeStream.pipe(res);
-      } else {
-        res.end();
+      if (!downloadResponse.body) {
+        throw new InternalServerErrorException('Telegram response body is empty');
       }
+
+      return {
+        stream: Readable.fromWeb(downloadResponse.body as any),
+        status: downloadResponse.status,
+        headers,
+      };
     } catch (error) {
-      this.logger.error(`Failed to stream from Telegram (${fileId}): ${(error as Error).message}`);
-      if (!res.headersSent) {
-        res.statusCode = 500;
-        res.end('Failed to stream file from Telegram');
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
+        throw error;
       }
+      this.logger.error(`Failed to get stream from Telegram (${fileId}): ${(error as Error).message}`);
+      throw new InternalServerErrorException('Failed to stream file from Telegram');
     }
   }
 

@@ -144,31 +144,22 @@ export class MediaController {
   @Get(':id/file')
   @UseGuards(JwtOrApiTokenGuard)
   async getFile(@Param('id') id: string, @Req() req: UnifiedAuthRequest, @Res() res: FastifyReply) {
-    // Check access
-    await this.mediaService.checkMediaAccess(id, req.user.userId);
-
-    const media = await this.mediaService.findOne(id);
     const range = req.headers.range;
+    const { stream, status, headers } = await this.mediaService.getMediaFile(
+      id,
+      req.user.userId,
+      range,
+    );
 
-    if (media.storageType === StorageType.FS) {
-      const fileId = media.storagePath;
-      const { stream, status, headers } = await this.mediaService.getFileStream(fileId, range);
-
-      res.status(status);
-      res.headers(headers);
-      return res.send(stream);
-    } else if (media.storageType === StorageType.TELEGRAM) {
-      // Use existing legacy streaming for Telegram (it uses res.raw)
-      return this.mediaService.streamMediaFile(id, res.raw, req.user.userId, range);
-    } else {
-      throw new BadRequestException('Unsupported storage type');
-    }
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
   }
 
   /**
    * Get thumbnail for media.
-   * Only supported for StorageType.FS (proxied from Media Storage).
-   * Returns error for StorageType.TELEGRAM.
+   * For StorageType.FS: proxied from Media Storage.
+   * For StorageType.TELEGRAM: proxied from Telegram API.
    */
   @Get(':id/thumbnail')
   @UseGuards(JwtOrApiTokenGuard)
@@ -180,45 +171,21 @@ export class MediaController {
     @Query('h') heightStr?: string,
     @Query('quality') qualityStr?: string,
   ) {
-    // Check access
-    await this.mediaService.checkMediaAccess(id, req.user.userId);
+    const width = widthStr ? parseInt(widthStr, 10) : 400;
+    const height = heightStr ? parseInt(heightStr, 10) : 400;
+    const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
 
-    // Get media to check storage type
-    const media = await this.mediaService.findOne(id);
+    const { stream, status, headers } = await this.mediaService.getMediaThumbnail(
+      id,
+      width,
+      height,
+      quality,
+      req.user.userId,
+    );
 
-    // Thumbnails support
-    if (media.storageType === StorageType.FS) {
-      const width = widthStr ? parseInt(widthStr, 10) : 400;
-      const height = heightStr ? parseInt(heightStr, 10) : 400;
-      const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
-
-      const fileId = media.storagePath;
-      const { stream, status, headers } = await this.mediaService.getThumbnailStream(
-        fileId,
-        width,
-        height,
-        quality,
-      );
-
-      res.status(status);
-      res.headers(headers);
-      return res.send(stream);
-    } else if (media.storageType === StorageType.TELEGRAM) {
-      const width = widthStr ? parseInt(widthStr, 10) : 400;
-      const height = heightStr ? parseInt(heightStr, 10) : 400;
-      const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
-
-      return this.mediaService.streamMediaThumbnail(
-        id,
-        res.raw,
-        width,
-        height,
-        quality,
-        req.user.userId,
-      );
-    } else {
-      throw new BadRequestException('Unsupported storage type');
-    }
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
   }
 
   /**

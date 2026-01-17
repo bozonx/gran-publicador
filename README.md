@@ -54,9 +54,9 @@
 ### Управление медиафайлами
 - Загрузка файлов напрямую или по ссылке
 - Поддержка Telegram медиасистемы (file_id)
-- Локальное хранение с возможностью стриминга
+- Proxy-стриминг через внешний микросервис Media Storage
 - Автоматическое определение типов медиа (Image, Video, Audio, Document)
-- **Сбор метаданных изображений** — автоматическое извлечение размеров, формата, EXIF и GPS данных
+- **Сбор метаданных изображений** — автоматическая обработка через Media Storage
 - Группировка медиа в альбомы
 - Единое хранилище (Media Gallery) для повторного использования файлов
 
@@ -156,10 +156,6 @@ TZ=UTC
 
 # PostgreSQL connection string
 DATABASE_URL="postgresql://gran:gran_password@localhost:5432/gran_db?schema=public"
-# Directory for storing media files.
-MEDIA_DIR="./test-data/media"
-# Directory for storing thumbnail files.
-THUMBNAILS_DIR="./test-data/thumbnails"
 
 # ID главного администратора в Telegram (опционально)
 TELEGRAM_ADMIN_ID="123456789"
@@ -318,8 +314,6 @@ NODE_ENV=production
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
 DATABASE_URL="postgresql://gran:gran_password@postgres:5432/gran_db?schema=public"
-MEDIA_DIR="/app/data/media"
-THUMBNAILS_DIR="/app/data/thumbnails"
 JWT_SECRET="your-production-secret"
 TELEGRAM_BOT_TOKEN="your-bot-token"
 TELEGRAM_ADMIN_ID="your-telegram-id"
@@ -343,8 +337,6 @@ LOG_LEVEL=info
 | `SERVER_HOST` | Нет | Хост сервера | `localhost`, `0.0.0.0` |
 | `SERVER_PORT` | Нет | Порт сервера | `8080` |
 | `DATABASE_URL` | Да | Строка подключения к БД | `postgresql://user:pass@host:5432/db` |
-| `MEDIA_DIR` | Да | Директория для медиа | `./media` |
-| `THUMBNAILS_DIR` | Да | Директория для миниатюр | `./thumbnails` |
 | `JWT_SECRET` | Да | Секрет для JWT | Длинная случайная строка |
 | `TELEGRAM_BOT_TOKEN` | Да | Токен Telegram бота | `1234567890:ABC...` |
 | `TELEGRAM_ADMIN_ID` | Нет | ID главного администратора | `123456789` |
