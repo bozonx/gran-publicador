@@ -272,7 +272,7 @@ function toggleArchivedChannels() {
     <!-- Empty state -->
     <div
       v-else-if="channelCount === 0 && !hasArchivedChannels"
-      class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center"
+      class="app-card p-12 text-center"
     >
       <UIcon
         name="i-heroicons-signal-slash"

@@ -289,7 +289,7 @@ const showPagination = computed(() => {
     </div>
 
     <!-- Search and filters -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+    <div class="app-card p-4 space-y-4">
       <!-- Search -->
       <div class="flex items-center gap-4">
         <div class="flex-1">
@@ -413,7 +413,7 @@ const showPagination = computed(() => {
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
        </div>
 
-       <div v-else-if="channels.length === 0" class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+       <div v-else-if="channels.length === 0" class="app-card text-center py-12">
           <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
           </div>
@@ -440,7 +440,7 @@ const showPagination = computed(() => {
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
        </div>
 
-       <div v-else-if="channels.length === 0" class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+       <div v-else-if="channels.length === 0" class="col-span-full app-card text-center py-12">
           <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
           </div>

@@ -28,7 +28,7 @@ function goToPublication(pub: PublicationWithRelations) {
 </script>
 
 <template>
-  <div v-if="totalCount > 0 || loading" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+  <div v-if="totalCount > 0 || loading" class="app-card p-6">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
         <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />

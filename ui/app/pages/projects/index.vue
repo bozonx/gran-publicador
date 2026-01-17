@@ -298,7 +298,7 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
     </div>
 
     <!-- Empty state -->
-    <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+    <div v-else class="app-card p-12 text-center">
       <UIcon
         name="i-heroicons-briefcase"
         class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4"

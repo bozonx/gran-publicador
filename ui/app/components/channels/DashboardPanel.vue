@@ -43,7 +43,7 @@ const groupedChannels = computed(() => {
 </script>
 
 <template>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow h-full flex flex-col">
+    <div class="app-card h-full flex flex-col">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shrink-0">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 {{ t('channel.titlePlural') }}

@@ -131,7 +131,7 @@ async function handleDelete() {
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
     </div>
 
-    <div v-else-if="publications.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+    <div v-else-if="publications.length === 0" class="app-card p-12 text-center">
         <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
           <UIcon name="i-heroicons-pencil-square" class="w-8 h-8 text-gray-400" />
         </div>

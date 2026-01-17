@@ -48,7 +48,7 @@ function handleDelete(e: Event) {
 
 <template>
   <div
-    class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer p-5 border border-gray-100 dark:border-gray-700/50 hover:border-primary-500/30 group"
+    class="app-card app-card-hover p-5 cursor-pointer group"
     @click="handleClick"
   >
     <div class="flex flex-col h-full">

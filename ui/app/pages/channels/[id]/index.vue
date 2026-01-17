@@ -344,7 +344,7 @@ const channelProblems = computed(() => {
         </div>
 
         <!-- Channel Not Found -->
-        <div v-else-if="!channel" class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+        <div v-else-if="!channel" class="app-card p-12 text-center">
              <UIcon name="i-heroicons-signal-slash" class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 {{ t('channel.notFound', 'Channel not found') }}
@@ -355,7 +355,7 @@ const channelProblems = computed(() => {
         <!-- Channel Content -->
         <div v-else class="space-y-6">
             <!-- Channel Header -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div class="app-card overflow-hidden">
                 <!-- Color bar -->
                 <div class="h-2" :style="{ backgroundColor: getSocialMediaColor(channel.socialMedia) }" />
                 
@@ -536,7 +536,7 @@ const channelProblems = computed(() => {
             <!-- Scheduled and Problems Columns -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <!-- Scheduled Column -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="app-card p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
@@ -574,7 +574,7 @@ const channelProblems = computed(() => {
                 </div>
 
                 <!-- Problem Column -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="app-card p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
@@ -647,7 +647,7 @@ const channelProblems = computed(() => {
                      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
                 </div>
 
-                <div v-else-if="posts.length === 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                <div v-else-if="posts.length === 0" class="app-card p-12 text-center">
                     <UIcon name="i-heroicons-document-text" class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
                     <p class="text-gray-500 dark:text-gray-400">
                         {{ t('channel.noPostsDescription') }}

@@ -65,3 +65,38 @@ export const TRANSITION_CLASSES = {
   leaveFrom: 'transform scale-100 opacity-100',
   leaveTo: 'transform scale-95 opacity-0',
 } as const
+
+export const CARD_STYLES = {
+  // Base card classes (defined in main.css as app-card)
+  base: 'app-card',
+  hover: 'app-card-hover',
+  
+  // Padding variants
+  paddingCompact: 'p-3',
+  paddingNormal: 'p-4',
+  paddingSpacious: 'p-6',
+  
+  // Border variants
+  borderPrimary: 'border-gray-200 dark:border-gray-700',
+  borderSubtle: 'border-gray-100 dark:border-gray-700/50',
+  
+  // Background variants
+  bgPrimary: 'bg-white dark:bg-gray-800',
+  bgSubtle: 'bg-gray-50 dark:bg-gray-800/50',
+} as const
+
+export const SPACING = {
+  // Vertical spacing between elements
+  sectionGap: 'space-y-8',
+  cardGap: 'space-y-6',
+  fieldGap: 'space-y-4',
+  compactGap: 'space-y-3',
+  tightGap: 'space-y-2',
+  
+  // Margins
+  sectionMargin: 'mb-8',
+  cardMargin: 'mb-6',
+  fieldMargin: 'mb-4',
+  compactMargin: 'mb-3',
+  tightMargin: 'mb-2',
+} as const

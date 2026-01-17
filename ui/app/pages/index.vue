@@ -208,7 +208,7 @@ async function handleDeletePublication() {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Scheduled Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="app-card p-6">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
@@ -249,7 +249,7 @@ async function handleDeletePublication() {
         </div>
 
         <!-- Problematic Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="app-card p-6">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
@@ -293,7 +293,7 @@ async function handleDeletePublication() {
       </div>
 
       <!-- Published in the last 24h Section -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="app-card p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
@@ -335,7 +335,7 @@ async function handleDeletePublication() {
       <!-- 3. Projects (Bottom) -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
          <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="app-card">
               <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   {{ t('project.titlePlural') }}

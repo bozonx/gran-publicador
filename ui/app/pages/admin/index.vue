@@ -270,7 +270,7 @@ const hasActiveFilters = computed(() => {
       </div>
 
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+      <div class="app-card p-4 mb-6">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <!-- Search -->
           <UInput
@@ -332,7 +332,7 @@ const hasActiveFilters = computed(() => {
       <!-- Empty state -->
       <div
         v-else-if="users.length === 0"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center"
+        class="app-card p-12 text-center"
       >
         <UIcon
           name="i-heroicons-users"
@@ -351,7 +351,7 @@ const hasActiveFilters = computed(() => {
       </div>
 
       <!-- Users table -->
-      <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div v-else class="app-card overflow-hidden">
         <UTable
           :data="users"
           :columns="columns"
@@ -479,7 +479,7 @@ const hasActiveFilters = computed(() => {
         </p>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="app-card p-6">
         <div v-if="configLoading && !yamlContent" class="flex items-center justify-center py-12">
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
         </div>
