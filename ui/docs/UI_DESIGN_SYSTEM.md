@@ -51,6 +51,18 @@ SPACING.compactMargin  // 'mb-3'
 SPACING.tightMargin    // 'mb-2'
 ```
 
+### Сетки (GRID_LAYOUTS)
+
+```typescript
+import { GRID_LAYOUTS } from '~/utils/design-tokens'
+
+// Сетки
+GRID_LAYOUTS.twoColumn    // 'grid grid-cols-1 md:grid-cols-2 gap-6'
+GRID_LAYOUTS.threeColumn  // 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
+GRID_LAYOUTS.metrics      // 'grid grid-cols-2 gap-3'
+GRID_LAYOUTS.channelGrid  // 'grid grid-cols-1 sm:grid-cols-2 gap-3'
+```
+
 ### Формы (FORM_SPACING, FORM_STYLES)
 
 ```typescript
@@ -134,7 +146,7 @@ FORM_STYLES.sectionTitle     // Заголовок секции
   </div>
 
   <!-- Сетка карточек -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div :class="GRID_LAYOUTS.threeColumn">
     <div class="app-card p-4">Карточка 1</div>
     <div class="app-card p-4">Карточка 2</div>
     <div class="app-card p-4">Карточка 3</div>
@@ -142,7 +154,7 @@ FORM_STYLES.sectionTitle     // Заголовок секции
 </template>
 
 <script setup lang="ts">
-import { SPACING } from '~/utils/design-tokens'
+import { SPACING, GRID_LAYOUTS } from '~/utils/design-tokens'
 </script>
 ```
 

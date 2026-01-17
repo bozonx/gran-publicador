@@ -54,6 +54,9 @@ export const GRID_LAYOUTS = {
   
   // Channel selection grid
   channelGrid: 'grid grid-cols-1 sm:grid-cols-2 gap-3',
+
+  // Three column responsive grid
+  threeColumn: 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6',
 } as const
 
 export const TRANSITION_CLASSES = {

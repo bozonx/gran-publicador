@@ -4,6 +4,7 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 import { useViewMode } from '~/composables/useViewMode'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
+import { SPACING, CARD_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 
 definePageMeta({
   middleware: 'auth',
@@ -92,7 +93,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div :class="SPACING.cardGap">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -116,7 +117,7 @@ async function handleDelete() {
       </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+    <div :class="[CARD_STYLES.base, CARD_STYLES.paddingNormal]">
       <UInput
         v-model="searchQuery"
         icon="i-heroicons-magnifying-glass"
@@ -131,7 +132,7 @@ async function handleDelete() {
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
     </div>
 
-    <div v-else-if="publications.length === 0" class="app-card p-12 text-center">
+    <div v-else-if="publications.length === 0" :class="[CARD_STYLES.base, 'p-12 text-center']">
         <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
           <UIcon name="i-heroicons-pencil-square" class="w-8 h-8 text-gray-400" />
         </div>
@@ -143,7 +144,7 @@ async function handleDelete() {
         </UButton>
     </div>
 
-    <div v-else :class="isListView ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'">
+    <div v-else :class="isListView ? SPACING.cardGap : GRID_LAYOUTS.threeColumn">
         <template v-if="isListView">
           <PublicationsPublicationListItem
             v-for="pub in publications"
