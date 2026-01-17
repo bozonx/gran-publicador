@@ -53,7 +53,8 @@ const options = computed(() => {
         value: s.id,
         label: s.name + (s.isDefault ? ` (${t('authorSignature.is_default', 'Default')})` : ''),
         icon: 'i-heroicons-pencil-square',
-        content: s.content
+        content: s.content,
+        isDefault: s.isDefault
       })
     })
   }
@@ -118,7 +119,6 @@ const currentContent = computed(() => {
         </div>
       </template>
 
-      <!-- @ts-ignore -->
       <template #item="{ item }">
         <template v-if="item">
           <div v-if="item.type === 'label'" class="px-2 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50 -mx-1">
@@ -126,8 +126,11 @@ const currentContent = computed(() => {
           </div>
           <div v-else class="flex items-center gap-2 w-full">
             <UIcon :name="item.icon" class="w-4 h-4" :class="item.value ? 'text-primary-500' : 'text-gray-400'" />
-            <div class="flex flex-col min-w-0">
-              <span class="truncate">{{ item.label }}</span>
+            <div class="flex flex-col min-w-0 flex-1">
+              <div class="flex items-center gap-1">
+                <span class="truncate">{{ item.label }}</span>
+                <UIcon v-if="item.isDefault" name="i-heroicons-star-solid" class="w-3 h-3 text-amber-500 shrink-0" />
+              </div>
               <span v-if="item.content" class="text-[10px] text-gray-500 truncate max-w-[200px]">{{ item.content }}</span>
             </div>
           </div>

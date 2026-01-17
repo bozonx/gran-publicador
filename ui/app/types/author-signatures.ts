@@ -8,7 +8,6 @@ export interface AuthorSignature {
   order: number
   createdAt: string
   updatedAt: string
-  archivedAt: string | null
 }
 
 export interface PresetSignature {

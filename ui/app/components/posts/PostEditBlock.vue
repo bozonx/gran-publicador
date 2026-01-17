@@ -368,6 +368,23 @@ watch(() => props.post, (newPost) => {
     })
 }, { deep: true, immediate: true })
 
+// Auto-select default signature when channel is selected (only in creation mode)
+watch(() => formData.channelId, async (newChannelId) => {
+  if (props.isCreating && newChannelId && !formData.authorSignatureId) {
+    const { fetchByChannel } = useAuthorSignatures()
+    try {
+      const signatures = await fetchByChannel(newChannelId)
+      const defaultSig = signatures.find(s => s.isDefault)
+      if (defaultSig) {
+        formData.authorSignatureId = defaultSig.id
+      }
+    } catch (error) {
+      // Silently fail - not critical
+      console.warn('Failed to load default signature:', error)
+    }
+  }
+})
+
 onMounted(() => {
     if (props.isCreating) {
         const channels = props.availableChannels

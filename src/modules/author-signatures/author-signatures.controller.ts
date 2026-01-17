@@ -76,12 +76,6 @@ export class AuthorSignaturesController {
   @Delete(':id')
   @UseGuards(SignatureAccessGuard)
   remove(@Param('id') id: string, @Request() req: any) {
-    return this.authorSignaturesService.archive(id, req.user.id);
-  }
-
-  @Post(':id/restore')
-  @UseGuards(SignatureAccessGuard)
-  restore(@Param('id') id: string, @Request() req: any) {
-    return this.authorSignaturesService.restore(id, req.user.id);
+    return this.authorSignaturesService.delete(id, req.user.id);
   }
 }

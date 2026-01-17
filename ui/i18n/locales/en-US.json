@@ -1075,7 +1075,8 @@
     "select": "Select signature",
     "preview": "Preview",
     "is_default": "Default",
-    "delete_confirmation": "Are you sure you want to delete this signature?",
+    "delete_confirmation": "Are you sure you want to delete this signature? This action is irreversible.",
+    "delete_in_use_error": "Cannot delete: signature is used in {count} posts",
     "presets": {
       "title": "Preset Signatures",
       "subscriber": "Subscriber",

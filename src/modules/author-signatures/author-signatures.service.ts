@@ -33,7 +33,6 @@ export class AuthorSignaturesService {
       where: {
         userId,
         channelId,
-        archivedAt: null,
       },
       orderBy: { order: 'asc' },
     });
@@ -67,14 +66,14 @@ export class AuthorSignaturesService {
     if (isProjectOwner || isProjectAdmin) {
       // Project owner and admin see all signatures
       return this.prisma.authorSignature.findMany({
-        where: { channelId, archivedAt: null },
+        where: { channelId },
         orderBy: [{ userId: 'asc' }, { order: 'asc' }],
       });
     }
 
     // Regular members only see their own signatures
     return this.prisma.authorSignature.findMany({
-      where: { channelId, userId: currentUserId, archivedAt: null },
+      where: { channelId, userId: currentUserId },
       orderBy: { order: 'asc' },
     });
   }
@@ -131,38 +130,29 @@ export class AuthorSignaturesService {
     });
   }
 
-  async archive(id: string, userId: string) {
+  async delete(id: string, userId: string) {
     const signature = await this.findOne(id);
 
     if (signature.userId !== userId) {
-      throw new ForbiddenException('You can only archive your own signatures');
+      throw new ForbiddenException('You can only delete your own signatures');
     }
 
-    return this.prisma.authorSignature.update({
-      where: { id },
-      data: {
-        archivedAt: new Date(),
-        archivedBy: userId,
-        isDefault: false, // Unset default if archived
-      },
+    // Check if signature is used in pending or failed posts
+    const postsUsingSignature = await this.prisma.post.count({
+      where: {
+        authorSignatureId: id,
+        status: { in: ['PENDING', 'FAILED'] }
+      }
     });
-  }
 
-  async restore(id: string, userId: string) {
-    const signature = await this.findOne(id);
-    
-    // Check project access (only creator can restore their signature, 
-    // but project owner/admin can see it in archive - for now keeping it simple: creator only)
-    if (signature.userId !== userId) {
-        throw new ForbiddenException('You can only restore your own signatures');
+    if (postsUsingSignature > 0) {
+      throw new ForbiddenException(
+        `Cannot delete signature: it is used in ${postsUsingSignature} pending or failed posts`
+      );
     }
 
-    return this.prisma.authorSignature.update({
+    return this.prisma.authorSignature.delete({
       where: { id },
-      data: {
-        archivedAt: null,
-        archivedBy: null,
-      },
     });
   }
 
@@ -172,7 +162,7 @@ export class AuthorSignaturesService {
 
   async findDefault(userId: string, channelId: string) {
     return this.prisma.authorSignature.findFirst({
-      where: { userId, channelId, isDefault: true, archivedAt: null },
+      where: { userId, channelId, isDefault: true },
     });
   }
 
