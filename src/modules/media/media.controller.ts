@@ -86,10 +86,49 @@ export class MediaController {
       throw new BadRequestException('URL is required');
     }
 
-    // TODO: Implement upload from URL via Media Storage
-    // For now, return not implemented
-    throw new BadRequestException('Upload from URL not yet implemented with Media Storage');
+    // Upload to Media Storage via URL
+    const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
+      body.url,
+      body.filename,
+    );
+
+    // Determine media type from mimetype
+    let type: MediaType = MediaType.DOCUMENT;
+    const mime = metadata.mimeType.toLowerCase();
+    if (mime.startsWith('image/')) type = MediaType.IMAGE;
+    else if (mime.startsWith('video/')) type = MediaType.VIDEO;
+    else if (mime.startsWith('audio/')) type = MediaType.AUDIO;
+
+    // Extract filename from URL if not provided
+    const filename = body.filename || this.extractFilenameFromUrl(body.url);
+
+    // Create the media record with fileId from Media Storage
+    return this.mediaService.create({
+      type,
+      storageType: StorageType.FS,
+      storagePath: fileId, // Store Media Storage fileId
+      filename,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.size,
+      meta: metadata,
+    });
   }
+
+  /**
+   * Extract filename from URL.
+   */
+  private extractFilenameFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const parts = pathname.split('/');
+      const filename = parts[parts.length - 1];
+      return filename || 'downloaded-file';
+    } catch {
+      return 'downloaded-file';
+    }
+  }
+
 
   @Get()
   @UseGuards(JwtOrApiTokenGuard)

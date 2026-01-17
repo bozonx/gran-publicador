@@ -19,6 +19,7 @@ import {
   getMediaStorageMaxFileSize,
   getImageCompressionOptions,
   getThumbnailQuality,
+  getThumbnailMaxDimension,
 } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 
@@ -40,6 +41,7 @@ export class MediaService {
   private readonly maxFileSize: number;
   private readonly compressionOptions?: Record<string, any>;
   private readonly thumbnailQuality?: number;
+  private readonly thumbnailMaxDimension?: number;
   private readonly fetch = global.fetch;
 
   constructor(
@@ -52,6 +54,7 @@ export class MediaService {
     this.maxFileSize = getMediaStorageMaxFileSize() * 1024 * 1024; // Convert to bytes
     this.compressionOptions = getImageCompressionOptions();
     this.thumbnailQuality = getThumbnailQuality();
+    this.thumbnailMaxDimension = getThumbnailMaxDimension();
 
     this.logger.log(`Media Storage URL: ${this.mediaStorageUrl}`);
     this.logger.log(`Max file size: ${this.maxFileSize} bytes`);
@@ -242,9 +245,26 @@ export class MediaService {
       const blob = new Blob([uint8Array], { type: mimetype });
       formData.append('file', blob, filename);
 
-      // Add compression options if available
+      // Add compression options as individual form fields if available
       if (this.compressionOptions) {
-        formData.append('metadata', JSON.stringify(this.compressionOptions));
+        if (this.compressionOptions.format) {
+          formData.append('format', this.compressionOptions.format);
+        }
+        if (this.compressionOptions.maxDimension !== undefined) {
+          formData.append('maxDimension', this.compressionOptions.maxDimension.toString());
+        }
+        if (this.compressionOptions.stripMetadata !== undefined) {
+          formData.append('stripMetadata', this.compressionOptions.stripMetadata.toString());
+        }
+        if (this.compressionOptions.lossless !== undefined) {
+          formData.append('lossless', this.compressionOptions.lossless.toString());
+        }
+        if (this.compressionOptions.quality !== undefined) {
+          formData.append('quality', this.compressionOptions.quality.toString());
+        }
+        if (this.compressionOptions.avifChromaSubsampling) {
+          formData.append('avifChromaSubsampling', this.compressionOptions.avifChromaSubsampling);
+        }
       }
 
       const controller = new AbortController();
@@ -286,6 +306,88 @@ export class MediaService {
       );
     }
   }
+
+  /**
+   * Upload file from URL to Media Storage microservice.
+   * Returns the fileId from Media Storage to be stored in storagePath.
+   */
+  async uploadFileFromUrl(
+    url: string,
+    filename?: string,
+  ): Promise<{ fileId: string; metadata: Record<string, any> }> {
+    this.logger.debug(`Uploading file from URL to Media Storage: ${url}`);
+
+    try {
+      const body: Record<string, any> = { url };
+      if (filename) {
+        body.filename = filename;
+      }
+
+      // Add compression options as individual fields if available
+      if (this.compressionOptions) {
+        if (this.compressionOptions.format) {
+          body.format = this.compressionOptions.format;
+        }
+        if (this.compressionOptions.maxDimension !== undefined) {
+          body.maxDimension = this.compressionOptions.maxDimension;
+        }
+        if (this.compressionOptions.stripMetadata !== undefined) {
+          body.stripMetadata = this.compressionOptions.stripMetadata;
+        }
+        if (this.compressionOptions.lossless !== undefined) {
+          body.lossless = this.compressionOptions.lossless;
+        }
+        if (this.compressionOptions.quality !== undefined) {
+          body.quality = this.compressionOptions.quality;
+        }
+        if (this.compressionOptions.avifChromaSubsampling) {
+          body.avifChromaSubsampling = this.compressionOptions.avifChromaSubsampling;
+        }
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await this.fetch(`${this.mediaStorageUrl}/files/from-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      this.logger.log(`File uploaded from URL to Media Storage: ${result.id}`);
+
+      return {
+        fileId: result.id,
+        metadata: {
+          originalSize: result.originalSize,
+          size: result.size,
+          mimeType: result.mimeType,
+          checksum: result.checksum,
+          url: result.url,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to upload from URL to Media Storage: ${(error as Error).message}`);
+      if ((error as any).name === 'AbortError') {
+        throw new InternalServerErrorException('Media Storage request timed out');
+      }
+      throw new InternalServerErrorException(
+        `Failed to upload file from URL: ${(error as Error).message}`,
+      );
+    }
+  }
+
 
   /**
    * Delete file from Media Storage microservice.

@@ -46,23 +46,41 @@ export function getMediaStorageMaxFileSize(): number {
 export function getImageCompressionOptions(): Record<string, any> | undefined {
   const options: Record<string, any> = {};
 
-  if (process.env.IMAGE_COMPRESSION_WEBP_QUALITY) {
-    options.webpQuality = parseInt(process.env.IMAGE_COMPRESSION_WEBP_QUALITY, 10);
+  if (process.env.IMAGE_COMPRESSION_FORMAT) {
+    options.format = process.env.IMAGE_COMPRESSION_FORMAT;
   }
 
-  if (process.env.IMAGE_COMPRESSION_WEBP_EFFORT) {
-    options.webpEffort = parseInt(process.env.IMAGE_COMPRESSION_WEBP_EFFORT, 10);
+  if (process.env.IMAGE_COMPRESSION_MAX_DIMENSION) {
+    options.maxDimension = parseInt(process.env.IMAGE_COMPRESSION_MAX_DIMENSION, 10);
   }
 
-  if (process.env.IMAGE_COMPRESSION_MAX_WIDTH) {
-    options.maxWidth = parseInt(process.env.IMAGE_COMPRESSION_MAX_WIDTH, 10);
+  if (process.env.IMAGE_COMPRESSION_STRIP_METADATA) {
+    options.stripMetadata = process.env.IMAGE_COMPRESSION_STRIP_METADATA === 'true';
   }
 
-  if (process.env.IMAGE_COMPRESSION_MAX_HEIGHT) {
-    options.maxHeight = parseInt(process.env.IMAGE_COMPRESSION_MAX_HEIGHT, 10);
+  if (process.env.IMAGE_COMPRESSION_LOSSLESS) {
+    options.lossless = process.env.IMAGE_COMPRESSION_LOSSLESS === 'true';
+  }
+
+  if (process.env.IMAGE_COMPRESSION_QUALITY) {
+    options.quality = parseInt(process.env.IMAGE_COMPRESSION_QUALITY, 10);
+  }
+
+  if (process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING) {
+    options.avifChromaSubsampling = process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING;
   }
 
   return Object.keys(options).length > 0 ? options : undefined;
+}
+
+/**
+ * Gets optional thumbnail max dimension setting.
+ *
+ * @returns Max dimension in pixels or undefined if not set.
+ */
+export function getThumbnailMaxDimension(): number | undefined {
+  const dim = process.env.THUMBNAIL_MAX_DIMENSION;
+  return dim ? parseInt(dim, 10) : undefined;
 }
 
 /**
