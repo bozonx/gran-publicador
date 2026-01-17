@@ -95,38 +95,9 @@ export class ChannelsService {
       countsMap.set(pc.channelId, current);
     });
 
-    return channels.map(channel => {
-      const { posts, credentials, preferences, project, ...channelData } = channel;
-      const counts = countsMap.get(channel.id) || { published: 0, failed: 0 };
-
-      const channelPrefs = (preferences as any) || {};
-      const projectPrefs = (project.preferences as any) || {};
-      const lastPostAt = posts[0]?.publishedAt || posts[0]?.createdAt || null;
-
-      let isStale = false;
-      if (lastPostAt) {
-        const staleDays =
-          (channelPrefs.staleChannelsDays as number) ||
-          (projectPrefs.staleChannelsDays as number) ||
-          DEFAULT_STALE_CHANNELS_DAYS;
-        const diffTime = Math.abs(new Date().getTime() - new Date(lastPostAt).getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        isStale = diffDays > staleDays;
-      }
-
-      return {
-        ...channelData,
-        project,
-        credentials: (credentials as any) || {},
-        postsCount: counts.published,
-        failedPostsCount: counts.failed,
-        lastPostAt,
-        lastPostId: posts[0]?.id || null,
-        lastPublicationId: posts[0]?.publicationId || null,
-        isStale,
-        preferences: channelPrefs,
-      };
-    });
+    return channels.map((channel) =>
+      this.mapToDto(channel, countsMap.get(channel.id)),
+    );
   }
 
   /**
@@ -243,36 +214,12 @@ export class ChannelsService {
     const failedCountsMap = new Map<string, number>();
     failedPostCounts.forEach(pc => failedCountsMap.set(pc.channelId, pc._count.id));
 
-    const items = channels.map(channel => {
-      const { posts, credentials, preferences, project, _count, ...channelData } = channel;
-      const channelPrefs = (preferences as any) || {};
-      const projectPrefs = (project.preferences as any) || {};
-      const lastPostAt = posts[0]?.publishedAt || posts[0]?.createdAt || null;
-
-      let isStale = false;
-      if (lastPostAt) {
-        const staleDays =
-          (channelPrefs.staleChannelsDays as number) ||
-          (projectPrefs.staleChannelsDays as number) ||
-          DEFAULT_STALE_CHANNELS_DAYS;
-        const diffDays = Math.ceil(
-          Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
-        );
-        isStale = diffDays > staleDays;
-      }
-
-      return {
-        ...channelData,
-        project,
-        credentials: (credentials as any) || {},
-        postsCount: _count.posts,
-        failedPostsCount: failedCountsMap.get(channel.id) || 0,
-        lastPostAt,
-        lastPostId: posts[0]?.id || null,
-        lastPublicationId: posts[0]?.publicationId || null,
-        isStale,
-        preferences: channelPrefs,
-      };
+    const items = channels.map((channel) => {
+      const failed = failedCountsMap.get(channel.id) || 0;
+      return this.mapToDto(channel, {
+        published: channel._count.posts,
+        failed,
+      });
     });
 
     return { items, total };
@@ -296,19 +243,7 @@ export class ChannelsService {
       orderBy: { archivedAt: 'desc' },
     });
 
-    return channels.map(channel => {
-      const { posts, credentials, preferences, project, ...channelData } = channel;
-      return {
-        ...channelData,
-        project,
-        credentials: (credentials as any) || {},
-        postsCount: 0, // Simplified for archived
-        failedPostsCount: 0,
-        lastPostAt: posts[0]?.publishedAt || null,
-        isStale: false,
-        preferences: (preferences as any) || {},
-      };
-    });
+    return channels.map((channel) => this.mapToDto(channel));
   }
 
   public async findArchivedForUser(userId: string) {
@@ -331,19 +266,7 @@ export class ChannelsService {
       orderBy: { archivedAt: 'desc' },
     });
 
-    return channels.map(channel => {
-      const { posts, credentials, preferences, project, ...channelData } = channel;
-      return {
-        ...channelData,
-        project,
-        credentials: (credentials as any) || {},
-        postsCount: 0,
-        failedPostsCount: 0,
-        lastPostAt: posts[0]?.publishedAt || null,
-        isStale: false,
-        preferences: (preferences as any) || {},
-      };
-    });
+    return channels.map((channel) => this.mapToDto(channel));
   }
 
   public async findOne(id: string, userId: string, allowArchived = false) {
@@ -364,44 +287,26 @@ export class ChannelsService {
 
     if (!channel) throw new NotFoundException('Channel not found');
 
+    const role = await this.permissions.getUserProjectRole(
+      channel.projectId,
+      userId,
+    );
+
     const pc = await this.prisma.post.groupBy({
       by: ['status'],
       where: { channelId: id, status: { in: ['PUBLISHED', 'FAILED'] } },
       _count: { id: true },
     });
 
-    const role = await this.permissions.getUserProjectRole(channel.projectId, userId);
-    const { posts, credentials, preferences, project, ...channelData } = channel;
+    const publishedCount =
+      pc.find((p) => p.status === 'PUBLISHED')?._count.id || 0;
+    const failedCount = pc.find((p) => p.status === 'FAILED')?._count.id || 0;
 
-    const channelPrefs = (preferences as any) || {};
-    const projectPrefs = (project.preferences as any) || {};
-    const lastPostAt = posts[0]?.publishedAt || posts[0]?.createdAt || null;
-
-    let isStale = false;
-    if (lastPostAt) {
-      const staleDays =
-        (channelPrefs.staleChannelsDays as number) ||
-        (projectPrefs.staleChannelsDays as number) ||
-        DEFAULT_STALE_CHANNELS_DAYS;
-      const diffDays = Math.ceil(
-        Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
-      );
-      isStale = diffDays > staleDays;
-    }
-
-    return {
-      ...channelData,
-      project,
-      credentials: (credentials as any) || {},
-      role: role?.toLowerCase(),
-      postsCount: pc.find(p => p.status === 'PUBLISHED')?._count.id || 0,
-      failedPostsCount: pc.find(p => p.status === 'FAILED')?._count.id || 0,
-      lastPostAt,
-      lastPostId: posts[0]?.id || null,
-      lastPublicationId: posts[0]?.publicationId || null,
-      isStale,
-      preferences: channelPrefs,
-    };
+    return this.mapToDto(
+      channel,
+      { published: publishedCount, failed: failedCount },
+      role || undefined,
+    );
   }
 
   public async update(id: string, userId: string, data: UpdateChannelDto) {
@@ -493,5 +398,45 @@ export class ChannelsService {
       where: { id },
       data: { archivedAt: null, archivedBy: null },
     });
+  }
+
+  private mapToDto(
+    channel: any,
+    counts: { published: number; failed: number } = { published: 0, failed: 0 },
+    role?: string,
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { posts, credentials, preferences, project, _count, ...channelData } =
+      channel;
+    const channelPrefs = (preferences as any) || {};
+    const projectPrefs = (project?.preferences as any) || {};
+    const lastPostAt = posts?.[0]?.publishedAt || posts?.[0]?.createdAt || null;
+
+    let isStale = false;
+    if (lastPostAt && !channelData.archivedAt) {
+      const staleDays =
+        (channelPrefs.staleChannelsDays as number) ||
+        (projectPrefs.staleChannelsDays as number) ||
+        DEFAULT_STALE_CHANNELS_DAYS;
+      const diffDays = Math.ceil(
+        Math.abs(Date.now() - new Date(lastPostAt).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      isStale = diffDays > staleDays;
+    }
+
+    return {
+      ...channelData,
+      project,
+      credentials: (credentials as any) || {},
+      role: role?.toLowerCase(),
+      postsCount: counts.published,
+      failedPostsCount: counts.failed,
+      lastPostAt,
+      lastPostId: posts?.[0]?.id || null,
+      lastPublicationId: posts?.[0]?.publicationId || null,
+      isStale,
+      preferences: channelPrefs,
+    };
   }
 }
