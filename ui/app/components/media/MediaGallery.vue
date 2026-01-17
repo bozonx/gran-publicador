@@ -192,8 +192,8 @@ async function saveMediaMeta() {
 
     const updated = await updateMedia(selectedMedia.value.id, {
       meta: metaToSave,
-      alt: editableAlt.value || null,
-      description: editableDescription.value || null
+      alt: editableAlt.value || undefined,
+      description: editableDescription.value || undefined
     })
 
     // Update local state
@@ -924,8 +924,6 @@ const emit = defineEmits<Emits>()
               />
             </div>
           </div>
-            </div>
-          </div>
         </div>
 
         <div v-if="editable" class="mb-6 p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200 dark:border-orange-800/50">
@@ -976,7 +974,7 @@ const emit = defineEmits<Emits>()
           v-model="editableMetadata"
           :disabled="!editable"
           :rows="8"
-        />
+        ></CommonYamlEditor>
       </div>
     </div>
     
@@ -993,6 +991,7 @@ const emit = defineEmits<Emits>()
         </UButton>
       </div>
     </template>
+
   </MediaViewerModal>
 </template>
 
