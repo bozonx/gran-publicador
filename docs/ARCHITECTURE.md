@@ -44,8 +44,8 @@ Gran Publicador построен по принципу **монолитной а
                      │ Prisma ORM
                      ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   Database (SQLite)                      │
-│              gran-publicador.db (в DATA_DIR/db)         │
+│                   Database (PostgreSQL)                  │
+│              gran_db (в Docker контейнере)               │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -64,7 +64,7 @@ Gran Publicador построен по принципу **монолитной а
 - **NestJS 11** - модульный фреймворк
 - **Fastify** - HTTP сервер (быстрее Express)
 - **Prisma 7** - ORM с типобезопасностью
-- **SQLite** - встроенная БД
+- **PostgreSQL 18** - реляционная БД
 - **Passport + JWT** - аутентификация
 - **Pino** - структурированное логирование
 - **class-validator** - валидация DTO

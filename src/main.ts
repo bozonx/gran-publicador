@@ -23,7 +23,9 @@ import type { AppConfig } from './config/app.config.js';
  */
 if (!process.env.DATABASE_URL) {
   console.error('❌ FATAL ERROR: DATABASE_URL environment variable is not set!');
-  console.error('   DATABASE_URL must be a valid connection string (e.g., file:/path/to/db.db)');
+  console.error(
+    '   DATABASE_URL must be a valid connection string (e.g., postgresql://user:password@localhost:5432/gran_db?schema=public)',
+  );
   process.exit(1);
 }
 

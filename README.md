@@ -86,7 +86,7 @@
 - **NestJS 11** — модульный фреймворк для Node.js
 - **Fastify** — высокопроизводительный веб-сервер
 - **Prisma 7** — современный ORM с типобезопасностью
-- **SQLite** — встроенная база данных
+- **PostgreSQL 18** — мощная реляционная база данных
 - **JWT** — аутентификация и авторизация
 - **Passport** — стратегии аутентификации
 - **class-validator** — валидация DTO
@@ -154,8 +154,8 @@ SERVER_PORT=8080
 LOG_LEVEL=debug
 TZ=UTC
 
-# SQLite connection string
-DATABASE_URL="file:./test-data/db/db.db"
+# PostgreSQL connection string
+DATABASE_URL="postgresql://gran:gran_password@localhost:5432/gran_db?schema=public"
 # Directory for storing media files.
 MEDIA_DIR="./test-data/media"
 # Directory for storing thumbnail files.
@@ -317,7 +317,7 @@ pnpm build
 NODE_ENV=production
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
-DATABASE_URL="file:/app/data/db/db.db"
+DATABASE_URL="postgresql://gran:gran_password@postgres:5432/gran_db?schema=public"
 MEDIA_DIR="/app/data/media"
 THUMBNAILS_DIR="/app/data/thumbnails"
 JWT_SECRET="your-production-secret"
@@ -342,7 +342,7 @@ LOG_LEVEL=info
 | `NODE_ENV` | Нет | Режим работы | `development`, `production` |
 | `SERVER_HOST` | Нет | Хост сервера | `localhost`, `0.0.0.0` |
 | `SERVER_PORT` | Нет | Порт сервера | `8080` |
-| `DATABASE_URL` | Да | Строка подключения к БД | `file:./db/db.db` |
+| `DATABASE_URL` | Да | Строка подключения к БД | `postgresql://user:pass@host:5432/db` |
 | `MEDIA_DIR` | Да | Директория для медиа | `./media` |
 | `THUMBNAILS_DIR` | Да | Директория для миниатюр | `./thumbnails` |
 | `JWT_SECRET` | Да | Секрет для JWT | Длинная случайная строка |

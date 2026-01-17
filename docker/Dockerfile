@@ -5,12 +5,6 @@ ARG NODE_MAJOR=22
 # -----------------------------------------------------------------------------
 FROM node:${NODE_MAJOR}-bookworm AS builder
 
-# Install build dependencies for better-sqlite3
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  build-essential \
-  python3 \
-  && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 RUN corepack enable
 
@@ -22,13 +16,9 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # 2. Copy source code (needed for prisma config and build context)
 COPY . .
 
-# 3. Rebuild better-sqlite3 for the target architecture
-RUN pnpm rebuild better-sqlite3
-
-# 4. Generate Prisma client (required for migrations in entrypoint)
-# 4. Generate Prisma client (required for migrations in entrypoint)
+# 3. Generate Prisma client (required for migrations in entrypoint)
 # Prisma generate doesn't typically need a real DB connection, but we set a dummy URL to suppress warnings
-ENV DATABASE_URL="file:/tmp/db.db"
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npx prisma generate
 
 # -----------------------------------------------------------------------------
@@ -40,6 +30,7 @@ FROM node:${NODE_MAJOR}-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
   openssl \
   ca-certificates \
+  wget \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -49,8 +40,8 @@ ENV LISTEN_HOST=0.0.0.0
 ENV LISTEN_PORT=8080
 ENV TZ=UTC
 ENV LOG_LEVEL=warn
-# Default configuration for Docker
-ENV DATABASE_URL="file:/data/db/db.db"
+# Default configuration for Docker - expects linked postgres container
+ENV DATABASE_URL="postgresql://gran:gran_password@postgres:5432/gran_db?schema=public"
 ENV MEDIA_DIR="/data/media"
 ENV THUMBNAILS_DIR="/data/thumbnails"
 
