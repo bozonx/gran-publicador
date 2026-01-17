@@ -158,14 +158,11 @@ async function handleDelete() {
           :description="t('channel.general_settings_desc', 'Update your channel name and connection details')"
         >
           
-          <FormsChannelForm
+          <FormsChannelUpdateGeneral
             :project-id="projectId"
             :channel="channel"
-            :visible-sections="['general']"
             @success="handleUpdateSuccess"
             @cancel="goBack"
-            hide-header
-            hide-cancel
           />
         </UiAppCard>
 
@@ -177,14 +174,9 @@ async function handleDelete() {
           :description="t('channel.credentials_desc', 'Manage connection credentials for this channel')"
         >
           
-          <FormsChannelForm
-            :project-id="projectId"
+          <FormsChannelUpdateCredentials
             :channel="channel"
-            :visible-sections="['credentials']"
             @success="handleUpdateSuccess"
-            @cancel="goBack"
-            hide-header
-            hide-cancel
           />
         </UiAppCard>
 
@@ -195,17 +187,10 @@ async function handleDelete() {
           :description="t('channel.preferences_desc', 'Configure channel-specific behavior and notifications')"
         >
           
-          <FormsChannelForm
-            :project-id="projectId"
+          <FormsChannelUpdatePreferences
             :channel="channel"
-            :visible-sections="['preferences']"
             :disabled="anyPreferencesSaving"
             @success="handleUpdateSuccess"
-            @cancel="goBack"
-            @submit-start="isSavingPreferencesSection = true"
-            @submit-end="isSavingPreferencesSection = false"
-            hide-header
-            hide-cancel
           />
         </UiAppCard>
 
@@ -219,17 +204,9 @@ async function handleDelete() {
             <div id="channel-footers-actions"></div>
           </template>
           
-          <FormsChannelForm
-            :project-id="projectId"
+          <FormsChannelPartsChannelFootersManager
             :channel="channel"
-            :visible-sections="['footers']"
-            :disabled="anyPreferencesSaving"
-            @success="handleUpdateSuccess"
-            @cancel="goBack"
-            @submit-start="isSavingFootersSection = true"
-            @submit-end="isSavingFootersSection = false"
-            hide-header
-            hide-cancel
+            @update="() => fetchChannel(channelId)"
           />
         </UiAppCard>
 
