@@ -538,6 +538,7 @@
     "template": "Шаблон",
     "selectTemplate": "Выберите шаблон...",
     "authorSignature": "Подпись автора",
+    "authorSignaturePlaceholder": "Введите подпись автора в формате Markdown...",
     "status": {
       "pending": "Ожидает",
       "published": "Опубликовано",
@@ -1125,6 +1126,7 @@
     "select": "Выберите подпись",
     "preview": "Предпросмотр",
     "is_default": "По умолчанию",
+    "createFromPreset": "Из пресета",
     "delete_confirmation": "Вы уверены, что хотите удалить эту подпись? Это действие необратимо.",
     "delete_in_use_error": "Невозможно удалить: подпись используется в {count} постах",
     "presets": {
@@ -1136,11 +1138,7 @@
       "fromChannel": "Из канала",
       "fromChannelContent": "Переслано из канала",
       "editor": "Редактор",
-      "editorContent": "Отредактировано редактором",
-      "copyright": "Авторское право",
-      "copyrightContent": "© Все права защищены",
-      "thanks": "Благодарность",
-      "thanksContent": "Спасибо за чтение!"
+      "editorContent": "Отредактировано редактором"
     }
   }
 }

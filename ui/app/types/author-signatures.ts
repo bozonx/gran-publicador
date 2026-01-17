@@ -28,4 +28,5 @@ export interface UpdateAuthorSignatureInput {
   name?: string
   content?: string
   isDefault?: boolean
+  order?: number
 }

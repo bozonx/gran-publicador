@@ -13,7 +13,7 @@ export class CreateAuthorSignatureDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(1000)
+  @MaxLength(200)
   content!: string;
 
   @IsBoolean()

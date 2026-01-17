@@ -24,19 +24,6 @@ export function useAuthorSignatures() {
     }
   }
 
-  async function fetchPresets(): Promise<PresetSignature[]> {
-    isLoading.value = true
-    error.value = null
-    try {
-      return await api.get<PresetSignature[]>('/author-signatures/presets')
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch preset signatures'
-      return []
-    } finally {
-      isLoading.value = false
-    }
-  }
-
   async function create(data: CreateAuthorSignatureInput): Promise<AuthorSignature | null> {
     isLoading.value = true
     error.value = null
@@ -95,7 +82,6 @@ export function useAuthorSignatures() {
     isLoading,
     error,
     fetchByChannel,
-    fetchPresets,
     create,
     update,
     remove,

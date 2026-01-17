@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AuthorSignature, PresetSignature } from '~/types/author-signatures'
+import { PRESET_SIGNATURES } from '~/constants/preset-signatures'
 
 interface Props {
   channelId: string | null
@@ -10,21 +11,17 @@ const props = defineProps<Props>()
 const emit = defineEmits(['select'])
 
 const { t } = useI18n()
-const { fetchByChannel, fetchPresets } = useAuthorSignatures()
+const { fetchByChannel } = useAuthorSignatures()
 
 const userSignatures = ref<AuthorSignature[]>([])
-const presetSignatures = ref<PresetSignature[]>([])
+const presetSignatures = ref<PresetSignature[]>(PRESET_SIGNATURES)
 const isLoading = ref(false)
 const selectedValue = ref<string | null>(null)
 
 async function loadSignatures() {
   isLoading.value = true
   try {
-    const [presets, user] = await Promise.all([
-      fetchPresets(),
-      props.channelId ? fetchByChannel(props.channelId) : Promise.resolve([])
-    ])
-    presetSignatures.value = presets
+    const user = props.channelId ? await fetchByChannel(props.channelId) : []
     userSignatures.value = user
   } finally {
     isLoading.value = false

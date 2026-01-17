@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateAuthorSignatureDto } from './dto/create-author-signature.dto.js';
 import { UpdateAuthorSignatureDto } from './dto/update-author-signature.dto.js';
-import { PRESET_SIGNATURES, PresetSignature } from './constants/preset-signatures.constants.js';
 
 @Injectable()
 export class AuthorSignaturesService {
@@ -140,10 +139,6 @@ export class AuthorSignaturesService {
     return this.prisma.authorSignature.delete({
       where: { id },
     });
-  }
-
-  getPresets(): PresetSignature[] {
-    return PRESET_SIGNATURES;
   }
 
   async findDefault(userId: string, channelId: string) {

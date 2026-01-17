@@ -2,6 +2,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import type { AuthorSignature, CreateAuthorSignatureInput, UpdateAuthorSignatureInput } from '~/types/author-signatures'
+import { PRESET_SIGNATURES } from '~/constants/preset-signatures'
 
 const props = defineProps<{
   channelId: string
@@ -19,8 +20,10 @@ const {
 
 const signatures = ref<AuthorSignature[]>([])
 const isModalOpen = ref(false)
+const isPresetModalOpen = ref(false)
 const isDeleting = ref(false)
 const editingSignature = ref<AuthorSignature | null>(null)
+const isDragging = ref(false)
 
 const form = reactive({
   name: '',
@@ -39,6 +42,19 @@ function openAdd() {
   form.name = ''
   form.content = ''
   form.isDefault = signatures.value.length === 0
+  isModalOpen.value = true
+}
+
+function openPresetModal() {
+  isPresetModalOpen.value = true
+}
+
+function handlePresetSelect(preset: typeof PRESET_SIGNATURES[0]) {
+  editingSignature.value = null
+  form.name = t(preset.nameKey)
+  form.content = t(preset.contentKey)
+  form.isDefault = signatures.value.length === 0
+  isPresetModalOpen.value = false
   isModalOpen.value = true
 }
 
@@ -93,20 +109,86 @@ async function handleSetDefault(id: string) {
   await setDefault(id)
   await loadSignatures()
 }
+
+// Drag and drop handlers
+function handleDragStart(event: DragEvent, index: number) {
+  if (!event.dataTransfer) return
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', index.toString())
+  isDragging.value = true
+}
+
+function handleDragEnd() {
+  isDragging.value = false
+}
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+}
+
+async function handleDrop(event: DragEvent, targetIndex: number) {
+  event.preventDefault()
+  if (!event.dataTransfer) return
+  
+  const sourceIndex = parseInt(event.dataTransfer.getData('text/plain'))
+  if (sourceIndex === targetIndex) return
+  
+  // Reorder locally
+  const items = [...signatures.value]
+  const [movedItem] = items.splice(sourceIndex, 1)
+  items.splice(targetIndex, 0, movedItem)
+  
+  // Update order field for all items
+  const updates = items.map((item, index) => ({
+    id: item.id,
+    order: index
+  }))
+  
+  // Optimistically update UI
+  signatures.value = items
+  
+  // Update on server
+  try {
+    for (const { id, order } of updates) {
+      await update(id, { order })
+    }
+  } catch (error) {
+    console.error('Failed to update order', error)
+    // Reload on error
+    await loadSignatures()
+  }
+  
+  isDragging.value = false
+}
+
 </script>
 
 <template>
   <div class="space-y-4">
     <Teleport defer v-if="channelId" to="#channel-signatures-actions">
-      <UButton
-        icon="i-heroicons-plus"
-        size="xs"
-        color="primary"
-        variant="soft"
-        @click="openAdd"
-      >
-        {{ t('common.add') }}
-      </UButton>
+      <div class="flex gap-2">
+        <UButton
+          icon="i-heroicons-sparkles"
+          size="xs"
+          color="primary"
+          variant="outline"
+          @click="openPresetModal"
+        >
+          {{ t('authorSignature.createFromPreset', 'From Preset') }}
+        </UButton>
+        <UButton
+          icon="i-heroicons-plus"
+          size="xs"
+          color="primary"
+          variant="soft"
+          @click="openAdd"
+        >
+          {{ t('common.add') }}
+        </UButton>
+      </div>
     </Teleport>
 
     <div v-if="isLoading && signatures.length === 0" class="flex justify-center py-8">
@@ -115,20 +197,36 @@ async function handleSetDefault(id: string) {
 
     <div v-else-if="signatures.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
       <UIcon name="i-heroicons-pencil-square" class="w-8 h-8 mx-auto text-gray-400 mb-2" />
-      <p class="text-sm text-gray-500 dark:text-gray-400">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
         {{ t('authorSignature.none') }}
       </p>
+      <UButton
+        icon="i-heroicons-sparkles"
+        size="sm"
+        color="primary"
+        variant="outline"
+        @click="openPresetModal"
+      >
+        {{ t('authorSignature.createFromPreset', 'Create from Preset') }}
+      </UButton>
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
-        v-for="sig in signatures"
+        v-for="(sig, index) in signatures"
         :key="sig.id"
-        class="flex flex-col p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-all group relative h-full"
+        draggable="true"
+        @dragstart="handleDragStart($event, index)"
+        @dragend="handleDragEnd"
+        @dragover="handleDragOver"
+        @drop="handleDrop($event, index)"
+        class="flex flex-col p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-all group relative h-full cursor-move"
+        :class="{ 'opacity-50': isDragging }"
       >
         <div class="flex items-start justify-between mb-3">
           <div class="flex flex-col min-w-0">
             <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-bars-3" class="w-4 h-4 text-gray-400 shrink-0" />
               <span class="font-semibold text-gray-900 dark:text-white truncate" :title="sig.name">{{ sig.name }}</span>
               <UBadge v-if="sig.isDefault" size="xs" color="primary" variant="subtle">
                 {{ t('authorSignature.is_default') }}
@@ -210,6 +308,35 @@ async function handleSetDefault(id: string) {
         </UButton>
         <UButton color="primary" :loading="isLoading" @click="handleSave">
           {{ t('common.save') }}
+        </UButton>
+      </template>
+    </UiAppModal>
+
+    <!-- Preset Selection Modal -->
+    <UiAppModal
+      v-model:open="isPresetModalOpen"
+      :title="t('authorSignature.presets.title', 'Preset Signatures')"
+    >
+      <div class="grid grid-cols-1 gap-3">
+        <button
+          v-for="preset in PRESET_SIGNATURES"
+          :key="preset.id"
+          @click="handlePresetSelect(preset)"
+          class="flex flex-col p-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-400 transition-all text-left group"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+            <span class="font-semibold text-gray-900 dark:text-white">{{ t(preset.nameKey) }}</span>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400 font-mono italic">
+            {{ t(preset.contentKey) }}
+          </p>
+        </button>
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isPresetModalOpen = false">
+          {{ t('common.cancel') }}
         </UButton>
       </template>
     </UiAppModal>

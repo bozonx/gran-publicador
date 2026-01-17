@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateAuthorSignatureDto {
   @IsString()
@@ -8,10 +8,14 @@ export class UpdateAuthorSignatureDto {
 
   @IsString()
   @IsOptional()
-  @MaxLength(1000)
+  @MaxLength(200)
   content?: string;
 
   @IsBoolean()
   @IsOptional()
   isDefault?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  order?: number;
 }

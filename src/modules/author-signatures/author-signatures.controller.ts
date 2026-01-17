@@ -46,11 +46,6 @@ export class AuthorSignaturesController {
     return this.authorSignaturesService.findAllByChannel(channelId, req.user.id);
   }
 
-  @Get('presets')
-  getPresets() {
-    return this.authorSignaturesService.getPresets();
-  }
-
   @Get(':id')
   @UseGuards(SignatureAccessGuard)
   findOne(@Param('id') id: string) {
