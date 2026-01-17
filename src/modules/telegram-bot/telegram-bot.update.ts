@@ -227,7 +227,11 @@ export class TelegramBotUpdate {
             filename: mediaItem.fileName,
             mimeType: mediaItem.mimeType,
             sizeBytes: mediaItem.fileSize,
-            meta: {},
+            meta: {
+              telegram: {
+                thumbnailFileId: mediaItem.thumbnailFileId,
+              },
+            },
           });
 
           await this.publicationsService.addMedia(publication.id, userId, [
@@ -333,7 +337,11 @@ export class TelegramBotUpdate {
             filename: mediaItem.fileName,
             mimeType: mediaItem.mimeType,
             sizeBytes: mediaItem.fileSize,
-            meta: {},
+            meta: {
+              telegram: {
+                thumbnailFileId: mediaItem.thumbnailFileId,
+              },
+            },
           });
 
           await this.publicationsService.addMedia(session.publicationId, userId, [

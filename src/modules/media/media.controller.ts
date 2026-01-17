@@ -147,26 +147,39 @@ export class MediaController {
     // Get media to check storage type
     const media = await this.mediaService.findOne(id);
 
-    // Thumbnails only supported for FS storage
-    if (media.storageType !== StorageType.FS) {
-      throw new BadRequestException('Thumbnails are not supported for Telegram files');
+    // Thumbnails support
+    if (media.storageType === StorageType.FS) {
+      const width = widthStr ? parseInt(widthStr, 10) : 400;
+      const height = heightStr ? parseInt(heightStr, 10) : 400;
+      const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
+
+      const fileId = media.storagePath;
+      const { stream, status, headers } = await this.mediaService.getThumbnailStream(
+        fileId,
+        width,
+        height,
+        quality,
+      );
+
+      res.status(status);
+      res.headers(headers);
+      return res.send(stream);
+    } else if (media.storageType === StorageType.TELEGRAM) {
+      const width = widthStr ? parseInt(widthStr, 10) : 400;
+      const height = heightStr ? parseInt(heightStr, 10) : 400;
+      const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
+
+      return this.mediaService.streamMediaThumbnail(
+        id,
+        res.raw,
+        width,
+        height,
+        quality,
+        req.user.userId,
+      );
+    } else {
+      throw new BadRequestException('Unsupported storage type');
     }
-
-    const width = widthStr ? parseInt(widthStr, 10) : 400;
-    const height = heightStr ? parseInt(heightStr, 10) : 400;
-    const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
-
-    const fileId = media.storagePath;
-    const { stream, status, headers } = await this.mediaService.getThumbnailStream(
-      fileId,
-      width,
-      height,
-      quality,
-    );
-
-    res.status(status);
-    res.headers(headers);
-    return res.send(stream);
   }
 
   /**

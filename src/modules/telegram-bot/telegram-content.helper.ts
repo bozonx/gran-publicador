@@ -4,6 +4,7 @@ import { MediaType } from '../../generated/prisma/client.js';
 export interface ExtractedMedia {
   type: MediaType;
   fileId: string;
+  thumbnailFileId?: string;
   fileName?: string;
   mimeType?: string;
   fileSize?: number;
@@ -37,11 +38,18 @@ export function extractMedia(message: Message): ExtractedMedia[] {
 
   // Photo
   if ('photo' in message && message.photo) {
-    // Get the largest photo
+    // Get the largest photo (main)
     const largestPhoto = message.photo[message.photo.length - 1];
+    // Get a thumbnail (middle one if possible, or the smallest)
+    let thumbPhoto = message.photo[0];
+    if (message.photo.length > 2) {
+      thumbPhoto = message.photo[1]; // Usually ~320px
+    }
+
     media.push({
       type: MediaType.IMAGE,
       fileId: largestPhoto.file_id,
+      thumbnailFileId: thumbPhoto.file_id,
       fileSize: largestPhoto.file_size,
     });
   }
@@ -51,6 +59,7 @@ export function extractMedia(message: Message): ExtractedMedia[] {
     media.push({
       type: MediaType.VIDEO,
       fileId: message.video.file_id,
+      thumbnailFileId: (message.video as any).thumbnail?.file_id || (message.video as any).thumb?.file_id,
       fileName: message.video.file_name,
       mimeType: message.video.mime_type,
       fileSize: message.video.file_size,
@@ -62,6 +71,7 @@ export function extractMedia(message: Message): ExtractedMedia[] {
     media.push({
       type: MediaType.DOCUMENT,
       fileId: message.document.file_id,
+      thumbnailFileId: (message.document as any).thumbnail?.file_id || (message.document as any).thumb?.file_id,
       fileName: message.document.file_name,
       mimeType: message.document.mime_type,
       fileSize: message.document.file_size,
