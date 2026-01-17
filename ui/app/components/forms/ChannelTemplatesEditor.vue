@@ -216,11 +216,7 @@ async function handleDeleteRequest(id: string) {
     affectedPostsCount.value = count
     isCheckingUsage.value = false
     
-    if (count > 0) {
-        isDeleteWarningModalOpen.value = true
-    } else {
-        confirmDeleteTemplate()
-    }
+    isDeleteWarningModalOpen.value = true
 }
 
 function confirmDeleteTemplate() {
@@ -561,7 +557,7 @@ watch(() => props.channel.preferences?.templates, (newTemplates) => {
     <UiConfirmModal
       v-model:open="isDeleteWarningModalOpen"
       :title="t('channel.templateUpdateWarning')"
-      :description="t('channel.templateInUseWarning', { count: affectedPostsCount }, `This template is used in ${affectedPostsCount} scheduled posts. Deleting it will cause these posts to use the default template.`) + '\n\n' + t('common.areYouSure')"
+      :description="affectedPostsCount > 0 ? t('channel.templateInUseWarning', { count: affectedPostsCount }, `This template is used in ${affectedPostsCount} scheduled posts. Deleting it will cause these posts to use the default template.`) + '\n\n' + t('common.areYouSure') : t('channel.templateDeleteConfirm')"
       color="warning"
       icon="i-heroicons-exclamation-triangle"
       @confirm="confirmDeleteTemplate"

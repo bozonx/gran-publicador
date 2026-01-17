@@ -57,6 +57,9 @@
     "none": "None",
     "submit": "Submit",
     "reset": "Reset",
+    "add": "Add",
+    "name": "Name",
+    "areYouSure": "Are you sure?",
     "required": "Required",
     "optional": "Optional",
     "noData": "No data",
@@ -399,6 +402,8 @@
     "templateDeleteConfirmTitle": "Delete Template",
     "templateReset": "Reset blocks",
     "templateSectionDesc": "Configure rules for automatic post text generation for this channel.",
+    "templateUpdateWarning": "Delete Template",
+    "templateInUseWarning": "This template is used in {count} scheduled posts. Deleting it will cause these posts to use the default template.",
     "templateTagCase": "Tag Case and Style",
     "tagCaseOptions": {
       "none": "None",
