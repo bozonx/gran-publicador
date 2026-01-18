@@ -30,18 +30,20 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot = new Bot(appConfig.telegramBotToken);
 
     // Register handlers
-    this.bot.command('start', (ctx) => this.telegramBotUpdate.onStart(ctx));
-    this.bot.on('message', (ctx) => this.telegramBotUpdate.onMessage(ctx));
-    this.bot.on('callback_query:data', (ctx) => this.telegramBotUpdate.onCallbackQuery(ctx));
+    this.bot.command('start', ctx => this.telegramBotUpdate.onStart(ctx));
+    this.bot.on('message', ctx => this.telegramBotUpdate.onMessage(ctx));
+    this.bot.on('callback_query:data', ctx => this.telegramBotUpdate.onCallbackQuery(ctx));
 
     // Start bot
-    this.bot.start({
-      onStart: (botInfo) => {
-        this.logger.log(`Telegram Bot @${botInfo.username ?? 'unknown'} started`);
-      },
-    }).catch((err) => {
-      this.logger.error(`Error starting Telegram Bot: ${err.message}`, err.stack);
-    });
+    this.bot
+      .start({
+        onStart: botInfo => {
+          this.logger.log(`Telegram Bot @${botInfo.username ?? 'unknown'} started`);
+        },
+      })
+      .catch(err => {
+        this.logger.error(`Error starting Telegram Bot: ${err.message}`, err.stack);
+      });
   }
 
   public async onModuleDestroy(): Promise<void> {

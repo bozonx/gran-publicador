@@ -113,7 +113,9 @@ export class LlmService {
         throw new Error('LLM Router returned empty choices array');
       }
 
-      this.logger.debug(`LLM Router success: ${data.model} (fallback: ${data._router?.fallback_used})`);
+      this.logger.debug(
+        `LLM Router success: ${data.model} (fallback: ${data._router?.fallback_used})`,
+      );
 
       return data;
     } catch (error: any) {
@@ -124,7 +126,7 @@ export class LlmService {
 
   /**
    * Builds the full prompt string combining user prompt with formatted context.
-   * 
+   *
    * @param dto - The generate content DTO containing prompt and context sources.
    * @returns A fully constructed prompt string ready for LLM consumption.
    * @private
@@ -200,25 +202,18 @@ export class LlmService {
     // Filter source texts if specific indexes are selected
     let sourceTexts = dto.sourceTexts;
     if (dto.selectedSourceIndexes && dto.selectedSourceIndexes.length > 0 && sourceTexts) {
-      sourceTexts = dto.selectedSourceIndexes
-        .map(index => sourceTexts![index])
-        .filter(Boolean);
+      sourceTexts = dto.selectedSourceIndexes.map(index => sourceTexts![index]).filter(Boolean);
     }
 
     // Determine content to include
     const content = dto.useContent ? dto.content : undefined;
 
-    return buildPromptWithContext(
-      dto.prompt,
-      content,
-      sourceTexts,
-      { includeMetadata: true },
-    );
+    return buildPromptWithContext(dto.prompt, content, sourceTexts, { includeMetadata: true });
   }
 
   /**
    * Helper method to extract the text content from a standard LLM Router response.
-   * 
+   *
    * @param response - The raw response from the LLM Router.
    * @returns The text content of the first choice message, or an empty string if not found.
    */

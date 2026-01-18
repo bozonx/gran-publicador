@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
@@ -11,7 +16,7 @@ export class LlmPromptTemplatesService {
 
   /**
    * Creates a new LLM prompt template for either a user or a project.
-   * 
+   *
    * @param createDto - Data for creating the template (name, description, prompt, userId/projectId).
    * @returns The newly created template record.
    * @throws BadRequestException if both OR neither userId and projectId are provided.
@@ -20,15 +25,11 @@ export class LlmPromptTemplatesService {
   async create(createDto: CreateLlmPromptTemplateDto) {
     // Validate that either userId or projectId is provided, but not both
     if (createDto.userId && createDto.projectId) {
-      throw new BadRequestException(
-        'Cannot specify both userId and projectId',
-      );
+      throw new BadRequestException('Cannot specify both userId and projectId');
     }
 
     if (!createDto.userId && !createDto.projectId) {
-      throw new BadRequestException(
-        'Must specify either userId or projectId',
-      );
+      throw new BadRequestException('Must specify either userId or projectId');
     }
 
     // Validate prompt length
@@ -41,10 +42,7 @@ export class LlmPromptTemplatesService {
     // Auto-calculate order if not provided
     let order = createDto.order ?? 0;
     if (order === 0) {
-      const maxOrder = await this.getMaxOrder(
-        createDto.userId,
-        createDto.projectId,
-      );
+      const maxOrder = await this.getMaxOrder(createDto.userId, createDto.projectId);
       order = maxOrder + 1;
     }
 
@@ -58,16 +56,13 @@ export class LlmPromptTemplatesService {
 
   /**
    * Retrieves the maximum order value among existing templates for the given owner.
-   * 
+   *
    * @param userId - Optional user ID for personal templates.
    * @param projectId - Optional project ID for project templates.
    * @returns The maximum order value found, or -1 if no templates exist.
    * @private
    */
-  private async getMaxOrder(
-    userId?: string,
-    projectId?: string,
-  ): Promise<number> {
+  private async getMaxOrder(userId?: string, projectId?: string): Promise<number> {
     const result = await this.prisma.llmPromptTemplate.aggregate({
       where: userId ? { userId } : { projectId },
       _max: { order: true },
@@ -78,7 +73,7 @@ export class LlmPromptTemplatesService {
 
   /**
    * Retrieves all personal templates for a specific user.
-   * 
+   *
    * @param userId - ID of the user whose templates to retrieve.
    * @returns Array of prompt templates ordered by display order.
    */
@@ -91,7 +86,7 @@ export class LlmPromptTemplatesService {
 
   /**
    * Retrieves all project-specific templates for a specific project.
-   * 
+   *
    * @param projectId - ID of the project whose templates to retrieve.
    * @returns Array of prompt templates ordered by display order.
    */
@@ -104,7 +99,7 @@ export class LlmPromptTemplatesService {
 
   /**
    * Retrieves a single template by its unique ID.
-   * 
+   *
    * @param id - The UUID of the template.
    * @returns The template record.
    * @throws NotFoundException if the template does not exist.
@@ -123,7 +118,7 @@ export class LlmPromptTemplatesService {
 
   /**
    * Updates an existing template.
-   * 
+   *
    * @param id - The UUID of the template to update.
    * @param updateDto - The fields to update.
    * @returns The updated template record.
@@ -148,7 +143,7 @@ export class LlmPromptTemplatesService {
 
   /**
    * Permanently deletes a template.
-   * 
+   *
    * @param id - The UUID of the template to delete.
    * @returns The deleted template record.
    * @throws NotFoundException if the template does not exist.
@@ -164,7 +159,7 @@ export class LlmPromptTemplatesService {
   /**
    * Updates the display order of multiple templates simultaneously.
    * All templates in the list must belong to the same scope (same user or same project).
-   * 
+   *
    * @param ids - Ordered list of template UUIDs.
    * @param userId - ID of the user performing the reorder (for permission verification).
    * @returns Success status indicator.
@@ -198,27 +193,19 @@ export class LlmPromptTemplatesService {
     // Validate that all templates belong to the same scope
     const firstTemplate = templates[0];
     const isUserScope = !!firstTemplate.userId;
-    const scopeId = isUserScope
-      ? firstTemplate.userId
-      : firstTemplate.projectId;
+    const scopeId = isUserScope ? firstTemplate.userId : firstTemplate.projectId;
 
     for (const template of templates) {
-      const templateScopeId = isUserScope
-        ? template.userId
-        : template.projectId;
+      const templateScopeId = isUserScope ? template.userId : template.projectId;
 
       if (templateScopeId !== scopeId) {
-        throw new BadRequestException(
-          'Cannot reorder templates from different scopes',
-        );
+        throw new BadRequestException('Cannot reorder templates from different scopes');
       }
 
       // Verify ownership
       if (isUserScope) {
         if (template.userId !== userId) {
-          throw new ForbiddenException(
-            'You do not have permission to reorder these templates',
-          );
+          throw new ForbiddenException('You do not have permission to reorder these templates');
         }
       } else {
         // Project template - check membership
@@ -226,9 +213,7 @@ export class LlmPromptTemplatesService {
         const isOwner = template.project?.ownerId === userId;
 
         if (!isMember && !isOwner) {
-          throw new ForbiddenException(
-            'You do not have permission to reorder these templates',
-          );
+          throw new ForbiddenException('You do not have permission to reorder these templates');
         }
       }
     }
@@ -250,7 +235,7 @@ export class LlmPromptTemplatesService {
    * Verifies that a specific user has access to a specific template.
    * For personal templates: user must be the owner (userId matches).
    * For project templates: user must be a member or the owner of the project.
-   * 
+   *
    * @param templateId - ID of the template to check.
    * @param userId - ID of the user to verify access for.
    * @returns True if access is granted, False otherwise.
@@ -288,4 +273,3 @@ export class LlmPromptTemplatesService {
     return false;
   }
 }
-

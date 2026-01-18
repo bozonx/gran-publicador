@@ -14,9 +14,9 @@ const mockFetch = jest.fn();
 
 describe('SocialPostingService', () => {
   let service: SocialPostingService;
-  
+
   const mockI18nService = {
-    translate: jest.fn().mockImplementation((key) => key),
+    translate: jest.fn().mockImplementation(key => key),
   };
 
   // Set fallback env var for Media Storage

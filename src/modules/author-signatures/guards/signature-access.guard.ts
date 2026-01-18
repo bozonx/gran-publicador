@@ -20,7 +20,7 @@ export class SignatureAccessGuard implements CanActivate {
     const user = request.user;
     const signatureId = request.params.id;
 
-    if (!user || !user.id) {
+    if (!user?.id) {
       throw new ForbiddenException('User not authenticated');
     }
 
@@ -31,9 +31,7 @@ export class SignatureAccessGuard implements CanActivate {
     const hasAccess = await this.authorSignaturesService.checkAccess(signatureId, user.id);
 
     if (!hasAccess) {
-      throw new ForbiddenException(
-        'You do not have permission to access this signature',
-      );
+      throw new ForbiddenException('You do not have permission to access this signature');
     }
 
     return true;

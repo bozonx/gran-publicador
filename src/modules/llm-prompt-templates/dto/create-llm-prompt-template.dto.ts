@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsInt,
-  Min,
-  ValidateIf,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, Min, ValidateIf } from 'class-validator';
 
 export class CreateLlmPromptTemplateDto {
   @IsString()
@@ -28,13 +21,13 @@ export class CreateLlmPromptTemplateDto {
   // Either userId or projectId must be provided, but not both
   @IsString()
   @IsOptional()
-  @ValidateIf((o) => !o.projectId)
+  @ValidateIf(o => !o.projectId)
   @IsNotEmpty({ message: 'Either userId or projectId must be provided' })
   userId?: string;
 
   @IsString()
   @IsOptional()
-  @ValidateIf((o) => !o.userId)
+  @ValidateIf(o => !o.userId)
   @IsNotEmpty({ message: 'Either userId or projectId must be provided' })
   projectId?: string;
 }

@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { LlmController } from './llm.controller';
 import { LlmService } from './llm.service';
-import { GenerateContentDto } from './dto/generate-content.dto';
+import type { GenerateContentDto } from './dto/generate-content.dto';
 
 describe('LlmController', () => {
   let controller: LlmController;
@@ -88,13 +88,9 @@ describe('LlmController', () => {
         max_tokens: 2000,
       };
 
-      mockLlmService.generateContent.mockRejectedValue(
-        new Error('Service error'),
-      );
+      mockLlmService.generateContent.mockRejectedValue(new Error('Service error'));
 
-      await expect(controller.generateContent(dto)).rejects.toThrow(
-        'Service error',
-      );
+      await expect(controller.generateContent(dto)).rejects.toThrow('Service error');
     });
   });
 });

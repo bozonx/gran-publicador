@@ -30,7 +30,7 @@ describe('PostsService (unit)', () => {
       count: jest.fn() as any,
     },
     authorSignature: {
-        findFirst: jest.fn() as any,
+      findFirst: jest.fn() as any,
     },
   };
 

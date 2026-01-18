@@ -40,7 +40,7 @@ export class AuthorSignaturesService {
   async findAllByChannel(channelId: string, currentUserId: string) {
     // We need to find all signatures for the channel that the current user has access to.
     // According to the plan: signatures are visible to the creator, project admin, and project owner.
-    
+
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
       include: {

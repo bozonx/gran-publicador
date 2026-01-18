@@ -20,7 +20,7 @@ export class TemplateOwnershipGuard implements CanActivate {
     const user = request.user;
     const templateId = request.params.id;
 
-    if (!user || !user.id) {
+    if (!user?.id) {
       throw new ForbiddenException('User not authenticated');
     }
 
@@ -53,8 +53,7 @@ export class TemplateOwnershipGuard implements CanActivate {
 
     // Check if user has access to the project (project template)
     if (template.projectId) {
-      const isMember =
-        template.project?.members && template.project.members.length > 0;
+      const isMember = template.project?.members && template.project.members.length > 0;
       const isOwner = template.project?.ownerId === user.id;
 
       if (isMember || isOwner) {
@@ -62,8 +61,6 @@ export class TemplateOwnershipGuard implements CanActivate {
       }
     }
 
-    throw new ForbiddenException(
-      'You do not have permission to access this template',
-    );
+    throw new ForbiddenException('You do not have permission to access this template');
   }
 }

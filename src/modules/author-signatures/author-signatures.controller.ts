@@ -35,8 +35,8 @@ export class AuthorSignaturesController {
     // Basic verification: user can only see their own signatures unless they are admin/owner (handled in service)
     // For now, simple check:
     if (req.user.id !== userId && !req.user.isAdmin) {
-        // FindAllByChannel should be used for project-wide visibility
-        throw new Error('Unauthorized access to user signatures');
+      // FindAllByChannel should be used for project-wide visibility
+      throw new Error('Unauthorized access to user signatures');
     }
     return this.authorSignaturesService.findAllByUser(userId, channelId);
   }

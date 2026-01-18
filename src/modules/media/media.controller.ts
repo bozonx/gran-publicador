@@ -87,10 +87,7 @@ export class MediaController {
     }
 
     // Upload to Media Storage via URL
-    const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
-      body.url,
-      body.filename,
-    );
+    const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(body.url, body.filename);
 
     // Determine media type from mimetype
     let type: MediaType = MediaType.DOCUMENT;
@@ -128,7 +125,6 @@ export class MediaController {
       return 'downloaded-file';
     }
   }
-
 
   @Get()
   @UseGuards(JwtOrApiTokenGuard)

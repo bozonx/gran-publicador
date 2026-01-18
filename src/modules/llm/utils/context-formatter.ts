@@ -31,7 +31,7 @@ export function formatContext(
   options: FormatContextOptions = {},
 ): string {
   const { includeMetadata = false } = options;
-  
+
   let context = '';
 
   // Add main content if provided
@@ -42,15 +42,13 @@ export function formatContext(
   // Add source texts if provided
   if (sourceTexts && sourceTexts.length > 0) {
     context += `=== SOURCE MATERIALS ===\n\n`;
-    
+
     // Sort by order if specified
-    const sortedSources = [...sourceTexts].sort((a, b) => 
-      (a.order ?? 0) - (b.order ?? 0)
-    );
+    const sortedSources = [...sourceTexts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     for (let i = 0; i < sortedSources.length; i++) {
       const source = sortedSources[i];
-      
+
       context += `--- SOURCE ${i + 1}`;
       if (includeMetadata && source.source) {
         context += ` (${source.source})`;
@@ -72,7 +70,7 @@ export function buildPromptWithContext(
   options: FormatContextOptions = {},
 ): string {
   const context = formatContext(content, sourceTexts, options);
-  
+
   if (!context) {
     return userPrompt;
   }

@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { LlmPromptTemplatesService } from './llm-prompt-templates.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
-import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
+import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
+import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
 
 describe('LlmPromptTemplatesService', () => {
   let service: LlmPromptTemplatesService;
@@ -187,9 +187,7 @@ describe('LlmPromptTemplatesService', () => {
     it('should throw NotFoundException when template not found', async () => {
       mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('nonexistent')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -224,9 +222,7 @@ describe('LlmPromptTemplatesService', () => {
         id: 'template-1',
       });
 
-      await expect(service.update('template-1', updateDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.update('template-1', updateDto)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -305,9 +301,7 @@ describe('LlmPromptTemplatesService', () => {
         { id: 'template-1', userId },
       ]);
 
-      await expect(service.reorder(ids, userId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.reorder(ids, userId)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw error when templates belong to different scopes', async () => {
@@ -321,9 +315,7 @@ describe('LlmPromptTemplatesService', () => {
 
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
 
-      await expect(service.reorder(ids, userId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.reorder(ids, userId)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw error when user does not own templates', async () => {
@@ -337,9 +329,7 @@ describe('LlmPromptTemplatesService', () => {
 
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
 
-      await expect(service.reorder(ids, userId)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.reorder(ids, userId)).rejects.toThrow(ForbiddenException);
     });
   });
 

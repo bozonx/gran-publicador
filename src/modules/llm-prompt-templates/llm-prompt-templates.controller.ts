@@ -20,9 +20,7 @@ import { TemplateOwnershipGuard } from './guards/template-ownership.guard.js';
 @Controller('llm-prompt-templates')
 @UseGuards(JwtAuthGuard)
 export class LlmPromptTemplatesController {
-  constructor(
-    private readonly llmPromptTemplatesService: LlmPromptTemplatesService,
-  ) {}
+  constructor(private readonly llmPromptTemplatesService: LlmPromptTemplatesService) {}
 
   @Post()
   create(@Body() createDto: CreateLlmPromptTemplateDto) {
@@ -37,9 +35,7 @@ export class LlmPromptTemplatesController {
   findAllByUser(@Param('userId') userId: string, @Request() req: any) {
     // Verify that the user is requesting their own templates
     if (req.user.id !== userId) {
-      throw new ForbiddenException(
-        'You can only access your own templates',
-      );
+      throw new ForbiddenException('You can only access your own templates');
     }
 
     return this.llmPromptTemplatesService.findAllByUser(userId);
@@ -50,10 +46,7 @@ export class LlmPromptTemplatesController {
    * User must be a member or owner of the project.
    */
   @Get('project/:projectId')
-  async findAllByProject(
-    @Param('projectId') projectId: string,
-    @Request() req: any,
-  ) {
+  async findAllByProject(@Param('projectId') projectId: string, @Request() req: any) {
     // Note: Project membership check is done in the service layer
     // through the Prisma query that includes project members
     return this.llmPromptTemplatesService.findAllByProject(projectId);
@@ -67,10 +60,7 @@ export class LlmPromptTemplatesController {
 
   @Patch(':id')
   @UseGuards(TemplateOwnershipGuard)
-  update(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateLlmPromptTemplateDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateLlmPromptTemplateDto) {
     return this.llmPromptTemplatesService.update(id, updateDto);
   }
 
@@ -89,4 +79,3 @@ export class LlmPromptTemplatesController {
     return this.llmPromptTemplatesService.reorder(reorderDto.ids, req.user.id);
   }
 }
-

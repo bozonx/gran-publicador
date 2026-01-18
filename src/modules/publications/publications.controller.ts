@@ -57,7 +57,11 @@ export class PublicationsController {
     @Body() createPublicationDto: CreatePublicationDto,
   ) {
     // Validate project scope for API token users if projectId is provided
-    if (createPublicationDto.projectId && req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
+    if (
+      createPublicationDto.projectId &&
+      req.user.scopeProjectIds &&
+      req.user.scopeProjectIds.length > 0
+    ) {
       ApiTokenGuard.validateProjectScope(createPublicationDto.projectId, req.user.scopeProjectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,

@@ -109,7 +109,10 @@ export class SocialPostingRequestFormatter {
     return request;
   }
 
-  private static mapMedia(publicationMedia: any[], mediaStorageUrl: string): Partial<PostRequestDto> {
+  private static mapMedia(
+    publicationMedia: any[],
+    mediaStorageUrl: string,
+  ): Partial<PostRequestDto> {
     if (!publicationMedia || publicationMedia.length === 0) return {};
 
     if (publicationMedia.length === 1) {

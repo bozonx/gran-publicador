@@ -1,4 +1,4 @@
-import { Message } from 'grammy/types';
+import type { Message } from 'grammy/types';
 import { MediaType } from '../../generated/prisma/client.js';
 
 export interface ExtractedMedia {
@@ -61,7 +61,8 @@ export function extractMedia(message: Message): ExtractedMedia[] {
     media.push({
       type: MediaType.VIDEO,
       fileId: message.video.file_id,
-      thumbnailFileId: (message.video as any).thumbnail?.file_id || (message.video as any).thumb?.file_id,
+      thumbnailFileId:
+        (message.video as any).thumbnail?.file_id || (message.video as any).thumb?.file_id,
       fileName: message.video.file_name,
       mimeType: message.video.mime_type,
       fileSize: message.video.file_size,
@@ -74,7 +75,8 @@ export function extractMedia(message: Message): ExtractedMedia[] {
     media.push({
       type: MediaType.DOCUMENT,
       fileId: message.document.file_id,
-      thumbnailFileId: (message.document as any).thumbnail?.file_id || (message.document as any).thumb?.file_id,
+      thumbnailFileId:
+        (message.document as any).thumbnail?.file_id || (message.document as any).thumb?.file_id,
       fileName: message.document.file_name,
       mimeType: message.document.mime_type,
       fileSize: message.document.file_size,

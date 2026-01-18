@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { LlmService } from './llm.service';
-import { GenerateContentDto } from './dto/generate-content.dto';
+import type { GenerateContentDto } from './dto/generate-content.dto';
 
 describe('LlmService', () => {
   let service: LlmService;
@@ -129,7 +129,7 @@ describe('LlmService', () => {
 
       const callArgs = mockFetch.mock.calls[0][1];
       const requestBody = JSON.parse(callArgs.body);
-      
+
       // Verify that the prompt includes context
       expect(requestBody.messages[0].content).toContain('MAIN CONTENT');
       expect(requestBody.messages[0].content).toContain('Main content here');
@@ -153,9 +153,7 @@ describe('LlmService', () => {
         text: async () => 'Bad request',
       });
 
-      await expect(service.generateContent(dto)).rejects.toThrow(
-        'LLM Router returned 400',
-      );
+      await expect(service.generateContent(dto)).rejects.toThrow('LLM Router returned 400');
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });

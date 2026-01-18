@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { LlmPromptTemplatesController } from './llm-prompt-templates.controller';
 import { LlmPromptTemplatesService } from './llm-prompt-templates.service';
-import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
-import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
-import { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto';
+import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
+import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
+import type { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto';
 
 describe('LlmPromptTemplatesController', () => {
   let controller: LlmPromptTemplatesController;
@@ -37,12 +37,8 @@ describe('LlmPromptTemplatesController', () => {
       ],
     }).compile();
 
-    controller = module.get<LlmPromptTemplatesController>(
-      LlmPromptTemplatesController,
-    );
-    service = module.get<LlmPromptTemplatesService>(
-      LlmPromptTemplatesService,
-    );
+    controller = module.get<LlmPromptTemplatesController>(LlmPromptTemplatesController);
+    service = module.get<LlmPromptTemplatesService>(LlmPromptTemplatesService);
   });
 
   afterEach(() => {
@@ -83,9 +79,9 @@ describe('LlmPromptTemplatesController', () => {
     });
 
     it('should throw ForbiddenException when user requests other user templates', async () => {
-      await expect(
-        controller.findAllByUser('other-user', mockRequest),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(controller.findAllByUser('other-user', mockRequest)).rejects.toThrow(
+        ForbiddenException,
+      );
 
       expect(service.findAllByUser).not.toHaveBeenCalled();
     });

@@ -93,7 +93,10 @@ export class PublicationsService {
   /**
    * Helper to normalize media input from string or object.
    */
-  private getMediaInput(item: string | PublicationMediaInputDto): { id: string; hasSpoiler: boolean } {
+  private getMediaInput(item: string | PublicationMediaInputDto): {
+    id: string;
+    hasSpoiler: boolean;
+  } {
     if (typeof item === 'string') {
       return { id: item, hasSpoiler: false };
     }
@@ -817,7 +820,9 @@ export class PublicationsService {
                 ...(data.media || []).map(m => ({ type: m.type })),
                 ...((await this.prisma.media.findMany({
                   where: {
-                    id: { in: (data.existingMediaIds || []).map(item => this.getMediaInput(item).id) },
+                    id: {
+                      in: (data.existingMediaIds || []).map(item => this.getMediaInput(item).id),
+                    },
                   },
                   select: { type: true },
                 })) as any),

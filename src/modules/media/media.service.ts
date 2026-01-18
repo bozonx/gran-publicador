@@ -213,9 +213,7 @@ export class MediaService {
         await this.deleteFileFromStorage(fileId);
         this.logger.log(`Deleted file from Media Storage: ${fileId}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to delete file from Media Storage: ${(error as Error).message}`,
-        );
+        this.logger.error(`Failed to delete file from Media Storage: ${(error as Error).message}`);
         // Continue with DB deletion even if storage deletion fails
       }
     }
@@ -284,9 +282,7 @@ export class MediaService {
       if ((error as any).name === 'AbortError') {
         throw new InternalServerErrorException('Media Storage request timed out');
       }
-      throw new InternalServerErrorException(
-        `Failed to upload file: ${(error as Error).message}`,
-      );
+      throw new InternalServerErrorException(`Failed to upload file: ${(error as Error).message}`);
     }
   }
 
@@ -354,7 +350,6 @@ export class MediaService {
     }
   }
 
-
   /**
    * Delete file from Media Storage microservice.
    */
@@ -383,9 +378,7 @@ export class MediaService {
       if ((error as any).name === 'AbortError') {
         throw new InternalServerErrorException('Media Storage request timed out');
       }
-      throw new InternalServerErrorException(
-        `Failed to delete file: ${(error as Error).message}`,
-      );
+      throw new InternalServerErrorException(`Failed to delete file: ${(error as Error).message}`);
     }
   }
 
@@ -463,7 +456,11 @@ export class MediaService {
       headers['Range'] = range;
     }
 
-    return this.proxyFromStorage(`${this.mediaStorageUrl}/files/${fileId}/download`, 'GET', headers);
+    return this.proxyFromStorage(
+      `${this.mediaStorageUrl}/files/${fileId}/download`,
+      'GET',
+      headers,
+    );
   }
 
   /**
@@ -592,7 +589,9 @@ export class MediaService {
 
       const downloadResponse = await this.fetch(downloadUrl);
       if (!downloadResponse.ok) {
-        this.logger.warn(`Failed to download from Telegram (${fileId}): ${downloadResponse.status}`);
+        this.logger.warn(
+          `Failed to download from Telegram (${fileId}): ${downloadResponse.status}`,
+        );
         throw new InternalServerErrorException('Failed to download from Telegram');
       }
 
@@ -617,7 +616,9 @@ export class MediaService {
       if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error(`Failed to get stream from Telegram (${fileId}): ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to get stream from Telegram (${fileId}): ${(error as Error).message}`,
+      );
       throw new InternalServerErrorException('Failed to stream file from Telegram');
     }
   }

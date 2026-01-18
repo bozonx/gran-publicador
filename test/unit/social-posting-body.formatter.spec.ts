@@ -207,7 +207,13 @@ describe('SocialPostingBodyFormatter', () => {
             order: 0,
             isDefault: true,
             template: [
-              { enabled: true, insert: 'custom', before: '', after: '', content: 'Signature: {{authorSignature}}' },
+              {
+                enabled: true,
+                insert: 'custom',
+                before: '',
+                after: '',
+                content: 'Signature: {{authorSignature}}',
+              },
             ],
           },
         ],

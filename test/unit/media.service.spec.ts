@@ -1,5 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException, InternalServerErrorException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -170,17 +175,18 @@ describe('MediaService (unit)', () => {
       // Verify FormData contains compression parameters in optimize field
       const callArgs = mockFetch.mock.calls[0];
       const formData = callArgs[1].body as FormData;
-      
+
       expect(formData).toBeInstanceOf(FormData);
       // In newer Node versions we can check the value
       if (typeof formData.get === 'function') {
-         const optimize = formData.get('optimize');
-         expect(optimize).toBeDefined();
-         expect(JSON.parse(optimize as string)).toEqual(expect.objectContaining({
+        const optimize = formData.get('optimize');
+        expect(optimize).toBeDefined();
+        expect(JSON.parse(optimize as string)).toEqual(
+          expect.objectContaining({
             format: 'webp',
-            quality: 85, // Note: FormData values are strings when parsed from env vars in config? 
+            quality: 85, // Note: FormData values are strings when parsed from env vars in config?
             // Wait, config service parses them to numbers in media.config.ts?
-            // createTestingModule sets env vars as strings. 
+            // createTestingModule sets env vars as strings.
             // media.config.ts parseInt them.
             // So they are numbers in the service.
             // JSON.stringify will keep them as numbers.
@@ -189,7 +195,8 @@ describe('MediaService (unit)', () => {
             // getThumbnailQuality -> parseInt.
             // getImageCompressionOptions -> uses parseInt.
             // So they are numbers.
-         }));
+          }),
+        );
       }
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -254,7 +261,7 @@ describe('MediaService (unit)', () => {
           body: expect.stringContaining(url),
         }),
       );
-      
+
       // Verify compression parameters are in the optimize field
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
@@ -314,7 +321,6 @@ describe('MediaService (unit)', () => {
       );
     });
   });
-
 
   describe('remove', () => {
     it('should delete from storage and database', async () => {
@@ -459,7 +465,9 @@ describe('MediaService (unit)', () => {
 
       mockPermissionsService.checkProjectAccess.mockRejectedValue(new ForbiddenException());
 
-      await expect(service.checkMediaAccess('media-1', 'user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.checkMediaAccess('media-1', 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

@@ -119,7 +119,10 @@ describe('SocialPostingRequestFormatter', () => {
     };
 
     const request = SocialPostingRequestFormatter.prepareRequest(paramsWithMedia);
-    expect(request.cover).toEqual({ src: 'http://media-storage/api/v1/files/file-123/download', hasSpoiler: false });
+    expect(request.cover).toEqual({
+      src: 'http://media-storage/api/v1/files/file-123/download',
+      hasSpoiler: false,
+    });
   });
 
   it('should handle multiple media mapping', () => {
@@ -150,6 +153,10 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.cover).toBeUndefined();
     expect(request.media).toHaveLength(2);
     expect(request.media![0]).toEqual({ type: 'image', src: 'file_id_1', hasSpoiler: false });
-    expect(request.media![1]).toEqual({ type: 'video', src: 'http://media-storage/api/v1/files/file-abc/download', hasSpoiler: false });
+    expect(request.media![1]).toEqual({
+      type: 'video',
+      src: 'http://media-storage/api/v1/files/file-abc/download',
+      hasSpoiler: false,
+    });
   });
 });

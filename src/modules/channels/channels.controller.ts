@@ -16,7 +16,12 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
 import { ChannelsService } from './channels.service.js';
-import { CreateChannelDto, UpdateChannelDto, FindChannelsQueryDto, ChannelResponseDto } from './dto/index.js';
+import {
+  CreateChannelDto,
+  UpdateChannelDto,
+  FindChannelsQueryDto,
+  ChannelResponseDto,
+} from './dto/index.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
 
 /**
@@ -121,9 +126,7 @@ export class ChannelsController {
     const channels = await this.channelsService.findArchivedForUser(req.user.userId);
 
     if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      return channels.filter(
-        c => c.projectId && req.user.scopeProjectIds?.includes(c.projectId),
-      );
+      return channels.filter(c => c.projectId && req.user.scopeProjectIds?.includes(c.projectId));
     }
 
     return channels;

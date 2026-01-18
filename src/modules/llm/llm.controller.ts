@@ -50,7 +50,7 @@ export class LlmController {
   @Post('generate')
   async generate(@Body() dto: GenerateContentDto) {
     const response = await this.llmService.generateContent(dto);
-    
+
     return {
       content: this.llmService.extractContent(response),
       metadata: response._router,
