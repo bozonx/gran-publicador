@@ -37,7 +37,8 @@ const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') 
 
 const { viewMode, isListView } = useViewMode('drafts-view', 'cards')
 
-async function fetchDrafts() {
+// Reactive fetch with automatic refetch on dependency changes
+watch([debouncedSearch, sortBy, sortOrder, currentPage], async () => {
   await fetchUserDrafts({
     limit: limit.value,
     offset: (currentPage.value - 1) * limit.value,
@@ -45,19 +46,11 @@ async function fetchDrafts() {
     sortBy: sortBy.value,
     sortOrder: sortOrder.value,
   })
-}
+}, { immediate: true })
 
-onMounted(() => {
-  fetchDrafts()
-})
-
+// Reset to page 1 when search/sort changes
 watch([debouncedSearch, sortBy, sortOrder], () => {
-    currentPage.value = 1
-    fetchDrafts()
-})
-
-watch(currentPage, () => {
-    fetchDrafts()
+  currentPage.value = 1
 })
 
 function goToDraft(pub: PublicationWithRelations) {
@@ -87,7 +80,7 @@ async function handleDelete() {
   if (success) {
     showDeleteModal.value = false
     publicationToDelete.value = null
-    fetchDrafts()
+    // Refetch will happen automatically via watch
   }
 }
 </script>
@@ -188,7 +181,6 @@ async function handleDelete() {
     <ModalsCreatePublicationModal
       v-if="isCreateModalOpen"
       v-model:open="isCreateModalOpen"
-      @success="fetchDrafts"
     />
   </div>
 </template>

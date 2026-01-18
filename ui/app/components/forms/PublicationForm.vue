@@ -1,11 +1,20 @@
 <script setup lang="ts">
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PostType, PublicationStatus } from '~/types/posts'
+import type { PublicationFormData } from '~/types/publication-form'
 import { usePublicationFormState, usePublicationFormValidation } from '~/composables/usePublicationForm'
+import { usePublicationValidator } from '~/composables/usePublicationValidator'
+import { usePublications } from '~/composables/usePublications'
+import { useProjects } from '~/composables/useProjects'
+import { useChannels } from '~/composables/useChannels'
+import { useFormDirtyState } from '~/composables/useFormDirtyState'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
+import { usePosts } from '~/composables/usePosts'
+import { useLanguages } from '~/composables/useLanguages'
 import { isTextContentEmpty } from '~/utils/text'
-import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 
 interface Props {
   /** Project ID for fetching channels (optional for personal drafts) */
@@ -26,36 +35,31 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
+// 1. Core utilities
 const { t } = useI18n()
+const router = useRouter()
 const route = useRoute()
 const toast = useToast()
-const { 
-  createPublication, 
-  updatePublication, 
-  createPostsFromPublication, 
-  isLoading, 
-  fetchPublicationsByProject, 
-  publications 
-} = usePublications()
-const { channels, fetchChannels } = useChannels()
+
+// 2. Publication state & logic
+const { updatePublication, createPublication, createPostsFromPublication, statusOptions, publications, fetchPublicationsByProject } = usePublications()
 const { projects, fetchProjects } = useProjects()
+const { channels, fetchChannels } = useChannels()
 const { typeOptions } = usePosts()
 const { languageOptions } = useLanguages()
-const { validatePostContent } = useSocialMediaValidation()
-
-// Form Initialization
-const languageParam = route.query.language as string | undefined
-const channelIdParam = route.query.channelId as string | undefined
-const state = usePublicationFormState(props.publication, languageParam)
-// Add project ID to state if we want to allow changing it
-const currentProjectId = ref<string | null>(props.publication?.projectId || props.projectId || null)
 const { schema } = usePublicationFormValidation(t)
+const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
+
+const languageParam = route.query.language as string | undefined
+const currentProjectId = ref<string | null>(props.publication?.projectId || props.projectId || null)
+const state = usePublicationFormState(props.publication, languageParam)
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const showAdvancedFields = ref(false)
 const linkedPublicationId = ref<string | undefined>(undefined)
 const showValidationWarning = ref(false)
-const pendingSubmitData = ref<any>(null)
+const pendingSubmitData = ref<PublicationFormData | null>(null)
+const isLoading = ref(false)
 
 const isEditMode = computed(() => !!props.publication?.id)
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
@@ -63,46 +67,34 @@ const isContentMissing = computed(() => isTextContentEmpty(state.content) && !ha
 
 // Social Media Validation
 const validationErrors = computed(() => {
-    const errors: string[] = []
     const mediaCount = props.publication?.media?.length || 0
     const mediaArray = props.publication?.media?.map(m => ({ type: m.media?.type || 'UNKNOWN' })) || []
     const postType = state.postType
 
-    // 1. Determine relevant channels
-    // Creating: checking selected channelIds
+    let errors = []
+    
     if (!isEditMode.value) {
-        state.channelIds.forEach(id => {
-            const channel = channels.value.find(c => c.id === id)
-            if (channel && channel.socialMedia) {
-                const result = validatePostContent(state.content, mediaCount, channel.socialMedia as any, mediaArray, postType)
-                if (!result.isValid) {
-                    result.errors.forEach(err => {
-                        errors.push(`${channel.name}: ${err.message}`)
-                    })
-                }
-            }
-        })
-    } 
-    // Editing: checking existing posts that inherit content
-    else if (props.publication?.posts) {
-         props.publication.posts.forEach((post: any) => {
-             // Check if post inherits content: null, undefined, or empty string.
-             const isInherited = isTextContentEmpty(post.content); 
-             const hasChannel = post.channel && post.channel.socialMedia;
-
-             if (isInherited && hasChannel) {
-                  const result = validatePostContent(state.content, mediaCount, post.channel.socialMedia as any, mediaArray, postType)
-                  
-                  if (!result.isValid) {
-                     result.errors.forEach(err => {
-                         errors.push(`${post.channel.name}: ${err.message}`)
-                     })
-                  }
-             }
-         })
+        // Creating: validate for selected channels
+        errors = validateForChannels(
+            state.content,
+            mediaCount,
+            mediaArray,
+            postType,
+            state.channelIds,
+            [] // Deprecated: channels.value is no longer required here
+        )
+    } else {
+        // Editing: validate for existing posts that inherit content
+        errors = validateForExistingPosts(
+            state.content,
+            mediaCount,
+            mediaArray,
+            postType,
+            props.publication
+        )
     }
 
-    return errors
+    return errors.map(e => `${e.channel}: ${e.message}`)
 })
 
 const isValid = computed(() => validationErrors.value.length === 0)
@@ -111,64 +103,20 @@ const isValid = computed(() => validationErrors.value.length === 0)
 // Dirty state tracking
 const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
 
+// Initial load
 onMounted(async () => {
-    // If we have any project ID (from props or from existing publication), load its data
     if (currentProjectId.value) {
-        await loadProjectData(currentProjectId.value)
+        await Promise.all([
+            fetchChannels({ projectId: currentProjectId.value }),
+            fetchPublicationsByProject(currentProjectId.value, { limit: 50 })
+        ])
     }
-
+    
     if (projects.value.length === 0) {
         await fetchProjects()
     }
-
-    // Auto-select channel if channelId parameter is provided
-    if (channelIdParam && !isEditMode.value) {
-      const selectedChannel = channels.value.find(ch => ch.id === channelIdParam)
-      if (selectedChannel) {
-        state.channelIds = [channelIdParam]
-        state.language = selectedChannel.language
-      }
-    } else if (languageParam && !isEditMode.value) {
-      state.channelIds = channels.value
-        .filter(ch => ch.language === languageParam)
-        .map(ch => ch.id)
-    }
     
     nextTick(() => saveOriginalState())
-})
-
-async function loadProjectData(id: string) {
-    await Promise.all([
-      fetchChannels({ projectId: id }),
-      fetchPublicationsByProject(id, { limit: 50 })
-    ])
-}
-
-const activeProjectsOptions = computed(() => {
-    return [
-        { value: null, label: t('publication.personal_draft') },
-        ...projects.value
-            .filter(p => !p.archivedAt)
-            .map(p => ({
-                value: p.id,
-                label: p.name
-            }))
-    ]
-})
-
-// Watch for project change to load new channels
-watch(currentProjectId, async (newId) => {
-    if (newId) {
-        await loadProjectData(newId)
-    } else {
-        channels.value = []
-        state.channelIds = []
-        // Personal drafts cannot be scheduled
-        if (state.status === 'SCHEDULED') {
-            state.status = 'DRAFT'
-        }
-        state.scheduledAt = ''
-    }
 })
 
 // Watch for external publication updates (e.g. from modals)
@@ -225,18 +173,18 @@ function handleUnlink() {
 async function handleSubmit(event: FormSubmitEvent<any>) {
   // If there are validation errors, show warning modal
   if (!isValid.value) {
-      pendingSubmitData.value = event.data
+      pendingSubmitData.value = event.data as PublicationFormData
       showValidationWarning.value = true
       return
   }
 
-  await performSubmit(event.data)
+  await performSubmit(event.data as PublicationFormData)
 }
 
 /**
  * Perform actual submission (called directly or after warning confirmation)
  */
-async function performSubmit(data: any) {
+async function performSubmit(data: PublicationFormData) {
   try {
     const commonData = {
       title: data.title || null,
@@ -339,12 +287,6 @@ function handleReset() {
   resetToOriginal()
 }
 
-const isSourceTextsOpen = ref(false)
-const isAddingSourceText = ref(false)
-const newSourceTextContent = ref('')
-const editingSourceTextIndex = ref<number | null>(null)
-const editingSourceTextContent = ref('')
-
 // Translation Logic
 const isTranslateModalOpen = ref(false)
 const translationSourceText = ref('')
@@ -367,86 +309,11 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
     }
 }
 
-function handleAddSourceText() {
-    if (!newSourceTextContent.value.trim()) return
-    if (!state.sourceTexts) state.sourceTexts = []
-    
-    state.sourceTexts.push({
-        content: newSourceTextContent.value,
-        source: 'manual',
-        order: state.sourceTexts.length
-    })
-    newSourceTextContent.value = ''
-    isAddingSourceText.value = false
-    isSourceTextsOpen.value = true // Ensure list is visible
-}
-
-function handleStartEditingSourceText(index: number) {
-    if (!state.sourceTexts) return
-    editingSourceTextIndex.value = index
-    editingSourceTextContent.value = state.sourceTexts[index].content
-}
-
-function handleSaveEditingSourceText() {
-    if (editingSourceTextIndex.value === null || !state.sourceTexts) return
-    state.sourceTexts[editingSourceTextIndex.value].content = editingSourceTextContent.value
-    editingSourceTextIndex.value = null
-    editingSourceTextContent.value = ''
-}
-
-function handleCancelEditingSourceText() {
-    editingSourceTextIndex.value = null
-    editingSourceTextContent.value = ''
-}
-
-function handleDeleteSourceText(index: number) {
-    if (!state.sourceTexts) return
-    const newList = [...state.sourceTexts]
-    newList.splice(index, 1)
-    state.sourceTexts = newList
-}
-
-function handleDeleteAllSourceTexts() {
-    state.sourceTexts = []
-    isSourceTextsOpen.value = false
-}
-
 </script>
 
 <template>
     <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit" @error="handleError">
       
-      <!-- Project Selection -->
-      <UFormField :label="t('project.title')" :help="t('publication.projectSelectorHelp')">
-        <USelectMenu
-          v-model="currentProjectId"
-          :items="activeProjectsOptions"
-          value-key="value"
-          label-key="label"
-          class="w-full"
-          :placeholder="t('project.selectProject')"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
-      </UFormField>
-
-      <!-- Channels Selection Section -->
-      <div v-if="currentProjectId">
-        <UFormField name="channelIds" :help="t('publication.channelsHelp')">
-          <template #label>
-            <div class="flex items-center gap-1.5">
-              <span>{{ t('channel.titlePlural') }}</span>
-              <CommonInfoTooltip :text="t('publication.channelsTooltip')" />
-            </div>
-          </template>
-            <FormsPublicationChannelSelector 
-              v-model="state.channelIds"
-              :channels="channels"
-              :current-language="state.language"
-            />
-        </UFormField>
       </div>
 
       <div :class="GRID_LAYOUTS.twoColumn">
@@ -578,135 +445,10 @@ function handleDeleteAllSourceTexts() {
       </UFormField>
 
       <!-- Source Texts Section -->
-      <!-- Source Texts Section -->
-      <div class="mb-6 ml-1">
-            <div class="flex items-center gap-2 mb-2">
-                <UButton
-                    variant="ghost"
-                    color="primary"
-                    size="sm"
-                    :icon="isSourceTextsOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-                    @click="isSourceTextsOpen = !isSourceTextsOpen"
-                >
-                    {{ isSourceTextsOpen ? t('sourceTexts.hide') : t('sourceTexts.view') }} ({{ state.sourceTexts?.length || 0 }})
-                </UButton>
-                
-                <UButton
-                    v-if="!isAddingSourceText"
-                    variant="soft"
-                    color="primary"
-                    size="xs"
-                    icon="i-heroicons-plus"
-                    :label="t('sourceTexts.add', 'Add Source Text')"
-                    @click="isAddingSourceText = true"
-                />
-            </div>
-
-            <!-- Add New Source Text Form -->
-            <div v-if="isAddingSourceText" class="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-                 <UTextarea
-                    v-model="newSourceTextContent"
-                    :placeholder="t('sourceTexts.placeholder', 'Enter source text here...')"
-                    autoresize
-                    :rows="3"
-                    class="w-full mb-2"
-                 />
-                 <div class="flex justify-end gap-2">
-                     <UButton
-                        color="neutral"
-                        variant="ghost"
-                        size="sm"
-                        :label="t('common.cancel')"
-                        @click="isAddingSourceText = false"
-                     />
-                     <UButton
-                        color="primary"
-                        size="sm"
-                        :label="t('common.add')"
-                        :disabled="!newSourceTextContent.trim()"
-                        @click="handleAddSourceText"
-                     />
-                 </div>
-            </div>
-
-            <div v-if="isSourceTextsOpen && state.sourceTexts && state.sourceTexts.length > 0" class="space-y-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-                <div class="flex justify-end">
-                    <UButton
-                        color="error"
-                        variant="ghost"
-                        size="xs"
-                        icon="i-heroicons-trash"
-                        @click="handleDeleteAllSourceTexts"
-                    >
-                        {{ t('sourceTexts.deleteAll') }}
-                    </UButton>
-                </div>
-
-                <div v-for="(item, index) in state.sourceTexts" :key="index" class="p-3 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-800 text-sm group hover:border-primary-200 dark:hover:border-primary-800/50 transition-colors">
-                    
-                    <!-- View Mode -->
-                    <div v-if="editingSourceTextIndex !== index">
-                        <div class="flex justify-between items-start gap-3">
-                            <div class="whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300 leading-relaxed font-normal">{{ item.content }}</div>
-                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <UButton
-                                    color="primary"
-                                    variant="ghost"
-                                    size="xs"
-                                    icon="i-heroicons-pencil-square"
-                                    @click="handleStartEditingSourceText(index)"
-                                />
-                                <UButton
-                                    color="primary"
-                                    variant="ghost"
-                                    size="xs"
-                                    icon="i-heroicons-language"
-                                    :title="t('sourceTexts.translate')"
-                                    @click="handleOpenTranslateModal(item.content)"
-                                />
-                                <UButton
-                                    color="neutral"
-                                    variant="ghost"
-                                    size="xs"
-                                    icon="i-heroicons-trash"
-                                    @click="handleDeleteSourceText(index)"
-                                />
-                            </div>
-                        </div>
-                        <div v-if="item.source && item.source !== 'manual'" class="mt-2 text-xs text-gray-400 font-mono flex items-center gap-1">
-                            <UIcon name="i-heroicons-link" class="w-3 h-3" />
-                            {{ item.source }}
-                        </div>
-                    </div>
-
-                    <!-- Edit Mode -->
-                    <div v-else>
-                        <UTextarea
-                            v-model="editingSourceTextContent"
-                            autoresize
-                            :rows="3"
-                            class="w-full mb-2"
-                        />
-                        <div class="flex justify-end gap-2">
-                             <UButton
-                                color="neutral"
-                                variant="ghost"
-                                size="xs"
-                                :label="t('common.cancel')"
-                                @click="handleCancelEditingSourceText"
-                             />
-                             <UButton
-                                color="primary"
-                                size="xs"
-                                :label="t('common.save')"
-                                @click="handleSaveEditingSourceText"
-                             />
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-      </div>
+      <FormsPublicationSourceTexts
+        v-model="state.sourceTexts"
+        @translate="handleOpenTranslateModal"
+      />
 
       
       <UFormField name="tags" :label="t('post.tags')" :help="t('post.tagsHint')">

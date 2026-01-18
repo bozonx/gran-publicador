@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CARD_STYLES } from '~/utils/design-tokens'
+
 interface Props {
   title?: string
   description?: string
@@ -17,8 +19,8 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <div class="app-card overflow-hidden">
-    <div v-if="title || description || $slots.actions || $slots.badges" class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+  <div :class="CARD_STYLES.base" class="overflow-hidden">
+    <div v-if="title || description || $slots.actions || $slots.badges" :class="[CARD_STYLES.paddingSpacious, CARD_STYLES.borderPrimary]" class="border-b">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <h2 v-if="title" :class="titleClass">
@@ -39,11 +41,11 @@ withDefaults(defineProps<Props>(), {
       </div>
     </div>
 
-    <div :class="padded ? 'px-6 py-4' : ''">
+    <div :class="padded ? CARD_STYLES.paddingNormal : ''">
       <slot />
     </div>
 
-    <div v-if="$slots.footer" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+    <div v-if="$slots.footer" :class="[CARD_STYLES.paddingSpacious, CARD_STYLES.borderPrimary]" class="border-t">
       <slot name="footer" />
     </div>
   </div>

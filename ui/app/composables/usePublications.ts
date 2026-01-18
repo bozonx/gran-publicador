@@ -64,6 +64,7 @@ export interface PublicationWithRelations extends Publication {
 export interface PublicationsFilter {
     status?: PublicationStatus | PublicationStatus[] | null;
     channelId?: string | null
+    projectId?: string | null
     limit?: number
     offset?: number
     includeArchived?: boolean
@@ -165,6 +166,7 @@ export function usePublications() {
                     : filters.status
             }
             if (filters.channelId) params.channelId = filters.channelId
+            if (filters.projectId) params.projectId = filters.projectId
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset
             if (filters.includeArchived) params.includeArchived = true

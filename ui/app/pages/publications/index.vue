@@ -3,6 +3,7 @@ import { usePublications } from '~/composables/usePublications'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useChannels } from '~/composables/useChannels'
+import { useUrlFilters } from '~/composables/useUrlQuery'
 
 import { useViewMode } from '~/composables/useViewMode'
 import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
@@ -30,64 +31,63 @@ const {
   deletePublication
 } = usePublications()
 
-// Initialize currentPage from URL query parameter
-const currentPage = ref(
-  route.query.page && typeof route.query.page === 'string' 
-    ? Math.max(1, parseInt(route.query.page, 10) || 1)
-    : 1
-)
+const { projects, fetchProjects } = useProjects()
+const { channels, fetchChannels } = useChannels()
 
-// Pagination state
-const limit = ref(DEFAULT_PAGE_SIZE)
-
-// Filter states
-// Initialize filters from URL
-const selectedStatus = ref<PublicationStatus | PublicationStatus[] | null>(
-  route.query.status 
-    ? (typeof route.query.status === 'string' && route.query.status.includes(',') 
-        ? route.query.status.split(',') as PublicationStatus[]
-        : route.query.status as PublicationStatus)
-    : null
-)
-const selectedChannelId = ref<string | null>(
-  (route.query.channelId as string) || null
-)
-const selectedProjectId = ref<string | null>(
-  (route.query.projectId as string) || null
-)
-const searchQuery = ref(
-  (route.query.search as string) || ''
-)
-const debouncedSearch = refDebounced(searchQuery, 300)
-
-// Computed model for status to handle type casting for USelectMenu
-const selectedStatusModel = computed({
-  get: () => selectedStatus.value as any,
-  set: (value: any) => {
-    selectedStatus.value = value
-  }
+// Filters synced with URL
+const filters = useUrlFilters<{
+  page: number
+  status: PublicationStatus | PublicationStatus[] | null
+  channelId: string | null
+  projectId: string | null
+  search: string
+  ownership: 'all' | 'own' | 'notOwn'
+  issue: 'all' | 'failed' | 'partial' | 'expired'
+  socialMedia: SocialMedia | null
+  language: string | null
+  archived: boolean
+  sortBy: string
+  sortOrder: string
+}>({
+  page: { defaultValue: 1, deserialize: (v: string) => Math.max(1, parseInt(v) || 1) },
+  status: { 
+    defaultValue: null, 
+    deserialize: (v: string) => (v.includes(',') ? v.split(',') : v) as any,
+    serialize: (v: any) => Array.isArray(v) ? v.join(',') : v
+  },
+  channelId: { defaultValue: null },
+  projectId: { defaultValue: null },
+  search: { defaultValue: '' },
+  ownership: { defaultValue: 'all' },
+  issue: { defaultValue: 'all' },
+  socialMedia: { defaultValue: null },
+  language: { defaultValue: null },
+  archived: { defaultValue: false, deserialize: (v: string) => v === 'true' },
+  sortBy: { defaultValue: 'chronology' },
+  sortOrder: { defaultValue: 'desc' },
 })
 
-// Ownership filter
-type OwnershipFilter = 'all' | 'own' | 'notOwn'
-const ownershipFilter = ref<OwnershipFilter>(
-  (route.query.ownership as OwnershipFilter) || 'all'
-)
+const currentPage = filters.page
+const selectedStatus = filters.status
+const selectedChannelId = filters.channelId
+const selectedProjectId = filters.projectId
+const searchQuery = filters.search
+const ownershipFilter = filters.ownership
+const selectedIssueType = filters.issue
+const selectedSocialMedia = filters.socialMedia
+const selectedLanguage = filters.language
+const showArchivedFilter = filters.archived
+const sortBy = filters.sortBy
+const sortOrder = filters.sortOrder
 
-// Filter options
-const showArchivedFilter = ref(route.query.archived === 'true') 
+const debouncedSearch = refDebounced(searchQuery, 300)
+const limit = ref(DEFAULT_PAGE_SIZE)
 
-type IssueFilter = 'all' | 'failed' | 'partial' | 'expired'
-const selectedIssueType = ref<IssueFilter>(
-  (route.query.issue as IssueFilter) || 'all'
-)
-
-const selectedSocialMedia = ref<SocialMedia | null>(
-  (route.query.socialMedia as SocialMedia) || null
-)
-const selectedLanguage = ref<string | null>(
-  (route.query.language as string) || null
-)
+// Computed model for status UI
+const selectedStatusModel = computed({
+  get: () => selectedStatus.value as any,
+  set: (v) => { selectedStatus.value = v }
+})
 
 // Sorting options
 const sortOptionsComputed = computed(() => [
@@ -97,17 +97,6 @@ const sortOptionsComputed = computed(() => [
   { id: 'createdAt', label: t('publication.sort.createdAt'), icon: 'i-heroicons-plus-circle' },
   { id: 'postDate', label: t('publication.sort.postDate'), icon: 'i-heroicons-calendar' }
 ])
-
-
-
-// Manual sorting state synced with URL
-type SortField = 'chronology' | 'byScheduled' | 'byPublished' | 'scheduledAt' | 'createdAt' | 'postDate' | 'publishedAt'
-const sortBy = ref<SortField>(
-  (route.query.sortBy as SortField) || 'chronology'
-)
-const sortOrder = ref<'asc' | 'desc'>(
-  (route.query.sortOrder as 'asc' | 'desc') || 'desc'
-)
 
 const currentSortOption = computed(() => 
   sortOptionsComputed.value.find(opt => opt.id === sortBy.value)
@@ -120,134 +109,50 @@ function toggleSortOrder() {
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('publications-view', 'list')
 
-// Projects
-const { projects, fetchProjects } = useProjects()
-
-// Channels
-const { channels, fetchChannels } = useChannels()
-
 // Fetch publications with current filters
 async function fetchPublications() {
-  const filters: any = {
+  await fetchUserPublications({
     limit: limit.value,
     offset: (currentPage.value - 1) * limit.value,
     includeArchived: showArchivedFilter.value,
-    sortBy: sortBy.value,
-    sortOrder: sortOrder.value,
-  }
-
-  // Server-side filters
-  if (selectedStatus.value) filters.status = selectedStatus.value
-  if (selectedLanguage.value) filters.language = selectedLanguage.value
-  if (debouncedSearch.value) filters.search = debouncedSearch.value
-  
-  if (selectedChannelId.value) filters.channelId = selectedChannelId.value
-  
-  // New backend filters
-  if (selectedProjectId.value) filters.projectId = selectedProjectId.value
-  
-  if (ownershipFilter.value !== 'all') filters.ownership = ownershipFilter.value
-  if (selectedIssueType.value !== 'all') filters.issueType = selectedIssueType.value
-  if (selectedSocialMedia.value) filters.socialMedia = selectedSocialMedia.value
-
-  await fetchUserPublications(filters)
+    sortBy: sortBy.value as any,
+    sortOrder: sortOrder.value as any,
+    status: selectedStatus.value as any,
+    language: selectedLanguage.value || undefined,
+    search: debouncedSearch.value || undefined,
+    channelId: selectedChannelId.value || undefined,
+    projectId: selectedProjectId.value || undefined,
+    ownership: ownershipFilter.value as any,
+    issueType: selectedIssueType.value as any,
+    socialMedia: selectedSocialMedia.value as any,
+  })
 }
 
-// Fetch on mount
+// Initial data load
 onMounted(async () => {
     await Promise.all([
-        fetchPublications(),
-        fetchProjects(true), // включая архивные проекты
-        fetchChannels() // получаем все каналы
+        fetchProjects(true),
+        fetchChannels()
     ])
+    // Fetch publications after projects/channels for proper context if needed
+    await fetchPublications()
 })
 
-// Update URL when filters change
+// Reactively re-fetch when any filter changes
 watch(
-  [
-    selectedStatus, 
-    selectedChannelId, 
-    selectedProjectId, 
-    ownershipFilter, 
-    selectedIssueType, 
-    selectedSocialMedia, 
-    selectedLanguage, 
-    debouncedSearch, 
-    showArchivedFilter,
-    sortBy,
-    sortOrder
-  ], 
+  [selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], 
   () => {
-    if (!import.meta.client) return
-
-    const query: any = { ...route.query }
-    
-    // Helper to set or delete query param
-    const updateQuery = (key: string, value: any, defaultValue: any = null) => {
-      if (value && value !== defaultValue) {
-        query[key] = String(value)
-      } else {
-        delete query[key]
-      }
-    }
-
-    updateQuery('status', Array.isArray(selectedStatus.value) ? selectedStatus.value.join(',') : selectedStatus.value)
-    updateQuery('channelId', selectedChannelId.value)
-    updateQuery('projectId', selectedProjectId.value)
-    updateQuery('search', debouncedSearch.value, '')
-    updateQuery('ownership', ownershipFilter.value, 'all')
-    updateQuery('issue', selectedIssueType.value, 'all')
-    updateQuery('socialMedia', selectedSocialMedia.value)
-    updateQuery('language', selectedLanguage.value)
-    updateQuery('archived', showArchivedFilter.value, false)
-    updateQuery('sortBy', sortBy.value, 'chronology')
-    updateQuery('sortOrder', sortOrder.value, 'desc')
-    
-    // Remove page when filters change (reset to 1 happen in the other watcher)
-    delete query.page
-
-    router.replace({ query })
+    fetchPublications()
   }
 )
 
-// Watch filters and sorting - reset to page 1 and re-fetch
-watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], () => {
+// Reset to page 1 on filter change
+watch(
+  [selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
+  () => {
     currentPage.value = 1
-    fetchPublications()
-})
-
-// Watch page changes - re-fetch with new offset
-watch(currentPage, () => {
-    fetchPublications()
-})
-
-// Sync URL with page changes
-watch(currentPage, (newPage) => {
-    if (!import.meta.client) return
-    
-    // Check if we need to update URL
-    const query = { ...route.query }
-    const urlPage = parseInt(String(query.page || '1'), 10)
-    
-    if (newPage !== urlPage) {
-        if (newPage > 1) {
-            query.page = String(newPage)
-        } else {
-            delete query.page
-        }
-        router.push({ query })
-    }
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-})
-
-// Sync page from URL changes
-watch(() => route.query.page, (newPage) => {
-    const pageNum = parseInt(String(newPage || '1'), 10)
-    if (pageNum !== currentPage.value) {
-        currentPage.value = pageNum
-    }
-})
+  }
+)
 
 function goToPublication(pub: PublicationWithRelations) {
     router.push(`/publications/${pub.id}`)
