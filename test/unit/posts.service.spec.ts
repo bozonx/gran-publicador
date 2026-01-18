@@ -29,6 +29,9 @@ describe('PostsService (unit)', () => {
     publicationMedia: {
       count: jest.fn() as any,
     },
+    authorSignature: {
+        findFirst: jest.fn() as any,
+    },
   };
 
   const mockChannelsService = {

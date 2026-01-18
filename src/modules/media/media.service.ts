@@ -245,26 +245,9 @@ export class MediaService {
       const blob = new Blob([uint8Array], { type: mimetype });
       formData.append('file', blob, filename);
 
-      // Add compression options as individual form fields if available
+      // Add compression options as 'optimize' JSON string field
       if (this.compressionOptions) {
-        if (this.compressionOptions.format) {
-          formData.append('format', this.compressionOptions.format);
-        }
-        if (this.compressionOptions.maxDimension !== undefined) {
-          formData.append('maxDimension', this.compressionOptions.maxDimension.toString());
-        }
-        if (this.compressionOptions.stripMetadata !== undefined) {
-          formData.append('stripMetadata', this.compressionOptions.stripMetadata.toString());
-        }
-        if (this.compressionOptions.lossless !== undefined) {
-          formData.append('lossless', this.compressionOptions.lossless.toString());
-        }
-        if (this.compressionOptions.quality !== undefined) {
-          formData.append('quality', this.compressionOptions.quality.toString());
-        }
-        if (this.compressionOptions.avifChromaSubsampling) {
-          formData.append('avifChromaSubsampling', this.compressionOptions.avifChromaSubsampling);
-        }
+        formData.append('optimize', JSON.stringify(this.compressionOptions));
       }
 
       const controller = new AbortController();
@@ -323,26 +306,9 @@ export class MediaService {
         body.filename = filename;
       }
 
-      // Add compression options as individual fields if available
+      // Add compression options as 'optimize' object
       if (this.compressionOptions) {
-        if (this.compressionOptions.format) {
-          body.format = this.compressionOptions.format;
-        }
-        if (this.compressionOptions.maxDimension !== undefined) {
-          body.maxDimension = this.compressionOptions.maxDimension;
-        }
-        if (this.compressionOptions.stripMetadata !== undefined) {
-          body.stripMetadata = this.compressionOptions.stripMetadata;
-        }
-        if (this.compressionOptions.lossless !== undefined) {
-          body.lossless = this.compressionOptions.lossless;
-        }
-        if (this.compressionOptions.quality !== undefined) {
-          body.quality = this.compressionOptions.quality;
-        }
-        if (this.compressionOptions.avifChromaSubsampling) {
-          body.avifChromaSubsampling = this.compressionOptions.avifChromaSubsampling;
-        }
+        body.optimize = this.compressionOptions;
       }
 
       const controller = new AbortController();

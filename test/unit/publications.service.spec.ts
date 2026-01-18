@@ -36,6 +36,9 @@ describe('PublicationsService (unit)', () => {
       updateMany: jest.fn() as any,
       findMany: jest.fn() as any,
     },
+    authorSignature: {
+      findFirst: jest.fn() as any,
+    },
   };
 
   const mockPermissionsService = {

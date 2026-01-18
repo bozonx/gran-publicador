@@ -7,11 +7,17 @@ import { PostStatus, PublicationStatus } from '../../../src/generated/prisma/cli
 import { NotificationsService } from '../../../src/modules/notifications/notifications.service.js';
 import { jest } from '@jest/globals';
 
+import { I18nService } from 'nestjs-i18n';
+
 // Mock undici
 const mockFetch = jest.fn();
 
 describe('SocialPostingService', () => {
   let service: SocialPostingService;
+  
+  const mockI18nService = {
+    translate: jest.fn().mockImplementation((key) => key),
+  };
 
   // Set fallback env var for Media Storage
   process.env.MEDIA_STORAGE_SERVICE_URL = 'http://media-storage/api/v1';
@@ -69,6 +75,7 @@ describe('SocialPostingService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ShutdownService, useValue: mockShutdownService },
         { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
 

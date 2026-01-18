@@ -148,7 +148,7 @@ describe('MediaService (unit)', () => {
       );
     });
 
-    it('should pass compression options as individual form fields', async () => {
+    it('should pass compression options as optimize field', async () => {
       const buffer = Buffer.from('image-data');
       const filename = 'image.jpg';
       const mimetype = 'image/jpeg';
@@ -167,13 +167,31 @@ describe('MediaService (unit)', () => {
 
       await service.uploadFileToStorage(buffer, filename, mimetype);
 
-      // Verify FormData contains compression parameters
+      // Verify FormData contains compression parameters in optimize field
       const callArgs = mockFetch.mock.calls[0];
       const formData = callArgs[1].body as FormData;
       
-      // Note: In Node.js environment, FormData.get() might not work as expected
-      // So we just verify the call was made with FormData
       expect(formData).toBeInstanceOf(FormData);
+      // In newer Node versions we can check the value
+      if (typeof formData.get === 'function') {
+         const optimize = formData.get('optimize');
+         expect(optimize).toBeDefined();
+         expect(JSON.parse(optimize as string)).toEqual(expect.objectContaining({
+            format: 'webp',
+            quality: 85, // Note: FormData values are strings when parsed from env vars in config? 
+            // Wait, config service parses them to numbers in media.config.ts?
+            // createTestingModule sets env vars as strings. 
+            // media.config.ts parseInt them.
+            // So they are numbers in the service.
+            // JSON.stringify will keep them as numbers.
+            // But verify: process.env... in test setup are strings.
+            // Service constructor calls getMediaStorageTimeout -> parseInt.
+            // getThumbnailQuality -> parseInt.
+            // getImageCompressionOptions -> uses parseInt.
+            // So they are numbers.
+         }));
+      }
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/files'),
         expect.objectContaining({
@@ -237,14 +255,15 @@ describe('MediaService (unit)', () => {
         }),
       );
       
-      // Verify compression parameters are in the body
+      // Verify compression parameters are in the optimize field
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.url).toBe(url);
       expect(body.filename).toBe(filename);
-      expect(body.format).toBe('webp');
-      expect(body.maxDimension).toBe(3840);
-      expect(body.quality).toBe(85);
+      expect(body.optimize).toBeDefined();
+      expect(body.optimize.format).toBe('webp');
+      expect(body.optimize.maxDimension).toBe(3840);
+      expect(body.optimize.quality).toBe(85);
     });
 
     it('should upload file from URL without filename', async () => {
@@ -338,13 +357,8 @@ describe('MediaService (unit)', () => {
     });
   });
 
-  describe('streamFileFromStorage', () => {
+  describe('getFileStream', () => {
     it('should proxy stream from storage', async () => {
-      const mockRes = new PassThrough() as any;
-      mockRes.setHeader = jest.fn();
-      mockRes.end = jest.fn();
-      mockRes.statusCode = 0;
-
       const mockBody = new ReadableStream({
         start(controller) {
           controller.enqueue(new Uint8Array(Buffer.from('data')));
@@ -359,28 +373,24 @@ describe('MediaService (unit)', () => {
         body: mockBody,
       });
 
-      await service.streamFileFromStorage('file-id', mockRes);
+      const result = await service.getFileStream('file-id');
 
-      expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'image/jpeg');
-      expect(mockRes.statusCode).toBe(200);
+      expect(result.headers['Content-Type']).toBe('image/jpeg');
+      expect(result.status).toBe(200);
+      expect(result.stream).toBeDefined();
     });
   });
 
-  describe('streamThumbnailFromStorage', () => {
+  describe('getThumbnailStream', () => {
     it('should proxy thumbnail request', async () => {
-      const mockRes = new PassThrough() as any;
-      mockRes.setHeader = jest.fn();
-      mockRes.end = jest.fn();
-      mockRes.statusCode = 0;
-
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         headers: new Map(),
-        body: null,
+        body: new ReadableStream(),
       });
 
-      await service.streamThumbnailFromStorage('file-id', 100, 100, 80, mockRes);
+      await service.getThumbnailStream('file-id', 100, 100, 80);
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('width=100\u0026height=100\u0026quality=80'),
@@ -389,22 +399,17 @@ describe('MediaService (unit)', () => {
     });
 
     it('should use THUMBNAIL_QUALITY from env when quality not specified', async () => {
-      const mockRes = new PassThrough() as any;
-      mockRes.setHeader = jest.fn();
-      mockRes.end = jest.fn();
-      mockRes.statusCode = 0;
-
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
         headers: new Map(),
-        body: null,
+        body: new ReadableStream(),
       });
 
-      await service.streamThumbnailFromStorage('file-id', 200, 200, undefined, mockRes);
+      await service.getThumbnailStream('file-id', 200, 200, undefined);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('width=200&height=200&quality=75'),
+        expect.stringContaining('width=200\u0026height=200\u0026quality=75'),
         expect.any(Object),
       );
     });
