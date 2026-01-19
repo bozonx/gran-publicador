@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import type { ProjectWithRole } from '~/stores/projects'
+import type { ProjectWithRole, MediaOptimizationPreferences } from '~/stores/projects'
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 
 interface Props {
@@ -56,6 +56,7 @@ interface FormState {
   description: string
   preferences: {
     staleChannelsDays?: number
+    mediaOptimization?: MediaOptimizationPreferences
   }
 }
 
@@ -65,6 +66,7 @@ const state = reactive<FormState>({
   description: props.project?.description || '',
   preferences: {
     staleChannelsDays: props.project?.preferences?.staleChannelsDays,
+    mediaOptimization: props.project?.preferences?.mediaOptimization,
   }
 })
 
@@ -79,7 +81,8 @@ const schema = z.object({
   preferences: z.object({
     staleChannelsDays: z.coerce.number()
       .min(1, t('validation.min', { min: 1 }))
-      .optional()
+      .optional(),
+    mediaOptimization: z.custom<MediaOptimizationPreferences>().optional()
   }).optional()
 })
 
@@ -114,7 +117,8 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
 
     if (props.visibleSections.includes('preferences')) {
       updateData.preferences = {
-        staleChannelsDays: event.data.preferences?.staleChannelsDays
+        staleChannelsDays: event.data.preferences?.staleChannelsDays,
+        mediaOptimization: event.data.preferences?.mediaOptimization,
       }
     }
 

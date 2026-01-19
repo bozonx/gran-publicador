@@ -11,7 +11,24 @@ export interface Project {
   archivedAt?: string | null
   createdAt: string
   updatedAt: string
-  preferences?: Record<string, any>
+  preferences?: {
+    staleChannelsDays?: number
+    mediaOptimization?: MediaOptimizationPreferences
+    [key: string]: any
+  }
+}
+
+export interface MediaOptimizationPreferences {
+  enabled: boolean
+  format: 'webp' | 'avif'
+  quality: number
+  maxDimension: number
+  lossless: boolean
+  stripMetadata: boolean
+  autoOrient: boolean
+  flatten: string
+  chromaSubsampling: '4:2:0' | '4:4:4'
+  effort: number
 }
 
 export interface ProjectMember {
