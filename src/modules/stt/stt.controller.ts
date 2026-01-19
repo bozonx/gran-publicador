@@ -12,21 +12,36 @@ export class SttController {
 
   @Post('transcribe')
   public async transcribe(@Req() req: FastifyRequest) {
-    if (!req.isMultipart?.()) {
-      throw new BadRequestException('Request is not multipart');
+    // 1. Check if multipart (typical file upload)
+    if (req.isMultipart?.()) {
+      const part = await req.file();
+      if (!part) {
+        throw new BadRequestException('No audio file uploaded');
+      }
+
+      this.logger.log(`Received multipart transcription request: ${part.filename}`);
+
+      return this.sttService.transcribeAudioStream(
+        part.file,
+        part.filename,
+        part.mimetype,
+      );
     }
 
-    const part = await req.file();
-    if (!part) {
-      throw new BadRequestException('No audio file uploaded');
+    // 2. Check if raw stream (e.g. from browser Fetch API with duplex: 'half')
+    const contentType = req.headers['content-type'] || '';
+    if (contentType.startsWith('audio/')) {
+      this.logger.log(`Received raw audio stream: ${contentType}`);
+      
+      const filename = `recording-${Date.now()}.${contentType.split('/')[1]?.split(';')[0] || 'webm'}`;
+      
+      return this.sttService.transcribeAudioStream(
+        req.raw,
+        filename,
+        contentType,
+      );
     }
 
-    const buffer = await part.toBuffer();
-
-    return this.sttService.transcribeAudio({
-      buffer,
-      originalname: part.filename,
-      mimetype: part.mimetype,
-    });
+    throw new BadRequestException('Request must be multipart/form-data or audio/* raw stream');
   }
 }

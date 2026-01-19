@@ -3,6 +3,7 @@ import { ref, onUnmounted } from 'vue'
 export interface VoiceRecorderOptions {
   mimeType?: string
   audioBitsPerSecond?: number
+  onDataAvailable?: (blob: Blob) => void
 }
 
 export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
@@ -74,6 +75,9 @@ export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
       mediaRecorder.ondataavailable = (event: BlobEvent) => {
         if (event.data.size > 0) {
           audioChunks.push(event.data)
+          if (options.onDataAvailable) {
+            options.onDataAvailable(event.data)
+          }
         }
       }
 
@@ -184,6 +188,7 @@ export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
     recordingDuration,
     error,
     hasPermission,
+    audioChunks,
     requestPermission,
     startRecording,
     stopRecording,

@@ -6,6 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
 import MarkdownIt from 'markdown-it'
+import { useStt } from '~/composables/useStt'
 
 interface Props {
   /** Initial content (Markdown) */
@@ -42,6 +43,34 @@ const md = new MarkdownIt({
   linkify: true,
 })
 
+// STT Integration
+const { 
+  isRecording, 
+  recordingDuration, 
+  isTranscribing, 
+  transcription, 
+  start: startStt, 
+  stop: stopStt 
+} = useStt()
+
+async function toggleRecording() {
+  if (isRecording.value) {
+    const text = await stopStt()
+    if (text && editor.value) {
+      // Append transcribed text at the end or at cursor position
+      editor.value.commands.insertContent(' ' + text)
+    }
+  } else {
+    await startStt()
+  }
+}
+
+const formattedDuration = computed(() => {
+  const mins = Math.floor(recordingDuration.value / 60)
+  const secs = recordingDuration.value % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+})
+
 // Extensions defined outside to avoid duplication issues during ref initialization
 const extensions = [
   StarterKit.configure({
@@ -49,7 +78,6 @@ const extensions = [
       levels: [1, 2, 3],
     },
     // Disable link if it is included in StarterKit to avoid duplicates with our explicit Link extension
-    // link: false, // Commented out to verify. Actually, if I keep link: false and remove the directive:
     link: false,
   }),
   Markdown,
@@ -272,14 +300,30 @@ const isMaxLengthReached = computed(() => {
 
       <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-      <!-- Link -->
-      <UButton
-        :color="editor.isActive('link') ? 'primary' : 'neutral'"
-        :variant="editor.isActive('link') ? 'solid' : 'ghost'"
-        size="xs"
-        icon="i-heroicons-link"
-        @click="setLink"
-      ></UButton>
+      <!-- Link & Tools -->
+      <div class="flex items-center gap-0.5">
+        <UButton
+          :color="editor.isActive('link') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('link') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-link"
+          @click="setLink"
+        ></UButton>
+        
+        <!-- STT/Voice Recorder -->
+        <UTooltip :text="isRecording ? t('common.stopRecording') : t('common.startRecording')">
+          <UButton
+            :color="isRecording ? 'error' : isTranscribing ? 'warning' : 'neutral'"
+            :variant="isRecording ? 'solid' : 'ghost'"
+            size="xs"
+            :icon="isTranscribing ? 'i-heroicons-arrow-path' : (isRecording ? 'i-heroicons-stop' : 'i-heroicons-microphone')"
+            :loading="isTranscribing"
+            @click="toggleRecording"
+          >
+            <span v-if="isRecording" class="ml-1 text-[10px] font-mono">{{ formattedDuration }}</span>
+          </UButton>
+        </UTooltip>
+      </div>
 
       <div class="flex-1"></div>
 
@@ -403,5 +447,16 @@ const isMaxLengthReached = computed(() => {
 
 .dark .tiptap-editor .ProseMirror hr {
   border-top-color: #4b5563;
+}
+
+/* Microphone pulse animation */
+@keyframes pulse-red {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.i-heroicons-microphone.text-error-500 {
+  animation: pulse-red 2s infinite;
 }
 </style>

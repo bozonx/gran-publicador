@@ -1,53 +1,65 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
 import { SttConfig } from '../../config/stt.config.js';
+import { request, FormData } from 'undici';
+import type { Readable } from 'stream';
 
 @Injectable()
 export class SttService {
   private readonly logger = new Logger(SttService.name);
-  private readonly tempDir = join(tmpdir(), 'gran-publicador-audio');
 
   constructor(private readonly configService: ConfigService) {}
 
   /**
-   * Transcribes audio file to text.
-   * Currently saves the file locally and returns a stub response.
-   * TODO: Integrate with real STT microservice.
+   * Transcribes audio stream to text by proxying to STT Gateway.
    */
-  async transcribeAudio(file: {
-    buffer: Buffer;
-    originalname: string;
-    mimetype: string;
-  }): Promise<{ text: string }> {
+  async transcribeAudioStream(
+    fileStream: Readable,
+    filename: string,
+    mimetype: string,
+  ): Promise<{ text: string }> {
+    const config = this.configService.get<SttConfig>('stt');
+    
+    if (!config?.serviceUrl) {
+      this.logger.error('STT service URL is not configured');
+      throw new InternalServerErrorException('STT service is not configured');
+    }
+
     try {
-      this.logger.log(
-        `Received audio file: ${file.originalname} (${file.mimetype}), size: ${file.buffer.length} bytes`,
-      );
+      this.logger.log(`Proxying audio stream to STT Gateway: ${filename} (${mimetype})`);
 
-      // Ensure temp directory exists
-      await mkdir(this.tempDir, { recursive: true });
+      const form = new FormData();
+      // STT Gateway expects 'file' field
+      form.append('file', {
+        type: mimetype,
+        name: filename,
+        [Symbol.for('undici.util.stream')]: fileStream,
+      } as any);
 
-      // Save file temporarily with unique name
-      const filename = `audio-${Date.now()}${file.originalname.substring(file.originalname.lastIndexOf('.')) || '.webm'}`;
-      const filepath = join(this.tempDir, filename);
+      const response = await request(`${config.serviceUrl}/transcribe/stream`, {
+        method: 'POST',
+        body: form,
+        headers: {
+          // undici handles Content-Type for FormData automatically
+        },
+      });
 
-      await writeFile(filepath, file.buffer);
-      this.logger.log(`Audio file saved to: ${filepath}`);
+      if (response.statusCode !== 200) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        this.logger.error(`STT Gateway returned error ${response.statusCode}: ${JSON.stringify(errorBody)}`);
+        throw new InternalServerErrorException('Failed to transcribe audio via gateway');
+      }
 
-      // STT Logic would go here
-      const config = this.configService.get<SttConfig>('stt');
-      this.logger.debug(`STT config: ${JSON.stringify(config)}`);
-
-      // For now, return stub response
+      const result = await response.body.json() as { text: string };
+      this.logger.log(`Transcription successful for ${filename}`);
+      
       return {
-        text: 'This is a stub transcription response. The audio file has been saved successfully in the SttModule.',
+        text: result.text,
       };
     } catch (error) {
-      this.logger.error('Failed to transcribe audio:', error);
-      throw error;
+      this.logger.error('Failed to transcribe audio stream:', error);
+      if (error instanceof InternalServerErrorException) throw error;
+      throw new InternalServerErrorException('Transcription service error');
     }
   }
 }
