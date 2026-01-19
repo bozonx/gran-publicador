@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import { FORM_STYLES, FORM_SPACING } from '../../../utils/design-tokens'
 import type { MediaOptimizationPreferences } from '~/stores/projects'
+import { MEDIA_OPTIMIZATION_PRESETS, type MediaOptimizationPresetKey } from '~/utils/media-presets'
 
 interface Props {
   modelValue?: MediaOptimizationPreferences
@@ -76,6 +77,25 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
   })
 }
 
+const presetOptions = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'optimal', label: 'Optimal' },
+  { value: 'visual-lossless', label: 'Visual Lossless' },
+  { value: 'lossless', label: 'Lossless' }
+]
+
+const currentPreset = ref<MediaOptimizationPresetKey | ''>('')
+
+function applyPreset(presetKey: MediaOptimizationPresetKey) {
+  const preset = MEDIA_OPTIMIZATION_PRESETS[presetKey]
+  currentPreset.value = presetKey
+  emit('update:modelValue', {
+    ...state.value,
+    ...preset,
+    enabled: true
+  })
+}
+
 // Ensure defaults if enabled is toggled on and fields are missing
 function handleEnabledToggle(val: boolean) {
   if (val) {
@@ -86,7 +106,8 @@ function handleEnabledToggle(val: boolean) {
   } else {
     updateField('enabled', false)
   }
-}</script>
+}
+</script>
 
 <template>
   <div class="space-y-6">
@@ -103,8 +124,30 @@ function handleEnabledToggle(val: boolean) {
       />
     </div>
 
-    <div v-if="state.enabled" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in pl-4 border-l border-gray-100 dark:border-gray-800 ml-1">
+    <div v-if="state.enabled" class="space-y-6 animate-fade-in pl-4 border-l border-gray-100 dark:border-gray-800 ml-1">
       
+      <!-- Presets Selector -->
+      <UFormField
+        :label="t('settings.mediaOptimization.preset', 'Optimization Preset')"
+        :help="t('settings.mediaOptimization.presetHelp', 'Choose a predefined optimization level')"
+      >
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-for="preset in presetOptions"
+            :key="preset.value"
+            type="button"
+            size="sm"
+            :variant="currentPreset === preset.value ? 'solid' : 'ghost'"
+            :color="currentPreset === preset.value ? 'primary' : 'neutral'"
+            :disabled="disabled"
+            @click="applyPreset(preset.value as MediaOptimizationPresetKey)"
+          >
+            {{ preset.label }}
+          </UButton>
+        </div>
+      </UFormField>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Format -->
       <UFormField
         :label="t('settings.mediaOptimization.format', 'Format')"
@@ -288,7 +331,7 @@ function handleEnabledToggle(val: boolean) {
           </div>
         </UFormField>
       </div>
-
+    </div>
     </div>
   </div>
 </template>

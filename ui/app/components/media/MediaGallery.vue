@@ -5,6 +5,7 @@ import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
 import { DialogTitle, DialogDescription, VisuallyHidden } from 'reka-ui'
+import { MEDIA_OPTIMIZATION_PRESETS } from '~/utils/media-presets'
 
 interface MediaItem {
   id: string
@@ -76,8 +77,13 @@ const currentProjectOptimization = computed(() => {
 
 // Initialize optimization settings with project defaults when opening extended options
 watch(showExtendedOptions, (val) => {
-  if (val && currentProjectOptimization.value) {
-    optimizationSettings.value = JSON.parse(JSON.stringify(currentProjectOptimization.value))
+  if (val) {
+    if (currentProjectOptimization.value) {
+      optimizationSettings.value = JSON.parse(JSON.stringify(currentProjectOptimization.value))
+    } else {
+      // Use Standard preset as fallback
+      optimizationSettings.value = JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
+    }
   }
 })
 
@@ -806,7 +812,7 @@ const emit = defineEmits<Emits>()
           v-if="!showExtendedOptions"
           variant="ghost"
           size="sm"
-          color="gray"
+          color="neutral"
           icon="i-heroicons-adjustments-horizontal"
           @click="toggleExtendedOptions"
         >
