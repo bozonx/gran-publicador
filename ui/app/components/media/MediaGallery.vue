@@ -4,7 +4,6 @@ import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
-import { DialogTitle, DialogDescription, VisuallyHidden } from 'reka-ui'
 import { MEDIA_OPTIMIZATION_PRESETS } from '~/utils/media-presets'
 
 interface MediaItem {
@@ -68,7 +67,8 @@ const isAddingMedia = ref(false)
 const showExtendedOptions = ref(false)
 const stagedFiles = ref<File[]>([])
 const optimizationSettings = ref<any>({
-  enabled: false
+  enabled: false,
+  skipOptimization: false
 })
 
 const currentProjectOptimization = computed(() => {
@@ -82,7 +82,11 @@ watch(showExtendedOptions, (val) => {
       optimizationSettings.value = JSON.parse(JSON.stringify(currentProjectOptimization.value))
     } else {
       // Use Standard preset as fallback
-      optimizationSettings.value = JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
+      const standard = JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
+      optimizationSettings.value = {
+        ...standard,
+        enabled: true // Enable by default when opening advanced settings if no project default
+      }
     }
   }
 })
@@ -151,6 +155,24 @@ function triggerFileInput() {
   fileInput.value?.click()
 }
 
+
+function getDefaultOptimizationParams() {
+  const projectOpt = currentProjectOptimization.value
+  if (projectOpt) {
+    // If project explicitly says skip, respect it
+    if (projectOpt.skipOptimization) {
+      return { enabled: false, skipOptimization: true }
+    }
+    // If project has custom settings enabled, use them
+    if (projectOpt.enabled) {
+      return JSON.parse(JSON.stringify(projectOpt))
+    }
+  }
+  
+  // Otherwise (no project settings or disabled in project), use standard preset
+  return JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
+}
+
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files) {
@@ -158,7 +180,8 @@ async function handleFileUpload(event: Event) {
       stagedFiles.value.push(...Array.from(target.files))
       if (fileInput.value) fileInput.value.value = ''
     } else {
-      await uploadFiles(target.files)
+      const defaults = getDefaultOptimizationParams()
+      await uploadFiles(target.files, defaults.enabled ? defaults : undefined)
     }
   }
 }
@@ -172,7 +195,18 @@ async function uploadFiles(files: FileList | File[], options?: any) {
   
   const progresses = new Array(fileArray.length).fill(0)
   
-  const optimizeParams = options?.enabled ? options : undefined
+  // Logic: 
+  // 1. If skipOptimization is true, send { enabled: false } to skip everything
+  // 2. If enabled is true, use the options
+  // 3. Otherwise, use undefined which will trigger backend/env defaults (or should we pass standard explicitly?)
+  // Given point 1 and 2 of requirements, we should be explicit.
+  
+  let optimizeParams: any = undefined
+  if (options?.skipOptimization) {
+    optimizeParams = { enabled: false }
+  } else if (options?.enabled) {
+    optimizeParams = options
+  }
 
   try {
     const uploadedMediaItems = await Promise.all(
@@ -276,9 +310,23 @@ async function addMedia() {
 
     if (sourceType.value === 'URL') {
       // For URL type: download file and save to filesystem with original URL in meta
-      const optimizeParams = showExtendedOptions.value && optimizationSettings.value.enabled 
-        ? optimizationSettings.value 
-        : undefined
+      const defaults = getDefaultOptimizationParams()
+      let optimizeParams: any = undefined
+      
+      if (showExtendedOptions.value) {
+        if (optimizationSettings.value.skipOptimization) {
+          optimizeParams = { enabled: false }
+        } else if (optimizationSettings.value.enabled) {
+          optimizeParams = optimizationSettings.value
+        }
+      } else {
+        if (defaults.skipOptimization) {
+          optimizeParams = { enabled: false }
+        } else {
+          // defaults always returned either project enabled or standard
+          optimizeParams = defaults 
+        }
+      }
 
       uploadedMedia = await uploadMediaFromUrl(
         sourceInput.value.trim(),
@@ -466,7 +514,8 @@ async function handleDrop(event: DragEvent) {
     if (showExtendedOptions.value) {
       stagedFiles.value.push(...Array.from(files))
     } else {
-      await uploadFiles(files)
+      const defaults = getDefaultOptimizationParams()
+      await uploadFiles(files, defaults.enabled ? defaults : undefined)
     }
   }
 }
@@ -921,6 +970,7 @@ const emit = defineEmits<Emits>()
           <div v-if="showExtendedOptions" class="border-t border-gray-200 dark:border-gray-700 pt-6">
             <FormsProjectMediaOptimizationBlock 
               v-model="optimizationSettings"
+              :project-defaults="currentProjectOptimization"
             />
           </div>
 

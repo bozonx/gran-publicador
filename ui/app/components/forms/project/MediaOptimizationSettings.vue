@@ -7,6 +7,7 @@ import { MEDIA_OPTIMIZATION_PRESETS, type MediaOptimizationPresetKey } from '~/u
 interface Props {
   modelValue?: MediaOptimizationPreferences
   disabled?: boolean
+  projectDefaults?: MediaOptimizationPreferences
 }
 
 const props = defineProps<Props>()
@@ -27,7 +28,8 @@ const DEFAULTS: MediaOptimizationPreferences = {
   autoOrient: true,
   flatten: '',
   chromaSubsampling: '4:2:0',
-  effort: 6
+  effort: 6,
+  skipOptimization: false
 }
 
 // Local state for internal handling
@@ -52,6 +54,7 @@ const state = computed({
       quality: Number(val.quality ?? 80),
       effort: Number(val.effort ?? 6),
       lossless: Boolean(val.lossless),
+      skipOptimization: Boolean(val.skipOptimization ?? val['skip_optimization']),
     }
     return {
       ...DEFAULTS,
@@ -77,16 +80,36 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
   })
 }
 
-const presetOptions = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'optimal', label: 'Optimal' },
-  { value: 'visual-lossless', label: 'Visual Lossless' },
-  { value: 'lossless', label: 'Lossless' }
-]
+const presetOptions = computed(() => {
+  const options = [
+    { value: 'standard', label: 'Standard' },
+    { value: 'optimal', label: 'Optimal' },
+    { value: 'visual-lossless', label: 'Visual Lossless' },
+    { value: 'lossless', label: 'Lossless' }
+  ]
+  
+  if (props.projectDefaults) {
+    options.unshift({ value: 'project', label: 'Project' })
+  }
+  
+  return options
+})
 
-const currentPreset = ref<MediaOptimizationPresetKey | ''>('')
+const currentPreset = ref<MediaOptimizationPresetKey | 'project' | ''>('')
 
-function applyPreset(presetKey: MediaOptimizationPresetKey) {
+function applyPreset(presetKey: MediaOptimizationPresetKey | 'project') {
+  if (presetKey === 'project') {
+    if (props.projectDefaults) {
+      currentPreset.value = 'project'
+      emit('update:modelValue', {
+        ...state.value,
+        ...props.projectDefaults,
+        enabled: true
+      })
+    }
+    return
+  }
+
   const preset = MEDIA_OPTIMIZATION_PRESETS[presetKey]
   currentPreset.value = presetKey
   emit('update:modelValue', {
@@ -113,18 +136,35 @@ function handleEnabledToggle(val: boolean) {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div class="flex-1">
-        <h4 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+        <h4 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
           {{ t('settings.mediaOptimization.images', 'Images') }}
+          <span v-if="!state.enabled && !projectDefaults && !state.skipOptimization" class="normal-case font-normal text-gray-400 opacity-60">
+            ({{ t('settings.mediaOptimization.standardProfileWillBeApplied', 'стандартный профиль') }})
+          </span>
         </h4>
       </div>
-      <USwitch
-        :model-value="state.enabled"
-        :disabled="disabled"
-        @update:model-value="handleEnabledToggle"
-      />
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-500 font-medium whitespace-nowrap">{{ t('settings.mediaOptimization.skip', 'Without optimization') }}</span>
+          <USwitch
+            :model-value="state.skipOptimization"
+            :disabled="disabled"
+            @update:model-value="val => updateField('skipOptimization', val)"
+          />
+        </div>
+        
+        <div v-if="!state.skipOptimization" class="flex items-center gap-2 border-l border-gray-100 dark:border-gray-800 pl-4">
+           <span class="text-xs text-gray-500 font-medium whitespace-nowrap">{{ t('settings.mediaOptimization.customize', 'Customize') }}</span>
+           <USwitch
+            :model-value="state.enabled"
+            :disabled="disabled"
+            @update:model-value="handleEnabledToggle"
+          />
+        </div>
+      </div>
     </div>
 
-    <div v-if="state.enabled" class="space-y-6 animate-fade-in pl-4 border-l border-gray-100 dark:border-gray-800 ml-1">
+    <div v-if="state.enabled && !state.skipOptimization" class="space-y-6 animate-fade-in pl-4 border-l border-gray-100 dark:border-gray-800 ml-1">
       
       <!-- Presets Selector -->
       <UFormField
@@ -140,7 +180,7 @@ function handleEnabledToggle(val: boolean) {
             :variant="currentPreset === preset.value ? 'solid' : 'ghost'"
             :color="currentPreset === preset.value ? 'primary' : 'neutral'"
             :disabled="disabled"
-            @click="applyPreset(preset.value as MediaOptimizationPresetKey)"
+            @click="applyPreset(preset.value as MediaOptimizationPresetKey | 'project')"
           >
             {{ preset.label }}
           </UButton>

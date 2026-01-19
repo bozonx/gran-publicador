@@ -29,6 +29,7 @@ export interface MediaOptimizationPreferences {
   flatten: string
   chromaSubsampling: '4:2:0' | '4:4:4'
   effort: number
+  skipOptimization?: boolean
 }
 
 export interface ProjectMember {

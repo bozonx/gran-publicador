@@ -6,6 +6,7 @@ interface Props {
   modelValue?: MediaOptimizationPreferences
   disabled?: boolean
   hideHeader?: boolean
+  projectDefaults?: MediaOptimizationPreferences
 }
 
 defineProps<Props>()
@@ -36,6 +37,7 @@ function handleUpdate(value: MediaOptimizationPreferences) {
     <FormsProjectMediaOptimizationSettings
       :model-value="modelValue"
       :disabled="disabled"
+      :project-defaults="projectDefaults"
       @update:model-value="handleUpdate"
     />
   </div>

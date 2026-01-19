@@ -821,7 +821,12 @@
       "autoOrientHelp": "Rotate image based on EXIF",
       "chromaSubsampling": "Chroma Subsampling",
       "flatten": "Fill Transparent Background",
-      "flattenHelp": "Color to replace transparency with (e.g. #ffffff). Leave empty to keep transparency."
+      "flattenHelp": "Color to replace transparency with (e.g. #ffffff). Leave empty to keep transparency.",
+      "skip": "Without optimization",
+      "customize": "Customize",
+      "preset": "Optimization Preset",
+      "presetHelp": "Choose a predefined optimization level",
+      "standardProfileWillBeApplied": "standard profile will be applied"
     },
     "nameSaved": "Name saved successfully",
     "nameSaveError": "Failed to save name",

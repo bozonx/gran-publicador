@@ -250,7 +250,11 @@ export class MediaService {
       formData.append('file', blob, filename);
 
       // Add compression options as 'optimize' JSON string field
-      const compression = optimize || this.compressionOptions;
+      let compression = optimize || this.compressionOptions;
+      if (optimize && optimize.enabled === false) {
+        compression = undefined;
+      }
+      
       if (compression) {
         formData.append('optimize', JSON.stringify(compression));
       }
@@ -328,7 +332,11 @@ export class MediaService {
       }
 
       // Add compression options as 'optimize' object
-      const compression = optimize || this.compressionOptions;
+      let compression = optimize || this.compressionOptions;
+      if (optimize && optimize.enabled === false) {
+        compression = undefined;
+      }
+
       if (compression) {
         body.optimize = compression;
       }
