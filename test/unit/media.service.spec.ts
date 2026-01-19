@@ -207,6 +207,35 @@ describe('MediaService (unit)', () => {
       );
     });
 
+    it('should pass userId, purpose, and appId', async () => {
+      const buffer = Buffer.from('test');
+      const filename = 'test.txt';
+      const mimetype = 'text/plain';
+      const userId = 'user-123';
+      const purpose = 'avatar';
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'storage-id-123',
+          originalSize: 4,
+          size: 4,
+          mimeType: 'text/plain',
+          checksum: 'hash',
+          url: 'http://storage/file',
+        }),
+      });
+
+      await service.uploadFileToStorage(buffer, filename, mimetype, userId, purpose);
+
+      const callArgs = mockFetch.mock.calls[0];
+      const formData = callArgs[1].body as FormData;
+
+      expect(formData.get('appId')).toBe('gran-publicador'); // Default value
+      expect(formData.get('userId')).toBe(userId);
+      expect(formData.get('purpose')).toBe(purpose);
+    });
+
     it('should throw error if storage returns non-ok response', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
@@ -271,6 +300,34 @@ describe('MediaService (unit)', () => {
       expect(body.optimize.format).toBe('webp');
       expect(body.optimize.maxDimension).toBe(3840);
       expect(body.optimize.quality).toBe(85);
+    });
+
+    it('should pass userId, purpose, and appId in body', async () => {
+      const url = 'https://example.com/image.jpg';
+      const filename = 'image.jpg';
+      const userId = 'user-123';
+      const purpose = 'avatar';
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'storage-id-456',
+          originalSize: 1024,
+          size: 800,
+          mimeType: 'image/jpeg',
+          checksum: 'hash123',
+          url: 'http://storage/file',
+        }),
+      });
+
+      await service.uploadFileFromUrl(url, filename, userId, purpose);
+
+      const callArgs = mockFetch.mock.calls[0];
+      const body = JSON.parse(callArgs[1].body);
+
+      expect(body.appId).toBe('gran-publicador');
+      expect(body.userId).toBe(userId);
+      expect(body.purpose).toBe(purpose);
     });
 
     it('should upload file from URL without filename', async () => {

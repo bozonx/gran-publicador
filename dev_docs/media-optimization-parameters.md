@@ -46,27 +46,32 @@ THUMBNAIL_QUALITY=80
 
 ### 1. Загрузка файла (POST /media/upload)
 
-При загрузке файла через `multipart/form-data`, параметры компрессии передаются как **отдельные поля формы**:
+При загрузке файла через `multipart/form-data`, параметры компрессии передаются как **JSON строка** в поле `optimize`:
 
 ```typescript
 formData.append('file', blob, filename);
-formData.append('format', 'webp');
-formData.append('maxDimension', '3840');
-formData.append('quality', '80');
-// и другие...
+formData.append('optimize', JSON.stringify({
+  format: 'webp',
+  maxDimension: 3840,
+  quality: 80,
+  flatten: '#ffffff',
+  autoOrient: true
+}));
 ```
 
 ### 2. Загрузка по URL (POST /media/upload-from-url)
 
-При загрузке по URL, параметры компрессии передаются как **поля JSON body**:
+В Media Storage Microservice, параметры компрессии передаются в объекте `optimize` внутри JSON body:
 
 ```json
 {
   "url": "https://example.com/image.jpg",
   "filename": "image.jpg",
-  "format": "webp",
-  "maxDimension": 3840,
-  "quality": 80
+  "optimize": {
+    "format": "webp",
+    "maxDimension": 3840,
+    "quality": 80
+  }
 }
 ```
 

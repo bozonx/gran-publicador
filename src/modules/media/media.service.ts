@@ -20,6 +20,7 @@ import {
   getImageCompressionOptions,
   getThumbnailQuality,
   getThumbnailMaxDimension,
+  getMediaStorageAppId,
 } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 
@@ -42,6 +43,7 @@ export class MediaService {
   private readonly compressionOptions?: Record<string, any>;
   private readonly thumbnailQuality?: number;
   private readonly thumbnailMaxDimension?: number;
+  private readonly appId: string;
   private readonly fetch = global.fetch;
 
   constructor(
@@ -55,6 +57,7 @@ export class MediaService {
     this.compressionOptions = getImageCompressionOptions();
     this.thumbnailQuality = getThumbnailQuality();
     this.thumbnailMaxDimension = getThumbnailMaxDimension();
+    this.appId = getMediaStorageAppId();
 
     this.logger.log(`Media Storage URL: ${this.mediaStorageUrl}`);
     this.logger.log(`Max file size: ${this.maxFileSize} bytes`);
@@ -233,6 +236,8 @@ export class MediaService {
     buffer: Buffer,
     filename: string,
     mimetype: string,
+    userId?: string,
+    purpose?: string,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
     this.logger.debug(`Uploading file to Media Storage: ${filename}`);
 
@@ -246,6 +251,15 @@ export class MediaService {
       // Add compression options as 'optimize' JSON string field
       if (this.compressionOptions) {
         formData.append('optimize', JSON.stringify(this.compressionOptions));
+      }
+
+      // Add metadata fields
+      formData.append('appId', this.appId);
+      if (userId) {
+        formData.append('userId', userId);
+      }
+      if (purpose) {
+        formData.append('purpose', purpose);
       }
 
       const controller = new AbortController();
@@ -293,13 +307,21 @@ export class MediaService {
   async uploadFileFromUrl(
     url: string,
     filename?: string,
+    userId?: string,
+    purpose?: string,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
     this.logger.debug(`Uploading file from URL to Media Storage: ${url}`);
 
     try {
-      const body: Record<string, any> = { url };
+      const body: Record<string, any> = { url, appId: this.appId };
       if (filename) {
         body.filename = filename;
+      }
+      if (userId) {
+        body.userId = userId;
+      }
+      if (purpose) {
+        body.purpose = purpose;
       }
 
       // Add compression options as 'optimize' object

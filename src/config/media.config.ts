@@ -18,6 +18,16 @@ export function getMediaStorageServiceUrl(): string {
 }
 
 /**
+ * Gets the Media Storage Application ID.
+ * Used to group files in the microservice.
+ *
+ * @returns App ID string (default: 'gran-publicador').
+ */
+export function getMediaStorageAppId(): string {
+  return process.env.MEDIA_STORAGE_APP_ID || 'gran-publicador';
+}
+
+/**
  * Gets the Media Storage request timeout in seconds.
  *
  * @returns Timeout in seconds (default: 60).
@@ -68,6 +78,18 @@ export function getImageCompressionOptions(): Record<string, any> | undefined {
 
   if (process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING) {
     options.avifChromaSubsampling = process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING;
+  }
+
+  if (process.env.IMAGE_COMPRESSION_FLATTEN) {
+    options.flatten = process.env.IMAGE_COMPRESSION_FLATTEN;
+  }
+
+  if (process.env.IMAGE_COMPRESSION_AUTO_ORIENT) {
+    options.autoOrient = process.env.IMAGE_COMPRESSION_AUTO_ORIENT === 'true';
+  }
+
+  if (process.env.IMAGE_COMPRESSION_EFFORT) {
+    options.effort = parseInt(process.env.IMAGE_COMPRESSION_EFFORT, 10);
   }
 
   return Object.keys(options).length > 0 ? options : undefined;

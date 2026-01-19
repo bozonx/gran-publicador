@@ -35,7 +35,7 @@ export class MediaController {
    */
   @Post('upload')
   @UseGuards(JwtOrApiTokenGuard)
-  async upload(@Req() req: FastifyRequest) {
+  async upload(@Req() req: UnifiedAuthRequest) {
     if (!req.isMultipart?.()) {
       throw new BadRequestException('Request is not multipart');
     }
@@ -54,6 +54,7 @@ export class MediaController {
       buffer,
       part.filename,
       part.mimetype,
+      req.user.userId,
     );
 
     // Determine media type from mimetype
@@ -81,13 +82,21 @@ export class MediaController {
    */
   @Post('upload-from-url')
   @UseGuards(JwtOrApiTokenGuard)
-  async uploadFromUrl(@Body() body: { url: string; filename?: string }) {
+  async uploadFromUrl(
+    @Body() body: { url: string; filename?: string },
+    @Req() req: UnifiedAuthRequest,
+  ) {
     if (!body.url) {
       throw new BadRequestException('URL is required');
     }
 
     // Upload to Media Storage via URL
-    const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(body.url, body.filename);
+    // Upload to Media Storage via URL
+    const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
+      body.url,
+      body.filename,
+      req.user.userId,
+    );
 
     // Determine media type from mimetype
     let type: MediaType = MediaType.DOCUMENT;
