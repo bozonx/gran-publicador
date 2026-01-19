@@ -239,14 +239,34 @@ function handleEnabledToggle(val: boolean) {
         <UFormField
           :label="t('settings.mediaOptimization.chromaSubsampling', 'Chroma Subsampling')"
         >
-          <USelectMenu
-            :model-value="state.chromaSubsampling"
-            :options="[{ label: '4:2:0', value: '4:2:0' }, { label: '4:4:4', value: '4:4:4' }]"
-            value-attribute="value"
-            option-attribute="label"
-            :disabled="disabled"
-            @update:model-value="(val: any) => updateField('chromaSubsampling', val)"
-          />
+          <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-inner">
+            <button
+              type="button"
+              @click="updateField('chromaSubsampling', '4:2:0')"
+              :disabled="disabled"
+              :class="[
+                'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+                state.chromaSubsampling === '4:2:0' 
+                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              ]"
+            >
+              4:2:0
+            </button>
+            <button
+              type="button"
+              @click="updateField('chromaSubsampling', '4:4:4')"
+              :disabled="disabled"
+              :class="[
+                'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+                state.chromaSubsampling === '4:4:4' 
+                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              ]"
+            >
+              4:4:4
+            </button>
+          </div>
         </UFormField>
       </div>
 
