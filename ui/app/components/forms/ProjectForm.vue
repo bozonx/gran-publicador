@@ -223,6 +223,14 @@ function handleReset() {
             :class="FORM_STYLES.fieldFullWidth"
           />
         </UFormField>
+
+        <!-- Media Optimization (Preferences) -->
+        <div v-if="visibleSections.includes('preferences')" class="border-t border-gray-100 dark:border-gray-800 pt-6 mt-6">
+          <FormsProjectMediaOptimizationSettings
+            v-model="state.preferences.mediaOptimization"
+            :disabled="isLoading"
+          />
+        </div>
       </div>
 
       <!-- Form actions -->

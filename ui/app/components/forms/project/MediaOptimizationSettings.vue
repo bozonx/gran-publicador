@@ -4,7 +4,7 @@ import { FORM_STYLES, FORM_SPACING } from '~/utils/design-tokens'
 import type { MediaOptimizationPreferences } from '~/stores/projects'
 
 interface Props {
-  modelValue: MediaOptimizationPreferences
+  modelValue?: MediaOptimizationPreferences
   disabled?: boolean
 }
 
@@ -143,36 +143,76 @@ function handleEnabledToggle(val: boolean) {
           @update:model-value="(val: number) => updateField('effort', val)"
         />
       </UFormField>
-
       <!-- Flags Group -->
       <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-800 pt-4">
         
         <!-- Lossless (WebP only) -->
-        <UCheckbox
-          v-if="state.format === 'webp'"
-          :model-value="state.lossless"
-          :label="t('settings.mediaOptimization.lossless', 'Lossless Compression')"
-          :disabled="disabled"
-          @update:model-value="(val: any) => updateField('lossless', val)"
-        />
+        <div v-if="state.format === 'webp'" class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.lossless') }}</label>
+          <USwitch
+            :model-value="state.lossless"
+            :disabled="disabled"
+            @update:model-value="(val: any) => updateField('lossless', val)"
+          />
+        </div>
 
-        <!-- Strip Metadata -->
-        <UCheckbox
-          :model-value="state.stripMetadata"
-          :label="t('settings.mediaOptimization.stripMetadata', 'Strip Metadata')"
-          :help="t('settings.mediaOptimization.stripMetadataHelp', 'Remove EXIF and other metadata')"
-          :disabled="disabled"
-          @update:model-value="(val: any) => updateField('stripMetadata', val)"
-        />
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.stripMetadata') }}</label>
+            <span class="text-xs text-gray-500">{{ t('settings.mediaOptimization.stripMetadataHelp') }}</span>
+          </div>
+          <USwitch
+            :model-value="state.stripMetadata"
+            :disabled="disabled"
+            @update:model-value="(val: any) => updateField('stripMetadata', val)"
+          />
+        </div>
 
-        <!-- Auto Orient -->
-        <UCheckbox
-          :model-value="state.autoOrient"
-          :label="t('settings.mediaOptimization.autoOrient', 'Auto Orient')"
-          :help="t('settings.mediaOptimization.autoOrientHelp', 'Rotate image based on EXIF')"
-          :disabled="disabled"
-          @update:model-value="(val: any) => updateField('autoOrient', val)"
-        />
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.autoOrient') }}</label>
+            <span class="text-xs text-gray-500">{{ t('settings.mediaOptimization.autoOrientHelp') }}</span>
+          </div>
+          <USwitch
+            :model-value="state.autoOrient"
+            :disabled="disabled"
+            @update:model-value="(val: any) => updateField('autoOrient', val)"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.quality') }}</label>
+            <span class="text-sm text-gray-500">{{ state.quality }}%</span>
+          </div>
+          <input
+            type="range"
+            :model-value="state.quality"
+            @input="(event) => updateField('quality', Number((event.target as HTMLInputElement).value))"
+            :disabled="disabled"
+            min="1"
+            max="100"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
+          />
+          <div class="text-xs text-gray-500">{{ t('settings.mediaOptimization.qualityHelp') }}</div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.effort') }}</label>
+            <span class="text-sm text-gray-500">{{ state.effort }}</span>
+          </div>
+          <input
+            type="range"
+            :model-value="state.effort"
+            @input="(event) => updateField('effort', Number((event.target as HTMLInputElement).value))"
+            :disabled="disabled"
+            min="0"
+            max="9"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
+          />
+          <div class="text-xs text-gray-500">{{ t('settings.mediaOptimization.effortHelp') }}</div>
+        </div>
       </div>
 
        <!-- AVIF Specific -->
