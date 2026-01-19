@@ -89,7 +89,6 @@ const isSavingMeta = ref(false)
 const isDeleteModalOpen = ref(false)
 const mediaToDeleteId = ref<string | null>(null)
 const isDeleting = ref(false)
-const isTestStreamActive = ref(false)
 
 // Create a local reactive copy of media for drag and drop
 const localMedia = ref([...props.media])
@@ -498,7 +497,6 @@ onUnmounted(() => {
 // Reset data when changing media
 watch(selectedMedia, () => {
   // Reset any temporary state if needed
-  isTestStreamActive.value = false
 })
 
 
@@ -871,19 +869,10 @@ const emit = defineEmits<Emits>()
                   controls
                   autoplay
                   class="max-w-full max-h-full"
-                  :src="isTestStreamActive ? 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' : getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                  :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
                 >
                   Your browser does not support the video tag.
                 </video>
-                <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <UButton
-                    size="xs"
-                    color="white"
-                    variant="solid"
-                    :label="isTestStreamActive ? 'Original' : 'Test Stream'"
-                    @click="isTestStreamActive = !isTestStreamActive"
-                  />
-                </div>
               </div>
               <div v-else-if="selectedMedia.type === 'AUDIO'" class="w-full h-full flex items-center justify-center relative group">
                 <!-- Decorative background -->
@@ -910,10 +899,6 @@ const emit = defineEmits<Emits>()
                         <p class="text-xs font-mono text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             {{ selectedMedia.mimeType || 'AUDIO' }}
                         </p>
-                        
-                        <div class="pt-2" v-if="isTestStreamActive">
-                             <UBadge color="warning" variant="subtle" size="xs">Test Stream Active</UBadge>
-                        </div>
                     </div>
             
                     <!-- HTML5 Audio -->
@@ -921,23 +906,10 @@ const emit = defineEmits<Emits>()
                         controls
                         autoplay
                         class="w-full mt-2"
-                        :src="isTestStreamActive ? 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3' : getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                        :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
                     >
                          Your browser does not support the audio element.
                     </audio>
-            
-                    <!-- Test Stream Button Overlay -->
-                     <div class="absolute top-4 right-4">
-                        <UTooltip :text="isTestStreamActive ? 'Switch to Original' : 'Test Stream'">
-                          <UButton
-                            :icon="isTestStreamActive ? 'i-heroicons-beaker' : 'i-heroicons-beaker'"
-                            :color="isTestStreamActive ? 'primary' : 'gray'"
-                            variant="ghost"
-                            size="sm"
-                            @click="isTestStreamActive = !isTestStreamActive"
-                          />
-                        </UTooltip>
-                    </div>
                 </div>
               </div>
               <div v-else class="flex items-center justify-center h-full w-full">
