@@ -91,13 +91,10 @@ function handleEnabledToggle(val: boolean) {
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <div>
-        <h3 :class="FORM_STYLES.sectionTitle">
-          {{ t('settings.mediaOptimization.title', 'Media Optimization') }}
-        </h3>
-        <p :class="FORM_STYLES.subtitle">
-          {{ t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media') }}
-        </p>
+      <div class="flex-1">
+        <h4 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+          {{ t('settings.mediaOptimization.images', 'Images') }}
+        </h4>
       </div>
       <USwitch
         :model-value="state.enabled"
@@ -106,7 +103,7 @@ function handleEnabledToggle(val: boolean) {
       />
     </div>
 
-    <div v-if="state.enabled" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+    <div v-if="state.enabled" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in pl-4 border-l border-gray-100 dark:border-gray-800 ml-1">
       
       <!-- Format -->
       <UFormField

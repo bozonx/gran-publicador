@@ -801,6 +801,7 @@
     "mediaOptimization": {
       "title": "Media Optimization",
       "description": "Configure default optimization settings for uploaded media",
+      "images": "Images",
       "format": "Format",
       "formatHelp": "Target output format",
       "quality": "Quality",

@@ -20,7 +20,7 @@ interface Props {
   /** Whether to remove the card styling wrapper */
   flat?: boolean
   /** Sections to show */
-  visibleSections?: ('general' | 'preferences')[]
+  visibleSections?: ('general' | 'preferences' | 'optimization')[]
 }
 
 interface Emits {
@@ -36,7 +36,7 @@ const props = withDefaults(defineProps<Props>(), {
   hideHeader: false,
   hideCancel: false,
   flat: false,
-  visibleSections: () => ['general', 'preferences'],
+  visibleSections: () => ['general', 'preferences', 'optimization'],
 })
 
 const emit = defineEmits<Emits>()
@@ -247,14 +247,23 @@ function handleReset() {
             :class="FORM_STYLES.fieldFullWidth"
           />
         </UFormField>
+      </div>
 
-        <!-- Media Optimization (Preferences) -->
-        <div v-if="visibleSections.includes('preferences')" class="border-t border-gray-100 dark:border-gray-800 pt-6 mt-6">
-          <FormsProjectMediaOptimizationSettings
-            v-model="state.preferences.mediaOptimization"
-            :disabled="isLoading"
-          />
+      <!-- Optimization Section -->
+      <div v-if="visibleSections.includes('optimization')" :class="FORM_SPACING.fields">
+        <div v-if="!hideHeader" class="border-t border-gray-100 dark:border-gray-800 pt-6 mt-6">
+          <h3 :class="FORM_STYLES.sectionTitle">
+            {{ t('settings.mediaOptimization.title', 'Media Optimization') }}
+          </h3>
+          <p :class="FORM_STYLES.subtitle">
+            {{ t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media') }}
+          </p>
         </div>
+        
+        <FormsProjectMediaOptimizationSettings
+          v-model="state.preferences.mediaOptimization"
+          :disabled="isLoading"
+        />
       </div>
 
       <!-- Form actions -->

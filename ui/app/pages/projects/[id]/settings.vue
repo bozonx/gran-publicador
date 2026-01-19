@@ -190,6 +190,24 @@ function cancelDelete() {
           />
         </UiAppCard>
 
+        <!-- Media Optimization -->
+        <UiAppCard
+          v-if="canEdit(currentProject)"
+          :title="t('settings.mediaOptimization.title', 'Media Optimization')"
+          :description="t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media')"
+        >
+          <FormsProjectForm
+            :project="currentProject"
+            :is-loading="isSaving"
+            :visible-sections="['optimization']"
+            @submit="handleUpdate"
+            :submit-label="t('settings.saveSettings')"
+            hide-header
+            hide-cancel
+            flat
+          />
+        </UiAppCard>
+
         <!-- LLM Prompt Templates -->
         <SettingsLlmPromptTemplates
           v-if="canEdit(currentProject)"
