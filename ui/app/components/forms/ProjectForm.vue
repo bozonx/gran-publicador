@@ -65,8 +65,8 @@ const state = reactive<FormState>({
   name: props.project?.name || '',
   description: props.project?.description || '',
   preferences: {
-    staleChannelsDays: props.project?.preferences?.staleChannelsDays,
-    mediaOptimization: props.project?.preferences?.mediaOptimization,
+    staleChannelsDays: props.project?.preferences?.staleChannelsDays ?? props.project?.preferences?.['stale_channels_days'],
+    mediaOptimization: props.project?.preferences?.mediaOptimization ?? props.project?.preferences?.['media_optimization'],
   }
 })
 
@@ -95,8 +95,28 @@ const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
 watch(() => props.project, () => {
   state.name = props.project?.name || ''
   state.description = props.project?.description || ''
+  
+  const rawMediaOpt = props.project?.preferences?.mediaOptimization ?? props.project?.preferences?.['media_optimization']
+  let mediaOpt = rawMediaOpt
+  
+  // Handle stringified JSON from backend if applicable
+  if (typeof rawMediaOpt === 'string') {
+    try {
+      mediaOpt = JSON.parse(rawMediaOpt)
+    } catch (e) {
+      // Fallback: if parse fails, it might be a malformed string or empty
+      mediaOpt = undefined
+    }
+  } else if (typeof rawMediaOpt === 'object' && rawMediaOpt !== null) {
+     // Ensure we have a valid object
+     mediaOpt = rawMediaOpt
+  }
+
   state.preferences = {
-    staleChannelsDays: props.project?.preferences?.staleChannelsDays,
+    staleChannelsDays: props.project?.preferences?.staleChannelsDays ?? props.project?.preferences?.['stale_channels_days'],
+    // If backend returns nothing for mediaOptimization, keep the current local state to prevent form collapse
+    // This handles cases where the backend response might exclude this field but the save was successful
+    mediaOptimization: mediaOpt ?? state.preferences.mediaOptimization,
   }
   nextTick(() => {
     saveOriginalState()
@@ -119,6 +139,10 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       updateData.preferences = {
         staleChannelsDays: event.data.preferences?.staleChannelsDays,
         mediaOptimization: event.data.preferences?.mediaOptimization,
+        // Send snake_case as well to ensure backend compatibility
+        // Verify if backend needs stringified JSON or object
+        ['media_optimization']: event.data.preferences?.mediaOptimization,
+        ['media_optimization_json']: JSON.stringify(event.data.preferences?.mediaOptimization)
       }
     }
 

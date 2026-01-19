@@ -31,10 +31,32 @@ const DEFAULTS: MediaOptimizationPreferences = {
 
 // Local state for internal handling
 const state = computed({
-  get: () => ({
-    ...DEFAULTS,
-    ...(props.modelValue || {})
-  }),
+  get: () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const val = (props.modelValue || {}) as any
+    // Normalize snake_case incoming props just in case
+    const normalized = {
+      ...val,
+      enabled: Boolean(
+        val.enabled ?? 
+        val['enabled'] ?? 
+        val['is_enabled'] ?? 
+        // If no explicit enabled flag, but we have configuration keys, assume it's enabled
+        (val.format || val.quality || val.maxDimension || val.max_dimension ? true : false)
+      ),
+      stripMetadata: Boolean(val.stripMetadata ?? val['strip_metadata']),
+      autoOrient: Boolean(val.autoOrient ?? val['auto_orient']),
+      chromaSubsampling: val.chromaSubsampling ?? val['chroma_subsampling'],
+      maxDimension: val.maxDimension ?? val['max_dimension'],
+      quality: Number(val.quality ?? 80),
+      effort: Number(val.effort ?? 6),
+      lossless: Boolean(val.lossless),
+    }
+    return {
+      ...DEFAULTS,
+      ...normalized
+    }
+  },
   set: (val) => emit('update:modelValue', val)
 })
 
