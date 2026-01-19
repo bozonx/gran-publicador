@@ -885,6 +885,61 @@ const emit = defineEmits<Emits>()
                   />
                 </div>
               </div>
+              <div v-else-if="selectedMedia.type === 'AUDIO'" class="w-full h-full flex items-center justify-center relative group">
+                <!-- Decorative background -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                   <UIcon name="i-heroicons-musical-note" class="w-96 h-96 text-primary-500 dark:text-primary-400" />
+                </div>
+                
+                <!-- Player Card -->
+                <div class="relative z-10 w-full max-w-[90%] sm:max-w-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center gap-6">
+                    
+                    <!-- Icon / Art -->
+                    <div class="relative group/icon cursor-default">
+                        <div class="absolute -inset-1 bg-linear-to-r from-primary-500 to-indigo-500 rounded-2xl blur opacity-30 group-hover/icon:opacity-50 transition duration-1000"></div>
+                        <div class="relative w-32 h-32 rounded-2xl bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 shadow-inner flex items-center justify-center ring-1 ring-gray-900/5 dark:ring-white/10">
+                             <UIcon name="i-heroicons-musical-note" class="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                        </div>
+                    </div>
+            
+                    <!-- Info -->
+                    <div class="space-y-1.5 w-full">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white truncate px-2">
+                            {{ selectedMedia.filename || 'Audio Track' }}
+                        </h3>
+                        <p class="text-xs font-mono text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            {{ selectedMedia.mimeType || 'AUDIO' }}
+                        </p>
+                        
+                        <div class="pt-2" v-if="isTestStreamActive">
+                             <UBadge color="warning" variant="subtle" size="xs">Test Stream Active</UBadge>
+                        </div>
+                    </div>
+            
+                    <!-- HTML5 Audio -->
+                    <audio
+                        controls
+                        autoplay
+                        class="w-full mt-2"
+                        :src="isTestStreamActive ? 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3' : getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                    >
+                         Your browser does not support the audio element.
+                    </audio>
+            
+                    <!-- Test Stream Button Overlay -->
+                     <div class="absolute top-4 right-4">
+                        <UTooltip :text="isTestStreamActive ? 'Switch to Original' : 'Test Stream'">
+                          <UButton
+                            :icon="isTestStreamActive ? 'i-heroicons-beaker' : 'i-heroicons-beaker'"
+                            :color="isTestStreamActive ? 'primary' : 'gray'"
+                            variant="ghost"
+                            size="sm"
+                            @click="isTestStreamActive = !isTestStreamActive"
+                          />
+                        </UTooltip>
+                    </div>
+                </div>
+              </div>
               <div v-else class="flex items-center justify-center h-full w-full">
                 <UIcon
                   :name="getMediaIcon(selectedMedia.type)"
