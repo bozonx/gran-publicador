@@ -2,6 +2,7 @@
 import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
+import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
 import { DialogTitle, DialogDescription, VisuallyHidden } from 'reka-ui'
 
@@ -40,6 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const { currentProject } = useProjects()
 const { 
   uploadMedia, 
   uploadMediaFromUrl, 
@@ -55,11 +57,28 @@ const toast = useToast()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadProgress = ref(false)
 const uploadProgressPercent = ref(0)
-const isAddingMedia = ref(false)
 const sourceType = ref<'URL' | 'TELEGRAM'>('URL')
 const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
 const sourceInput = ref('')
 const filenameInput = ref('')
+
+// Extended options state
+const showExtendedOptions = ref(false)
+const stagedFiles = ref<File[]>([])
+const optimizationSettings = ref<any>({
+  enabled: false
+})
+
+const currentProjectOptimization = computed(() => {
+  return currentProject.value?.preferences?.mediaOptimization
+})
+
+// Initialize optimization settings with project defaults when opening extended options
+watch(showExtendedOptions, (val) => {
+  if (val && currentProjectOptimization.value) {
+    optimizationSettings.value = JSON.parse(JSON.stringify(currentProjectOptimization.value))
+  }
+})
 
 const addMediaButtonLabel = computed(() => {
   if (sourceType.value === 'URL') {
@@ -128,11 +147,16 @@ function triggerFileInput() {
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files) {
-    await uploadFiles(target.files)
+    if (showExtendedOptions.value) {
+      stagedFiles.value.push(...Array.from(target.files))
+      if (fileInput.value) fileInput.value.value = ''
+    } else {
+      await uploadFiles(target.files)
+    }
   }
 }
 
-async function uploadFiles(files: FileList | File[]) {
+async function uploadFiles(files: FileList | File[], options?: any) {
   const fileArray = Array.from(files)
   if (fileArray.length === 0) return
 
@@ -141,6 +165,8 @@ async function uploadFiles(files: FileList | File[]) {
   
   const progresses = new Array(fileArray.length).fill(0)
   
+  const optimizeParams = options?.enabled ? options : undefined
+
   try {
     const uploadedMediaItems = await Promise.all(
       fileArray.map(async (file, index) => {
@@ -148,7 +174,7 @@ async function uploadFiles(files: FileList | File[]) {
           progresses[index] = progress
           const totalProgress = progresses.reduce((a, b) => a + b, 0)
           uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
-        })
+        }, optimizeParams)
       })
     )
     
@@ -243,9 +269,14 @@ async function addMedia() {
 
     if (sourceType.value === 'URL') {
       // For URL type: download file and save to filesystem with original URL in meta
+      const optimizeParams = showExtendedOptions.value && optimizationSettings.value.enabled 
+        ? optimizationSettings.value 
+        : undefined
+
       uploadedMedia = await uploadMediaFromUrl(
         sourceInput.value.trim(),
-        filenameInput.value.trim() || undefined
+        filenameInput.value.trim() || undefined,
+        optimizeParams
       )
     } else {
       // For TELEGRAM type: create media record directly
@@ -294,6 +325,40 @@ async function addMedia() {
   } finally {
     uploadProgress.value = false
   }
+}
+
+async function confirmAndUploadExtended() {
+  if (stagedFiles.value.length === 0 && !sourceInput.value.trim()) return
+
+  uploadProgress.value = true
+  try {
+    // 1. Upload staged files
+    if (stagedFiles.value.length > 0) {
+      await uploadFiles(stagedFiles.value, optimizationSettings.value)
+      stagedFiles.value = []
+    }
+
+    // 2. Upload from URL if present
+    if (sourceInput.value.trim()) {
+      await addMedia()
+    }
+
+    isAddingMedia.value = false
+    showExtendedOptions.value = false
+  } catch (error) {
+    // Error handled in uploadFiles/addMedia
+  } finally {
+    uploadProgress.value = false
+  }
+}
+
+function removeStagedFile(index: number) {
+  stagedFiles.value.splice(index, 1)
+}
+
+function toggleExtendedOptions() {
+  showExtendedOptions.value = !showExtendedOptions.value
+  isAddingMedia.value = showExtendedOptions.value
 }
 
 function handleDeleteClick(mediaId: string) {
@@ -391,7 +456,11 @@ async function handleDrop(event: DragEvent) {
 
   const files = event.dataTransfer?.files
   if (files) {
-    await uploadFiles(files)
+    if (showExtendedOptions.value) {
+      stagedFiles.value.push(...Array.from(files))
+    } else {
+      await uploadFiles(files)
+    }
   }
 }
 
@@ -661,12 +730,12 @@ const emit = defineEmits<Emits>()
             </span>
             <UButton
               v-if="!isDropZoneActive && !uploadProgress"
-              variant="ghost"
+              variant="link"
               size="xs"
-              color="neutral"
-              @click.stop="isAddingMedia = !isAddingMedia"
+              color="primary"
+              @click.stop="toggleExtendedOptions"
             >
-              {{ t('media.orAddUrl', 'or add URL') }}
+              {{ t('media.extendedOptionsShort') }}
             </UButton>
           </div>
 
@@ -739,14 +808,14 @@ const emit = defineEmits<Emits>()
           </div>
       </CommonHorizontalScroll>
 
-      <!-- Add media form (URL/Telegram) -->
+      <!-- Add media form (URL/Telegram/Optimization) -->
       <div v-if="isAddingMedia && editable" class="mt-6 p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/50 shadow-sm">
         <div class="flex items-center justify-between mb-6">
           <div class="flex-1">
             <h4 class="text-base font-semibold text-gray-900 dark:text-white">
-              {{ t('media.addFromUrl', 'Добавить из URL или Telegram') }}
+              {{ showExtendedOptions ? t('media.extendedOptions') : t('media.addFromUrl', 'Добавить из URL или Telegram') }}
             </h4>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p v-if="!showExtendedOptions" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {{ sourceType === 'URL' ? 'Файл будет скачан, проанализирован и сохранён в хранилище' : 'Можно указывать file_id только того медиа файла, который был виден боту Gran Publicador' }}
             </p>
           </div>
@@ -755,11 +824,35 @@ const emit = defineEmits<Emits>()
             variant="ghost"
             color="neutral"
             size="sm"
-            @click="isAddingMedia = false"
+            @click="isAddingMedia = false; showExtendedOptions = false"
           />
         </div>
         
-        <div class="space-y-4">
+        <div class="space-y-6">
+          <!-- Staged Files List (Extended Mode) -->
+          <div v-if="showExtendedOptions && stagedFiles.length > 0" class="space-y-3">
+             <div class="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider">
+               <span>{{ t('media.stagedFiles', { count: stagedFiles.length }) }}</span>
+             </div>
+             <div class="flex flex-wrap gap-2">
+               <div 
+                 v-for="(file, idx) in stagedFiles" 
+                 :key="idx"
+                 class="flex items-center gap-2 pl-3 pr-1 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs group"
+               >
+                 <span class="max-w-[150px] truncate">{{ file.name }}</span>
+                 <UButton
+                   icon="i-heroicons-x-mark"
+                   variant="ghost"
+                   color="neutral"
+                   size="xs"
+                   class="rounded-full h-5 w-5 p-0"
+                   @click="removeStagedFile(idx)"
+                 />
+               </div>
+             </div>
+          </div>
+
           <div class="flex items-end gap-3 w-full">
             <UFormField :label="t('media.sourceType', 'Источник')" required class="flex-none w-48">
               <USelectMenu
@@ -791,7 +884,7 @@ const emit = defineEmits<Emits>()
                 placeholder="image.jpg"
                 size="lg"
                 class="w-full"
-                @keydown.enter.prevent="addMedia"
+                @keydown.enter.prevent="showExtendedOptions ? confirmAndUploadExtended() : addMedia()"
               />
             </UFormField>
           </div>
@@ -799,22 +892,41 @@ const emit = defineEmits<Emits>()
           <div class="w-full">
             <UFormField 
               :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
-              required
+              :required="!showExtendedOptions || stagedFiles.length === 0"
               class="w-full"
             >
               <UInput
                 v-model="sourceInput"
                 :placeholder="sourceType === 'URL' ? 'https://example.com/image.jpg' : 'AgACAgIAAxkBAAI...'"
                 size="lg"
-                required
                 class="w-full"
-                @keydown.enter.prevent="addMedia"
+                @keydown.enter.prevent="showExtendedOptions ? confirmAndUploadExtended() : addMedia()"
               />
             </UFormField>
           </div>
 
+          <!-- Optimization settings in extended mode -->
+          <div v-if="showExtendedOptions" class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <FormsProjectMediaOptimizationSettings 
+              v-model="optimizationSettings"
+            />
+          </div>
+
           <div class="flex gap-3 pt-2">
             <UButton
+              v-if="showExtendedOptions"
+              @click="confirmAndUploadExtended"
+              :disabled="stagedFiles.length === 0 && !sourceInput.trim() || uploadProgress"
+              :loading="uploadProgress"
+              block
+              size="lg"
+              color="primary"
+              icon="i-heroicons-check"
+            >
+              {{ uploadProgress ? t('media.uploading', 'Загрузка...') : t('media.confirmAndUpload') }}
+            </UButton>
+            <UButton
+              v-else
               @click="addMedia"
               :disabled="!sourceInput.trim() || uploadProgress"
               :loading="uploadProgress"

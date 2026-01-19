@@ -49,12 +49,25 @@ export class MediaController {
     // In future, we could stream directly to Media Storage
     const buffer = await part.toBuffer();
 
+    // Extract optimize parameters if present
+    let optimize: Record<string, any> | undefined;
+    try {
+      const fields = await req.body as any;
+      if (fields && fields.optimize) {
+        optimize = typeof fields.optimize === 'string' ? JSON.parse(fields.optimize) : fields.optimize;
+      }
+    } catch {
+       // Ignore parse error, use defaults
+    }
+
     // Upload to Media Storage
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(
       buffer,
       part.filename,
       part.mimetype,
       req.user.userId,
+      undefined,
+      optimize,
     );
 
     // Determine media type from mimetype
@@ -83,7 +96,7 @@ export class MediaController {
   @Post('upload-from-url')
   @UseGuards(JwtOrApiTokenGuard)
   async uploadFromUrl(
-    @Body() body: { url: string; filename?: string },
+    @Body() body: { url: string; filename?: string; optimize?: Record<string, any> },
     @Req() req: UnifiedAuthRequest,
   ) {
     if (!body.url) {
@@ -91,11 +104,12 @@ export class MediaController {
     }
 
     // Upload to Media Storage via URL
-    // Upload to Media Storage via URL
     const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
       body.url,
       body.filename,
       req.user.userId,
+      undefined,
+      body.optimize,
     );
 
     // Determine media type from mimetype

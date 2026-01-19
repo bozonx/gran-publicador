@@ -238,6 +238,7 @@ export class MediaService {
     mimetype: string,
     userId?: string,
     purpose?: string,
+    optimize?: Record<string, any>,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
     this.logger.debug(`Uploading file to Media Storage: ${filename}`);
 
@@ -249,8 +250,9 @@ export class MediaService {
       formData.append('file', blob, filename);
 
       // Add compression options as 'optimize' JSON string field
-      if (this.compressionOptions) {
-        formData.append('optimize', JSON.stringify(this.compressionOptions));
+      const compression = optimize || this.compressionOptions;
+      if (compression) {
+        formData.append('optimize', JSON.stringify(compression));
       }
 
       // Add metadata fields
@@ -309,6 +311,7 @@ export class MediaService {
     filename?: string,
     userId?: string,
     purpose?: string,
+    optimize?: Record<string, any>,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
     this.logger.debug(`Uploading file from URL to Media Storage: ${url}`);
 
@@ -325,8 +328,9 @@ export class MediaService {
       }
 
       // Add compression options as 'optimize' object
-      if (this.compressionOptions) {
-        body.optimize = this.compressionOptions;
+      const compression = optimize || this.compressionOptions;
+      if (compression) {
+        body.optimize = compression;
       }
 
       const controller = new AbortController();
