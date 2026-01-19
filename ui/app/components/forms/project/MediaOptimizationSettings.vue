@@ -18,7 +18,7 @@ const { t } = useI18n()
 // Default values constant
 const DEFAULTS: MediaOptimizationPreferences = {
   enabled: false,
-  format: 'webp',
+  format: 'avif',
   quality: 80,
   maxDimension: 3840,
   lossless: false,
@@ -91,14 +91,34 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.format', 'Format')"
         :help="t('settings.mediaOptimization.formatHelp', 'Target output format')"
       >
-        <USelectMenu
-          :model-value="state.format"
-          :options="[{ label: 'WebP', value: 'webp' }, { label: 'AVIF', value: 'avif' }]"
-          value-attribute="value"
-          option-attribute="label"
-          :disabled="disabled"
-          @update:model-value="(val: any) => updateField('format', val)"
-        />
+        <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-inner">
+          <button
+            type="button"
+            @click="updateField('format', 'avif')"
+            :disabled="disabled"
+            :class="[
+              'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+              state.format === 'avif' 
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            ]"
+          >
+            AVIF
+          </button>
+          <button
+            type="button"
+            @click="updateField('format', 'webp')"
+            :disabled="disabled"
+            :class="[
+              'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+              state.format === 'webp' 
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            ]"
+          >
+            WebP
+          </button>
+        </div>
       </UFormField>
 
       <!-- Quality -->
@@ -106,15 +126,16 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.quality', 'Quality')"
         :help="`${state.quality}% — ${t('settings.mediaOptimization.qualityHelp', 'Compression quality (1-100)')}`"
       >
-        <div class="space-y-2">
+        <div class="pt-2">
           <input
             type="range"
-            :model-value="state.quality"
-            @input="(event) => updateField('quality', Number((event.target as HTMLInputElement).value))"
+            :value="state.quality"
+            @input="(e) => updateField('quality', Number((e.target as HTMLInputElement).value))"
             :disabled="disabled"
             min="1"
             max="100"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
+            step="1"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
       </UFormField>
@@ -138,15 +159,16 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.effort', 'CPU Effort')"
         :help="`${state.effort} — ${t('settings.mediaOptimization.effortHelp', 'Higher is slower but better compression (0-9)')}`"
       >
-        <div class="space-y-2">
+        <div class="pt-2">
           <input
             type="range"
-            :model-value="state.effort"
-            @input="(event) => updateField('effort', Number((event.target as HTMLInputElement).value))"
+            :value="state.effort"
+            @input="(e) => updateField('effort', Number((e.target as HTMLInputElement).value))"
             :disabled="disabled"
             min="0"
             max="9"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
+            step="1"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
       </UFormField>

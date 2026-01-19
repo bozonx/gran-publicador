@@ -815,8 +815,8 @@
       "autoOrient": "Auto Orient",
       "autoOrientHelp": "Rotate image based on EXIF",
       "chromaSubsampling": "Chroma Subsampling",
-      "flatten": "Flatten Transparency Color",
-      "flattenHelp": "Hex color to fill transparency (e.g., #ffffff). Leave empty to keep transparency."
+      "flatten": "Fill Transparent Background",
+      "flattenHelp": "Color to replace transparency with (e.g. #ffffff). Leave empty to keep transparency."
     },
     "nameSaved": "Name saved successfully",
     "nameSaveError": "Failed to save name",
