@@ -728,15 +728,6 @@ const emit = defineEmits<Emits>()
                     : t('media.uploadFile', 'Upload File') 
               }}
             </span>
-            <UButton
-              v-if="!isDropZoneActive && !uploadProgress"
-              variant="link"
-              size="xs"
-              color="primary"
-              @click.stop="toggleExtendedOptions"
-            >
-              {{ t('media.extendedOptionsShort') }}
-            </UButton>
           </div>
 
           <!-- Draggable Media items -->
@@ -807,6 +798,20 @@ const emit = defineEmits<Emits>()
             </p>
           </div>
       </CommonHorizontalScroll>
+
+      <!-- Extended Options Toggle Button -->
+      <div v-if="editable" class="mt-2 flex justify-end px-6">
+        <UButton
+          v-if="!showExtendedOptions"
+          variant="ghost"
+          size="sm"
+          color="gray"
+          icon="i-heroicons-adjustments-horizontal"
+          @click="toggleExtendedOptions"
+        >
+          {{ t('media.extendedOptionsShort') }}
+        </UButton>
+      </div>
 
       <!-- Add media form (URL/Telegram/Optimization) -->
       <div v-if="isAddingMedia && editable" class="mt-6 p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/50 shadow-sm">

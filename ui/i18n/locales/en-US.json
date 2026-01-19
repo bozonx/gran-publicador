@@ -730,7 +730,11 @@
     "spoiler": "Spoiler",
     "hasSpoiler": "Hide content (spoiler)",
     "spoilerDescription": "Content will be hidden until user clicks",
-    "originalSpoilerFromTelegram": "Original message from Telegram had spoiler"
+    "originalSpoilerFromTelegram": "Original message from Telegram had spoiler",
+    "extendedOptions": "Extended upload settings",
+    "extendedOptionsShort": "Extended upload settings",
+    "confirmAndUpload": "Confirm settings and upload",
+    "stagedFiles": "Staged files ({count})"
   },
   "postType": {
     "post": "Post",
