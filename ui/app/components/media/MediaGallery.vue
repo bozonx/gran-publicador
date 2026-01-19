@@ -89,6 +89,7 @@ const isSavingMeta = ref(false)
 const isDeleteModalOpen = ref(false)
 const mediaToDeleteId = ref<string | null>(null)
 const isDeleting = ref(false)
+const isTestStreamActive = ref(false)
 
 // Create a local reactive copy of media for drag and drop
 const localMedia = ref([...props.media])
@@ -497,6 +498,7 @@ onUnmounted(() => {
 // Reset data when changing media
 watch(selectedMedia, () => {
   // Reset any temporary state if needed
+  isTestStreamActive.value = false
 })
 
 
@@ -864,6 +866,25 @@ const emit = defineEmits<Emits>()
                 :alt="selectedMedia.filename || 'Media'"
                 class="max-w-full max-h-full object-contain"
               />
+              <div v-else-if="selectedMedia.type === 'VIDEO'" class="w-full h-full flex items-center justify-center relative group">
+                <video
+                  controls
+                  autoplay
+                  class="max-w-full max-h-full"
+                  :src="isTestStreamActive ? 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' : getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                >
+                  Your browser does not support the video tag.
+                </video>
+                <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <UButton
+                    size="xs"
+                    color="white"
+                    variant="solid"
+                    :label="isTestStreamActive ? 'Original' : 'Test Stream'"
+                    @click="isTestStreamActive = !isTestStreamActive"
+                  />
+                </div>
+              </div>
               <div v-else class="flex items-center justify-center h-full w-full">
                 <UIcon
                   :name="getMediaIcon(selectedMedia.type)"
