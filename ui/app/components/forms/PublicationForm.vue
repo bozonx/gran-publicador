@@ -313,8 +313,7 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
 
 <template>
     <UForm :schema="schema" :state="state" :class="FORM_SPACING.section" @submit="handleSubmit" @error="handleError">
-      
-      </div>
+
 
       <div :class="GRID_LAYOUTS.twoColumn">
         <!-- Status (Only when creating) -->
