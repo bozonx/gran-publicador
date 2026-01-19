@@ -912,7 +912,7 @@ const emit = defineEmits<Emits>()
 
           <!-- Optimization settings in extended mode -->
           <div v-if="showExtendedOptions" class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <FormsProjectMediaOptimizationSettings 
+            <FormsProjectMediaOptimizationBlock 
               v-model="optimizationSettings"
             />
           </div>

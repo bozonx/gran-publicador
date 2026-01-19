@@ -261,18 +261,11 @@ function handleReset() {
 
       <!-- Optimization Section -->
       <div v-if="visibleSections.includes('optimization')" :class="FORM_SPACING.fields">
-        <div v-if="!hideHeader" class="border-t border-gray-100 dark:border-gray-800 pt-6 mt-6">
-          <h3 :class="FORM_STYLES.sectionTitle">
-            {{ t('settings.mediaOptimization.title', 'Media Optimization') }}
-          </h3>
-          <p :class="FORM_STYLES.subtitle">
-            {{ t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media') }}
-          </p>
-        </div>
-        
-        <FormsProjectMediaOptimizationSettings
+        <FormsProjectMediaOptimizationBlock
           v-model="state.preferences.mediaOptimization"
           :disabled="isLoading"
+          :hide-header="hideHeader"
+          :class="{ 'border-t border-gray-100 dark:border-gray-800 pt-6 mt-6': !hideHeader }"
         />
       </div>
 
