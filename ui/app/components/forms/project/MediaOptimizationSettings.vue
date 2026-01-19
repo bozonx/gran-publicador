@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
-import { FORM_STYLES, FORM_SPACING } from '~/utils/design-tokens'
+import { FORM_STYLES, FORM_SPACING } from '../../../utils/design-tokens'
 import type { MediaOptimizationPreferences } from '~/stores/projects'
 
 interface Props {
@@ -31,7 +31,10 @@ const DEFAULTS: MediaOptimizationPreferences = {
 
 // Local state for internal handling
 const state = computed({
-  get: () => props.modelValue || { ...DEFAULTS },
+  get: () => ({
+    ...DEFAULTS,
+    ...(props.modelValue || {})
+  }),
   set: (val) => emit('update:modelValue', val)
 })
 
@@ -55,15 +58,13 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
 function handleEnabledToggle(val: boolean) {
   if (val) {
     emit('update:modelValue', {
-      ...DEFAULTS, // Apply defaults first
-      ...state.value, // Override with existing values if any
+      ...state.value, // This already includes defaults mixed with props thanks to getter
       enabled: true
     })
   } else {
     updateField('enabled', false)
   }
-}
-</script>
+}</script>
 
 <template>
   <div class="space-y-6">
@@ -76,7 +77,7 @@ function handleEnabledToggle(val: boolean) {
           {{ t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media') }}
         </p>
       </div>
-      <UToggle
+      <USwitch
         :model-value="state.enabled"
         :disabled="disabled"
         @update:model-value="handleEnabledToggle"
@@ -105,14 +106,17 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.quality', 'Quality')"
         :help="`${state.quality}% — ${t('settings.mediaOptimization.qualityHelp', 'Compression quality (1-100)')}`"
       >
-        <URange
-          :min="1"
-          :max="100"
-          :step="1"
-          :model-value="state.quality"
-          :disabled="disabled"
-          @update:model-value="(val: number) => updateField('quality', val)"
-        />
+        <div class="space-y-2">
+          <input
+            type="range"
+            :model-value="state.quality"
+            @input="(event) => updateField('quality', Number((event.target as HTMLInputElement).value))"
+            :disabled="disabled"
+            min="1"
+            max="100"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
+          />
+        </div>
       </UFormField>
 
       <!-- Max Dimension -->
@@ -134,14 +138,17 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.effort', 'CPU Effort')"
         :help="`${state.effort} — ${t('settings.mediaOptimization.effortHelp', 'Higher is slower but better compression (0-9)')}`"
       >
-        <URange
-          :min="0"
-          :max="9"
-          :step="1"
-          :model-value="state.effort"
-          :disabled="disabled"
-          @update:model-value="(val: number) => updateField('effort', val)"
-        />
+        <div class="space-y-2">
+          <input
+            type="range"
+            :model-value="state.effort"
+            @input="(event) => updateField('effort', Number((event.target as HTMLInputElement).value))"
+            :disabled="disabled"
+            min="0"
+            max="9"
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
+          />
+        </div>
       </UFormField>
       <!-- Flags Group -->
       <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-800 pt-4">
@@ -180,39 +187,7 @@ function handleEnabledToggle(val: boolean) {
           />
         </div>
 
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.quality') }}</label>
-            <span class="text-sm text-gray-500">{{ state.quality }}%</span>
-          </div>
-          <input
-            type="range"
-            :model-value="state.quality"
-            @input="(event) => updateField('quality', Number((event.target as HTMLInputElement).value))"
-            :disabled="disabled"
-            min="1"
-            max="100"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
-          />
-          <div class="text-xs text-gray-500">{{ t('settings.mediaOptimization.qualityHelp') }}</div>
-        </div>
 
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.effort') }}</label>
-            <span class="text-sm text-gray-500">{{ state.effort }}</span>
-          </div>
-          <input
-            type="range"
-            :model-value="state.effort"
-            @input="(event) => updateField('effort', Number((event.target as HTMLInputElement).value))"
-            :disabled="disabled"
-            min="0"
-            max="9"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500"
-          />
-          <div class="text-xs text-gray-500">{{ t('settings.mediaOptimization.effortHelp') }}</div>
-        </div>
       </div>
 
        <!-- AVIF Specific -->
