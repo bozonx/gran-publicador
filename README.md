@@ -348,7 +348,10 @@ LOG_LEVEL=info
 | `SCHEDULER_INTERVAL_SECONDS` | Нет | Интервал проверки планировщика (сек) | `60` |
 | `SCHEDULER_WINDOW_MINUTES` | Нет | Окно обработки запланированных постов (мин) | `10` |
 | `POST_PROCESSING_TIMEOUT_SECONDS` | Нет | Таймаут обработки одного поста (сек) | `30` |
-| `SOCIAL_POSTING_SERVICE_URL` | Да | URL микросервиса постинга | `http://localhost:8080/api/v1` |
+| `SOCIAL_POSTING_SERVICE_URL` | Да | URL микросервиса постинга | `http://social-posting:8080/api/v1` |
+| `STT_SERVICE_URL` | Да | URL микросервиса Speech-To-Text | `http://stt-gateway:8080/api/v1` |
+| `STT_TIMEOUT_MS` | Нет | Таймаут STT запроса (мс) | `30000` |
+| `STT_MAX_FILE_SIZE` | Нет | Максимальный размер аудио (байт) | `10485760` |
 
 ### Graceful Shutdown
 

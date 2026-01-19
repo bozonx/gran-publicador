@@ -39,6 +39,8 @@ export class SttService {
       const response = await request(`${config.serviceUrl}/transcribe/stream`, {
         method: 'POST',
         body: form,
+        headersTimeout: config.timeoutMs,
+        bodyTimeout: config.timeoutMs,
         headers: {
           // undici handles Content-Type for FormData automatically
         },
