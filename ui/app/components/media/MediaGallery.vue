@@ -63,6 +63,7 @@ const sourceInput = ref('')
 const filenameInput = ref('')
 
 // Extended options state
+const isAddingMedia = ref(false)
 const showExtendedOptions = ref(false)
 const stagedFiles = ref<File[]>([])
 const optimizationSettings = ref<any>({
