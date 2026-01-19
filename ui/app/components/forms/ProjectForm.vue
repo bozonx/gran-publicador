@@ -135,14 +135,24 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       updateData.description = event.data.description || null // Handle optional description
     }
 
-    if (props.visibleSections.includes('preferences')) {
+    if (props.visibleSections.includes('preferences') || props.visibleSections.includes('optimization')) {
+      // Initialize preferences object if it doesn't exist
       updateData.preferences = {
-        staleChannelsDays: event.data.preferences?.staleChannelsDays,
-        mediaOptimization: event.data.preferences?.mediaOptimization,
+        ...(props.project?.preferences || {}),
+        ...updateData.preferences
+      }
+
+      if (props.visibleSections.includes('preferences')) {
+        updateData.preferences.staleChannelsDays = event.data.preferences?.staleChannelsDays
+      }
+
+      if (props.visibleSections.includes('optimization')) {
+        const mediaOpt = event.data.preferences?.mediaOptimization
+        updateData.preferences.mediaOptimization = mediaOpt
         // Send snake_case as well to ensure backend compatibility
-        // Verify if backend needs stringified JSON or object
-        ['media_optimization']: event.data.preferences?.mediaOptimization,
-        ['media_optimization_json']: JSON.stringify(event.data.preferences?.mediaOptimization)
+        updateData.preferences['media_optimization'] = mediaOpt
+        // @ts-ignore - explicitly sending stringified version just in case backend expects it
+        updateData.preferences['media_optimization_json'] = JSON.stringify(mediaOpt)
       }
     }
 
