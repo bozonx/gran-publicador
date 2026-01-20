@@ -51,12 +51,30 @@ export class MediaController {
     // Extract optimize parameters if present from fields that appeared before the file
     let optimize: Record<string, any> | undefined;
     const fields = (part as any).fields;
-    if (fields && fields.optimize) {
-      try {
-        const optimizeValue = fields.optimize.value;
-        optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
-      } catch {
-        // Ignore parse error
+    
+    // Helper to get field value safely
+    const getFieldValue = (field: any) => field?.value;
+
+    if (fields) {
+      if (fields.optimize) {
+        try {
+          const optimizeValue = getFieldValue(fields.optimize);
+          optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
+        } catch {
+          // Ignore parse error
+        }
+      }
+
+      // If optimize is not provided explicitly, try to load from project settings
+      if (!optimize && fields.projectId) {
+        const projectId = getFieldValue(fields.projectId);
+        if (projectId) {
+          try {
+            optimize = await this.mediaService.getProjectOptimizationSettings(projectId);
+          } catch (error) {
+            // Ignore error if project settings cannot be loaded
+          }
+        }
       }
     }
 

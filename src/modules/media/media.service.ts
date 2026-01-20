@@ -58,6 +58,20 @@ export class MediaService {
     return (meta as Record<string, any>) || {};
   }
 
+  private normalizeCompressionOptions(options: any): Record<string, any> {
+    if (!options || typeof options !== 'object') return {};
+    
+    const normalized = { ...options };
+    
+    // Fix legacy field name
+    if (normalized.avifChromaSubsampling) {
+      normalized.chromaSubsampling = normalized.avifChromaSubsampling;
+      delete normalized.avifChromaSubsampling;
+    }
+
+    return normalized;
+  }
+
   async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
     const { meta, ...rest } = data;
     const created = await this.prisma.media.create({
@@ -153,14 +167,18 @@ export class MediaService {
     if (userId) fields.userId = userId;
     if (purpose) fields.purpose = purpose;
 
-    let compression = optimize;
-    if (optimize && optimize.enabled === false) compression = undefined;
+    let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
+    if (compression && compression.enabled === false) compression = undefined;
     
     if (compression && Object.keys(compression).length > 0) {
       fields.optimize = JSON.stringify(compression);
     }
 
     const multipartStream = Readable.from(this.generateMultipart(boundary, filename, mimetype, fileStream, fields));
+    
+    // DEBUG: Log fields to understand what's causing Invalid optimize parameter
+    this.logger.debug(`Uploading with fields: ${JSON.stringify(fields)}`);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -212,8 +230,8 @@ export class MediaService {
       if (filename) body.filename = filename;
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;
-      let compression = optimize;
-      if (optimize && optimize.enabled === false) compression = undefined;
+      let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
+      if (compression && compression.enabled === false) compression = undefined;
       if (compression) body.optimize = compression;
 
       const controller = new AbortController();
@@ -267,7 +285,7 @@ export class MediaService {
       const response = await this.fetch(`${this.mediaStorageUrl}/files/${media.storagePath}/reprocess`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(optimize),
+        body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -431,5 +449,24 @@ export class MediaService {
       try { await this.permissions.checkProjectAccess(projectId, userId); return; } catch { continue; }
     }
     throw new ForbiddenException('You do not have access to this media');
+  }
+
+  /**
+   * Helper to retrieve project optimization settings.
+   */
+  public async getProjectOptimizationSettings(projectId: string): Promise<Record<string, any> | undefined> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { preferences: true },
+    });
+
+    if (!project || !project.preferences) {
+      return undefined;
+    }
+
+    const prefs = project.preferences as Record<string, any>;
+    // Assuming settings are stored under 'mediaOptimization' key in project preferences
+    // Adjust this path if the structure is different
+    return prefs.mediaOptimization;
   }
 }
