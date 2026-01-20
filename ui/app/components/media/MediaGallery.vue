@@ -626,9 +626,13 @@ watch(selectedMedia, () => {
 
 
 
-function formatSizeMB(bytes?: number): string {
-  if (!bytes) return '0 MB'
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+function formatBytes(bytes?: number): string {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const val = bytes / Math.pow(k, i)
+  return (val < 10 ? val.toFixed(2) : val.toFixed(1)) + ' ' + sizes[i]
 }
 
 const compressionStats = computed(() => {
@@ -653,8 +657,8 @@ const compressionStats = computed(() => {
   const ratio = (originalNum / currentNum).toFixed(1)
 
   return {
-    originalSize: formatSizeMB(originalNum),
-    optimizedSize: formatSizeMB(currentNum),
+    originalSize: formatBytes(originalNum),
+    optimizedSize: formatBytes(currentNum),
     savedPercent: percent,
     ratio
   }
@@ -1149,7 +1153,7 @@ const emit = defineEmits<Emits>()
           </div>
           <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
             <span class="text-gray-500 shrink-0">size:</span>
-            <span class="text-gray-900 dark:text-gray-200">{{ formatSizeMB(selectedMedia.sizeBytes) }}</span>
+            <span class="text-gray-900 dark:text-gray-200">{{ formatBytes(selectedMedia.sizeBytes) }}</span>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
             <span class="text-gray-500 shrink-0">path:</span>
