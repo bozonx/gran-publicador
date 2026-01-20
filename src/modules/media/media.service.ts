@@ -15,9 +15,7 @@ import {
   getMediaStorageServiceUrl,
   getMediaStorageTimeout,
   getMediaStorageMaxFileSize,
-  getImageCompressionOptions,
   getThumbnailQuality,
-  getThumbnailMaxDimension,
   getMediaStorageAppId,
 } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -31,9 +29,7 @@ export class MediaService {
   private readonly mediaStorageUrl: string;
   private readonly timeout: number;
   private readonly maxFileSize: number;
-  private readonly compressionOptions?: Record<string, any>;
   private readonly thumbnailQuality?: number;
-  private readonly thumbnailMaxDimension?: number;
   private readonly appId: string;
   private readonly fetch = global.fetch;
 
@@ -45,9 +41,7 @@ export class MediaService {
     this.mediaStorageUrl = getMediaStorageServiceUrl();
     this.timeout = getMediaStorageTimeout() * 1000;
     this.maxFileSize = getMediaStorageMaxFileSize() * 1024 * 1024;
-    this.compressionOptions = getImageCompressionOptions();
     this.thumbnailQuality = getThumbnailQuality();
-    this.thumbnailMaxDimension = getThumbnailMaxDimension();
     this.appId = getMediaStorageAppId();
 
     this.logger.log(`Media Storage URL: ${this.mediaStorageUrl}`);
@@ -159,7 +153,7 @@ export class MediaService {
     if (userId) fields.userId = userId;
     if (purpose) fields.purpose = purpose;
 
-    let compression = optimize || this.compressionOptions;
+    let compression = optimize;
     if (optimize && optimize.enabled === false) compression = undefined;
     
     if (compression && Object.keys(compression).length > 0) {
@@ -218,7 +212,7 @@ export class MediaService {
       if (filename) body.filename = filename;
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;
-      let compression = optimize || this.compressionOptions;
+      let compression = optimize;
       if (optimize && optimize.enabled === false) compression = undefined;
       if (compression) body.optimize = compression;
 

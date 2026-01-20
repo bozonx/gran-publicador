@@ -47,63 +47,7 @@ export function getMediaStorageMaxFileSize(): number {
   return maxSize ? parseInt(maxSize, 10) : 100;
 }
 
-/**
- * Gets optional image compression settings to pass to Media Storage.
- * If not set, microservice defaults will be used.
- *
- * @returns Compression options object or undefined if no options are set.
- */
-export function getImageCompressionOptions(): Record<string, any> | undefined {
-  const options: Record<string, any> = {};
 
-  if (process.env.IMAGE_COMPRESSION_FORMAT) {
-    options.format = process.env.IMAGE_COMPRESSION_FORMAT;
-  }
-
-  if (process.env.IMAGE_COMPRESSION_MAX_DIMENSION) {
-    options.maxDimension = parseInt(process.env.IMAGE_COMPRESSION_MAX_DIMENSION, 10);
-  }
-
-  if (process.env.IMAGE_COMPRESSION_STRIP_METADATA) {
-    options.stripMetadata = process.env.IMAGE_COMPRESSION_STRIP_METADATA === 'true';
-  }
-
-  if (process.env.IMAGE_COMPRESSION_LOSSLESS) {
-    options.lossless = process.env.IMAGE_COMPRESSION_LOSSLESS === 'true';
-  }
-
-  if (process.env.IMAGE_COMPRESSION_QUALITY) {
-    options.quality = parseInt(process.env.IMAGE_COMPRESSION_QUALITY, 10);
-  }
-
-  if (process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING) {
-    options.chromaSubsampling = process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING;
-  }
-
-  if (process.env.IMAGE_COMPRESSION_FLATTEN) {
-    options.flatten = process.env.IMAGE_COMPRESSION_FLATTEN;
-  }
-
-  if (process.env.IMAGE_COMPRESSION_AUTO_ORIENT) {
-    options.autoOrient = process.env.IMAGE_COMPRESSION_AUTO_ORIENT === 'true';
-  }
-
-  if (process.env.IMAGE_COMPRESSION_EFFORT) {
-    options.effort = parseInt(process.env.IMAGE_COMPRESSION_EFFORT, 10);
-  }
-
-  return Object.keys(options).length > 0 ? options : undefined;
-}
-
-/**
- * Gets optional thumbnail max dimension setting.
- *
- * @returns Max dimension in pixels or undefined if not set.
- */
-export function getThumbnailMaxDimension(): number | undefined {
-  const dim = process.env.THUMBNAIL_MAX_DIMENSION;
-  return dim ? parseInt(dim, 10) : undefined;
-}
 
 /**
  * Gets optional thumbnail quality setting.
