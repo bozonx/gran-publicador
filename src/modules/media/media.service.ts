@@ -293,6 +293,11 @@ export class MediaService {
           originalSize: result.originalSize || result.original_size,
           size: result.size || result.size_bytes,
           mimeType: result.mimeType || result.mime_type,
+          originalMimeType: result.originalMimeType || result.original_mime_type,
+          quality: result.quality, // Legacy compatibility
+          lossless: result.lossless, // Legacy compatibility
+          optimizationParams: result.optimizationParams,
+          exif: result.exif,
           checksum: result.checksum,
           url: result.url,
         },
@@ -369,6 +374,11 @@ export class MediaService {
           originalSize: result.originalSize || result.original_size,
           size: result.size || result.size_bytes,
           mimeType: result.mimeType || result.mime_type,
+          originalMimeType: result.originalMimeType || result.original_mime_type,
+          quality: result.quality, // Legacy compatibility
+          lossless: result.lossless, // Legacy compatibility
+          optimizationParams: result.optimizationParams,
+          exif: result.exif,
           checksum: result.checksum,
           url: result.url,
         },

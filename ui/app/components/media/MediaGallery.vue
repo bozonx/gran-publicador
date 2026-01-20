@@ -639,6 +639,7 @@ const compressionStats = computed(() => {
   const meta = selectedMedia.value?.meta
   if (!meta) return null
   
+
   // Try both camelCase and snake_case for the original size
   const original = meta.originalSize || meta.original_size
   // Use size from meta or the top-level sizeBytes
@@ -656,12 +657,25 @@ const compressionStats = computed(() => {
   const percent = Math.round((saved / originalNum) * 100)
   const ratio = (originalNum / currentNum).toFixed(1)
 
+  // Get quality and lossless from root or optimizationParams
+  const params = meta.optimizationParams || {}
+  const quality = meta.quality ?? params.quality
+  const lossless = meta.lossless ?? params.lossless
+
   return {
     originalSize: formatBytes(originalNum),
     optimizedSize: formatBytes(currentNum),
     savedPercent: percent,
-    ratio
+    ratio,
+    quality: quality,
+    lossless: lossless,
+    originalFormat: meta.originalMimeType || meta.original_mime_type,
+    optimizedFormat: meta.mimeType || meta.mime_type
   }
+})
+
+const exifData = computed(() => {
+  return selectedMedia.value?.meta?.exif
 })
 
 function downloadMediaFile(media: MediaItem) {
@@ -1186,6 +1200,9 @@ const emit = defineEmits<Emits>()
           <div class="flex items-center gap-2 mb-3 text-primary-700 dark:text-primary-300">
             <UIcon name="i-heroicons-sparkles" class="w-5 h-5" />
             <span class="font-semibold text-sm">{{ t('media.compressionRatio', 'Сжатие') }}</span>
+            <span v-if="compressionStats.originalFormat && compressionStats.optimizedFormat && compressionStats.originalFormat !== compressionStats.optimizedFormat" class="ml-auto text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+              {{ compressionStats.originalFormat.split('/')[1]?.toUpperCase() }} <UIcon name="i-heroicons-arrow-right" class="w-3 h-3 inline -mt-0.5 mx-0.5" /> {{ compressionStats.optimizedFormat.split('/')[1]?.toUpperCase() }}
+            </span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="space-y-1">
@@ -1205,6 +1222,17 @@ const emit = defineEmits<Emits>()
             <div class="space-y-1">
               <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Ratio</div>
               <div class="text-sm font-mono">{{ compressionStats.ratio }}x</div>
+            </div>
+            <div v-if="compressionStats.quality" class="space-y-1">
+              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.quality') }}</div>
+              <div class="text-sm font-mono">{{ compressionStats.quality }}%</div>
+            </div>
+            <div v-if="compressionStats.lossless !== undefined" class="space-y-1">
+              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.lossless') }}</div>
+              <div class="text-sm font-mono flex items-center gap-1">
+                <UIcon :name="compressionStats.lossless ? 'i-heroicons-check' : 'i-heroicons-x-mark'" :class="compressionStats.lossless ? 'text-green-500' : 'text-gray-400'" class="w-4 h-4" />
+                <span>{{ compressionStats.lossless ? t('common.yes') : t('common.no') }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1254,10 +1282,33 @@ const emit = defineEmits<Emits>()
         </div>
 
         <CommonYamlEditor
+          v-if="editable"
           v-model="editableMetadata"
           :disabled="!editable"
           :rows="8"
         ></CommonYamlEditor>
+        <div v-else class="mt-4">
+           <!-- Read-only YAML view could go here if needed, but we have the editor which works as viewer too -->
+           <CommonYamlEditor
+              :model-value="editableMetadata"
+              disabled
+              :rows="8"
+           />
+        </div>
+
+        <!-- EXIF Data Display -->
+        <div v-if="exifData" class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div class="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
+            <UIcon name="i-heroicons-camera" class="w-5 h-5" />
+            <span class="font-semibold text-sm">{{ t('media.exif', 'EXIF Data') }}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <div v-for="(value, key) in exifData" :key="key" class="flex flex-col">
+              <span class="text-gray-500 font-medium">{{ key }}</span>
+              <span class="text-gray-900 dark:text-gray-200 truncate" :title="String(value)">{{ value }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     

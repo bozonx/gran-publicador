@@ -784,7 +784,10 @@
     "originalSize": "Исходный размер",
     "optimizedSize": "Сжатый размер",
     "savedSpace": "Экономия",
-    "compressionRatio": "Сжатие"
+    "compressionRatio": "Сжатие",
+    "quality": "Качество",
+    "lossless": "Lossless",
+    "exif": "Данные EXIF"
   },
   "postType": {
     "post": "Пост",
