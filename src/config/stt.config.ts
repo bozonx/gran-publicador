@@ -37,13 +37,23 @@ export class SttConfig {
 }
 
 export default registerAs('stt', (): SttConfig => {
-  const config = plainToClass(SttConfig, {
+  const rawConfig: any = {
     serviceUrl: process.env.STT_SERVICE_URL,
     timeoutMs: process.env.STT_TIMEOUT_MS ? parseInt(process.env.STT_TIMEOUT_MS, 10) : undefined,
     maxFileSize: process.env.STT_MAX_FILE_SIZE
       ? parseInt(process.env.STT_MAX_FILE_SIZE, 10)
       : undefined,
+  };
+
+  // Remove undefined and NaN values to let class defaults take over
+  Object.keys(rawConfig).forEach(key => {
+    const value = rawConfig[key];
+    if (value === undefined || (typeof value === 'number' && isNaN(value))) {
+      delete rawConfig[key];
+    }
   });
+
+  const config = plainToClass(SttConfig, rawConfig);
 
   const errors = validateSync(config, {
     skipMissingProperties: true,

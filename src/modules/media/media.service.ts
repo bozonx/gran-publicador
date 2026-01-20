@@ -226,8 +226,8 @@ export class MediaService {
       const response = await request(`${config.serviceUrl}/files`, {
         method: 'POST',
         body: formData,
-        headersTimeout: config.timeoutSecs * 1000,
-        bodyTimeout: config.timeoutSecs * 1000,
+        headersTimeout: (this.config.timeoutSecs || 60) * 1000,
+        bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400) {
@@ -282,7 +282,7 @@ export class MediaService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        headersTimeout: config.timeoutSecs * 1000,
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400) {
@@ -329,7 +329,7 @@ export class MediaService {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
-          headersTimeout: config.timeoutSecs * 1000,
+          headersTimeout: (config.timeoutSecs || 60) * 1000,
         },
       );
 
@@ -363,7 +363,7 @@ export class MediaService {
     try {
       await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'DELETE',
-        headersTimeout: config.timeoutSecs * 1000,
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
     } catch (error) {
       this.logger.error(`Failed to delete file ${fileId} from Media Storage: ${(error as Error).message}`);
@@ -381,7 +381,7 @@ export class MediaService {
       const response = await request(`${config.serviceUrl}/files/${fileId}/download`, {
         method: 'GET',
         headers: reqHeaders,
-        headersTimeout: config.timeoutSecs * 1000,
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400 && response.statusCode !== 206) {
@@ -425,7 +425,7 @@ export class MediaService {
         `${config.serviceUrl}/files/${fileId}/thumbnail?${params.toString()}`,
         {
           method: 'GET',
-          headersTimeout: config.timeoutSecs * 1000,
+          headersTimeout: (config.timeoutSecs || 60) * 1000,
         },
       );
 
@@ -451,7 +451,7 @@ export class MediaService {
     try {
       const response = await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'GET',
-        headersTimeout: config.timeoutSecs * 1000,
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400) throw new Error(`Media Storage returned ${response.statusCode}`);

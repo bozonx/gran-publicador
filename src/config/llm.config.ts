@@ -103,7 +103,7 @@ export class LlmConfig {
 }
 
 export default registerAs('llm', (): LlmConfig => {
-  const config = plainToClass(LlmConfig, {
+  const rawConfig: any = {
     serviceUrl: process.env.FREE_LLM_ROUTER_URL || 'http://localhost:8080/api/v1',
     defaultTags: process.env.FREE_LLM_ROUTER_TAGS?.split(',').map(t => t.trim()),
     defaultType: process.env.FREE_LLM_ROUTER_TYPE as 'fast' | 'reasoning' | undefined,
@@ -119,15 +119,25 @@ export default registerAs('llm', (): LlmConfig => {
     timeoutSecs: process.env.FREE_LLM_ROUTER_TIMEOUT_SECS
       ? parseInt(process.env.FREE_LLM_ROUTER_TIMEOUT_SECS, 10)
       : undefined,
-    fallbackProvider: process.env.FREE_LLM_ROUTER_FALLBACK_PROVIDER || undefined,
-    fallbackModel: process.env.FREE_LLM_ROUTER_FALLBACK_MODEL || undefined,
+    fallbackProvider: process.env.FREE_LLM_ROUTER_FALLBACK_PROVIDER,
+    fallbackModel: process.env.FREE_LLM_ROUTER_FALLBACK_MODEL,
     minContextSize: process.env.FREE_LLM_ROUTER_MIN_CONTEXT_SIZE
       ? parseInt(process.env.FREE_LLM_ROUTER_MIN_CONTEXT_SIZE, 10)
       : undefined,
     minMaxOutputTokens: process.env.FREE_LLM_ROUTER_MIN_MAX_OUTPUT_TOKENS
       ? parseInt(process.env.FREE_LLM_ROUTER_MIN_MAX_OUTPUT_TOKENS, 10)
       : undefined,
+  };
+
+  // Remove undefined and NaN values to let class defaults take over
+  Object.keys(rawConfig).forEach(key => {
+    const value = rawConfig[key];
+    if (value === undefined || (typeof value === 'number' && isNaN(value))) {
+      delete rawConfig[key];
+    }
   });
+
+  const config = plainToClass(LlmConfig, rawConfig);
 
   const errors = validateSync(config, {
     skipMissingProperties: false,

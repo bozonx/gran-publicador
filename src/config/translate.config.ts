@@ -89,10 +89,10 @@ export class TranslateConfig {
 }
 
 export default registerAs('translate', (): TranslateConfig => {
-  const config = plainToClass(TranslateConfig, {
+  const rawConfig: any = {
     serviceUrl: process.env.TRANSLATE_SERVICE_URL || 'http://localhost:8081/api/v1',
-    defaultProvider: process.env.TRANSLATE_DEFAULT_PROVIDER || undefined,
-    defaultModel: process.env.TRANSLATE_DEFAULT_MODEL || undefined,
+    defaultProvider: process.env.TRANSLATE_DEFAULT_PROVIDER,
+    defaultModel: process.env.TRANSLATE_DEFAULT_MODEL,
     timeoutSec: process.env.TRANSLATE_TIMEOUT_SEC
       ? parseInt(process.env.TRANSLATE_TIMEOUT_SEC, 10)
       : undefined,
@@ -108,7 +108,17 @@ export default registerAs('translate', (): TranslateConfig => {
     retryMaxDelayMs: process.env.TRANSLATE_RETRY_MAX_DELAY_MS
       ? parseInt(process.env.TRANSLATE_RETRY_MAX_DELAY_MS, 10)
       : undefined,
+  };
+
+  // Remove undefined and NaN values to let class defaults take over
+  Object.keys(rawConfig).forEach(key => {
+    const value = rawConfig[key];
+    if (value === undefined || (typeof value === 'number' && isNaN(value))) {
+      delete rawConfig[key];
+    }
   });
+
+  const config = plainToClass(TranslateConfig, rawConfig);
 
   const errors = validateSync(config, {
     skipMissingProperties: false,

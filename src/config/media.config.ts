@@ -48,7 +48,7 @@ export class MediaConfig {
 }
 
 export default registerAs('media', (): MediaConfig => {
-  const config = plainToClass(MediaConfig, {
+  const rawConfig: any = {
     serviceUrl: process.env.MEDIA_STORAGE_SERVICE_URL,
     appId: process.env.MEDIA_STORAGE_APP_ID,
     timeoutSecs: process.env.MEDIA_STORAGE_TIMEOUT_SECS
@@ -60,7 +60,17 @@ export default registerAs('media', (): MediaConfig => {
     thumbnailQuality: process.env.THUMBNAIL_QUALITY
       ? parseInt(process.env.THUMBNAIL_QUALITY, 10)
       : undefined,
+  };
+
+  // Remove undefined and NaN values to let class defaults take over
+  Object.keys(rawConfig).forEach(key => {
+    const value = rawConfig[key];
+    if (value === undefined || (typeof value === 'number' && isNaN(value))) {
+      delete rawConfig[key];
+    }
   });
+
+  const config = plainToClass(MediaConfig, rawConfig);
 
   const errors = validateSync(config, {
     skipMissingProperties: true,
