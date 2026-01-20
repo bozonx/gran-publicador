@@ -1,4 +1,11 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { 
+  BadRequestException, 
+  Injectable, 
+  Logger,
+  ServiceUnavailableException,
+  BadGatewayException,
+  RequestTimeoutException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TranslateConfig } from '../../config/translate.config.js';
 import { TranslateTextDto } from './dto/translate-text.dto.js';
@@ -15,6 +22,22 @@ export class TranslateService {
 
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<TranslateConfig>('translate')!;
+  }
+
+  private isConnectionError(error: unknown): boolean {
+    const err = error as { code?: string; cause?: { code?: string } };
+    return (
+      err?.code === 'ECONNREFUSED' ||
+      err?.code === 'ENOTFOUND' ||
+      err?.code === 'ECONNRESET' ||
+      err?.cause?.code === 'ECONNREFUSED' ||
+      err?.cause?.code === 'ENOTFOUND'
+    );
+  }
+
+  private isAbortError(error: unknown): boolean {
+    const err = error as { name?: string };
+    return err?.name === 'AbortError' || err?.name === 'TimeoutError';
   }
 
   /**
@@ -91,7 +114,13 @@ export class TranslateService {
           const errorText = await response.text();
 
           if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-            throw new Error(`Translate Gateway returned ${response.status}: ${errorText}`);
+            this.logger.error(`Translate Gateway returned HTTP ${response.status}: ${errorText}`);
+            throw new BadRequestException(`Translation failed: ${errorText}`);
+          }
+
+          if (response.status >= 500) {
+            this.logger.error(`Translate Gateway returned HTTP ${response.status}: ${errorText}`);
+            throw new BadGatewayException(`Translate Gateway error: ${errorText}`);
           }
 
           throw new Error(`Server error ${response.status}: ${errorText}`);
@@ -100,27 +129,49 @@ export class TranslateService {
         const data = (await response.json()) as T;
 
         if (!data || typeof data !== 'object') {
-          throw new Error('Invalid response format from Translate Gateway');
+          throw new BadGatewayException('Invalid response format from Translate Gateway');
         }
 
         return data;
       } catch (error: any) {
         lastError = error;
 
-        if (error.name === 'AbortError' || error.message.includes('returned 4')) {
+        // Don't retry on client errors or specific exceptions
+        if (
+          error instanceof BadRequestException ||
+          error instanceof BadGatewayException
+        ) {
           throw error;
+        }
+
+        // Check for timeout
+        if (this.isAbortError(error)) {
+          this.logger.error('Translate Gateway request timed out');
+          throw new RequestTimeoutException(
+            'Translation request timed out. The text may be too long or the service is overloaded.',
+          );
+        }
+
+        // Check for connection errors
+        if (this.isConnectionError(error)) {
+          this.logger.error('Translate Gateway is unavailable');
+          throw new ServiceUnavailableException(
+            'Translate Gateway microservice is unavailable. Please check if the service is running.',
+          );
         }
 
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
           this.logger.warn(
-            `Translation request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms`,
+            `Translation request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms: ${error.message}`,
           );
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
 
-    throw lastError ?? new Error('All retry attempts failed');
+    throw new BadGatewayException(
+      `All retry attempts failed: ${lastError?.message || 'Unknown error'}`,
+    );
   }
 }

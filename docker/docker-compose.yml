@@ -5,6 +5,8 @@ services:
     hostname: gran-publicador
     restart: unless-stopped
     stop_grace_period: 30s
+    expose:
+      - 8080
     ports:
       - '8080:8080'
     environment:
@@ -21,8 +23,8 @@ services:
       - API_KEY=your_api_key_here
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    volumes:
-      - ./data:/data
+    #volumes:
+    #  - ./data:/data
     depends_on:
       - redis
       - postgres
@@ -44,7 +46,8 @@ services:
 
   postgres:
     image: postgres:18-alpine
-    container_name: postgres
+    container_name: gran-publicador-postgres
+    hostname: gran-publicador-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: gran

@@ -6,6 +6,8 @@ import {
   InternalServerErrorException,
   ForbiddenException,
   RequestTimeoutException,
+  ServiceUnavailableException,
+  BadGatewayException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable, Transform } from 'stream';
@@ -52,7 +54,8 @@ export class MediaService {
     if (typeof meta === 'string') {
       try {
         return JSON.parse(meta);
-      } catch {
+      } catch (error) {
+        this.logger.warn(`Failed to parse meta JSON: ${(error as Error).message}`);
         return {};
       }
     }
@@ -62,6 +65,39 @@ export class MediaService {
   private isAbortError(error: unknown): boolean {
     const err = error as { name?: unknown };
     return err?.name === 'AbortError';
+  }
+
+  private isConnectionError(error: unknown): boolean {
+    const err = error as { code?: string; cause?: { code?: string } };
+    return (
+      err?.code === 'ECONNREFUSED' ||
+      err?.code === 'ENOTFOUND' ||
+      err?.code === 'ECONNRESET' ||
+      err?.cause?.code === 'ECONNREFUSED' ||
+      err?.cause?.code === 'ENOTFOUND'
+    );
+  }
+
+  private handleMicroserviceError(error: unknown, operation: string): never {
+    this.logger.error(`Media Storage microservice error during ${operation}: ${(error as Error).message}`);
+    
+    if (this.isAbortError(error)) {
+      throw new RequestTimeoutException('Media Storage microservice request timed out');
+    }
+    
+    if (this.isConnectionError(error)) {
+      throw new ServiceUnavailableException(
+        'Media Storage microservice is unavailable. Please check if the service is running.',
+      );
+    }
+    
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    
+    throw new BadGatewayException(
+      `Media Storage microservice error: ${(error as Error).message}`,
+    );
   }
 
   private normalizeCompressionOptions(options: any): Record<string, any> {
@@ -245,11 +281,22 @@ export class MediaService {
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.message || errorText;
-        } catch {
-          // Use raw text if not JSON
+        } catch (parseError) {
+          this.logger.debug('Media Storage error response is not JSON');
         }
-        this.logger.error(`Media Storage returned error ${response.status}: ${errorMessage}`);
-        throw new Error(errorMessage);
+        this.logger.error(
+          `Media Storage returned HTTP ${response.status} during upload: ${errorMessage}`,
+        );
+        
+        // Preserve HTTP status from microservice
+        if (response.status === 400) {
+          throw new BadRequestException(errorMessage);
+        } else if (response.status === 404) {
+          throw new NotFoundException(errorMessage);
+        } else if (response.status >= 500) {
+          throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
+        }
+        throw new BadGatewayException(errorMessage);
       }
 
       const result = await response.json();
@@ -268,14 +315,16 @@ export class MediaService {
       };
     } catch (error) {
       clearTimeout(timeoutId);
-      this.logger.error(`Failed to upload to Media Storage: ${(error as Error).message}`);
-      if (error instanceof BadRequestException) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof BadGatewayException ||
+        error instanceof RequestTimeoutException ||
+        error instanceof ServiceUnavailableException
+      ) {
         throw error;
       }
-      if (this.isAbortError(error)) {
-        throw new RequestTimeoutException('Media Storage request timed out');
-      }
-      throw new InternalServerErrorException(`Failed to upload file: ${(error as Error).message}`);
+      this.handleMicroserviceError(error, 'file upload');
     }
   }
 
@@ -312,11 +361,21 @@ export class MediaService {
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.message || errorText;
-        } catch {
-          // Use raw text
+        } catch (parseError) {
+          this.logger.debug('Media Storage error response is not JSON');
         }
-        this.logger.error(`Media Storage returned error ${response.status}: ${errorMessage}`);
-        throw new Error(errorMessage);
+        this.logger.error(
+          `Media Storage returned HTTP ${response.status} during URL upload: ${errorMessage}`,
+        );
+        
+        if (response.status === 400) {
+          throw new BadRequestException(errorMessage);
+        } else if (response.status === 404) {
+          throw new NotFoundException(errorMessage);
+        } else if (response.status >= 500) {
+          throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
+        }
+        throw new BadGatewayException(errorMessage);
       }
 
       const result = await response.json();
@@ -333,11 +392,16 @@ export class MediaService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to upload from URL: ${(error as Error).message}`);
-      if (this.isAbortError(error)) {
-        throw new RequestTimeoutException('Media Storage request timed out');
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof BadGatewayException ||
+        error instanceof RequestTimeoutException ||
+        error instanceof ServiceUnavailableException
+      ) {
+        throw error;
       }
-      throw new InternalServerErrorException(`Failed to upload file: ${(error as Error).message}`);
+      this.handleMicroserviceError(error, 'URL upload');
     }
   }
 
@@ -370,11 +434,21 @@ export class MediaService {
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.message || errorText;
-        } catch {
-          // Use raw text
+        } catch (parseError) {
+          this.logger.debug('Media Storage error response is not JSON');
         }
-        this.logger.error(`Media Storage returned error ${response.status}: ${errorMessage}`);
-        throw new Error(errorMessage);
+        this.logger.error(
+          `Media Storage returned HTTP ${response.status} during reprocess: ${errorMessage}`,
+        );
+        
+        if (response.status === 400) {
+          throw new BadRequestException(errorMessage);
+        } else if (response.status === 404) {
+          throw new NotFoundException(errorMessage);
+        } else if (response.status >= 500) {
+          throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
+        }
+        throw new BadGatewayException(errorMessage);
       }
       const result = await response.json();
       return {
@@ -390,13 +464,16 @@ export class MediaService {
         },
       };
     } catch (error) {
-      if (this.isAbortError(error)) {
-        throw new RequestTimeoutException('Media Storage request timed out');
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof BadGatewayException ||
+        error instanceof RequestTimeoutException ||
+        error instanceof ServiceUnavailableException
+      ) {
+        throw error;
       }
-      this.logger.error(`Failed to reprocess: ${(error as Error).message}`);
-      throw new InternalServerErrorException(
-        `Failed to reprocess file: ${(error as Error).message}`,
-      );
+      this.handleMicroserviceError(error, 'file reprocess');
     }
   }
 
@@ -410,7 +487,12 @@ export class MediaService {
       });
       clearTimeout(timeoutId);
     } catch (error) {
-      this.logger.error(`Failed to delete from Media Storage: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to delete file ${fileId} from Media Storage: ${(error as Error).message}`,
+      );
+      if (this.isConnectionError(error)) {
+        this.logger.warn('Media Storage microservice appears to be unavailable');
+      }
     }
   }
 
@@ -455,6 +537,11 @@ export class MediaService {
       if (this.isAbortError(error)) {
         throw new RequestTimeoutException('Media Storage request timed out');
       }
+      if (this.isConnectionError(error)) {
+        throw new ServiceUnavailableException(
+          'Media Storage microservice is unavailable. Please check if the service is running.',
+        );
+      }
       throw error;
     }
   }
@@ -497,6 +584,11 @@ export class MediaService {
       if (this.isAbortError(error)) {
         throw new RequestTimeoutException('Media Storage request timed out');
       }
+      if (this.isConnectionError(error)) {
+        throw new ServiceUnavailableException(
+          'Media Storage microservice is unavailable. Please check if the service is running.',
+        );
+      }
       throw error;
     }
   }
@@ -514,11 +606,20 @@ export class MediaService {
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
-      this.logger.error(`Failed to get file info from Media Storage: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to get file info from Media Storage: ${(error as Error).message}`,
+      );
       if (this.isAbortError(error)) {
         throw new RequestTimeoutException('Media Storage request timed out');
       }
-      throw error;
+      if (this.isConnectionError(error)) {
+        throw new ServiceUnavailableException(
+          'Media Storage microservice is unavailable. Please check if the service is running.',
+        );
+      }
+      throw new BadGatewayException(
+        `Failed to get file info: ${(error as Error).message}`,
+      );
     }
   }
 
@@ -607,7 +708,10 @@ export class MediaService {
       try {
         await this.permissions.checkProjectAccess(projectId, userId);
         return;
-      } catch {
+      } catch (error) {
+        this.logger.debug(
+          `User ${userId} does not have access to project ${projectId}: ${(error as Error).message}`,
+        );
         continue;
       }
     }
