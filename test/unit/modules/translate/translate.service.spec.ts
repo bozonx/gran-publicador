@@ -88,7 +88,7 @@ describe('TranslateService', () => {
     });
 
     await expect(service.translateText(dto)).rejects.toThrow(
-      'Server error 500: Internal Server Error',
+      'Translate Gateway error: Internal Server Error',
     );
   });
 

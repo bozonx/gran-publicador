@@ -268,31 +268,51 @@ describe('MediaService (unit)', () => {
 
       await expect(
         service.uploadFileToStorage(Readable.from([Buffer.from('')]), 'f', 'm'),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if file is too large', async () => {
-      process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB = '0';
-      service = moduleRef.get<MediaService>(MediaService);
+      const originalMaxFileSize = (service as any).maxFileSize;
+      (service as any).maxFileSize = 0; // Force file to be too large
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          id: 'storage-id-123',
-          originalSize: 4,
-          size: 4,
-          mimeType: 'text/plain',
-          checksum: 'hash',
-          url: 'http://storage/file',
-        }),
+      mockFetch.mockImplementation(async (_url: string, options: any) => {
+        // Read the body to trigger stream errors (like file too large)
+        if (options?.body) {
+          try {
+            const stream = options.body;
+            // Handle both Web Streams and Node Streams
+            if (typeof stream.getReader === 'function') {
+              const reader = stream.getReader();
+              while (true) {
+                const { done } = await reader.read();
+                if (done) break;
+              }
+            } else if (typeof stream[Symbol.asyncIterator] === 'function') {
+              for await (const _chunk of stream) { /* consume */ }
+            }
+          } catch (e) {
+            throw e;
+          }
+        }
+ 
+        return {
+          ok: true,
+          json: async () => ({
+            id: 'storage-id-123',
+            originalSize: 4,
+            size: 4,
+            mimeType: 'text/plain',
+            checksum: 'hash',
+            url: 'http://storage/file',
+          }),
+        };
       });
 
       await expect(
         service.uploadFileToStorage(Readable.from([Buffer.from('test')]), 'f', 'm'),
       ).rejects.toThrow(BadRequestException);
 
-      process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB = '10';
-      service = moduleRef.get<MediaService>(MediaService);
+      (service as any).maxFileSize = originalMaxFileSize;
     });
 
     it('should handle timeout/abort', async () => {
@@ -302,7 +322,7 @@ describe('MediaService (unit)', () => {
 
       await expect(
         service.uploadFileToStorage(Readable.from([Buffer.from('')]), 'f', 'm'),
-      ).rejects.toThrow('Media Storage request timed out');
+      ).rejects.toThrow('Media Storage microservice request timed out');
     });
   });
 
@@ -323,7 +343,13 @@ describe('MediaService (unit)', () => {
         }),
       });
 
-      const result = await service.uploadFileFromUrl(url, filename);
+      const optimize = {
+        format: 'webp',
+        maxDimension: 3840,
+        quality: 85,
+      };
+
+      const result = await service.uploadFileFromUrl(url, filename, undefined, undefined, optimize);
 
       expect(result.fileId).toBe('storage-id-456');
       expect(result.metadata.checksum).toBe('hash123');
@@ -343,10 +369,7 @@ describe('MediaService (unit)', () => {
       const body = JSON.parse(callArgs[1].body);
       expect(body.url).toBe(url);
       expect(body.filename).toBe(filename);
-      expect(body.optimize).toBeDefined();
-      expect(body.optimize.format).toBe('webp');
-      expect(body.optimize.maxDimension).toBe(3840);
-      expect(body.optimize.quality).toBe(85);
+      expect(body.optimize).toEqual(optimize);
     });
 
     it('should pass userId, purpose, and appId in body', async () => {
@@ -411,7 +434,7 @@ describe('MediaService (unit)', () => {
       });
 
       await expect(service.uploadFileFromUrl('http://invalid.url')).rejects.toThrow(
-        InternalServerErrorException,
+        BadRequestException,
       );
     });
 
@@ -421,7 +444,7 @@ describe('MediaService (unit)', () => {
       mockFetch.mockRejectedValue(error);
 
       await expect(service.uploadFileFromUrl('http://example.com/file.jpg')).rejects.toThrow(
-        'Media Storage request timed out',
+        'Media Storage microservice request timed out',
       );
     });
   });

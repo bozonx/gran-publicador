@@ -257,6 +257,9 @@ export class MediaService {
     });
 
     const limitedFileStream = fileStream.pipe(limiter);
+    // Prevent unhandled 'error' event from crashing the process
+    limitedFileStream.on('error', () => {});
+
     const multipartStream = Readable.from(
       this.generateMultipart(boundary, filename, mimetype, limitedFileStream, fields),
     );
