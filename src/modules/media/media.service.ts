@@ -290,9 +290,9 @@ export class MediaService {
       return {
         fileId: result.id,
         metadata: {
-          originalSize: result.originalSize,
-          size: result.size,
-          mimeType: result.mimeType,
+          originalSize: result.originalSize || result.original_size,
+          size: result.size || result.size_bytes,
+          mimeType: result.mimeType || result.mime_type,
           checksum: result.checksum,
           url: result.url,
         },
@@ -366,9 +366,9 @@ export class MediaService {
       return {
         fileId: result.id,
         metadata: {
-          originalSize: result.originalSize,
-          size: result.size,
-          mimeType: result.mimeType,
+          originalSize: result.originalSize || result.original_size,
+          size: result.size || result.size_bytes,
+          mimeType: result.mimeType || result.mime_type,
           checksum: result.checksum,
           url: result.url,
         },

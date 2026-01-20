@@ -632,17 +632,29 @@ function formatSizeMB(bytes?: number): string {
 }
 
 const compressionStats = computed(() => {
-  if (!selectedMedia.value?.meta) return null
-  const { originalSize, size } = selectedMedia.value.meta
-  if (!originalSize || !size || originalSize === size) return null
+  const meta = selectedMedia.value?.meta
+  if (!meta) return null
+  
+  // Try both camelCase and snake_case for the original size
+  const original = meta.originalSize || meta.original_size
+  // Use size from meta or the top-level sizeBytes
+  const current = meta.size || selectedMedia.value?.sizeBytes
+  
+  if (!original || !current || Number(original) === Number(current)) return null
 
-  const saved = originalSize - size
-  const percent = Math.round((saved / originalSize) * 100)
-  const ratio = (originalSize / size).toFixed(1)
+  const originalNum = Number(original)
+  const currentNum = Number(current)
+  const saved = originalNum - currentNum
+  
+  // Only show if there is actually some meaningful compression (> 1KB)
+  if (saved < 1024) return null
+
+  const percent = Math.round((saved / originalNum) * 100)
+  const ratio = (originalNum / currentNum).toFixed(1)
 
   return {
-    originalSize: formatSizeMB(originalSize),
-    optimizedSize: formatSizeMB(size),
+    originalSize: formatSizeMB(originalNum),
+    optimizedSize: formatSizeMB(currentNum),
     savedPercent: percent,
     ratio
   }
