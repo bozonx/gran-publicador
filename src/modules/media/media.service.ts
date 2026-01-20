@@ -75,6 +75,26 @@ export class MediaService {
       delete normalized.avifChromaSubsampling;
     }
 
+    // Drop internal UI flags and unknown keys.
+    // Media Storage microservice validates optimize parameters strictly.
+    const allowedKeys = new Set([
+      'format',
+      'quality',
+      'maxDimension',
+      'lossless',
+      'stripMetadata',
+      'autoOrient',
+      'flatten',
+      'chromaSubsampling',
+      'effort',
+    ]);
+
+    for (const key of Object.keys(normalized)) {
+      if (!allowedKeys.has(key)) {
+        delete normalized[key];
+      }
+    }
+
     return normalized;
   }
 
@@ -180,6 +200,9 @@ export class MediaService {
 
     let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
     if (compression && compression.enabled === false) compression = undefined;
+    if (!mimetype.toLowerCase().startsWith('image/')) {
+      compression = undefined;
+    }
     if (compression) fields.optimize = JSON.stringify(compression);
 
     // Log fields for debugging
