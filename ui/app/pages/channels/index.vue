@@ -93,7 +93,7 @@ async function loadChannels() {
 onMounted(async () => {
     await Promise.all([
         loadChannels(),
-        fetchProjects(true) // включая архивные проекты
+        fetchProjects(true) // including archived projects
     ])
 })
 
@@ -310,7 +310,7 @@ const showPagination = computed(() => {
           size="sm"
           @click="resetFilters"
         >
-          {{ t('common.resetFilters', 'Сбросить') }}
+          {{ t('common.resetFilters', 'Reset') }}
         </UButton>
       </div>
 
@@ -421,7 +421,7 @@ const showPagination = computed(() => {
             {{ t('channel.noChannelsFound') }}
           </h3>
           <p class="text-gray-500 dark:text-gray-400">
-            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Попробуйте сделать фильтры менее строгими') : t('channel.noChannelsDescription') }}
+            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
           </p>
        </div>
 
@@ -448,7 +448,7 @@ const showPagination = computed(() => {
             {{ t('channel.noChannelsFound') }}
           </h3>
           <p class="text-gray-500 dark:text-gray-400">
-            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Попробуйте сделать фильтры менее строгими') : t('channel.noChannelsDescription') }}
+            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
           </p>
        </div>
 

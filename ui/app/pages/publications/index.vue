@@ -437,7 +437,7 @@ async function handleDelete() {
           size="sm"
           @click="resetFilters"
         >
-          {{ t('common.resetFilters', 'Сбросить') }}
+          {{ t('common.resetFilters', 'Reset') }}
         </UButton>
       </div>
 
@@ -604,10 +604,10 @@ async function handleDelete() {
           <UIcon name="i-heroicons-document-text" class="w-8 h-8 text-gray-400" />
         </div>
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          {{ t('publication.noPublicationsFound', 'Публикации не найдены') }}
+          {{ t('publication.noPublicationsFound', 'No publications found') }}
         </h3>
         <p class="text-gray-500 dark:text-gray-400">
-          {{ hasActiveFilters ? t('post.noPostsFiltered') : t('publication.noPublicationsDescription', 'У вас еще нет созданных публикаций.') }}
+          {{ hasActiveFilters ? t('post.noPostsFiltered') : t('publication.noPublicationsDescription', 'You have no publications created yet.') }}
         </p>
     </div>
 
@@ -617,7 +617,7 @@ async function handleDelete() {
         :model-value="isAllSelected"
         :indeterminate="isSomeSelected"
         @update:model-value="toggleSelectAll"
-        :label="isAllSelected ? t('common.deselectAll', 'Снять выделение') : t('common.selectAll', 'Выбрать все')"
+        :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
       />
     </div>
 
@@ -667,7 +667,7 @@ async function handleDelete() {
             size="xs" 
             icon="i-heroicons-x-mark" 
             @click="selectedIds = []" 
-            :title="t('common.clearSelection', 'Очистить')"
+            :title="t('common.clearSelection', 'Clear')"
           />
         </div>
 

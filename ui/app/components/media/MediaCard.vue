@@ -132,7 +132,7 @@ function handleClick() {
         class="text-xs text-center truncate w-full px-2" 
         :class="imageError ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'"
       >
-        {{ imageError ? t('media.loadError', 'Файл недоступен') : (media.filename || 'Untitled') }}
+        {{ imageError ? t('media.loadError', 'File unavailable') : (media.filename || 'Untitled') }}
       </p>
       <div v-if="!imageError && size !== 'sm'" class="flex flex-col gap-1">
         <UBadge size="xs" color="neutral">

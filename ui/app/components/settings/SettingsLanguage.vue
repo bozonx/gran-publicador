@@ -6,7 +6,7 @@ const toast = useToast()
 const languageOptions = computed(() =>
   availableLocales.map((loc: string) => ({
     value: loc,
-    label: loc === 'ru-RU' ? 'Русский' : 'English',
+    label: loc === 'ru-RU' ? 'Russian' : 'English',
   }))
 )
 

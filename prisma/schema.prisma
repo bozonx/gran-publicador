@@ -393,9 +393,9 @@ enum PostStatus {
 }
 
 enum NotificationType {
-  PUBLICATION_FAILED     // Проблема при публикации (failed/partial)
-  PROJECT_INVITE        // Приглашение в проект
-  SYSTEM                // Системное уведомление
+  PUBLICATION_FAILED     // Issue during publication (failed/partial)
+  PROJECT_INVITE        // Invitation to a project
+  SYSTEM                // System notification
 }
 
 enum MediaType {

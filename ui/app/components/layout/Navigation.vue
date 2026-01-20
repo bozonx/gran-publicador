@@ -39,12 +39,12 @@ const mainNavItems = computed<NavItem[]>(() => [
     icon: 'i-heroicons-document-text',
   },
   {
-    label: t('navigation.media_library', 'Медиа-библиотека'),
+    label: t('navigation.media_library', 'Media Library'),
     to: '/media',
     icon: 'i-heroicons-photo',
   },
   {
-    label: t('navigation.drafts_and_templates', 'Черновики и заготовки'),
+    label: t('navigation.drafts_and_templates', 'Drafts & Templates'),
     to: '/drafts',
     icon: 'i-heroicons-pencil-square',
   },

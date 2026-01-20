@@ -13,11 +13,11 @@ const searchQuery = ref('')
 const typeFilter = ref<string>('ALL')
 
 const typeOptions = [
-  { value: 'ALL', label: t('common.all', 'Все') },
-  { value: 'IMAGE', label: t('media.type.image', 'Изображения') },
-  { value: 'VIDEO', label: t('media.type.video', 'Видео') },
-  { value: 'AUDIO', label: t('media.type.audio', 'Аудио') },
-  { value: 'DOCUMENT', label: t('media.type.document', 'Документы') },
+  { value: 'ALL', label: t('common.all', 'All') },
+  { value: 'IMAGE', label: t('media.type.image', 'Images') },
+  { value: 'VIDEO', label: t('media.type.video', 'Videos') },
+  { value: 'AUDIO', label: t('media.type.audio', 'Audios') },
+  { value: 'DOCUMENT', label: t('media.type.document', 'Documents') },
 ]
 
 async function loadMedia() {
@@ -132,10 +132,10 @@ function formatSizeMB(bytes?: number): string {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ t('navigation.media_library', 'Медиа-библиотека') }}
+          {{ t('navigation.media_library', 'Media Library') }}
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('media.library_description', 'Все медиа-файлы из ваших проектов') }}
+          {{ t('media.library_description', 'All media files from your projects') }}
         </p>
       </div>
     </div>
@@ -146,7 +146,7 @@ function formatSizeMB(bytes?: number): string {
         <UInput
           v-model="searchQuery"
           icon="i-heroicons-magnifying-glass"
-          :placeholder="t('common.search', 'Поиск...')"
+          :placeholder="t('common.search', 'Search...')"
           size="lg"
         />
       </div>
@@ -179,7 +179,7 @@ function formatSizeMB(bytes?: number): string {
 
     <div v-else class="flex flex-col items-center justify-center py-20 text-gray-500">
       <UIcon name="i-heroicons-photo" class="w-16 h-16 mb-4 opacity-20" />
-      <p>{{ t('media.no_media_found', 'Медиа не найдено') }}</p>
+      <p>{{ t('media.no_media_found', 'No media found') }}</p>
     </div>
 
     <!-- Modal -->
@@ -236,19 +236,19 @@ function formatSizeMB(bytes?: number): string {
         <div class="space-y-6">
           <section>
             <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
-              {{ t('media.file_info', 'Информация о файле') }}
+              {{ t('media.file_info', 'File information') }}
             </h4>
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span class="text-gray-400 block">{{ t('media.size', 'Размер') }}</span>
+                <span class="text-gray-400 block">{{ t('media.size', 'Size') }}</span>
                 <span class="text-gray-900 dark:text-white font-medium">{{ formatSizeMB(selectedMedia?.sizeBytes) }}</span>
               </div>
               <div>
-                <span class="text-gray-400 block">{{ t('media.type', 'Тип') }}</span>
+                <span class="text-gray-400 block">{{ t('media.type', 'Type') }}</span>
                 <span class="text-gray-900 dark:text-white font-medium">{{ selectedMedia?.type }}</span>
               </div>
               <div class="col-span-2">
-                <span class="text-gray-400 block">{{ t('media.created_at', 'Загружено') }}</span>
+                <span class="text-gray-400 block">{{ t('media.created_at', 'Uploaded') }}</span>
                 <span class="text-gray-900 dark:text-white font-medium">
                   {{ selectedMedia ? new Date(selectedMedia.createdAt).toLocaleString() : '' }}
                 </span>
@@ -259,7 +259,7 @@ function formatSizeMB(bytes?: number): string {
           <section>
             <div class="flex items-center justify-between mb-3">
               <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                {{ t('media.metadata', 'Метаданные (JSON)') }}
+                {{ t('media.metadata', 'Metadata (JSON)') }}
               </h4>
             </div>
             

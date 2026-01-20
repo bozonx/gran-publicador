@@ -96,7 +96,7 @@ watch(showExtendedOptions, (val) => {
 
 const addMediaButtonLabel = computed(() => {
   if (sourceType.value === 'URL') {
-    return t('media.add', 'Добавить медиа')
+    return t('media.add', 'Add media')
   }
   const types = {
     IMAGE: t('media.type.image'),
@@ -105,7 +105,7 @@ const addMediaButtonLabel = computed(() => {
     DOCUMENT: t('media.type.document'),
   }
   const typeText = (types[mediaType.value as keyof typeof types] || t('media.type.image')).toLowerCase()
-  return `${t('common.add', 'Добавить')} ${typeText}`
+  return `${t('common.add', 'Add')} ${typeText}`
 })
 
 const isDragging = ref(false)
@@ -953,10 +953,10 @@ const emit = defineEmits<Emits>()
         <div class="flex items-center justify-between mb-6">
           <div class="flex-1">
             <h4 class="text-base font-semibold text-gray-900 dark:text-white">
-              {{ showExtendedOptions ? t('media.extendedOptions') : t('media.addFromUrl', 'Добавить из URL или Telegram') }}
+              {{ showExtendedOptions ? t('media.extendedOptions') : t('media.addFromUrl', 'Add from URL or Telegram') }}
             </h4>
             <p v-if="!showExtendedOptions" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {{ sourceType === 'URL' ? 'Файл будет скачан, проанализирован и сохранён в хранилище' : 'Можно указывать file_id только того медиа файла, который был виден боту Gran Publicador' }}
+              {{ sourceType === 'URL' ? 'The file will be downloaded, analyzed and saved to storage' : 'You can only specify the file_id of a media file that was seen by the Gran Publicador bot' }}
             </p>
           </div>
           <UButton
@@ -994,7 +994,7 @@ const emit = defineEmits<Emits>()
           </div>
 
           <div class="flex items-end gap-3 w-full">
-            <UFormField :label="t('media.sourceType', 'Источник')" required class="flex-none w-48">
+            <UFormField :label="t('media.sourceType', 'Source')" required class="flex-none w-48">
               <USelectMenu
                 v-model="sourceType"
                 :items="sourceTypeOptions"
@@ -1006,7 +1006,7 @@ const emit = defineEmits<Emits>()
               />
             </UFormField>
 
-            <UFormField v-if="sourceType === 'TELEGRAM'" :label="t('media.mediaType', 'Тип')" required class="flex-none w-48">
+            <UFormField v-if="sourceType === 'TELEGRAM'" :label="t('media.mediaType', 'Type')" required class="flex-none w-48">
               <USelectMenu
                 v-model="mediaType"
                 :items="mediaTypeOptions"
@@ -1018,7 +1018,7 @@ const emit = defineEmits<Emits>()
               />
             </UFormField>
 
-            <UFormField :label="t('media.filename', 'Имя файла')" class="flex-1">
+            <UFormField :label="t('media.filename', 'Filename')" class="flex-1">
               <UInput
                 v-model="filenameInput"
                 placeholder="image.jpg"
@@ -1064,7 +1064,7 @@ const emit = defineEmits<Emits>()
               color="primary"
               icon="i-heroicons-check"
             >
-              {{ uploadProgress ? t('media.uploading', 'Загрузка...') : t('media.confirmAndUpload') }}
+              {{ uploadProgress ? t('media.uploading', 'Uploading...') : t('media.confirmAndUpload') }}
             </UButton>
             <UButton
               v-else
@@ -1075,7 +1075,7 @@ const emit = defineEmits<Emits>()
               size="lg"
               icon="i-heroicons-plus"
             >
-              {{ uploadProgress ? t('media.uploading', 'Загрузка...') : addMediaButtonLabel }}
+              {{ uploadProgress ? t('media.uploading', 'Uploading...') : addMediaButtonLabel }}
             </UButton>
           </div>
         </div>
@@ -1231,7 +1231,7 @@ const emit = defineEmits<Emits>()
         <div v-if="compressionStats" class="mb-6 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-200 dark:border-primary-800/50">
           <div class="flex items-center gap-2 mb-3 text-primary-700 dark:text-primary-300">
             <UIcon name="i-heroicons-sparkles" class="w-5 h-5" />
-            <span class="font-semibold text-sm">{{ t('media.compressionRatio', 'Сжатие') }}</span>
+            <span class="font-semibold text-sm">{{ t('media.compressionRatio', 'Compression') }}</span>
             <span v-if="compressionStats.originalFormat && compressionStats.optimizedFormat && compressionStats.originalFormat !== compressionStats.optimizedFormat" class="ml-auto text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
               {{ compressionStats.originalFormat.split('/')[1]?.toUpperCase() }} <UIcon name="i-heroicons-arrow-right" class="w-3 h-3 inline -mt-0.5 mx-0.5" /> {{ compressionStats.optimizedFormat.split('/')[1]?.toUpperCase() }}
             </span>

@@ -86,10 +86,10 @@ export class SocialPostingRequestFormatter {
     // Platform specific overrides
     if (isTelegram) {
       // Per instructions for Telegram:
-      // - title: не передаем
-      // - description: не передаем
-      // - tags: не передаем (уже в body)
-      // - mode: не передаем
+      // - title: do not pass
+      // - description: do not pass
+      // - tags: do not pass (already in body)
+      // - mode: do not pass
       delete request.title;
       delete request.description;
       delete (request as any).tags;

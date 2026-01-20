@@ -1,230 +1,94 @@
-# Common UI Components
+This directory contains reusable components for unifying the application interface.
 
-Этот директорий содержит переиспользуемые компоненты для унификации интерфейса приложения.
+## Components
 
-## Компоненты
+### Forms
 
-### Формы
+#### CommonField
+Unified read-only field for displaying immutable data in forms.
+- `label` (string, required) - Field label
+- `value` (string | number | null | undefined, required) - Value
+- `help` (string, optional) - Tooltip text
+- `icon` (string, optional) - Icon name
+- `formatAsDate` (boolean, default: false) - Format as date
+- `mono` (boolean, default: false) - Use monospace font
 
-#### FormReadOnlyField
-Унифицированное read-only поле для отображения неизменяемых данных в формах.
+### Metrics
 
-```vue
-<CommonFormReadOnlyField
-  label="Created At"
-  :value="entity.createdAt"
-  help="Date when entity was created"
-  icon="i-heroicons-calendar"
-  format-as-date
-/>
-```
+#### CommonMetric
+Inline metric display with icon and value.
+- `icon` (string, required) - Icon name
+- `label` (string, required) - Metric label
+- `value` (string | number, required) - Value
+- `variant` ('default' | 'error' | 'warning' | 'success', default: 'default') - Color scheme
+- `bold` (boolean, default: false) - Bold font for value
 
-**Props:**
-- `label` (string, required) - Название поля
-- `value` (string | number | null | undefined, required) - Значение
-- `help` (string, optional) - Текст подсказки
-- `icon` (string, optional) - Имя иконки
-- `formatAsDate` (boolean, default: false) - Форматировать как дату
-- `mono` (boolean, default: false) - Использовать моноширинный шрифт
+#### CommonDashboardMetric
+Metric in a styled container (for dashboard).
+- `icon` (string, required) - Icon name
+- `label` (string, required) - Metric label
+- `value` (string | number, required) - Value
 
-### Метрики
+### Cards
 
-#### MetricItem
-Inline отображение метрики с иконкой и значением.
+#### CommonCardHeader
+Standard header for entity cards.
+- `title` (string, required) - Title
+- `badge` (string, optional) - Badge text
+- `badgeColor` ('error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral', optional) - Badge color
+- `actions` - Action buttons and indicators
 
-```vue
-<CommonMetricItem
-  icon="i-heroicons-document-text"
-  label="Publications"
-  :value="count"
-  variant="default"
-  bold
-/>
-```
+#### CommonDescription
+Description with line clamping.
+- `text` (string | null, optional) - Description text
+- `lines` (number, default: 2) - Number of lines to display
 
-**Props:**
-- `icon` (string, required) - Имя иконки
-- `label` (string, required) - Название метрики
-- `value` (string | number, required) - Значение
-- `variant` ('default' | 'error' | 'warning' | 'success', default: 'default') - Цветовая схема
-- `bold` (boolean, default: false) - Жирный шрифт для значения
+#### CommonCardFooter
+Unified footer for cards.
+- `withBorder` (boolean, default: true) - Show top border
+- `spacing` ('compact' | 'normal' | 'spacious', default: 'normal') - Padding size
 
-#### MetricBox
-Метрика в стилизованном контейнере (для dashboard).
+### Data Display
 
-```vue
-<CommonMetricBox
-  icon="i-heroicons-signal"
-  label="Channels"
-  :value="channelCount"
-/>
-```
+#### CommonAlertBadge
+Badge for displaying warnings and alerts.
+- `icon` (string, required) - Icon name
+- `text` (string, required) - Warning text
+- `variant` ('warning' | 'error' | 'info', default: 'warning') - Warning type
 
-**Props:**
-- `icon` (string, required) - Имя иконки
-- `label` (string, required) - Название метрики
-- `value` (string | number, required) - Значение
+#### CommonChannelStack
+Display social network icons of channels.
+- `channels` (SimpleChannel[], required) - Array of channels
+- `maxVisible` (number, default: 5) - Max number of displayed icons
+- `stacked` (boolean, default: true) - Stacked icon style
 
-### Карточки
+#### CommonLanguageTags
+Display language tags.
+- `languages` (string[], required) - Array of language codes
+- `mode` ('compact' | 'normal', default: 'normal') - Display mode
 
-#### EntityCardHeader
-Стандартный заголовок для карточек сущностей.
+#### useFormatters
+Set of utilities for data formatting.
+**Methods:**
+- `formatDateShort(date: string | null | undefined): string` - Short date format
+- `formatDateWithTime(date: string | null | undefined): string` - Date with time
+- `truncateContent(content: string | null | undefined, maxLength?: number): string` - Truncate HTML content
+- `formatNumber(value: number | null | undefined): string` - Number formatting
 
-```vue
-<CommonEntityCardHeader
-  :title="project.name"
-  badge="Owner"
-  badge-color="primary"
->
-  <template #actions>
-    <!-- Custom action buttons -->
-  </template>
-</CommonEntityCardHeader>
-```
+## Usage Principles
+1. **Auto-import**: All components in `/components/common/` are automatically available with the `Common` prefix
+2. **Type Safety**: All props are strictly typed via TypeScript
+3. **Defaults**: Sensible default values for optional props
+4. **Flexibility**: Use slots for customization
+5. **Consistency**: Use these components instead of creating duplicate code
 
-**Props:**
-- `title` (string, required) - Заголовок
-- `badge` (string, optional) - Текст badge
-- `badgeColor` ('error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral', optional) - Цвет badge
+## Refactoring Examples
 
-**Slots:**
-- `actions` - Кнопки действий и индикаторы
+### Before:
+(Generic HTML and styles)
 
-#### CardDescription
-Описание с ограничением количества строк.
+### After:
+(Using Common components)
 
-```vue
-<CommonCardDescription
-  :text="entity.description"
-  :lines="2"
-/>
-```
-
-**Props:**
-- `text` (string | null, optional) - Текст описания
-- `lines` (number, default: 2) - Количество строк для отображения
-
-#### CardFooter
-Унифицированный footer для карточек.
-
-```vue
-<CommonCardFooter with-border spacing="normal">
-  <!-- Footer content -->
-</CommonCardFooter>
-```
-
-**Props:**
-- `withBorder` (boolean, default: true) - Показывать верхнюю границу
-- `spacing` ('compact' | 'normal' | 'spacious', default: 'normal') - Размер отступов
-
-### Отображение данных
-
-#### WarningBadge
-Badge для отображения предупреждений и алертов.
-
-```vue
-<CommonWarningBadge
-  icon="i-heroicons-exclamation-triangle"
-  text="No recent posts"
-  variant="warning"
-/>
-```
-
-**Props:**
-- `icon` (string, required) - Имя иконки
-- `text` (string, required) - Текст предупреждения
-- `variant` ('warning' | 'error' | 'info', default: 'warning') - Тип предупреждения
-
-#### ChannelIcons
-Отображение иконок социальных сетей каналов.
-
-```vue
-<CommonChannelIcons
-  :channels="project.channels"
-  :max-visible="5"
-  stacked
-/>
-```
-
-**Props:**
-- `channels` (SimpleChannel[], required) - Массив каналов
-- `maxVisible` (number, default: 5) - Максимальное количество отображаемых иконок
-- `stacked` (boolean, default: true) - Стиль наложения иконок
-
-**Type SimpleChannel:**
-```typescript
-interface SimpleChannel {
-  id: string
-  name: string
-  socialMedia: string
-  isStale?: boolean
-}
-```
-
-#### LanguageBadges
-Отображение языковых тегов.
-
-```vue
-<CommonLanguageBadges
-  :languages="['en-US', 'ru-RU']"
-  mode="normal"
-/>
-```
-
-**Props:**
-- `languages` (string[], required) - Массив кодов языков
-- `mode` ('compact' | 'normal', default: 'normal') - Режим отображения
-
-## Composables
-
-### useFormatters
-
-Набор утилит для форматирования данных.
-
-```typescript
-import { useFormatters } from '~/composables/useFormatters'
-
-const { formatDateShort, formatDateWithTime, truncateContent, formatNumber } = useFormatters()
-```
-
-**Методы:**
-- `formatDateShort(date: string | null | undefined): string` - Короткий формат даты
-- `formatDateWithTime(date: string | null | undefined): string` - Дата со временем
-- `truncateContent(content: string | null | undefined, maxLength?: number): string` - Обрезка HTML контента
-- `formatNumber(value: number | null | undefined): string` - Форматирование чисел
-
-## Принципы использования
-
-1. **Auto-import**: Все компоненты в `/components/common/` автоматически доступны с префиксом `Common`
-2. **Type Safety**: Все props строго типизированы через TypeScript
-3. **Defaults**: Разумные значения по умолчанию для опциональных props
-4. **Flexibility**: Используйте slots для кастомизации
-5. **Consistency**: Используйте эти компоненты вместо создания дублирующего кода
-
-## Примеры рефакторинга
-
-### До:
-```vue
-<div class="space-y-2">
-  <label class="block text-sm font-medium">Created At</label>
-  <div class="p-3 bg-gray-50 rounded-lg border">
-    <span>{{ new Date(project.createdAt).toLocaleString() }}</span>
-  </div>
-  <p class="text-xs text-gray-500">Creation date</p>
-</div>
-```
-
-### После:
-```vue
-<CommonFormReadOnlyField
-  label="Created At"
-  :value="project.createdAt"
-  help="Creation date"
-  format-as-date
-/>
-```
-
-## См. также
-
-- [UI Component Unification Plan](../../.agent/tasks/ui-component-unification.md)
-- [Nuxt UI Documentation](https://ui.nuxt.com)
+## See Also
+- [Project Readme](../../../README.md)

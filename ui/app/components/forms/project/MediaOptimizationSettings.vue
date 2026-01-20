@@ -139,7 +139,7 @@ function handleEnabledToggle(val: boolean) {
         <h4 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
           {{ t('settings.mediaOptimization.images', 'Images') }}
           <span v-if="!state.enabled && !projectDefaults && !state.skipOptimization" class="normal-case font-normal text-gray-400 opacity-60">
-            ({{ t('settings.mediaOptimization.standardProfileWillBeApplied', 'стандартный профиль') }})
+            ({{ t('settings.mediaOptimization.standardProfileWillBeApplied', 'standard profile') }})
           </span>
         </h4>
       </div>

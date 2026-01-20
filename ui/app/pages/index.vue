@@ -297,7 +297,7 @@ async function handleDeletePublication() {
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
-            {{ t('dashboard.published_last_24h', 'Опубликовано за прошедшие сутки') }}
+            {{ t('dashboard.published_last_24h', 'Published last 24h') }}
             <CommonCountBadge :count="publishedCount" color="success" />
           </h3>
           <UButton
@@ -328,7 +328,7 @@ async function handleDeletePublication() {
         </div>
 
         <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-          {{ t('dashboard.no_published_last_24h', 'За прошедшие сутки публикаций не было') }}
+          {{ t('dashboard.no_published_last_24h', 'No publications were published in the last 24 hours') }}
         </div>
       </div>
 

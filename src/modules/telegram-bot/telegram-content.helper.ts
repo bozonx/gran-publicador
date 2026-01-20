@@ -143,7 +143,7 @@ export function formatSource(message: Message): string {
  * Truncate text for display in messages
  */
 export function truncateText(text: string, maxLength: number = 100): string {
-  if (!text) return '(пусто)';
+  if (!text) return '(empty)';
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 }

@@ -337,7 +337,7 @@ export class ChannelsService {
     await this.permissions.checkProjectPermission(channel.projectId, userId, [ProjectRole.ADMIN]);
 
     return this.prisma.$transaction(async tx => {
-      // 1. Находим все публикации, связанные с этим каналом
+      // 1. Find all publications associated with this channel
       const linkedPublications = await tx.post.findMany({
         where: { channelId: id },
         select: { publicationId: true },
@@ -347,7 +347,7 @@ export class ChannelsService {
       const linkedPubIds = linkedPublications.map(p => p.publicationId);
 
       if (linkedPubIds.length > 0) {
-        // 2. Проверяем, какие из этих публикаций имеют посты в ДРУГИХ каналах
+        // 2. Check which of these publications have posts in OTHER channels
         const multiChannelPosts = await tx.post.findMany({
           where: {
             publicationId: { in: linkedPubIds },
@@ -359,10 +359,10 @@ export class ChannelsService {
 
         const multiChannelPubIds = new Set(multiChannelPosts.map(p => p.publicationId));
 
-        // 3. Выявляем "сирот" (публикации, которые есть только в удаляемом канале)
+        // 3. Identify "orphans" (publications that exist only in the channel being deleted)
         const pubsToDelete = linkedPubIds.filter(pid => !multiChannelPubIds.has(pid));
 
-        // 4. Удаляем сирот
+        // 4. Delete orphans
         if (pubsToDelete.length > 0) {
           await tx.publication.deleteMany({
             where: { id: { in: pubsToDelete } },
@@ -370,7 +370,7 @@ export class ChannelsService {
         }
       }
 
-      // 5. Удаляем сам канал (Posts и AuthorSignatures удалятся каскадно благодаря схеме БД)
+      // 5. Delete the channel itself (Posts and AuthorSignatures will be deleted via cascade in DB schema)
       return tx.channel.delete({ where: { id } });
     });
   }
