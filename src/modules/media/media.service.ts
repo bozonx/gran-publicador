@@ -290,10 +290,10 @@ export class MediaService {
       return {
         fileId: result.id,
         metadata: {
-          originalSize: result.originalSize || result.original_size,
-          size: result.size || result.size_bytes,
-          mimeType: result.mimeType || result.mime_type,
-          originalMimeType: result.originalMimeType || result.original_mime_type,
+          originalSize: result.originalSize,
+          size: result.size,
+          mimeType: result.mimeType,
+          originalMimeType: result.originalMimeType,
           quality: result.quality, // Legacy compatibility
           lossless: result.lossless, // Legacy compatibility
           optimizationParams: result.optimizationParams,
