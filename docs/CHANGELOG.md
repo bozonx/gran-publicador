@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Redis service in `docker-compose.yml`.
 
 ### Fixed
+- Prisma generate error in GitHub Actions caused by missing `DATABASE_URL` and uncompiled config files.
 - LLM config validation error in environments without `FREE_LLM_ROUTER_URL`.
 - E2E tests failing due to missing Redis connection and configuration.
 - Publication save error (400) caused by `projectId` validation in PATCH requests.
