@@ -1,6 +1,6 @@
-import { 
-  BadRequestException, 
-  Injectable, 
+import {
+  BadRequestException,
+  Injectable,
   Logger,
   ServiceUnavailableException,
   BadGatewayException,
@@ -137,10 +137,7 @@ export class TranslateService {
         lastError = error;
 
         // Don't retry on client errors or specific exceptions
-        if (
-          error instanceof BadRequestException ||
-          error instanceof BadGatewayException
-        ) {
+        if (error instanceof BadRequestException || error instanceof BadGatewayException) {
           throw error;
         }
 

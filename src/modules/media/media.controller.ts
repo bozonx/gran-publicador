@@ -54,7 +54,7 @@ export class MediaController {
     // Extract optimize parameters if present from fields that appeared before the file
     let optimize: Record<string, any> | undefined;
     const fields = (part as any).fields;
-    
+
     // Log received fields keys
     this.logger.debug(`Received fields: ${Object.keys(fields || {}).join(', ')}`);
 
@@ -88,7 +88,6 @@ export class MediaController {
     }
 
     this.logger.debug(`Final optimize params to be sent: ${JSON.stringify(optimize)}`);
-
 
     // Upload to Media Storage using stream
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(

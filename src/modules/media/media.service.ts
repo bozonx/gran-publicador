@@ -79,25 +79,25 @@ export class MediaService {
   }
 
   private handleMicroserviceError(error: unknown, operation: string): never {
-    this.logger.error(`Media Storage microservice error during ${operation}: ${(error as Error).message}`);
-    
+    this.logger.error(
+      `Media Storage microservice error during ${operation}: ${(error as Error).message}`,
+    );
+
     if (this.isAbortError(error)) {
       throw new RequestTimeoutException('Media Storage microservice request timed out');
     }
-    
+
     if (this.isConnectionError(error)) {
       throw new ServiceUnavailableException(
         'Media Storage microservice is unavailable. Please check if the service is running.',
       );
     }
-    
+
     if (error instanceof BadRequestException) {
       throw error;
     }
-    
-    throw new BadGatewayException(
-      `Media Storage microservice error: ${(error as Error).message}`,
-    );
+
+    throw new BadGatewayException(`Media Storage microservice error: ${(error as Error).message}`);
   }
 
   private normalizeCompressionOptions(options: any): Record<string, any> {
@@ -235,7 +235,7 @@ export class MediaService {
     if (purpose) fields.purpose = purpose;
 
     let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
-    if (compression && compression.enabled === false) compression = undefined;
+    if (compression?.enabled === false) compression = undefined;
     if (!mimetype.toLowerCase().startsWith('image/')) {
       compression = undefined;
     }
@@ -290,7 +290,7 @@ export class MediaService {
         this.logger.error(
           `Media Storage returned HTTP ${response.status} during upload: ${errorMessage}`,
         );
-        
+
         // Preserve HTTP status from microservice
         if (response.status === 400) {
           throw new BadRequestException(errorMessage);
@@ -344,7 +344,7 @@ export class MediaService {
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;
       let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
-      if (compression && compression.enabled === false) compression = undefined;
+      if (compression?.enabled === false) compression = undefined;
       if (compression) body.optimize = compression;
 
       const controller = new AbortController();
@@ -370,7 +370,7 @@ export class MediaService {
         this.logger.error(
           `Media Storage returned HTTP ${response.status} during URL upload: ${errorMessage}`,
         );
-        
+
         if (response.status === 400) {
           throw new BadRequestException(errorMessage);
         } else if (response.status === 404) {
@@ -443,7 +443,7 @@ export class MediaService {
         this.logger.error(
           `Media Storage returned HTTP ${response.status} during reprocess: ${errorMessage}`,
         );
-        
+
         if (response.status === 400) {
           throw new BadRequestException(errorMessage);
         } else if (response.status === 404) {
@@ -609,9 +609,7 @@ export class MediaService {
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
-      this.logger.error(
-        `Failed to get file info from Media Storage: ${(error as Error).message}`,
-      );
+      this.logger.error(`Failed to get file info from Media Storage: ${(error as Error).message}`);
       if (this.isAbortError(error)) {
         throw new RequestTimeoutException('Media Storage request timed out');
       }
@@ -620,9 +618,7 @@ export class MediaService {
           'Media Storage microservice is unavailable. Please check if the service is running.',
         );
       }
-      throw new BadGatewayException(
-        `Failed to get file info: ${(error as Error).message}`,
-      );
+      throw new BadGatewayException(`Failed to get file info: ${(error as Error).message}`);
     }
   }
 
@@ -732,7 +728,7 @@ export class MediaService {
       select: { preferences: true },
     });
 
-    if (!project || !project.preferences) {
+    if (!project?.preferences) {
       return undefined;
     }
 

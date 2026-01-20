@@ -288,13 +288,15 @@ describe('MediaService (unit)', () => {
                 if (done) break;
               }
             } else if (typeof stream[Symbol.asyncIterator] === 'function') {
-              for await (const _chunk of stream) { /* consume */ }
+              for await (const _chunk of stream) {
+                /* consume */
+              }
             }
           } catch (e) {
             throw e;
           }
         }
- 
+
         return {
           ok: true,
           json: async () => ({

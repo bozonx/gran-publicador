@@ -2,6 +2,8 @@ import { Controller, Post, UseGuards, BadRequestException, Req, Logger } from '@
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { SttService } from './stt.service.js';
 import type { FastifyRequest } from 'fastify';
+import type { Readable } from 'node:stream';
+import { Readable as ReadableStream } from 'node:stream';
 
 @Controller('stt')
 @UseGuards(JwtAuthGuard)
@@ -21,25 +23,21 @@ export class SttController {
 
       this.logger.log(`Received multipart transcription request: ${part.filename}`);
 
-      return this.sttService.transcribeAudioStream(
-        part.file,
-        part.filename,
-        part.mimetype,
-      );
+      return this.sttService.transcribeAudioStream(part.file, part.filename, part.mimetype);
     }
 
     // 2. Check if raw stream (e.g. from browser Fetch API with duplex: 'half')
     const contentType = req.headers['content-type'] || '';
     if (contentType.startsWith('audio/')) {
       this.logger.log(`Received raw audio stream: ${contentType}`);
-      
+
       const filename = `recording-${Date.now()}.${contentType.split('/')[1]?.split(';')[0] || 'webm'}`;
-      
-      return this.sttService.transcribeAudioStream(
-        req.raw,
-        filename,
-        contentType,
-      );
+      const body = req.body;
+      const bodyStream = Buffer.isBuffer(body)
+        ? ReadableStream.from(body)
+        : ((body as Readable | undefined) ?? req.raw);
+
+      return this.sttService.transcribeAudioStream(bodyStream, filename, contentType);
     }
 
     throw new BadRequestException('Request must be multipart/form-data or audio/* raw stream');

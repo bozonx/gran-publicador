@@ -47,8 +47,6 @@ export function getMediaStorageMaxFileSize(): number {
   return maxSize ? parseInt(maxSize, 10) : 100;
 }
 
-
-
 /**
  * Gets optional thumbnail quality setting.
  *

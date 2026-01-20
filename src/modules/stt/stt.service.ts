@@ -1,6 +1,6 @@
-import { 
-  Injectable, 
-  Logger, 
+import {
+  Injectable,
+  Logger,
   InternalServerErrorException,
   ServiceUnavailableException,
   BadGatewayException,
@@ -30,7 +30,11 @@ export class SttService {
 
   private isTimeoutError(error: unknown): boolean {
     const err = error as { name?: string; code?: string };
-    return err?.name === 'TimeoutError' || err?.code === 'UND_ERR_HEADERS_TIMEOUT' || err?.code === 'UND_ERR_BODY_TIMEOUT';
+    return (
+      err?.name === 'TimeoutError' ||
+      err?.code === 'UND_ERR_HEADERS_TIMEOUT' ||
+      err?.code === 'UND_ERR_BODY_TIMEOUT'
+    );
   }
 
   /**
@@ -42,7 +46,7 @@ export class SttService {
     mimetype: string,
   ): Promise<{ text: string }> {
     const config = this.configService.get<SttConfig>('stt');
-    
+
     if (!config?.serviceUrl) {
       this.logger.error('STT service URL is not configured');
       throw new InternalServerErrorException('STT service is not configured');
@@ -74,19 +78,19 @@ export class SttService {
         this.logger.error(
           `STT Gateway returned HTTP ${response.statusCode}: ${JSON.stringify(errorBody)}`,
         );
-        
+
         if (response.statusCode >= 500) {
           throw new BadGatewayException(
             `STT Gateway error: ${(errorBody as any).message || 'Internal server error'}`,
           );
         }
-        
+
         throw new InternalServerErrorException('Failed to transcribe audio via gateway');
       }
 
-      const result = await response.body.json() as { text: string };
+      const result = (await response.body.json()) as { text: string };
       this.logger.log(`Transcription successful for ${filename}`);
-      
+
       return {
         text: result.text,
       };
@@ -95,23 +99,23 @@ export class SttService {
         `Failed to transcribe audio stream: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      
+
       if (error instanceof InternalServerErrorException || error instanceof BadGatewayException) {
         throw error;
       }
-      
+
       if (this.isTimeoutError(error)) {
         throw new RequestTimeoutException(
           'STT Gateway request timed out. The audio file may be too large or the service is overloaded.',
         );
       }
-      
+
       if (this.isConnectionError(error)) {
         throw new ServiceUnavailableException(
           'STT Gateway microservice is unavailable. Please check if the service is running.',
         );
       }
-      
+
       throw new InternalServerErrorException(
         `Transcription service error: ${(error as Error).message}`,
       );

@@ -1,147 +1,150 @@
-import { ref } from 'vue'
-import { useVoiceRecorder } from './useVoiceRecorder'
+import { ref } from 'vue';
+import { useVoiceRecorder } from './useVoiceRecorder';
 
 export function useStt() {
-  const { 
-    isRecording, 
-    recordingDuration, 
-    error: recorderError, 
-    startRecording, 
+  const {
+    isRecording,
+    recordingDuration,
+    error: recorderError,
+    mimeType,
+    startRecording,
     stopRecording,
     requestPermission,
-    hasPermission 
+    hasPermission,
   } = useVoiceRecorder({
-    onDataAvailable: handleDataAvailable
-  })
+    onDataAvailable: handleDataAvailable,
+  });
 
-  const transcription = ref('')
-  const isTranscribing = ref(false)
-  const error = ref<string | null>(null)
-  
-  const config = useRuntimeConfig()
-  const token = useCookie('auth_token')
+  const transcription = ref('');
+  const isTranscribing = ref(false);
+  const error = ref<string | null>(null);
+
+  const config = useRuntimeConfig();
+  const token = useCookie('auth_token');
   const apiBase = config.public.apiBase
-    ? (config.public.apiBase.endsWith('/') ? config.public.apiBase.slice(0, -1) : config.public.apiBase) + '/api/v1'
-    : '/api/v1'
-  
-  let abortController: AbortController | null = null
-  let uploadStream: WritableStreamDefaultWriter<Uint8Array> | null = null
+    ? (config.public.apiBase.endsWith('/')
+        ? config.public.apiBase.slice(0, -1)
+        : config.public.apiBase) + '/api/v1'
+    : '/api/v1';
+
+  let abortController: AbortController | null = null;
+  let uploadStream: WritableStreamDefaultWriter<Uint8Array> | null = null;
 
   async function handleDataAvailable(blob: Blob) {
-    if (!uploadStream) return
+    if (!uploadStream) return;
 
     try {
-      const buffer = await blob.arrayBuffer()
+      const buffer = await blob.arrayBuffer();
       // Check if the stream is still writable before writing
       try {
-        await uploadStream.write(new Uint8Array(buffer))
+        await uploadStream.write(new Uint8Array(buffer));
       } catch (writeErr) {
         // If write fails, it usually means the fetch failed
-        console.warn('Could not write to stream, streaming might have failed:', writeErr)
-        uploadStream = null
+        console.warn('Could not write to stream, streaming might have failed:', writeErr);
+        uploadStream = null;
       }
     } catch (err) {
-      console.error('Error processing audio chunk:', err)
+      console.error('Error processing audio chunk:', err);
       // Only cleanup if it wasn't an intentional stop
       if (isRecording.value) {
-        stopAndCleanup()
+        stopAndCleanup();
       }
     }
   }
 
   async function start() {
-    error.value = null
-    transcription.value = ''
-    
-    const permitted = await requestPermission()
-    if (!permitted) return false
+    error.value = null;
+    transcription.value = '';
 
-    abortController = new AbortController()
-    
+    const permitted = await requestPermission();
+    if (!permitted) return false;
+
+    abortController = new AbortController();
+
     // Create a readable stream for the fetch body
-    const transformStream = new TransformStream()
-    const readableStream = transformStream.readable
-    uploadStream = transformStream.writable.getWriter()
+    const transformStream = new TransformStream();
+    const readableStream = transformStream.readable;
+    uploadStream = transformStream.writable.getWriter();
 
-    isTranscribing.value = true
+    isTranscribing.value = true;
 
     // Start upload in background
-    let textResult = ''
-    const uploadPromise = uploadToBackend(readableStream)
-      .then((text) => {
-        if (text) textResult = text
+    let textResult = '';
+    const uploadPromise = uploadToBackend(readableStream, mimeType.value || 'audio/webm')
+      .then(text => {
+        if (text) textResult = text;
       })
-      .catch((err) => {
+      .catch(err => {
         if (err.name !== 'AbortError') {
-          console.error('Upload promise error:', err)
-          error.value = 'transcriptionError'
+          console.error('Upload promise error:', err);
+          error.value = 'transcriptionError';
         }
       })
       .finally(() => {
-        isTranscribing.value = false
-      })
+        isTranscribing.value = false;
+      });
 
-    const started = await startRecording()
+    const started = await startRecording();
     if (!started) {
-      isTranscribing.value = false
-      stopAndCleanup()
-      return false
+      isTranscribing.value = false;
+      stopAndCleanup();
+      return false;
     }
 
     // Function to wait for upload completion
     const finishUpload = async () => {
-      await uploadPromise
+      await uploadPromise;
       if (textResult) {
-        transcription.value = textResult
+        transcription.value = textResult;
       }
-      return textResult
-    }
+      return textResult;
+    };
 
     // Attach it to the stop function or returned object if needed
-    (start as any).finishPromise = finishUpload
+    (start as any).finishPromise = finishUpload;
 
-    return true
+    return true;
   }
 
   async function stop() {
-    const blob = await stopRecording()
-    
+    const blob = await stopRecording();
+
     // Close the upload stream if it's still open
     if (uploadStream) {
       try {
-        await uploadStream.close()
+        await uploadStream.close();
       } catch (e) {
-        console.warn('Error closing upload stream on stop:', e)
+        console.warn('Error closing upload stream on stop:', e);
       }
-      uploadStream = null
+      uploadStream = null;
     }
 
     // Wait for the background upload (streaming) to finish
     if ((start as any).finishPromise) {
       try {
-        await (start as any).finishPromise
+        await (start as any).finishPromise;
       } catch (e) {
-        console.warn('Streaming upload failed, will fallback to full blob:', e)
+        console.warn('Streaming upload failed, will fallback to full blob:', e);
       }
     }
 
     // FALLBACK: If streaming transcription failed or returned nothing, try full upload
     if (!transcription.value && blob && blob.size > 0) {
-      isTranscribing.value = true
+      isTranscribing.value = true;
       try {
-        const text = await uploadFullBlob(blob)
+        const text = await uploadFullBlob(blob);
         if (text) {
-          transcription.value = text
+          transcription.value = text;
         }
       } catch (err) {
-        console.error('Fallback upload failed:', err)
-        error.value = 'transcriptionError'
+        console.error('Fallback upload failed:', err);
+        error.value = 'transcriptionError';
       } finally {
-        isTranscribing.value = false
+        isTranscribing.value = false;
       }
     }
-    
-    return transcription.value
+
+    return transcription.value;
   }
 
   /**
@@ -150,59 +153,62 @@ export function useStt() {
    */
   async function uploadFullBlob(blob: Blob): Promise<string | null> {
     try {
-      const formData = new FormData()
+      const formData = new FormData();
       // Use 'file' key as expected by the backend
-      formData.append('file', blob, 'recording.webm')
+      formData.append('file', blob, 'recording.webm');
 
-      const headers: Record<string, string> = {}
+      const headers: Record<string, string> = {};
 
       if (token.value) {
-        headers.Authorization = `Bearer ${token.value}`
+        headers.Authorization = `Bearer ${token.value}`;
       }
 
       const response = await fetch(`${apiBase}/stt/transcribe`, {
         method: 'POST',
         body: formData,
-        headers
-      })
+        headers,
+      });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.message || `Upload failed with status ${response.status}`)
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || `Upload failed with status ${response.status}`);
       }
 
-      const result = await response.json()
-      return result.text
+      const result = await response.json();
+      return result.text;
     } catch (err: any) {
-      console.error('STT full blob upload error:', err)
-      throw err
+      console.error('STT full blob upload error:', err);
+      throw err;
     }
   }
 
   function stopAndCleanup() {
-    stopRecording()
+    stopRecording();
     if (abortController) {
-      abortController.abort()
-      abortController = null
+      abortController.abort();
+      abortController = null;
     }
     if (uploadStream) {
       try {
         // Use abort instead of close if we want to stop immediately
-        uploadStream.abort().catch(() => {})
+        uploadStream.abort().catch(() => {});
       } catch (e) {}
-      uploadStream = null
+      uploadStream = null;
     }
-    isTranscribing.value = false
+    isTranscribing.value = false;
   }
 
-  async function uploadToBackend(stream: ReadableStream): Promise<string | null> {
+  async function uploadToBackend(
+    stream: ReadableStream,
+    contentType: string,
+  ): Promise<string | null> {
     try {
       const headers: Record<string, string> = {
-        'Content-Type': 'audio/webm',
-      }
+        'Content-Type': contentType,
+      };
 
       if (token.value) {
-        headers.Authorization = `Bearer ${token.value}`
+        headers.Authorization = `Bearer ${token.value}`;
       }
 
       const response = await fetch(`${apiBase}/stt/transcribe`, {
@@ -211,30 +217,33 @@ export function useStt() {
         // @ts-ignore - duplex is required for streaming bodies in fetch
         duplex: 'half',
         signal: abortController?.signal,
-        headers
-      })
+        headers,
+      });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.message || `Upload failed with status ${response.status}`)
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || `Upload failed with status ${response.status}`);
       }
 
-      const result = await response.json()
-      return result.text
+      const result = await response.json();
+      return result.text;
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         // Only log error once, don't throw if we want to fallback gracefully
-        console.warn('STT streaming upload error (might be expected in local dev without H2):', err)
-        
+        console.warn(
+          'STT streaming upload error (might be expected in local dev without H2):',
+          err,
+        );
+
         // Clean up the writer so handleDataAvailable stops trying to write
         if (uploadStream) {
-          uploadStream.abort().catch(() => {})
-          uploadStream = null
+          uploadStream.abort().catch(() => {});
+          uploadStream = null;
         }
-        
-        throw err
+
+        throw err;
       }
-      return null
+      return null;
     }
   }
 
@@ -247,6 +256,6 @@ export function useStt() {
     recorderError,
     hasPermission,
     start,
-    stop
-  }
+    stop,
+  };
 }

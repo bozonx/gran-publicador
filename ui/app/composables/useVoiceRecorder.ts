@@ -1,48 +1,49 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue';
 
 export interface VoiceRecorderOptions {
-  mimeType?: string
-  audioBitsPerSecond?: number
-  onDataAvailable?: (blob: Blob) => void
+  mimeType?: string;
+  audioBitsPerSecond?: number;
+  onDataAvailable?: (blob: Blob) => void;
 }
 
 export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
-  const isRecording = ref(false)
-  const recordingDuration = ref(0)
-  const error = ref<string | null>(null)
-  const hasPermission = ref<boolean | null>(null)
+  const isRecording = ref(false);
+  const recordingDuration = ref(0);
+  const error = ref<string | null>(null);
+  const hasPermission = ref<boolean | null>(null);
+  const mimeType = ref<string | null>(null);
 
-  let mediaRecorder: MediaRecorder | null = null
-  let mediaStream: MediaStream | null = null
-  let audioChunks: Blob[] = []
-  let durationInterval: ReturnType<typeof setInterval> | null = null
+  let mediaRecorder: MediaRecorder | null = null;
+  let mediaStream: MediaStream | null = null;
+  let audioChunks: Blob[] = [];
+  let durationInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
    * Request microphone permission.
    */
   async function requestPermission(): Promise<boolean> {
     try {
-      error.value = null
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      
+      error.value = null;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
       // Stop the stream immediately, we just needed to check permission
-      stream.getTracks().forEach(track => track.stop())
-      
-      hasPermission.value = true
-      return true
+      stream.getTracks().forEach(track => track.stop());
+
+      hasPermission.value = true;
+      return true;
     } catch (err: any) {
-      console.error('Microphone permission error:', err)
-      
+      console.error('Microphone permission error:', err);
+
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        error.value = 'microphonePermissionDenied'
+        error.value = 'microphonePermissionDenied';
       } else if (err.name === 'NotFoundError') {
-        error.value = 'microphoneNotAvailable'
+        error.value = 'microphoneNotAvailable';
       } else {
-        error.value = 'recordingError'
+        error.value = 'recordingError';
       }
-      
-      hasPermission.value = false
-      return false
+
+      hasPermission.value = false;
+      return false;
     }
   }
 
@@ -51,66 +52,67 @@ export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
    */
   async function startRecording(): Promise<boolean> {
     try {
-      error.value = null
-      audioChunks = []
-      recordingDuration.value = 0
+      error.value = null;
+      audioChunks = [];
+      recordingDuration.value = 0;
 
       // Get microphone stream
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       // Determine the best supported MIME type
-      const mimeType = options.mimeType || getSupportedMimeType()
-      
+      const selectedMimeType = options.mimeType || getSupportedMimeType();
+
       const recorderOptions: MediaRecorderOptions = {
-        mimeType,
-      }
-      
+        mimeType: selectedMimeType,
+      };
+
       if (options.audioBitsPerSecond) {
-        recorderOptions.audioBitsPerSecond = options.audioBitsPerSecond
+        recorderOptions.audioBitsPerSecond = options.audioBitsPerSecond;
       }
 
-      mediaRecorder = new MediaRecorder(mediaStream, recorderOptions)
+      mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
+      mimeType.value = selectedMimeType;
 
       // Collect audio chunks
       mediaRecorder.ondataavailable = (event: BlobEvent) => {
         if (event.data.size > 0) {
-          audioChunks.push(event.data)
+          audioChunks.push(event.data);
           if (options.onDataAvailable) {
-            options.onDataAvailable(event.data)
+            options.onDataAvailable(event.data);
           }
         }
-      }
+      };
 
       mediaRecorder.onerror = (event: Event) => {
-        console.error('MediaRecorder error:', event)
-        error.value = 'recordingError'
-        stopRecording()
-      }
+        console.error('MediaRecorder error:', event);
+        error.value = 'recordingError';
+        stopRecording();
+      };
 
       // Start recording
-      mediaRecorder.start(1000) // Collect data every 1 second
-      isRecording.value = true
-      hasPermission.value = true
+      mediaRecorder.start(1000); // Collect data every 1 second
+      isRecording.value = true;
+      hasPermission.value = true;
 
       // Start duration counter
       durationInterval = setInterval(() => {
-        recordingDuration.value++
-      }, 1000)
+        recordingDuration.value++;
+      }, 1000);
 
-      return true
+      return true;
     } catch (err: any) {
-      console.error('Start recording error:', err)
-      
+      console.error('Start recording error:', err);
+
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        error.value = 'microphonePermissionDenied'
+        error.value = 'microphonePermissionDenied';
       } else if (err.name === 'NotFoundError') {
-        error.value = 'microphoneNotAvailable'
+        error.value = 'microphoneNotAvailable';
       } else {
-        error.value = 'recordingError'
+        error.value = 'recordingError';
       }
-      
-      cleanup()
-      return false
+
+      cleanup();
+      return false;
     }
   }
 
@@ -118,22 +120,22 @@ export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
    * Stop recording and return the audio blob.
    */
   async function stopRecording(): Promise<Blob | null> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        cleanup()
-        resolve(null)
-        return
+        cleanup();
+        resolve(null);
+        return;
       }
 
       mediaRecorder.onstop = () => {
-        const mimeType = mediaRecorder?.mimeType || 'audio/webm'
-        const audioBlob = new Blob(audioChunks, { type: mimeType })
-        cleanup()
-        resolve(audioBlob)
-      }
+        const mimeType = mediaRecorder?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        cleanup();
+        resolve(audioBlob);
+      };
 
-      mediaRecorder.stop()
-    })
+      mediaRecorder.stop();
+    });
   }
 
   /**
@@ -146,51 +148,53 @@ export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
       'audio/ogg;codecs=opus',
       'audio/ogg',
       'audio/mp4',
-    ]
+    ];
 
     for (const type of types) {
       if (MediaRecorder.isTypeSupported(type)) {
-        return type
+        return type;
       }
     }
 
-    return 'audio/webm' // fallback
+    return 'audio/webm'; // fallback
   }
 
   /**
    * Cleanup resources.
    */
   function cleanup() {
-    isRecording.value = false
-    
+    isRecording.value = false;
+    mimeType.value = null;
+
     if (durationInterval) {
-      clearInterval(durationInterval)
-      durationInterval = null
+      clearInterval(durationInterval);
+      durationInterval = null;
     }
 
     if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop())
-      mediaStream = null
+      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
     }
 
-    mediaRecorder = null
+    mediaRecorder = null;
   }
 
   /**
    * Cleanup on component unmount.
    */
   onUnmounted(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   return {
     isRecording,
     recordingDuration,
     error,
     hasPermission,
+    mimeType,
     audioChunks,
     requestPermission,
     startRecording,
     stopRecording,
-  }
+  };
 }
