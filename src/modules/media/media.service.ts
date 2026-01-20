@@ -8,11 +8,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
-import type { ServerResponse } from 'http';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
-import { pipeline } from 'node:stream/promises';
 import {
   getMediaStorageServiceUrl,
   getMediaStorageTimeout,
@@ -26,13 +24,6 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 
 /**
  * MediaService - Proxy for Media Storage microservice
- *
- * This service acts as a proxy between Gran Publicador and the Media Storage microservice.
- * It handles:
- * - Streaming file uploads to Media Storage
- * - Proxying file downloads and thumbnails
- * - Managing media metadata in the local database
- * - Telegram file_id support (StorageType.TELEGRAM)
  */
 @Injectable()
 export class MediaService {
@@ -52,23 +43,16 @@ export class MediaService {
     private permissions: PermissionsService,
   ) {
     this.mediaStorageUrl = getMediaStorageServiceUrl();
-    this.timeout = getMediaStorageTimeout() * 1000; // Convert to milliseconds
-    this.maxFileSize = getMediaStorageMaxFileSize() * 1024 * 1024; // Convert to bytes
+    this.timeout = getMediaStorageTimeout() * 1000;
+    this.maxFileSize = getMediaStorageMaxFileSize() * 1024 * 1024;
     this.compressionOptions = getImageCompressionOptions();
     this.thumbnailQuality = getThumbnailQuality();
     this.thumbnailMaxDimension = getThumbnailMaxDimension();
     this.appId = getMediaStorageAppId();
 
     this.logger.log(`Media Storage URL: ${this.mediaStorageUrl}`);
-    this.logger.log(`Max file size: ${this.maxFileSize} bytes`);
-    if (this.compressionOptions) {
-      this.logger.log(`Image compression options: ${JSON.stringify(this.compressionOptions)}`);
-    }
   }
 
-  /**
-   * Safe JSON parser for meta field.
-   */
   private parseMeta(meta: any): Record<string, any> {
     if (typeof meta === 'string') {
       try {
@@ -80,213 +64,128 @@ export class MediaService {
     return (meta as Record<string, any>) || {};
   }
 
-  /**
-   * Create media record in database.
-   */
   async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
-    this.logger.debug(`Creating media record: type=${data.type}, storageType=${data.storageType}`);
-
     const { meta, ...rest } = data;
-
     const created = await this.prisma.media.create({
-      data: {
-        ...rest,
-        meta: (meta || {}) as any,
-      },
+      data: { ...rest, meta: (meta || {}) as any },
     });
-
-    this.logger.debug(`Created media record in DB: id=${created.id}`);
-
-    return {
-      ...created,
-      meta: this.parseMeta(created.meta),
-    };
+    return { ...created, meta: this.parseMeta(created.meta) };
   }
 
-  /**
-   * Find all media accessible to user.
-   */
-  async findAll(
-    userId?: string,
-  ): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any> }>> {
+  async findAll(userId?: string): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any> }>> {
     let where = {};
-
     if (userId) {
-      // Find all projects where user is owner or member
       const userProjects = await this.prisma.project.findMany({
-        where: {
-          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-        },
+        where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
         select: { id: true },
       });
-
-      const projectIds = userProjects.map(p => p.id);
-
-      // Filter media linked to publications in these projects or orphaned media
+      const projectIds = userProjects.map((p) => p.id);
       where = {
         OR: [
-          {
-            publicationMedia: {
-              some: {
-                publication: {
-                  projectId: { in: projectIds },
-                },
-              },
-            },
-          },
-          {
-            publicationMedia: {
-              none: {},
-            },
-          },
+          { publicationMedia: { some: { publication: { projectId: { in: projectIds } } } } },
+          { publicationMedia: { none: {} } },
         ],
       };
     }
-
-    const list = await this.prisma.media.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return list.map(media => ({
-      ...media,
-      meta: this.parseMeta(media.meta),
-    }));
+    const list = await this.prisma.media.findMany({ where, orderBy: { createdAt: 'desc' } });
+    return list.map((media) => ({ ...media, meta: this.parseMeta(media.meta) }));
   }
 
-  /**
-   * Find one media by ID.
-   */
   async findOne(id: string): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
-    if (!media) {
-      this.logger.warn(`Media not found: ${id}`);
-      throw new NotFoundException(`Media with ID ${id} not found`);
-    }
-    return {
-      ...media,
-      meta: this.parseMeta(media.meta),
-    };
+    if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
+    return { ...media, meta: this.parseMeta(media.meta) };
   }
 
-  /**
-   * Update media metadata.
-   */
-  async update(
-    id: string,
-    data: UpdateMediaDto,
-  ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
+  async update(id: string, data: UpdateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
-    if (!media) {
-      this.logger.warn(`Media not found for update: ${id}`);
-      throw new NotFoundException(`Media with ID ${id} not found`);
-    }
-
-    this.logger.debug(`Updating media: ${id}`);
+    if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
     const { meta, ...rest } = data;
-
     const updated = await this.prisma.media.update({
       where: { id },
-      data: {
-        ...rest,
-        meta: meta ? (meta as any) : undefined,
-      },
+      data: { ...rest, meta: meta ? (meta as any) : undefined },
     });
-
-    return {
-      ...updated,
-      meta: this.parseMeta(updated.meta),
-    };
+    return { ...updated, meta: this.parseMeta(updated.meta) };
   }
 
-  /**
-   * Delete media from database and Media Storage.
-   */
   async remove(id: string): Promise<Media> {
     const media = await this.prisma.media.findUnique({ where: { id } });
-    if (!media) {
-      this.logger.warn(`Media not found for deletion: ${id}`);
-      throw new NotFoundException(`Media with ID ${id} not found`);
-    }
-
-    // Delete from Media Storage if it's a FS file
+    if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
     if (media.storageType === StorageType.FS) {
       try {
-        const fileId = media.storagePath; // storagePath contains the Media Storage fileId
-        await this.deleteFileFromStorage(fileId);
-        this.logger.log(`Deleted file from Media Storage: ${fileId}`);
+        await this.deleteFileFromStorage(media.storagePath);
       } catch (error) {
         this.logger.error(`Failed to delete file from Media Storage: ${(error as Error).message}`);
-        // Continue with DB deletion even if storage deletion fails
       }
     }
-
-    // Delete from database
-    const deleted = await this.prisma.media.delete({ where: { id } });
-    this.logger.log(`Media deleted: ${id}`);
-
-    return deleted;
+    return this.prisma.media.delete({ where: { id } });
   }
 
   /**
-   * Upload file to Media Storage microservice.
-   * Returns the fileId from Media Storage to be stored in storagePath.
+   * Helper to generate a multipart/form-data stream manually to avoid buffering.
    */
+  private async *generateMultipart(
+    boundary: string,
+    filename: string,
+    mimetype: string,
+    fileStream: Readable,
+    fields: Record<string, string>,
+  ) {
+    const encoder = new TextEncoder();
+    for (const [name, value] of Object.entries(fields)) {
+      yield encoder.encode(`--${boundary}\r\n`);
+      yield encoder.encode(`Content-Disposition: form-data; name="${name}"\r\n\r\n`);
+      yield encoder.encode(`${value}\r\n`);
+    }
+    yield encoder.encode(`--${boundary}\r\n`);
+    yield encoder.encode(`Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`);
+    yield encoder.encode(`Content-Type: ${mimetype}\r\n\r\n`);
+    for await (const chunk of fileStream) {
+      yield chunk;
+    }
+    yield encoder.encode(`\r\n--${boundary}--\r\n`);
+  }
+
   async uploadFileToStorage(
-    buffer: Buffer,
+    fileStream: Readable,
     filename: string,
     mimetype: string,
     userId?: string,
     purpose?: string,
     optimize?: Record<string, any>,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
-    this.logger.debug(`Uploading file to Media Storage: ${filename}`);
+    const boundary = `----NodeBoundary${Math.random().toString(16).substring(2)}`;
+    const fields: Record<string, string> = { appId: this.appId };
+    if (userId) fields.userId = userId;
+    if (purpose) fields.purpose = purpose;
+
+    let compression = optimize || this.compressionOptions;
+    if (optimize && optimize.enabled === false) compression = undefined;
+    
+    if (compression && Object.keys(compression).length > 0) {
+      fields.optimize = JSON.stringify(compression);
+    }
+
+    const multipartStream = Readable.from(this.generateMultipart(boundary, filename, mimetype, fileStream, fields));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const formData = new FormData();
-      // Convert Buffer to Uint8Array for Blob compatibility
-      const uint8Array = new Uint8Array(buffer);
-      const blob = new Blob([uint8Array], { type: mimetype });
-      formData.append('file', blob, filename);
-
-      // Add compression options as 'optimize' JSON string field
-      let compression = optimize || this.compressionOptions;
-      if (optimize && optimize.enabled === false) {
-        compression = undefined;
-      }
-      
-      if (compression) {
-        formData.append('optimize', JSON.stringify(compression));
-      }
-
-      // Add metadata fields
-      formData.append('appId', this.appId);
-      if (userId) {
-        formData.append('userId', userId);
-      }
-      if (purpose) {
-        formData.append('purpose', purpose);
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
       const response = await this.fetch(`${this.mediaStorageUrl}/files`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body: Readable.toWeb(multipartStream) as any,
+        duplex: 'half',
         signal: controller.signal,
-      });
+      } as any);
 
       clearTimeout(timeoutId);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
-      this.logger.log(`File uploaded to Media Storage: ${result.id}`);
-
       return {
         fileId: result.id,
         metadata: {
@@ -294,8 +193,6 @@ export class MediaService {
           size: result.size,
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
-          quality: result.quality, // Legacy compatibility
-          lossless: result.lossless, // Legacy compatibility
           optimizationParams: result.optimizationParams,
           exif: result.exif,
           checksum: result.checksum,
@@ -303,18 +200,12 @@ export class MediaService {
         },
       };
     } catch (error) {
+      clearTimeout(timeoutId);
       this.logger.error(`Failed to upload to Media Storage: ${(error as Error).message}`);
-      if ((error as any).name === 'AbortError') {
-        throw new InternalServerErrorException('Media Storage request timed out');
-      }
       throw new InternalServerErrorException(`Failed to upload file: ${(error as Error).message}`);
     }
   }
 
-  /**
-   * Upload file from URL to Media Storage microservice.
-   * Returns the fileId from Media Storage to be stored in storagePath.
-   */
   async uploadFileFromUrl(
     url: string,
     filename?: string,
@@ -322,61 +213,39 @@ export class MediaService {
     purpose?: string,
     optimize?: Record<string, any>,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
-    this.logger.debug(`Uploading file from URL to Media Storage: ${url}`);
-
     try {
       const body: Record<string, any> = { url, appId: this.appId };
-      if (filename) {
-        body.filename = filename;
-      }
-      if (userId) {
-        body.userId = userId;
-      }
-      if (purpose) {
-        body.purpose = purpose;
-      }
-
-      // Add compression options as 'optimize' object
+      if (filename) body.filename = filename;
+      if (userId) body.userId = userId;
+      if (purpose) body.purpose = purpose;
       let compression = optimize || this.compressionOptions;
-      if (optimize && optimize.enabled === false) {
-        compression = undefined;
-      }
-
-      if (compression) {
-        body.optimize = compression;
-      }
+      if (optimize && optimize.enabled === false) compression = undefined;
+      if (compression) body.optimize = compression;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
       const response = await this.fetch(`${this.mediaStorageUrl}/files/from-url`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
-      this.logger.log(`File uploaded from URL to Media Storage: ${result.id}`);
-
       return {
         fileId: result.id,
         metadata: {
-          originalSize: result.originalSize || result.original_size,
-          size: result.size || result.size_bytes,
-          mimeType: result.mimeType || result.mime_type,
-          originalMimeType: result.originalMimeType || result.original_mime_type,
-          quality: result.quality, // Legacy compatibility
-          lossless: result.lossless, // Legacy compatibility
+          originalSize: result.originalSize,
+          size: result.size,
+          mimeType: result.mimeType,
+          originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,
           exif: result.exif,
           checksum: result.checksum,
@@ -384,337 +253,189 @@ export class MediaService {
         },
       };
     } catch (error) {
-      this.logger.error(`Failed to upload from URL to Media Storage: ${(error as Error).message}`);
-      if ((error as any).name === 'AbortError') {
-        throw new InternalServerErrorException('Media Storage request timed out');
-      }
-      throw new InternalServerErrorException(
-        `Failed to upload file from URL: ${(error as Error).message}`,
-      );
+      this.logger.error(`Failed to upload from URL: ${(error as Error).message}`);
+      throw new InternalServerErrorException(`Failed to upload file: ${(error as Error).message}`);
     }
   }
 
-  /**
-   * Delete file from Media Storage microservice.
-   */
-  private async deleteFileFromStorage(fileId: string): Promise<void> {
-    this.logger.debug(`Deleting file from Media Storage: ${fileId}`);
+  async reprocessFile(
+    id: string,
+    optimize: Record<string, any>,
+    userId?: string,
+  ): Promise<{ fileId: string; metadata: Record<string, any> }> {
+    const media = await this.findOne(id);
+    if (media.storageType !== StorageType.FS) throw new BadRequestException('Only FS media can be reprocessed');
+    if (userId) await this.checkMediaAccess(id, userId);
 
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      const response = await this.fetch(`${this.mediaStorageUrl}/files/${media.storagePath}/reprocess`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(optimize),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return {
+        fileId: result.id,
+        metadata: {
+          originalSize: result.originalSize,
+          size: result.size,
+          mimeType: result.mimeType,
+          originalMimeType: result.originalMimeType,
+          optimizationParams: result.optimizationParams,
+          exif: result.exif,
+          checksum: result.checksum,
+          url: result.url,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to reprocess: ${(error as Error).message}`);
+      throw new InternalServerErrorException(`Failed to reprocess file: ${(error as Error).message}`);
+    }
+  }
 
+  private async deleteFileFromStorage(fileId: string): Promise<void> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
       const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}`, {
         method: 'DELETE',
         signal: controller.signal,
       });
-
       clearTimeout(timeoutId);
-
-      if (!response.ok && response.status !== 404) {
-        const errorText = await response.text();
-        throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
-      }
-
-      this.logger.log(`File deleted from Media Storage: ${fileId}`);
     } catch (error) {
       this.logger.error(`Failed to delete from Media Storage: ${(error as Error).message}`);
-      if ((error as any).name === 'AbortError') {
-        throw new InternalServerErrorException('Media Storage request timed out');
-      }
-      throw new InternalServerErrorException(`Failed to delete file: ${(error as Error).message}`);
     }
   }
 
-  /**
-   * Proxy a request to Media Storage and return stream details.
-   */
-  private async proxyFromStorage(
-    url: string,
-    method: string = 'GET',
-    headers: Record<string, string> = {},
-  ): Promise<{
-    stream: Readable;
-    status: number;
-    headers: Record<string, string>;
-  }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-    try {
-      const response = await this.fetch(url, {
-        method,
-        headers,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok && response.status !== 206) {
-        throw new Error(`Media Storage returned ${response.status}`);
-      }
-
-      const responseHeaders: Record<string, string> = {};
-      const skipHeaders = [
-        'connection',
-        'keep-alive',
-        'transfer-encoding',
-        'proxy-authenticate',
-        'proxy-authorization',
-        'te',
-        'trailer',
-        'upgrade',
-      ];
-
-      response.headers.forEach((value, key) => {
-        if (!skipHeaders.includes(key.toLowerCase())) {
-          responseHeaders[key] = value;
-        }
-      });
-
-      if (!response.body) {
-        throw new Error('Response body is empty');
-      }
-
-      return {
-        stream: Readable.fromWeb(response.body as any),
-        status: response.status,
-        headers: responseHeaders,
-      };
-    } catch (error) {
-      clearTimeout(timeoutId);
-      this.logger.error(`Failed to proxy from Media Storage (${url}): ${(error as Error).message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Get file stream from Media Storage.
-   */
   async getFileStream(
     fileId: string,
     range?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
-    const headers: Record<string, string> = {};
-    if (range) {
-      headers['Range'] = range;
+    const headers: Record<string, string> = range ? { Range: range } : {};
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}/download`, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok && response.status !== 206) throw new Error(`Media Storage returned ${response.status}`);
+      const responseHeaders: Record<string, string> = {};
+      const skipHeaders = ['connection', 'keep-alive', 'transfer-encoding', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'upgrade'];
+      response.headers.forEach((value, key) => {
+        if (!skipHeaders.includes(key.toLowerCase())) responseHeaders[key] = value;
+      });
+      if (!response.body) throw new Error('Response body is empty');
+      return { stream: Readable.fromWeb(response.body as any), status: response.status, headers: responseHeaders };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-
-    return this.proxyFromStorage(
-      `${this.mediaStorageUrl}/files/${fileId}/download`,
-      'GET',
-      headers,
-    );
   }
 
-  /**
-   * Get thumbnail stream from Media Storage.
-   */
   async getThumbnailStream(
     fileId: string,
     width: number,
     height: number,
     quality?: number,
+    fit?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
-    const params = new URLSearchParams({
-      width: width.toString(),
-      height: height.toString(),
-    });
-
+    const params = new URLSearchParams({ width: width.toString(), height: height.toString() });
     const finalQuality = quality ?? this.thumbnailQuality;
-    if (finalQuality) {
-      params.append('quality', finalQuality.toString());
+    if (finalQuality) params.append('quality', finalQuality.toString());
+    if (fit) params.append('fit', fit);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}/thumbnail?${params.toString()}`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`Media Storage returned ${response.status}`);
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => { responseHeaders[key] = value; });
+      if (!response.body) throw new Error('Response body is empty');
+      return { stream: Readable.fromWeb(response.body as any), status: response.status, headers: responseHeaders };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-
-    return this.proxyFromStorage(
-      `${this.mediaStorageUrl}/files/${fileId}/thumbnail?${params.toString()}`,
-    );
   }
 
-  /**
-   * Get media file stream and metadata.
-   * For StorageType.FS: proxy from Media Storage
-   * For StorageType.TELEGRAM: stream from Telegram API
-   */
   async getMediaFile(
     id: string,
     userId?: string,
     range?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
-    // Check access
-    if (userId) {
-      await this.checkMediaAccess(id, userId);
-    }
-
+    if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
-
-    if (media.storageType === StorageType.FS) {
-      // Proxy from Media Storage
-      const fileId = media.storagePath;
-      return this.getFileStream(fileId, range);
-    } else if (media.storageType === StorageType.TELEGRAM) {
-      // Stream from Telegram API
-      return this.getTelegramStream(
-        media.storagePath,
-        media.mimeType ?? undefined,
-        media.filename ?? undefined,
-      );
-    } else {
-      throw new BadRequestException('Unsupported storage type');
-    }
+    if (media.storageType === StorageType.FS) return this.getFileStream(media.storagePath, range);
+    else if (media.storageType === StorageType.TELEGRAM) return this.getTelegramStream(media.storagePath, media.mimeType ?? undefined, media.filename ?? undefined);
+    throw new BadRequestException('Unsupported storage type');
   }
 
-  /**
-   * Get media thumbnail stream and metadata.
-   * For StorageType.FS: proxy from Media Storage
-   * For StorageType.TELEGRAM: stream thumbnail file_id from Telegram API
-   */
   async getMediaThumbnail(
     id: string,
     width: number,
     height: number,
     quality?: number,
     userId?: string,
+    fit?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
-    // Check access
-    if (userId) {
-      await this.checkMediaAccess(id, userId);
-    }
-
+    if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
-
-    if (media.storageType === StorageType.FS) {
-      // Proxy from Media Storage
-      const fileId = media.storagePath;
-      return this.getThumbnailStream(fileId, width, height, quality);
-    } else if (media.storageType === StorageType.TELEGRAM) {
-      // Use thumbnail file_id if available in meta, otherwise fallback to main file_id
+    if (media.storageType === StorageType.FS) return this.getThumbnailStream(media.storagePath, width, height, quality, fit);
+    else if (media.storageType === StorageType.TELEGRAM) {
       const thumbnailFileId = media.meta.telegram?.thumbnailFileId || media.storagePath;
-      // Telegram thumbnails are usually JPEGs
       return this.getTelegramStream(thumbnailFileId, 'image/jpeg');
-    } else {
-      throw new BadRequestException('Unsupported storage type');
     }
+    throw new BadRequestException('Unsupported storage type');
   }
 
-  /**
-   * Get stream from Telegram API.
-   */
   private async getTelegramStream(
     fileId: string,
     mimeType?: string,
     filename?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     const telegramBotToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
-    if (!telegramBotToken) {
-      throw new InternalServerErrorException('Telegram bot token not configured');
-    }
-
-    try {
-      // The storagePath (or thumbnailFileId) contains the Telegram file_id
-      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(
-        fileId,
-      )}`;
-
-      const getFileResponse = await this.fetch(getFileUrl);
-      if (!getFileResponse.ok) {
-        this.logger.warn(`Telegram API error for file_id ${fileId}: ${getFileResponse.status}`);
-        throw new InternalServerErrorException('Telegram API error');
-      }
-
-      const getFileData = await getFileResponse.json();
-      if (!getFileData.ok || !getFileData.result?.file_path) {
-        this.logger.warn(`Invalid Telegram file_id or file not found: ${fileId}`);
-        throw new NotFoundException('File not found in Telegram');
-      }
-
-      const filePath = getFileData.result.file_path;
-      const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${filePath}`;
-
-      const downloadResponse = await this.fetch(downloadUrl);
-      if (!downloadResponse.ok) {
-        this.logger.warn(
-          `Failed to download from Telegram (${fileId}): ${downloadResponse.status}`,
-        );
-        throw new InternalServerErrorException('Failed to download from Telegram');
-      }
-
-      const headers: Record<string, string> = {};
-      if (mimeType) {
-        headers['Content-Type'] = mimeType;
-      }
-      if (filename) {
-        headers['Content-Disposition'] = `inline; filename="${filename}"`;
-      }
-
-      if (!downloadResponse.body) {
-        throw new InternalServerErrorException('Telegram response body is empty');
-      }
-
-      return {
-        stream: Readable.fromWeb(downloadResponse.body as any),
-        status: downloadResponse.status,
-        headers,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to get stream from Telegram (${fileId}): ${(error as Error).message}`,
-      );
-      throw new InternalServerErrorException('Failed to stream file from Telegram');
-    }
+    if (!telegramBotToken) throw new InternalServerErrorException('Telegram bot token not configured');
+    const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
+    const getFileResponse = await this.fetch(getFileUrl);
+    const getFileData = await getFileResponse.json();
+    if (!getFileData.ok || !getFileData.result?.file_path) throw new NotFoundException('File not found in Telegram');
+    const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
+    const downloadResponse = await this.fetch(downloadUrl);
+    if (!downloadResponse.ok) throw new InternalServerErrorException('Failed to download from Telegram');
+    const headers: Record<string, string> = {};
+    if (mimeType) headers['Content-Type'] = mimeType;
+    if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
+    if (!downloadResponse.body) throw new InternalServerErrorException('Telegram response body is empty');
+    return { stream: Readable.fromWeb(downloadResponse.body as any), status: downloadResponse.status, headers };
   }
 
-  /**
-   * Check if user has access to media.
-   */
   public async checkMediaAccess(mediaId: string, userId: string): Promise<void> {
     const media = await this.prisma.media.findUnique({
       where: { id: mediaId },
-      include: {
-        publicationMedia: {
-          include: {
-            publication: {
-              select: { projectId: true, createdBy: true },
-            },
-          },
-        },
-      },
+      include: { publicationMedia: { include: { publication: { select: { projectId: true, createdBy: true } } } } },
     });
-
-    if (!media) {
-      throw new NotFoundException('Media not found');
-    }
-
-    // If media is not linked to any publication, allow access (orphaned media)
-    if (!media.publicationMedia || media.publicationMedia.length === 0) {
-      return;
-    }
-
-    // Check access to each linked publication's project
+    if (!media) throw new NotFoundException('Media not found');
+    if (!media.publicationMedia || media.publicationMedia.length === 0) return;
     for (const pm of media.publicationMedia) {
       const projectId = pm.publication.projectId;
-      const createdBy = pm.publication.createdBy;
-
-      // Personal draft (no project)
-      if (!projectId) {
-        if (createdBy === userId) {
-          return; // User owns this personal draft
-        }
-        continue;
-      }
-
-      // Project publication - check project access
-      try {
-        await this.permissions.checkProjectAccess(projectId, userId);
-        return; // User has access to at least one project
-      } catch {
-        continue;
-      }
+      if (!projectId) { if (pm.publication.createdBy === userId) return; continue; }
+      try { await this.permissions.checkProjectAccess(projectId, userId); return; } catch { continue; }
     }
-
     throw new ForbiddenException('You do not have access to this media');
   }
 }

@@ -45,24 +45,24 @@ export class MediaController {
       throw new BadRequestException('No file uploaded');
     }
 
-    // Convert to buffer for upload to Media Storage
-    // In future, we could stream directly to Media Storage
-    const buffer = await part.toBuffer();
+    // Use streaming directly from fastify-multipart
+    const fileStream = part.file;
 
-    // Extract optimize parameters if present
+    // Extract optimize parameters if present from fields that appeared before the file
     let optimize: Record<string, any> | undefined;
-    try {
-      const fields = await req.body as any;
-      if (fields && fields.optimize) {
-        optimize = typeof fields.optimize === 'string' ? JSON.parse(fields.optimize) : fields.optimize;
+    const fields = (part as any).fields;
+    if (fields && fields.optimize) {
+      try {
+        const optimizeValue = fields.optimize.value;
+        optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
+      } catch {
+        // Ignore parse error
       }
-    } catch {
-       // Ignore parse error, use defaults
     }
 
-    // Upload to Media Storage
+    // Upload to Media Storage using stream
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(
-      buffer,
+      fileStream,
       part.filename,
       part.mimetype,
       req.user.userId,
@@ -193,6 +193,7 @@ export class MediaController {
     const width = widthStr ? parseInt(widthStr, 10) : 400;
     const height = heightStr ? parseInt(heightStr, 10) : 400;
     const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
+    const fit = req.query instanceof Object ? (req.query as any).fit : undefined;
 
     const { stream, status, headers } = await this.mediaService.getMediaThumbnail(
       id,
@@ -200,6 +201,7 @@ export class MediaController {
       height,
       quality,
       req.user.userId,
+      fit,
     );
 
     res.status(status);
@@ -227,5 +229,30 @@ export class MediaController {
   @UseGuards(JwtOrApiTokenGuard)
   remove(@Param('id') id: string) {
     return this.mediaService.remove(id);
+  }
+
+  /**
+   * Reprocess existing media with new settings.
+   */
+  @Post(':id/reprocess')
+  @UseGuards(JwtOrApiTokenGuard)
+  async reprocess(
+    @Param('id') id: string,
+    @Body() optimize: Record<string, any>,
+    @Req() req: UnifiedAuthRequest,
+  ) {
+    const { fileId, metadata } = await this.mediaService.reprocessFile(
+      id,
+      optimize,
+      req.user.userId,
+    );
+
+    // Update the existing record with new metadata and potentially new storagePath (if fileId changed)
+    return this.mediaService.update(id, {
+      storagePath: fileId,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.size,
+      meta: metadata,
+    });
   }
 }

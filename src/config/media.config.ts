@@ -77,7 +77,7 @@ export function getImageCompressionOptions(): Record<string, any> | undefined {
   }
 
   if (process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING) {
-    options.avifChromaSubsampling = process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING;
+    options.chromaSubsampling = process.env.IMAGE_COMPRESSION_AVIF_CHROMA_SUBSAMPLING;
   }
 
   if (process.env.IMAGE_COMPRESSION_FLATTEN) {
