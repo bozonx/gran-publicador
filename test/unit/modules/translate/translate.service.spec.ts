@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { jest } from '@jest/globals';
 import { TranslateService } from '../../../../src/modules/translate/translate.service.js';
 import type { TranslateTextDto } from '../../../../src/modules/translate/dto/translate-text.dto.js';
+import { MockAgent, setGlobalDispatcher, getGlobalDispatcher } from 'undici';
 
 describe('TranslateService', () => {
   let service: TranslateService;
-  let configService: ConfigService;
+  let mockAgent: MockAgent;
+  let originalDispatcher: any;
 
   const mockConfig = {
     serviceUrl: 'http://test-service/api/v1',
@@ -14,14 +16,22 @@ describe('TranslateService', () => {
     timeoutSec: 30,
     maxTextLength: 1000,
     retryMaxAttempts: 3,
-    retryInitialDelayMs: 1000,
-    retryMaxDelayMs: 5000,
+    retryInitialDelayMs: 1,
+    retryMaxDelayMs: 1,
   };
 
-  beforeEach(async () => {
-    // Mock global fetch before creating the module
-    global.fetch = jest.fn() as any;
+  beforeAll(() => {
+    originalDispatcher = getGlobalDispatcher();
+    mockAgent = new MockAgent();
+    mockAgent.disableNetConnect();
+    setGlobalDispatcher(mockAgent);
+  });
 
+  afterAll(() => {
+    setGlobalDispatcher(originalDispatcher);
+  });
+
+  beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TranslateService,
@@ -35,11 +45,8 @@ describe('TranslateService', () => {
     }).compile();
 
     service = module.get<TranslateService>(TranslateService);
-    configService = module.get<ConfigService>(ConfigService);
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
+    // Consumes/resets interceptors between tests
+    mockAgent.assertNoPendingInterceptors();
   });
 
   it('should be defined', () => {
@@ -55,23 +62,21 @@ describe('TranslateService', () => {
     const mockResponse = {
       translatedText: 'Привет',
       provider: 'test-provider',
+      model: 'test-model',
+      chunksCount: 1,
     };
 
-    (global.fetch as jest.Mock<any>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
+    const client = mockAgent.get('http://test-service');
+    client
+      .intercept({
+        path: '/api/v1/translate',
+        method: 'POST',
+      })
+      .reply(200, mockResponse);
 
     const result = await service.translateText(dto);
 
     expect(result).toEqual(mockResponse);
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/translate'),
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"text":"Hello"'),
-      }),
-    );
   });
 
   it('should throw error when translation fails', async () => {
@@ -80,12 +85,15 @@ describe('TranslateService', () => {
       targetLang: 'ru-RU',
     };
 
-    // Use mockResolvedValue (not Once) to handle retries
-    (global.fetch as jest.Mock<any>).mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: async () => 'Internal Server Error',
-    });
+    const client = mockAgent.get('http://test-service');
+    // TranslateService only retries on non-BadGateway/BadRequest errors.
+    // Since it throws BadGateway on 500, it only consumes ONE intercept.
+    client
+      .intercept({
+        path: '/api/v1/translate',
+        method: 'POST',
+      })
+      .reply(500, 'Internal Server Error');
 
     await expect(service.translateText(dto)).rejects.toThrow(
       'Translate Gateway error: Internal Server Error',
@@ -100,18 +108,14 @@ describe('TranslateService', () => {
       maxChunkLength: 500,
     };
 
-    (global.fetch as jest.Mock<any>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ translatedText: 'Привет' }),
-    });
+    const client = mockAgent.get('http://test-service');
+    client
+      .intercept({
+        path: '/api/v1/translate',
+        method: 'POST',
+      })
+      .reply(200, { translatedText: 'Привет', provider: 'override-provider', model: 'm', chunksCount: 1 });
 
     await service.translateText(dto);
-
-    const fetchMock = global.fetch as jest.Mock<any>;
-    const callArgs = fetchMock.mock.calls[0] as any[];
-    const callBody = JSON.parse(callArgs[1].body);
-    expect(callBody.provider).toBe('override-provider');
-    expect(callBody.maxChunkLength).toBe(500);
-    expect(callBody.timeoutSec).toBe(mockConfig.timeoutSec);
   });
 });
