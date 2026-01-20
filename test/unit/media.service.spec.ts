@@ -17,6 +17,36 @@ describe('MediaService (unit)', () => {
   let service: MediaService;
   let moduleRef: TestingModule;
 
+  async function readWebBodyToString(body: unknown): Promise<string> {
+    if (!body) {
+      return '';
+    }
+
+    // uploadFileToStorage sends Readable.toWeb(multipartStream)
+    const stream = body as ReadableStream<Uint8Array>;
+    if (typeof (stream as any).getReader !== 'function') {
+      return '';
+    }
+
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+
+    const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+    const merged = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const c of chunks) {
+      merged.set(c, offset);
+      offset += c.length;
+    }
+
+    return new TextDecoder().decode(merged);
+  }
+
   const mockPrismaService = {
     media: {
       create: jest.fn() as any,
@@ -125,6 +155,7 @@ describe('MediaService (unit)', () => {
   describe('uploadFileToStorage', () => {
     it('should upload file and return storage info', async () => {
       const buffer = Buffer.from('test');
+      const stream = Readable.from([buffer]);
       const filename = 'test.txt';
       const mimetype = 'text/plain';
 
@@ -140,7 +171,7 @@ describe('MediaService (unit)', () => {
         }),
       });
 
-      const result = await service.uploadFileToStorage(buffer, filename, mimetype);
+      const result = await service.uploadFileToStorage(stream, filename, mimetype);
 
       expect(result.fileId).toBe('storage-id-123');
       expect(result.metadata.checksum).toBe('hash');
@@ -148,13 +179,14 @@ describe('MediaService (unit)', () => {
         expect.stringContaining('/files'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.any(FormData),
+          body: expect.any(Object),
         }),
       );
     });
 
     it('should pass compression options as optimize field', async () => {
       const buffer = Buffer.from('image-data');
+      const stream = Readable.from([buffer]);
       const filename = 'image.jpg';
       const mimetype = 'image/jpeg';
 
@@ -170,34 +202,20 @@ describe('MediaService (unit)', () => {
         }),
       });
 
-      await service.uploadFileToStorage(buffer, filename, mimetype);
+      await service.uploadFileToStorage(stream, filename, mimetype, 'user-1', 'avatar', {
+        format: 'webp',
+        quality: 85,
+        maxDimension: 3840,
+      });
 
-      // Verify FormData contains compression parameters in optimize field
       const callArgs = mockFetch.mock.calls[0];
-      const formData = callArgs[1].body as FormData;
+      const options = callArgs[1];
 
-      expect(formData).toBeInstanceOf(FormData);
-      // In newer Node versions we can check the value
-      if (typeof formData.get === 'function') {
-        const optimize = formData.get('optimize');
-        expect(optimize).toBeDefined();
-        expect(JSON.parse(optimize as string)).toEqual(
-          expect.objectContaining({
-            format: 'webp',
-            quality: 85, // Note: FormData values are strings when parsed from env vars in config?
-            // Wait, config service parses them to numbers in media.config.ts?
-            // createTestingModule sets env vars as strings.
-            // media.config.ts parseInt them.
-            // So they are numbers in the service.
-            // JSON.stringify will keep them as numbers.
-            // But verify: process.env... in test setup are strings.
-            // Service constructor calls getMediaStorageTimeout -> parseInt.
-            // getThumbnailQuality -> parseInt.
-            // getImageCompressionOptions -> uses parseInt.
-            // So they are numbers.
-          }),
-        );
-      }
+      const bodyText = await readWebBodyToString(options.body);
+      expect(bodyText).toContain('name="optimize"');
+      expect(bodyText).toContain('"format":"webp"');
+      expect(bodyText).toContain('"quality":85');
+      expect(bodyText).toContain('"maxDimension":3840');
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/files'),
@@ -209,6 +227,7 @@ describe('MediaService (unit)', () => {
 
     it('should pass userId, purpose, and appId', async () => {
       const buffer = Buffer.from('test');
+      const stream = Readable.from([buffer]);
       const filename = 'test.txt';
       const mimetype = 'text/plain';
       const userId = 'user-123';
@@ -226,14 +245,18 @@ describe('MediaService (unit)', () => {
         }),
       });
 
-      await service.uploadFileToStorage(buffer, filename, mimetype, userId, purpose);
+      await service.uploadFileToStorage(stream, filename, mimetype, userId, purpose);
 
       const callArgs = mockFetch.mock.calls[0];
-      const formData = callArgs[1].body as FormData;
+      const options = callArgs[1];
+      const bodyText = await readWebBodyToString(options.body);
 
-      expect(formData.get('appId')).toBe('gran-publicador'); // Default value
-      expect(formData.get('userId')).toBe(userId);
-      expect(formData.get('purpose')).toBe(purpose);
+      expect(bodyText).toContain('name="appId"');
+      expect(bodyText).toContain('gran-publicador');
+      expect(bodyText).toContain('name="userId"');
+      expect(bodyText).toContain(userId);
+      expect(bodyText).toContain('name="purpose"');
+      expect(bodyText).toContain(purpose);
     });
 
     it('should throw error if storage returns non-ok response', async () => {
@@ -243,9 +266,33 @@ describe('MediaService (unit)', () => {
         text: async () => 'Error message',
       });
 
-      await expect(service.uploadFileToStorage(Buffer.from(''), 'f', 'm')).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        service.uploadFileToStorage(Readable.from([Buffer.from('')]), 'f', 'm'),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('should throw BadRequestException if file is too large', async () => {
+      process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB = '0';
+      service = moduleRef.get<MediaService>(MediaService);
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'storage-id-123',
+          originalSize: 4,
+          size: 4,
+          mimeType: 'text/plain',
+          checksum: 'hash',
+          url: 'http://storage/file',
+        }),
+      });
+
+      await expect(
+        service.uploadFileToStorage(Readable.from([Buffer.from('test')]), 'f', 'm'),
+      ).rejects.toThrow(BadRequestException);
+
+      process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB = '10';
+      service = moduleRef.get<MediaService>(MediaService);
     });
 
     it('should handle timeout/abort', async () => {
@@ -253,9 +300,9 @@ describe('MediaService (unit)', () => {
       error.name = 'AbortError';
       mockFetch.mockRejectedValue(error);
 
-      await expect(service.uploadFileToStorage(Buffer.from(''), 'f', 'm')).rejects.toThrow(
-        'Media Storage request timed out',
-      );
+      await expect(
+        service.uploadFileToStorage(Readable.from([Buffer.from('')]), 'f', 'm'),
+      ).rejects.toThrow('Media Storage request timed out');
     });
   });
 
