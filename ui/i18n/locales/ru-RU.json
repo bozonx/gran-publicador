@@ -780,7 +780,11 @@
     "spoiler": "Спойлер",
     "hasSpoiler": "Скрыть контент (spoiler)",
     "spoilerDescription": "Контент будет скрыт до клика пользователя",
-    "originalSpoilerFromTelegram": "Исходное сообщение из Telegram содержало spoiler"
+    "originalSpoilerFromTelegram": "Исходное сообщение из Telegram содержало spoiler",
+    "originalSize": "Исходный размер",
+    "optimizedSize": "Сжатый размер",
+    "savedSpace": "Экономия",
+    "compressionRatio": "Сжатие"
   },
   "postType": {
     "post": "Пост",

@@ -631,6 +631,23 @@ function formatSizeMB(bytes?: number): string {
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
+const compressionStats = computed(() => {
+  if (!selectedMedia.value?.meta) return null
+  const { originalSize, size } = selectedMedia.value.meta
+  if (!originalSize || !size || originalSize === size) return null
+
+  const saved = originalSize - size
+  const percent = Math.round((saved / originalSize) * 100)
+  const ratio = (originalSize / size).toFixed(1)
+
+  return {
+    originalSize: formatSizeMB(originalSize),
+    optimizedSize: formatSizeMB(size),
+    savedPercent: percent,
+    ratio
+  }
+})
+
 function downloadMediaFile(media: MediaItem) {
   const url = getMediaFileUrl(media.id)
   const filename = media.filename || `media_${media.id}`
@@ -1144,6 +1161,34 @@ const emit = defineEmits<Emits>()
                 class="w-4 h-4 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors shrink-0"
                 @click="downloadMediaFile(selectedMedia)"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- Compression statistics -->
+        <div v-if="compressionStats" class="mb-6 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-200 dark:border-primary-800/50">
+          <div class="flex items-center gap-2 mb-3 text-primary-700 dark:text-primary-300">
+            <UIcon name="i-heroicons-sparkles" class="w-5 h-5" />
+            <span class="font-semibold text-sm">{{ t('media.compressionRatio', 'Сжатие') }}</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="space-y-1">
+              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.originalSize') }}</div>
+              <div class="text-sm font-mono">{{ compressionStats.originalSize }}</div>
+            </div>
+            <div class="space-y-1">
+              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.optimizedSize') }}</div>
+              <div class="text-sm font-mono text-primary-600 dark:text-primary-400">{{ compressionStats.optimizedSize }}</div>
+            </div>
+            <div class="space-y-1">
+              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.savedSpace') }}</div>
+              <div class="text-sm font-mono text-green-600 dark:text-green-400 font-bold">
+                {{ compressionStats.savedPercent }}%
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Ratio</div>
+              <div class="text-sm font-mono">{{ compressionStats.ratio }}x</div>
             </div>
           </div>
         </div>
