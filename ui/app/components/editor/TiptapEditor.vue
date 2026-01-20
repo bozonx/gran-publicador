@@ -7,6 +7,7 @@ import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
 import MarkdownIt from 'markdown-it'
 import { useStt } from '~/composables/useStt'
+const toast = useToast()
 
 interface Props {
   /** Initial content (Markdown) */
@@ -50,8 +51,28 @@ const {
   isTranscribing, 
   transcription, 
   start: startStt, 
-  stop: stopStt 
+  stop: stopStt,
+  error: sttError,
+  recorderError
 } = useStt()
+
+// Watch for STT errors
+watch([sttError, recorderError], ([newSttError, newRecorderError]) => {
+  if (newSttError) {
+    toast.add({
+      title: t('common.error'),
+      description: t(`llm.${newSttError}`, 'Transcription error'),
+      color: 'error'
+    })
+  }
+  if (newRecorderError) {
+    toast.add({
+      title: t('common.error'),
+      description: t(`llm.${newRecorderError}`, 'Microphone error'),
+      color: 'error'
+    })
+  }
+})
 
 async function toggleRecording() {
   if (isRecording.value) {

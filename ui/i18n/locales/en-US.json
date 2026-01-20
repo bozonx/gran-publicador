@@ -109,7 +109,9 @@
     "selected": "Selected: {count}",
     "clearSelection": "Clear",
     "skip": "Skip",
-    "apply": "Apply"
+    "apply": "Apply",
+    "startRecording": "Start recording",
+    "stopRecording": "Stop recording"
   },
   "navigation": {
     "home": "Home",

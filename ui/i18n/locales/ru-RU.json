@@ -109,7 +109,9 @@
     "selected": "Выбрано: {count}",
     "clearSelection": "Очистить",
     "skip": "Пропустить",
-    "apply": "Применить"
+    "apply": "Применить",
+    "startRecording": "Начать запись",
+    "stopRecording": "Остановить запись"
   },
   "navigation": {
     "home": "Главная",
