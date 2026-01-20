@@ -1,58 +1,75 @@
-/**
- * Media Storage microservice configuration.
- * Provides configuration for integrating with the external Media Storage service.
- */
+import { plainToClass } from 'class-transformer';
+import { IsInt, Min, validateSync, IsString, IsOptional, Max, IsUrl } from 'class-validator';
+import { registerAs } from '@nestjs/config';
 
 /**
- * Gets the Media Storage service URL from environment variables.
- *
- * @returns The Media Storage microservice URL.
- * @throws Error if MEDIA_STORAGE_SERVICE_URL is not set.
+ * Configuration for Media Storage microservice integration.
  */
-export function getMediaStorageServiceUrl(): string {
-  if (process.env.MEDIA_STORAGE_SERVICE_URL) {
-    return process.env.MEDIA_STORAGE_SERVICE_URL;
+export class MediaConfig {
+  /**
+   * URL of the Media Storage microservice.
+   */
+  @IsString()
+  @IsOptional() // Optional so app can start without it, but validated if present
+  @IsUrl({ require_tld: false })
+  public serviceUrl?: string;
+
+  /**
+   * Application ID used to group files.
+   */
+  @IsString()
+  @IsOptional()
+  public appId: string = 'gran-publicador';
+
+  /**
+   * Request timeout in seconds.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  public timeoutSecs: number = 60;
+
+  /**
+   * Maximum allowed file size in MB.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  public maxFileSizeMb: number = 100;
+
+  /**
+   * Optional thumbnail quality setting.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  public thumbnailQuality?: number;
+}
+
+export default registerAs('media', (): MediaConfig => {
+  const config = plainToClass(MediaConfig, {
+    serviceUrl: process.env.MEDIA_STORAGE_SERVICE_URL,
+    appId: process.env.MEDIA_STORAGE_APP_ID,
+    timeoutSecs: process.env.MEDIA_STORAGE_TIMEOUT_SECS
+      ? parseInt(process.env.MEDIA_STORAGE_TIMEOUT_SECS, 10)
+      : undefined,
+    maxFileSizeMb: process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB
+      ? parseInt(process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB, 10)
+      : undefined,
+    thumbnailQuality: process.env.THUMBNAIL_QUALITY
+      ? parseInt(process.env.THUMBNAIL_QUALITY, 10)
+      : undefined,
+  });
+
+  const errors = validateSync(config, {
+    skipMissingProperties: true,
+  });
+
+  if (errors.length > 0) {
+    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
+    throw new Error(`Media config validation error: ${errorMessages.join('; ')}`);
   }
 
-  throw new Error('MEDIA_STORAGE_SERVICE_URL environment variable is not set.');
-}
-
-/**
- * Gets the Media Storage Application ID.
- * Used to group files in the microservice.
- *
- * @returns App ID string (default: 'gran-publicador').
- */
-export function getMediaStorageAppId(): string {
-  return process.env.MEDIA_STORAGE_APP_ID || 'gran-publicador';
-}
-
-/**
- * Gets the Media Storage request timeout in seconds.
- *
- * @returns Timeout in seconds (default: 60).
- */
-export function getMediaStorageTimeout(): number {
-  const timeout = process.env.MEDIA_STORAGE_TIMEOUT_SECS;
-  return timeout ? parseInt(timeout, 10) : 60;
-}
-
-/**
- * Gets the maximum file size in megabytes.
- *
- * @returns Max file size in MB (default: 100).
- */
-export function getMediaStorageMaxFileSize(): number {
-  const maxSize = process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB;
-  return maxSize ? parseInt(maxSize, 10) : 100;
-}
-
-/**
- * Gets optional thumbnail quality setting.
- *
- * @returns Thumbnail quality (1-100) or undefined if not set.
- */
-export function getThumbnailQuality(): number | undefined {
-  const quality = process.env.THUMBNAIL_QUALITY;
-  return quality ? parseInt(quality, 10) : undefined;
-}
+  return config;
+});

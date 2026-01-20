@@ -18,7 +18,8 @@ import { MediaService } from './media.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
-import { MediaType, StorageType } from '../../generated/prisma/client.js';
+import { StorageType } from '../../generated/prisma/client.js';
+import { getMediaTypeFromMime } from './utils/media-type.util.js';
 
 @Controller('media')
 export class MediaController {
@@ -55,9 +56,6 @@ export class MediaController {
     let optimize: Record<string, any> | undefined;
     const fields = (part as any).fields;
 
-    // Log received fields keys
-    this.logger.debug(`Received fields: ${Object.keys(fields || {}).join(', ')}`);
-
     // Helper to get field value safely
     const getFieldValue = (field: any) => field?.value;
 
@@ -65,7 +63,6 @@ export class MediaController {
       if (fields.optimize) {
         try {
           const optimizeValue = getFieldValue(fields.optimize);
-          this.logger.debug(`Found optimize field: ${optimizeValue}`);
           optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
         } catch (error) {
           this.logger.error(`Failed to parse optimize field: ${(error as any).message}`);
@@ -76,18 +73,14 @@ export class MediaController {
       if (!optimize && fields.projectId) {
         const projectId = getFieldValue(fields.projectId);
         if (projectId) {
-          this.logger.debug(`No direct optimize, trying project: ${projectId}`);
           try {
             optimize = await this.mediaService.getProjectOptimizationSettings(projectId);
-            this.logger.debug(`Loaded project optimization: ${!!optimize}`);
           } catch (error) {
             this.logger.error(`Failed to load project optimization: ${(error as any).message}`);
           }
         }
       }
     }
-
-    this.logger.debug(`Final optimize params to be sent: ${JSON.stringify(optimize)}`);
 
     // Upload to Media Storage using stream
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(
@@ -99,16 +92,9 @@ export class MediaController {
       optimize,
     );
 
-    // Determine media type from mimetype
-    let type: MediaType = MediaType.DOCUMENT;
-    const mime = metadata.mimeType.toLowerCase();
-    if (mime.startsWith('image/')) type = MediaType.IMAGE;
-    else if (mime.startsWith('video/')) type = MediaType.VIDEO;
-    else if (mime.startsWith('audio/')) type = MediaType.AUDIO;
-
     // Create the media record with fileId from Media Storage
     return this.mediaService.create({
-      type,
+      type: getMediaTypeFromMime(metadata.mimeType),
       storageType: StorageType.FS,
       storagePath: fileId, // Store Media Storage fileId
       filename: part.filename,
@@ -141,19 +127,12 @@ export class MediaController {
       body.optimize,
     );
 
-    // Determine media type from mimetype
-    let type: MediaType = MediaType.DOCUMENT;
-    const mime = metadata.mimeType.toLowerCase();
-    if (mime.startsWith('image/')) type = MediaType.IMAGE;
-    else if (mime.startsWith('video/')) type = MediaType.VIDEO;
-    else if (mime.startsWith('audio/')) type = MediaType.AUDIO;
-
     // Extract filename from URL if not provided
     const filename = body.filename || this.extractFilenameFromUrl(body.url);
 
     // Create the media record with fileId from Media Storage
     return this.mediaService.create({
-      type,
+      type: getMediaTypeFromMime(metadata.mimeType),
       storageType: StorageType.FS,
       storagePath: fileId, // Store Media Storage fileId
       filename,

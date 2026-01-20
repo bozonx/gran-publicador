@@ -99,14 +99,12 @@ export function useLlm() {
   ): Promise<LlmResponse | null> {
     isGenerating.value = true
     error.value = null
-    console.log('LLM: Starting generation with prompt:', prompt)
 
     try {
       const response = await post<LlmResponse>('/llm/generate', {
         prompt,
         ...options,
       })
-      console.log('LLM: Generation successful:', response)
 
       return response
     } catch (err: any) {

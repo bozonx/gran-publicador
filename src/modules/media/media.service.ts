@@ -3,24 +3,19 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
-  InternalServerErrorException,
   ForbiddenException,
   RequestTimeoutException,
   ServiceUnavailableException,
   BadGatewayException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Readable, Transform } from 'stream';
+import { Readable } from 'stream';
+import { request } from 'undici';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
-import {
-  getMediaStorageServiceUrl,
-  getMediaStorageTimeout,
-  getMediaStorageMaxFileSize,
-  getThumbnailQuality,
-  getMediaStorageAppId,
-} from '../../config/media.config.js';
+import { MediaConfig } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 
 /**
@@ -29,25 +24,20 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 @Injectable()
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
-  private readonly mediaStorageUrl: string;
-  private readonly timeout: number;
-  private readonly maxFileSize: number;
-  private readonly thumbnailQuality?: number;
-  private readonly appId: string;
-  private readonly fetch = global.fetch;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
     private permissions: PermissionsService,
   ) {
-    this.mediaStorageUrl = getMediaStorageServiceUrl();
-    this.timeout = getMediaStorageTimeout() * 1000;
-    this.maxFileSize = getMediaStorageMaxFileSize() * 1024 * 1024;
-    this.thumbnailQuality = getThumbnailQuality();
-    this.appId = getMediaStorageAppId();
+    const config = this.configService.get<MediaConfig>('media');
+    if (config?.serviceUrl) {
+      this.logger.log(`Media Storage URL: ${config.serviceUrl}`);
+    }
+  }
 
-    this.logger.log(`Media Storage URL: ${this.mediaStorageUrl}`);
+  private get config(): MediaConfig {
+    return this.configService.get<MediaConfig>('media')!;
   }
 
   private parseMeta(meta: any): Record<string, any> {
@@ -62,19 +52,24 @@ export class MediaService {
     return (meta as Record<string, any>) || {};
   }
 
-  private isAbortError(error: unknown): boolean {
-    const err = error as { name?: unknown };
-    return err?.name === 'AbortError';
-  }
-
   private isConnectionError(error: unknown): boolean {
     const err = error as { code?: string; cause?: { code?: string } };
     return (
       err?.code === 'ECONNREFUSED' ||
       err?.code === 'ENOTFOUND' ||
       err?.code === 'ECONNRESET' ||
+      err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
       err?.cause?.code === 'ECONNREFUSED' ||
       err?.cause?.code === 'ENOTFOUND'
+    );
+  }
+
+  private isTimeoutError(error: unknown): boolean {
+    const err = error as { name?: string; code?: string };
+    return (
+      err?.name === 'TimeoutError' ||
+      err?.code === 'UND_ERR_HEADERS_TIMEOUT' ||
+      err?.code === 'UND_ERR_BODY_TIMEOUT'
     );
   }
 
@@ -83,7 +78,7 @@ export class MediaService {
       `Media Storage microservice error during ${operation}: ${(error as Error).message}`,
     );
 
-    if (this.isAbortError(error)) {
+    if (this.isTimeoutError(error)) {
       throw new RequestTimeoutException('Media Storage microservice request timed out');
     }
 
@@ -93,7 +88,7 @@ export class MediaService {
       );
     }
 
-    if (error instanceof BadRequestException) {
+    if (error instanceof BadRequestException || error instanceof NotFoundException) {
       throw error;
     }
 
@@ -112,7 +107,6 @@ export class MediaService {
     }
 
     // Drop internal UI flags and unknown keys.
-    // Media Storage microservice validates optimize parameters strictly.
     const allowedKeys = new Set([
       'format',
       'quality',
@@ -196,31 +190,6 @@ export class MediaService {
     return this.prisma.media.delete({ where: { id } });
   }
 
-  /**
-   * Helper to generate a multipart/form-data stream manually to avoid buffering.
-   */
-  private async *generateMultipart(
-    boundary: string,
-    filename: string,
-    mimetype: string,
-    fileStream: Readable,
-    fields: Record<string, string>,
-  ) {
-    const encoder = new TextEncoder();
-    for (const [name, value] of Object.entries(fields)) {
-      yield encoder.encode(`--${boundary}\r\n`);
-      yield encoder.encode(`Content-Disposition: form-data; name="${name}"\r\n\r\n`);
-      yield encoder.encode(`${value}\r\n`);
-    }
-    yield encoder.encode(`--${boundary}\r\n`);
-    yield encoder.encode(`Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`);
-    yield encoder.encode(`Content-Type: ${mimetype}\r\n\r\n`);
-    for await (const chunk of fileStream) {
-      yield chunk;
-    }
-    yield encoder.encode(`\r\n--${boundary}--\r\n`);
-  }
-
   async uploadFileToStorage(
     fileStream: Readable,
     filename: string,
@@ -229,81 +198,48 @@ export class MediaService {
     purpose?: string,
     optimize?: Record<string, any>,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
-    const boundary = `----NodeBoundary${Math.random().toString(16).substring(2)}`;
-    const fields: Record<string, string> = { appId: this.appId };
-    if (userId) fields.userId = userId;
-    if (purpose) fields.purpose = purpose;
+    const config = this.config;
+    if (!config.serviceUrl) {
+      throw new InternalServerErrorException('Media Storage service is not configured');
+    }
+
+    const { FormData } = await import('undici');
+    const formData = new FormData();
+    formData.append('appId', config.appId);
+    if (userId) formData.append('userId', userId);
+    if (purpose) formData.append('purpose', purpose);
 
     let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
     if (compression?.enabled === false) compression = undefined;
     if (!mimetype.toLowerCase().startsWith('image/')) {
       compression = undefined;
     }
-    if (compression) fields.optimize = JSON.stringify(compression);
+    if (compression) formData.append('optimize', JSON.stringify(compression));
 
-    // Log fields for debugging
-    this.logger.debug(`Uploading with fields: ${JSON.stringify(fields)}`);
-
-    let bytesRead = 0;
-    const limiter = new Transform({
-      transform: (chunk, _encoding, callback) => {
-        bytesRead += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
-        if (bytesRead > this.maxFileSize) {
-          callback(new BadRequestException('File is too large'));
-          return;
-        }
-        callback(null, chunk);
-      },
-    });
-
-    const limitedFileStream = fileStream.pipe(limiter);
-    // Prevent unhandled 'error' event from crashing the process
-    limitedFileStream.on('error', () => {});
-
-    const multipartStream = Readable.from(
-      this.generateMultipart(boundary, filename, mimetype, limitedFileStream, fields),
-    );
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    formData.append('file', {
+      type: mimetype,
+      name: filename,
+      [Symbol.for('undici.util.stream')]: fileStream,
+    } as any);
 
     try {
-      this.logger.debug(`Sending POST request to: ${this.mediaStorageUrl}/files`);
-      const response = await this.fetch(`${this.mediaStorageUrl}/files`, {
+      const response = await request(`${config.serviceUrl}/files`, {
         method: 'POST',
-        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
-        body: Readable.toWeb(multipartStream) as any,
-        duplex: 'half',
-        signal: controller.signal,
-      } as any);
+        body: formData,
+        headersTimeout: config.timeoutSecs * 1000,
+        bodyTimeout: config.timeoutSecs * 1000,
+      });
 
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = errorText;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorText;
-        } catch (parseError) {
-          this.logger.debug('Media Storage error response is not JSON');
-        }
-        this.logger.error(
-          `Media Storage returned HTTP ${response.status} during upload: ${errorMessage}`,
-        );
-
-        // Preserve HTTP status from microservice
-        if (response.status === 400) {
-          throw new BadRequestException(errorMessage);
-        } else if (response.status === 404) {
-          throw new NotFoundException(errorMessage);
-        } else if (response.status >= 500) {
-          throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
-        }
-        throw new BadGatewayException(errorMessage);
+      if (response.statusCode >= 400) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        const errorMessage = (errorBody as any).message || 'Microservice error';
+        
+        if (response.statusCode === 400) throw new BadRequestException(errorMessage);
+        if (response.statusCode === 404) throw new NotFoundException(errorMessage);
+        throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
       }
 
-      const result = await response.json();
-      this.logger.debug(`Media Storage response received for file: ${result.id}`);
+      const result = (await response.body.json()) as any;
       return {
         fileId: result.id,
         metadata: {
@@ -317,16 +253,6 @@ export class MediaService {
         },
       };
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException ||
-        error instanceof BadGatewayException ||
-        error instanceof RequestTimeoutException ||
-        error instanceof ServiceUnavailableException
-      ) {
-        throw error;
-      }
       this.handleMicroserviceError(error, 'file upload');
     }
   }
@@ -338,8 +264,13 @@ export class MediaService {
     purpose?: string,
     optimize?: Record<string, any>,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
+    const config = this.config;
+    if (!config.serviceUrl) {
+      throw new InternalServerErrorException('Media Storage service is not configured');
+    }
+
     try {
-      const body: Record<string, any> = { url, appId: this.appId };
+      const body: Record<string, any> = { url, appId: config.appId };
       if (filename) body.filename = filename;
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;
@@ -347,41 +278,22 @@ export class MediaService {
       if (compression?.enabled === false) compression = undefined;
       if (compression) body.optimize = compression;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
-      const response = await this.fetch(`${this.mediaStorageUrl}/files/from-url`, {
+      const response = await request(`${config.serviceUrl}/files/from-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        signal: controller.signal,
+        headersTimeout: config.timeoutSecs * 1000,
       });
 
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = errorText;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorText;
-        } catch (parseError) {
-          this.logger.debug('Media Storage error response is not JSON');
-        }
-        this.logger.error(
-          `Media Storage returned HTTP ${response.status} during URL upload: ${errorMessage}`,
-        );
-
-        if (response.status === 400) {
-          throw new BadRequestException(errorMessage);
-        } else if (response.status === 404) {
-          throw new NotFoundException(errorMessage);
-        } else if (response.status >= 500) {
-          throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
-        }
-        throw new BadGatewayException(errorMessage);
+      if (response.statusCode >= 400) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        const errorMessage = (errorBody as any).message || 'Microservice error';
+        if (response.statusCode === 400) throw new BadRequestException(errorMessage);
+        if (response.statusCode === 404) throw new NotFoundException(errorMessage);
+        throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
       }
 
-      const result = await response.json();
+      const result = (await response.body.json()) as any;
       return {
         fileId: result.id,
         metadata: {
@@ -395,15 +307,6 @@ export class MediaService {
         },
       };
     } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException ||
-        error instanceof BadGatewayException ||
-        error instanceof RequestTimeoutException ||
-        error instanceof ServiceUnavailableException
-      ) {
-        throw error;
-      }
       this.handleMicroserviceError(error, 'URL upload');
     }
   }
@@ -418,42 +321,24 @@ export class MediaService {
       throw new BadRequestException('Only FS media can be reprocessed');
     if (userId) await this.checkMediaAccess(id, userId);
 
+    const config = this.config;
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-      const response = await this.fetch(
-        `${this.mediaStorageUrl}/files/${media.storagePath}/reprocess`,
+      const response = await request(
+        `${config.serviceUrl}/files/${media.storagePath}/reprocess`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
-          signal: controller.signal,
+          headersTimeout: config.timeoutSecs * 1000,
         },
       );
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = errorText;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorText;
-        } catch (parseError) {
-          this.logger.debug('Media Storage error response is not JSON');
-        }
-        this.logger.error(
-          `Media Storage returned HTTP ${response.status} during reprocess: ${errorMessage}`,
-        );
 
-        if (response.status === 400) {
-          throw new BadRequestException(errorMessage);
-        } else if (response.status === 404) {
-          throw new NotFoundException(errorMessage);
-        } else if (response.status >= 500) {
-          throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
-        }
-        throw new BadGatewayException(errorMessage);
+      if (response.statusCode >= 400) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        throw new BadGatewayException(`Media Storage error: ${(errorBody as any).message || 'Microservice error'}`);
       }
-      const result = await response.json();
+
+      const result = (await response.body.json()) as any;
       return {
         fileId: result.id,
         metadata: {
@@ -467,35 +352,21 @@ export class MediaService {
         },
       };
     } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException ||
-        error instanceof BadGatewayException ||
-        error instanceof RequestTimeoutException ||
-        error instanceof ServiceUnavailableException
-      ) {
-        throw error;
-      }
       this.handleMicroserviceError(error, 'file reprocess');
     }
   }
 
   private async deleteFileFromStorage(fileId: string): Promise<void> {
+    const config = this.config;
+    if (!config.serviceUrl) return;
+
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}`, {
+      await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'DELETE',
-        signal: controller.signal,
+        headersTimeout: config.timeoutSecs * 1000,
       });
-      clearTimeout(timeoutId);
     } catch (error) {
-      this.logger.error(
-        `Failed to delete file ${fileId} from Media Storage: ${(error as Error).message}`,
-      );
-      if (this.isConnectionError(error)) {
-        this.logger.warn('Media Storage microservice appears to be unavailable');
-      }
+      this.logger.error(`Failed to delete file ${fileId} from Media Storage: ${(error as Error).message}`);
     }
   }
 
@@ -503,49 +374,36 @@ export class MediaService {
     fileId: string,
     range?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
-    const headers: Record<string, string> = range ? { Range: range } : {};
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const config = this.config;
+    const reqHeaders: Record<string, string> = range ? { Range: range } : {};
+
     try {
-      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}/download`, {
+      const response = await request(`${config.serviceUrl}/files/${fileId}/download`, {
         method: 'GET',
-        headers,
-        signal: controller.signal,
+        headers: reqHeaders,
+        headersTimeout: config.timeoutSecs * 1000,
       });
-      clearTimeout(timeoutId);
-      if (!response.ok && response.status !== 206)
-        throw new Error(`Media Storage returned ${response.status}`);
+
+      if (response.statusCode >= 400 && response.statusCode !== 206) {
+        throw new Error(`Media Storage returned ${response.statusCode}`);
+      }
+
       const responseHeaders: Record<string, string> = {};
-      const skipHeaders = [
-        'connection',
-        'keep-alive',
-        'transfer-encoding',
-        'proxy-authenticate',
-        'proxy-authorization',
-        'te',
-        'trailer',
-        'upgrade',
-      ];
-      response.headers.forEach((value, key) => {
-        if (!skipHeaders.includes(key.toLowerCase())) responseHeaders[key] = value;
-      });
-      if (!response.body) throw new Error('Response body is empty');
+      const skipHeaders = ['connection', 'keep-alive', 'transfer-encoding'];
+      
+      for (const [key, value] of Object.entries(response.headers)) {
+        if (!skipHeaders.includes(key.toLowerCase()) && typeof value === 'string') {
+          responseHeaders[key] = value;
+        }
+      }
+
       return {
-        stream: Readable.fromWeb(response.body as any),
-        status: response.status,
+        stream: (response.body as any) as Readable,
+        status: response.statusCode,
         headers: responseHeaders,
       };
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (this.isAbortError(error)) {
-        throw new RequestTimeoutException('Media Storage request timed out');
-      }
-      if (this.isConnectionError(error)) {
-        throw new ServiceUnavailableException(
-          'Media Storage microservice is unavailable. Please check if the service is running.',
-        );
-      }
-      throw error;
+      this.handleMicroserviceError(error, 'file download');
     }
   }
 
@@ -556,69 +414,50 @@ export class MediaService {
     quality?: number,
     fit?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
+    const config = this.config;
     const params = new URLSearchParams({ width: width.toString(), height: height.toString() });
-    const finalQuality = quality ?? this.thumbnailQuality;
+    const finalQuality = quality ?? config.thumbnailQuality;
     if (finalQuality) params.append('quality', finalQuality.toString());
     if (fit) params.append('fit', fit);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
     try {
-      const response = await this.fetch(
-        `${this.mediaStorageUrl}/files/${fileId}/thumbnail?${params.toString()}`,
+      const response = await request(
+        `${config.serviceUrl}/files/${fileId}/thumbnail?${params.toString()}`,
         {
           method: 'GET',
-          signal: controller.signal,
+          headersTimeout: config.timeoutSecs * 1000,
         },
       );
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error(`Media Storage returned ${response.status}`);
+
+      if (response.statusCode >= 400) throw new Error(`Media Storage returned ${response.statusCode}`);
+
       const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-      if (!response.body) throw new Error('Response body is empty');
+      for (const [key, value] of Object.entries(response.headers)) {
+        if (typeof value === 'string') responseHeaders[key] = value;
+      }
+
       return {
-        stream: Readable.fromWeb(response.body as any),
-        status: response.status,
+        stream: (response.body as any) as Readable,
+        status: response.statusCode,
         headers: responseHeaders,
       };
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (this.isAbortError(error)) {
-        throw new RequestTimeoutException('Media Storage request timed out');
-      }
-      if (this.isConnectionError(error)) {
-        throw new ServiceUnavailableException(
-          'Media Storage microservice is unavailable. Please check if the service is running.',
-        );
-      }
-      throw error;
+      this.handleMicroserviceError(error, 'thumbnail');
     }
   }
 
   async getFileInfo(fileId: string): Promise<Record<string, any>> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const config = this.config;
     try {
-      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}`, {
+      const response = await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'GET',
-        signal: controller.signal,
+        headersTimeout: config.timeoutSecs * 1000,
       });
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error(`Media Storage returned ${response.status}`);
-      return await response.json();
+
+      if (response.statusCode >= 400) throw new Error(`Media Storage returned ${response.statusCode}`);
+      return (await response.body.json()) as any;
     } catch (error) {
-      clearTimeout(timeoutId);
-      this.logger.error(`Failed to get file info from Media Storage: ${(error as Error).message}`);
-      if (this.isAbortError(error)) {
-        throw new RequestTimeoutException('Media Storage request timed out');
-      }
-      if (this.isConnectionError(error)) {
-        throw new ServiceUnavailableException(
-          'Media Storage microservice is unavailable. Please check if the service is running.',
-        );
-      }
-      throw new BadGatewayException(`Failed to get file info: ${(error as Error).message}`);
+      this.handleMicroserviceError(error, 'file info');
     }
   }
 
@@ -666,20 +505,24 @@ export class MediaService {
     const telegramBotToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!telegramBotToken)
       throw new InternalServerErrorException('Telegram bot token not configured');
+      
     const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
-    const getFileResponse = await this.fetch(getFileUrl);
-    const getFileData = await getFileResponse.json();
+    const getFileResponse = await fetch(getFileUrl);
+    const getFileData = (await getFileResponse.json()) as any;
+    
     if (!getFileData.ok || !getFileData.result?.file_path)
       throw new NotFoundException('File not found in Telegram');
+      
     const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
-    const downloadResponse = await this.fetch(downloadUrl);
+    const downloadResponse = await fetch(downloadUrl);
+    
     if (!downloadResponse.ok)
       throw new InternalServerErrorException('Failed to download from Telegram');
+      
     const headers: Record<string, string> = {};
     if (mimeType) headers['Content-Type'] = mimeType;
     if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
-    if (!downloadResponse.body)
-      throw new InternalServerErrorException('Telegram response body is empty');
+    
     return {
       stream: Readable.fromWeb(downloadResponse.body as any),
       status: downloadResponse.status,
@@ -733,8 +576,6 @@ export class MediaService {
     }
 
     const prefs = project.preferences as Record<string, any>;
-    // Assuming settings are stored under 'mediaOptimization' key in project preferences
-    // Adjust this path if the structure is different
     return prefs.mediaOptimization;
   }
 }

@@ -98,10 +98,8 @@ export function useMedia() {
       const formData = new FormData()
       
       if (optimize) {
-        console.log('[useMedia] Appending optimize params to FormData (BEFORE file):', optimize)
         formData.append('optimize', JSON.stringify(optimize))
       } else {
-        console.log('[useMedia] No optimize params provided')
       }
       
       formData.append('file', file)

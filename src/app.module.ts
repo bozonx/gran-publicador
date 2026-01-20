@@ -18,6 +18,7 @@ import llmConfig from './config/llm.config.js';
 import sttConfig from './config/stt.config.js';
 import translateConfig from './config/translate.config.js';
 import redisConfig, { RedisConfig } from './config/redis.config.js';
+import mediaConfig, { MediaConfig } from './config/media.config.js';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { RedisModule } from './common/redis/redis.module.js';
@@ -46,7 +47,7 @@ import { AuthorSignaturesModule } from './modules/author-signatures/author-signa
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, redisConfig],
+      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, redisConfig, mediaConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),

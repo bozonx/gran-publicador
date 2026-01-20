@@ -168,7 +168,6 @@ async function handleSave() {
 }
 
 async function performSave() {
-  console.log('[PostEditBlock] performSave formData:', JSON.parse(JSON.stringify(formData)))
   try {
     if (props.isCreating) {
         if (!formData.channelId || !props.publication) return 

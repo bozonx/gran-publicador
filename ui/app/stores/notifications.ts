@@ -138,7 +138,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     });
 
     socket.value.on('connect', () => {
-      console.log('Connected to notifications WebSocket');
     });
 
     socket.value.on('notification', (notification: Notification) => {
@@ -165,7 +164,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     });
 
     socket.value.on('disconnect', () => {
-      console.log('Disconnected from notifications WebSocket');
     });
 
     socket.value.on('connect_error', (error) => {

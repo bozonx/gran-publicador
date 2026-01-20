@@ -33,7 +33,6 @@ const loadWidget = async () => {
   if (widgetContainer.value) {
     const botName = config.public.telegramBotName
     // eslint-disable-next-line no-console
-    console.log("Loading Telegram widget for:", botName)
     
     // Clear container
     widgetContainer.value.innerHTML = ''

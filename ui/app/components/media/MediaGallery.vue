@@ -212,7 +212,6 @@ async function uploadFiles(files: FileList | File[], options?: any) {
   }
 
   // Debug logging to track optimization parameters
-  console.log('[MediaGallery] Uploading files with optimization params:', optimizeParams)
 
 
   try {
@@ -655,8 +654,6 @@ const compressionStats = computed(() => {
   const meta = selectedMedia.value?.meta
   
   // Debug logging
-  console.log('[MediaGallery] compressionStats - selectedMedia:', selectedMedia.value)
-  console.log('[MediaGallery] compressionStats - meta:', meta)
   
   if (!meta) return null
   
@@ -667,7 +664,6 @@ const compressionStats = computed(() => {
   const current = meta.size || selectedMedia.value?.sizeBytes
   
   
-  console.log('[MediaGallery] compressionStats - original:', original, 'current:', current)
   
   if (!original || !current || Number(original) === Number(current)) return null
 
@@ -697,14 +693,12 @@ const compressionStats = computed(() => {
     optimizedFormat: meta.mimeType || meta.mime_type
   }
   
-  console.log('[MediaGallery] compressionStats - result:', stats)
   
   return stats
 })
 
 const exifData = computed(() => {
   const exif = selectedMedia.value?.fullMediaMeta?.exif
-  console.log('[MediaGallery] exifData from fullMediaMeta:', exif)
   return exif
 })
 

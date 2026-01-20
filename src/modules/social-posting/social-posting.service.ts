@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PublicationStatus, PostStatus } from '../../generated/prisma/client.js';
-import { getMediaStorageServiceUrl } from '../../config/media.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MediaConfig } from '../../config/media.config.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
 import { resolvePlatformParams } from './utils/platform-params-resolver.util.js';
 import { SocialPostingRequestFormatter } from './utils/social-posting-request.formatter.js';
@@ -15,14 +15,13 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { NotificationType } from '../../generated/prisma/client.js';
 import { I18nService } from 'nestjs-i18n';
 import { PRESET_SIGNATURES } from '../author-signatures/constants/preset-signatures.constants.js';
+import { request } from 'undici';
 
 @Injectable()
 export class SocialPostingService {
   private readonly logger = new Logger(SocialPostingService.name);
   private readonly mediaStorageUrl: string;
   private readonly socialPostingConfig: SocialPostingConfig;
-  // Instance level fetch for testability
-  private fetch = global.fetch;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -31,7 +30,8 @@ export class SocialPostingService {
     private readonly notifications: NotificationsService,
     private readonly i18n: I18nService,
   ) {
-    this.mediaStorageUrl = getMediaStorageServiceUrl();
+    const mediaConfig = this.configService.get<MediaConfig>('media')!;
+    this.mediaStorageUrl = mediaConfig.serviceUrl || '';
     this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
   }
 
@@ -590,36 +590,33 @@ export class SocialPostingService {
 
   private async sendRequest<T>(endpoint: string, body: any): Promise<T> {
     const baseUrl = this.socialPostingConfig.serviceUrl.replace(/\/$/, '');
-    // Ensure endpoint key logic aligns with user preference (/api/v1 included in URL)
     const url = `${baseUrl}/${endpoint}`;
 
     const appConfig = this.configService.get<AppConfig>('app')!;
     const timeout = (appConfig.postProcessingTimeoutSeconds || 60) * 1000;
 
     try {
-      const response = await this.fetch(url, {
+      const response = await request(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(timeout),
+        headersTimeout: timeout,
+        bodyTimeout: timeout,
       });
 
-      if (!response.ok) {
-        // Try to parse error response if JSON
+      if (response.statusCode >= 400) {
         try {
-          const errorData = await response.json();
-          // Wrap in our expected structure if not already
+          const errorData = (await response.body.json()) as any;
           return errorData as T;
         } catch {
-          throw new Error(`Service returned ${response.status} ${response.statusText}`);
+          throw new Error(`Service returned ${response.statusCode}`);
         }
       }
 
-      return (await response.json()) as T;
+      return (await response.body.json()) as T;
     } catch (error: any) {
-      // Network errors, timeouts, etc.
       this.logger.error(`Request to ${url} failed: ${error.message}`);
       throw new Error(`Microservice request failed: ${error.message}`);
     }

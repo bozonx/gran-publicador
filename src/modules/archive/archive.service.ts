@@ -6,11 +6,10 @@ import {
 } from '@nestjs/common';
 import type { Project, Channel, Publication, Post } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
 import { ArchiveEntityType, ArchiveStatsDto } from './dto/archive.dto.js';
 
 type ArchivableEntity = Project | Channel | Publication;
-
-import { PermissionsService } from '../../common/services/permissions.service.js';
 
 @Injectable()
 export class ArchiveService {

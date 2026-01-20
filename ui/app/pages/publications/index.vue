@@ -291,7 +291,6 @@ const bulkStatusOptions = computed(() => [
       label: opt.label,
       icon: 'i-heroicons-tag',
       onSelect: () => {
-        console.log('Bulk Status Click:', opt.value)
         handleBulkAction('SET_STATUS', opt.value as any)
       }
     }))
@@ -334,7 +333,6 @@ const bulkActionPending = ref(false)
 const bulkStatusToSet = ref<PublicationStatus | null>(null)
 
 async function handleBulkAction(operation: string, status?: string) {
-  console.log('handleBulkAction called:', { operation, status, selectedIds: selectedIds.value })
   if (selectedIds.value.length === 0) return
 
   bulkActionPending.value = true
