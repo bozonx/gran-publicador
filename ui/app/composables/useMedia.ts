@@ -83,15 +83,18 @@ export function useMedia() {
     error.value = null
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      
       if (optimize) {
-        console.log('[useMedia] Appending optimize params to FormData:', optimize)
+        console.log('[useMedia] Appending optimize params to FormData (BEFORE file):', optimize)
         formData.append('optimize', JSON.stringify(optimize))
       } else {
         console.log('[useMedia] No optimize params provided')
       }
+      
+      formData.append('file', file)
 
       // Don't set Content-Type manually - let the browser set it with the correct boundary
+
       return await api.post<MediaItem>('/media/upload', formData, {
         onUploadProgress
       })

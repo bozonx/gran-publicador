@@ -52,6 +52,9 @@ export class MediaController {
     let optimize: Record<string, any> | undefined;
     const fields = (part as any).fields;
     
+    // DEBUG: Log all received fields keys
+    console.log('[MediaController] Received fields:', Object.keys(fields || {}));
+
     // Helper to get field value safely
     const getFieldValue = (field: any) => field?.value;
 
@@ -59,24 +62,30 @@ export class MediaController {
       if (fields.optimize) {
         try {
           const optimizeValue = getFieldValue(fields.optimize);
+          console.log('[MediaController] Found optimize field:', optimizeValue);
           optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
-        } catch {
-          // Ignore parse error
+        } catch (error) {
+          console.error('[MediaController] Failed to parse optimize field:', (error as any).message);
         }
       }
 
       // If optimize is not provided explicitly, try to load from project settings
       if (!optimize && fields.projectId) {
         const projectId = getFieldValue(fields.projectId);
+        console.log('[MediaController] No direct optimize, trying project:', projectId);
         if (projectId) {
           try {
             optimize = await this.mediaService.getProjectOptimizationSettings(projectId);
+            console.log('[MediaController] Loaded project optimization:', !!optimize);
           } catch (error) {
-            // Ignore error if project settings cannot be loaded
+            console.error('[MediaController] Failed to load project optimization:', (error as any).message);
           }
         }
       }
     }
+
+    console.log('[MediaController] Final optimize params to be sent:', JSON.stringify(optimize));
+
 
     // Upload to Media Storage using stream
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(

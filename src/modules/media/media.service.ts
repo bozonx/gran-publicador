@@ -170,19 +170,16 @@ export class MediaService {
     let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
     if (compression && compression.enabled === false) compression = undefined;
     
-    if (compression && Object.keys(compression).length > 0) {
-      fields.optimize = JSON.stringify(compression);
-    }
+    // DEBUG: Log fields to understand what's causing Invalid optimize parameter
+    console.log('[MediaService] Uploading with fields:', JSON.stringify(fields));
 
     const multipartStream = Readable.from(this.generateMultipart(boundary, filename, mimetype, fileStream, fields));
     
-    // DEBUG: Log fields to understand what's causing Invalid optimize parameter
-    this.logger.debug(`Uploading with fields: ${JSON.stringify(fields)}`);
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      console.log('[MediaService] Sending POST request to:', `${this.mediaStorageUrl}/files`);
       const response = await this.fetch(`${this.mediaStorageUrl}/files`, {
         method: 'POST',
         headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
@@ -194,11 +191,14 @@ export class MediaService {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('[MediaService] Media Storage returned error:', response.status, errorText);
         throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('[MediaService] Media Storage response:', JSON.stringify(result));
       return {
+
         fileId: result.id,
         metadata: {
           originalSize: result.originalSize,
