@@ -27,6 +27,6 @@ export class SpaFallbackFilter implements ExceptionFilter {
     }
 
     // For all other routes, serve the SPA fallback
-    void reply.sendFile('200.html');
+    void reply.sendFile('index.html');
   }
 }

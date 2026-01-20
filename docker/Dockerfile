@@ -55,7 +55,7 @@ COPY ui/.output ./ui/.output
 # Copy remaining necessary files
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-COPY src/generated ./src/generated
+COPY --from=builder /app/src/generated ./src/generated
 COPY docker/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh

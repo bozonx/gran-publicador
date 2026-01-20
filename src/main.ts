@@ -72,7 +72,7 @@ async function bootstrap() {
   const globalPrefix = appConfig.basePath ? `${appConfig.basePath}/api/v1` : 'api/v1';
   app.setGlobalPrefix(globalPrefix);
 
-  // Register SPA fallback filter to serve 200.html for non-API 404s
+  // Register SPA fallback filter to serve index.html for non-API 404s
   app.useGlobalFilters(new SpaFallbackFilter(globalPrefix));
 
   // Register BigInt interceptor to handle serialization
