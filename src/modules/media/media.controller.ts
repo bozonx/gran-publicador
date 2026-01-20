@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UseGuards,
   Query,
+  Logger,
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { MediaService } from './media.service.js';
@@ -21,6 +22,8 @@ import { MediaType, StorageType } from '../../generated/prisma/client.js';
 
 @Controller('media')
 export class MediaController {
+  private readonly logger = new Logger(MediaController.name);
+
   constructor(private readonly mediaService: MediaService) {}
 
   @Post()
@@ -52,8 +55,8 @@ export class MediaController {
     let optimize: Record<string, any> | undefined;
     const fields = (part as any).fields;
     
-    // DEBUG: Log all received fields keys
-    console.log('[MediaController] Received fields:', Object.keys(fields || {}));
+    // Log received fields keys
+    this.logger.debug(`Received fields: ${Object.keys(fields || {}).join(', ')}`);
 
     // Helper to get field value safely
     const getFieldValue = (field: any) => field?.value;
@@ -62,29 +65,29 @@ export class MediaController {
       if (fields.optimize) {
         try {
           const optimizeValue = getFieldValue(fields.optimize);
-          console.log('[MediaController] Found optimize field:', optimizeValue);
+          this.logger.debug(`Found optimize field: ${optimizeValue}`);
           optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
         } catch (error) {
-          console.error('[MediaController] Failed to parse optimize field:', (error as any).message);
+          this.logger.error(`Failed to parse optimize field: ${(error as any).message}`);
         }
       }
 
       // If optimize is not provided explicitly, try to load from project settings
       if (!optimize && fields.projectId) {
         const projectId = getFieldValue(fields.projectId);
-        console.log('[MediaController] No direct optimize, trying project:', projectId);
         if (projectId) {
+          this.logger.debug(`No direct optimize, trying project: ${projectId}`);
           try {
             optimize = await this.mediaService.getProjectOptimizationSettings(projectId);
-            console.log('[MediaController] Loaded project optimization:', !!optimize);
+            this.logger.debug(`Loaded project optimization: ${!!optimize}`);
           } catch (error) {
-            console.error('[MediaController] Failed to load project optimization:', (error as any).message);
+            this.logger.error(`Failed to load project optimization: ${(error as any).message}`);
           }
         }
       }
     }
 
-    console.log('[MediaController] Final optimize params to be sent:', JSON.stringify(optimize));
+    this.logger.debug(`Final optimize params to be sent: ${JSON.stringify(optimize)}`);
 
 
     // Upload to Media Storage using stream

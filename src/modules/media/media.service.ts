@@ -170,8 +170,8 @@ export class MediaService {
     let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
     if (compression && compression.enabled === false) compression = undefined;
     
-    // DEBUG: Log fields to understand what's causing Invalid optimize parameter
-    console.log('[MediaService] Uploading with fields:', JSON.stringify(fields));
+    // Log fields for debugging
+    this.logger.debug(`Uploading with fields: ${JSON.stringify(fields)}`);
 
     const multipartStream = Readable.from(this.generateMultipart(boundary, filename, mimetype, fileStream, fields));
     
@@ -179,7 +179,7 @@ export class MediaService {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      console.log('[MediaService] Sending POST request to:', `${this.mediaStorageUrl}/files`);
+      this.logger.debug(`Sending POST request to: ${this.mediaStorageUrl}/files`);
       const response = await this.fetch(`${this.mediaStorageUrl}/files`, {
         method: 'POST',
         headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
@@ -191,12 +191,19 @@ export class MediaService {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[MediaService] Media Storage returned error:', response.status, errorText);
-        throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorText;
+        } catch {
+          // Use raw text if not JSON
+        }
+        this.logger.error(`Media Storage returned error ${response.status}: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('[MediaService] Media Storage response:', JSON.stringify(result));
+      this.logger.debug(`Media Storage response received for file: ${result.id}`);
       return {
 
         fileId: result.id,
@@ -247,7 +254,15 @@ export class MediaService {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorText;
+        } catch {
+          // Use raw text
+        }
+        this.logger.error(`Media Storage returned error ${response.status}: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -291,7 +306,15 @@ export class MediaService {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Media Storage returned ${response.status}: ${errorText}`);
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorText;
+        } catch {
+          // Use raw text
+        }
+        this.logger.error(`Media Storage returned error ${response.status}: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
       const result = await response.json();
       return {
