@@ -17,6 +17,7 @@ interface MediaItem {
   mimeType?: string
   sizeBytes?: number
   meta?: Record<string, any>
+  fullMediaMeta?: Record<string, any>
 }
 
 
@@ -42,7 +43,8 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n()
 const authStore = useAuthStore()
 const { currentProject } = useProjects()
-const { 
+const {
+  deleteMedia,
   uploadMedia, 
   uploadMediaFromUrl, 
   isLoading: isUploading, 
@@ -50,6 +52,7 @@ const {
   removeMediaFromPublication, 
   reorderMediaInPublication,
   updateMediaLinkInPublication,
+  fetchMedia,
 } = useMedia()
 const { validatePostContent } = useSocialMediaValidation()
 const toast = useToast()
@@ -553,6 +556,15 @@ function openMediaModal(item: typeof localMedia.value[0]) {
   editableAlt.value = item.media.alt || ''
   editableDescription.value = item.media.description || ''
   isModalOpen.value = true
+
+  // Fetch full media info from media storage
+  if (item.media.id) {
+    fetchMedia(item.media.id).then(fullMedia => {
+      if (fullMedia && selectedMedia.value && selectedMedia.value.id === fullMedia.id) {
+        selectedMedia.value.fullMediaMeta = fullMedia.fullMediaMeta
+      }
+    })
+  }
 }
 
 function closeMediaModal() {
@@ -691,10 +703,12 @@ const compressionStats = computed(() => {
 })
 
 const exifData = computed(() => {
-  const exif = selectedMedia.value?.meta?.exif
-  console.log('[MediaGallery] exifData:', exif)
+  const exif = selectedMedia.value?.fullMediaMeta?.exif
+  console.log('[MediaGallery] exifData from fullMediaMeta:', exif)
   return exif
 })
+
+
 
 function downloadMediaFile(media: MediaItem) {
   const url = getMediaFileUrl(media.id)

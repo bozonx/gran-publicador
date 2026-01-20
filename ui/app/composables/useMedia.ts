@@ -14,6 +14,7 @@ export interface MediaItem {
   meta?: Record<string, any>
   createdAt: string
   updatedAt: string
+  fullMediaMeta?: Record<string, any>
 }
 
 export interface CreateMediaInput {
@@ -51,7 +52,19 @@ export function useMedia() {
     isLoading.value = true
     error.value = null
     try {
-      return await api.get<MediaItem>(`/media/${id}`)
+      const media = await api.get<MediaItem>(`/media/${id}`)
+      if (media && media.storageType === 'FS') {
+        try {
+          // Fetch additional info from media storage microservice via proxy
+          const fullInfo = await api.get<any>(`/media/${id}/info`)
+          if (fullInfo) {
+             media.fullMediaMeta = fullInfo
+          }
+        } catch (e) {
+          console.error('Failed to fetch full media info', e)
+        }
+      }
+      return media
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch media'
       return null

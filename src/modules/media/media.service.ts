@@ -213,7 +213,6 @@ export class MediaService {
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,
-          exif: result.exif,
           checksum: result.checksum,
           url: result.url,
         },
@@ -274,7 +273,6 @@ export class MediaService {
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,
-          exif: result.exif,
           checksum: result.checksum,
           url: result.url,
         },
@@ -325,7 +323,6 @@ export class MediaService {
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,
-          exif: result.exif,
           checksum: result.checksum,
           url: result.url,
         },
@@ -404,6 +401,24 @@ export class MediaService {
       return { stream: Readable.fromWeb(response.body as any), status: response.status, headers: responseHeaders };
     } catch (error) {
       clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+  
+  async getFileInfo(fileId: string): Promise<Record<string, any>> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await this.fetch(`${this.mediaStorageUrl}/files/${fileId}`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`Media Storage returned ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      this.logger.error(`Failed to get file info from Media Storage: ${(error as Error).message}`);
       throw error;
     }
   }

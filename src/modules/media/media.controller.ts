@@ -249,6 +249,17 @@ export class MediaController {
     return this.mediaService.findOne(id);
   }
 
+  @Get(':id/info')
+  @UseGuards(JwtOrApiTokenGuard)
+  public async getInfo(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
+    const media = await this.mediaService.findOne(id);
+    if (media.storageType !== StorageType.FS) {
+      throw new BadRequestException('Only FS media has extended info');
+    }
+    return this.mediaService.getFileInfo(media.storagePath);
+  }
+
   @Patch(':id')
   @UseGuards(JwtOrApiTokenGuard)
   update(@Param('id') id: string, @Body() updateMediaDto: UpdateMediaDto) {
