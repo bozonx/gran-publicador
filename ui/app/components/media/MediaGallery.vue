@@ -208,6 +208,10 @@ async function uploadFiles(files: FileList | File[], options?: any) {
     optimizeParams = options
   }
 
+  // Debug logging to track optimization parameters
+  console.log('[MediaGallery] Uploading files with optimization params:', optimizeParams)
+
+
   try {
     const uploadedMediaItems = await Promise.all(
       fileArray.map(async (file, index) => {
@@ -637,6 +641,11 @@ function formatBytes(bytes?: number): string {
 
 const compressionStats = computed(() => {
   const meta = selectedMedia.value?.meta
+  
+  // Debug logging
+  console.log('[MediaGallery] compressionStats - selectedMedia:', selectedMedia.value)
+  console.log('[MediaGallery] compressionStats - meta:', meta)
+  
   if (!meta) return null
   
 
@@ -644,6 +653,9 @@ const compressionStats = computed(() => {
   const original = meta.originalSize || meta.original_size
   // Use size from meta or the top-level sizeBytes
   const current = meta.size || selectedMedia.value?.sizeBytes
+  
+  
+  console.log('[MediaGallery] compressionStats - original:', original, 'current:', current)
   
   if (!original || !current || Number(original) === Number(current)) return null
 
@@ -662,7 +674,7 @@ const compressionStats = computed(() => {
   const quality = meta.quality ?? params.quality
   const lossless = meta.lossless ?? params.lossless
 
-  return {
+  const stats = {
     originalSize: formatBytes(originalNum),
     optimizedSize: formatBytes(currentNum),
     savedPercent: percent,
@@ -672,10 +684,16 @@ const compressionStats = computed(() => {
     originalFormat: meta.originalMimeType || meta.original_mime_type,
     optimizedFormat: meta.mimeType || meta.mime_type
   }
+  
+  console.log('[MediaGallery] compressionStats - result:', stats)
+  
+  return stats
 })
 
 const exifData = computed(() => {
-  return selectedMedia.value?.meta?.exif
+  const exif = selectedMedia.value?.meta?.exif
+  console.log('[MediaGallery] exifData:', exif)
+  return exif
 })
 
 function downloadMediaFile(media: MediaItem) {

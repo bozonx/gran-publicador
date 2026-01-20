@@ -85,7 +85,10 @@ export function useMedia() {
       const formData = new FormData()
       formData.append('file', file)
       if (optimize) {
+        console.log('[useMedia] Appending optimize params to FormData:', optimize)
         formData.append('optimize', JSON.stringify(optimize))
+      } else {
+        console.log('[useMedia] No optimize params provided')
       }
 
       // Don't set Content-Type manually - let the browser set it with the correct boundary
@@ -230,8 +233,19 @@ export function getMediaFileUrl(mediaId: string, token?: string): string {
     : '/api/v1';
   let url = `${apiBase}/media/${mediaId}/file`;
   
-  if (token) {
-    url += `?token=${token}`;
+  // If token not provided, try to get it from auth store
+  let authToken = token;
+  if (!authToken) {
+    try {
+      const authStore = useAuthStore();
+      authToken = authStore.token || undefined;
+    } catch {
+      // Auth store not available (e.g., SSR context)
+    }
+  }
+  
+  if (authToken) {
+    url += `?token=${authToken}`;
   }
   
   return url;
@@ -247,10 +261,21 @@ export function getThumbnailUrl(mediaId: string, width?: number, height?: number
     : '/api/v1';
   let url = `${apiBase}/media/${mediaId}/thumbnail`;
   
+  // If token not provided, try to get it from auth store
+  let authToken = token;
+  if (!authToken) {
+    try {
+      const authStore = useAuthStore();
+      authToken = authStore.token || undefined;
+    } catch {
+      // Auth store not available (e.g., SSR context)
+    }
+  }
+  
   const params = [];
   if (width) params.push(`w=${width}`);
   if (height) params.push(`h=${height}`);
-  if (token) params.push(`token=${token}`);
+  if (authToken) params.push(`token=${authToken}`);
   
   if (params.length > 0) {
     url += `?${params.join('&')}`;
