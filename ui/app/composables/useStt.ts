@@ -150,9 +150,11 @@ export function useStt() {
    */
   async function uploadFullBlob(blob: Blob): Promise<string | null> {
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': blob.type || 'audio/webm',
-      }
+      const formData = new FormData()
+      // Use 'file' key as expected by the backend
+      formData.append('file', blob, 'recording.webm')
+
+      const headers: Record<string, string> = {}
 
       if (token.value) {
         headers.Authorization = `Bearer ${token.value}`
@@ -160,7 +162,7 @@ export function useStt() {
 
       const response = await fetch(`${apiBase}/stt/transcribe`, {
         method: 'POST',
-        body: blob,
+        body: formData,
         headers
       })
 
