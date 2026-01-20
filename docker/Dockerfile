@@ -42,8 +42,6 @@ ENV TZ=UTC
 ENV LOG_LEVEL=warn
 # Default configuration for Docker - expects linked postgres container
 ENV DATABASE_URL="postgresql://gran:gran_password@postgres:5432/gran_db?schema=public"
-ENV MEDIA_DIR="/data/media"
-ENV THUMBNAILS_DIR="/data/thumbnails"
 
 # Copy pre-compiled dependencies and prisma client
 COPY --from=builder /app/node_modules ./node_modules
