@@ -505,27 +505,27 @@ export class MediaService {
     const telegramBotToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!telegramBotToken)
       throw new InternalServerErrorException('Telegram bot token not configured');
-      
+
     const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
-    const getFileResponse = await fetch(getFileUrl);
-    const getFileData = (await getFileResponse.json()) as any;
-    
+    const getFileResponse = await request(getFileUrl, { method: 'GET' });
+    const getFileData = (await getFileResponse.body.json()) as any;
+
     if (!getFileData.ok || !getFileData.result?.file_path)
       throw new NotFoundException('File not found in Telegram');
-      
+
     const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
-    const downloadResponse = await fetch(downloadUrl);
-    
-    if (!downloadResponse.ok)
+    const downloadResponse = await request(downloadUrl, { method: 'GET' });
+
+    if (downloadResponse.statusCode >= 400)
       throw new InternalServerErrorException('Failed to download from Telegram');
-      
+
     const headers: Record<string, string> = {};
     if (mimeType) headers['Content-Type'] = mimeType;
     if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
-    
+
     return {
-      stream: Readable.fromWeb(downloadResponse.body as any),
-      status: downloadResponse.status,
+      stream: (downloadResponse.body as any) as Readable,
+      status: downloadResponse.statusCode,
       headers,
     };
   }

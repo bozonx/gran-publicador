@@ -7,6 +7,7 @@ import {
   RequestTimeoutException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { request } from 'undici';
 import { TranslateConfig } from '../../config/translate.config.js';
 import { TranslateTextDto } from './dto/translate-text.dto.js';
 import { TranslateResponseDto } from './dto/translate-response.dto.js';
@@ -18,7 +19,6 @@ import { TranslateResponseDto } from './dto/translate-response.dto.js';
 export class TranslateService {
   private readonly logger = new Logger(TranslateService.name);
   private readonly config: TranslateConfig;
-  private readonly fetch = global.fetch;
 
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<TranslateConfig>('translate')!;
@@ -30,14 +30,20 @@ export class TranslateService {
       err?.code === 'ECONNREFUSED' ||
       err?.code === 'ENOTFOUND' ||
       err?.code === 'ECONNRESET' ||
+      err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
       err?.cause?.code === 'ECONNREFUSED' ||
       err?.cause?.code === 'ENOTFOUND'
     );
   }
 
   private isAbortError(error: unknown): boolean {
-    const err = error as { name?: string };
-    return err?.name === 'AbortError' || err?.name === 'TimeoutError';
+    const err = error as { name?: string; code?: string };
+    return (
+      err?.name === 'AbortError' ||
+      err?.name === 'TimeoutError' ||
+      err?.code === 'UND_ERR_HEADERS_TIMEOUT' ||
+      err?.code === 'UND_ERR_BODY_TIMEOUT'
+    );
   }
 
   /**
@@ -101,32 +107,33 @@ export class TranslateService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const response = await this.fetch(url, {
+        const response = await request(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(timeoutMs),
+          headersTimeout: timeoutMs,
+          bodyTimeout: timeoutMs,
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
+        if (response.statusCode >= 400) {
+          const errorText = await response.body.text();
 
-          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-            this.logger.error(`Translate Gateway returned HTTP ${response.status}: ${errorText}`);
+          if (response.statusCode >= 400 && response.statusCode < 500 && response.statusCode !== 429) {
+            this.logger.error(`Translate Gateway returned HTTP ${response.statusCode}: ${errorText}`);
             throw new BadRequestException(`Translation failed: ${errorText}`);
           }
 
-          if (response.status >= 500) {
-            this.logger.error(`Translate Gateway returned HTTP ${response.status}: ${errorText}`);
+          if (response.statusCode >= 500) {
+            this.logger.error(`Translate Gateway returned HTTP ${response.statusCode}: ${errorText}`);
             throw new BadGatewayException(`Translate Gateway error: ${errorText}`);
           }
 
-          throw new Error(`Server error ${response.status}: ${errorText}`);
+          throw new Error(`Server error ${response.statusCode}: ${errorText}`);
         }
 
-        const data = (await response.json()) as T;
+        const data = (await response.body.json()) as T;
 
         if (!data || typeof data !== 'object') {
           throw new BadGatewayException('Invalid response format from Translate Gateway');

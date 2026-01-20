@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { request } from 'undici';
 import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
 import { buildPromptWithContext } from './utils/context-formatter.js';
@@ -43,7 +44,6 @@ export interface LlmResponse {
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly config: LlmConfig;
-  private readonly fetch = global.fetch;
 
   /**
    * Initializes the LlmService.
@@ -92,21 +92,23 @@ export class LlmService {
     this.logger.debug(`Sending request to LLM Router: ${url}`);
 
     try {
-      const response = await this.fetch(url, {
+      const timeout = (this.config.timeoutSecs || 120) * 1000;
+      const response = await request(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout((this.config.timeoutSecs || 120) * 1000),
+        headersTimeout: timeout,
+        bodyTimeout: timeout,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`LLM Router returned ${response.status}: ${errorText}`);
+      if (response.statusCode >= 400) {
+        const errorText = await response.body.text();
+        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
       }
 
-      const data = (await response.json()) as LlmResponse;
+      const data = (await response.body.json()) as LlmResponse;
 
       // Validate response structure
       if (!data.choices || data.choices.length === 0) {
@@ -171,21 +173,23 @@ export class LlmService {
     this.logger.debug(`Sending extraction request to LLM Router: ${url}`);
 
     try {
-      const response = await this.fetch(url, {
+      const timeout = (this.config.timeoutSecs || 120) * 1000;
+      const response = await request(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout((this.config.timeoutSecs || 120) * 1000),
+        headersTimeout: timeout,
+        bodyTimeout: timeout,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`LLM Router returned ${response.status}: ${errorText}`);
+      if (response.statusCode >= 400) {
+        const errorText = await response.body.text();
+        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
       }
 
-      const data = (await response.json()) as LlmResponse;
+      const data = (await response.body.json()) as LlmResponse;
 
       if (!data.choices || data.choices.length === 0) {
         throw new Error('LLM Router returned empty choices array');
