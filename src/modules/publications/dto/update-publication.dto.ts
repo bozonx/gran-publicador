@@ -10,6 +10,7 @@ import {
   ValidateIf,
   MaxLength,
   ArrayMaxSize,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
@@ -19,6 +20,8 @@ import { IsUserStatus } from '../../../common/validators/index.js';
 import { SourceTextDto } from './create-publication.dto.js';
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
+
 
 /**
  * DTO for updating an existing publication.
@@ -91,7 +94,9 @@ export class UpdatePublicationDto {
 
   @IsObject()
   @IsOptional()
-  public meta?: Record<string, any>;
+  @ValidateNested()
+  @Type(() => PublicationMetaDto)
+  public meta?: PublicationMetaDto;
 
   @IsString()
   @IsOptional()
@@ -100,6 +105,7 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsOptional()
+  @IsUUID('4')
   public translationGroupId?: string | null;
 
   @Type(() => Date)
@@ -113,6 +119,7 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsOptional()
+  @IsUUID('4')
   public linkToPublicationId?: string;
 
   @IsArray()
@@ -124,6 +131,7 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsOptional()
+  @IsUUID('4')
   public projectId?: string | null;
 
   @IsOptional()

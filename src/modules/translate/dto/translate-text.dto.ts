@@ -61,7 +61,7 @@ export class TranslateTextDto {
   @IsOptional()
   @IsNumber()
   @Min(100)
-  @Max(10000000)
+  @Max(VALIDATION_LIMITS.MAX_TRANSLATE_TEXT_LENGTH)
   maxTextLength?: number;
 
   /**

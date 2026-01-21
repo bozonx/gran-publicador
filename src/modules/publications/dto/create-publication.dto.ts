@@ -15,6 +15,7 @@ import {
   IsInt,
   Min,
   Max,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
@@ -23,6 +24,8 @@ import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
+
 
 /**
  * DTO for source text item in publication.
@@ -52,6 +55,7 @@ export class SourceTextDto {
 export class CreatePublicationDto {
   @IsString()
   @IsOptional()
+  @IsUUID('4')
   public projectId?: string;
 
   @IsString()
@@ -120,7 +124,9 @@ export class CreatePublicationDto {
 
   @IsObject()
   @IsOptional()
-  public meta?: Record<string, any>;
+  @ValidateNested()
+  @Type(() => PublicationMetaDto)
+  public meta?: PublicationMetaDto;
 
   @IsString()
   @IsOptional()
@@ -133,6 +139,7 @@ export class CreatePublicationDto {
 
   @IsString()
   @IsOptional()
+  @IsUUID('4')
   public translationGroupId?: string;
 
   @Type(() => Date)
@@ -146,10 +153,12 @@ export class CreatePublicationDto {
 
   @IsString()
   @IsOptional()
+  @IsUUID('4')
   public linkToPublicationId?: string;
 
   @IsArray()
   @IsString({ each: true })
+  @IsUUID('4', { each: true })
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_CHANNELS_PER_PUBLICATION)
   public channelIds?: string[];

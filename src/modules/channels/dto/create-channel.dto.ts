@@ -8,9 +8,14 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  IsUUID,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { SocialMedia } from '../../../generated/prisma/client.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { ChannelCredentialsDto, ChannelPreferencesDto } from '../../../common/dto/json-objects.dto.js';
+
 
 /**
  * DTO for creating a new social media channel.
@@ -18,6 +23,7 @@ import { VALIDATION_LIMITS } from '../../../common/constants/validation.constant
 export class CreateChannelDto {
   @IsString()
   @IsNotEmpty()
+  @IsUUID('4')
   public projectId!: string;
 
   @IsEnum(SocialMedia)
@@ -47,7 +53,9 @@ export class CreateChannelDto {
 
   @IsObject()
   @IsOptional()
-  public credentials?: Record<string, any>;
+  @ValidateNested()
+  @Type(() => ChannelCredentialsDto)
+  public credentials?: ChannelCredentialsDto;
 
   @IsBoolean()
   @IsOptional()
@@ -55,5 +63,7 @@ export class CreateChannelDto {
 
   @IsObject()
   @IsOptional()
-  public preferences?: Record<string, any>;
+  @ValidateNested()
+  @Type(() => ChannelPreferencesDto)
+  public preferences?: ChannelPreferencesDto;
 }

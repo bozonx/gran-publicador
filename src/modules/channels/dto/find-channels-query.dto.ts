@@ -8,6 +8,7 @@ import {
   IsBoolean,
   IsLocale,
   MaxLength,
+  IsUUID,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { SocialMedia } from '../../../generated/prisma/client.js';
@@ -57,6 +58,7 @@ export enum IssueTypeFilter {
 export class FindChannelsQueryDto {
   @IsOptional()
   @IsString()
+  @IsUUID('4')
   projectId?: string;
 
   @IsOptional()

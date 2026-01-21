@@ -1,5 +1,8 @@
-import { IsBoolean, IsLocale, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsLocale, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { ChannelCredentialsDto, ChannelPreferencesDto } from '../../../common/dto/json-objects.dto.js';
+
 
 /**
  * DTO for updating an existing channel.
@@ -27,7 +30,9 @@ export class UpdateChannelDto {
 
   @IsObject()
   @IsOptional()
-  public credentials?: Record<string, any>;
+  @ValidateNested()
+  @Type(() => ChannelCredentialsDto)
+  public credentials?: ChannelCredentialsDto;
 
   @IsBoolean()
   @IsOptional()
@@ -35,7 +40,9 @@ export class UpdateChannelDto {
 
   @IsObject()
   @IsOptional()
-  public preferences?: Record<string, any>;
+  @ValidateNested()
+  @Type(() => ChannelPreferencesDto)
+  public preferences?: ChannelPreferencesDto;
 
   @IsString()
   @IsOptional()

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsBoolean, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsBoolean, MaxLength, ArrayMaxSize, IsUUID } from 'class-validator';
 import { Expose, Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
@@ -13,7 +13,9 @@ export class CreateApiTokenDto {
 
   @IsArray()
   @IsString({ each: true })
+  @IsUUID('4', { each: true })
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_PROJECTS_PER_TOKEN)
   public projectIds?: string[];
 }
 
@@ -29,9 +31,12 @@ export class UpdateApiTokenDto {
 
   @IsArray()
   @IsString({ each: true })
+  @IsUUID('4', { each: true })
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_PROJECTS_PER_TOKEN)
   public projectIds?: string[];
 }
+
 
 export class ApiTokenDto {
   @Expose()

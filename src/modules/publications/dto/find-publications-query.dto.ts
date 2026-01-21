@@ -9,6 +9,7 @@ import {
   IsLocale,
   IsDate,
   MaxLength,
+  IsUUID,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client.js';
@@ -52,6 +53,7 @@ export enum IssueType {
 export class FindPublicationsQueryDto {
   @IsOptional()
   @IsString()
+  @IsUUID('4')
   projectId?: string;
 
   @IsOptional()
@@ -65,6 +67,7 @@ export class FindPublicationsQueryDto {
 
   @IsOptional()
   @IsString()
+  @IsUUID('4')
   channelId?: string;
 
   @IsOptional()
