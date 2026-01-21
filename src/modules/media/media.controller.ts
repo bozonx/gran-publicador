@@ -240,13 +240,19 @@ export class MediaController {
 
   @Patch(':id')
   @UseGuards(JwtOrApiTokenGuard)
-  update(@Param('id') id: string, @Body() updateMediaDto: UpdateMediaDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateMediaDto: UpdateMediaDto,
+    @Req() req: UnifiedAuthRequest,
+  ) {
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
     return this.mediaService.update(id, updateMediaDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtOrApiTokenGuard)
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Req() req: UnifiedAuthRequest) {
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
     return this.mediaService.remove(id);
   }
 
@@ -260,6 +266,7 @@ export class MediaController {
     @Body() optimize: Record<string, any>,
     @Req() req: UnifiedAuthRequest,
   ) {
+    await this.mediaService.checkMediaAccess(id, req.user.userId);
     const { fileId, metadata } = await this.mediaService.reprocessFile(
       id,
       optimize,

@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
@@ -15,11 +16,16 @@ import { CreateAuthorSignatureDto } from './dto/create-author-signature.dto.js';
 import { UpdateAuthorSignatureDto } from './dto/update-author-signature.dto.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import { SignatureAccessGuard } from './guards/signature-access.guard.js';
+import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import { UsersService } from '../users/users.service.js';
 
 @Controller('author-signatures')
 @UseGuards(JwtOrApiTokenGuard)
 export class AuthorSignaturesController {
-  constructor(private readonly authorSignaturesService: AuthorSignaturesService) {}
+  constructor(
+    private readonly authorSignaturesService: AuthorSignaturesService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post()
   create(@Body() createDto: CreateAuthorSignatureDto, @Request() req: any) {
@@ -27,50 +33,51 @@ export class AuthorSignaturesController {
   }
 
   @Get('user/:userId')
-  findAllByUser(
-    @Request() req: any,
+  public async findAllByUser(
+    @Request() req: UnifiedAuthRequest,
     @Param('userId') userId: string,
     @Query('channelId') channelId?: string,
   ) {
-    // Basic verification: user can only see their own signatures unless they are admin/owner (handled in service)
-    // For now, simple check:
-    if (req.user.id !== userId && !req.user.isAdmin) {
-      // FindAllByChannel should be used for project-wide visibility
-      throw new Error('Unauthorized access to user signatures');
+    // User can only see their own signatures unless they are admin
+    if (req.user.id !== userId) {
+      const currentUser = await this.usersService.findById(req.user.id);
+      if (!currentUser?.isAdmin) {
+        throw new ForbiddenException('Unauthorized access to user signatures');
+      }
     }
     return this.authorSignaturesService.findAllByUser(userId, channelId);
   }
 
   @Get('channel/:channelId')
-  findAllByChannel(@Param('channelId') channelId: string, @Request() req: any) {
+  public async findAllByChannel(@Param('channelId') channelId: string, @Request() req: UnifiedAuthRequest) {
     return this.authorSignaturesService.findAllByChannel(channelId, req.user.id);
   }
 
   @Get(':id')
   @UseGuards(SignatureAccessGuard)
-  findOne(@Param('id') id: string) {
+  public async findOne(@Param('id') id: string) {
     return this.authorSignaturesService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(SignatureAccessGuard)
-  update(
+  public async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateAuthorSignatureDto,
-    @Request() req: any,
+    @Request() req: UnifiedAuthRequest,
   ) {
     return this.authorSignaturesService.update(id, req.user.id, updateDto);
   }
 
   @Patch(':id/set-default')
   @UseGuards(SignatureAccessGuard)
-  setDefault(@Param('id') id: string, @Request() req: any) {
+  public async setDefault(@Param('id') id: string, @Request() req: UnifiedAuthRequest) {
     return this.authorSignaturesService.setDefault(id, req.user.id);
   }
 
   @Delete(':id')
   @UseGuards(SignatureAccessGuard)
-  remove(@Param('id') id: string, @Request() req: any) {
+  public async remove(@Param('id') id: string, @Request() req: UnifiedAuthRequest) {
     return this.authorSignaturesService.delete(id, req.user.id);
   }
 }

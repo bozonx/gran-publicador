@@ -39,20 +39,21 @@ export class ArchiveController {
 
   @Post(':type/:id/move')
   public move(
+    @Request() req: AuthenticatedRequest,
     @Param('type') type: ArchiveEntityType,
     @Param('id') id: string,
     @Body() moveDto: MoveEntityDto,
   ) {
-    return this.archiveService.moveEntity(type, id, moveDto.targetParentId);
+    return this.archiveService.moveEntity(type, id, moveDto.targetParentId, req.user.sub);
   }
 
   @Get('stats')
-  public getStats() {
-    return this.archiveService.getArchiveStats();
+  public getStats(@Request() req: AuthenticatedRequest) {
+    return this.archiveService.getArchiveStats(req.user.sub);
   }
 
   @Get(':type')
-  public findAll(@Param('type') type: ArchiveEntityType) {
-    return this.archiveService.getArchivedEntities(type);
+  public findAll(@Request() req: AuthenticatedRequest, @Param('type') type: ArchiveEntityType) {
+    return this.archiveService.getArchivedEntities(type, req.user.sub);
   }
 }

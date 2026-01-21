@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
+import { AdminGuard } from '../../common/guards/admin.guard.js';
 import { JWT_STRATEGY } from '../../common/constants/auth.constants.js';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.interface.js';
 import { BanUserDto, UpdateUserAdminDto, UpdateUserProfileDto } from './dto/user.dto.js';
@@ -33,6 +34,7 @@ export class UsersController {
    * Admin only.
    */
   @Get()
+  @UseGuards(AdminGuard)
   public async findAll(
     @Request() req: AuthenticatedRequest,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -40,12 +42,6 @@ export class UsersController {
     @Query('is_admin') isAdmin?: string,
     @Query('search') search?: string,
   ) {
-    // Check if user is admin
-    const currentUser = await this.usersService.findById(req.user.sub);
-    if (!currentUser?.isAdmin) {
-      throw new ForbiddenException('Admin access required');
-    }
-
     const isAdminFilter = isAdmin === 'true' ? true : isAdmin === 'false' ? false : undefined;
 
     return this.usersService.findAll({
@@ -61,16 +57,12 @@ export class UsersController {
    * Admin only.
    */
   @Patch(':id/admin')
+  @UseGuards(AdminGuard)
   public async toggleAdmin(
     @Request() req: AuthenticatedRequest,
     @Param('id') userId: string,
     @Body() updateDto: UpdateUserAdminDto,
   ) {
-    // Check if user is admin
-    const currentUser = await this.usersService.findById(req.user.sub);
-    if (!currentUser?.isAdmin) {
-      throw new ForbiddenException('Admin access required');
-    }
 
     // Prevent user from removing their own admin status
     if (userId === req.user.sub && !updateDto.isAdmin) {
@@ -96,15 +88,12 @@ export class UsersController {
    * Admin only.
    */
   @Post(':id/ban')
+  @UseGuards(AdminGuard)
   public async banUser(
     @Request() req: AuthenticatedRequest,
     @Param('id') userId: string,
     @Body() banDto: BanUserDto,
   ) {
-    const currentUser = await this.usersService.findById(req.user.sub);
-    if (!currentUser?.isAdmin) {
-      throw new ForbiddenException('Admin access required');
-    }
 
     if (userId === req.user.sub) {
       throw new ForbiddenException('Cannot ban yourself');
@@ -118,11 +107,8 @@ export class UsersController {
    * Admin only.
    */
   @Post(':id/unban')
+  @UseGuards(AdminGuard)
   public async unbanUser(@Request() req: AuthenticatedRequest, @Param('id') userId: string) {
-    const currentUser = await this.usersService.findById(req.user.sub);
-    if (!currentUser?.isAdmin) {
-      throw new ForbiddenException('Admin access required');
-    }
 
     return this.usersService.unbanUser(userId);
   }

@@ -139,10 +139,17 @@ export class ArchiveService {
     type: ArchiveEntityType,
     id: string,
     targetParentId: string,
+    userId: string,
   ): Promise<Channel | Post | Publication> {
     switch (type) {
       case ArchiveEntityType.CHANNEL: {
-        // Move channel to another project
+        const channel = await this.prisma.channel.findUnique({ where: { id } });
+        if (!channel) throw new NotFoundException('Channel not found');
+        // Check source project permissions
+        await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
+        // Check target project permissions
+        await this.permissions.checkProjectPermission(targetParentId, userId, ['ADMIN']);
+
         return this.prisma.channel.update({
           where: { id },
           data: { projectId: targetParentId },
@@ -150,7 +157,20 @@ export class ArchiveService {
       }
 
       case ArchiveEntityType.PUBLICATION: {
-        // Move publication to another project
+        const publication = await this.prisma.publication.findUnique({ where: { id } });
+        if (!publication) throw new NotFoundException('Publication not found');
+
+        // Check source project permissions (or author)
+        if (publication.createdBy !== userId) {
+          if (!publication.projectId) {
+            throw new ForbiddenException('Forbidden access to personal draft');
+          }
+          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
+        }
+
+        // Check target project permissions
+        await this.permissions.checkProjectPermission(targetParentId, userId, ['ADMIN', 'EDITOR']);
+
         return this.prisma.publication.update({
           where: { id },
           data: { projectId: targetParentId },
@@ -198,11 +218,30 @@ export class ArchiveService {
     }
   }
 
-  public async getArchiveStats(): Promise<ArchiveStatsDto> {
+  public async getArchiveStats(userId: string): Promise<ArchiveStatsDto> {
+    // Get project IDs accessible to the user
+    const userProjects = await this.prisma.project.findMany({
+      where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
+      select: { id: true },
+    });
+    const projectIds = userProjects.map(p => p.id);
+
     const [projects, channels, publications] = await Promise.all([
-      this.prisma.project.count({ where: { archivedAt: { not: null } } }),
-      this.prisma.channel.count({ where: { archivedAt: { not: null } } }),
-      this.prisma.publication.count({ where: { archivedAt: { not: null } } }),
+      // Only projects owned by user
+      this.prisma.project.count({
+        where: { archivedAt: { not: null }, ownerId: userId },
+      }),
+      // Channels in user projects
+      this.prisma.channel.count({
+        where: { archivedAt: { not: null }, projectId: { in: projectIds } },
+      }),
+      // Publications in user projects or personal drafts
+      this.prisma.publication.count({
+        where: {
+          archivedAt: { not: null },
+          OR: [{ projectId: { in: projectIds } }, { projectId: null, createdBy: userId }],
+        },
+      }),
     ]);
 
     return {
@@ -216,16 +255,32 @@ export class ArchiveService {
 
   public async getArchivedEntities(
     type: ArchiveEntityType,
+    userId: string,
   ): Promise<Project[] | Channel[] | Publication[] | Post[]> {
+    const userProjects = await this.prisma.project.findMany({
+      where: { OR: [{ ownerId: userId }, { members: { some: { userId } } }] },
+      select: { id: true },
+    });
+    const projectIds = userProjects.map(p => p.id);
+
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        return this.prisma.project.findMany({ where: { archivedAt: { not: null } } });
+        return this.prisma.project.findMany({
+          where: { archivedAt: { not: null }, ownerId: userId },
+        });
       }
       case ArchiveEntityType.CHANNEL: {
-        return this.prisma.channel.findMany({ where: { archivedAt: { not: null } } });
+        return this.prisma.channel.findMany({
+          where: { archivedAt: { not: null }, projectId: { in: projectIds } },
+        });
       }
       case ArchiveEntityType.PUBLICATION: {
-        return this.prisma.publication.findMany({ where: { archivedAt: { not: null } } });
+        return this.prisma.publication.findMany({
+          where: {
+            archivedAt: { not: null },
+            OR: [{ projectId: { in: projectIds } }, { projectId: null, createdBy: userId }],
+          },
+        });
       }
       default: {
         throw new BadRequestException('Invalid entity type');
