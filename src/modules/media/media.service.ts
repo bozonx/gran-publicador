@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
-import { request } from 'undici';
+import { request, FormData } from 'undici';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
@@ -227,13 +227,12 @@ export class MediaService {
       `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
     );
 
-    // Using global File and web stream (Node 22+)
-    // This is the most compatible way for modern undici/fetch
-    const webStream = Readable.toWeb(fileStream);
-    formData.append(
-      'file',
-      new File([webStream as any], filename, { type: mimetype }) as any,
-    );
+    // Use streaming pattern supported by undici
+    formData.append('file', {
+      type: mimetype,
+      name: filename,
+      [Symbol.for('undici.util.stream')]: fileStream,
+    } as any);
 
     try {
       const response = await request(`${config.serviceUrl}/files`, {
