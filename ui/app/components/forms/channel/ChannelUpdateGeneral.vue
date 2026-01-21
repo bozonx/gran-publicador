@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
-import { createChannelSchema } from '~/utils/schemas/channel'
+import { createChannelBaseObject } from '~/utils/schemas/channel'
 import type { ChannelWithProject } from '~/types/channels'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
@@ -34,7 +34,7 @@ const state = reactive({
 // If we use full schema, other fields might be missing in state and cause validation error if required.
 // We should construct a partial schema.
 const schema = computed(() => {
-    const fullSchema = createChannelSchema({ t } as any);
+    const fullSchema = createChannelBaseObject(t);
     // Pick only general fields
     return fullSchema.pick({
         name: true,

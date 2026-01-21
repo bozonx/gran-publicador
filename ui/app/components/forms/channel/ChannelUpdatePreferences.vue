@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
-import { createChannelSchema } from '~/utils/schemas/channel'
+import { createChannelBaseObject } from '~/utils/schemas/channel'
 import type { ChannelWithProject } from '~/types/channels'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { FORM_SPACING } from '~/utils/design-tokens'
@@ -24,7 +24,7 @@ const state = reactive({
 })
 
 const schema = computed(() => {
-    const full = createChannelSchema({ t } as any);
+    const full = createChannelBaseObject(t);
     return full.pick({ preferences: true })
 })
 

@@ -3,7 +3,7 @@ import type { ComposerTranslation } from 'vue-i18n';
 
 export const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'FACEBOOK', 'SITE'] as const;
 
-export const createChannelSchema = (t: ComposerTranslation) => {
+export const createChannelBaseObject = (t: ComposerTranslation) => {
   return z.object({
     name: z.string().min(1, t('validation.required')),
     description: z.string().optional(),
@@ -25,32 +25,38 @@ export const createChannelSchema = (t: ComposerTranslation) => {
         isDefault: z.boolean(),
       })).optional()
     }).optional()
-  }).superRefine((val, ctx) => {
-    if (val.socialMedia === 'TELEGRAM') {
-      if (!val.credentials.telegramChannelId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t('validation.required'),
-          path: ['credentials', 'telegramChannelId']
-        });
-      }
-      if (!val.credentials.telegramBotToken) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t('validation.required'),
-          path: ['credentials', 'telegramBotToken']
-        });
-      }
-    } else if (val.socialMedia === 'VK') {
-      if (!val.credentials.vkAccessToken) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t('validation.required'),
-          path: ['credentials', 'vkAccessToken']
-        });
-      }
-    }
   });
+};
+
+export const channelRefinement = (t: ComposerTranslation) => (val: any, ctx: z.RefinementCtx) => {
+  if (val.socialMedia === 'TELEGRAM') {
+    if (!val.credentials?.telegramChannelId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('validation.required'),
+        path: ['credentials', 'telegramChannelId']
+      });
+    }
+    if (!val.credentials?.telegramBotToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('validation.required'),
+        path: ['credentials', 'telegramBotToken']
+      });
+    }
+  } else if (val.socialMedia === 'VK') {
+    if (!val.credentials?.vkAccessToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('validation.required'),
+        path: ['credentials', 'vkAccessToken']
+      });
+    }
+  }
+};
+
+export const createChannelSchema = (t: ComposerTranslation) => {
+  return createChannelBaseObject(t).superRefine(channelRefinement(t));
 };
 
 export const updateChannelSchema = (t: ComposerTranslation) => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
-import { createChannelSchema } from '~/utils/schemas/channel'
+import { createChannelBaseObject, channelRefinement } from '~/utils/schemas/channel'
 import type { ChannelWithProject } from '~/types/channels'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { FORM_SPACING } from '~/utils/design-tokens'
@@ -29,25 +29,8 @@ const state = reactive({
 
 const schema = computed(() => {
     // We need to pass t to schema
-    const full = createChannelSchema({ t } as any);
-    return full.pick({ socialMedia: true, credentials: true }).superRefine((val, ctx) => {
-        // Copy refine logic or reuse?
-        // Reuse is hard because superRefine is attached to object.
-        // We can just manually add it here or duplicate logic.
-        // Duplication is 5 lines.
-        if (val.socialMedia === 'TELEGRAM') {
-            if (!val.credentials.telegramChannelId) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('validation.required'), path: ['credentials', 'telegramChannelId']})
-            }
-            if (!val.credentials.telegramBotToken) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('validation.required'), path: ['credentials', 'telegramBotToken']})
-            }
-        } else if (val.socialMedia === 'VK') {
-            if (!val.credentials.vkAccessToken) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('validation.required'), path: ['credentials', 'vkAccessToken']})
-            }
-        }
-    })
+    const full = createChannelBaseObject(t);
+    return full.pick({ socialMedia: true, credentials: true }).superRefine(channelRefinement(t))
 })
 
 const isDirty = computed(() => {
