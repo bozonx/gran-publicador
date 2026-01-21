@@ -8,7 +8,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SttConfig } from '../../config/stt.config.js';
-import { request, FormData } from 'undici';
+import { request } from 'undici';
+import FormData from 'form-data';
 import type { Readable } from 'stream';
 
 @Injectable()
@@ -57,19 +58,18 @@ export class SttService {
 
       const form = new FormData();
       // STT Gateway expects 'file' field
-      form.append('file', {
-        type: mimetype,
-        name: filename,
-        [Symbol.for('undici.util.stream')]: fileStream,
-      } as any);
+      form.append('file', fileStream, {
+        contentType: mimetype,
+        filename: filename,
+      });
 
       const response = await request(`${config.serviceUrl}/transcribe/stream`, {
         method: 'POST',
-        body: form,
+        body: form as any, 
         headersTimeout: config?.timeoutMs || 300000,
         bodyTimeout: config?.timeoutMs || 300000,
         headers: {
-          // undici handles Content-Type for FormData automatically
+          ...form.getHeaders(),
         },
       });
 
