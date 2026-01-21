@@ -201,39 +201,52 @@ export function useStt() {
 
   function waitForTranscription(): Promise<string> {
     return new Promise<string>((resolve) => {
+      let timeoutId: NodeJS.Timeout;
+
+      const cleanup = () => {
+        socket?.off('transcription-result', handleResult);
+        socket?.off('transcription-error', handleError);
+        socket?.off('disconnect', handleDisconnect);
+        clearTimeout(timeoutId);
+      };
+
       const handleResult = (data: { text: string }) => {
         cleanup();
         transcription.value = data.text;
         resolve(data.text);
       };
+
       const handleError = (data?: { message: string }) => {
-        console.error('STT Error:', data?.message);
+        console.error('STT Error received:', data?.message);
         cleanup();
         error.value = 'transcriptionError';
         resolve('');
       };
+
       const handleDisconnect = () => {
+        console.warn('Socket disconnected while waiting for transcription');
         cleanup();
         error.value = 'connectionLost';
         resolve('');
       };
-      const cleanup = () => {
-        socket?.off('transcription-result', handleResult);
-        socket?.off('transcription-error', handleError);
-        socket?.off('disconnect', handleDisconnect);
-      };
 
-      socket?.once('transcription-result', handleResult);
-      socket?.once('transcription-error', handleError);
-      socket?.once('disconnect', handleDisconnect);
+      socket?.on('transcription-result', handleResult);
+      socket?.on('transcription-error', handleError);
+      socket?.on('disconnect', handleDisconnect);
 
       // Safety timeout - 5 minutes
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
+        console.error('Transcription timed out');
         cleanup();
+        error.value = 'timeout'; 
         resolve('');
       }, 300000);
     });
   }
+
+  onUnmounted(() => {
+    cleanupListeners();
+  });
 
   onUnmounted(() => {
     cleanupListeners();
