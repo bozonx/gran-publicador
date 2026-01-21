@@ -157,7 +157,13 @@
     "browserMode": "Browser",
     "devMode": "Development",
     "authModeHelp": "Shows the current session type (Browser, Telegram Mini App, or Developer Mode)",
-    "loggingIn": "Logging in..."
+    "loggingIn": "Logging in...",
+    "deleteAccount": "Delete Account",
+    "deleteAccountConfirmTitle": "Confirm Account Deletion",
+    "deleteAccountConfirmDescription": "Are you sure you want to delete your account? This action is irreversible, and you will lose access to all your data. Your account will be soft-deleted, and you will not be able to log in again. All your API tokens will be revoked.",
+    "confirmDelete": "Delete Account",
+    "accountDeletedSuccess": "Account deleted successfully",
+    "deleteAccountError": "Failed to delete account"
   },
   "user": {
     "username": "Username",

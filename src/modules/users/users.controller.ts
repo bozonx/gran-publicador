@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -109,7 +110,14 @@ export class UsersController {
   @Post(':id/unban')
   @UseGuards(AdminGuard)
   public async unbanUser(@Request() req: AuthenticatedRequest, @Param('id') userId: string) {
-
     return this.usersService.unbanUser(userId);
+  }
+
+  /**
+   * Delete current user (soft delete).
+   */
+  @Delete('me')
+  public async deleteMe(@Request() req: AuthenticatedRequest) {
+    return this.usersService.softDelete(req.user.sub);
   }
 }

@@ -94,7 +94,9 @@ export class UsersService {
     const skip = (page - 1) * perPage;
 
     // Build where clause
-    const where: Prisma.UserWhereInput = {};
+    const where: Prisma.UserWhereInput = {
+      deletedAt: null,
+    };
 
     if (isAdmin !== undefined) {
       where.isAdmin = isAdmin;
@@ -217,5 +219,25 @@ export class UsersService {
       where: { id: userId },
       data: { hashedRefreshToken },
     });
+  }
+  /**
+   * Soft-delete a user.
+   * Marks the user as deleted, clears the refresh token, and deletes all API tokens.
+   */
+  public async softDelete(userId: string): Promise<void> {
+    await this.prisma.$transaction([
+      // Mark user as deleted and clear refresh token
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          deletedAt: new Date(),
+          hashedRefreshToken: null,
+        },
+      }),
+      // Delete all API tokens associated with the user
+      this.prisma.apiToken.deleteMany({
+        where: { userId },
+      }),
+    ]);
   }
 }

@@ -84,6 +84,10 @@ export class AuthService {
       throw new ForbiddenException(`User is banned: ${user.banReason || 'Access denied'}`);
     }
 
+    if (user.deletedAt) {
+      throw new ForbiddenException('User account has been deleted');
+    }
+
     const tokens = await this.getTokens(
       user.id,
       user.telegramId?.toString(),
@@ -128,6 +132,10 @@ export class AuthService {
 
     if (user.isBanned) {
       throw new ForbiddenException(`User is banned: ${user.banReason || 'Access denied'}`);
+    }
+
+    if (user.deletedAt) {
+      throw new ForbiddenException('User account has been deleted');
     }
 
     const tokens = await this.getTokens(
@@ -242,8 +250,8 @@ export class AuthService {
 
   public async getProfile(userId: string): Promise<UserDto> {
     const user = await this.usersService.findById(userId);
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    if (!user || user.deletedAt) {
+      throw new UnauthorizedException('User not found or account deleted');
     }
 
     return plainToInstance(UserDto, user, { excludeExtraneousValues: true });
@@ -265,6 +273,10 @@ export class AuthService {
       lastName: 'User',
     });
 
+    if (user.deletedAt) {
+      throw new ForbiddenException('User account has been deleted');
+    }
+
     const tokens = await this.getTokens(
       user.id,
       user.telegramId?.toString(),
@@ -284,8 +296,8 @@ export class AuthService {
 
   public async refreshTokens(userId: string, refreshToken: string): Promise<AuthResponseDto> {
     const user = await this.usersService.findById(userId);
-    if (!user || !user.hashedRefreshToken)
-      throw new ForbiddenException('Access Denied (No refresh token)');
+    if (!user || !user.hashedRefreshToken || user.deletedAt)
+      throw new ForbiddenException('Access Denied (Invalid user or account deleted)');
 
     const isMatch = await this.verifyRefreshToken(user.hashedRefreshToken, refreshToken);
     if (!isMatch) throw new ForbiddenException('Access Denied (Refresh token mismatch)');
