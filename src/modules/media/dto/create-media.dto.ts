@@ -1,7 +1,8 @@
 import { Transform } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, Min, IsNumber } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import { MediaType, StorageType } from '../../../generated/prisma/client.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { IsBigInt, MinBigInt } from '../../../common/validators/index.js';
 
 export class CreateMediaDto {
   @IsEnum(MediaType)
@@ -37,12 +38,11 @@ export class CreateMediaDto {
 
   @IsOptional()
   @Transform(({ value }) => (value !== null && value !== undefined ? BigInt(value) : value))
-  @IsNumber()
-  @Min(VALIDATION_LIMITS.MIN_MEDIA_SIZE_BYTES)
+  @IsBigInt()
+  @MinBigInt(VALIDATION_LIMITS.MIN_MEDIA_SIZE_BYTES)
   sizeBytes?: bigint;
 
   @IsObject()
   @IsOptional()
-  @ArrayMaxSize?.(VALIDATION_LIMITS.MAX_REORDER_MEDIA) // Not array, but for safety of record size if needed later
   meta?: Record<string, any>;
 }

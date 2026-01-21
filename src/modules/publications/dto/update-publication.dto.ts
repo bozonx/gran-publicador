@@ -8,6 +8,8 @@ import {
   IsOptional,
   IsString,
   ValidateIf,
+  MaxLength,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
@@ -16,6 +18,7 @@ import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
 import { SourceTextDto } from './create-publication.dto.js';
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for updating an existing publication.
@@ -23,10 +26,12 @@ import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 export class UpdatePublicationDto {
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_TITLE_LENGTH)
   public title?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
   public description?: string;
 
   @ValidateIf(
@@ -42,30 +47,36 @@ export class UpdatePublicationDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_PUBLICATION_CONTENT_LENGTH)
   public content?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_COMMENT_LENGTH)
   public authorComment?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateMediaDto)
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
   public media?: CreateMediaDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PublicationMediaInputDto)
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
   public existingMediaIds?: (string | PublicationMediaInputDto)[];
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   public tags?: string;
 
   @Type(() => Date)
@@ -108,6 +119,7 @@ export class UpdatePublicationDto {
   @ValidateNested({ each: true })
   @Type(() => SourceTextDto)
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
   public sourceTexts?: SourceTextDto[];
 
   @IsString()
@@ -117,3 +129,4 @@ export class UpdatePublicationDto {
   @IsOptional()
   public appendSourceTexts?: boolean;
 }
+

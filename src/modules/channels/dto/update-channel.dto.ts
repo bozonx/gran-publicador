@@ -1,4 +1,5 @@
-import { IsBoolean, IsLocale, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsLocale, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for updating an existing channel.
@@ -6,14 +7,17 @@ import { IsBoolean, IsLocale, IsObject, IsOptional, IsString } from 'class-valid
 export class UpdateChannelDto {
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   public name?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
   public description?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_CHANNEL_IDENTIFIER_LENGTH)
   public channelIdentifier?: string;
 
   @IsString()
@@ -35,5 +39,7 @@ export class UpdateChannelDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   public tags?: string;
 }
+

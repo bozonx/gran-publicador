@@ -95,7 +95,6 @@ export class GenerateContentDto {
   @IsArray()
   @IsInt({ each: true })
   @Min(0, { each: true })
-  @IsNumber({}, { each: true })
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_SELECTED_INDEXES)
   selectedSourceIndexes?: number[];
 }
