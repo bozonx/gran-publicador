@@ -183,7 +183,11 @@ export class ArchiveService {
     }
   }
 
-  public async isEntityArchived(type: ArchiveEntityType, id: string): Promise<boolean> {
+  public async isEntityArchived(
+    type: ArchiveEntityType,
+    id: string,
+    userId: string,
+  ): Promise<boolean> {
     switch (type) {
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({
@@ -193,6 +197,7 @@ export class ArchiveService {
         if (!channel) {
           return false;
         }
+        await this.permissions.checkProjectPermission(channel.projectId, userId, []);
         return !!(channel.archivedAt ?? channel.project.archivedAt);
       }
 
@@ -204,12 +209,23 @@ export class ArchiveService {
         if (!publication) {
           return false;
         }
+
+        if (publication.projectId) {
+          await this.permissions.checkProjectPermission(publication.projectId, userId, []);
+        } else if (publication.createdBy !== userId) {
+          throw new ForbiddenException('Forbidden access to personal draft');
+        }
+
         return !!(publication.archivedAt ?? publication.project?.archivedAt);
       }
 
       case ArchiveEntityType.PROJECT: {
         const project = await this.prisma.project.findUnique({ where: { id } });
-        return !!project?.archivedAt;
+        if (!project) {
+          return false;
+        }
+        await this.permissions.checkProjectPermission(id, userId, []);
+        return !!project.archivedAt;
       }
 
       default: {

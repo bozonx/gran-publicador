@@ -28,7 +28,7 @@ export class AuthorSignaturesController {
   ) {}
 
   @Post()
-  create(@Body() createDto: CreateAuthorSignatureDto, @Request() req: any) {
+  create(@Body() createDto: CreateAuthorSignatureDto, @Request() req: UnifiedAuthRequest) {
     return this.authorSignaturesService.create(req.user.id, createDto);
   }
 

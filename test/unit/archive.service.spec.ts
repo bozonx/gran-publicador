@@ -149,22 +149,36 @@ describe('ArchiveService', () => {
   describe('isEntityArchived', () => {
     it('should return true if project is archived', async () => {
       const projectId = 'project-1';
+      const userId = 'user-1';
       const mockProject = {
         id: projectId,
         archivedAt: new Date(),
       };
 
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
 
-      const result = await service.isEntityArchived(ArchiveEntityType.PROJECT, projectId);
+      const result = await service.isEntityArchived(
+        ArchiveEntityType.PROJECT,
+        projectId,
+        userId,
+      );
 
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        [],
+      );
       expect(result).toBe(true);
     });
 
     it('should return true if channel is archived via project (virtual cascading)', async () => {
       const channelId = 'channel-1';
+      const userId = 'user-1';
+      const projectId = 'project-1';
       const mockChannel = {
         id: channelId,
+        projectId: projectId,
         archivedAt: null,
         project: {
           archivedAt: new Date(),
@@ -172,22 +186,38 @@ describe('ArchiveService', () => {
       };
 
       mockPrismaService.channel.findUnique.mockResolvedValue(mockChannel);
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
 
-      const result = await service.isEntityArchived(ArchiveEntityType.CHANNEL, channelId);
+      const result = await service.isEntityArchived(
+        ArchiveEntityType.CHANNEL,
+        channelId,
+        userId,
+      );
 
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        [],
+      );
       expect(result).toBe(true);
     });
 
     it('should return false if entity is not archived', async () => {
       const projectId = 'project-1';
+      const userId = 'user-1';
       const mockProject = {
         id: projectId,
         archivedAt: null,
       };
 
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
 
-      const result = await service.isEntityArchived(ArchiveEntityType.PROJECT, projectId);
+      const result = await service.isEntityArchived(
+        ArchiveEntityType.PROJECT,
+        projectId,
+        userId,
+      );
 
       expect(result).toBe(false);
     });
