@@ -417,7 +417,7 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
           class="mb-3"
         />
 
-        <UAlert v-if="validationErrors.length > 0" color="warning" variant="soft" icon="i-heroicons-exclamation-triangle" title="Validation Warning" class="mb-3">
+        <UAlert v-if="validationErrors.length > 0" color="warning" variant="soft" icon="i-heroicons-exclamation-triangle" :title="t('validation.validationWarningTitle')" class="mb-3">
             <template #title>
               <span>{{ t('validation.validationWarningTitle') }}</span>
             </template>
@@ -534,7 +534,7 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
           <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
         </UFormField>
 
-        <CommonYamlEditor v-model="state.meta" label="Meta (YAML)" help="Additional metadata in YAML format" :rows="8" />
+        <CommonYamlEditor v-model="state.meta" :label="t('common.meta')" :help="t('common.metaHelp')" :rows="8" />
 
       </UiFormAdvancedSection>
 

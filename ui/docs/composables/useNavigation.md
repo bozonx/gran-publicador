@@ -99,16 +99,12 @@ function handleCancel() {
 
 Все следующие страницы используют `useNavigation`:
 
-- `/pages/projects/new.vue` - Создание проекта
 - `/pages/projects/[id]/index.vue` - Детали проекта
 - `/pages/projects/[id]/settings.vue` - Настройки проекта
-- `/pages/projects/[id]/channels/new.vue` - Создание канала
 - `/pages/projects/[id]/channels/[channelId]/index.vue` - Детали канала
 - `/pages/projects/[id]/channels/[channelId]/settings.vue` - Настройки канала
-- `/pages/projects/[id]/publications/new.vue` - Создание публикации
 - `/pages/projects/[id]/publications/index.vue` - Список публикаций
 - `/pages/projects/[id]/publications/[publicationId].vue` - Редактирование публикации
-- `/pages/projects/[id]/posts/new.vue` - Создание поста
 - `/pages/projects/[id]/posts/index.vue` - Список постов
 - `/pages/projects/[id]/posts/[postId].vue` - Детали поста
 

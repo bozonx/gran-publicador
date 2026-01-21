@@ -408,18 +408,15 @@ ui/
 │   │   │   └── index.vue        # Админ панель
 │   │   ├── projects/
 │   │   │   ├── index.vue        # Список проектов
-│   │   │   ├── new.vue          # Создание проекта
 │   │   │   └── [id].vue         # Детали проекта
 │   │   ├── channels/
 │   │   │   ├── index.vue        # Список каналов
 │   │   │   └── [channelId].vue  # Детали канала
 │   │   ├── publications/
 │   │   │   ├── index.vue        # Список публикаций
-│   │   │   ├── new.vue          # Создание публикации
 │   │   │   └── [id].vue         # Редактирование публикации
 │   │   └── posts/
 │   │       ├── index.vue        # Список постов
-│   │       ├── new.vue          # Создание поста
 │   │       └── [id].vue         # Редактирование поста
 │   │
 │   ├── stores/                  # Pinia stores
@@ -525,7 +522,6 @@ pages/
 ├── login.vue                    → /login
 ├── projects/
 │   ├── index.vue                → /projects
-│   ├── new.vue                  → /projects/new
 │   └── [id].vue                 → /projects/:id
 └── posts/
     └── [id].vue                 → /posts/:id

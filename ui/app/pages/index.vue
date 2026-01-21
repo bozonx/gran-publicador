@@ -14,6 +14,15 @@ const { t, d } = useI18n()
 const { displayName } = useAuth()
 const router = useRouter()
 
+const isCreateModalOpen = ref(false)
+function openCreateModal() {
+  isCreateModalOpen.value = true
+}
+
+function handleProjectCreated(projectId: string) {
+  router.push(`/projects/${projectId}`)
+}
+
 // Projects data
 const { projects, fetchProjects, isLoading: projectsLoading } = useProjects()
 
@@ -349,7 +358,7 @@ async function handleDeletePublication() {
                 <div v-else-if="projects.length === 0" class="text-center py-8">
                   <UIcon name="i-heroicons-briefcase" class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
                   <p class="text-gray-500 dark:text-gray-400 mb-4">{{ t('project.noProjectsDescription') }}</p>
-                  <UButton icon="i-heroicons-plus" size="sm" to="/projects/new">{{ t('project.createProject') }}</UButton>
+                  <UButton icon="i-heroicons-plus" size="sm" @click="openCreateModal">{{ t('project.createProject') }}</UButton>
                 </div>
                 <div v-else class="space-y-4">
                   <div v-for="group in projectsByRole" :key="group.role" class="space-y-2">
@@ -377,6 +386,10 @@ async function handleDeletePublication() {
          </div>
       </div>
       </div>
+      <ModalsCreateProjectModal
+        v-model:open="isCreateModalOpen"
+        @created="handleProjectCreated"
+      />
     <UiConfirmModal
       v-if="showDeletePublicationModal"
       v-model:open="showDeletePublicationModal"

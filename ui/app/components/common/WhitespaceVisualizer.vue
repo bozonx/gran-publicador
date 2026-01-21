@@ -57,7 +57,7 @@ const visualizedChunks = computed(() => {
       <span 
         v-if="chunk.type === 'newline'" 
         class="inline-flex items-center justify-center w-4 h-4 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold"
-        title="Newline"
+        :title="$t('common.newline')"
       >
         {{ chunk.content }}
       </span>

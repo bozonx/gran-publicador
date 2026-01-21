@@ -138,7 +138,7 @@ function formatDate(date: string | null | undefined): string {
 </script>
 
 <template>
-  <UiAppCard title="API Tokens" title-class="text-lg font-medium text-gray-900 dark:text-white">
+  <UiAppCard :title="t('settings.apiTokens')" title-class="text-lg font-medium text-gray-900 dark:text-white">
     <template #actions>
       <UButton
         color="primary"
@@ -235,7 +235,7 @@ function formatDate(date: string | null | undefined): string {
     >
       <div class="space-y-4">
         <UFormField :label="t('settings.tokenName', 'Token Name')" required>
-          <UInput v-model="newTokenName" placeholder="My Integration Token" class="w-full" />
+          <UInput v-model="newTokenName" :placeholder="t('settings.tokenNamePlaceholder')" class="w-full" />
         </UFormField>
 
         <UFormField>
@@ -252,7 +252,7 @@ function formatDate(date: string | null | undefined): string {
             label-key="name"
             value-key="id"
             multiple
-            placeholder="Select projects..."
+            :placeholder="t('settings.selectProjects')"
             class="w-full"
           />
         </UFormField>

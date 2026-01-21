@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const { user, telegramUser, isAuthenticated, isAdmin, isDevMode, isLoading, error, initialize } =
+const { user, isAuthenticated, isAdmin, authMode, isLoading, error, initialize } =
   useAuth()
 
 // Initialize auth on mount
@@ -12,7 +12,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <UiCard title="Authentication Status" variant="bordered">
+  <UiCard :title="t('auth.status')" variant="bordered">
     <div class="space-y-3">
       <!-- Loading state -->
       <div v-if="isLoading" class="flex items-center gap-2 text-gray-500">
@@ -39,25 +39,25 @@ onMounted(async () => {
             {{ t('user.isAdmin') }}
           </span>
           <span
-            v-if="isDevMode"
+            v-if="authMode === 'dev'"
             class="px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full"
           >
-            Dev Mode
+            {{ t('auth.devMode') }}
           </span>
         </div>
 
         <div class="text-sm space-y-1">
           <p>
             <span class="text-gray-500">{{ t('user.telegramId') }}:</span>
-            <span class="font-mono ml-1">{{ user?.telegram_id }}</span>
+            <span class="font-mono ml-1">{{ user?.telegramId }}</span>
           </p>
-          <p v-if="user?.full_name">
+          <p v-if="user?.fullName">
             <span class="text-gray-500">{{ t('user.displayName') }}:</span>
-            <span class="ml-1">{{ user.full_name }}</span>
+            <span class="ml-1">{{ user.fullName }}</span>
           </p>
-          <p v-if="telegramUser?.username">
+          <p v-if="user?.telegramUsername">
             <span class="text-gray-500">{{ t('user.username') }}:</span>
-            <span class="ml-1">@{{ telegramUser.username }}</span>
+            <span class="ml-1">@{{ user.telegramUsername }}</span>
           </p>
           <p>
             <span class="text-gray-500">ID:</span>

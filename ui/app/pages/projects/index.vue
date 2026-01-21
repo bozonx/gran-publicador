@@ -61,50 +61,16 @@ function toggleArchivedProjects() {
 }
 
 const isCreateModalOpen = ref(false)
-const isCreating = ref(false)
-const createFormState = reactive({
-  name: '',
-  description: ''
-})
-
-function resetCreateForm() {
-  createFormState.name = ''
-  createFormState.description = ''
-  isCreating.value = false
-}
 
 /**
- * Navigate to create project page -> Open create modal
+ * Open create project modal
  */
-function goToCreateProject() {
-  resetCreateForm()
+function openCreateModal() {
   isCreateModalOpen.value = true
 }
 
-async function handleCreateProject() {
-  if (!createFormState.name || createFormState.name.length < 2) return
-
-  isCreating.value = true
-  try {
-    const project = await createProject({
-      name: createFormState.name,
-      description: createFormState.description || undefined
-    })
-
-    if (project) {
-      isCreateModalOpen.value = false
-      router.push(`/projects/${project.id}`)
-    }
-  } catch (error: any) {
-    const toast = useToast()
-    toast.add({
-      title: t('common.error'),
-      description: error.message || t('common.saveError'),
-      color: 'error'
-    })
-  } finally {
-    isCreating.value = false
-  }
+function handleProjectCreated(projectId: string) {
+  router.push(`/projects/${projectId}`)
 }
 
 // Re-add missing sorting state and logic
@@ -195,7 +161,7 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
           />
         </template>
 
-        <UButton icon="i-heroicons-plus" @click="goToCreateProject" color="primary">
+        <UButton icon="i-heroicons-plus" @click="openCreateModal" color="primary">
             {{ t('project.createProject') }}
         </UButton>
       </div>
@@ -309,32 +275,16 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
       <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
         Create your first project to start managing your social media content.
       </p>
-      <UButton icon="i-heroicons-plus" @click="goToCreateProject">
+      <UButton icon="i-heroicons-plus" @click="openCreateModal">
         {{ t('project.createProject') }}
       </UButton>
     </div>
 
 
     <!-- Create Project Modal -->
-    <UiAppModal v-model:open="isCreateModalOpen" :title="t('project.createProject')">
-      <form id="create-project-form" @submit.prevent="handleCreateProject" class="space-y-6">
-        <UFormField :label="t('project.name')" required>
-          <UInput v-model="createFormState.name" :placeholder="t('project.namePlaceholder')" autofocus class="w-full" size="lg" />
-        </UFormField>
-
-        <UFormField :label="t('project.description')" :help="t('common.optional')">
-          <UTextarea v-model="createFormState.description" :placeholder="t('project.descriptionPlaceholder')" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
-        </UFormField>
-      </form>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isCreateModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton color="primary" type="submit" form="create-project-form" :loading="isCreating" :disabled="!createFormState.name || createFormState.name.length < 2">
-          {{ t('common.create') }}
-        </UButton>
-      </template>
-    </UiAppModal>
+    <ModalsCreateProjectModal
+      v-model:open="isCreateModalOpen"
+      @created="handleProjectCreated"
+    />
   </div>
 </template>
