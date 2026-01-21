@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
-import { request, FormData } from 'undici';
+import { request } from 'undici';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
@@ -211,7 +211,8 @@ export class MediaService {
       throw new InternalServerErrorException('Media Storage service is not configured');
     }
 
-    const formData = new FormData();
+    // Use global FormData and fetch for better streaming support in modern Node
+    const formData = new globalThis.FormData();
     formData.append('appId', config.appId);
     if (userId) formData.append('userId', userId);
     if (purpose) formData.append('purpose', purpose);
@@ -227,31 +228,25 @@ export class MediaService {
       `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
     );
 
-    // Use streaming pattern supported by undici
-    formData.append('file', {
-      type: mimetype,
-      name: filename,
-      [Symbol.for('undici.util.stream')]: fileStream,
-    } as any);
+    const webStream = Readable.toWeb(fileStream);
+    formData.append('file', new globalThis.File([webStream as any], filename, { type: mimetype }));
 
     try {
-      const response = await request(`${config.serviceUrl}/files`, {
+      const response = await fetch(`${config.serviceUrl}/files`, {
         method: 'POST',
-        body: formData as any,
-        headersTimeout: (this.config.timeoutSecs || 60) * 1000,
-        bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
+        body: formData,
       });
 
-      if (response.statusCode >= 400) {
-        const errorBody = await response.body.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
         const errorMessage = (errorBody as any).message || 'Microservice error';
         
-        if (response.statusCode === 400) throw new BadRequestException(errorMessage);
-        if (response.statusCode === 404) throw new NotFoundException(errorMessage);
+        if (response.status === 400) throw new BadRequestException(errorMessage);
+        if (response.status === 404) throw new NotFoundException(errorMessage);
         throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
       }
 
-      const result = (await response.body.json()) as any;
+      const result = (await response.json()) as any;
       return {
         fileId: result.id,
         metadata: {
