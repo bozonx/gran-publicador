@@ -84,16 +84,17 @@ export class AuthService {
       throw new ForbiddenException(`User is banned: ${user.banReason || 'Access denied'}`);
     }
 
-    const payload = {
-      sub: user.id,
-      telegramId: user.telegramId?.toString(),
-      telegramUsername: user.telegramUsername,
-    };
+    const tokens = await this.getTokens(
+      user.id,
+      user.telegramId?.toString(),
+      user.telegramUsername,
+    );
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
       {
-        accessToken: this.jwtService.sign(payload),
+        ...tokens,
         user: user,
       },
       { excludeExtraneousValues: true },
@@ -129,16 +130,17 @@ export class AuthService {
       throw new ForbiddenException(`User is banned: ${user.banReason || 'Access denied'}`);
     }
 
-    const payload = {
-      sub: user.id,
-      telegramId: user.telegramId?.toString(),
-      telegramUsername: user.telegramUsername,
-    };
+    const tokens = await this.getTokens(
+      user.id,
+      user.telegramId?.toString(),
+      user.telegramUsername,
+    );
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
       {
-        accessToken: this.jwtService.sign(payload),
+        ...tokens,
         user: user,
       },
       { excludeExtraneousValues: true },
@@ -251,6 +253,10 @@ export class AuthService {
    * Development login to bypass Telegram validation.
    * Only works in development environment.
    */
+  /**
+   * Development login to bypass Telegram validation.
+   * Only works in development environment.
+   */
   public async loginDev(telegramId: number): Promise<AuthResponseDto> {
     const user = await this.usersService.findOrCreateTelegramUser({
       telegramId: BigInt(telegramId),
@@ -259,19 +265,83 @@ export class AuthService {
       lastName: 'User',
     });
 
-    const payload = {
-      sub: user.id,
-      telegramId: user.telegramId?.toString(),
-      telegramUsername: user.telegramUsername,
-    };
+    const tokens = await this.getTokens(
+      user.id,
+      user.telegramId?.toString(),
+      user.telegramUsername,
+    );
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
       {
-        accessToken: this.jwtService.sign(payload),
+        ...tokens,
         user: user,
       },
       { excludeExtraneousValues: true },
     );
+  }
+
+  public async refreshTokens(userId: string, refreshToken: string): Promise<AuthResponseDto> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.hashedRefreshToken)
+      throw new ForbiddenException('Access Denied (No refresh token)');
+
+    const isMatch = await this.verifyRefreshToken(user.hashedRefreshToken, refreshToken);
+    if (!isMatch) throw new ForbiddenException('Access Denied (Refresh token mismatch)');
+
+    const tokens = await this.getTokens(
+      user.id,
+      user.telegramId?.toString(),
+      user.telegramUsername,
+    );
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return plainToInstance(
+      AuthResponseDto,
+      {
+        ...tokens,
+        user: user,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  public async logout(userId: string) {
+    return this.usersService.updateHashedRefreshToken(userId, null);
+  }
+
+  private async getTokens(userId: string, telegramId?: string, username?: string | null) {
+    const payload = {
+      sub: userId,
+      telegramId,
+      telegramUsername: username,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('app.jwtSecret'),
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('app.jwtSecret'),
+        expiresIn: '7d',
+      }),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  private async updateRefreshToken(userId: string, refreshToken: string) {
+    const hash = createHash('sha256').update(refreshToken).digest('hex');
+    await this.usersService.updateHashedRefreshToken(userId, hash);
+  }
+
+  private async verifyRefreshToken(hashedToken: string, providedToken: string) {
+    const hash = createHash('sha256').update(providedToken).digest('hex');
+    return hash === hashedToken;
   }
 }

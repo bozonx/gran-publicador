@@ -22,6 +22,8 @@ model User {
   telegramId       BigInt?  @unique @map("telegram_id")
   // System administrator flag for elevated permissions
   isAdmin          Boolean  @default(false) @map("is_admin")
+  // Hashed refresh token for JWT pair auth
+  hashedRefreshToken String? @map("hashed_refresh_token")
   // User ban status
   isBanned         Boolean  @default(false) @map("is_banned")
   banReason        String?  @map("ban_reason")

@@ -16,10 +16,12 @@ describe('AuthService (unit)', () => {
   const mockUsersService = {
     findOrCreateTelegramUser: jest.fn() as any,
     findById: jest.fn() as any,
+    updateHashedRefreshToken: jest.fn() as any,
   };
 
   const mockJwtService = {
     sign: jest.fn() as any,
+    signAsync: jest.fn() as any,
   };
 
   const mockConfigService = {
@@ -97,12 +99,16 @@ describe('AuthService (unit)', () => {
       };
 
       mockUsersService.findOrCreateTelegramUser.mockResolvedValue(mockUser);
-      mockJwtService.sign.mockReturnValue('mock.jwt.token');
+      mockJwtService.signAsync
+        .mockResolvedValueOnce('mock.access.token')
+        .mockResolvedValueOnce('mock.refresh.token');
+      mockUsersService.updateHashedRefreshToken.mockResolvedValue(undefined);
 
       const result = await service.loginWithTelegram(initData);
 
       expect(result).toBeDefined();
-      expect(result.accessToken).toBe('mock.jwt.token');
+      expect(result.accessToken).toBe('mock.access.token');
+      expect(result.refreshToken).toBe('mock.refresh.token');
       expect(result.user).toBeDefined();
       expect(result.user.id).toBe(mockUser.id);
       expect(mockUsersService.findOrCreateTelegramUser).toHaveBeenCalledWith({
@@ -112,11 +118,8 @@ describe('AuthService (unit)', () => {
         lastName: 'Doe',
         avatarUrl: 'http://example.com/photo.jpg',
       });
-      expect(mockJwtService.sign).toHaveBeenCalledWith({
-        sub: mockUser.id,
-        telegramId: '123456789',
-        telegramUsername: mockUser.telegramUsername,
-      });
+      expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
+      expect(mockUsersService.updateHashedRefreshToken).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if hash is invalid', async () => {

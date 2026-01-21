@@ -11,6 +11,9 @@ export class AuthResponseDto {
   public accessToken!: string;
 
   @Expose()
+  public refreshToken?: string;
+
+  @Expose()
   @Type(() => UserDto)
   public user!: UserDto;
 }

@@ -203,4 +203,19 @@ export class UsersService {
       },
     });
   }
+  /**
+   * Update user's hashed refresh token.
+   *
+   * @param userId - The user's ID.
+   * @param hashedRefreshToken - The new hashed token or null to remove it.
+   */
+  public async updateHashedRefreshToken(
+    userId: string,
+    hashedRefreshToken: string | null,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { hashedRefreshToken },
+    });
+  }
 }

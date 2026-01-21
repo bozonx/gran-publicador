@@ -14,7 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { JWT_STRATEGY } from '../../common/constants/auth.constants.js';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.interface.js';
 import { AuthService } from './auth.service.js';
-import { TelegramLoginDto, TelegramWidgetLoginDto } from './dto/index.js';
+import { RefreshTokenDto, TelegramLoginDto, TelegramWidgetLoginDto } from './dto/index.js';
 
 /**
  * Controller handling authentication endpoints.
@@ -41,6 +41,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   public async loginWidget(@Body() loginDto: TelegramWidgetLoginDto) {
     return this.authService.loginWithTelegramWidget(loginDto);
+  }
+
+  /**
+   * Refresh authentication tokens.
+   */
+  @Post('refresh')
+  @UseGuards(AuthGuard(JWT_STRATEGY))
+  @HttpCode(HttpStatus.OK)
+  public async refresh(@Request() req: AuthenticatedRequest, @Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(req.user.sub, dto.refreshToken);
+  }
+
+  /**
+   * Logout user by removing refresh token.
+   */
+  @Post('logout')
+  @UseGuards(AuthGuard(JWT_STRATEGY))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async logout(@Request() req: AuthenticatedRequest) {
+    await this.authService.logout(req.user.sub);
   }
 
   /**
