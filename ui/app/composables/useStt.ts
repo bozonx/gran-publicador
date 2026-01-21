@@ -24,15 +24,28 @@ export function useStt() {
   // Use a local ref that we update when socket connects
   let socket = sttStore.socket;
 
+  // Track pending chunk uploads to ensure sequence
+  const pendingChunks = ref<Promise<void>[]>([]);
+
   async function handleDataAvailable(blob: Blob) {
     if (!socket || !socket.connected) return;
 
-    try {
-      const buffer = await blob.arrayBuffer();
-      socket.emit('audio-chunk', buffer);
-    } catch (err) {
-      console.error('Error sending audio chunk via WebSocket:', err);
-    }
+    const chunkPromise = (async () => {
+      try {
+        // Send Blob directly if supported -> but safer to ensure ArrayBuffer for consistency
+        const buffer = await blob.arrayBuffer();
+        socket?.emit('audio-chunk', buffer);
+      } catch (err) {
+        console.error('Error sending audio chunk via WebSocket:', err);
+      }
+    })();
+
+    pendingChunks.value.push(chunkPromise);
+    // Cleanup finished promises to avoid memory leaks
+    chunkPromise.finally(() => {
+      const index = pendingChunks.value.indexOf(chunkPromise);
+      if (index > -1) pendingChunks.value.splice(index, 1);
+    });
   }
 
   function setupSocketListeners() {
@@ -126,6 +139,12 @@ export function useStt() {
     
     if (socket && socket.connected) {
       isTranscribing.value = true;
+      
+      // Wait for all pending chunks to be sent
+      if (pendingChunks.value.length > 0) {
+        await Promise.all([...pendingChunks.value]);
+      }
+
       socket.emit('transcribe-end');
       
       const result = await waitForTranscription();

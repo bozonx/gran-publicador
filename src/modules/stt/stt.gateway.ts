@@ -56,8 +56,8 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    this.cleanupStream(client.id);
     this.logger.debug(`Client ${client.id} disconnected from STT`);
+    this.cleanupStream(client.id, 'disconnect');
   }
 
   @SubscribeMessage('transcribe-start')
@@ -71,7 +71,7 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect();
       return;
     }
-    this.cleanupStream(client.id);
+    this.cleanupStream(client.id, 'new-session');
 
     const filename = data.filename || `recording-${Date.now()}.webm`;
     const mimetype = data.mimetype || 'audio/webm';
@@ -97,6 +97,7 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Only delete from map if this is still the active stream for this client
         const current = this.activeStreams.get(client.id);
         if (current && current.stream === passThrough) {
+          this.logger.debug(`Transcription finished for client ${client.id}, cleaning up`);
           this.activeStreams.delete(client.id);
         }
       });
@@ -122,7 +123,7 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
       active.stream.write(buffer, (err) => {
         if (err) {
           this.logger.error(`Error writing to STT stream for client ${client.id}: ${err.message}`);
-          this.cleanupStream(client.id);
+          this.cleanupStream(client.id, 'write-error');
         }
       });
     }
@@ -137,10 +138,19 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  private cleanupStream(socketId: string) {
+  private cleanupStream(socketId: string, reason: string) {
     const active = this.activeStreams.get(socketId);
     if (active) {
-      active.stream.destroy();
+      this.logger.log(`Cleaning up stream for client ${socketId}. Reason: ${reason}`);
+      // If disconnecting, treat as stream end rather than destroy to allow processing to finish if possible
+      // But if it's a new session or error, we must destroy
+      if (reason === 'disconnect') {
+        if (!active.stream.writableEnded) {
+           active.stream.end(); 
+        }
+      } else {
+        active.stream.destroy();
+      }
       this.activeStreams.delete(socketId);
     }
   }
