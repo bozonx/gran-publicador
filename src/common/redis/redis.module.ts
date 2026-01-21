@@ -24,6 +24,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
             port: config.port,
             password: config.password,
             db: config.db,
+            keyPrefix: config.keyPrefix,
             lazyConnect: true, // Don't connect immediately
             maxRetriesPerRequest: 0, // Fail fast if redis is down
           });

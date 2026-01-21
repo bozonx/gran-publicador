@@ -55,6 +55,15 @@ export class RedisConfig {
   @Min(0)
   @Max(15)
   public db: number = 0;
+
+  /**
+   * Redis key prefix.
+   * Defined by REDIS_KEY_PREFIX environment variable.
+   * Default: undefined (no prefix)
+   */
+  @IsOptional()
+  @IsString()
+  public keyPrefix?: string;
 }
 
 export default registerAs('redis', (): RedisConfig => {
@@ -65,6 +74,7 @@ export default registerAs('redis', (): RedisConfig => {
     password: process.env.REDIS_PASSWORD || undefined,
     ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : DEFAULT_REDIS_TTL_MS,
     db: process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0,
+    keyPrefix: process.env.REDIS_KEY_PREFIX || undefined,
   });
 
   const errors = validateSync(config, {
