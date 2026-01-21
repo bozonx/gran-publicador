@@ -84,7 +84,7 @@ export class ChannelsController {
       limit: validatedLimit,
       offset,
       includeArchived,
-      projectIds: req.user.scopeProjectIds,
+      projectIds: req.user.allProjects === false ? req.user.projectIds : undefined,
     };
 
     if (projectId) {
@@ -125,8 +125,8 @@ export class ChannelsController {
     // For now, let's just return for user. If API token is used with scope, we should filter.
     const channels = await this.channelsService.findArchivedForUser(req.user.userId);
 
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      return channels.filter(c => c.projectId && req.user.scopeProjectIds?.includes(c.projectId));
+    if (req.user.allProjects === false && req.user.projectIds) {
+      return channels.filter(c => c.projectId && req.user.projectIds?.includes(c.projectId));
     }
 
     return channels;
@@ -186,8 +186,8 @@ export class ChannelsController {
    * Helper to validate project scope for API token users.
    */
   private validateProjectScope(req: UnifiedAuthRequest, projectId: string) {
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });

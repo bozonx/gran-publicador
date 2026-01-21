@@ -593,7 +593,7 @@ export class SocialPostingService {
     const url = `${baseUrl}/${endpoint}`;
 
     const appConfig = this.configService.get<AppConfig>('app')!;
-    const timeout = (appConfig.postProcessingTimeoutSeconds || 60) * 1000;
+    const timeout = (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000;
 
     try {
       const response = await request(url, {

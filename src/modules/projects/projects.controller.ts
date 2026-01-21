@@ -45,7 +45,7 @@ export class ProjectsController {
     @Body() createProjectDto: CreateProjectDto,
   ) {
     // API tokens with limited scope cannot create new projects
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
+    if (req.user.allProjects === false && req.user.projectIds && req.user.projectIds.length > 0) {
       this.logger.warn(
         `Project creation attempt blocked for limited scope API token! User: ${req.user.userId}, TokenUID: ${req.user.tokenId}`,
       );
@@ -63,8 +63,8 @@ export class ProjectsController {
     });
 
     // Filter projects based on token scope
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      return projects.filter(p => req.user.scopeProjectIds!.includes(p.id));
+    if (req.user.allProjects === false && req.user.projectIds) {
+      return projects.filter(p => req.user.projectIds!.includes(p.id));
     }
 
     return projects;
@@ -75,8 +75,8 @@ export class ProjectsController {
     const projects = await this.projectsService.findArchivedForUser(req.user.userId);
 
     // Filter projects based on token scope
-    if (req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      return projects.filter(p => req.user.scopeProjectIds!.includes(p.id));
+    if (req.user.allProjects === false && req.user.projectIds) {
+      return projects.filter(p => req.user.projectIds!.includes(p.id));
     }
 
     return projects;
@@ -85,8 +85,8 @@ export class ProjectsController {
   @Get(':id')
   public async findOne(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -102,8 +102,8 @@ export class ProjectsController {
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -115,8 +115,8 @@ export class ProjectsController {
   @Delete(':id')
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -128,8 +128,8 @@ export class ProjectsController {
   @Get(':id/members')
   public async findMembers(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -145,8 +145,8 @@ export class ProjectsController {
     @Body() addMemberDto: AddMemberDto,
   ) {
     // Validate project scope for API token users (only admins/owners can add members)
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -163,8 +163,8 @@ export class ProjectsController {
     @Body() updateMemberDto: UpdateMemberDto,
   ) {
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -185,8 +185,8 @@ export class ProjectsController {
     @Param('userId') memberUserId: string,
   ) {
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
-      ApiTokenGuard.validateProjectScope(id, req.user.scopeProjectIds, {
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });

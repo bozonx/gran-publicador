@@ -42,9 +42,9 @@ export class PostsController {
     const { channelId, ...data } = createPostDto;
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
+    if (req.user.allProjects !== undefined) {
       const channel = await this.channelsService.findOne(channelId, req.user.userId);
-      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
+      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -76,15 +76,15 @@ export class PostsController {
     const filters = { status, postType, search, includeArchived, limit, page, publicationStatus };
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
+    if (req.user.allProjects !== undefined) {
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
           userId: req.user.userId,
           tokenId: req.user.tokenId,
         });
       } else if (channelId) {
         const channel = await this.channelsService.findOne(channelId, req.user.userId);
-        ApiTokenGuard.validateProjectScope(channel.projectId, req.user.scopeProjectIds, {
+        ApiTokenGuard.validateProjectScope(channel.projectId, req.user.allProjects, req.user.projectIds ?? [], {
           userId: req.user.userId,
           tokenId: req.user.tokenId,
         });
@@ -107,11 +107,11 @@ export class PostsController {
     const post = await this.postsService.findOne(id, req.user.userId);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
+    if (req.user.allProjects !== undefined) {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
           userId: req.user.userId,
           tokenId: req.user.tokenId,
         });
@@ -130,11 +130,11 @@ export class PostsController {
     const post = await this.postsService.findOne(id, req.user.userId);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
+    if (req.user.allProjects !== undefined) {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
           userId: req.user.userId,
           tokenId: req.user.tokenId,
         });
@@ -149,11 +149,11 @@ export class PostsController {
     const post = await this.postsService.findOne(id, req.user.userId);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
+    if (req.user.allProjects !== undefined) {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
           userId: req.user.userId,
           tokenId: req.user.tokenId,
         });
@@ -171,11 +171,11 @@ export class PostsController {
     const post = await this.postsService.findOne(id, req.user.userId);
 
     // Validate project scope for API token users
-    if (req.user.scopeProjectIds) {
+    if (req.user.allProjects !== undefined) {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.scopeProjectIds, {
+        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
           userId: req.user.userId,
           tokenId: req.user.tokenId,
         });

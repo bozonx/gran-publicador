@@ -1,14 +1,18 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
-import { Expose, Transform, Type } from 'class-transformer';
+import { IsString, IsOptional, IsArray, IsBoolean } from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
 export class CreateApiTokenDto {
   @IsString()
   public name!: string;
 
+  @IsBoolean()
+  @IsOptional()
+  public allProjects?: boolean;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  public scopeProjectIds?: string[];
+  public projectIds?: string[];
 }
 
 export class UpdateApiTokenDto {
@@ -16,10 +20,14 @@ export class UpdateApiTokenDto {
   @IsOptional()
   public name?: string;
 
+  @IsBoolean()
+  @IsOptional()
+  public allProjects?: boolean;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  public scopeProjectIds?: string[];
+  public projectIds?: string[];
 }
 
 export class ApiTokenDto {
@@ -36,8 +44,10 @@ export class ApiTokenDto {
   public plainToken!: string;
 
   @Expose()
-  @Transform(({ value }) => (Array.isArray(value) ? value : []))
-  public scopeProjectIds!: string[];
+  public allProjects!: boolean;
+
+  @Expose()
+  public projectIds!: string[];
 
   @Expose()
   @Type(() => Date)

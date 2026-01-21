@@ -59,10 +59,10 @@ export class PublicationsController {
     // Validate project scope for API token users if projectId is provided
     if (
       createPublicationDto.projectId &&
-      req.user.scopeProjectIds &&
-      req.user.scopeProjectIds.length > 0
+      req.user.allProjects === false &&
+      req.user.projectIds
     ) {
-      ApiTokenGuard.validateProjectScope(createPublicationDto.projectId, req.user.scopeProjectIds, {
+      ApiTokenGuard.validateProjectScope(createPublicationDto.projectId, req.user.allProjects, req.user.projectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -215,8 +215,8 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
-    if (publication.projectId && req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.scopeProjectIds, {
+    if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.allProjects, req.user.projectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
@@ -290,8 +290,8 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
-    if (publication.projectId && req.user.scopeProjectIds && req.user.scopeProjectIds.length > 0) {
-      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.scopeProjectIds, {
+    if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.allProjects, req.user.projectIds, {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });

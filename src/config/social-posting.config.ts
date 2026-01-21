@@ -16,24 +16,6 @@ export class SocialPostingConfig {
   public requestTimeoutSecs!: number;
 
   /**
-   * Number of retry attempts on error.
-   * Defined by SOCIAL_POSTING_RETRY_ATTEMPTS environment variable.
-   * Default: 3
-   */
-  @IsInt()
-  @Min(0)
-  public retryAttempts!: number;
-
-  /**
-   * Delay between retry attempts in milliseconds.
-   * Defined by SOCIAL_POSTING_RETRY_DELAY_MS environment variable.
-   * Default: 1000
-   */
-  @IsInt()
-  @Min(0)
-  public retryDelayMs!: number;
-
-  /**
    * Time-to-live for idempotency records in cache in minutes.
    * Defined by SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES environment variable.
    * Default: 10
@@ -55,8 +37,6 @@ export class SocialPostingConfig {
 export default registerAs('socialPosting', (): SocialPostingConfig => {
   const config = plainToClass(SocialPostingConfig, {
     requestTimeoutSecs: parseInt(process.env.SOCIAL_POSTING_REQUEST_TIMEOUT_SECS ?? '60', 10),
-    retryAttempts: parseInt(process.env.SOCIAL_POSTING_RETRY_ATTEMPTS ?? '3', 10),
-    retryDelayMs: parseInt(process.env.SOCIAL_POSTING_RETRY_DELAY_MS ?? '1000', 10),
     idempotencyTtlMinutes: parseInt(process.env.SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES ?? '10', 10),
     serviceUrl: process.env.SOCIAL_POSTING_SERVICE_URL,
   });

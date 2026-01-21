@@ -41,7 +41,8 @@ export class ApiTokenGuard implements CanActivate {
     (request as unknown as ApiTokenRequest).user = {
       userId: tokenData.userId,
       id: tokenData.userId,
-      scopeProjectIds: tokenData.scopeProjectIds,
+      allProjects: tokenData.allProjects,
+      projectIds: tokenData.projectIds,
       tokenId: tokenData.tokenId,
     };
 
@@ -77,17 +78,19 @@ export class ApiTokenGuard implements CanActivate {
    */
   public static validateProjectScope(
     projectId: string,
-    scopeProjectIds: string[],
+    allProjects: boolean,
+    projectIds: string[],
     context?: { userId: string; tokenId?: string },
   ): void {
-    // Empty scope means all projects are allowed
-    if (scopeProjectIds.length === 0) {
+    // If allProjects flag is true, allow access to any project
+    if (allProjects) {
       return;
     }
 
-    if (!scopeProjectIds.includes(projectId)) {
+    // Check if project is in the allowed list
+    if (!projectIds.includes(projectId)) {
       this.scopeLogger.warn(
-        `Unauthorized project access blocked! User: ${context?.userId}, TokenUID: ${context?.tokenId}, ProjectID: ${projectId}. Allowed: [${scopeProjectIds.join(', ')}]`,
+        `Unauthorized project access blocked! User: ${context?.userId}, TokenUID: ${context?.tokenId}, ProjectID: ${projectId}. Allowed: [${projectIds.join(', ')}]`,
       );
       throw new ForbiddenException('Access denied: project not in token scope');
     }

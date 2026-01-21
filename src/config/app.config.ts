@@ -108,13 +108,13 @@ export class AppConfig {
   };
 
   /**
-   * Timeout for graceful shutdown in milliseconds.
-   * Defined by SHUTDOWN_TIMEOUT_MS environment variable.
-   * Default: 30000
+   * Timeout for graceful shutdown in seconds.
+   * Defined by SHUTDOWN_TIMEOUT_SECONDS environment variable.
+   * Default: 30
    */
   @IsInt()
-  @Min(1000)
-  public shutdownTimeoutMs!: number;
+  @Min(1)
+  public shutdownTimeoutSeconds!: number;
 
   /**
    * Scheduler interval in seconds.
@@ -135,13 +135,13 @@ export class AppConfig {
   public schedulerWindowMinutes!: number;
 
   /**
-   * Timeout for post processing in seconds.
-   * Defined by POST_PROCESSING_TIMEOUT_SECONDS environment variable.
+   * Default timeout for microservice requests in seconds.
+   * Defined by MICROSERVICE_REQUEST_TIMEOUT_SECONDS environment variable.
    * Default: 30
    */
   @IsInt()
   @Min(1)
-  public postProcessingTimeoutSeconds!: number;
+  public microserviceRequestTimeoutSeconds!: number;
 
   /**
    * Timezone for the application.
@@ -174,12 +174,12 @@ export default registerAs('app', (): AppConfig => {
     },
 
     // Shutdown Config
-    shutdownTimeoutMs: parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '30000', 10),
+    shutdownTimeoutSeconds: parseInt(process.env.SHUTDOWN_TIMEOUT_SECONDS ?? '30', 10),
 
     // Scheduler Config
     schedulerIntervalSeconds: parseInt(process.env.SCHEDULER_INTERVAL_SECONDS ?? '60', 10),
     schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
-    postProcessingTimeoutSeconds: parseInt(process.env.POST_PROCESSING_TIMEOUT_SECONDS ?? '30', 10),
+    microserviceRequestTimeoutSeconds: parseInt(process.env.MICROSERVICE_REQUEST_TIMEOUT_SECONDS ?? '30', 10),
     timezone: process.env.TZ ?? 'UTC',
   });
 

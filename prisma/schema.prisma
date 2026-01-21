@@ -55,14 +55,15 @@ model ApiToken {
   hashedToken     String    @unique @map("hashed_token")
   // Encrypted token for one-time display to user
   encryptedToken  String    @map("encrypted_token")
-  // Array of project IDs this token has access to
-  scopeProjectIds Json      @map("scope_project_ids")
+  // If true, token has access to all user's projects (including future ones)
+  allProjects     Boolean   @default(false) @map("all_projects")
   // Last time this token was used for authentication
   lastUsedAt      DateTime? @map("last_used_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects ApiTokenProject[]
 
   @@index([userId])
   @@map("api_tokens")
@@ -87,8 +88,24 @@ model Project {
   channels     Channel[]
   publications Publication[]
   llmPromptTemplates LlmPromptTemplate[]
+  apiTokens    ApiTokenProject[]
 
   @@map("projects")
+}
+
+model ApiTokenProject {
+  id         String   @id @default(uuid())
+  apiTokenId String   @map("api_token_id")
+  projectId  String   @map("project_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  apiToken ApiToken @relation(fields: [apiTokenId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([apiTokenId, projectId])
+  @@index([apiTokenId])
+  @@index([projectId])
+  @@map("api_token_projects")
 }
 
 model ProjectMember {

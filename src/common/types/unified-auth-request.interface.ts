@@ -9,8 +9,10 @@ export interface UnifiedAuthUser {
   userId: string;
   /** Alias for userId for backward compatibility. */
   id: string;
-  /** Optional list of project IDs this user/token is allowed to access. Empty or undefined means all. */
-  scopeProjectIds?: string[];
+  /** If true, user/token has access to all projects. Only present for API tokens. */
+  allProjects?: boolean;
+  /** Optional list of specific project IDs this token is allowed to access. Only present for API tokens with limited scope. */
+  projectIds?: string[];
   /** Optional token ID if authenticated via API token. */
   tokenId?: string;
 }

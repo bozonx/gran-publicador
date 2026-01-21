@@ -38,13 +38,6 @@ export class ApiTokensService {
   }
 
   /**
-   * Safely parse scopeProjectIds from JSON string
-   */
-  private parseScopeProjectIds(scope: any): string[] {
-    return Array.isArray(scope) ? scope : [];
-  }
-
-  /**
    * Hash a plain token using SHA-256 for database lookup
    */
   private hashToken(plainToken: string): string {
@@ -96,18 +89,29 @@ export class ApiTokensService {
    * Create a new API token for a user
    */
   public async create(userId: string, dto: CreateApiTokenDto): Promise<ApiTokenDto> {
+    // Determine if this is a full access token
+    const allProjects = dto.allProjects ?? false;
+    const projectIds = dto.projectIds ?? [];
+
+    // Validate: can't have both allProjects=true and specific projectIds
+    if (allProjects && projectIds.length > 0) {
+      throw new ForbiddenException(
+        'Cannot specify both allProjects=true and specific projectIds',
+      );
+    }
+
     // Validate project scope - ensure user is a member of all projects in scope
-    if (dto.scopeProjectIds && dto.scopeProjectIds.length > 0) {
+    if (!allProjects && projectIds.length > 0) {
       const memberRecords = await this.prisma.projectMember.findMany({
         where: {
           userId,
-          projectId: { in: dto.scopeProjectIds },
+          projectId: { in: projectIds },
         },
       });
 
-      if (memberRecords.length !== dto.scopeProjectIds.length) {
+      if (memberRecords.length !== projectIds.length) {
         const foundIds = memberRecords.map(r => r.projectId);
-        const missingIds = dto.scopeProjectIds.filter(id => !foundIds.includes(id));
+        const missingIds = projectIds.filter(id => !foundIds.includes(id));
         this.logger.warn(
           `User ${userId} attempted to create API token with unauthorized projects: ${missingIds.join(', ')}`,
         );
@@ -128,7 +132,19 @@ export class ApiTokensService {
           name: dto.name,
           hashedToken,
           encryptedToken,
-          scopeProjectIds: (dto.scopeProjectIds ?? []) as any,
+          allProjects,
+          projects: {
+            create: projectIds.map(projectId => ({
+              projectId,
+            })),
+          },
+        },
+        include: {
+          projects: {
+            select: {
+              projectId: true,
+            },
+          },
         },
       });
 
@@ -137,6 +153,7 @@ export class ApiTokensService {
         {
           ...apiToken,
           plainToken,
+          projectIds: apiToken.projects.map(p => p.projectId),
         },
         { excludeExtraneousValues: true },
       );
@@ -156,6 +173,13 @@ export class ApiTokensService {
     const tokens = await this.prisma.apiToken.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: {
+        projects: {
+          select: {
+            projectId: true,
+          },
+        },
+      },
     });
 
     return tokens.map(token =>
@@ -164,6 +188,7 @@ export class ApiTokensService {
         {
           ...token,
           plainToken: this.decryptToken(token.encryptedToken),
+          projectIds: token.projects.map(p => p.projectId),
         },
         { excludeExtraneousValues: true },
       ),
@@ -176,6 +201,13 @@ export class ApiTokensService {
   public async update(id: string, userId: string, dto: UpdateApiTokenDto): Promise<ApiTokenDto> {
     const token = await this.prisma.apiToken.findUnique({
       where: { id },
+      include: {
+        projects: {
+          select: {
+            projectId: true,
+          },
+        },
+      },
     });
 
     if (!token) {
@@ -187,22 +219,47 @@ export class ApiTokensService {
     }
 
     const updateData: any = {};
+    
     if (dto.name !== undefined) {
       updateData.name = dto.name;
     }
-    if (dto.scopeProjectIds !== undefined) {
+
+    // Handle allProjects flag update
+    if (dto.allProjects !== undefined) {
+      updateData.allProjects = dto.allProjects;
+      
+      // If switching to allProjects=true, remove all specific project links
+      if (dto.allProjects) {
+        await this.prisma.apiTokenProject.deleteMany({
+          where: { apiTokenId: id },
+        });
+      }
+    }
+
+    // Handle projectIds update
+    if (dto.projectIds !== undefined) {
+      const projectIds = dto.projectIds;
+
+      // Validate: can't have both allProjects=true and specific projectIds
+      const willBeAllProjects = dto.allProjects ?? token.allProjects;
+      if (willBeAllProjects && projectIds.length > 0) {
+        throw new ForbiddenException(
+          'Cannot specify both allProjects=true and specific projectIds',
+        );
+      }
+
       // Validate project scope
-      if (dto.scopeProjectIds.length > 0) {
+      if (projectIds.length > 0) {
         const memberRecords = await this.prisma.projectMember.findMany({
           where: {
             userId,
-            projectId: { in: dto.scopeProjectIds },
+            projectId: { in: projectIds },
           },
         });
 
-        if (memberRecords.length !== dto.scopeProjectIds.length) {
+        if (memberRecords.length !== projectIds.length) {
           const foundIds = memberRecords.map(r => r.projectId);
-          const missingIds = dto.scopeProjectIds.filter(id => !foundIds.includes(id));
+          const missingIds = projectIds.filter(id => !foundIds.includes(id));
           this.logger.warn(
             `User ${userId} attempted to update API token ${id} with unauthorized projects: ${missingIds.join(', ')}`,
           );
@@ -211,12 +268,32 @@ export class ApiTokensService {
           );
         }
       }
-      updateData.scopeProjectIds = dto.scopeProjectIds as any;
+
+      // Update project relations: delete old, create new
+      await this.prisma.apiTokenProject.deleteMany({
+        where: { apiTokenId: id },
+      });
+
+      if (projectIds.length > 0) {
+        await this.prisma.apiTokenProject.createMany({
+          data: projectIds.map(projectId => ({
+            apiTokenId: id,
+            projectId,
+          })),
+        });
+      }
     }
 
     const updated = await this.prisma.apiToken.update({
       where: { id },
       data: updateData,
+      include: {
+        projects: {
+          select: {
+            projectId: true,
+          },
+        },
+      },
     });
 
     return plainToInstance(
@@ -224,6 +301,7 @@ export class ApiTokensService {
       {
         ...updated,
         plainToken: this.decryptToken(updated.encryptedToken),
+        projectIds: updated.projects.map(p => p.projectId),
       },
       { excludeExtraneousValues: true },
     );
@@ -256,13 +334,21 @@ export class ApiTokensService {
    */
   public async validateToken(plainToken: string): Promise<{
     userId: string;
-    scopeProjectIds: string[];
+    allProjects: boolean;
+    projectIds: string[];
     tokenId: string;
   } | null> {
     const hashedToken = this.hashToken(plainToken);
 
     const token = await this.prisma.apiToken.findUnique({
       where: { hashedToken },
+      include: {
+        projects: {
+          select: {
+            projectId: true,
+          },
+        },
+      },
     });
 
     if (!token) {
@@ -271,7 +357,8 @@ export class ApiTokensService {
 
     return {
       userId: token.userId,
-      scopeProjectIds: this.parseScopeProjectIds(token.scopeProjectIds),
+      allProjects: token.allProjects,
+      projectIds: token.projects.map(p => p.projectId),
       tokenId: token.id,
     };
   }

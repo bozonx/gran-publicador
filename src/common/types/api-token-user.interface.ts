@@ -6,8 +6,10 @@ export interface ApiTokenUser {
   userId: string;
   /** Alias for userId for backward compatibility. */
   id: string;
-  /** List of project IDs this token is allowed to access. Empty means all. */
-  scopeProjectIds: string[];
+  /** If true, token has access to all user's projects (including future ones). */
+  allProjects: boolean;
+  /** List of specific project IDs this token is allowed to access. Empty if allProjects=true. */
+  projectIds: string[];
   /** The unique identifier of the API token itself. */
   tokenId: string;
 }

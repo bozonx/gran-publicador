@@ -13,7 +13,7 @@ export class ShutdownService implements OnApplicationShutdown {
 
   constructor(private readonly configService: ConfigService) {
     const appConfig = this.configService.get<any>('app');
-    this.shutdownTimeout = appConfig?.shutdownTimeoutMs ?? 30000;
+    this.shutdownTimeout = (appConfig?.shutdownTimeoutSeconds ?? 30) * 1000;
   }
 
   /**
