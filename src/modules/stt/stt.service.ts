@@ -63,23 +63,25 @@ export class SttService {
         filename: filename,
       });
 
-      const response = await request(`${config.serviceUrl}/transcribe/stream`, {
+      // Use global fetch (Node 18+) for better streaming support
+      const response = await fetch(`${config.serviceUrl}/transcribe/stream`, {
         method: 'POST',
-        body: form as any, 
-        headersTimeout: config?.timeoutMs || 300000,
-        bodyTimeout: config?.timeoutMs || 300000,
+        // @ts-ignore - 'duplex' is a valid option for Node.js fetch but may not be in standard TS types yet
+        duplex: 'half', 
+        body: form as any,
         headers: {
           ...form.getHeaders(),
         },
+        signal: AbortSignal.timeout(config?.timeoutMs || 300000),
       });
 
-      if (response.statusCode !== 200) {
-        const errorBody = await response.body.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
         this.logger.error(
-          `STT Gateway returned HTTP ${response.statusCode}: ${JSON.stringify(errorBody)}`,
+          `STT Gateway returned HTTP ${response.status}: ${JSON.stringify(errorBody)}`,
         );
 
-        if (response.statusCode >= 500) {
+        if (response.status >= 500) {
           throw new BadGatewayException(
             `STT Gateway error: ${(errorBody as any).message || 'Internal server error'}`,
           );
@@ -88,7 +90,7 @@ export class SttService {
         throw new InternalServerErrorException('Failed to transcribe audio via gateway');
       }
 
-      const result = (await response.body.json()) as { text: string };
+      const result = (await response.json()) as { text: string };
       this.logger.log(`Transcription successful for ${filename}`);
 
       return {
