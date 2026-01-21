@@ -203,7 +203,6 @@ export class MediaService {
       throw new InternalServerErrorException('Media Storage service is not configured');
     }
 
-    const { FormData } = await import('undici');
     const formData = new FormData();
     formData.append('appId', config.appId);
     if (userId) formData.append('userId', userId);
@@ -216,16 +215,22 @@ export class MediaService {
     }
     if (compression) formData.append('optimize', JSON.stringify(compression));
 
-    formData.append('file', {
-      type: mimetype,
-      name: filename,
-      [Symbol.for('undici.util.stream')]: fileStream,
-    } as any);
+    this.logger.debug(
+      `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
+    );
+
+    // Using global File and web stream (Node 22+)
+    // This is the most compatible way for modern undici/fetch
+    const webStream = Readable.toWeb(fileStream);
+    formData.append(
+      'file',
+      new File([webStream as any], filename, { type: mimetype }) as any,
+    );
 
     try {
       const response = await request(`${config.serviceUrl}/files`, {
         method: 'POST',
-        body: formData,
+        body: formData as any,
         headersTimeout: (this.config.timeoutSecs || 60) * 1000,
         bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
       });

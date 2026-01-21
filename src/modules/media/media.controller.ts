@@ -46,8 +46,13 @@ export class MediaController {
 
     const part = await req.file();
     if (!part) {
+      this.logger.warn('Upload attempt without file part');
       throw new BadRequestException('No file uploaded');
     }
+
+    this.logger.debug(
+      `Received upload request: filename="${part.filename}", mimetype="${part.mimetype}"`,
+    );
 
     // Use streaming directly from fastify-multipart
     const fileStream = part.file;
