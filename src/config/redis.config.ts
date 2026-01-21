@@ -2,6 +2,8 @@ import { plainToClass } from 'class-transformer';
 import { IsInt, IsOptional, IsString, validateSync, Min, Max } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
+const DEFAULT_REDIS_TTL_MS = 3600000; // 1 hour
+
 /**
  * Configuration for Redis connection and caching.
  */
@@ -38,12 +40,11 @@ export class RedisConfig {
 
   /**
    * Default TTL for cache in milliseconds.
-   * Defined by REDIS_TTL_MS environment variable.
    * Default: 3600000 (1 hour)
    */
   @IsInt()
   @Min(0)
-  public ttlMs: number = 3600000;
+  public ttlMs: number = DEFAULT_REDIS_TTL_MS;
 
   /**
    * Redis database index.
@@ -62,7 +63,7 @@ export default registerAs('redis', (): RedisConfig => {
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379,
     password: process.env.REDIS_PASSWORD || undefined,
-    ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : 3600000,
+    ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : DEFAULT_REDIS_TTL_MS,
     db: process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0,
   });
 

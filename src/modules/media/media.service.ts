@@ -228,8 +228,15 @@ export class MediaService {
       `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
     );
 
-    const webStream = Readable.toWeb(fileStream);
-    formData.append('file', new globalThis.File([webStream as any], filename, { type: mimetype }));
+    // To ensure binary data is sent correctly (and not the string "[object ReadableStream]"),
+    // we collect chunks from the stream. While this buffers the file in memory,
+    // it's the most reliable way to ensure multipart correctness in modern Node.
+    const chunks: any[] = [];
+    for await (const chunk of fileStream) {
+      chunks.push(chunk);
+    }
+    
+    formData.append('file', new globalThis.File(chunks, filename, { type: mimetype }));
 
     try {
       const response = await fetch(`${config.serviceUrl}/files`, {
