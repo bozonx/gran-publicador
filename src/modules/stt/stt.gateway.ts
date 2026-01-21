@@ -1,0 +1,126 @@
+import { Logger, UseGuards } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import {
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { SttService } from './stt.service.js';
+import { PassThrough } from 'node:stream';
+
+@WebSocketGateway({
+  namespace: '/stt',
+  cors: {
+    origin: '*',
+  },
+})
+export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly logger = new Logger(SttGateway.name);
+
+  @WebSocketServer()
+  server!: Server;
+
+  // Track active streams per socket ID
+  private activeStreams = new Map<string, { stream: PassThrough; promise: Promise<any> }>();
+
+  constructor(
+    private jwtService: JwtService,
+    private sttService: SttService,
+  ) {}
+
+  async handleConnection(client: Socket) {
+    try {
+      const token =
+        (client.handshake.auth?.token as string) ||
+        (client.handshake.headers?.authorization?.split(' ')[1] as string);
+
+      if (!token) {
+        this.logger.debug(`Client ${client.id} connected to STT without token, disconnecting`);
+        client.disconnect();
+        return;
+      }
+
+      const payload = await this.jwtService.verifyAsync(token);
+      client.data.userId = payload.sub;
+
+      this.logger.debug(`Client ${client.id} (user ${payload.sub}) connected to STT`);
+    } catch (error: any) {
+      this.logger.debug(`Client ${client.id} STT connection error: ${error.message}, disconnecting`);
+      client.disconnect();
+    }
+  }
+
+  handleDisconnect(client: Socket) {
+    this.cleanupStream(client.id);
+    this.logger.debug(`Client ${client.id} disconnected from STT`);
+  }
+
+  @SubscribeMessage('transcribe-start')
+  handleTranscribeStart(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { mimetype: string; filename?: string },
+  ) {
+    this.cleanupStream(client.id);
+
+    const filename = data.filename || `recording-${Date.now()}.webm`;
+    const mimetype = data.mimetype || 'audio/webm';
+
+    this.logger.log(`Starting STT stream for client ${client.id}: ${filename} (${mimetype})`);
+
+    const passThrough = new PassThrough();
+    
+    // Start transcription promise
+    const transcriptionPromise = this.sttService
+      .transcribeAudioStream(passThrough, filename, mimetype)
+      .then((result) => {
+        client.emit('transcription-result', result);
+      })
+      .catch((error) => {
+        this.logger.error(`Transcription error for client ${client.id}: ${error.message}`);
+        client.emit('transcription-error', { message: error.message });
+      })
+      .finally(() => {
+        this.activeStreams.delete(client.id);
+      });
+
+    this.activeStreams.set(client.id, {
+      stream: passThrough,
+      promise: transcriptionPromise,
+    });
+  }
+
+  @SubscribeMessage('audio-chunk')
+  handleAudioChunk(@ConnectedSocket() client: Socket, @MessageBody() chunk: any) {
+    const active = this.activeStreams.get(client.id);
+    if (!active) {
+      this.logger.warn(`Received audio chunk for client ${client.id} without active stream`);
+      return;
+    }
+
+    // chunk might be a Buffer or ArrayBuffer depending on socket.io configuration
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    active.stream.write(buffer);
+  }
+
+  @SubscribeMessage('transcribe-end')
+  handleTranscribeEnd(@ConnectedSocket() client: Socket) {
+    const active = this.activeStreams.get(client.id);
+    if (active) {
+      this.logger.log(`Ending STT stream for client ${client.id}`);
+      active.stream.end();
+    }
+  }
+
+  private cleanupStream(socketId: string) {
+    const active = this.activeStreams.get(socketId);
+    if (active) {
+      active.stream.destroy();
+      this.activeStreams.delete(socketId);
+    }
+  }
+}
