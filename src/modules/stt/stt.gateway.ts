@@ -79,8 +79,22 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Starting STT stream for client ${client.id}: ${filename} (${mimetype})`);
 
     const passThrough = new PassThrough();
+    
+    // Add detailed logging for stream lifecycle
     passThrough.on('error', (err) => {
       this.logger.error(`Stream error for client ${client.id}: ${err.message}`);
+    });
+    
+    passThrough.on('finish', () => {
+      this.logger.debug(`Stream finished (no more writes) for client ${client.id}`);
+    });
+    
+    passThrough.on('close', () => {
+      this.logger.debug(`Stream closed for client ${client.id}`);
+    });
+    
+    passThrough.on('end', () => {
+      this.logger.debug(`Stream ended (no more reads) for client ${client.id}`);
     });
     
     // Start transcription promise
@@ -134,7 +148,13 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const active = this.activeStreams.get(client.id);
     if (active) {
       this.logger.log(`Ending STT stream for client ${client.id}`);
-      active.stream.end();
+      // End the stream gracefully - this signals no more data will be written
+      // The stream will be closed when all buffered data is consumed
+      if (!active.stream.writableEnded) {
+        active.stream.end();
+      }
+    } else {
+      this.logger.warn(`Received transcribe-end for client ${client.id} without active stream`);
     }
   }
 

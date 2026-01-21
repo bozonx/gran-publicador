@@ -39,10 +39,10 @@ export class SttService {
   }
 
   /**
-   * Transcribes audio stream to text by proxying to STT Gateway.
+   * Transcribes audio stream (or buffer) to text by proxying to STT Gateway.
    */
   async transcribeAudioStream(
-    fileStream: Readable,
+    file: Readable | Buffer,
     filename: string,
     mimetype: string,
   ): Promise<{ text: string }> {
@@ -54,17 +54,27 @@ export class SttService {
     }
 
     try {
-      this.logger.log(`Proxying audio stream to STT Gateway: ${filename} (${mimetype})`);
+      this.logger.log(`Proxying audio to STT Gateway: ${filename} (${mimetype})`);
 
       const form = new FormData();
       // STT Gateway expects 'file' field
-      form.append('file', fileStream, {
-        contentType: mimetype,
-        filename: filename,
-      });
+      if (Buffer.isBuffer(file)) {
+        form.append('file', file, {
+          contentType: mimetype,
+          filename: filename,
+          knownLength: file.length, // Help form-data set correct Content-Length
+        });
+      } else {
+         form.append('file', file, {
+          contentType: mimetype,
+          filename: filename,
+        });
+      }
 
-      // Get the total length of the form data for Content-Length header
+      // Get headers from form-data
       const formHeaders = form.getHeaders();
+      
+      this.logger.debug(`Starting upload to STT Gateway for ${filename}`);
       
       const response = await request(`${config.serviceUrl}/transcribe/stream`, {
         method: 'POST',
