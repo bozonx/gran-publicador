@@ -1,8 +1,10 @@
-import { IsString, IsOptional, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsBoolean, MaxLength } from 'class-validator';
 import { Expose, Type } from 'class-transformer';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class CreateApiTokenDto {
   @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_TOKEN_NAME_LENGTH)
   public name!: string;
 
   @IsBoolean()
@@ -18,6 +20,7 @@ export class CreateApiTokenDto {
 export class UpdateApiTokenDto {
   @IsString()
   @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_TOKEN_NAME_LENGTH)
   public name?: string;
 
   @IsBoolean()

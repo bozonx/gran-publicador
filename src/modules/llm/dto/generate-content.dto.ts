@@ -8,8 +8,12 @@ import {
   IsArray,
   IsBoolean,
   ValidateNested,
+  MaxLength,
+  ArrayMaxSize,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for generating content with LLM.
@@ -20,6 +24,7 @@ export class GenerateContentDto {
    */
   @IsString()
   @IsNotEmpty()
+  @MaxLength(VALIDATION_LIMITS.MAX_LLM_PROMPT_LENGTH)
   prompt!: string;
 
   /**
@@ -36,8 +41,9 @@ export class GenerateContentDto {
    * Maximum number of tokens in the response.
    */
   @IsOptional()
-  @IsNumber()
+  @IsInt()
   @Min(1)
+  @Max(VALIDATION_LIMITS.MAX_LLM_MAX_TOKENS)
   max_tokens?: number;
 
   /**
@@ -45,6 +51,7 @@ export class GenerateContentDto {
    */
   @IsOptional()
   @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   model?: string;
 
   /**
@@ -53,6 +60,7 @@ export class GenerateContentDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   tags?: string[];
 
   /**
@@ -60,6 +68,7 @@ export class GenerateContentDto {
    */
   @IsOptional()
   @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_LLM_CONTEXT_LENGTH)
   content?: string;
 
   /**
@@ -69,6 +78,7 @@ export class GenerateContentDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SourceTextDto)
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
   sourceTexts?: SourceTextDto[];
 
   /**
@@ -83,7 +93,10 @@ export class GenerateContentDto {
    */
   @IsOptional()
   @IsArray()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
   @IsNumber({}, { each: true })
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SELECTED_INDEXES)
   selectedSourceIndexes?: number[];
 }
 
@@ -93,13 +106,17 @@ export class GenerateContentDto {
 export class SourceTextDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
   content!: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Min(VALIDATION_LIMITS.MIN_ORDER)
+  @Max(VALIDATION_LIMITS.MAX_ORDER)
   order?: number;
 
   @IsOptional()
   @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   source?: string;
 }

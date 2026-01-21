@@ -1,9 +1,11 @@
 import { Type, Transform } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Min, Max, MaxLength } from 'class-validator';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class FindProjectsQueryDto {
   @IsOptional()
   @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   search?: string;
 
   @IsOptional()
@@ -14,6 +16,7 @@ export class FindProjectsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(0)
+  @Min(VALIDATION_LIMITS.MIN_PAGE_LIMIT)
+  @Max(VALIDATION_LIMITS.MAX_PAGE_LIMIT)
   limit?: number;
 }

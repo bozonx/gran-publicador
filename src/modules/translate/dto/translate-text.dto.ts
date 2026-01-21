@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsIn, MaxLength } from 'class-validator';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for translating text via Translate Gateway microservice.
@@ -9,6 +10,7 @@ export class TranslateTextDto {
    */
   @IsString()
   @IsNotEmpty()
+  @MaxLength(VALIDATION_LIMITS.MAX_TRANSLATE_TEXT_LENGTH)
   text!: string;
 
   /**

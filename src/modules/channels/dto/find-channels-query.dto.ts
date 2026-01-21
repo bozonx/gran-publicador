@@ -1,6 +1,17 @@
-import { IsOptional, IsEnum, IsString, IsInt, Min, IsBoolean, IsLocale } from 'class-validator';
+import {
+  IsOptional,
+  IsEnum,
+  IsString,
+  IsInt,
+  Min,
+  Max,
+  IsBoolean,
+  IsLocale,
+  MaxLength,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { SocialMedia } from '../../../generated/prisma/client.js';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * Allowed fields for sorting channels
@@ -50,6 +61,7 @@ export class FindChannelsQueryDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   search?: string;
 
   @IsOptional()
@@ -80,13 +92,14 @@ export class FindChannelsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(VALIDATION_LIMITS.MIN_PAGE_LIMIT)
+  @Max(VALIDATION_LIMITS.MAX_PAGE_LIMIT)
   limit?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(0)
+  @Min(VALIDATION_LIMITS.MIN_OFFSET)
   offset?: number;
 
   @IsOptional()
