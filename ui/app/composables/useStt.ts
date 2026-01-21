@@ -92,7 +92,8 @@ export function useStt() {
     }
 
     setupSocketListeners();
-    isTranscribing.value = true;
+    // isTranscribing should not be true during recording to avoid disabling the stop button
+    isTranscribing.value = false;
 
     socket.emit('transcribe-start', {
       mimetype: mimeType.value || 'audio/webm',
@@ -110,18 +111,94 @@ export function useStt() {
   }
 
   async function stop() {
-    const blob = await stopRecording();
+    await stopRecording();
     
     if (socket && socket.connected) {
+      isTranscribing.value = true;
       socket.emit('transcribe-end');
+      
+      const result = await waitForTranscription();
+      isTranscribing.value = false;
+      return result;
     } else {
       isTranscribing.value = false;
       cleanupListeners();
+      return '';
+    }
+  }
+
+  /**
+   * One-shot transcription for a full blob (compatibility with LlmGeneratorModal)
+   */
+  async function transcribeAudio(blob: Blob): Promise<string> {
+    error.value = null;
+    transcription.value = '';
+
+    socket = sttStore.connect();
+    if (!socket) {
+      error.value = 'socketConnectionError';
+      return '';
     }
 
-    // We don't wait for result here as it comes asynchronously via 'transcription-result' event
-    // The UI should watch `isTranscribing` and `transcription`
-    return ''; 
+    if (!socket.connected) {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Socket connection timeout')), 5000);
+        socket!.once('connect', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
+    }
+
+    isTranscribing.value = true;
+    socket.emit('transcribe-start', {
+      mimetype: blob.type || 'audio/webm',
+      filename: 'recording.webm',
+    });
+
+    const buffer = await blob.arrayBuffer();
+    socket.emit('audio-chunk', buffer);
+    socket.emit('transcribe-end');
+
+    const result = await waitForTranscription();
+    isTranscribing.value = false;
+    return result;
+  }
+
+  function waitForTranscription(): Promise<string> {
+    return new Promise<string>((resolve) => {
+      const handleResult = (data: { text: string }) => {
+        cleanup();
+        transcription.value = data.text;
+        resolve(data.text);
+      };
+      const handleError = (data?: { message: string }) => {
+        console.error('STT Error:', data?.message);
+        cleanup();
+        error.value = 'transcriptionError';
+        resolve('');
+      };
+      const handleDisconnect = () => {
+        cleanup();
+        error.value = 'connectionLost';
+        resolve('');
+      };
+      const cleanup = () => {
+        socket?.off('transcription-result', handleResult);
+        socket?.off('transcription-error', handleError);
+        socket?.off('disconnect', handleDisconnect);
+      };
+
+      socket?.once('transcription-result', handleResult);
+      socket?.once('transcription-error', handleError);
+      socket?.once('disconnect', handleDisconnect);
+
+      // Safety timeout
+      setTimeout(() => {
+        cleanup();
+        resolve('');
+      }, 30000);
+    });
   }
 
   onUnmounted(() => {
@@ -138,5 +215,6 @@ export function useStt() {
     hasPermission,
     start,
     stop,
+    transcribeAudio,
   };
 }

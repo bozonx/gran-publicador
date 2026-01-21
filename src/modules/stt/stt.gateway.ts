@@ -73,6 +73,9 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Starting STT stream for client ${client.id}: ${filename} (${mimetype})`);
 
     const passThrough = new PassThrough();
+    passThrough.on('error', (err) => {
+      this.logger.error(`Stream error for client ${client.id}: ${err.message}`);
+    });
     
     // Start transcription promise
     const transcriptionPromise = this.sttService
@@ -104,7 +107,15 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // chunk might be a Buffer or ArrayBuffer depending on socket.io configuration
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    active.stream.write(buffer);
+    
+    if (active.stream.writable && !active.stream.writableEnded) {
+      active.stream.write(buffer, (err) => {
+        if (err) {
+          this.logger.error(`Error writing to STT stream for client ${client.id}: ${err.message}`);
+          this.cleanupStream(client.id);
+        }
+      });
+    }
   }
 
   @SubscribeMessage('transcribe-end')
