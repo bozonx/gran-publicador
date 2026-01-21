@@ -36,35 +36,44 @@ export function useStt() {
   }
 
   function setupSocketListeners() {
-    if (!socket) return;
+    if (!socket) return () => {};
 
-    socket.on('transcription-result', (data: { text: string }) => {
+    const onResult = (data: { text: string }) => {
       transcription.value = data.text;
       isTranscribing.value = false;
-      cleanupListeners();
-    });
+    };
 
-    socket.on('transcription-error', (data: { message: string }) => {
+    const onError = (data: { message: string }) => {
       console.error('STT transcription error:', data.message);
       error.value = 'transcriptionError';
       isTranscribing.value = false;
-      cleanupListeners();
-    });
+    };
 
-    socket.on('disconnect', () => {
+    const onDisconnect = () => {
       if (isTranscribing.value) {
         error.value = 'connectionLost';
         isTranscribing.value = false;
       }
-      cleanupListeners();
-    });
+    };
+
+    socket.on('transcription-result', onResult);
+    socket.on('transcription-error', onError);
+    socket.on('disconnect', onDisconnect);
+
+    return () => {
+      socket?.off('transcription-result', onResult);
+      socket?.off('transcription-error', onError);
+      socket?.off('disconnect', onDisconnect);
+    };
   }
 
+  let stopSocketListeners: (() => void) | null = null;
+
   function cleanupListeners() {
-    if (!socket) return;
-    socket.off('transcription-result');
-    socket.off('transcription-error');
-    socket.off('disconnect');
+    if (stopSocketListeners) {
+      stopSocketListeners();
+      stopSocketListeners = null;
+    }
   }
 
   async function start() {
@@ -91,7 +100,9 @@ export function useStt() {
       });
     }
 
-    setupSocketListeners();
+    cleanupListeners();
+    stopSocketListeners = setupSocketListeners();
+    
     // isTranscribing should not be true during recording to avoid disabling the stop button
     isTranscribing.value = false;
 
@@ -150,6 +161,10 @@ export function useStt() {
       });
     }
 
+    cleanupListeners();
+    // For one-shot, we might not need long-lived listeners, 
+    // but better to have them for consistency or just rely on waitForTranscription
+    
     isTranscribing.value = true;
     socket.emit('transcribe-start', {
       mimetype: blob.type || 'audio/webm',
@@ -193,11 +208,11 @@ export function useStt() {
       socket?.once('transcription-error', handleError);
       socket?.once('disconnect', handleDisconnect);
 
-      // Safety timeout
+      // Safety timeout - increased to 60s
       setTimeout(() => {
         cleanup();
         resolve('');
-      }, 30000);
+      }, 60000);
     });
   }
 

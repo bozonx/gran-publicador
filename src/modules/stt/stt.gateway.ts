@@ -65,6 +65,12 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { mimetype: string; filename?: string },
   ) {
+    if (!client.data.userId) {
+      this.logger.warn(`Unauthorized transcribe-start attempt from client ${client.id}`);
+      client.emit('transcription-error', { message: 'Unauthorized' });
+      client.disconnect();
+      return;
+    }
     this.cleanupStream(client.id);
 
     const filename = data.filename || `recording-${Date.now()}.webm`;
@@ -88,7 +94,11 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit('transcription-error', { message: error.message });
       })
       .finally(() => {
-        this.activeStreams.delete(client.id);
+        // Only delete from map if this is still the active stream for this client
+        const current = this.activeStreams.get(client.id);
+        if (current && current.stream === passThrough) {
+          this.activeStreams.delete(client.id);
+        }
       });
 
     this.activeStreams.set(client.id, {

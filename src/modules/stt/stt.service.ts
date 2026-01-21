@@ -67,7 +67,8 @@ export class SttService {
         method: 'POST',
         body: form,
         headersTimeout: config?.timeoutMs || 30000,
-        bodyTimeout: config?.timeoutMs || 30000,
+        // Increase body timeout significantly for streaming
+        bodyTimeout: Math.max(config?.timeoutMs || 30000, 300000), 
         headers: {
           // undici handles Content-Type for FormData automatically
         },
