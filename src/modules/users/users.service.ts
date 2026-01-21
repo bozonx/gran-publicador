@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, type User } from '../../generated/prisma/client.js';
 
@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
  */
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
@@ -50,9 +52,15 @@ export class UsersService {
     }
 
     // Check if this user should be an admin based on environment variable
-    // (Trigger rebuild)
     const adminId = this.configService.get<AppConfig>('app')?.adminTelegramId;
-    const isAdmin = adminId ? BigInt(adminId) === userData.telegramId : false;
+    let isAdmin = false;
+    if (adminId && /^\d+$/.test(adminId)) {
+      try {
+        isAdmin = BigInt(adminId) === userData.telegramId;
+      } catch (e) {
+        this.logger.warn(`Failed to convert adminTelegramId "${adminId}" to BigInt: ${e}`);
+      }
+    }
 
     return this.prisma.user.upsert({
       where: { telegramId: userData.telegramId },

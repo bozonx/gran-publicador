@@ -195,12 +195,15 @@ describe('ArchiveService', () => {
 
   describe('getArchiveStats', () => {
     it('should return archive statistics', async () => {
+      const userId = 'user-1';
+      mockPrismaService.project.findMany.mockResolvedValue([{ id: 'project-1' }]);
       mockPrismaService.project.count.mockResolvedValue(5);
       mockPrismaService.channel.count.mockResolvedValue(10);
       mockPrismaService.publication.count.mockResolvedValue(3);
 
-      const stats = await service.getArchiveStats();
+      const stats = await service.getArchiveStats(userId);
 
+      expect(mockPrismaService.project.findMany).toHaveBeenCalled();
       expect(stats).toEqual({
         projects: 5,
         channels: 10,
@@ -213,26 +216,56 @@ describe('ArchiveService', () => {
 
   describe('moveEntity', () => {
     it('should move a channel to a different project', async () => {
+      const userId = 'user-1';
       const channelId = 'channel-1';
+      const sourceProjectId = 'project-1';
       const targetProjectId = 'project-2';
       const mockChannel = {
         id: channelId,
-        projectId: targetProjectId,
+        projectId: sourceProjectId,
       };
 
-      mockPrismaService.channel.update.mockResolvedValue(mockChannel);
+      mockPrismaService.channel.findUnique.mockResolvedValue(mockChannel);
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.channel.update.mockResolvedValue({
+        ...mockChannel,
+        projectId: targetProjectId,
+      });
 
       const result = await service.moveEntity(
         ArchiveEntityType.CHANNEL,
         channelId,
         targetProjectId,
+        userId,
       );
 
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        sourceProjectId,
+        userId,
+        ['ADMIN'],
+      );
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+        targetProjectId,
+        userId,
+        ['ADMIN'],
+      );
       expect(mockPrismaService.channel.update).toHaveBeenCalledWith({
         where: { id: channelId },
         data: { projectId: targetProjectId },
       });
-      expect(result).toEqual(mockChannel);
+      expect((result as any).projectId).toBe(targetProjectId);
+    });
+  });
+
+  describe('getArchivedEntities', () => {
+    it('should return archived entities of a given type', async () => {
+      const userId = 'user-1';
+      mockPrismaService.project.findMany.mockResolvedValueOnce([{ id: 'project-1' }]); // for userProjects
+      mockPrismaService.channel.findMany.mockResolvedValue([{ id: 'channel-1' }]);
+
+      const result = await service.getArchivedEntities(ArchiveEntityType.CHANNEL, userId);
+
+      expect(result).toEqual([{ id: 'channel-1' }]);
     });
   });
 });
