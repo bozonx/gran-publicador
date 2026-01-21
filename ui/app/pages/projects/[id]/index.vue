@@ -93,14 +93,14 @@ async function initialFetch() {
     }),
     fetchScheduled(projectId.value, { status: 'SCHEDULED', limit: 5 }),
     fetchProblems(projectId.value, { status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 5 }),
-    fetchChannels({ projectId: projectId.value, limit: 1000 })
+    fetchChannels({ projectId: projectId.value, limit: 100 })
   ])
 }
 
 function handleChannelCreatedEvent(channel: any) {
   if (channel && channel.projectId === projectId.value) {
     // We only need to refresh channels specifically
-    fetchChannels({ projectId: projectId.value, limit: 1000 })
+    fetchChannels({ projectId: projectId.value, limit: 100 })
   }
 }
 

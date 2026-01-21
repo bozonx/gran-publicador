@@ -121,7 +121,7 @@ async function refreshChannels() {
   const fetchedChannels = await fetchChannels({ 
     projectId: props.projectId, 
     includeArchived: true,
-    limit: 1000 // Fetch all (max 1000) channels for the project view
+    limit: 100 // Fetch all (max 100) channels for the project view
   })
   allChannels.value = fetchedChannels
 }

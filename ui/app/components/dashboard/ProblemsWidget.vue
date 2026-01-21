@@ -15,11 +15,11 @@ const {
 
 // Fetch data
 const { data: publications } = await useFetch('/api/publications', {
-  query: { limit: 1000, includeArchived: false }
+  query: { limit: 100, includeArchived: false }
 })
 
 const { data: channels } = await useFetch('/api/channels', {
-  query: { limit: 1000, includeArchived: false }
+  query: { limit: 100, includeArchived: false }
 })
 
 const { data: projects } = await useFetch('/api/projects', {

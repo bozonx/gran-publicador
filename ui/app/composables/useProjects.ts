@@ -19,7 +19,7 @@ export function useProjects() {
         store.setError(null)
 
         try {
-            const params: any = { limit: 1000 }
+            const params: any = { limit: 100 }
             if (includeArchived !== undefined) {
                 params.includeArchived = includeArchived
             }
