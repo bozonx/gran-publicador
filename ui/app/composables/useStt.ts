@@ -208,11 +208,11 @@ export function useStt() {
       socket?.once('transcription-error', handleError);
       socket?.once('disconnect', handleDisconnect);
 
-      // Safety timeout - increased to 60s
+      // Safety timeout - 5 minutes
       setTimeout(() => {
         cleanup();
         resolve('');
-      }, 60000);
+      }, 300000);
     });
   }
 

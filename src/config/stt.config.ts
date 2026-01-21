@@ -23,7 +23,7 @@ export class SttConfig {
   @IsOptional()
   @IsInt()
   @Min(1)
-  public timeoutMs?: number = 30000;
+  public timeoutMs?: number = 300000;
 
   /**
    * Maximum allowed audio file size in bytes.

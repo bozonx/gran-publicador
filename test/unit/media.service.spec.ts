@@ -86,7 +86,10 @@ describe('MediaService (unit)', () => {
       if (key === 'media') return mockMediaConfig;
       return null;
     });
-    // Consumes or resets interceptors
+  });
+
+  afterEach(() => {
+    // Ensure no interceptors are left pending
     mockAgent.assertNoPendingInterceptors();
   });
 
@@ -98,8 +101,8 @@ describe('MediaService (unit)', () => {
         storagePath: 'file-id-123',
         filename: 'test.jpg',
         mimeType: 'image/jpeg',
-        sizeBytes: 1024,
-        meta: { checksum: 'abc' },
+        sizeBytes: 1024n,
+        meta: { checksum: 'abc' } as any,
       };
 
       const dbResponse = {

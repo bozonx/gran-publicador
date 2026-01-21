@@ -239,21 +239,22 @@ export class MediaService {
     formData.append('file', new globalThis.File(chunks, filename, { type: mimetype }));
 
     try {
-      const response = await fetch(`${config.serviceUrl}/files`, {
+      const response = await request(`${config.serviceUrl}/files`, {
         method: 'POST',
-        body: formData,
+        body: formData as any,
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
+      if (response.statusCode >= 400) {
+        const errorBody = await response.body.json().catch(() => ({}));
         const errorMessage = (errorBody as any).message || 'Microservice error';
         
-        if (response.status === 400) throw new BadRequestException(errorMessage);
-        if (response.status === 404) throw new NotFoundException(errorMessage);
+        if (response.statusCode === 400) throw new BadRequestException(errorMessage);
+        if (response.statusCode === 404) throw new NotFoundException(errorMessage);
         throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
       }
 
-      const result = (await response.json()) as any;
+      const result = (await response.body.json()) as any;
       return {
         fileId: result.id,
         metadata: {
