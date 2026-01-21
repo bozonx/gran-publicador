@@ -222,7 +222,7 @@ export class TelegramBotUpdate {
             storagePath: mediaItem.fileId,
             filename: mediaItem.fileName,
             mimeType: mediaItem.mimeType,
-            sizeBytes: mediaItem.fileSize,
+            sizeBytes: mediaItem.fileSize !== undefined ? BigInt(mediaItem.fileSize) : undefined,
             meta: {
               telegram: {
                 thumbnailFileId: mediaItem.thumbnailFileId,
@@ -337,7 +337,7 @@ export class TelegramBotUpdate {
             storagePath: mediaItem.fileId,
             filename: mediaItem.fileName,
             mimeType: mediaItem.mimeType,
-            sizeBytes: mediaItem.fileSize,
+            sizeBytes: mediaItem.fileSize !== undefined ? BigInt(mediaItem.fileSize) : undefined,
             meta: {
               telegram: {
                 thumbnailFileId: mediaItem.thumbnailFileId,

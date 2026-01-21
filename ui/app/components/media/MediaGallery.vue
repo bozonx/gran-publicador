@@ -15,7 +15,7 @@ interface MediaItem {
   alt?: string
   description?: string
   mimeType?: string
-  sizeBytes?: number
+  sizeBytes?: number | string
   meta?: Record<string, any>
   fullMediaMeta?: Record<string, any>
 }
@@ -641,12 +641,13 @@ watch(selectedMedia, () => {
 
 
 
-function formatBytes(bytes?: number): string {
-  if (!bytes || bytes === 0) return '0 B'
+function formatBytes(bytes?: number | string): string {
+  if (!bytes || bytes === 0 || bytes === '0') return '0 B'
+  const b = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  const val = bytes / Math.pow(k, i)
+  const i = Math.floor(Math.log(b) / Math.log(k))
+  const val = b / Math.pow(k, i)
   return (val < 10 ? val.toFixed(2) : val.toFixed(1)) + ' ' + sizes[i]
 }
 

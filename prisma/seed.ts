@@ -374,7 +374,7 @@ async function main() {
             storagePath: 'samples/image1.jpg',
             filename: 'image1.jpg',
             mimeType: 'image/jpeg',
-            sizeBytes: 1024 * 100,
+            sizeBytes: 1024n * 100n,
             meta: {},
         },
         {
@@ -384,7 +384,7 @@ async function main() {
             storagePath: 'samples/video1.mp4',
             filename: 'video1.mp4',
             mimeType: 'video/mp4',
-            sizeBytes: 1024 * 1024 * 5,
+            sizeBytes: 1024n * 1024n * 5n,
             meta: {},
         }
     ];

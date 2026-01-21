@@ -10,7 +10,7 @@ export interface MediaItem {
   alt?: string
   description?: string
   mimeType?: string
-  sizeBytes?: number
+  sizeBytes?: number | string
   meta?: Record<string, any>
   createdAt: string
   updatedAt: string
@@ -26,7 +26,7 @@ export interface CreateMediaInput {
   alt?: string
   description?: string
   mimeType?: string
-  sizeBytes?: number
+  sizeBytes?: number | string
   meta?: Record<string, any>
 }
 

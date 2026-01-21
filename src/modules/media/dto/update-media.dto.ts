@@ -1,4 +1,5 @@
-import { IsEnum, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 import { MediaType, StorageType } from '../../../generated/prisma/client.js';
 
 export class UpdateMediaDto {
@@ -30,9 +31,9 @@ export class UpdateMediaDto {
   @IsOptional()
   mimeType?: string;
 
-  @IsNumber()
   @IsOptional()
-  sizeBytes?: number;
+  @Transform(({ value }) => (value !== null && value !== undefined ? BigInt(value) : value))
+  sizeBytes?: bigint;
 
   @IsObject()
   @IsOptional()

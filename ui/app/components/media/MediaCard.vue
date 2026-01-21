@@ -9,7 +9,7 @@ interface MediaItem {
   storagePath: string
   filename?: string
   mimeType?: string
-  sizeBytes?: number
+  sizeBytes?: number | string
 }
 
 interface Props {
@@ -54,9 +54,10 @@ function getMediaIcon(type: string) {
   return icons[type] || 'i-heroicons-document'
 }
 
-function formatSizeMB(bytes?: number): string {
+function formatSizeMB(bytes?: number | string): string {
   if (!bytes) return '0 MB'
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+  const b = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
+  return (b / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
 function handleImageError() {

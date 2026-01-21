@@ -120,9 +120,10 @@ function downloadMediaFile(media: MediaItem) {
   document.body.removeChild(link)
 }
 
-function formatSizeMB(bytes?: number): string {
+function formatSizeMB(bytes?: number | string): string {
   if (!bytes) return '0 MB'
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+  const b = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
+  return (b / (1024 * 1024)).toFixed(2) + ' MB'
 }
 </script>
 

@@ -35,6 +35,7 @@ CREATE TABLE "users" (
     "ban_reason" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "deleted_at" TIMESTAMP(3),
     "preferences" JSONB NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
@@ -177,7 +178,7 @@ CREATE TABLE "media" (
     "alt" TEXT,
     "description" TEXT,
     "mime_type" TEXT,
-    "size_bytes" INTEGER,
+    "size_bytes" BIGINT,
     "meta" JSONB NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,

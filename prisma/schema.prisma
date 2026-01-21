@@ -275,7 +275,7 @@ model Media {
   alt         String?
   description String?
   mimeType    String?     @map("mime_type")
-  sizeBytes   Int?        @map("size_bytes")
+  sizeBytes   BigInt?     @map("size_bytes")
   // Metadata stored as JSON. For StorageType.TELEGRAM, contains:
   // { telegram: { thumbnailFileId: string } }
   meta        Json
