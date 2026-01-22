@@ -11,7 +11,12 @@
     "view": "View source texts",
     "hide": "Hide source texts",
     "deleteAll": "Delete all",
-    "translate": "Translate this text"
+    "translate": "Translate this text",
+    "repostFrom": "Repost from",
+    "author": "Author",
+    "viewSource": "View source",
+    "messageId": "MSG ID",
+    "chatId": "CHAT ID"
   },
   "translate": {
     "title": "Translate Text",

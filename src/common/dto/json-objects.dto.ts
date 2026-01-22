@@ -2,19 +2,6 @@ import { IsOptional, IsString, IsObject, ValidateNested, IsBoolean, IsUUID, IsNu
 import { Type } from 'class-transformer';
 
 /**
- * DTO for Telegram-specific media metadata.
- */
-export class TelegramMediaMetaDto {
-  @IsString()
-  @IsOptional()
-  thumbnailFileId?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  hasSpoiler?: boolean;
-}
-
-/**
  * DTO for repost information.
  */
 export class RepostInfoDto {
@@ -51,6 +38,25 @@ export class RepostInfoDto {
 }
 
 /**
+ * DTO for Telegram-specific media metadata.
+ */
+export class TelegramMediaMetaDto {
+  @IsString()
+  @IsOptional()
+  thumbnailFileId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  hasSpoiler?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => RepostInfoDto)
+  repost?: RepostInfoDto;
+}
+
+/**
  * DTO for Media metadata.
  */
 export class MediaMetaDto {
@@ -59,12 +65,6 @@ export class MediaMetaDto {
   @ValidateNested()
   @Type(() => TelegramMediaMetaDto)
   telegram?: TelegramMediaMetaDto;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => RepostInfoDto)
-  repost?: RepostInfoDto;
 }
 
 /**

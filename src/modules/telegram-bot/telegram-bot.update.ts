@@ -353,8 +353,8 @@ export class TelegramBotUpdate {
             telegram: {
               thumbnailFileId: mediaItem.thumbnailFileId,
               hasSpoiler: mediaItem.hasSpoiler || false,
+              repost: mediaItem.repostInfo,
             },
-            repost: mediaItem.repostInfo,
           },
         });
 
@@ -494,8 +494,8 @@ export class TelegramBotUpdate {
             telegram: {
               thumbnailFileId: mediaItem.thumbnailFileId,
               hasSpoiler: mediaItem.hasSpoiler || false,
+              repost: mediaItem.repostInfo,
             },
-            repost: mediaItem.repostInfo,
           },
         });
 

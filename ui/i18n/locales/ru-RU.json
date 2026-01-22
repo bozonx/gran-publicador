@@ -11,7 +11,12 @@
     "view": "Посмотреть исходные тексты",
     "hide": "Скрыть исходные тексты",
     "deleteAll": "Удалить все",
-    "translate": "Перевести этот текст"
+    "translate": "Перевести этот текст",
+    "repostFrom": "Репост из",
+    "author": "Автор",
+    "viewSource": "Посмотреть источник",
+    "messageId": "MSG ID",
+    "chatId": "CHAT ID"
   },
   "translate": {
     "title": "Перевод текста",

@@ -148,7 +148,10 @@ export function extractRepostInfo(message: Message): any {
   if (!message.forward_origin) return undefined;
 
   const origin = message.forward_origin;
-  const info: any = { type: origin.type };
+  const info: any = { 
+    type: origin.type,
+    date: origin.date,
+  };
 
   if (origin.type === 'channel') {
     info.chatId = origin.chat.id;
@@ -163,9 +166,11 @@ export function extractRepostInfo(message: Message): any {
       .join(' ');
     info.authorUsername = origin.sender_user.username;
   } else if (origin.type === 'chat') {
-    info.chatId = origin.sender_chat.id;
-    info.chatTitle = (origin.sender_chat as any).title;
-    info.chatUsername = (origin.sender_chat as any).username;
+    const senderChat = origin.sender_chat;
+    info.chatId = senderChat.id;
+    info.chatTitle = (senderChat as any).title;
+    info.chatUsername = (senderChat as any).username;
+    info.authorName = origin.author_signature;
   } else if (origin.type === 'hidden_user') {
     info.authorName = origin.sender_user_name;
   }

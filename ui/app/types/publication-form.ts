@@ -7,6 +7,7 @@ export interface SourceTextItem {
   content: string
   source: 'manual' | 'translation' | string
   order: number
+  meta?: Record<string, any>
 }
 
 /**

@@ -53,8 +53,11 @@ function handleSaveEdit() {
   if (editingIndex.value === null || !sourceTexts.value) return
   
   const updated = [...sourceTexts.value]
+  const currentItem = updated[editingIndex.value]
+  if (!currentItem) return
+  
   updated[editingIndex.value] = {
-    ...updated[editingIndex.value],
+    ...currentItem,
     content: editingContent.value
   }
   
@@ -85,6 +88,32 @@ defineExpose({
     return text
   }
 })
+
+function formatDate(timestamp?: number) {
+  if (!timestamp) return ''
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(timestamp * 1000))
+}
+
+function getTelegramLink(repost: any): string | undefined {
+  if (repost.chatUsername && repost.messageId) {
+    return `https://t.me/${repost.chatUsername}/${repost.messageId}`
+  }
+  if (repost.chatId && repost.messageId) {
+    const chatIdStr = String(repost.chatId)
+    if (chatIdStr.startsWith('-100')) {
+      const cleanId = chatIdStr.replace('-100', '')
+      return `https://t.me/c/${cleanId}/${repost.messageId}`
+    }
+  }
+  return undefined
+}
+
 </script>
 
 <template>
@@ -188,9 +217,57 @@ defineExpose({
               />
             </div>
           </div>
-          <div v-if="item.source && item.source !== 'manual'" class="mt-2 text-xs text-gray-400 font-mono flex items-center gap-1">
-            <UIcon name="i-heroicons-link" class="w-3 h-3" />
-            {{ item.source }}
+          <div v-if="(item.source && item.source !== 'manual') || item.meta?.repost" class="mt-2 flex flex-col gap-1.5">
+            <div v-if="item.source && item.source !== 'manual'" class="text-xs text-gray-400 font-mono flex items-center gap-1">
+              <UIcon name="i-heroicons-link" class="w-3 h-3" />
+              {{ item.source }}
+            </div>
+            
+            <!-- Repost Info -->
+            <div v-if="item.meta?.repost" class="bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100/50 dark:border-primary-800/30 rounded p-2 text-xs">
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 font-semibold">
+                  <UIcon name="i-heroicons-arrow-path-rounded-square" class="w-3.5 h-3.5" />
+                  {{ t('sourceTexts.repostFrom', 'Repost from') }} {{ item.meta.repost.type }}
+                </div>
+                <div v-if="item.meta.repost.date" class="text-[10px] text-gray-400">
+                  {{ formatDate(item.meta.repost.date) }}
+                </div>
+              </div>
+              
+              <div class="space-y-1 text-gray-500 dark:text-gray-400 ml-5 text-[11px]">
+                <!-- Chat/Channel Info -->
+                <div v-if="item.meta.repost.chatTitle" class="flex gap-1.5 items-center">
+                  <UIcon name="i-heroicons-chat-bubble-left-right" class="w-3 h-3 text-gray-400" />
+                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ item.meta.repost.chatTitle }}</span>
+                  <span v-if="item.meta.repost.chatUsername" class="text-gray-400">(@{{ item.meta.repost.chatUsername }})</span>
+                </div>
+
+                <!-- Author Info -->
+                <div v-if="item.meta.repost.authorName || item.meta.repost.authorUsername" class="flex gap-1.5 items-center">
+                  <UIcon name="i-heroicons-user" class="w-3 h-3 text-gray-400" />
+                  <span class="text-gray-400 mr-0.5">{{ t('sourceTexts.author', 'Author') }}:</span>
+                  <span v-if="item.meta.repost.authorName" class="text-gray-600 dark:text-gray-300">{{ item.meta.repost.authorName }}</span>
+                  <span v-if="item.meta.repost.authorUsername" class="text-primary-500 dark:text-primary-400">@{{ item.meta.repost.authorUsername }}</span>
+                </div>
+
+                <!-- IDs and Links -->
+                <div class="flex flex-wrap gap-x-3 gap-y-1 items-center mt-1 pt-1 border-t border-gray-100 dark:border-gray-800/50 font-mono text-[9px] text-gray-400">
+                  <div v-if="item.meta.repost.messageId">
+                    {{ t('sourceTexts.messageId', 'MSG ID') }}: {{ item.meta.repost.messageId }}
+                  </div>
+                  <div v-if="item.meta.repost.chatId">
+                    {{ t('sourceTexts.chatId', 'CHAT ID') }}: {{ item.meta.repost.chatId }}
+                  </div>
+                  <div v-if="getTelegramLink(item.meta.repost)">
+                    <a :href="getTelegramLink(item.meta.repost)" target="_blank" class="flex items-center gap-0.5 text-primary-500 hover:underline">
+                      <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-2.5 h-2.5" />
+                      {{ t('sourceTexts.viewSource', 'View source') }}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
