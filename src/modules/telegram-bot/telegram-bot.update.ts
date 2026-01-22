@@ -21,6 +21,7 @@ const MEDIA_GROUP_TIMEOUT = 500;
 export class TelegramBotUpdate {
   private readonly logger = new Logger(TelegramBotUpdate.name);
   private readonly frontendUrl: string;
+  private readonly telegramMiniAppUrl: string;
   private readonly userQueues = new Map<number, PQueue>();
   private readonly mediaGroupBuffers = new Map<string, { messages: Message[]; timer: NodeJS.Timeout }>();
 
@@ -35,6 +36,7 @@ export class TelegramBotUpdate {
   ) {
     const appConfig = this.configService.get<AppConfig>('app')!;
     this.frontendUrl = appConfig.frontendUrl;
+    this.telegramMiniAppUrl = appConfig.telegramMiniAppUrl.replace(/\/+$/, '');
   }
 
   /**
@@ -372,7 +374,10 @@ export class TelegramBotUpdate {
 
       // Create inline keyboard
       const keyboard = new InlineKeyboard()
-        .text(String(this.i18n.t('telegram.button_done', { lang })), 'done')
+        .url(
+          String(this.i18n.t('telegram.button_done', { lang })),
+          `${this.telegramMiniAppUrl}?startapp=${publication.id}`,
+        )
         .text(String(this.i18n.t('telegram.button_cancel', { lang })), 'cancel');
 
       // Send menu message
@@ -525,7 +530,10 @@ export class TelegramBotUpdate {
 
       // Prepare updated menu message
       const keyboard = new InlineKeyboard()
-        .text(String(this.i18n.t('telegram.button_done', { lang })), 'done')
+        .url(
+          String(this.i18n.t('telegram.button_done', { lang })),
+          `${this.telegramMiniAppUrl}?startapp=${session.publicationId}`,
+        )
         .text(String(this.i18n.t('telegram.button_cancel', { lang })), 'cancel');
 
       const menuMessage = await ctx.reply(

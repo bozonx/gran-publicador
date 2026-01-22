@@ -87,6 +87,13 @@ export class AppConfig {
   public frontendUrl!: string;
 
   /**
+   * Base URL for the Telegram Mini App.
+   * Defined by TELEGRAM_MINI_APP_URL environment variable.
+   */
+  @IsString()
+  public telegramMiniAppUrl!: string;
+
+  /**
    * JWT Secret for auth.
    */
   @IsString()
@@ -166,6 +173,7 @@ export default registerAs('app', (): AppConfig => {
     telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
     telegramSessionTtlMinutes: parseInt(process.env.TELEGRAM_SESSION_TTL_MINUTES ?? '10', 10),
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    telegramMiniAppUrl: process.env.TELEGRAM_MINI_APP_URL ?? 'https://t.me/your_bot/app',
     jwtSecret: process.env.JWT_SECRET,
 
     // Media Config
