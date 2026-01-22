@@ -7,7 +7,7 @@ import { UsersService } from '../users/users.service.js';
 import { PublicationsService } from '../publications/publications.service.js';
 import { MediaService } from '../media/media.service.js';
 import { TelegramSessionService } from './telegram-session.service.js';
-import { extractMessageContent, formatSource, truncateText } from './telegram-content.helper.js';
+import { extractMessageContent, formatSource } from './telegram-content.helper.js';
 import { AppConfig } from '../../config/app.config.js';
 import { PublicationStatus, StorageType } from '../../generated/prisma/client.js';
 
@@ -210,19 +210,27 @@ export class TelegramBotUpdate {
       const extracted = extractMessageContent(message);
       const sourceText = extracted.text || '';
 
+      // Re-check session to prevent race conditions (e.g. for media albums)
+      const freshSession = await this.sessionService.getSession(String(telegramId));
+      if (freshSession) {
+        return this.handleCollectMenu(ctx, userId, telegramId, lang, message, freshSession);
+      }
+
       // Create draft publication
       const publication = await this.publicationsService.create(
         {
           status: PublicationStatus.DRAFT,
           language: lang || 'en-US',
           content: '', // Texts from bot are only added to sourceTexts
-          sourceTexts: [
-            {
-              content: sourceText,
-              order: 0,
-              source: formatSource(message),
-            },
-          ],
+          sourceTexts: sourceText
+            ? [
+                {
+                  content: sourceText,
+                  order: 0,
+                  source: formatSource(message),
+                },
+              ]
+            : [],
           meta: {
             telegramOrigin: {
               chatId: message.chat.id,
@@ -233,6 +241,8 @@ export class TelegramBotUpdate {
         },
         userId,
       );
+
+      const sourceTextsCount = sourceText ? 1 : 0;
 
       // Create media if any
       let mediaCount = 0;
@@ -275,9 +285,8 @@ export class TelegramBotUpdate {
           this.i18n.t('telegram.draft_created', {
             lang,
             args: {
-              content: truncateText(sourceText),
               mediaCount,
-              sourceTextsCount: 1,
+              sourceTextsCount,
             },
           }),
         ),
@@ -294,7 +303,7 @@ export class TelegramBotUpdate {
         menuMessageId: menuMessage.message_id,
         createdAt: new Date().toISOString(),
         metadata: {
-          sourceTextsCount: 1,
+          sourceTextsCount,
           mediaCount,
         },
       });
@@ -332,22 +341,21 @@ export class TelegramBotUpdate {
       const extracted = extractMessageContent(message);
       const sourceText = extracted.text || '';
 
-      // Update publication with new source text
-      const currentSourceTexts = Array.isArray(publication.sourceTexts)
-        ? publication.sourceTexts
-        : [];
-      const newSourceTexts = [
-        ...currentSourceTexts,
-        {
-          content: sourceText,
-          order: currentSourceTexts.length,
-          source: formatSource(message),
-        },
-      ];
-
-      await this.publicationsService.update(session.publicationId, userId, {
-        sourceTexts: newSourceTexts,
-      });
+      // Update publication with new source text if present
+      let sourceTextAdded = false;
+      if (sourceText) {
+        await this.publicationsService.update(session.publicationId, userId, {
+          sourceTexts: [
+            {
+              content: sourceText,
+              order: session.metadata.sourceTextsCount,
+              source: formatSource(message),
+            },
+          ],
+          appendSourceTexts: true,
+        });
+        sourceTextAdded = true;
+      }
 
       // Add media if any
       let newMediaCount = 0;
@@ -379,9 +387,9 @@ export class TelegramBotUpdate {
         }
       }
 
-      // Update session metadata
+      // Update session metadata in Redis FIRST to reduce race conditions for subsequent messages
       await this.sessionService.updateMetadata(String(telegramId), {
-        sourceTextsCount: newSourceTexts.length,
+        sourceTextsCount: session.metadata.sourceTextsCount + (sourceTextAdded ? 1 : 0),
         mediaCount: session.metadata.mediaCount + newMediaCount,
       });
 
@@ -395,27 +403,29 @@ export class TelegramBotUpdate {
         .text(String(this.i18n.t('telegram.button_done', { lang })), 'done')
         .text(String(this.i18n.t('telegram.button_cancel', { lang })), 'cancel');
 
+      const finalSourceTextsCount = session.metadata.sourceTextsCount + (sourceTextAdded ? 1 : 0);
+      const finalMediaCount = session.metadata.mediaCount + newMediaCount;
+
       const menuMessage = await ctx.reply(
         String(
           this.i18n.t('telegram.draft_updated', {
             lang,
             args: {
-              content: truncateText(sourceText || ''),
-              mediaCount: session.metadata.mediaCount + newMediaCount,
-              sourceTextsCount: newSourceTexts.length,
+              mediaCount: finalMediaCount,
+              sourceTextsCount: finalSourceTextsCount,
             },
           }),
         ),
         { reply_markup: keyboard },
       );
 
-      // Update session with new menu message ID
+      // Update session with new menu message ID and fresh metadata
       await this.sessionService.setSession(String(telegramId), {
         ...session,
         menuMessageId: menuMessage.message_id,
         metadata: {
-          sourceTextsCount: newSourceTexts.length,
-          mediaCount: session.metadata.mediaCount + newMediaCount,
+          sourceTextsCount: finalSourceTextsCount,
+          mediaCount: finalMediaCount,
         },
       });
 
