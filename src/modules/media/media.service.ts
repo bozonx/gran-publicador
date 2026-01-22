@@ -211,8 +211,9 @@ export class MediaService {
       throw new InternalServerErrorException('Media Storage service is not configured');
     }
 
-    // Use global FormData and fetch for better streaming support in modern Node
-    const formData = new globalThis.FormData();
+    // Use form-data library for streaming support
+    const FormData = (await import('form-data')).default;
+    const formData = new FormData();
     formData.append('appId', config.appId);
     if (userId) formData.append('userId', userId);
     if (purpose) formData.append('purpose', purpose);
@@ -228,20 +229,17 @@ export class MediaService {
       `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
     );
 
-    // To ensure binary data is sent correctly (and not the string "[object ReadableStream]"),
-    // we collect chunks from the stream. While this buffers the file in memory,
-    // it's the most reliable way to ensure multipart correctness in modern Node.
-    const chunks: any[] = [];
-    for await (const chunk of fileStream) {
-      chunks.push(chunk);
-    }
-    
-    formData.append('file', new globalThis.File(chunks, filename, { type: mimetype }));
+    // Stream the file directly
+    formData.append('file', fileStream, { filename, contentType: mimetype });
 
     try {
+      const formHeaders = formData.getHeaders();
       const response = await request(`${config.serviceUrl}/files`, {
         method: 'POST',
-        body: formData as any,
+        body: formData,
+        headers: {
+          ...formHeaders,
+        },
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
