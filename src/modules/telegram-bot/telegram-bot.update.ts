@@ -332,7 +332,7 @@ export class TelegramBotUpdate {
 
         await this.publicationsService.addMedia(publication.id, userId, [
           {
-            mediaId: media.id,
+            id: media.id,
             order: mediaCount,
             hasSpoiler: mediaItem.hasSpoiler || false,
           },
@@ -452,7 +452,7 @@ export class TelegramBotUpdate {
 
         await this.publicationsService.addMedia(session.publicationId, userId, [
           {
-            mediaId: media.id,
+            id: media.id,
             order: session.metadata.mediaCount + newMediaCount,
             hasSpoiler: mediaItem.hasSpoiler || false,
           },
