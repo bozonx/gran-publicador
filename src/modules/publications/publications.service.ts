@@ -24,6 +24,7 @@ import {
   OwnershipType,
 } from './dto/index.js';
 import { PublicationMediaInputDto } from './dto/publication-media-input.dto.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 
 @Injectable()
 export class PublicationsService {
@@ -114,7 +115,7 @@ export class PublicationsService {
   public async create(data: CreatePublicationDto, userId?: string) {
     if (userId && data.projectId) {
       // Check if user has access to the project
-      await this.permissions.checkProjectAccess(data.projectId, userId);
+      await this.permissions.checkPermission(data.projectId, userId, PermissionKey.PUBLICATIONS_CREATE);
     }
 
     // Validation for personal drafts (no project)
@@ -296,7 +297,7 @@ export class PublicationsService {
       publishedAfter?: Date;
     },
   ) {
-    await this.permissions.checkProjectAccess(projectId, userId);
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PUBLICATIONS_READ);
 
     const where = PublicationQueryBuilder.buildWhere(userId, projectId, filters);
     const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
@@ -622,14 +623,14 @@ export class PublicationsService {
   public async update(id: string, userId: string, data: UpdatePublicationDto) {
     const publication = await this.findOne(id, userId);
 
-    // Check if user is author or has admin rights
-    if (publication.createdBy !== userId) {
-      if (!publication.projectId) {
-        throw new NotFoundException('Publication not found');
+    if (publication.projectId) {
+      if (publication.createdBy === userId) {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+      } else {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       }
-      await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        'ADMIN',
-      ]);
+    } else if (publication.createdBy !== userId) {
+      throw new NotFoundException('Publication not found');
     }
 
     // Permission check for moving to another project
@@ -1022,15 +1023,14 @@ export class PublicationsService {
   public async remove(id: string, userId: string) {
     const publication = await this.findOne(id, userId);
 
-    // Check if user is author or has admin rights
-    if (publication.createdBy !== userId) {
-      if (publication.projectId) {
-        await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          'ADMIN',
-        ]);
+    if (publication.projectId) {
+      if (publication.createdBy === userId) {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_OWN);
       } else {
-        throw new ForbiddenException('Access denied to personal draft');
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_ALL);
       }
+    } else if (publication.createdBy !== userId) {
+      throw new ForbiddenException('Access denied to personal draft');
     }
 
     return this.prisma.publication.delete({
@@ -1246,15 +1246,14 @@ export class PublicationsService {
   public async addMedia(publicationId: string, userId: string, media: any[]) {
     const publication = await this.findOne(publicationId, userId);
 
-    // Check if user is author or has admin rights
-    if (publication.createdBy !== userId) {
-      if (publication.projectId) {
-        await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          'ADMIN',
-        ]);
+    if (publication.projectId) {
+      if (publication.createdBy === userId) {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
       } else {
-        throw new ForbiddenException('Access denied to personal draft');
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       }
+    } else if (publication.createdBy !== userId) {
+      throw new ForbiddenException('Access denied to personal draft');
     }
 
     // Get the current max order
@@ -1315,15 +1314,14 @@ export class PublicationsService {
   public async removeMedia(publicationId: string, userId: string, mediaId: string) {
     const publication = await this.findOne(publicationId, userId);
 
-    // Check if user is author or has admin rights
-    if (publication.createdBy !== userId) {
-      if (publication.projectId) {
-        await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          'ADMIN',
-        ]);
+    if (publication.projectId) {
+      if (publication.createdBy === userId) {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
       } else {
-        throw new ForbiddenException('Access denied to personal draft');
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       }
+    } else if (publication.createdBy !== userId) {
+      throw new ForbiddenException('Access denied to personal draft');
     }
 
     // Find the publication media entry
@@ -1361,15 +1359,14 @@ export class PublicationsService {
   ) {
     const publication = await this.findOne(publicationId, userId);
 
-    // Check if user is author or has admin rights
-    if (publication.createdBy !== userId) {
-      if (publication.projectId) {
-        await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          'ADMIN',
-        ]);
+    if (publication.projectId) {
+      if (publication.createdBy === userId) {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
       } else {
-        throw new ForbiddenException('Access denied to personal draft');
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       }
+    } else if (publication.createdBy !== userId) {
+      throw new ForbiddenException('Access denied to personal draft');
     }
 
     // Update order for each media item in a transaction
@@ -1408,15 +1405,14 @@ export class PublicationsService {
   ) {
     const publication = await this.findOne(publicationId, userId);
 
-    // Check if user is author or has admin rights
-    if (publication.createdBy !== userId) {
-      if (publication.projectId) {
-        await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          'ADMIN',
-        ]);
+    if (publication.projectId) {
+      if (publication.createdBy === userId) {
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
       } else {
-        throw new ForbiddenException('Access denied to personal draft');
+        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       }
+    } else if (publication.createdBy !== userId) {
+      throw new ForbiddenException('Access denied to personal draft');
     }
 
     return this.prisma.publicationMedia.update({

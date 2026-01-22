@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RolesService } from '../roles/roles.service.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 
 @Injectable()
 export class ProjectsService {
@@ -448,11 +449,7 @@ export class ProjectsService {
   }
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
-    // TODO: Update to use new permission system
-    // await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can update project');
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
     
     return this.prisma.project.update({
       where: { id: projectId },
@@ -494,7 +491,7 @@ export class ProjectsService {
   }
 
   public async findMembers(projectId: string, userId: string) {
-    // TODO: Update to use new permission system - any member can view members
+    // Any member can view members
     await this.permissions.checkProjectAccess(projectId, userId);
 
     const members = await this.prisma.projectMember.findMany({
@@ -526,10 +523,7 @@ export class ProjectsService {
   }
 
   public async addMember(projectId: string, userId: string, data: AddMemberDto) {
-    // TODO: Update to use new permission system
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can add members');
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
     let userToAdd;
 
@@ -597,10 +591,7 @@ export class ProjectsService {
     memberUserId: string,
     data: UpdateMemberDto,
   ) {
-    // TODO: Update to use new permission system
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can update member roles');
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
@@ -621,10 +612,7 @@ export class ProjectsService {
     this.logger.log(
       `removeMember: projectId=${projectId}, actor=${userId}, target=${memberUserId}`,
     );
-    // TODO: Update to use new permission system
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can remove members');
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },

@@ -5,6 +5,7 @@ import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.const
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateChannelDto, UpdateChannelDto, ChannelResponseDto } from './dto/index.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 
 @Injectable()
 export class ChannelsService {
@@ -22,10 +23,11 @@ export class ChannelsService {
     projectId: string,
     data: Omit<CreateChannelDto, 'projectId'>,
   ) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      'ADMIN',
-      'EDITOR',
-    ]);
+    await this.permissions.checkPermission(
+      projectId,
+      userId,
+      PermissionKey.CHANNELS_CREATE,
+    );
 
     return this.prisma.channel.create({
       data: {
@@ -50,7 +52,11 @@ export class ChannelsService {
     userId: string,
     options: { allowArchived?: boolean; isActive?: boolean; limit?: number } = {},
   ): Promise<ChannelResponseDto[]> {
-    await this.permissions.checkProjectAccess(projectId, userId);
+    await this.permissions.checkPermission(
+      projectId,
+      userId,
+      PermissionKey.CHANNELS_READ,
+    );
 
     const publishedPostFilter = { status: 'PUBLISHED' as const };
 
@@ -96,6 +102,106 @@ export class ChannelsService {
     });
 
     return channels.map(channel => this.mapToDto(channel, countsMap.get(channel.id)));
+  }
+
+// ... (skip findAllForUser as it iterates projects)
+
+  public async update(id: string, userId: string, data: UpdateChannelDto) {
+    const channel = await this.findOne(id, userId, true);
+    await this.permissions.checkPermission(
+      channel.projectId,
+      userId,
+      PermissionKey.CHANNELS_UPDATE,
+    );
+
+    return this.prisma.channel.update({
+      where: { id },
+      data: {
+        name: data.name,
+        description: data.description,
+        channelIdentifier: data.channelIdentifier,
+        credentials: data.credentials ? (data.credentials as any) : undefined,
+        preferences: data.preferences ? (data.preferences as any) : undefined,
+        isActive: data.isActive,
+        tags: data.tags,
+        language: data.language,
+      },
+    });
+  }
+
+  public async remove(id: string, userId: string) {
+    const channel = await this.findOne(id, userId, true);
+    await this.permissions.checkPermission(
+      channel.projectId,
+      userId,
+      PermissionKey.CHANNELS_DELETE,
+    );
+
+    return this.prisma.$transaction(async tx => {
+      // 1. Find all publications associated with this channel
+      const linkedPublications = await tx.post.findMany({
+        where: { channelId: id },
+        select: { publicationId: true },
+        distinct: ['publicationId'],
+      });
+
+      const linkedPubIds = linkedPublications.map(p => p.publicationId);
+
+      if (linkedPubIds.length > 0) {
+        // 2. Check which of these publications have posts in OTHER channels
+        const multiChannelPosts = await tx.post.findMany({
+          where: {
+            publicationId: { in: linkedPubIds },
+            channelId: { not: id },
+          },
+          select: { publicationId: true },
+          distinct: ['publicationId'],
+        });
+
+        const multiChannelPubIds = new Set(multiChannelPosts.map(p => p.publicationId));
+
+        // 3. Identify "orphans" (publications that exist only in the channel being deleted)
+        const pubsToDelete = linkedPubIds.filter(pid => !multiChannelPubIds.has(pid));
+
+        // 4. Delete orphans
+        if (pubsToDelete.length > 0) {
+          await tx.publication.deleteMany({
+            where: { id: { in: pubsToDelete } },
+          });
+        }
+      }
+
+      // 5. Delete the channel itself (Posts and AuthorSignatures will be deleted via cascade in DB schema)
+      return tx.channel.delete({ where: { id } });
+    });
+  }
+
+  public async archive(id: string, userId: string) {
+    const channel = await this.findOne(id, userId);
+    await this.permissions.checkPermission(
+      channel.projectId,
+      userId,
+      PermissionKey.CHANNELS_UPDATE,
+    );
+
+    return this.prisma.channel.update({
+      where: { id },
+      data: { archivedAt: new Date(), archivedBy: userId },
+    });
+  }
+
+  public async unarchive(id: string, userId: string) {
+    const channel = await this.findOne(id, userId, true);
+    await this.permissions.checkPermission(
+      channel.projectId,
+      userId,
+      PermissionKey.CHANNELS_UPDATE,
+    );
+
+    return this.prisma.channel.update({
+      where: { id },
+      data: { archivedAt: null, archivedBy: null },
+    });
   }
 
   /**
@@ -310,96 +416,7 @@ export class ChannelsService {
     );
   }
 
-  public async update(id: string, userId: string, data: UpdateChannelDto) {
-    const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      'ADMIN',
-      'EDITOR',
-    ]);
 
-    return this.prisma.channel.update({
-      where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        channelIdentifier: data.channelIdentifier,
-        credentials: data.credentials ? (data.credentials as any) : undefined,
-        preferences: data.preferences ? (data.preferences as any) : undefined,
-        isActive: data.isActive,
-        tags: data.tags,
-        language: data.language,
-      },
-    });
-  }
-
-  public async remove(id: string, userId: string) {
-    const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
-
-    return this.prisma.$transaction(async tx => {
-      // 1. Find all publications associated with this channel
-      const linkedPublications = await tx.post.findMany({
-        where: { channelId: id },
-        select: { publicationId: true },
-        distinct: ['publicationId'],
-      });
-
-      const linkedPubIds = linkedPublications.map(p => p.publicationId);
-
-      if (linkedPubIds.length > 0) {
-        // 2. Check which of these publications have posts in OTHER channels
-        const multiChannelPosts = await tx.post.findMany({
-          where: {
-            publicationId: { in: linkedPubIds },
-            channelId: { not: id },
-          },
-          select: { publicationId: true },
-          distinct: ['publicationId'],
-        });
-
-        const multiChannelPubIds = new Set(multiChannelPosts.map(p => p.publicationId));
-
-        // 3. Identify "orphans" (publications that exist only in the channel being deleted)
-        const pubsToDelete = linkedPubIds.filter(pid => !multiChannelPubIds.has(pid));
-
-        // 4. Delete orphans
-        if (pubsToDelete.length > 0) {
-          await tx.publication.deleteMany({
-            where: { id: { in: pubsToDelete } },
-          });
-        }
-      }
-
-      // 5. Delete the channel itself (Posts and AuthorSignatures will be deleted via cascade in DB schema)
-      return tx.channel.delete({ where: { id } });
-    });
-  }
-
-  public async archive(id: string, userId: string) {
-    const channel = await this.findOne(id, userId);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      'ADMIN',
-      'EDITOR',
-    ]);
-
-    return this.prisma.channel.update({
-      where: { id },
-      data: { archivedAt: new Date(), archivedBy: userId },
-    });
-  }
-
-  public async unarchive(id: string, userId: string) {
-    const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      'ADMIN',
-      'EDITOR',
-    ]);
-
-    return this.prisma.channel.update({
-      where: { id },
-      data: { archivedAt: null, archivedBy: null },
-    });
-  }
 
   private mapToDto(
     channel: any,
