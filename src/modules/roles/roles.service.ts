@@ -138,12 +138,13 @@ export class RolesService {
       throw new ForbiddenException('Only project owner can create roles');
     }
 
-    // Check if role name already exists
-    const existing = await this.prisma.role.findUnique({
+    // Check if role name already exists (case-insensitive)
+    const existing = await this.prisma.role.findFirst({
       where: {
-        projectId_name: {
-          projectId,
-          name: data.name,
+        projectId,
+        name: {
+          equals: data.name,
+          mode: 'insensitive',
         },
       },
     });
@@ -190,11 +191,12 @@ export class RolesService {
 
     // If updating name, check uniqueness
     if (data.name && data.name !== role.name) {
-      const existing = await this.prisma.role.findUnique({
+      const existing = await this.prisma.role.findFirst({
         where: {
-          projectId_name: {
-            projectId: role.projectId,
-            name: data.name,
+          projectId: role.projectId,
+          name: {
+            equals: data.name,
+            mode: 'insensitive',
           },
         },
       });
