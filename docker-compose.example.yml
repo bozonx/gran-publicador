@@ -27,3 +27,4 @@ services:
     #volumes:
     #  - ./test-data/redis:/data
     user: '1000:1000'
+    command: redis-server --save "" --appendonly no

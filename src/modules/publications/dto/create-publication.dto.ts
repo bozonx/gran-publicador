@@ -24,7 +24,7 @@ import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
-import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
+import { PublicationMetaDto, SourceTextMetaDto } from '../../../common/dto/json-objects.dto.js';
 
 
 /**
@@ -47,6 +47,12 @@ export class SourceTextDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   @IsOptional()
   public source?: string;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => SourceTextMetaDto)
+  public meta?: SourceTextMetaDto;
 }
 
 /**

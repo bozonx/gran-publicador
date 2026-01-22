@@ -290,6 +290,9 @@ export class TelegramBotUpdate {
             content: extracted.text,
             order: aggregatedSourceTexts.length,
             source: formatSource(msg),
+            meta: {
+              repost: extracted.repostInfo,
+            },
           });
         }
 
@@ -301,6 +304,9 @@ export class TelegramBotUpdate {
                 content: transcribedText,
                 order: aggregatedSourceTexts.length,
                 source: formatSource(msg),
+                meta: {
+                  repost: extracted.repostInfo,
+                },
               });
             }
             continue; // Do not add voice message to mediaItemsToAdd
@@ -309,6 +315,7 @@ export class TelegramBotUpdate {
           mediaItemsToAdd.push({
             ...m,
             hasSpoiler: m.hasSpoiler || false,
+            repostInfo: extracted.repostInfo,
           });
         }
       }
@@ -347,6 +354,7 @@ export class TelegramBotUpdate {
               thumbnailFileId: mediaItem.thumbnailFileId,
               hasSpoiler: mediaItem.hasSpoiler || false,
             },
+            repost: mediaItem.repostInfo,
           },
         });
 
@@ -436,6 +444,9 @@ export class TelegramBotUpdate {
             content: extracted.text,
             order: session.metadata.sourceTextsCount + newSourceTexts.length,
             source: formatSource(msg),
+            meta: {
+              repost: extracted.repostInfo,
+            },
           });
         }
 
@@ -447,11 +458,17 @@ export class TelegramBotUpdate {
                 content: transcribedText,
                 order: session.metadata.sourceTextsCount + newSourceTexts.length,
                 source: formatSource(msg),
+                meta: {
+                  repost: extracted.repostInfo,
+                },
               });
             }
             continue; // Do not add voice message to mediaItemsToAdd
           }
-          mediaItemsToAdd.push(m);
+          mediaItemsToAdd.push({
+            ...m,
+            repostInfo: extracted.repostInfo,
+          });
         }
       }
 
@@ -478,6 +495,7 @@ export class TelegramBotUpdate {
               thumbnailFileId: mediaItem.thumbnailFileId,
               hasSpoiler: mediaItem.hasSpoiler || false,
             },
+            repost: mediaItem.repostInfo,
           },
         });
 

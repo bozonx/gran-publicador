@@ -15,6 +15,42 @@ export class TelegramMediaMetaDto {
 }
 
 /**
+ * DTO for repost information.
+ */
+export class RepostInfoDto {
+  @IsString()
+  type!: string;
+
+  @IsOptional()
+  @IsNumber()
+  chatId?: number;
+
+  @IsOptional()
+  @IsString()
+  chatTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  chatUsername?: string;
+
+  @IsOptional()
+  @IsNumber()
+  messageId?: number;
+
+  @IsOptional()
+  @IsString()
+  authorName?: string;
+
+  @IsOptional()
+  @IsNumber()
+  authorId?: number;
+
+  @IsOptional()
+  @IsString()
+  authorUsername?: string;
+}
+
+/**
  * DTO for Media metadata.
  */
 export class MediaMetaDto {
@@ -23,6 +59,23 @@ export class MediaMetaDto {
   @ValidateNested()
   @Type(() => TelegramMediaMetaDto)
   telegram?: TelegramMediaMetaDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => RepostInfoDto)
+  repost?: RepostInfoDto;
+}
+
+/**
+ * DTO for Source Text metadata.
+ */
+export class SourceTextMetaDto {
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => RepostInfoDto)
+  repost?: RepostInfoDto;
 }
 
 /**
@@ -65,6 +118,12 @@ export class PublicationMetaDto {
   @ValidateNested()
   @Type(() => TelegramOriginDto)
   telegramOrigin?: TelegramOriginDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => RepostInfoDto)
+  repost?: RepostInfoDto;
 }
 
 

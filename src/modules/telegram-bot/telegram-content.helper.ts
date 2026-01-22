@@ -17,6 +17,15 @@ export interface ExtractedContent {
   media: ExtractedMedia[];
   isForward: boolean;
   forwardOrigin?: any;
+  repostInfo?: {
+    type: string;
+    chatId?: number;
+    chatTitle?: string;
+    chatUsername?: string;
+    messageId?: number;
+    authorName?: string;
+    authorId?: number;
+  };
 }
 
 /**
@@ -110,18 +119,6 @@ export function extractMedia(message: Message): ExtractedMedia[] {
 }
 
 /**
- * Extract all content from a message (text + media)
- */
-export function extractMessageContent(message: Message): ExtractedContent {
-  return {
-    text: extractText(message),
-    media: extractMedia(message),
-    isForward: !!message.forward_origin,
-    forwardOrigin: message.forward_origin,
-  };
-}
-
-/**
  * Format source string for sourceTexts array
  */
 export function formatSource(message: Message): string {
@@ -134,11 +131,59 @@ export function formatSource(message: Message): string {
     if (origin.type === 'user') {
       return `telegram:${origin.sender_user.id},unknown`;
     }
+    if (origin.type === 'chat') {
+      return `telegram:${origin.sender_chat.id},unknown`;
+    }
     return 'telegram:forward';
   }
 
   // For regular messages
   return `telegram:${message.chat.id},${message.message_id}`;
+}
+
+/**
+ * Extract detailed repost information from forward_origin
+ */
+export function extractRepostInfo(message: Message): any {
+  if (!message.forward_origin) return undefined;
+
+  const origin = message.forward_origin;
+  const info: any = { type: origin.type };
+
+  if (origin.type === 'channel') {
+    info.chatId = origin.chat.id;
+    info.chatTitle = origin.chat.title;
+    info.chatUsername = origin.chat.username;
+    info.messageId = origin.message_id;
+    info.authorName = origin.author_signature;
+  } else if (origin.type === 'user') {
+    info.authorId = origin.sender_user.id;
+    info.authorName = [origin.sender_user.first_name, origin.sender_user.last_name]
+      .filter(Boolean)
+      .join(' ');
+    info.authorUsername = origin.sender_user.username;
+  } else if (origin.type === 'chat') {
+    info.chatId = origin.sender_chat.id;
+    info.chatTitle = (origin.sender_chat as any).title;
+    info.chatUsername = (origin.sender_chat as any).username;
+  } else if (origin.type === 'hidden_user') {
+    info.authorName = origin.sender_user_name;
+  }
+
+  return info;
+}
+
+/**
+ * Extract all content from a message (text + media)
+ */
+export function extractMessageContent(message: Message): ExtractedContent {
+  return {
+    text: extractText(message),
+    media: extractMedia(message),
+    isForward: !!message.forward_origin,
+    forwardOrigin: message.forward_origin,
+    repostInfo: extractRepostInfo(message),
+  };
 }
 
 /**
