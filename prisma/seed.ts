@@ -1,9 +1,10 @@
-import { PrismaClient, ProjectRole, SocialMedia, PostType, PostStatus, PublicationStatus, NotificationType } from '../src/generated/prisma/client.js';
+import { PrismaClient, SocialMedia, PostType, PostStatus, PublicationStatus, NotificationType } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { config } from 'dotenv';
 import path from 'path';
 import { getDatabaseUrl } from '../src/config/database.config.js';
+import { DEFAULT_ROLE_PERMISSIONS } from '../src/common/constants/default-permissions.constants.js';
 
 // Manual env loading
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -32,6 +33,7 @@ async function main() {
     await prisma.publication.deleteMany({});
     await prisma.channel.deleteMany({});
     await prisma.projectMember.deleteMany({});
+    await prisma.role.deleteMany({}); // New table
     await prisma.project.deleteMany({});
     await prisma.user.deleteMany({});
 
@@ -152,22 +154,43 @@ async function main() {
             update: p,
             create: p,
         });
+
+        // CREATE SYSTEM ROLES FOR EACH PROJECT
+        await prisma.role.createMany({
+            data: [
+                { projectId: p.id, name: 'Admin', systemType: 'ADMIN', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.ADMIN as any },
+                { projectId: p.id, name: 'Editor', systemType: 'EDITOR', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.EDITOR as any },
+                { projectId: p.id, name: 'Viewer', systemType: 'VIEWER', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.VIEWER as any },
+            ]
+        });
     }
 
-    // 4. PROJECT MEMBERSHIPS (Owners are handled via ownerId, only adding collaborators here)
+    // 4. PROJECT MEMBERSHIPS
+    console.log('  Adding project memberships...');
+    
+    // Helper to get role ID by project and type
+    const getRoleId = async (projectId: string, systemType: string) => {
+        const role = await prisma.role.findFirst({
+            where: { projectId, systemType }
+        });
+        return role!.id;
+    };
+
+    const project1Id = projectData[0].id;
+    const project3Id = projectData[2].id;
+
     const memberships = [
-        { projectId: projectData[0].id, userId: editorUser.id, role: ProjectRole.EDITOR },
-        { projectId: projectData[0].id, userId: viewerUser.id, role: ProjectRole.VIEWER },
-        { projectId: projectData[2].id, userId: devUser.id, role: ProjectRole.ADMIN },
+        { projectId: project1Id, userId: editorUser.id, roleId: await getRoleId(project1Id, 'EDITOR') },
+        { projectId: project1Id, userId: viewerUser.id, roleId: await getRoleId(project1Id, 'VIEWER') },
+        { projectId: project3Id, userId: devUser.id, roleId: await getRoleId(project3Id, 'ADMIN') },
     ];
 
     for (const m of memberships) {
-        await prisma.projectMember.upsert({
-            where: { projectId_userId: { projectId: m.projectId, userId: m.userId } },
-            update: { role: m.role },
-            create: m,
+        await prisma.projectMember.create({
+            data: m
         });
     }
+
 
     // 5. CHANNELS
     const channelData = [
