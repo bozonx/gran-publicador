@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectsStore } from '~/stores/projects'
-import type { Project, ProjectWithRole, ProjectMemberWithUser, ProjectRole } from '~/stores/projects'
+import type { Project, ProjectWithRole, ProjectMemberWithUser } from '~/stores/projects'
 import { ArchiveEntityType } from '~/types/archive.types'
 
 export function useProjects() {
@@ -222,10 +222,10 @@ export function useProjects() {
         }
     }
 
-    async function addMember(projectId: string, username: string, role: string): Promise<boolean> {
+    async function addMember(projectId: string, username: string, roleId: string): Promise<boolean> {
         store.setLoading(true)
         try {
-            await api.post(`/projects/${projectId}/members`, { username, role })
+            await api.post(`/projects/${projectId}/members`, { username, roleId })
             toast.add({
                 title: t('common.success'),
                 description: t('projectMember.addSuccess'),
@@ -246,10 +246,10 @@ export function useProjects() {
         }
     }
 
-    async function updateMemberRole(projectId: string, userId: string, role: string): Promise<boolean> {
+    async function updateMemberRoleId(projectId: string, userId: string, roleId: string): Promise<boolean> {
         store.setLoading(true)
         try {
-            await api.patch(`/projects/${projectId}/members/${userId}`, { role })
+            await api.patch(`/projects/${projectId}/members/${userId}`, { roleId })
             toast.add({
                 title: t('common.success'),
                 description: t('projectMember.updateSuccess'),
@@ -308,10 +308,7 @@ export function useProjects() {
         return canEdit(project)
     }
 
-    function getRoleDisplayName(role: ProjectRole | undefined): string {
-        if (!role) return t('roles.viewer')
-        return t(`roles.${role}`)
-    }
+
 
     function clearCurrentProject() {
         store.setCurrentProject(null)
@@ -411,14 +408,14 @@ export function useProjects() {
         clearCurrentProject,
         fetchMembers,
         addMember,
-        updateMemberRole,
+        updateMemberRoleId,
         removeMember,
         canEdit,
         canDelete,
         archiveProject,
         unarchiveProject,
         canManageMembers,
-        getRoleDisplayName,
+
         // Problem detection
         getProjectProblems,
         getProjectProblemLevel,

@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
 import { useProjects } from '~/composables/useProjects'
-
-// type ProjectRole = Database['public']['Enums']['project_role']
-type ProjectRole = 'ADMIN' | 'EDITOR' | 'VIEWER'
+import { useRoles } from '~/composables/useRoles'
+import { SystemRoleType } from '~/types/roles.types'
 
 const props = defineProps<{
   modelValue: boolean
@@ -17,6 +15,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { addMember } = useProjects()
+const { fetchRoles, roles: projectRoles, getRoleDisplayName } = useRoles()
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -25,19 +24,30 @@ const isOpen = computed({
 
 const isLoading = ref(false)
 const username = ref('')
-const selectedRole = ref<ProjectRole>('VIEWER')
+const selectedRoleId = ref<string>('')
 
-const roleOptions = computed(() => [
-  { label: t('roles.admin'), value: 'ADMIN' },
-  { label: t('roles.editor'), value: 'EDITOR' },
-  { label: t('roles.viewer'), value: 'VIEWER' },
-])
+// Fetch roles when modal opens
+watch(() => props.modelValue, async (val) => {
+  if (val && props.projectId) {
+    await fetchRoles(props.projectId)
+    // Set default selection to Viewer or first available
+    const viewerRole = projectRoles.value.find(r => r.systemType === SystemRoleType.VIEWER)
+    selectedRoleId.value = viewerRole?.id || projectRoles.value[0]?.id || ''
+  }
+})
+
+const roleOptions = computed(() => {
+  return projectRoles.value.map(role => ({
+    label: getRoleDisplayName(role),
+    value: role.id
+  }))
+})
 
 async function handleInvite() {
-  if (!username.value) return
+  if (!username.value || !selectedRoleId.value) return
 
   isLoading.value = true
-  const success = await addMember(props.projectId, username.value, selectedRole.value)
+  const success = await addMember(props.projectId, username.value, selectedRoleId.value)
   isLoading.value = false
 
   if (success) {
@@ -49,25 +59,24 @@ async function handleInvite() {
 function closeModal() {
   isOpen.value = false
   username.value = ''
-  selectedRole.value = 'VIEWER'
+  selectedRoleId.value = ''
 }
 </script>
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('projectMember.invite')">
     <form class="space-y-4" @submit.prevent="handleInvite" id="invite-member-form">
-      <UFormField :label="t('projectMember.userUsernameOrId', 'Telegram Username or ID')" required>
+      <UFormField :label="t('projectMember.userUsernameOrId')">
         <UInput
           v-model="username"
-          :placeholder="t('projectMember.searchPlaceholder', '@username or 123456789')"
+          :placeholder="t('projectMember.searchPlaceholder')"
           autofocus
-          class="w-full"
         />
       </UFormField>
 
       <UFormField :label="t('common.role')">
         <USelectMenu
-          v-model="selectedRole"
+          v-model="selectedRoleId"
           :items="roleOptions"
           value-key="value"
           label-key="label"
@@ -80,7 +89,13 @@ function closeModal() {
       <UButton color="neutral" variant="ghost" @click="closeModal">
         {{ t('common.cancel') }}
       </UButton>
-      <UButton type="submit" form="invite-member-form" color="primary" :loading="isLoading" :disabled="!username">
+      <UButton 
+        type="submit" 
+        form="invite-member-form" 
+        color="primary" 
+        :loading="isLoading" 
+        :disabled="!username || !selectedRoleId"
+      >
         {{ t('projectMember.invite') }}
       </UButton>
     </template>

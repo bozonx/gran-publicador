@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
 import type { ProjectMemberWithUser } from '~/stores/projects'
 import type { TableColumn } from '@nuxt/ui'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
-
-// Re-defining BadgeColor locally as it matches UBadge prop type
-type BadgeColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+import { useRoles } from '~/composables/useRoles'
 
 const props = defineProps<{
   projectId: string
@@ -17,16 +14,26 @@ const {
   members,
   isLoading,
   removeMember,
-  updateMemberRole,
+  updateMemberRoleId,
   currentProject,
   canManageMembers,
 } = useProjects()
 
+const { 
+  fetchRoles, 
+  roles: projectRoles, 
+  getRoleDisplayName, 
+  getRoleBadgeColor 
+} = useRoles()
 
 // Init
-onMounted(() => {
+onMounted(async () => {
   if (props.projectId) {
-    fetchMembers(props.projectId)
+    // Fetch both members and roles
+    await Promise.all([
+      fetchMembers(props.projectId),
+      fetchRoles(props.projectId)
+    ])
   }
 })
 
@@ -38,16 +45,6 @@ const columns = computed<TableColumn<ProjectMemberWithUser>[]>(() => [
   { accessorKey: 'role', header: t('user.role') },
   { accessorKey: 'actions', header: '' },
 ])
-
-function getRoleBadgeColor(role: string | undefined): BadgeColor {
-  const colors: Record<string, BadgeColor> = {
-    owner: 'primary',
-    admin: 'secondary',
-    editor: 'info',
-    viewer: 'neutral',
-  }
-  return colors[(role || 'viewer').toLowerCase()] || 'neutral'
-}
 
 // Confirmation Modal State
 const isConfirmModalOpen = ref(false)
@@ -100,20 +97,20 @@ function getActionItems(row: any) {
   const actions = []
 
   // Role change actions
-  const roles = ['ADMIN', 'EDITOR', 'VIEWER']
-  const roleActions = roles
-    .filter((r) => r !== row.role?.toUpperCase())
+  // Filter out current role
+  const roleActions = projectRoles.value
+    .filter((r) => r.id !== row.role?.id)
     .map((role) => ({
-      label: t(`roles.${role.toLowerCase()}`),
+      label: getRoleDisplayName(role),
       icon: 'i-heroicons-arrow-path',
       onSelect: () => openConfirmModal({
           title: t('projectMember.changeRoleTitle'),
           description: t('projectMember.changeRoleConfirm', { 
               user: row.user.fullName || row.user.telegramUsername, 
-              role: t(`roles.${role.toLowerCase()}`) 
+              role: getRoleDisplayName(role) 
           }),
           confirmText: t('common.save'),
-          action: () => updateMemberRole(props.projectId, row.user.id, role)
+          action: () => updateMemberRoleId(props.projectId, row.user.id, role.id)
       }),
     }))
 
@@ -163,7 +160,6 @@ function getActionItems(row: any) {
             <div class="font-medium text-gray-900 dark:text-white text-sm">
               {{ row.original.user.fullName || row.original.user.telegramUsername }}
             </div>
-
           </div>
         </div>
       </template>
@@ -174,13 +170,13 @@ function getActionItems(row: any) {
           size="xs"
           variant="subtle"
         >
-          {{ t(`roles.${(row.original.role ?? 'viewer').toLowerCase()}`) }}
+          {{ getRoleDisplayName(row.original.role) }}
         </UBadge>
       </template>
 
       <template #actions-cell="{ row }">
         <UDropdownMenu
-          v-if="canManage && row.original.role?.toUpperCase() !== 'OWNER'"
+          v-if="canManage && row.original.userId !== currentProject?.ownerId"
           :items="getActionItems(row.original)"
         >
           <UButton

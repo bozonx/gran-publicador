@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useProjects } from '~/composables/useProjects'
 import { ArchiveEntityType } from '~/types/archive.types'
+import RolesList from '~/components/roles/RolesList.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -239,6 +240,15 @@ function cancelDelete() {
             :project-id="currentProject.id"
             @success="fetchMembers(currentProject.id)"
           />
+        </UiAppCard>
+
+        <!-- Roles Management -->
+        <UiAppCard
+          v-if="canManageMembers(currentProject)"
+          :title="t('roles.rolesAndPermissions')"
+          :description="t('roles.rolesDescription')"
+        >
+          <RolesList :project-id="currentProject.id" />
         </UiAppCard>
 
         <!-- Archive Project -->

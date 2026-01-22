@@ -232,9 +232,61 @@
     "userUsernameOrId": "Telegram Username or ID"
   },
   "roles": {
+    "title": "Roles",
+    "titlePlural": "Roles",
     "admin": "Administrator",
     "editor": "Editor",
-    "viewer": "Viewer"
+    "viewer": "Viewer",
+    "owner": "Owner",
+    "systemRole": "System Role",
+    "customRole": "Custom Role",
+    "createRole": "Create Role",
+    "editRole": "Edit Role",
+    "deleteRole": "Delete Role",
+    "roleName": "Role Name",
+    "roleNamePlaceholder": "Enter role name",
+    "rolesAndPermissions": "Roles & Permissions",
+    "rolesDescription": "Manage project roles and permissions",
+    "permissionsLabel": "Permissions",
+    "permissionsDescription": "Configure what this role can do",
+    "deleteConfirm": "Are you sure you want to delete this role?",
+    "deleteWarning": "This role is assigned to {count} member(s). Reassign them first.",
+    "createSuccess": "Role created successfully",
+    "updateSuccess": "Role updated successfully",
+    "deleteSuccess": "Role deleted successfully",
+    "cannotDeleteSystem": "Cannot delete system roles",
+    "memberCount": "{count} member | {count} members",
+    "noRoles": "No custom roles yet",
+    "fetchError": "Failed to fetch roles",
+    "createError": "Failed to create role",
+    "updateError": "Failed to update role",
+    "deleteError": "Failed to delete role",
+    "viewerDescription": "Can view content but cannot edit",
+    "editorDescription": "Can edit content but cannot manage settings",
+    "adminDescription": "Full access",
+    "permissions": {
+      "project": {
+        "title": "Project",
+        "read": "View project",
+        "update": "Edit project settings"
+      },
+      "channels": {
+        "title": "Channels",
+        "read": "View channels",
+        "create": "Create channels",
+        "update": "Edit channels",
+        "delete": "Delete channels"
+      },
+      "publications": {
+        "title": "Publications",
+        "read": "View publications",
+        "create": "Create publications",
+        "updateOwn": "Edit own publications",
+        "updateAll": "Edit all publications",
+        "deleteOwn": "Delete own publications",
+        "deleteAll": "Delete all publications"
+      }
+    }
   },
   "channel": {
     "viewChannel": "Go to channel page",

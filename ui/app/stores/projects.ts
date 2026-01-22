@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { Role } from '~/types/roles.types'
 
-export type ProjectRole = 'owner' | 'admin' | 'editor' | 'viewer'
+
+
 
 export interface Project {
   id: string
@@ -36,7 +38,7 @@ export interface ProjectMember {
   id: string
   projectId: string
   userId: string
-  role: ProjectRole
+  role: Role
   createdAt: string
 }
 
@@ -49,7 +51,7 @@ export interface ProjectWithOwner extends Project {
 }
 
 export interface ProjectWithRole extends ProjectWithOwner {
-  role?: ProjectRole
+  role?: string
   memberCount?: number
   channelCount?: number
   publicationsCount?: number

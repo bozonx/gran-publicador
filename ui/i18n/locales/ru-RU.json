@@ -232,9 +232,61 @@
     "userUsernameOrId": "Имя пользователя Telegram или ID"
   },
   "roles": {
+    "title": "Роли",
+    "titlePlural": "Роли",
     "admin": "Администратор",
     "editor": "Редактор",
-    "viewer": "Наблюдатель"
+    "viewer": "Наблюдатель",
+    "owner": "Владелец",
+    "systemRole": "Системная роль",
+    "customRole": "Кастомная роль",
+    "createRole": "Создать роль",
+    "editRole": "Редактировать роль",
+    "deleteRole": "Удалить роль",
+    "roleName": "Название роли",
+    "roleNamePlaceholder": "Введите название роли",
+    "rolesAndPermissions": "Роли и права",
+    "rolesDescription": "Управление ролями и правами проекта",
+    "permissionsLabel": "Права",
+    "permissionsDescription": "Настройте, что может делать эта роль",
+    "deleteConfirm": "Вы уверены, что хотите удалить эту роль?",
+    "deleteWarning": "Эта роль назначена {count} участникам. Сначала переназначьте их.",
+    "createSuccess": "Роль успешно создана",
+    "updateSuccess": "Роль успешно обновлена",
+    "deleteSuccess": "Роль успешно удалена",
+    "cannotDeleteSystem": "Нельзя удалить системные роли",
+    "memberCount": "{count} участник | {count} участника | {count} участников",
+    "noRoles": "Нет кастомных ролей",
+    "fetchError": "Не удалось загрузить роли",
+    "createError": "Не удалось создать роль",
+    "updateError": "Не удалось обновить роль",
+    "deleteError": "Не удалось удалить роль",
+    "viewerDescription": "Может просматривать контент, но не редактировать",
+    "editorDescription": "Может редактировать контент, но не настройки",
+    "adminDescription": "Полный доступ",
+    "permissions": {
+      "project": {
+        "title": "Проект",
+        "read": "Просмотр проекта",
+        "update": "Редактирование настроек проекта"
+      },
+      "channels": {
+        "title": "Каналы",
+        "read": "Просмотр каналов",
+        "create": "Создание каналов",
+        "update": "Редактирование каналов",
+        "delete": "Удаление каналов"
+      },
+      "publications": {
+        "title": "Публикации",
+        "read": "Просмотр публикаций",
+        "create": "Создание публикаций",
+        "updateOwn": "Редактирование своих публикаций",
+        "updateAll": "Редактирование всех публикаций",
+        "deleteOwn": "Удаление своих публикаций",
+        "deleteAll": "Удаление всех публикаций"
+      }
+    }
   },
   "channel": {
     "viewChannel": "Перейти на страницу канала",
