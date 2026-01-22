@@ -119,7 +119,21 @@
     "admin": "Administration",
     "my_projects": "My Projects",
     "drafts_and_templates": "Drafts and Templates",
-    "media_library": "Media Library"
+    "media_library": "Media Library",
+    "news": "News"
+  },
+  "news": {
+    "title": "News",
+    "search": "Search news...",
+    "searchPlaceholder": "Enter search query",
+    "noResults": "No news found",
+    "loading": "Loading news...",
+    "source": "Source",
+    "score": "Relevance",
+    "date": "Date",
+    "description": "Project news and updates",
+    "errorLoadingNews": "Failed to load news",
+    "serviceNotConfigured": "News service is not configured"
   },
   "auth": {
     "login": "Log in",

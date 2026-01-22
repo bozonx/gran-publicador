@@ -48,6 +48,11 @@ const mainNavItems = computed<NavItem[]>(() => [
     to: '/drafts',
     icon: 'i-heroicons-pencil-square',
   },
+  {
+    label: t('navigation.news', 'News'),
+    to: '/news',
+    icon: 'i-heroicons-newspaper',
+  },
 ])
 
 

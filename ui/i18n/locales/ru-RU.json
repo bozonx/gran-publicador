@@ -119,7 +119,21 @@
     "admin": "Администрирование",
     "my_projects": "Мои проекты",
     "media_library": "Медиатека",
-    "drafts_and_templates": "Черновики и заготовки"
+    "drafts_and_templates": "Черновики и заготовки",
+    "news": "Новости"
+  },
+  "news": {
+    "title": "Новости",
+    "search": "Поиск новостей...",
+    "searchPlaceholder": "Введите поисковый запрос",
+    "noResults": "Новости не найдены",
+    "loading": "Загрузка новостей...",
+    "source": "Источник",
+    "score": "Релевантность",
+    "date": "Дата",
+    "description": "Новости и обновления проекта",
+    "errorLoadingNews": "Не удалось загрузить новости",
+    "serviceNotConfigured": "Сервис новостей не настроен"
   },
   "auth": {
     "login": "Войти",

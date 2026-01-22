@@ -329,6 +329,13 @@ async function handleDelete() {
                 icon="i-heroicons-cog-6-tooth"
                 :to="`/projects/${currentProject.id}/settings`"
               />
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-newspaper"
+                :to="{ path: '/news', query: { q: currentProject.name } }"
+                :title="t('news.title')"
+              />
             </div>
           </div>
         </div>
