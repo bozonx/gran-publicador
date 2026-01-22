@@ -661,6 +661,8 @@ export class TelegramBotUpdate {
       return transcription.text;
     } catch (error) {
       this.logger.error(`Error transcribing voice: ${error}`);
+      const lang = ctx.from?.language_code;
+      await ctx.reply(String(this.i18n.t('telegram.error_stt_failed', { lang }))).catch(() => {});
       return '';
     }
   }

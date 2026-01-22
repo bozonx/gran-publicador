@@ -13,5 +13,6 @@
   "button_done": "✅ Continue",
   "button_cancel": "🗑 Cancel",
   "command_not_found": "❓ Unknown command: {command}",
-  "error_private_only": "🚫 This bot only works in private chats."
+  "error_private_only": "🚫 This bot only works in private chats.",
+  "error_stt_failed": "❌ Failed to recognize the voice message. Please try again or send text instead."
 }
