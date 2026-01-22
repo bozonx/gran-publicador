@@ -515,32 +515,46 @@ export class MediaService {
     mimeType?: string,
     filename?: string,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
-    const telegramBotToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
-    if (!telegramBotToken)
+    const telegramBotToken = this.configService.get<string>('app.telegramBotToken');
+    if (!telegramBotToken) {
+      this.logger.error('Telegram bot token not configured in MediaService');
       throw new InternalServerErrorException('Telegram bot token not configured');
+    }
 
-    const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
-    const getFileResponse = await request(getFileUrl, { method: 'GET' });
-    const getFileData = (await getFileResponse.body.json()) as any;
+    try {
+      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
+      const getFileResponse = await request(getFileUrl, { method: 'GET' });
+      const getFileData = (await getFileResponse.body.json()) as any;
 
-    if (!getFileData.ok || !getFileData.result?.file_path)
-      throw new NotFoundException('File not found in Telegram');
+      if (!getFileData.ok || !getFileData.result?.file_path) {
+        this.logger.warn(`File not found in Telegram: ${fileId}. Response: ${JSON.stringify(getFileData)}`);
+        throw new NotFoundException('File not found in Telegram');
+      }
 
-    const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
-    const downloadResponse = await request(downloadUrl, { method: 'GET' });
+      const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
+      const downloadResponse = await request(downloadUrl, { method: 'GET' });
 
-    if (downloadResponse.statusCode >= 400)
-      throw new InternalServerErrorException('Failed to download from Telegram');
+      if (downloadResponse.statusCode >= 400) {
+        this.logger.error(`Failed to download from Telegram: ${downloadUrl}, status: ${downloadResponse.statusCode}`);
+        throw new InternalServerErrorException('Failed to download from Telegram');
+      }
 
-    const headers: Record<string, string> = {};
-    if (mimeType) headers['Content-Type'] = mimeType;
-    if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
+      const headers: Record<string, string> = {};
+      if (mimeType) headers['Content-Type'] = mimeType;
+      if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
 
-    return {
-      stream: (downloadResponse.body as any) as Readable,
-      status: downloadResponse.statusCode,
-      headers,
-    };
+      return {
+        stream: (downloadResponse.body as any) as Readable,
+        status: downloadResponse.statusCode,
+        headers,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      this.logger.error(`Error during Telegram file retrieval: ${(error as Error).message}`, (error as Error).stack);
+      throw new InternalServerErrorException(`Telegram proxy error: ${(error as Error).message}`);
+    }
   }
 
   public async checkMediaAccess(mediaId: string, userId: string): Promise<void> {
