@@ -34,6 +34,7 @@ const defaultPermissions: RolePermissions = {
 
 const form = ref({
   name: '',
+  description: '',
   permissions: structuredClone(defaultPermissions)
 })
 
@@ -42,6 +43,7 @@ watch(() => props.role, (newRole) => {
   if (newRole) {
     form.value = {
       name: newRole.name,
+      description: newRole.description || '',
       permissions: {
         project: { ...newRole.permissions.project },
         channels: { ...newRole.permissions.channels },
@@ -52,6 +54,7 @@ watch(() => props.role, (newRole) => {
     // Reset for create
     form.value = {
       name: '',
+      description: '',
       permissions: structuredClone(defaultPermissions)
     }
   }
@@ -62,6 +65,7 @@ watch(() => props.modelValue, (val) => {
   if (val && !props.role) {
     form.value = {
       name: '',
+      description: '',
       permissions: structuredClone(defaultPermissions)
     }
   }
@@ -78,11 +82,13 @@ async function handleSubmit() {
   if (isEditing.value && props.role) {
     result = await updateRole(props.role.id, {
       name: isSystem.value ? undefined : form.value.name, // System roles cannot change name
+      description: form.value.description,
       permissions: form.value.permissions
     })
   } else {
     result = await createRole(props.projectId, {
       name: form.value.name,
+      description: form.value.description,
       permissions: form.value.permissions
     })
   }
@@ -114,6 +120,14 @@ async function handleSubmit() {
         <p v-if="isSystem" class="text-xs text-gray-500 mt-1">
           {{ t('roles.systemRole') }} - {{ t('roles.cannotDeleteSystem') }}
         </p>
+      </UFormField>
+
+      <UFormField :label="t('roles.description', 'Description')">
+        <UTextarea
+          v-model="form.description"
+          :placeholder="t('roles.descriptionPlaceholder', 'Enter role description...')"
+          :rows="2"
+        />
       </UFormField>
 
       <div class="border-t border-gray-200 dark:border-gray-800 pt-4">

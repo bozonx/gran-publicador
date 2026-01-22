@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsObject, ValidateNested, MaxLength, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsObject, ValidateNested, MaxLength, IsBoolean, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RolePermissions } from '../../../common/types/permissions.types.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
@@ -64,6 +64,11 @@ export class CreateRoleDto {
   @IsNotEmpty()
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   public name!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
+  public description?: string;
 
   @ValidateNested()
   @Type(() => RolePermissionsDto)

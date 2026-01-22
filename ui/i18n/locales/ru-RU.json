@@ -245,6 +245,8 @@
     "deleteRole": "Удалить роль",
     "roleName": "Название роли",
     "roleNamePlaceholder": "Введите название роли",
+    "description": "Описание",
+    "descriptionPlaceholder": "Введите описание роли",
     "rolesAndPermissions": "Роли и права",
     "rolesDescription": "Управление ролями и правами проекта",
     "permissionsLabel": "Права",

@@ -98,6 +98,7 @@ model Role {
   id          String   @id @default(uuid())
   projectId   String   @map("project_id")
   name        String
+  description String?
   // System role (ADMIN, EDITOR, VIEWER) or custom role
   isSystem    Boolean  @default(false) @map("is_system")
   // System role type for identification (ADMIN, EDITOR, VIEWER)

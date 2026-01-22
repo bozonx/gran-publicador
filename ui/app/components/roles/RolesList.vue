@@ -116,24 +116,27 @@ function handleSuccess() {
       class="w-full"
     >
       <template #name-cell="{ row }">
-        <div class="flex items-center gap-2">
-          <span>{{ getRoleDisplayName(row.original) }}</span>
-          <UBadge 
-            v-if="row.original.isSystem" 
-            :color="getRoleBadgeColor(row.original)" 
-            size="xs" 
-            variant="subtle"
-          >
-            {{ t('roles.systemRole') }}
-          </UBadge>
-          <UBadge 
-            v-else 
-            color="neutral" 
-            size="xs" 
-            variant="subtle"
-          >
-            {{ t('roles.customRole') }}
-          </UBadge>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="font-medium">{{ getRoleDisplayName(row.original) }}</span>
+            <UBadge 
+              v-if="row.original.isSystem" 
+              :color="getRoleBadgeColor(row.original)" 
+              size="xs" 
+              variant="subtle"
+            >
+              {{ t('roles.systemRole') }}
+            </UBadge>
+            <UBadge 
+              v-else 
+              color="neutral" 
+              size="xs" 
+              variant="subtle"
+            >
+              {{ t('roles.customRole') }}
+            </UBadge>
+          </div>
+          <span v-if="row.original.description" class="text-xs text-gray-500 font-normal mt-0.5">{{ row.original.description }}</span>
         </div>
       </template>
 

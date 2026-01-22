@@ -9,6 +9,11 @@ export class UpdateRoleDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   public name?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
+  public description?: string;
+
   @ValidateNested()
   @Type(() => RolePermissionsDto)
   @IsOptional()

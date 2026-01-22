@@ -156,6 +156,7 @@ export class RolesService {
       data: {
         projectId,
         name: data.name,
+        description: data.description,
         isSystem: false,
         systemType: null,
         permissions: data.permissions as any,
@@ -207,6 +208,7 @@ export class RolesService {
       where: { id },
       data: {
         name: data.name,
+        description: data.description,
         permissions: data.permissions ? (data.permissions as any) : undefined,
       },
     });

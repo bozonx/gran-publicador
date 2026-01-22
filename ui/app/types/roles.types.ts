@@ -43,6 +43,7 @@ export interface Role {
   id: string
   projectId: string
   name: string
+  description?: string | null
   isSystem: boolean
   systemType: SystemRoleType | null
   permissions: RolePermissions

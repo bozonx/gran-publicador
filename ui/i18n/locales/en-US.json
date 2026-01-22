@@ -245,6 +245,8 @@
     "deleteRole": "Delete Role",
     "roleName": "Role Name",
     "roleNamePlaceholder": "Enter role name",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter role description",
     "rolesAndPermissions": "Roles & Permissions",
     "rolesDescription": "Manage project roles and permissions",
     "permissionsLabel": "Permissions",
