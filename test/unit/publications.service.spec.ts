@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { PermissionKey } from '../../src/common/types/permissions.types.js';
 import { PublicationsService } from '../../src/modules/publications/publications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
@@ -45,6 +46,7 @@ describe('PublicationsService (unit)', () => {
     checkProjectAccess: jest.fn() as any,
     checkProjectPermission: jest.fn() as any,
     getUserProjectRole: jest.fn() as any,
+    checkPermission: jest.fn() as any,
   };
 
   beforeAll(async () => {
@@ -86,7 +88,7 @@ describe('PublicationsService (unit)', () => {
         language: 'ru-RU',
       };
 
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 
       const mockPublication = {
         id: 'pub-1',
@@ -107,11 +109,15 @@ describe('PublicationsService (unit)', () => {
         meta: {},
         sourceTexts: [],
       });
-      expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith(projectId, userId);
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        PermissionKey.PUBLICATIONS_CREATE,
+      );
     });
 
     it('should throw ForbiddenException when user does not have access', async () => {
-      mockPermissionsService.checkProjectAccess.mockRejectedValue(new ForbiddenException());
+      mockPermissionsService.checkPermission.mockRejectedValue(new ForbiddenException());
       await expect(service.create({ projectId: 'p1', content: 'c' } as any, 'u')).rejects.toThrow(
         ForbiddenException,
       );
@@ -123,7 +129,7 @@ describe('PublicationsService (unit)', () => {
       const userId = 'user-1';
       const projectId = 'project-1';
 
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findMany.mockResolvedValue([{ id: 'p1' }]);
       mockPrismaService.publication.count.mockResolvedValue(1);
 
@@ -155,7 +161,7 @@ describe('PublicationsService (unit)', () => {
         issueType: IssueType.FAILED,
       };
 
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findMany.mockResolvedValue([]);
       mockPrismaService.publication.count.mockResolvedValue(0);
 
@@ -199,7 +205,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.update.mockResolvedValue({ ...mockPublication, ...updateDto });
 
       const result = await service.update(publicationId, userId, updateDto);
@@ -213,8 +219,7 @@ describe('PublicationsService (unit)', () => {
         createdBy: 'other',
         projectId: 'p1',
       });
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
-      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined); // Admin has perm
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined); // Admin has perm
       mockPrismaService.publication.update.mockResolvedValue({});
 
       await expect(service.update('p1', userId, { title: 't' })).resolves.toBeDefined();
@@ -233,7 +238,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.post.updateMany.mockResolvedValue({ count: 2 });
       mockPrismaService.publication.update.mockResolvedValue({ ...mockPublication, ...updateDto });
 
@@ -263,7 +268,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.post.updateMany.mockResolvedValue({ count: 2 });
       mockPrismaService.publication.update.mockResolvedValue({ ...mockPublication, ...updateDto });
 
@@ -293,7 +298,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 
       await expect(service.update(publicationId, userId, updateDto)).rejects.toThrow(
         'Content or Media is required when status is READY',
@@ -314,7 +319,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.post.updateMany.mockResolvedValue({ count: 1 });
       mockPrismaService.publication.update.mockResolvedValue({
         ...mockPublication,
@@ -352,7 +357,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 
       await expect(service.update(publicationId, userId, updateDto)).rejects.toThrow(
         'Content or Media is required when setting scheduledAt',
@@ -374,7 +379,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.post.updateMany.mockResolvedValue({ count: 1 });
       mockPrismaService.publication.update.mockResolvedValue({
         ...mockPublication,
@@ -414,7 +419,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
         { id: 'channel-1', projectId: 'project-1' },
       ]);
@@ -449,7 +454,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
         { id: 'channel-1', projectId: 'project-1' },
       ]);
@@ -470,7 +475,7 @@ describe('PublicationsService (unit)', () => {
 
     it('should throw NotFoundException if some channels missing', async () => {
       mockPrismaService.publication.findUnique.mockResolvedValue({ projectId: 'p1' });
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([]);
       await expect(service.createPostsFromPublication('p1', ['c1'], 'u')).rejects.toThrow(
         NotFoundException,
@@ -490,7 +495,7 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.delete.mockResolvedValue(mockPublication);
 
       await expect(service.remove(publicationId, userId)).resolves.toBeDefined();
@@ -529,7 +534,7 @@ describe('PublicationsService (unit)', () => {
       const userId = 'u1';
       const projectId = 'p1';
 
-      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 
       // Setup items
       const scheduledFar = { id: '1', scheduledAt: new Date('2028-01-01'), posts: [] };

@@ -4,8 +4,9 @@ import { ProjectsService } from '../../src/modules/projects/projects.service.js'
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { ProjectRole } from '../../src/generated/prisma/client.js';
+import { SystemRoleType, PermissionKey } from '../../src/common/types/permissions.types.js';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
+import { RolesService } from '../../src/modules/roles/roles.service.js';
 
 describe('ProjectsService (unit)', () => {
   let service: ProjectsService;
@@ -50,10 +51,15 @@ describe('ProjectsService (unit)', () => {
     checkProjectAccess: jest.fn() as any,
     checkProjectPermission: jest.fn() as any,
     getUserProjectRole: jest.fn() as any,
+    checkPermission: jest.fn() as any,
   };
 
   const mockNotificationsService = {
     create: jest.fn() as any,
+  };
+
+  const mockRolesService = {
+    createDefaultRoles: jest.fn() as any,
   };
 
   beforeAll(async () => {
@@ -71,6 +77,10 @@ describe('ProjectsService (unit)', () => {
         {
           provide: NotificationsService,
           useValue: mockNotificationsService,
+        },
+        {
+          provide: RolesService,
+          useValue: mockRolesService,
         },
       ],
     }).compile();
@@ -140,7 +150,7 @@ describe('ProjectsService (unit)', () => {
           id: 'project-2',
           name: 'Project 2',
           ownerId: 'other-user',
-          members: [{ role: 'EDITOR' }],
+          members: [{ role: { name: 'EDITOR' } }],
           _count: { channels: 2, publications: 0 },
           publications: [],
           channels: [],
@@ -192,10 +202,10 @@ describe('ProjectsService (unit)', () => {
       const result = await service.update(projectId, userId, updateData);
 
       expect(result).toEqual(updatedProject);
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         projectId,
         userId,
-        ['ADMIN'], // Removed OWNER
+        PermissionKey.PROJECT_UPDATE,
       );
     });
   });
@@ -210,25 +220,25 @@ describe('ProjectsService (unit)', () => {
       mockPrismaService.projectMember.findUnique.mockResolvedValue(null);
       mockPrismaService.projectMember.create.mockResolvedValue({
         userId: userToAdd.id,
-        role: ProjectRole.VIEWER,
+        role: SystemRoleType.VIEWER,
       });
 
       await service.addMember(projectId, userId, {
         username: '@newuser',
-        role: ProjectRole.VIEWER,
+        roleId: 'role-viewer-id',
       });
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         projectId,
         userId,
-        [ProjectRole.ADMIN],
+        PermissionKey.PROJECT_UPDATE,
       );
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: { telegramUsername: 'newuser' },
       });
       expect(mockPrismaService.projectMember.create).toHaveBeenCalledWith({
-        data: { projectId, userId: userToAdd.id, role: ProjectRole.VIEWER },
-        include: { user: true },
+        data: { projectId, userId: userToAdd.id, roleId: 'role-viewer-id' },
+        include: { user: true, role: true },
       });
     });
 
@@ -241,14 +251,14 @@ describe('ProjectsService (unit)', () => {
       mockPrismaService.projectMember.findUnique.mockResolvedValue(null);
       mockPrismaService.projectMember.create.mockResolvedValue({
         userId: userToAdd.id,
-        role: ProjectRole.EDITOR,
+        role: SystemRoleType.EDITOR,
       });
 
       // Mock RegExp checking in service (which we can't easily mock since it's inline, but we pass digits)
 
       await service.addMember(projectId, userId, {
         username: '123456789',
-        role: ProjectRole.EDITOR,
+        roleId: 'role-editor-id',
       });
 
       // Should have called findUnique with BigInt
@@ -256,8 +266,8 @@ describe('ProjectsService (unit)', () => {
         where: { telegramId: 123456789n },
       });
       expect(mockPrismaService.projectMember.create).toHaveBeenCalledWith({
-        data: { projectId, userId: userToAdd.id, role: ProjectRole.EDITOR },
-        include: { user: true },
+        data: { projectId, userId: userToAdd.id, roleId: 'role-editor-id' },
+        include: { user: true, role: true },
       });
     });
 
@@ -266,7 +276,7 @@ describe('ProjectsService (unit)', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null); // Just in case logic tries both
 
       await expect(
-        service.addMember('proj', 'user', { username: '@unknown', role: ProjectRole.VIEWER }),
+        service.addMember('proj', 'user', { username: '@unknown', roleId: 'role-viewer-id' }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -275,7 +285,7 @@ describe('ProjectsService (unit)', () => {
       mockPrismaService.projectMember.findUnique.mockResolvedValue({ id: 'm1' });
 
       await expect(
-        service.addMember('proj', 'user', { username: '@exist', role: ProjectRole.VIEWER }),
+        service.addMember('proj', 'user', { username: '@exist', roleId: 'role-viewer-id' }),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -285,7 +295,7 @@ describe('ProjectsService (unit)', () => {
       const projectId = 'proj-1';
       const userId = 'user-1';
       const owner = { id: 'owner-u', telegramUsername: 'owner' };
-      const member = { id: 'm1', userId: 'u2', role: ProjectRole.ADMIN, user: { id: 'u2' } };
+      const member = { id: 'm1', userId: 'u2', role: SystemRoleType.ADMIN, user: { id: 'u2' } };
 
       mockPrismaService.projectMember.findMany.mockResolvedValue([member]);
       // Mock findUnique logic for owner injection
@@ -310,20 +320,20 @@ describe('ProjectsService (unit)', () => {
       const projectId = 'p1';
       const userId = 'u1';
       const memberUserId = 'u2';
-      const role = ProjectRole.EDITOR;
+      const roleId = 'role-editor-id';
 
       mockPrismaService.projectMember.findUnique.mockResolvedValue({
         id: 'm1',
-        role: ProjectRole.VIEWER,
+        role: SystemRoleType.VIEWER,
       });
-      mockPrismaService.projectMember.update.mockResolvedValue({ id: 'm1', role });
+      mockPrismaService.projectMember.update.mockResolvedValue({ id: 'm1', roleId });
 
-      await service.updateMemberRole(projectId, userId, memberUserId, { role });
+      await service.updateMemberRole(projectId, userId, memberUserId, { roleId });
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         projectId,
         userId,
-        [ProjectRole.ADMIN],
+        PermissionKey.PROJECT_UPDATE,
       );
       expect(mockPrismaService.projectMember.update).toHaveBeenCalled();
     });
@@ -337,16 +347,16 @@ describe('ProjectsService (unit)', () => {
 
       mockPrismaService.projectMember.findUnique.mockResolvedValue({
         id: 'm1',
-        role: ProjectRole.VIEWER,
+        role: SystemRoleType.VIEWER,
       });
       mockPrismaService.projectMember.delete.mockResolvedValue({ id: 'm1' });
 
       await service.removeMember(projectId, userId, memberUserId);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         projectId,
         userId,
-        [ProjectRole.ADMIN],
+        PermissionKey.PROJECT_UPDATE,
       );
       expect(mockPrismaService.projectMember.delete).toHaveBeenCalled();
     });

@@ -1,9 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ChannelsService } from '../../../src/modules/channels/channels.service.js';
-import { PrismaService } from '../../../src/modules/prisma/prisma.service.js';
-import { PermissionsService } from '../../../src/common/services/permissions.service.js';
+import { ChannelsService } from '../../src/modules/channels/channels.service.js';
+import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
+import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { PermissionKey } from '../../../src/common/types/permissions.types.js';
+import { PermissionKey } from '../../src/common/types/permissions.types.js';
 
 describe('ChannelsService (unit)', () => {
   let service: ChannelsService;
