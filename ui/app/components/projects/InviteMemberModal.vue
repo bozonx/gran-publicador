@@ -78,7 +78,7 @@ function closeModal() {
         <USelectMenu
           v-model="selectedRoleId"
           :items="roleOptions"
-          value-key="value"
+          value-attribute="value"
           label-key="label"
           class="w-full"
         />

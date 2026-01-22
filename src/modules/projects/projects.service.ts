@@ -496,7 +496,7 @@ export class ProjectsService {
 
     const members = await this.prisma.projectMember.findMany({
       where: { projectId },
-      include: { user: true },
+      include: { user: true, role: true },
     });
 
     // Manually fetch owner to append to the list (since OWNER role is removed from members table)
