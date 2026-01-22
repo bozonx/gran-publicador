@@ -34,6 +34,18 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot.on('message', ctx => this.telegramBotUpdate.onMessage(ctx));
     this.bot.on('callback_query:data', ctx => this.telegramBotUpdate.onCallbackQuery(ctx));
 
+    // Global error handler
+    this.bot.catch(err => {
+      const ctx = err.ctx;
+      this.logger.error(`Error in bot middleware for update ${ctx.update.update_id}:`);
+      const e = err.error;
+      if (e instanceof Error) {
+        this.logger.error(e.message, e.stack);
+      } else {
+        this.logger.error(`Unknown error: ${e}`);
+      }
+    });
+
     // Start bot
     this.bot
       .start({

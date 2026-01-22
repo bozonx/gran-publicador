@@ -201,28 +201,33 @@ export class TelegramBotUpdate {
 
     this.logger.debug(`Received callback from ${from.id}: ${data}`);
 
-    // Validate user
-    const validationResult = await this.validateUser(from.id, lang, ctx);
-    if (!validationResult.valid) {
-      await ctx.answerCallbackQuery();
-      return;
+    try {
+      // Validate user
+      const validationResult = await this.validateUser(from.id, lang, ctx);
+      if (!validationResult.valid) {
+        await ctx.answerCallbackQuery().catch(() => {});
+        return;
+      }
+
+      const user = validationResult.user!;
+      const session = await this.sessionService.getSession(String(from.id));
+
+      if (!session) {
+        await ctx.answerCallbackQuery().catch(() => {});
+        return;
+      }
+
+      if (data === 'done') {
+        await this.handleDone(ctx, user.id, from.id, lang, session);
+      } else if (data === 'cancel') {
+        await this.handleCancel(ctx, user.id, from.id, lang, session);
+      }
+
+      await ctx.answerCallbackQuery().catch(() => {});
+    } catch (error) {
+      this.logger.error(`Error in onCallbackQuery: ${error}`);
+      await ctx.answerCallbackQuery().catch(() => {});
     }
-
-    const user = validationResult.user!;
-    const session = await this.sessionService.getSession(String(from.id));
-
-    if (!session) {
-      await ctx.answerCallbackQuery();
-      return;
-    }
-
-    if (data === 'done') {
-      await this.handleDone(ctx, user.id, from.id, lang, session);
-    } else if (data === 'cancel') {
-      await this.handleCancel(ctx, user.id, from.id, lang, session);
-    }
-
-    await ctx.answerCallbackQuery();
   }
 
   /**
