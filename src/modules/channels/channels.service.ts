@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ProjectRole, Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -23,8 +23,8 @@ export class ChannelsService {
     data: Omit<CreateChannelDto, 'projectId'>,
   ) {
     await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-      ProjectRole.EDITOR,
+      'ADMIN',
+      'EDITOR',
     ]);
 
     return this.prisma.channel.create({
@@ -313,8 +313,8 @@ export class ChannelsService {
   public async update(id: string, userId: string, data: UpdateChannelDto) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.ADMIN,
-      ProjectRole.EDITOR,
+      'ADMIN',
+      'EDITOR',
     ]);
 
     return this.prisma.channel.update({
@@ -334,7 +334,7 @@ export class ChannelsService {
 
   public async remove(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, [ProjectRole.ADMIN]);
+    await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
 
     return this.prisma.$transaction(async tx => {
       // 1. Find all publications associated with this channel
@@ -378,8 +378,8 @@ export class ChannelsService {
   public async archive(id: string, userId: string) {
     const channel = await this.findOne(id, userId);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.ADMIN,
-      ProjectRole.EDITOR,
+      'ADMIN',
+      'EDITOR',
     ]);
 
     return this.prisma.channel.update({
@@ -391,8 +391,8 @@ export class ChannelsService {
   public async unarchive(id: string, userId: string) {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.ADMIN,
-      ProjectRole.EDITOR,
+      'ADMIN',
+      'EDITOR',
     ]);
 
     return this.prisma.channel.update({

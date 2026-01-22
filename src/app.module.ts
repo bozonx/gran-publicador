@@ -42,6 +42,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { LlmPromptTemplatesModule } from './modules/llm-prompt-templates/llm-prompt-templates.module.js';
 import { TelegramBotModule } from './modules/telegram-bot/index.js';
 import { AuthorSignaturesModule } from './modules/author-signatures/author-signatures.module.js';
+import { RolesModule } from './modules/roles/roles.module.js';
 
 @Module({
   imports: [
@@ -206,6 +207,7 @@ import { AuthorSignaturesModule } from './modules/author-signatures/author-signa
     NotificationsModule,
     LlmPromptTemplatesModule,
     AuthorSignaturesModule,
+    RolesModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],

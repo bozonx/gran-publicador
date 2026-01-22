@@ -10,7 +10,6 @@ import {
   PostStatus,
   PostType,
   Prisma,
-  ProjectRole,
   SocialMedia,
 } from '../../generated/prisma/client.js';
 import { randomUUID } from 'node:crypto';
@@ -629,7 +628,7 @@ export class PublicationsService {
         throw new NotFoundException('Publication not found');
       }
       await this.permissions.checkProjectPermission(publication.projectId, userId, [
-        ProjectRole.ADMIN,
+        'ADMIN',
       ]);
     }
 
@@ -1027,7 +1026,7 @@ export class PublicationsService {
     if (publication.createdBy !== userId) {
       if (publication.projectId) {
         await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Access denied to personal draft');
@@ -1071,7 +1070,7 @@ export class PublicationsService {
         if (pub.createdBy !== userId) {
           if (pub.projectId) {
             await this.permissions.checkProjectPermission(pub.projectId, userId, [
-              ProjectRole.ADMIN,
+              'ADMIN',
             ]);
           } else {
             throw new ForbiddenException('Access denied to personal draft');
@@ -1251,7 +1250,7 @@ export class PublicationsService {
     if (publication.createdBy !== userId) {
       if (publication.projectId) {
         await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Access denied to personal draft');
@@ -1320,7 +1319,7 @@ export class PublicationsService {
     if (publication.createdBy !== userId) {
       if (publication.projectId) {
         await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Access denied to personal draft');
@@ -1366,7 +1365,7 @@ export class PublicationsService {
     if (publication.createdBy !== userId) {
       if (publication.projectId) {
         await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Access denied to personal draft');
@@ -1413,7 +1412,7 @@ export class PublicationsService {
     if (publication.createdBy !== userId) {
       if (publication.projectId) {
         await this.permissions.checkProjectPermission(publication.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Access denied to personal draft');

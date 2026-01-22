@@ -1,6 +1,5 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
-  ProjectRole,
   Prisma,
   type Project,
   PublicationStatus,
@@ -12,8 +11,8 @@ import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.const
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
-
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { RolesService } from '../roles/roles.service.js';
 
 @Injectable()
 export class ProjectsService {
@@ -23,6 +22,7 @@ export class ProjectsService {
     private prisma: PrismaService,
     private permissions: PermissionsService,
     private notifications: NotificationsService,
+    private roles: RolesService,
   ) {}
 
   private hasNoCredentials(creds: any, socialMedia?: string): boolean {
@@ -65,6 +65,11 @@ export class ProjectsService {
           },
         });
 
+        // Create default roles for the project
+        await this.roles.createDefaultRoles(project.id);
+
+        this.logger.log(`Project "${project.name}" created by user ${userId}`);
+
         return project;
       },
       {
@@ -99,7 +104,7 @@ export class ProjectsService {
             publications: { where: { archivedAt: null } },
           },
         },
-        members: { where: { userId }, select: { role: true } },
+        members: { where: { userId }, select: { role: { select: { name: true } } } },
         publications: {
           where: { archivedAt: null },
           take: 1,
@@ -226,7 +231,7 @@ export class ProjectsService {
       return {
         ...project,
         channels: [],
-        role: project.ownerId === userId ? 'owner' : userMember?.role?.toLowerCase(),
+        role: project.ownerId === userId ? 'owner' : userMember?.role?.name?.toLowerCase(),
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
         lastPublicationAt,
@@ -249,7 +254,7 @@ export class ProjectsService {
         OR: [{ ownerId: userId }, { members: { some: { userId } } }],
       },
       include: {
-        members: { where: { userId }, select: { role: true } },
+        members: { where: { userId }, select: { role: { select: { name: true } } } },
         _count: { select: { channels: true, publications: true } },
         publications: {
           where: { archivedAt: null },
@@ -306,7 +311,7 @@ export class ProjectsService {
           project.ownerId === userId
             ? 'owner'
             : project.members.length > 0
-              ? project.members[0].role?.toLowerCase()
+              ? project.members[0].role?.name?.toLowerCase()
               : 'viewer',
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
@@ -443,7 +448,12 @@ export class ProjectsService {
   }
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    // await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can update project');
+    
     return this.prisma.project.update({
       where: { id: projectId },
       data: { ...data, preferences: data.preferences ? (data.preferences as any) : undefined },
@@ -451,12 +461,20 @@ export class ProjectsService {
   }
 
   public async remove(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can delete project');
+    
     return this.prisma.project.delete({ where: { id: projectId } });
   }
 
   public async archive(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can archive project');
+    
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: new Date(), archivedBy: userId },
@@ -464,7 +482,11 @@ export class ProjectsService {
   }
 
   public async unarchive(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can unarchive project');
+    
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: null, archivedBy: null },
@@ -472,11 +494,8 @@ export class ProjectsService {
   }
 
   public async findMembers(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, [
-      ProjectRole.ADMIN,
-      ProjectRole.EDITOR,
-      ProjectRole.VIEWER,
-    ]);
+    // TODO: Update to use new permission system - any member can view members
+    await this.permissions.checkProjectAccess(projectId, userId);
 
     const members = await this.prisma.projectMember.findMany({
       where: { projectId },
@@ -507,7 +526,10 @@ export class ProjectsService {
   }
 
   public async addMember(projectId: string, userId: string, data: AddMemberDto) {
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can add members');
 
     let userToAdd;
 
@@ -538,9 +560,9 @@ export class ProjectsService {
       data: {
         projectId,
         userId: userToAdd.id,
-        role: data.role,
+        roleId: data.roleId,
       },
-      include: { user: true },
+      include: { user: true, role: true },
     });
 
     // Notify user about project invitation
@@ -575,7 +597,10 @@ export class ProjectsService {
     memberUserId: string,
     data: UpdateMemberDto,
   ) {
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can update member roles');
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
@@ -587,8 +612,8 @@ export class ProjectsService {
 
     return this.prisma.projectMember.update({
       where: { id: member.id },
-      data: { role: data.role },
-      include: { user: true },
+      data: { roleId: data.roleId },
+      include: { user: true, role: true },
     });
   }
 
@@ -596,7 +621,10 @@ export class ProjectsService {
     this.logger.log(
       `removeMember: projectId=${projectId}, actor=${userId}, target=${memberUserId}`,
     );
-    await this.permissions.checkProjectPermission(projectId, userId, [ProjectRole.ADMIN]);
+    // TODO: Update to use new permission system
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can remove members');
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },

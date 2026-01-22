@@ -89,8 +89,30 @@ model Project {
   publications Publication[]
   llmPromptTemplates LlmPromptTemplate[]
   apiTokens    ApiTokenProject[]
+  roles        Role[]
 
   @@map("projects")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  name        String
+  // System role (ADMIN, EDITOR, VIEWER) or custom role
+  isSystem    Boolean  @default(false) @map("is_system")
+  // System role type for identification (ADMIN, EDITOR, VIEWER)
+  systemType  String?  @map("system_type")
+  // Role permissions stored as JSON
+  permissions Json
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members ProjectMember[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@map("roles")
 }
 
 model ApiTokenProject {
@@ -109,17 +131,18 @@ model ApiTokenProject {
 }
 
 model ProjectMember {
-  id        String      @id @default(uuid())
-  projectId String      @map("project_id")
-  userId    String      @map("user_id")
-  // User's role in the project (ADMIN, EDITOR, VIEWER)
-  role      ProjectRole @default(VIEWER)
-  createdAt DateTime    @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
   @@unique([projectId, userId])
+  @@index([roleId])
   @@map("project_members")
 }
 
@@ -365,12 +388,6 @@ model LlmPromptTemplate {
   @@map("llm_prompt_templates")
 }
 
-
-enum ProjectRole {
-  ADMIN
-  EDITOR
-  VIEWER
-}
 
 enum SocialMedia {
   TELEGRAM

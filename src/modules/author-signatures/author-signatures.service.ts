@@ -48,6 +48,7 @@ export class AuthorSignaturesService {
           include: {
             members: {
               where: { userId: currentUserId },
+              include: { role: true },
             },
           },
         },
@@ -60,7 +61,7 @@ export class AuthorSignaturesService {
 
     const isProjectOwner = channel.project.ownerId === currentUserId;
     const projectMember = channel.project.members[0];
-    const isProjectAdmin = projectMember?.role === 'ADMIN';
+    const isProjectAdmin = projectMember?.role?.systemType === 'ADMIN';
 
     if (isProjectOwner || isProjectAdmin) {
       // Project owner and admin see all signatures
@@ -161,6 +162,7 @@ export class AuthorSignaturesService {
               include: {
                 members: {
                   where: { userId },
+                  include: { role: true },
                 },
               },
             },
@@ -179,7 +181,7 @@ export class AuthorSignaturesService {
 
     const isProjectOwner = signature.channel.project.ownerId === userId;
     const projectMember = signature.channel.project.members[0];
-    const isProjectAdmin = projectMember?.role === 'ADMIN';
+    const isProjectAdmin = projectMember?.role?.systemType === 'ADMIN';
 
     return isProjectOwner || isProjectAdmin;
   }

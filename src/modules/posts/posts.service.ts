@@ -8,7 +8,6 @@ import {
 import {
   PostStatus,
   PostType,
-  ProjectRole,
   PublicationStatus,
 } from '../../generated/prisma/client.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -91,8 +90,8 @@ export class PostsService {
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
     await this.permissions.checkProjectPermission(channel.projectId, userId, [
-      ProjectRole.ADMIN,
-      ProjectRole.EDITOR,
+      'ADMIN',
+      'EDITOR',
     ]);
 
     // Verify publication exists and belongs to same project
@@ -440,7 +439,7 @@ export class PostsService {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Insufficient permissions');
@@ -562,7 +561,7 @@ export class PostsService {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
         await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          ProjectRole.ADMIN,
+          'ADMIN',
         ]);
       } else {
         throw new ForbiddenException('Insufficient permissions');
