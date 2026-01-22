@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { LlmController } from './llm.controller';
-import { LlmService } from './llm.service';
-import type { GenerateContentDto } from './dto/generate-content.dto';
+import { LlmController } from './llm.controller.js';
+import { LlmService } from './llm.service.js';
+import type { GenerateContentDto } from './dto/generate-content.dto.js';
 
 describe('LlmController', () => {
   let controller: LlmController;

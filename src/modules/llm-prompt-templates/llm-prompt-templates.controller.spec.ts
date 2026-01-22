@@ -1,10 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
-import { LlmPromptTemplatesController } from './llm-prompt-templates.controller';
-import { LlmPromptTemplatesService } from './llm-prompt-templates.service';
-import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
-import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
-import type { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto';
+import { LlmPromptTemplatesController } from './llm-prompt-templates.controller.js';
+import { LlmPromptTemplatesService } from './llm-prompt-templates.service.js';
+import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
+import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
+import type { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto.js';
 
 describe('LlmPromptTemplatesController', () => {
   let controller: LlmPromptTemplatesController;

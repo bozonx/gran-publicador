@@ -1,9 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { LlmPromptTemplatesService } from './llm-prompt-templates.service';
-import { PrismaService } from '../prisma/prisma.service';
-import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto';
-import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto';
+import { LlmPromptTemplatesService } from './llm-prompt-templates.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
+import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
 
 describe('LlmPromptTemplatesService', () => {
   let service: LlmPromptTemplatesService;
