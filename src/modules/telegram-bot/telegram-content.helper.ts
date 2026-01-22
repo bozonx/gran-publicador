@@ -9,6 +9,7 @@ export interface ExtractedMedia {
   mimeType?: string;
   fileSize?: number;
   hasSpoiler?: boolean;
+  isVoice?: boolean;
 }
 
 export interface ExtractedContent {
@@ -101,6 +102,7 @@ export function extractMedia(message: Message): ExtractedMedia[] {
       fileId: message.voice.file_id,
       mimeType: message.voice.mime_type,
       fileSize: message.voice.file_size,
+      isVoice: true,
     });
   }
 

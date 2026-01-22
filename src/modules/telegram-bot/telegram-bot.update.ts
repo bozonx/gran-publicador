@@ -8,10 +8,12 @@ import { PublicationsService } from '../publications/publications.service.js';
 import { MediaService } from '../media/media.service.js';
 import { TelegramSessionService } from './telegram-session.service.js';
 import { extractMessageContent, formatSource } from './telegram-content.helper.js';
+import { SttService } from '../stt/stt.service.js';
 import { AppConfig } from '../../config/app.config.js';
 import PQueue from 'p-queue';
 import { PublicationStatus, StorageType } from '../../generated/prisma/client.js';
 import type { Message } from 'grammy/types';
+import type { Readable } from 'stream';
 
 const MEDIA_GROUP_TIMEOUT = 500;
 
@@ -26,6 +28,7 @@ export class TelegramBotUpdate {
     private readonly usersService: UsersService,
     private readonly publicationsService: PublicationsService,
     private readonly mediaService: MediaService,
+    private readonly sttService: SttService,
     private readonly sessionService: TelegramSessionService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
@@ -286,6 +289,18 @@ export class TelegramBotUpdate {
         }
 
         for (const m of extracted.media) {
+          if (m.isVoice) {
+            const transcribedText = await this.transcribeVoice(ctx, m.fileId);
+            if (transcribedText) {
+              aggregatedSourceTexts.push({
+                content: transcribedText,
+                order: aggregatedSourceTexts.length,
+                source: formatSource(msg),
+              });
+            }
+            continue; // Do not add voice message to mediaItemsToAdd
+          }
+
           mediaItemsToAdd.push({
             ...m,
             hasSpoiler: m.hasSpoiler || false,
@@ -420,6 +435,17 @@ export class TelegramBotUpdate {
         }
 
         for (const m of extracted.media) {
+          if (m.isVoice) {
+            const transcribedText = await this.transcribeVoice(ctx, m.fileId);
+            if (transcribedText) {
+              newSourceTexts.push({
+                content: transcribedText,
+                order: session.metadata.sourceTextsCount + newSourceTexts.length,
+                source: formatSource(msg),
+              });
+            }
+            continue; // Do not add voice message to mediaItemsToAdd
+          }
           mediaItemsToAdd.push(m);
         }
       }
@@ -571,6 +597,40 @@ export class TelegramBotUpdate {
 
       // Store menu message ID even on error
       await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
+    }
+  }
+
+  /**
+   * Transcribe voice message using STT service
+   */
+  private async transcribeVoice(ctx: Context, fileId: string): Promise<string> {
+    try {
+      const file = await ctx.api.getFile(fileId);
+      if (!file.file_path) {
+        throw new Error('Could not get file path from Telegram');
+      }
+
+      const appConfig = this.configService.get<AppConfig>('app')!;
+      const fileUrl = `https://api.telegram.org/file/bot${appConfig.telegramBotToken}/${file.file_path}`;
+
+      // undici request returns a stream in response.body
+      const { request } = await import('undici');
+      const response = await request(fileUrl);
+      
+      if (response.statusCode !== 200) {
+        throw new Error(`Failed to download file: ${response.statusCode}`);
+      }
+
+      const transcription = await this.sttService.transcribeAudioStream(
+        response.body as Readable,
+        'voice.ogg',
+        'audio/ogg',
+      );
+
+      return transcription.text;
+    } catch (error) {
+      this.logger.error(`Error transcribing voice: ${error}`);
+      return '';
     }
   }
 

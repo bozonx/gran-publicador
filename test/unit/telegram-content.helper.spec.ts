@@ -46,5 +46,21 @@ describe('telegram-content.helper', () => {
       const media = extractMedia(message);
       expect(media[0].hasSpoiler).toBeUndefined();
     });
+
+    it('should extract isVoice: true from voice message', () => {
+      const message = {
+        voice: {
+          file_id: 'v1',
+          file_size: 500,
+          mime_type: 'audio/ogg',
+        },
+      } as any;
+
+      const media = extractMedia(message);
+      expect(media).toHaveLength(1);
+      expect(media[0].type).toBe(MediaType.AUDIO);
+      expect(media[0].fileId).toBe('v1');
+      expect(media[0].isVoice).toBe(true);
+    });
   });
 });
