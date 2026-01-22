@@ -24,9 +24,11 @@ const {
   fetchProject,
   clearCurrentProject,
   canEdit,
-  getRoleDisplayName,
   unarchiveProject,
 } = useProjects()
+
+import { useRoles } from '~/composables/useRoles'
+const { getRoleDisplayName } = useRoles()
 
 const {
   publications: draftPublications,

@@ -178,8 +178,17 @@ export function useRoles() {
   /**
    * Get localized display name for a role
    */
-  function getRoleDisplayName(role: Role | undefined | null): string {
+  function getRoleDisplayName(role: Role | string | undefined | null): string {
     if (!role) return t('roles.viewer')
+    
+    if (typeof role === 'string') {
+      const lowerRole = role.toLowerCase()
+      // Handle 'owner' specifically as it's not in SystemRoleType but used in project context
+      if (['admin', 'editor', 'viewer', 'owner'].includes(lowerRole)) {
+        return t(`roles.${lowerRole}`)
+      }
+      return role
+    }
     
     if (role.isSystem && role.systemType) {
       return t(`roles.${role.systemType.toLowerCase()}`)
