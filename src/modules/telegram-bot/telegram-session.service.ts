@@ -6,10 +6,10 @@ import { AppConfig } from '../../config/app.config.js';
 
 export interface TelegramSession {
   menu: 'home' | 'collect';
-  publicationId: string;
+  publicationId?: string;
   menuMessageId: number;
   createdAt: string;
-  metadata: {
+  metadata?: {
     sourceTextsCount: number;
     mediaCount: number;
   };
@@ -107,17 +107,17 @@ export class TelegramSessionService {
    */
   async updateMetadata(
     telegramUserId: string,
-    updates: Partial<TelegramSession['metadata']>,
+    updates: Partial<{ sourceTextsCount: number; mediaCount: number }>,
   ): Promise<void> {
     const session = await this.getSession(telegramUserId);
-    if (!session) {
-      this.logger.warn(`Cannot update metadata: session not found for user ${telegramUserId}`);
+    if (!session || !session.metadata) {
+      this.logger.warn(`Cannot update metadata: session or metadata not found for user ${telegramUserId}`);
       return;
     }
 
     session.metadata = {
-      ...session.metadata,
-      ...updates,
+      sourceTextsCount: updates.sourceTextsCount ?? session.metadata.sourceTextsCount,
+      mediaCount: updates.mediaCount ?? session.metadata.mediaCount,
     };
 
     await this.setSession(telegramUserId, session);

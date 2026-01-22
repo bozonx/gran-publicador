@@ -55,34 +55,19 @@ export class TelegramBotUpdate {
 
     this.logger.debug(`Received /start from ${from.id} (${from.username})`);
 
-    const existingUser = await this.usersService.findByTelegramId(BigInt(from.id));
-    const isNew = !existingUser;
-
-    const user = await this.usersService.findOrCreateTelegramUser({
+    // Create or update user
+    await this.usersService.findOrCreateTelegramUser({
       telegramId: BigInt(from.id),
       username: from.username,
       firstName: from.first_name,
       lastName: from.last_name,
     });
 
-    // Clear any existing session
-    await this.sessionService.deleteSession(String(from.id));
-
     // Delete previous menu message if exists
     await this.deletePreviousMenu(ctx, from.id);
 
-    const lang = from.language_code;
-    const messageKey = isNew ? 'telegram.welcome_new' : 'telegram.welcome_existing';
-
-    const welcomeMessageText = this.i18n.t(messageKey, {
-      lang,
-      args: { name: user.fullName || 'friend' },
-    });
-
-    const sentMessage = await ctx.reply(String(welcomeMessageText));
-
-    // Store this message as the "last menu" so it can be deleted when user sends content
-    await this.sessionService.setLastMenuMessageId(String(from.id), sentMessage.message_id);
+    // Go to home screen
+    await this.handleGoToHome(ctx, from.id, from.language_code);
   }
 
   /**
@@ -180,8 +165,8 @@ export class TelegramBotUpdate {
     // Check if there's an active session
     const session = await this.sessionService.getSession(String(from.id));
 
-    if (!session) {
-      // No session - enter HOME menu
+    if (!session || session.menu === 'home') {
+      // No session or home session - enter HOME menu (create draft)
       await this.handleHomeMenu(ctx, user.id, from.id, lang, messages);
     } else {
       // Active session - handle COLLECT menu
@@ -213,6 +198,12 @@ export class TelegramBotUpdate {
 
       const user = validationResult.user!;
       const session = await this.sessionService.getSession(String(from.id));
+
+      if (data === 'cancel' && (!session || session.menu === 'home')) {
+        await this.handleGoToHome(ctx, from.id, lang);
+        await ctx.answerCallbackQuery().catch(() => {});
+        return;
+      }
 
       if (!session) {
         await ctx.answerCallbackQuery().catch(() => {});
@@ -275,7 +266,7 @@ export class TelegramBotUpdate {
     try {
       // Re-check session to prevent race conditions
       const freshSession = await this.sessionService.getSession(String(telegramId));
-      if (freshSession) {
+      if (freshSession && freshSession.menu === 'collect') {
         return this.handleCollectMenu(ctx, userId, telegramId, lang, messages, freshSession);
       }
 
@@ -607,27 +598,16 @@ export class TelegramBotUpdate {
   ): Promise<void> {
     try {
       // Delete publication
-      await this.publicationsService.remove(session.publicationId, userId);
+      if (session.publicationId) {
+        await this.publicationsService.remove(session.publicationId, userId);
+      }
 
-      // Delete session
-      await this.sessionService.deleteSession(String(telegramId));
-
-      // Send cancellation message
-      const message = this.i18n.t('telegram.draft_cancelled', { lang });
-      await ctx.editMessageText(String(message));
-
-      // Store menu message ID so it can be deleted when creating new draft
-      await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
+      // Go to home screen
+      await this.handleGoToHome(ctx, telegramId, lang);
     } catch (error) {
       this.logger.error(`Error cancelling draft: ${error}`);
-      // Still delete session even if publication deletion fails
-      await this.sessionService.deleteSession(String(telegramId));
-
-      const message = this.i18n.t('telegram.draft_cancelled', { lang });
-      await ctx.editMessageText(String(message));
-
-      // Store menu message ID even on error
-      await this.sessionService.setLastMenuMessageId(String(telegramId), session.menuMessageId);
+      // Still go home even on error
+      await this.handleGoToHome(ctx, telegramId, lang);
     }
   }
 
@@ -664,6 +644,45 @@ export class TelegramBotUpdate {
       const lang = ctx.from?.language_code;
       await ctx.reply(String(this.i18n.t('telegram.error_stt_failed', { lang }))).catch(() => {});
       return '';
+    }
+  }
+
+  /**
+   * Go to home screen (reset state and create home session)
+   */
+  private async handleGoToHome(
+    ctx: Context,
+    telegramId: number,
+    lang: string | undefined,
+  ): Promise<void> {
+    const user = await this.usersService.findByTelegramId(BigInt(telegramId));
+    const messageKey = user ? 'telegram.welcome_existing' : 'telegram.welcome_new';
+
+    const welcomeMessageText = this.i18n.t(messageKey, {
+      lang,
+      args: { name: user?.fullName || 'friend' },
+    });
+
+    let sentMessage;
+    if (ctx.callbackQuery) {
+      try {
+        await ctx.editMessageText(String(welcomeMessageText));
+        sentMessage = ctx.callbackQuery.message;
+      } catch (e) {
+        sentMessage = await ctx.reply(String(welcomeMessageText));
+      }
+    } else {
+      sentMessage = await ctx.reply(String(welcomeMessageText));
+    }
+
+    if (sentMessage) {
+      await this.sessionService.setLastMenuMessageId(String(telegramId), sentMessage.message_id);
+
+      await this.sessionService.setSession(String(telegramId), {
+        menu: 'home',
+        menuMessageId: sentMessage.message_id,
+        createdAt: new Date().toISOString(),
+      });
     }
   }
 
