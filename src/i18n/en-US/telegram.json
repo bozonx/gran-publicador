@@ -11,5 +11,7 @@
   "error_session_expired": "⏱ Session expired.\n\nSend a new message to create a draft.",
   "error_creating_draft": "❌ Error creating draft.\n\nPlease try again or contact support.",
   "button_done": "✅ Done",
-  "button_cancel": "🗑 Cancel"
+  "button_cancel": "🗑 Cancel",
+  "command_not_found": "❓ Unknown command: {command}",
+  "error_private_only": "🚫 This bot only works in private chats."
 }

@@ -35,6 +35,13 @@ export class TelegramBotUpdate {
     const from = ctx.from;
     if (!from) return;
 
+    // Check if private chat
+    if (ctx.chat?.type !== 'private') {
+      const lang = from.language_code;
+      await ctx.reply(String(this.i18n.t('telegram.error_private_only', { lang })));
+      return;
+    }
+
     this.logger.debug(`Received /start from ${from.id} (${from.username})`);
 
     const existingUser = await this.usersService.findByTelegramId(BigInt(from.id));
@@ -75,6 +82,21 @@ export class TelegramBotUpdate {
     const message = ctx.message;
 
     if (!from || !message) return;
+
+    // Check if private chat
+    if (ctx.chat?.type !== 'private') {
+      return;
+    }
+
+    // Handle commands
+    if ('text' in message && message.text?.startsWith('/')) {
+      const command = message.text.split(' ')[0];
+      if (command === '/start') return; // Ignore, handled by onStart
+
+      const lang = from.language_code;
+      await ctx.reply(String(this.i18n.t('telegram.command_not_found', { lang, args: { command } })));
+      return;
+    }
 
     this.logger.debug(
       `Received message from ${from.id} (${from.username}): ${message && 'text' in message ? message.text : '[media]'}`,
@@ -193,7 +215,7 @@ export class TelegramBotUpdate {
         {
           status: PublicationStatus.DRAFT,
           language: lang || 'en-US',
-          content: sourceText,
+          content: '', // Texts from bot are only added to sourceTexts
           sourceTexts: [
             {
               content: sourceText,
@@ -378,7 +400,7 @@ export class TelegramBotUpdate {
           this.i18n.t('telegram.draft_updated', {
             lang,
             args: {
-              content: truncateText(publication.content || ''),
+              content: truncateText(sourceText || ''),
               mediaCount: session.metadata.mediaCount + newMediaCount,
               sourceTextsCount: newSourceTexts.length,
             },
