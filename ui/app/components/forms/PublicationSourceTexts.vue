@@ -189,8 +189,14 @@ function getTelegramLink(repost: any): string | undefined {
         <!-- View Mode -->
         <div v-if="editingIndex !== index">
           <div class="flex justify-between items-start gap-3">
-            <div class="whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300 leading-relaxed font-normal">
-              {{ item.content }}
+            <div class="flex-1">
+              <div v-if="item.meta?.isVoice" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-[10px] font-medium mb-1 border border-primary-200 dark:border-primary-800/50">
+                <UIcon name="i-heroicons-microphone" class="w-3 h-3" />
+                {{ t('sourceTexts.voice') }}
+              </div>
+              <div class="whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300 leading-relaxed font-normal">
+                {{ item.content }}
+              </div>
             </div>
             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <UButton

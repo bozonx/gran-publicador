@@ -299,6 +299,7 @@ export class TelegramBotUpdate {
                 source: formatSource(msg),
                 meta: {
                   repost: extracted.repostInfo,
+                  isVoice: true,
                 },
               });
             }
@@ -456,6 +457,7 @@ export class TelegramBotUpdate {
                 source: formatSource(msg),
                 meta: {
                   repost: extracted.repostInfo,
+                  isVoice: true,
                 },
               });
             }
