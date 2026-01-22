@@ -9,12 +9,18 @@ import { MediaService } from '../media/media.service.js';
 import { TelegramSessionService } from './telegram-session.service.js';
 import { extractMessageContent, formatSource } from './telegram-content.helper.js';
 import { AppConfig } from '../../config/app.config.js';
+import PQueue from 'p-queue';
 import { PublicationStatus, StorageType } from '../../generated/prisma/client.js';
+import type { Message } from 'grammy/types';
+
+const MEDIA_GROUP_TIMEOUT = 500;
 
 @Injectable()
 export class TelegramBotUpdate {
   private readonly logger = new Logger(TelegramBotUpdate.name);
   private readonly frontendUrl: string;
+  private readonly userQueues = new Map<number, PQueue>();
+  private readonly mediaGroupBuffers = new Map<string, { messages: Message[]; timer: NodeJS.Timeout }>();
 
   constructor(
     private readonly usersService: UsersService,
@@ -98,13 +104,66 @@ export class TelegramBotUpdate {
       return;
     }
 
-    this.logger.debug(
-      `Received message from ${from.id} (${from.username}): ${message && 'text' in message ? message.text : '[media]'}`,
-    );
+    const mgid = message.media_group_id;
+    if (mgid) {
+      this.handleMediaGroupMessage(ctx, from.id, mgid);
+    } else {
+      const queue = this.getQueueForUser(from.id);
+      queue.add(() => this.processMessages(ctx, [message]));
+    }
+  }
+
+  /**
+   * Get or create a queue for a user
+   */
+  private getQueueForUser(userId: number): PQueue {
+    if (!this.userQueues.has(userId)) {
+      this.userQueues.set(userId, new PQueue({ concurrency: 1 }));
+    }
+    return this.userQueues.get(userId)!;
+  }
+
+  /**
+   * Handle messages that are part of a media group (album)
+   */
+  private handleMediaGroupMessage(ctx: Context, userId: number, mgid: string): void {
+    let buffer = this.mediaGroupBuffers.get(mgid);
+
+    if (!buffer) {
+      buffer = {
+        messages: [],
+        timer: null as any,
+      };
+      this.mediaGroupBuffers.set(mgid, buffer);
+    } else {
+      clearTimeout(buffer.timer);
+    }
+
+    buffer.messages.push(ctx.message!);
+
+    buffer.timer = setTimeout(() => {
+      const messages = buffer!.messages;
+      this.mediaGroupBuffers.delete(mgid);
+
+      const queue = this.getQueueForUser(userId);
+      queue.add(() => this.processMessages(ctx, messages));
+    }, MEDIA_GROUP_TIMEOUT);
+  }
+
+  /**
+   * Process one or more messages (from a media group or single)
+   */
+  private async processMessages(ctx: Context, messages: Message[]): Promise<void> {
+    const from = ctx.from;
+    if (!from) return;
 
     const lang = from.language_code;
 
-    // Delete previous menu message if exists
+    this.logger.debug(
+      `Processing ${messages.length} messages from ${from.id} (${from.username})`,
+    );
+
+    // Delete previous menu message if exists (only for the first batch of a session or update)
     await this.deletePreviousMenu(ctx, from.id);
 
     // Validate user
@@ -118,10 +177,10 @@ export class TelegramBotUpdate {
 
     if (!session) {
       // No session - enter HOME menu
-      await this.handleHomeMenu(ctx, user.id, from.id, lang, message);
+      await this.handleHomeMenu(ctx, user.id, from.id, lang, messages);
     } else {
       // Active session - handle COLLECT menu
-      await this.handleCollectMenu(ctx, user.id, from.id, lang, message, session);
+      await this.handleCollectMenu(ctx, user.id, from.id, lang, messages, session);
     }
   }
 
@@ -201,78 +260,87 @@ export class TelegramBotUpdate {
     userId: string,
     telegramId: number,
     lang: string | undefined,
-    message: any,
+    messages: Message[],
   ): Promise<void> {
     try {
-      // (Previous menu already deleted in onMessage)
-
-      // Extract content from message
-      const extracted = extractMessageContent(message);
-      const sourceText = extracted.text || '';
-
-      // Re-check session to prevent race conditions (e.g. for media albums)
+      // Re-check session to prevent race conditions
       const freshSession = await this.sessionService.getSession(String(telegramId));
       if (freshSession) {
-        return this.handleCollectMenu(ctx, userId, telegramId, lang, message, freshSession);
+        return this.handleCollectMenu(ctx, userId, telegramId, lang, messages, freshSession);
+      }
+
+      const firstMessage = messages[0];
+      const aggregatedSourceTexts: any[] = [];
+      const mediaItemsToAdd: any[] = [];
+
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        const extracted = extractMessageContent(msg);
+
+        if (extracted.text) {
+          aggregatedSourceTexts.push({
+            content: extracted.text,
+            order: aggregatedSourceTexts.length,
+            source: formatSource(msg),
+          });
+        }
+
+        for (const m of extracted.media) {
+          mediaItemsToAdd.push({
+            ...m,
+            hasSpoiler: m.hasSpoiler || false,
+          });
+        }
       }
 
       // Create draft publication
+      const firstExtracted = extractMessageContent(firstMessage);
       const publication = await this.publicationsService.create(
         {
           status: PublicationStatus.DRAFT,
           language: lang || 'en-US',
-          content: '', // Texts from bot are only added to sourceTexts
-          sourceTexts: sourceText
-            ? [
-                {
-                  content: sourceText,
-                  order: 0,
-                  source: formatSource(message),
-                },
-              ]
-            : [],
+          content: '',
+          sourceTexts: aggregatedSourceTexts,
           meta: {
             telegramOrigin: {
-              chatId: message.chat.id,
-              messageId: message.message_id,
-              forwardOrigin: extracted.forwardOrigin || null,
+              chatId: firstMessage.chat.id,
+              messageId: firstMessage.message_id,
+              forwardOrigin: firstExtracted.forwardOrigin || null,
             },
           },
         },
         userId,
       );
 
-      const sourceTextsCount = sourceText ? 1 : 0;
-
-      // Create media if any
+      // Create media in DB and link to publication
       let mediaCount = 0;
-      if (extracted.media.length > 0) {
-        for (const mediaItem of extracted.media) {
-          const media = await this.mediaService.create({
-            type: mediaItem.type,
-            storageType: StorageType.TELEGRAM,
-            storagePath: mediaItem.fileId,
-            filename: mediaItem.fileName,
-            mimeType: mediaItem.mimeType,
-            sizeBytes: mediaItem.fileSize !== undefined ? BigInt(mediaItem.fileSize) : undefined,
-            meta: {
-              telegram: {
-                thumbnailFileId: mediaItem.thumbnailFileId,
-                hasSpoiler: mediaItem.hasSpoiler || false,
-              },
-            },
-          });
-
-          await this.publicationsService.addMedia(publication.id, userId, [
-            {
-              mediaId: media.id,
-              order: mediaCount,
+      for (const mediaItem of mediaItemsToAdd) {
+        const media = await this.mediaService.create({
+          type: mediaItem.type,
+          storageType: StorageType.TELEGRAM,
+          storagePath: mediaItem.fileId,
+          filename: mediaItem.fileName,
+          mimeType: mediaItem.mimeType,
+          sizeBytes: mediaItem.fileSize !== undefined ? BigInt(mediaItem.fileSize) : undefined,
+          meta: {
+            telegram: {
+              thumbnailFileId: mediaItem.thumbnailFileId,
               hasSpoiler: mediaItem.hasSpoiler || false,
             },
-          ]);
-          mediaCount++;
-        }
+          },
+        });
+
+        await this.publicationsService.addMedia(publication.id, userId, [
+          {
+            mediaId: media.id,
+            order: mediaCount,
+            hasSpoiler: mediaItem.hasSpoiler || false,
+          },
+        ]);
+        mediaCount++;
       }
+
+      const sourceTextsCount = aggregatedSourceTexts.length;
 
       // Create inline keyboard
       const keyboard = new InlineKeyboard()
@@ -323,7 +391,7 @@ export class TelegramBotUpdate {
     userId: string,
     telegramId: number,
     lang: string | undefined,
-    message: any,
+    messages: Message[],
     session: any,
   ): Promise<void> {
     try {
@@ -337,64 +405,72 @@ export class TelegramBotUpdate {
         return;
       }
 
-      // Extract content from message
-      const extracted = extractMessageContent(message);
-      const sourceText = extracted.text || '';
+      const newSourceTexts: any[] = [];
+      const mediaItemsToAdd: any[] = [];
 
-      // Update publication with new source text if present
-      let sourceTextAdded = false;
-      if (sourceText) {
+      for (const msg of messages) {
+        const extracted = extractMessageContent(msg);
+
+        if (extracted.text) {
+          newSourceTexts.push({
+            content: extracted.text,
+            order: session.metadata.sourceTextsCount + newSourceTexts.length,
+            source: formatSource(msg),
+          });
+        }
+
+        for (const m of extracted.media) {
+          mediaItemsToAdd.push(m);
+        }
+      }
+
+      // Update publication with new source texts if present
+      if (newSourceTexts.length > 0) {
         await this.publicationsService.update(session.publicationId, userId, {
-          sourceTexts: [
-            {
-              content: sourceText,
-              order: session.metadata.sourceTextsCount,
-              source: formatSource(message),
-            },
-          ],
+          sourceTexts: newSourceTexts,
           appendSourceTexts: true,
         });
-        sourceTextAdded = true;
       }
 
       // Add media if any
       let newMediaCount = 0;
-      if (extracted.media.length > 0) {
-        for (const mediaItem of extracted.media) {
-          const media = await this.mediaService.create({
-            type: mediaItem.type,
-            storageType: StorageType.TELEGRAM,
-            storagePath: mediaItem.fileId,
-            filename: mediaItem.fileName,
-            mimeType: mediaItem.mimeType,
-            sizeBytes: mediaItem.fileSize !== undefined ? BigInt(mediaItem.fileSize) : undefined,
-            meta: {
-              telegram: {
-                thumbnailFileId: mediaItem.thumbnailFileId,
-                hasSpoiler: mediaItem.hasSpoiler || false,
-              },
-            },
-          });
-
-          await this.publicationsService.addMedia(session.publicationId, userId, [
-            {
-              mediaId: media.id,
-              order: session.metadata.mediaCount + newMediaCount,
+      for (const mediaItem of mediaItemsToAdd) {
+        const media = await this.mediaService.create({
+          type: mediaItem.type,
+          storageType: StorageType.TELEGRAM,
+          storagePath: mediaItem.fileId,
+          filename: mediaItem.fileName,
+          mimeType: mediaItem.mimeType,
+          sizeBytes: mediaItem.fileSize !== undefined ? BigInt(mediaItem.fileSize) : undefined,
+          meta: {
+            telegram: {
+              thumbnailFileId: mediaItem.thumbnailFileId,
               hasSpoiler: mediaItem.hasSpoiler || false,
             },
-          ]);
-          newMediaCount++;
-        }
+          },
+        });
+
+        await this.publicationsService.addMedia(session.publicationId, userId, [
+          {
+            mediaId: media.id,
+            order: session.metadata.mediaCount + newMediaCount,
+            hasSpoiler: mediaItem.hasSpoiler || false,
+          },
+        ]);
+        newMediaCount++;
       }
 
-      // Update session metadata in Redis FIRST to reduce race conditions for subsequent messages
+      const finalSourceTextsCount = session.metadata.sourceTextsCount + newSourceTexts.length;
+      const finalMediaCount = session.metadata.mediaCount + newMediaCount;
+
+      // Update session metadata in Redis FIRST
       await this.sessionService.updateMetadata(String(telegramId), {
-        sourceTextsCount: session.metadata.sourceTextsCount + (sourceTextAdded ? 1 : 0),
-        mediaCount: session.metadata.mediaCount + newMediaCount,
+        sourceTextsCount: finalSourceTextsCount,
+        mediaCount: finalMediaCount,
       });
 
       // Delete old menu message asynchronously
-      ctx.api.deleteMessage(message.chat.id, session.menuMessageId).catch(error => {
+      ctx.api.deleteMessage(ctx.chat!.id, session.menuMessageId).catch(error => {
         this.logger.debug(`Could not delete old menu message during update: ${error.message}`);
       });
 
@@ -402,9 +478,6 @@ export class TelegramBotUpdate {
       const keyboard = new InlineKeyboard()
         .text(String(this.i18n.t('telegram.button_done', { lang })), 'done')
         .text(String(this.i18n.t('telegram.button_cancel', { lang })), 'cancel');
-
-      const finalSourceTextsCount = session.metadata.sourceTextsCount + (sourceTextAdded ? 1 : 0);
-      const finalMediaCount = session.metadata.mediaCount + newMediaCount;
 
       const menuMessage = await ctx.reply(
         String(
