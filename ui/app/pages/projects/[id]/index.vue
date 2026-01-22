@@ -333,7 +333,7 @@ async function handleDelete() {
                 color="neutral"
                 variant="ghost"
                 icon="i-heroicons-newspaper"
-                :to="{ path: '/news', query: { q: currentProject.name } }"
+                :to="`/projects/${currentProject.id}/news`"
                 :title="t('news.title')"
               />
             </div>
