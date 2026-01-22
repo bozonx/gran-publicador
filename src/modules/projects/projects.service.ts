@@ -67,7 +67,7 @@ export class ProjectsService {
         });
 
         // Create default roles for the project
-        await this.roles.createDefaultRoles(project.id);
+        await this.roles.createDefaultRoles(project.id, tx);
 
         this.logger.log(`Project "${project.name}" created by user ${userId}`);
 

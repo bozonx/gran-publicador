@@ -5,6 +5,8 @@ import { UpdateRoleDto } from './dto/update-role.dto.js';
 import { DEFAULT_ROLE_PERMISSIONS, SYSTEM_ROLE_NAMES } from '../../common/constants/default-permissions.constants.js';
 import { SystemRoleType } from '../../common/types/permissions.types.js';
 
+import { Prisma } from '../../generated/prisma/client.js';
+
 @Injectable()
 export class RolesService {
   private readonly logger = new Logger(RolesService.name);
@@ -16,8 +18,9 @@ export class RolesService {
    * Called automatically when a project is created.
    *
    * @param projectId - The ID of the project.
+   * @param tx - Optional transaction client.
    */
-  public async createDefaultRoles(projectId: string): Promise<void> {
+  public async createDefaultRoles(projectId: string, tx?: Prisma.TransactionClient): Promise<void> {
     const roles = Object.values(SystemRoleType).map((systemType) => ({
       projectId,
       name: SYSTEM_ROLE_NAMES[systemType],
@@ -26,7 +29,9 @@ export class RolesService {
       permissions: DEFAULT_ROLE_PERMISSIONS[systemType] as any,
     }));
 
-    await this.prisma.role.createMany({
+    const db = tx || this.prisma;
+
+    await db.role.createMany({
       data: roles,
     });
 
