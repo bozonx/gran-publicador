@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MediaService } from './media.service.js';
 import { MediaController } from './media.controller.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
 
+@Global()
 @Module({
   imports: [PrismaModule, ApiTokensModule],
   controllers: [MediaController],

@@ -16,11 +16,13 @@ import { NotificationType } from '../../generated/prisma/client.js';
 import { I18nService } from 'nestjs-i18n';
 import { PRESET_SIGNATURES } from '../author-signatures/constants/preset-signatures.constants.js';
 import { request } from 'undici';
+import { MediaService } from '../media/media.service.js';
 
 @Injectable()
 export class SocialPostingService {
   private readonly logger = new Logger(SocialPostingService.name);
   private readonly mediaStorageUrl: string;
+  private readonly frontendUrl: string;
   private readonly socialPostingConfig: SocialPostingConfig;
 
   constructor(
@@ -29,9 +31,12 @@ export class SocialPostingService {
     private readonly configService: ConfigService,
     private readonly notifications: NotificationsService,
     private readonly i18n: I18nService,
+    private readonly mediaService: MediaService,
   ) {
     const mediaConfig = this.configService.get<MediaConfig>('media')!;
     this.mediaStorageUrl = mediaConfig.serviceUrl || '';
+    const appConfig = this.configService.get<AppConfig>('app')!;
+    this.frontendUrl = appConfig.frontendUrl || '';
     this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
   }
 
@@ -491,10 +496,11 @@ export class SocialPostingService {
         apiKey,
         targetChannelId,
         mediaStorageUrl: this.mediaStorageUrl,
+        publicMediaBaseUrl: this.frontendUrl ? `${this.frontendUrl}/api/v1` : undefined,
+        mediaService: this.mediaService,
       });
 
       this.logger.log(`${logPrefix} Sending request to microservice...`);
-      this.logger.debug(`${logPrefix} Request body: ${JSON.stringify(request, null, 2)}`);
 
       const response = await this.sendRequest<PostResponseDto>('post', request);
 

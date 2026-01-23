@@ -286,4 +286,31 @@ export class MediaController {
       meta: metadata,
     });
   }
+
+  /**
+   * Public endpoint for media files used by external services (Telegram, etc).
+   * Verifies a signature token instead of requiring JWT.
+   */
+  @Get('p/:id/:token')
+  async getPublicFile(
+    @Param('id') id: string,
+    @Param('token') token: string,
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+  ) {
+    if (!this.mediaService.verifyPublicToken(id, token)) {
+      throw new BadRequestException('Invalid media token');
+    }
+
+    const range = req.headers.range;
+    const { stream, status, headers } = await this.mediaService.getMediaFile(
+      id,
+      undefined, // Skip permission check
+      range as string,
+    );
+
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
+  }
 }

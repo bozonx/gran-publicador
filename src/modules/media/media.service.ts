@@ -12,6 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
 import { request } from 'undici';
+import * as crypto from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
@@ -34,6 +35,26 @@ export class MediaService {
     if (config?.serviceUrl) {
       this.logger.log(`Media Storage URL: ${config.serviceUrl}`);
     }
+  }
+
+  /**
+   * Generates a public token for a media file based on its ID and JWT secret.
+   * This is used for public links accessible by external services like Telegram.
+   */
+  public generatePublicToken(mediaId: string): string {
+    const secret = this.configService.get<string>('app.jwtSecret');
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    return crypto.createHmac('sha256', secret).update(mediaId).digest('hex').substring(0, 16);
+  }
+
+  /**
+   * Verifies a public token for a media file.
+   */
+  public verifyPublicToken(mediaId: string, token: string): boolean {
+    const expected = this.generatePublicToken(mediaId);
+    return expected === token;
   }
 
   private get config(): MediaConfig {

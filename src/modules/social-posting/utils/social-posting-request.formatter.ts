@@ -16,6 +16,8 @@ export interface FormatterParams {
   apiKey: string;
   targetChannelId: string;
   mediaStorageUrl: string; // Media Storage microservice URL
+  publicMediaBaseUrl?: string; // Public API URL for proxying
+  mediaService?: any; // MediaService for signing
 }
 
 export class SocialPostingRequestFormatter {
@@ -41,7 +43,7 @@ export class SocialPostingRequestFormatter {
       post.template, // Pass the template override
     );
 
-    const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl);
+    const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl, params.publicMediaBaseUrl, params.mediaService);
 
     const request: PostRequestDto = {
       platform: channel.socialMedia.toLowerCase(),
@@ -112,13 +114,15 @@ export class SocialPostingRequestFormatter {
   private static mapMedia(
     publicationMedia: any[],
     mediaStorageUrl: string,
+    publicMediaBaseUrl?: string,
+    mediaService?: any,
   ): Partial<PostRequestDto> {
     if (!publicationMedia || publicationMedia.length === 0) return {};
 
     if (publicationMedia.length === 1) {
       const pm = publicationMedia[0];
       const item = pm.media;
-      const src = this.getMediaSrc(item, mediaStorageUrl);
+      const src = this.getMediaSrc(item, mediaStorageUrl, publicMediaBaseUrl, mediaService);
       const hasSpoiler = pm.hasSpoiler ?? item.meta?.telegram?.hasSpoiler ?? false;
 
       switch (item.type) {
@@ -138,14 +142,19 @@ export class SocialPostingRequestFormatter {
     // Multiple media items
     return {
       media: publicationMedia.map(pm => ({
-        src: this.getMediaSrc(pm.media, mediaStorageUrl),
+        src: this.getMediaSrc(pm.media, mediaStorageUrl, publicMediaBaseUrl, mediaService),
         type: this.mapMediaTypeToLibrary(pm.media.type),
         hasSpoiler: pm.hasSpoiler ?? pm.media.meta?.telegram?.hasSpoiler ?? false,
       })),
     };
   }
 
-  private static getMediaSrc(media: any, mediaStorageUrl: string): string {
+  private static getMediaSrc(
+    media: any,
+    mediaStorageUrl: string,
+    publicMediaBaseUrl?: string,
+    mediaService?: any,
+  ): string {
     // If it's a direct URL, use it
     if (media.storagePath?.startsWith('http')) {
       return media.storagePath;
@@ -157,10 +166,19 @@ export class SocialPostingRequestFormatter {
     }
 
     // For FS storage, storagePath contains Media Storage fileId
-    // Return direct URL from Media Storage microservice
     if (media.storageType === StorageType.FS) {
+      // If we have a public base URL and media service, generate a signed public proxy URL.
+      // This is necessary for Telegram to download the file from its servers.
+      if (publicMediaBaseUrl && mediaService) {
+        const token = mediaService.generatePublicToken(media.id);
+        const baseUrl = publicMediaBaseUrl.replace(/\/$/, '');
+        return `${baseUrl}/media/p/${media.id}/${token}`;
+      }
+
+      // Fallback to direct URL from Media Storage microservice (internal)
       const fileId = media.storagePath;
-      return `${mediaStorageUrl}/files/${fileId}/download`;
+      const baseUrl = mediaStorageUrl.replace(/\/$/, '');
+      return `${baseUrl}/files/${fileId}/download`;
     }
 
     // Fallback
