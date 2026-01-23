@@ -108,7 +108,7 @@ describe('SocialPostingService', () => {
         socialMedia: 'TELEGRAM',
         channelIdentifier: '@test',
         isActive: true,
-        credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11' },
+        credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11', telegramChannelId: '@test' },
       };
 
       (mockPrismaService.channel.findUnique as any).mockResolvedValue(mockChannel);
@@ -146,7 +146,7 @@ describe('SocialPostingService', () => {
           socialMedia: 'TELEGRAM',
           channelIdentifier: '@test',
           isActive: true,
-          credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11' },
+        credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11', telegramChannelId: '@test' },
           project: {},
         },
       };
