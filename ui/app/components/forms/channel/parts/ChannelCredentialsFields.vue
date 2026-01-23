@@ -24,24 +24,24 @@ const { t } = useI18n()
         
       <div class="space-y-4 pl-4 border-l-2 border-gray-100 dark:border-gray-800">
         <UFormField
-          name="credentials.telegramChannelId"
+          name="credentials.chatId"
           :label="t('channel.telegramChannelId', 'Channel ID')"
           :help="t('channel.telegramChannelIdHelp', 'Telegram channel ID (e.g., -1001234567890)')"
         >
           <UInput
-            v-model="state.credentials.telegramChannelId"
+            v-model="state.credentials.chatId"
             :placeholder="t('channel.telegramChannelIdPlaceholder', '-1001234567890')"
             class="w-full"
           />
         </UFormField>
 
         <UFormField
-          name="credentials.telegramBotToken"
+          name="credentials.botToken"
           :label="t('channel.telegramBotToken', 'Bot Token')"
           :help="t('channel.telegramBotTokenHelp', 'Telegram bot token from @BotFather')"
         >
           <UInput
-            v-model="state.credentials.telegramBotToken"
+            v-model="state.credentials.botToken"
             type="password"
             :placeholder="t('channel.telegramBotTokenPlaceholder', '110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw')"
             class="w-full"
@@ -60,12 +60,12 @@ const { t } = useI18n()
         
       <div class="space-y-4 pl-4 border-l-2 border-gray-100 dark:border-gray-800">
         <UFormField
-          name="credentials.vkAccessToken"
+          name="credentials.accessToken"
           :label="t('channel.vkAccessToken', 'Access Token')"
           :help="t('channel.vkAccessTokenHelp', 'Service or user access token for VK API')"
         >
           <UInput
-            v-model="state.credentials.vkAccessToken"
+            v-model="state.credentials.accessToken"
             type="password"
             :placeholder="t('channel.vkAccessTokenPlaceholder', 'vk1.a.abc...')"
             class="w-full"

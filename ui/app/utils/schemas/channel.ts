@@ -12,9 +12,9 @@ export const createChannelBaseObject = (t: ComposerTranslation) => {
     socialMedia: z.enum(SOCIAL_MEDIA_VALUES),
     tags: z.string().optional(),
     credentials: z.object({
-      telegramChannelId: z.string().optional(),
-      telegramBotToken: z.string().optional(),
-      vkAccessToken: z.string().optional(),
+      chatId: z.string().optional(),
+      botToken: z.string().optional(),
+      accessToken: z.string().optional(),
     }),
     preferences: z.object({
       staleChannelsDays: z.coerce.number().min(1, t('validation.min', { min: 1 })).optional(),
@@ -30,26 +30,26 @@ export const createChannelBaseObject = (t: ComposerTranslation) => {
 
 export const channelRefinement = (t: ComposerTranslation) => (val: any, ctx: z.RefinementCtx) => {
   if (val.socialMedia === 'TELEGRAM') {
-    if (!val.credentials?.telegramChannelId) {
+    if (!val.credentials?.chatId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'telegramChannelId']
+        path: ['credentials', 'chatId']
       });
     }
-    if (!val.credentials?.telegramBotToken) {
+    if (!val.credentials?.botToken) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'telegramBotToken']
+        path: ['credentials', 'botToken']
       });
     }
   } else if (val.socialMedia === 'VK') {
-    if (!val.credentials?.vkAccessToken) {
+    if (!val.credentials?.accessToken) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'vkAccessToken']
+        path: ['credentials', 'accessToken']
       });
     }
   }

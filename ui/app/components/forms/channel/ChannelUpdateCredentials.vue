@@ -21,9 +21,9 @@ const { updateChannel, isLoading } = useChannels()
 const state = reactive({
   socialMedia: channel.socialMedia,
   credentials: {
-    telegramChannelId: channel.credentials?.telegramChannelId || '',
-    telegramBotToken: channel.credentials?.telegramBotToken || '',
-    vkAccessToken: channel.credentials?.vkAccessToken || '',
+    chatId: channel.credentials?.chatId || channel.credentials?.telegramChannelId || '',
+    botToken: channel.credentials?.botToken || channel.credentials?.telegramBotToken || '',
+    accessToken: channel.credentials?.accessToken || channel.credentials?.vkAccessToken || '',
   }
 })
 
@@ -35,9 +35,9 @@ const schema = computed(() => {
 
 const isDirty = computed(() => {
     return JSON.stringify(state.credentials) !== JSON.stringify({
-        telegramChannelId: channel.credentials?.telegramChannelId || '',
-        telegramBotToken: channel.credentials?.telegramBotToken || '',
-        vkAccessToken: channel.credentials?.vkAccessToken || '',
+        chatId: channel.credentials?.chatId || channel.credentials?.telegramChannelId || '',
+        botToken: channel.credentials?.botToken || channel.credentials?.telegramBotToken || '',
+        accessToken: channel.credentials?.accessToken || channel.credentials?.vkAccessToken || '',
     })
 })
 
@@ -46,12 +46,12 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
     let credentials = {}
     if (channel.socialMedia === 'TELEGRAM') {
         credentials = {
-            telegramChannelId: event.data.credentials.telegramChannelId,
-            telegramBotToken: event.data.credentials.telegramBotToken,
+            chatId: event.data.credentials.chatId,
+            botToken: event.data.credentials.botToken,
         }
     } else if (channel.socialMedia === 'VK') {
         credentials = {
-            vkAccessToken: event.data.credentials.vkAccessToken,
+            accessToken: event.data.credentials.accessToken,
         }
     }
 
