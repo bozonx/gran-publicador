@@ -494,6 +494,7 @@ export class SocialPostingService {
       });
 
       this.logger.log(`${logPrefix} Sending request to microservice...`);
+      this.logger.debug(`${logPrefix} Request body: ${JSON.stringify(request, null, 2)}`);
 
       const response = await this.sendRequest<PostResponseDto>('post', request);
 
