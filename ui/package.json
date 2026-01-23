@@ -10,7 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/ui": "^4.3.0",
+    "@nuxt/ui": "^4.4.0",
     "@nuxtjs/i18n": "^10.2.1",
     "@pinia/nuxt": "^0.11.3",
     "@tiptap/extension-character-count": "^3.16.0",
@@ -24,16 +24,16 @@
     "js-yaml": "^4.1.1",
     "markdown-it": "^14.1.0",
     "mdast-util-to-string": "^4.0.0",
-    "nuxt": "^4.2.2",
+    "nuxt": "^4.3.0",
     "pinia": "^3.0.4",
     "remark-parse": "^11.0.0",
     "socket.io-client": "^4.8.3",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0",
+    "unist-util-visit": "^5.1.0",
     "vue": "^3.5.27",
     "vue-draggable-plus": "^0.6.1",
     "vue-router": "^4.6.4",
-    "zod": "^4.3.5"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@nuxt/icon": "^2.2.1",

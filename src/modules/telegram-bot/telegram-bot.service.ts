@@ -8,6 +8,7 @@ import { TelegramBotUpdate } from './telegram-bot.update.js';
 export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramBotService.name);
   private bot: Bot | null = null;
+  private isDestroying = false;
 
   constructor(
     private readonly configService: ConfigService,
@@ -36,6 +37,8 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
 
     // Global error handler
     this.bot.catch(err => {
+      if (this.isDestroying) return;
+
       const ctx = err.ctx;
       this.logger.error(`Error in bot middleware for update ${ctx.update.update_id}:`);
       const e = err.error;
@@ -54,15 +57,26 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
         },
       })
       .catch(err => {
+        if (this.isDestroying) {
+          // It is normal to have an error when stopping the bot
+          this.logger.debug(`Telegram Bot stopped: ${err.message}`);
+          return;
+        }
         this.logger.error(`Error starting Telegram Bot: ${err.message}`, err.stack);
       });
   }
 
   public async onModuleDestroy(): Promise<void> {
+    this.isDestroying = true;
     if (this.bot) {
       this.logger.log('Stopping Telegram Bot...');
-      await this.bot.stop();
-      this.logger.log('Telegram Bot stopped.');
+      try {
+        await this.bot.stop();
+        this.logger.log('Telegram Bot stopped.');
+      } catch (err) {
+        // Warning level because we are shutting down anyway
+        this.logger.warn(`Error stopping Telegram Bot: ${err instanceof Error ? err.message : err}`);
+      }
     }
   }
 }
