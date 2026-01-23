@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "ProjectRole" AS ENUM ('ADMIN', 'EDITOR', 'VIEWER');
-
--- CreateEnum
 CREATE TYPE "SocialMedia" AS ENUM ('TELEGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'FACEBOOK', 'SITE');
 
 -- CreateEnum
@@ -48,7 +45,7 @@ CREATE TABLE "api_tokens" (
     "name" TEXT NOT NULL,
     "hashed_token" TEXT NOT NULL,
     "encrypted_token" TEXT NOT NULL,
-    "scope_project_ids" JSONB NOT NULL,
+    "all_projects" BOOLEAN NOT NULL DEFAULT false,
     "last_used_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -72,11 +69,36 @@ CREATE TABLE "projects" (
 );
 
 -- CreateTable
+CREATE TABLE "roles" (
+    "id" TEXT NOT NULL,
+    "project_id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "is_system" BOOLEAN NOT NULL DEFAULT false,
+    "system_type" TEXT,
+    "permissions" JSONB NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "api_token_projects" (
+    "id" TEXT NOT NULL,
+    "api_token_id" TEXT NOT NULL,
+    "project_id" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "api_token_projects_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "project_members" (
     "id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
-    "role" "ProjectRole" NOT NULL DEFAULT 'VIEWER',
+    "role_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "project_members_pkey" PRIMARY KEY ("id")
@@ -240,6 +262,24 @@ CREATE UNIQUE INDEX "api_tokens_hashed_token_key" ON "api_tokens"("hashed_token"
 CREATE INDEX "api_tokens_user_id_idx" ON "api_tokens"("user_id");
 
 -- CreateIndex
+CREATE INDEX "roles_project_id_idx" ON "roles"("project_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "roles_project_id_name_key" ON "roles"("project_id", "name");
+
+-- CreateIndex
+CREATE INDEX "api_token_projects_api_token_id_idx" ON "api_token_projects"("api_token_id");
+
+-- CreateIndex
+CREATE INDEX "api_token_projects_project_id_idx" ON "api_token_projects"("project_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "api_token_projects_api_token_id_project_id_key" ON "api_token_projects"("api_token_id", "project_id");
+
+-- CreateIndex
+CREATE INDEX "project_members_role_id_idx" ON "project_members"("role_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "project_members_project_id_user_id_key" ON "project_members"("project_id", "user_id");
 
 -- CreateIndex
@@ -309,10 +349,22 @@ ALTER TABLE "api_tokens" ADD CONSTRAINT "api_tokens_user_id_fkey" FOREIGN KEY ("
 ALTER TABLE "projects" ADD CONSTRAINT "projects_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "roles" ADD CONSTRAINT "roles_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "api_token_projects" ADD CONSTRAINT "api_token_projects_api_token_id_fkey" FOREIGN KEY ("api_token_id") REFERENCES "api_tokens"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "api_token_projects" ADD CONSTRAINT "api_token_projects_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "project_members" ADD CONSTRAINT "project_members_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "project_members" ADD CONSTRAINT "project_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_members" ADD CONSTRAINT "project_members_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "channels" ADD CONSTRAINT "channels_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
