@@ -149,10 +149,6 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
       if (props.visibleSections.includes('optimization')) {
         const mediaOpt = event.data.preferences?.mediaOptimization
         updateData.preferences.mediaOptimization = mediaOpt
-        // Send snake_case as well to ensure backend compatibility
-        updateData.preferences['media_optimization'] = mediaOpt
-        // @ts-ignore - explicitly sending stringified version just in case backend expects it
-        updateData.preferences['media_optimization_json'] = JSON.stringify(mediaOpt)
       }
     }
 

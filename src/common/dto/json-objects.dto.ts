@@ -128,6 +128,55 @@ export class PublicationMetaDto {
 
 
 /**
+ * DTO for media optimization settings.
+ */
+export class MediaOptimizationDto {
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  format?: string;
+
+  @IsOptional()
+  @IsNumber()
+  quality?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxDimension?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  lossless?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  stripMetadata?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  autoOrient?: boolean;
+
+  @IsOptional()
+  @IsString()
+  flatten?: string;
+
+  @IsOptional()
+  @IsString()
+  chromaSubsampling?: string;
+
+  @IsOptional()
+  @IsNumber()
+  effort?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  skipOptimization?: boolean;
+}
+
+/**
  * DTO for Project preferences.
  */
 export class ProjectPreferencesDto {
@@ -138,6 +187,12 @@ export class ProjectPreferencesDto {
   @IsOptional()
   @IsBoolean()
   autoArchiveNotifications?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MediaOptimizationDto)
+  mediaOptimization?: MediaOptimizationDto;
 }
 
 /**
