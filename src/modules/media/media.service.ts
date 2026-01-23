@@ -149,7 +149,7 @@ export class MediaService {
     return normalized;
   }
 
-  async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
+  async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const { meta, sizeBytes, ...rest } = data;
     const created = await this.prisma.media.create({
       data: {
@@ -158,12 +158,16 @@ export class MediaService {
         meta: (meta || {}) as any,
       },
     });
-    return { ...created, meta: this.parseMeta(created.meta) };
+    return {
+      ...created,
+      meta: this.parseMeta(created.meta),
+      publicToken: this.generatePublicToken(created.id),
+    };
   }
 
   async findAll(
     userId?: string,
-  ): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any> }>> {
+  ): Promise<Array<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }>> {
     let where = {};
     if (userId) {
       const userProjects = await this.prisma.project.findMany({
@@ -179,19 +183,27 @@ export class MediaService {
       };
     }
     const list = await this.prisma.media.findMany({ where, orderBy: { createdAt: 'desc' } });
-    return list.map(media => ({ ...media, meta: this.parseMeta(media.meta) }));
+    return list.map(media => ({
+      ...media,
+      meta: this.parseMeta(media.meta),
+      publicToken: this.generatePublicToken(media.id),
+    }));
   }
 
-  async findOne(id: string): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
+  async findOne(id: string): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-    return { ...media, meta: this.parseMeta(media.meta) };
+    return {
+      ...media,
+      meta: this.parseMeta(media.meta),
+      publicToken: this.generatePublicToken(media.id),
+    };
   }
 
   async update(
     id: string,
     data: UpdateMediaDto,
-  ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any> }> {
+  ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
     const { meta, sizeBytes, ...rest } = data;
@@ -203,7 +215,11 @@ export class MediaService {
         meta: meta ? (meta as any) : undefined,
       },
     });
-    return { ...updated, meta: this.parseMeta(updated.meta) };
+    return {
+      ...updated,
+      meta: this.parseMeta(updated.meta),
+      publicToken: this.generatePublicToken(updated.id),
+    };
   }
 
   async remove(id: string): Promise<Media> {

@@ -15,6 +15,7 @@ export interface MediaItem {
   createdAt: string
   updatedAt: string
   fullMediaMeta?: Record<string, any>
+  publicToken?: string
 }
 
 export interface CreateMediaInput {

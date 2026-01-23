@@ -18,6 +18,7 @@ interface MediaItem {
   sizeBytes?: number | string
   meta?: Record<string, any>
   fullMediaMeta?: Record<string, any>
+  publicToken?: string
 }
 
 
@@ -559,6 +560,7 @@ function openMediaModal(item: typeof localMedia.value[0]) {
     fetchMedia(item.media.id).then(fullMedia => {
       if (fullMedia && selectedMedia.value && selectedMedia.value.id === fullMedia.id) {
         selectedMedia.value.fullMediaMeta = fullMedia.fullMediaMeta
+        selectedMedia.value.publicToken = fullMedia.publicToken
       }
     })
   }
@@ -700,6 +702,23 @@ const exifData = computed(() => {
   const exif = selectedMedia.value?.fullMediaMeta?.exif
   return exif
 })
+
+const publicMediaUrl = computed(() => {
+  if (!selectedMedia.value?.publicToken || !selectedMedia.value?.id) return null
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${origin}/api/v1/media/p/${selectedMedia.value.id}/${selectedMedia.value.publicToken}`
+})
+
+function copyPublicLink() {
+  if (publicMediaUrl.value) {
+    navigator.clipboard.writeText(publicMediaUrl.value)
+    toast.add({
+      title: t('common.success'),
+      description: t('common.copied', 'Copied to clipboard'),
+      color: 'success',
+    })
+  }
+}
 
 
 
@@ -1216,6 +1235,29 @@ const emit = defineEmits<Emits>()
                 class="w-4 h-4 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors shrink-0"
                 @click="downloadMediaFile(selectedMedia)"
               />
+            </div>
+          </div>
+          <div v-if="publicMediaUrl" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">public url:</span>
+            <div class="flex items-center gap-2 min-w-0">
+               <span class="text-gray-900 dark:text-gray-200 truncate font-mono text-xs select-all">{{ publicMediaUrl }}</span>
+               <UButton 
+                 icon="i-heroicons-clipboard-document"
+                 variant="ghost"
+                 color="gray"
+                 size="xs"
+                 class="-my-1"
+                 @click="copyPublicLink"
+               />
+               <UButton 
+                 icon="i-heroicons-arrow-top-right-on-square"
+                 variant="ghost"
+                 color="gray"
+                 size="xs"
+                 class="-my-1"
+                 :to="publicMediaUrl"
+                 target="_blank"
+               />
             </div>
           </div>
         </div>
