@@ -21,9 +21,9 @@ const { updateChannel, isLoading } = useChannels()
 const state = reactive({
   socialMedia: channel.socialMedia,
   credentials: {
-    chatId: channel.credentials?.chatId || channel.credentials?.telegramChannelId || '',
-    botToken: channel.credentials?.botToken || channel.credentials?.telegramBotToken || '',
-    accessToken: channel.credentials?.accessToken || channel.credentials?.vkAccessToken || '',
+    telegramChannelId: channel.credentials?.telegramChannelId || channel.credentials?.chatId || '',
+    telegramBotToken: channel.credentials?.telegramBotToken || channel.credentials?.botToken || '',
+    vkAccessToken: channel.credentials?.vkAccessToken || channel.credentials?.accessToken || '',
   }
 })
 
@@ -35,9 +35,9 @@ const schema = computed(() => {
 
 const isDirty = computed(() => {
     return JSON.stringify(state.credentials) !== JSON.stringify({
-        chatId: channel.credentials?.chatId || channel.credentials?.telegramChannelId || '',
-        botToken: channel.credentials?.botToken || channel.credentials?.telegramBotToken || '',
-        accessToken: channel.credentials?.accessToken || channel.credentials?.vkAccessToken || '',
+        telegramChannelId: channel.credentials?.telegramChannelId || channel.credentials?.chatId || '',
+        telegramBotToken: channel.credentials?.telegramBotToken || channel.credentials?.botToken || '',
+        vkAccessToken: channel.credentials?.vkAccessToken || channel.credentials?.accessToken || '',
     })
 })
 
@@ -46,12 +46,12 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
     let credentials = {}
     if (channel.socialMedia === 'TELEGRAM') {
         credentials = {
-            chatId: event.data.credentials.chatId,
-            botToken: event.data.credentials.botToken,
+            telegramChannelId: event.data.credentials.telegramChannelId,
+            telegramBotToken: event.data.credentials.telegramBotToken,
         }
     } else if (channel.socialMedia === 'VK') {
         credentials = {
-            accessToken: event.data.credentials.accessToken,
+            vkAccessToken: event.data.credentials.vkAccessToken,
         }
     }
 

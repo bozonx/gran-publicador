@@ -15,15 +15,15 @@ export function isChannelCredentialsEmpty(credentials: any, socialMedia?: string
 
     // Social-media specific checks
     if (socialMedia === 'TELEGRAM') {
-        const { botToken, chatId } = credentials
-        if (!botToken || !chatId || 
-            String(botToken).trim().length === 0 || 
-            String(chatId).trim().length === 0) {
+        const { telegramBotToken, telegramChannelId } = credentials
+        if (!telegramBotToken || !telegramChannelId || 
+            String(telegramBotToken).trim().length === 0 || 
+            String(telegramChannelId).trim().length === 0) {
             return true
         }
     } else if (socialMedia === 'VK') {
-        const { accessToken } = credentials
-        if (!accessToken || String(accessToken).trim().length === 0) {
+        const { vkAccessToken } = credentials
+        if (!vkAccessToken || String(vkAccessToken).trim().length === 0) {
             return true
         }
     }

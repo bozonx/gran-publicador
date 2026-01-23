@@ -68,6 +68,14 @@ function validateTelegramCredentials(credentials: any): CredentialsValidationRes
     }
   }
 
+  // Check for telegramChannelId
+  const channelId = credentials.telegramChannelId || credentials.chatId;
+  if (!channelId) {
+    errors.push('Telegram credentials must include telegramChannelId');
+  } else if (typeof channelId !== 'string' && typeof channelId !== 'number') {
+    errors.push('telegramChannelId must be a string or number');
+  }
+
   return {
     valid: errors.length === 0,
     errors,

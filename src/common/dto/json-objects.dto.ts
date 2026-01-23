@@ -167,6 +167,14 @@ export class ChannelCredentialsDto {
   @IsString()
   chatId?: string;
 
+  @IsOptional()
+  @IsString()
+  telegramBotToken?: string;
+
+  @IsOptional()
+  @IsString()
+  telegramChannelId?: string;
+
   // Generic/Other
   @IsOptional()
   @IsString()
@@ -175,4 +183,8 @@ export class ChannelCredentialsDto {
   @IsOptional()
   @IsString()
   apiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  vkAccessToken?: string;
 }

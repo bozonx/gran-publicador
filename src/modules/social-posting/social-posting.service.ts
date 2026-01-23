@@ -535,7 +535,10 @@ export class SocialPostingService {
       } else {
         const platformError = response;
         const meta = post.meta || {};
-        const message = platformError.error?.message || 'Unknown error from microservice';
+        const platformErrorMessage = platformError.error?.message;
+        const message = Array.isArray(platformErrorMessage)
+          ? platformErrorMessage.join(', ')
+          : platformErrorMessage || 'Unknown error from microservice';
 
         await this.prisma.post.update({
           where: { id: post.id },
