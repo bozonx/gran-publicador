@@ -327,7 +327,7 @@ export class ProjectsService {
   }
 
   public async findOne(projectId: string, userId: string, allowArchived = false): Promise<any> {
-    const project = await this.prisma.project.findUnique({
+    const project = await this.prisma.project.findFirst({
       where: { id: projectId, ...(allowArchived ? {} : { archivedAt: null }) },
       include: {
         _count: {
