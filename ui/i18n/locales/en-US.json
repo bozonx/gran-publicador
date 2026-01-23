@@ -139,7 +139,15 @@
     "date": "Date",
     "description": "Project news and updates",
     "errorLoadingNews": "Failed to load news",
-    "serviceNotConfigured": "News service is not configured"
+    "serviceNotConfigured": "News service is not configured",
+    "addTab": "Add tab",
+    "tabName": "Tab name",
+    "tabNamePlaceholder": "Enter tab name",
+    "deleteTabConfirm": "Are you sure you want to delete this search query?",
+    "saveQueries": "Save search queries",
+    "defaultQuery": "Default query",
+    "note": "Note",
+    "notePlaceholder": "Enter notes for this search request..."
   },
   "auth": {
     "login": "Log in",

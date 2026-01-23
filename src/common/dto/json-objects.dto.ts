@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsObject, ValidateNested, IsBoolean, IsUUID, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsObject, ValidateNested, IsBoolean, IsUUID, IsNumber, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -177,6 +177,33 @@ export class MediaOptimizationDto {
 }
 
 /**
+ * DTO for saved news search queries.
+ */
+export class NewsQueryDto {
+  @IsString()
+  id!: string;
+
+  @IsString()
+  name!: string;
+
+  @IsString()
+  q!: string;
+
+  @IsNumber()
+  limit!: number;
+
+  @IsNumber()
+  minScore!: number;
+
+  @IsString()
+  @IsOptional()
+  note?: string;
+
+  @IsBoolean()
+  isDefault!: boolean;
+}
+
+/**
  * DTO for Project preferences.
  */
 export class ProjectPreferencesDto {
@@ -193,6 +220,12 @@ export class ProjectPreferencesDto {
   @ValidateNested()
   @Type(() => MediaOptimizationDto)
   mediaOptimization?: MediaOptimizationDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NewsQueryDto)
+  newsQueries?: NewsQueryDto[];
 }
 
 /**
