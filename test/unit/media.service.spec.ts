@@ -84,6 +84,7 @@ describe('MediaService (unit)', () => {
     jest.clearAllMocks();
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'media') return mockMediaConfig;
+      if (key === 'app.jwtSecret') return 'test-jwt-secret';
       return null;
     });
   });
