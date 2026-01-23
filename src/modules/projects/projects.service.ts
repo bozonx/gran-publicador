@@ -1,4 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { request } from 'undici';
+import { NewsConfig } from '../../config/news.config.js';
 import {
   Prisma,
   type Project,
@@ -24,6 +27,7 @@ export class ProjectsService {
     private permissions: PermissionsService,
     private notifications: NotificationsService,
     private roles: RolesService,
+    private readonly configService: ConfigService,
   ) {}
 
   private hasNoCredentials(creds: any, socialMedia?: string): boolean {
@@ -628,6 +632,44 @@ export class ProjectsService {
     return this.prisma.projectMember.delete({
       where: { id: member.id },
     });
+  }
+
+  public async searchNews(projectId: string, userId: string, query: any) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
+    const config = this.configService.get<NewsConfig>('news')!;
+    let baseUrl = config.serviceUrl.replace(/\/$/, '');
+    
+    // Ensure we don't duplicate /api/v1 if it's already in the config
+    if (!baseUrl.endsWith('/api/v1')) {
+      baseUrl = `${baseUrl}/api/v1`;
+    }
+    
+    const url = `${baseUrl}/data/search`;
+
+    try {
+      const response = await request(url, {
+        method: 'GET',
+        query: {
+          q: query.q,
+          since: query.since,
+          source: query.source,
+          limit: query.limit,
+          minScore: query.minScore,
+        },
+      });
+
+      if (response.statusCode >= 400) {
+        const errorText = await response.body.text();
+        this.logger.error(`News microservice returned ${response.statusCode}: ${errorText}`);
+        throw new Error(`News microservice error: ${response.statusCode}`);
+      }
+
+      return response.body.json();
+    } catch (error: any) {
+      this.logger.error(`Failed to search news: ${error.message}`);
+      throw error;
+    }
   }
 }
 // Force rebuild

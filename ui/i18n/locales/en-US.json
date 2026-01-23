@@ -147,7 +147,8 @@
     "saveQueries": "Save search queries",
     "defaultQuery": "Default query",
     "note": "Note",
-    "notePlaceholder": "Enter notes for this search request..."
+    "notePlaceholder": "Enter notes for this search request...",
+    "since": "Time Range"
   },
   "auth": {
     "login": "Log in",

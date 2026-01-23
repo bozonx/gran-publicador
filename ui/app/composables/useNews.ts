@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export interface NewsItem {
   _id: string
@@ -25,33 +25,30 @@ export interface SearchNewsParams {
 }
 
 export const useNews = () => {
-  const config = useRuntimeConfig()
-  const newsServiceUrl = config.public.newsServiceUrl || ''
+  const api = useApi()
+  const route = useRoute()
+  const projectId = computed(() => route.params.id as string)
 
   const news = ref<NewsItem[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
   const searchNews = async (params: SearchNewsParams) => {
-    if (!newsServiceUrl) {
-      error.value = 'News service URL is not configured'
-      return
-    }
-
     isLoading.value = true
     error.value = null
 
     try {
-      const queryParams = new URLSearchParams()
-      queryParams.append('q', params.q)
-      
-      if (params.since) queryParams.append('since', params.since)
-      if (params.source) queryParams.append('source', params.source)
-      if (params.limit) queryParams.append('limit', params.limit.toString())
-      if (params.minScore !== undefined) queryParams.append('minScore', params.minScore.toString())
-
-      const response = await $fetch<NewsItem[]>(
-        `${newsServiceUrl}/data/search?${queryParams.toString()}`
+      const response = await api.get<NewsItem[]>(
+        `/projects/${projectId.value}/news/search`,
+        {
+          params: {
+            q: params.q,
+            since: params.since,
+            source: params.source,
+            limit: params.limit,
+            minScore: params.minScore
+          }
+        }
       )
 
       news.value = response

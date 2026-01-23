@@ -25,6 +25,7 @@ import {
   UpdateProjectDto,
   AddMemberDto,
   UpdateMemberDto,
+  SearchNewsQueryDto,
 } from './dto/index.js';
 import { ProjectsService } from './projects.service.js';
 
@@ -193,5 +194,14 @@ export class ProjectsController {
     }
 
     return this.projectsService.removeMember(id, req.user.userId, memberUserId);
+  }
+
+  @Get(':id/news/search')
+  public async searchNews(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Query() query: SearchNewsQueryDto,
+  ) {
+    return this.projectsService.searchNews(id, req.user.userId, query);
   }
 }

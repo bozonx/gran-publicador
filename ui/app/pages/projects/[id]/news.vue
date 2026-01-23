@@ -8,6 +8,7 @@ interface NewsQuery {
   id: string
   name: string
   q: string
+  since?: string
   limit: number
   minScore: number
   note: string
@@ -60,6 +61,7 @@ async function initQueries() {
         id: crypto.randomUUID(),
         name: t('news.title'),
         q: currentProject.value?.name || '',
+        since: '1d',
         limit: 20,
         minScore: 0.5,
         note: '',
@@ -87,6 +89,7 @@ async function handleSearch() {
 
   await searchNews({
     q: currentQuery.value.q,
+    since: currentQuery.value.since,
     limit: currentQuery.value.limit,
     minScore: currentQuery.value.minScore,
   })
@@ -105,6 +108,7 @@ async function addTab() {
     id: crypto.randomUUID(),
     name: newTabName.value,
     q: '',
+    since: '1d',
     limit: 20,
     minScore: 0.5,
     note: '',
@@ -174,6 +178,17 @@ function formatDate(dateString: string) {
 function formatScore(score: number) {
   return `${Math.round(score * 100)}%`
 }
+
+const timeRangeOptions = [
+  { label: '30m', value: '30m' },
+  { label: '1h', value: '1h' },
+  { label: '6h', value: '6h' },
+  { label: '12h', value: '12h' },
+  { label: '1d', value: '1d' },
+  { label: '2d', value: '2d' },
+  { label: '7d', value: '7d' },
+  { label: '30d', value: '30d' },
+]
 </script>
 
 <template>
@@ -278,7 +293,18 @@ function formatScore(score: number) {
                   </UButton>
                 </form>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                       {{ t('news.since') || 'Time Range' }}
+                    </label>
+                    <USelect
+                      v-model="currentQuery.since"
+                      :options="timeRangeOptions"
+                      icon="i-heroicons-clock"
+                      size="lg"
+                    />
+                  </div>
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Limit
