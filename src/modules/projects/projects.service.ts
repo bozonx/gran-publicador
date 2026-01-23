@@ -648,15 +648,18 @@ export class ProjectsService {
     const url = `${baseUrl}/data/search`;
 
     try {
+      const searchParams: any = {
+        q: query.q,
+      };
+
+      if (query.since) searchParams.since = query.since;
+      if (query.source) searchParams.source = query.source;
+      if (query.limit) searchParams.limit = query.limit;
+      if (query.minScore !== undefined) searchParams.minScore = query.minScore;
+
       const response = await request(url, {
         method: 'GET',
-        query: {
-          q: query.q,
-          since: query.since,
-          source: query.source,
-          limit: query.limit,
-          minScore: query.minScore,
-        },
+        query: searchParams,
       });
 
       if (response.statusCode >= 400) {
