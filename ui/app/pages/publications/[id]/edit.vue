@@ -183,6 +183,16 @@ onMounted(async () => {
     }
 })
 
+// Watch for project changes (e.g. from the form)
+watch(projectId, async (newId) => {
+    if (newId) {
+        await Promise.all([
+            fetchChannels({ projectId: newId }),
+            fetchProject(newId)
+        ])
+    }
+})
+
 /**
  * Handle successful publication update
  */

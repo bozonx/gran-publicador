@@ -155,10 +155,14 @@ const displayValue = computed({
         <slot name="actions" />
       </div>
     </template>
+    <div 
+      v-if="disabled" 
+      class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 font-mono text-[10px] leading-relaxed overflow-x-auto whitespace-pre text-gray-800 dark:text-gray-300 min-h-[100px]"
+    >{{ displayValue || '---' }}</div>
     <UTextarea
+      v-else
       v-model="displayValue"
       :rows="rows"
-      :disabled="disabled"
       class="font-mono text-xs w-full"
       autoresize
     />

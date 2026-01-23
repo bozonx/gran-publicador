@@ -54,6 +54,29 @@ const languageParam = route.query.language as string | undefined
 const currentProjectId = ref<string | null>(props.publication?.projectId || props.projectId || null)
 const state = usePublicationFormState(props.publication, languageParam)
 
+const projectOptions = computed(() => {
+    const opts = projects.value.map(p => ({
+        value: p.id,
+        label: p.name
+    }))
+    
+    opts.unshift({
+        value: null,
+        label: t('publication.personal_draft')
+    } as any)
+    
+    return opts
+})
+
+watch(currentProjectId, async (newId) => {
+    if (newId) {
+        await Promise.all([
+            fetchChannels({ projectId: newId }),
+            fetchPublicationsByProject(newId, { limit: 50 })
+        ])
+    }
+})
+
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const showAdvancedFields = ref(false)
 const linkedPublicationId = ref<string | undefined>(undefined)
@@ -316,6 +339,24 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
 
 
       <div :class="GRID_LAYOUTS.twoColumn">
+        <!-- Project Selection -->
+        <UFormField name="projectId" :help="t('publication.projectSelectorHelp')">
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('project.title') }}</span>
+              <CommonInfoTooltip :text="t('publication.projectSelectorHelp')" />
+            </div>
+          </template>
+          <USelectMenu
+            v-model="currentProjectId"
+            :items="projectOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-folder"
+          />
+        </UFormField>
+
         <!-- Status (Only when creating) -->
         <UFormField v-if="!isEditMode" name="status" required>
           <template #label>

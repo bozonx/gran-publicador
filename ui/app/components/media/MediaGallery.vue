@@ -260,11 +260,9 @@ async function saveMediaMeta() {
 
   isSavingMeta.value = true
   try {
-    // editableMetadata is already a JSON object from CommonYamlEditor
-    const metaToSave = editableMetadata.value || {}
+    // meta is now read-only
 
     const updated = await updateMedia(selectedMedia.value.id, {
-      meta: metaToSave,
       alt: editableAlt.value || undefined,
       description: editableDescription.value || undefined
     })
@@ -1308,16 +1306,9 @@ const emit = defineEmits<Emits>()
           </UFormField>
         </div>
 
-        <CommonYamlEditor
-          v-if="editable"
-          v-model="editableMetadata"
-          :disabled="!editable"
-          :rows="8"
-        ></CommonYamlEditor>
-        <div v-else class="mt-4">
-           <!-- Read-only YAML view could go here if needed, but we have the editor which works as viewer too -->
+        <div class="mt-4">
            <CommonYamlEditor
-              :model-value="editableMetadata"
+              :model-value="editableMetadata || {}"
               disabled
               :rows="8"
            />

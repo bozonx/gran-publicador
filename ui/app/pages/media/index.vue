@@ -41,7 +41,6 @@ const filteredMedia = computed(() => {
 const selectedMedia = ref<MediaItem | null>(null)
 const isModalOpen = ref(false)
 
-const isSavingMeta = ref(false)
 const editableMetadata = ref<Record<string, any>>({})
 
 function openMediaModal(media: MediaItem) {
@@ -55,35 +54,6 @@ function closeMediaModal() {
   isModalOpen.value = false
 }
 
-async function saveMediaMeta() {
-  if (!selectedMedia.value) return
-  isSavingMeta.value = true
-  try {
-    const updated = await updateMedia(selectedMedia.value.id, {
-      meta: editableMetadata.value
-    })
-    selectedMedia.value.meta = updated.meta
-    toast.add({
-      title: t('common.success'),
-      description: t('common.saveSuccess'),
-      color: 'success'
-    })
-    
-    // Update in local list
-    const index = mediaItems.value.findIndex(m => m.id === selectedMedia.value?.id)
-    if (index !== -1 && updated) {
-      mediaItems.value[index].meta = updated.meta
-    }
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: error.message,
-      color: 'error'
-    })
-  } finally {
-    isSavingMeta.value = false
-  }
-}
 
 async function handleDeleteMedia() {
   const currentMedia = selectedMedia.value
@@ -174,7 +144,7 @@ function formatSizeMB(bytes?: number | string): string {
         :media="media"
         size="md"
         class="w-full aspect-square"
-        @click="openMediaModal"
+        @click="(m: any) => openMediaModal(m)"
       />
     </div>
 
@@ -265,19 +235,11 @@ function formatSizeMB(bytes?: number | string): string {
             </div>
             
             <CommonYamlEditor
-              v-model="editableMetadata"
+              :model-value="editableMetadata"
+              disabled
               class="h-48"
             />
 
-            <div class="mt-2 flex justify-end">
-              <UButton
-                size="sm"
-                :loading="isSavingMeta"
-                @click="saveMediaMeta"
-              >
-                {{ t('common.save') }}
-              </UButton>
-            </div>
           </section>
 
         </div>
