@@ -7,6 +7,7 @@ import { PostStatus, PublicationStatus } from '../../../src/generated/prisma/cli
 import { NotificationsService } from '../../../src/modules/notifications/notifications.service.js';
 import { jest } from '@jest/globals';
 import { MockAgent, setGlobalDispatcher, getGlobalDispatcher } from 'undici';
+import { MediaService } from '../../../src/modules/media/media.service.js';
 
 import { I18nService } from 'nestjs-i18n';
 
@@ -69,6 +70,10 @@ describe('SocialPostingService', () => {
     create: jest.fn() as any,
   };
 
+  const mockMediaService = {
+    generatePublicToken: jest.fn().mockReturnValue('mock-token'),
+  };
+
   beforeAll(() => {
     originalDispatcher = getGlobalDispatcher();
     mockAgent = new MockAgent();
@@ -89,6 +94,7 @@ describe('SocialPostingService', () => {
         { provide: ShutdownService, useValue: mockShutdownService },
         { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: I18nService, useValue: mockI18nService },
+        { provide: MediaService, useValue: mockMediaService },
       ],
     }).compile();
 
