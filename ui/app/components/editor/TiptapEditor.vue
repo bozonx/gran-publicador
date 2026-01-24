@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/vue-3'
+import { useEditor, EditorContent } from '@tiptap/vue-3'
+// @ts-expect-error: Tiptap vue-3 exports are messy in this version
+import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
@@ -8,8 +10,11 @@ import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
 import { BubbleMenu as BubbleMenuExtension } from '@tiptap/extension-bubble-menu'
-import MarkdownIt from 'markdown-it'
+import { common, createLowlight } from 'lowlight'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { useStt } from '~/composables/useStt'
+
+const lowlight = createLowlight(common)
 
 interface Props {
   /** Initial content (Markdown) */
@@ -41,11 +46,6 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const toast = useToast()
-const md = new MarkdownIt({
-  html: true,
-  breaks: true,
-  linkify: true,
-})
 
 const linkUrlInput = ref('')
 const isLinkMenuOpen = ref(false)
@@ -100,7 +100,7 @@ const formattedDuration = computed(() => {
 const extensions = [
   StarterKit.configure({
     heading: { levels: [1, 2, 3] },
-    link: false,
+    codeBlock: false,
   }),
   Markdown.configure({
     html: false,
@@ -120,17 +120,24 @@ const extensions = [
   Placeholder.configure({
     placeholder: props.placeholder,
   }),
-  props.maxLength
-    ? CharacterCount.configure({ limit: props.maxLength })
-    : CharacterCount,
+  CodeBlockLowlight.configure({
+    lowlight,
+    defaultLanguage: 'javascript',
+  }),
+  CharacterCount.configure({ 
+    limit: props.maxLength 
+  }),
 ]
 
 const editor = useEditor({
-  content: props.modelValue ? md.render(props.modelValue) : '',
+  content: props.modelValue || '',
   editable: !props.disabled,
   extensions: extensions,
   onUpdate: ({ editor }) => {
-    emit('update:modelValue', editor.getMarkdown())
+    const markdown = editor.getMarkdown()
+    if (markdown !== props.modelValue) {
+      emit('update:modelValue', markdown)
+    }
   },
   onBlur: () => {
     emit('blur')
@@ -147,10 +154,25 @@ watch(
     if (editor.value) {
       const currentMarkdown = editor.value.getMarkdown()
       if (newValue !== currentMarkdown) {
-        const html = md.render(newValue || '')
-        editor.value.commands.setContent(html, { emitUpdate: false })
+        editor.value.commands.setContent(newValue || '', { emitUpdate: false })
       }
     }
+  }
+)
+
+// Watch for maxLength changes
+watch(
+  () => props.maxLength,
+  (limit) => {
+    editor.value?.extensionManager.extensions.find(e => e.name === 'characterCount')?.configure({ limit })
+  }
+)
+
+// Watch for placeholder changes
+watch(
+  () => props.placeholder,
+  (placeholder) => {
+    editor.value?.extensionManager.extensions.find(e => e.name === 'placeholder')?.configure({ placeholder })
   }
 )
 
@@ -210,15 +232,38 @@ const isMaxLengthReached = computed(() => {
 <template>
   <div class="tiptap-editor border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col relative">
     
-    <!-- Временно закомментируем BubbleMenu для проверки запуска без него -->
-    <!-- <BubbleMenu
+    <!-- BubbleMenu for Links -->
+    <BubbleMenu
       v-if="editor"
       :editor="editor"
       :tippy-options="{ duration: 100, placement: 'top' }"
       v-show="editor.isActive('link') || isLinkMenuOpen"
     >
-      ...
-    </BubbleMenu> -->
+      <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+        <UInput
+          v-model="linkUrlInput"
+          size="xs"
+          placeholder="https://..."
+          class="w-48"
+          @keydown.enter="applyLink"
+        />
+        <UButton
+          size="xs"
+          color="primary"
+          @click="applyLink"
+        >
+          OK
+        </UButton>
+        <UButton
+          v-if="editor.isActive('link')"
+          size="xs"
+          icon="i-heroicons-trash"
+          color="error"
+          variant="ghost"
+          @click="removeLink"
+        />
+      </div>
+    </BubbleMenu>
 
     <!-- Toolbar -->
     <div
@@ -422,5 +467,98 @@ const isMaxLengthReached = computed(() => {
 </template>
 
 <style>
-/* ... Styles stay the same ... */
+@reference "../../assets/css/main.css";
+
+.tiptap {
+  &:focus {
+    outline: none;
+  }
+
+  p.is-editor-empty:first-child::before {
+    color: var(--ui-color-neutral-400);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  pre {
+    @apply bg-gray-900 text-gray-100 rounded-md p-4 my-4 font-mono text-sm overflow-x-auto;
+    
+    code {
+      @apply bg-transparent p-0 text-inherit;
+    }
+
+    /* Syntax highlighting */
+    .hljs-comment,
+    .hljs-quote {
+      @apply text-gray-500 italic;
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-addition {
+      @apply text-purple-400;
+    }
+
+    .hljs-number,
+    .hljs-string,
+    .hljs-meta .hljs-meta-string,
+    .hljs-literal,
+    .hljs-doctag,
+    .hljs-regexp {
+      @apply text-green-400;
+    }
+
+    .hljs-attribute,
+    .hljs-attr,
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-class .hljs-title,
+    .hljs-type {
+      @apply text-yellow-300;
+    }
+
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-subst,
+    .hljs-meta,
+    .hljs-link {
+      @apply text-blue-400;
+    }
+
+    .hljs-built_in,
+    .hljs-deletion {
+      @apply text-red-400;
+    }
+
+    .hljs-formula {
+      @apply bg-gray-800 italic;
+    }
+
+    .hljs-emphasis {
+      @apply italic;
+    }
+
+    .hljs-strong {
+      @apply font-bold;
+    }
+  }
+
+  ul {
+    @apply list-disc ml-4;
+  }
+
+  ol {
+    @apply list-decimal ml-4;
+  }
+
+  blockquote {
+    @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4;
+  }
+
+  hr {
+    @apply border-t border-gray-200 dark:border-gray-700 my-6;
+  }
+}
 </style>
