@@ -291,9 +291,10 @@ const isMaxLengthReached = computed(() => {
 
     <!-- BubbleMenu for Tables -->
     <BubbleMenu
-      v-if="editor && editor.isActive('table')"
+      v-if="editor"
       :editor="editor"
       :tippy-options="{ duration: 100, placement: 'bottom' }"
+      :should-show="({ editor }) => editor.isActive('table')"
     >
       <div class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-x-auto max-w-[90vw]">
         <UTooltip :text="t('editor.table.addColumnBefore', 'Add column before')">
