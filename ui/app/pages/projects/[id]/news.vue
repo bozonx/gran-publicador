@@ -15,6 +15,14 @@ interface NewsQuery {
   isDefault: boolean
 }
 
+interface NewsTabItem {
+  label: string
+  id: string
+  slot: string
+  isDefault?: boolean
+  isAddTrigger?: boolean
+}
+
 definePageMeta({
   middleware: 'auth',
 })
@@ -39,27 +47,40 @@ const isSaving = ref(false)
 const isDeleting = ref(false)
 
 // Tabs for UTabs component
-const tabs = computed(() => {
-  return newsQueries.value
+const tabs = computed<NewsTabItem[]>(() => {
+  const sorted = newsQueries.value
     .slice()
     .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .map((q) => ({
-      label: q.isDefault ? `* ${q.name}` : q.name,
+      label: q.name,
       id: q.id,
+      isDefault: q.isDefault,
       slot: 'content'
     }))
+    
+  // Add "Add Tab" dummy item
+  return [
+    ...sorted,
+    {
+      label: '+',
+      id: 'add_new_tab_trigger',
+      slot: 'content',
+      isAddTrigger: true
+    }
+  ]
 })
 
 // Find the real index in newsQueries based on the sorted tabs
 const activeQueryIndex = computed(() => {
   const activeTab = tabs.value[activeTabIndex.value]
-  if (!activeTab) return -1
+  if (!activeTab || activeTab.isAddTrigger) return -1
+  // If we are on the "Add" tab (last index usually), we shouldn't try to find a query
   return newsQueries.value.findIndex(q => q.id === activeTab.id)
 })
 
 const currentQuery = computed(() => {
-  const index = activeQueryIndex.value
-  return index !== -1 ? newsQueries.value[index] : null
+  const query = newsQueries.value.find(q => q.id === tabs.value[activeTabIndex.value]?.id)
+  return query || null
 })
 
 // Initialize news queries from project preferences
@@ -74,8 +95,7 @@ async function initQueries() {
       newsQueries.value = JSON.parse(JSON.stringify(prefs.newsQueries))
       
       // Select default tab or first tab
-      const defaultIndex = newsQueries.value.findIndex(q => q.isDefault)
-      activeTabIndex.value = defaultIndex !== -1 ? defaultIndex : 0
+      activeTabIndex.value = 0
     } else {
       // Create initial default query
       const defaultQuery: NewsQuery = {
@@ -118,8 +138,33 @@ async function handleSearch() {
   })
 }
 
-// Watch tab changes to refresh news
-watch(activeTabIndex, () => {
+// Watch tab changes to refresh news or handle Add Tab
+watch(activeTabIndex, async (newIndex, oldIndex) => {
+  const selectedTab = tabs.value[newIndex]
+  
+  if (selectedTab && selectedTab.isAddTrigger) {
+    // If the "Add Tab" was clicked
+    // Revert to the previous index immediately so visual switch is minimal
+    // But since we want to show the modal, we do that.
+    
+    // We need to be careful not to create an infinite loop if oldIndex was somehow invalid, 
+    // but typically it should be fine.
+    // However, UTabs v-model updates.
+    
+    // Set flag to avoid processing the revert as a change?
+    // Actually, just opening modal is enough. 
+    // But we want to stay on the previous tab in the UI.
+    
+    // Defer the revert to next tick to let the value propagate and then set it back
+    nextTick(() => {
+        activeTabIndex.value = oldIndex !== undefined ? oldIndex : 0
+    })
+    
+    isAddModalOpen.value = true
+    return
+  }
+  
+  // Normal tab change
   handleSearch()
 })
 
@@ -149,10 +194,17 @@ async function addTab() {
   
   newsQueries.value.push(newQuery)
   
-  // Update index to point to the new tab in the sorted list
-  // Since it's not default, it will be at the end of the tabs list
+  // Sort handles order (default first), so new non-default tab goes to end of query list?
+  // We need to find where it ended up in the 'tabs' list (excluding the Add Trigger)
+  // Wait for next tick to let computed `tabs` update
   await nextTick()
-  activeTabIndex.value = tabs.value.length - 1
+  
+  // Find index of the new tab in the rendered tabs
+  const newTabIndex = tabs.value.findIndex(t => t.id === newQuery.id)
+  if (newTabIndex !== -1) {
+    activeTabIndex.value = newTabIndex
+  }
+  
   newTabName.value = ''
   isAddModalOpen.value = false
   
@@ -283,14 +335,6 @@ const timeRangeOptions = [
 
       <div class="flex gap-2">
         <UButton
-          icon="i-heroicons-plus"
-          color="neutral"
-          variant="ghost"
-          @click="isAddModalOpen = true"
-        >
-          {{ t('news.addTab') }}
-        </UButton>
-        <UButton
           icon="i-heroicons-check"
           color="primary"
           :loading="isSaving"
@@ -309,8 +353,20 @@ const timeRangeOptions = [
         class="w-full"
       >
         <template #default="{ item, index }">
-          <div class="flex items-center gap-2">
+          <!-- Add Tab Trigger -->
+          <div v-if="item.isAddTrigger" class="flex items-center justify-center w-6 h-6">
+             <UIcon name="i-heroicons-plus" class="w-5 h-5 text-gray-500" />
+          </div>
+          
+          <!-- Regular Tab -->
+          <div v-else class="flex items-center gap-2">
+            <UIcon 
+              v-if="item.isDefault" 
+              name="i-heroicons-star-solid" 
+              class="w-4 h-4 text-yellow-400"
+            />
             <span class="truncate max-w-[120px] md:max-w-none">{{ item.label }}</span>
+            
             <div v-if="index === activeTabIndex" class="flex items-center gap-0.5 -mr-1">
               <UButton
                 icon="i-heroicons-pencil-square"
@@ -402,16 +458,28 @@ const timeRangeOptions = [
                 </div>
 
                 <!-- Search Actions Area -->
-                <div class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                  <UButton
-                    size="lg"
-                    :loading="isNewsLoading"
-                    :disabled="!currentQuery.q.trim()"
-                    icon="i-heroicons-magnifying-glass"
-                    @click="handleSearch"
-                  >
-                    {{ t('common.search') }}
-                  </UButton>
+                <div class="flex justify-between items-center gap-4 pt-4">
+                  <div class="flex items-center gap-2">
+                    <UButton
+                      size="lg"
+                      :loading="isNewsLoading"
+                      :disabled="!currentQuery.q.trim()"
+                      icon="i-heroicons-magnifying-glass"
+                      @click="handleSearch"
+                    >
+                      {{ t('common.search') }}
+                    </UButton>
+                    
+                    <UTooltip :text="t('news.vectorSearchInfo')" :popper="{ placement: 'right' }">
+                      <UButton
+                        icon="i-heroicons-information-circle"
+                        color="neutral"
+                        variant="ghost"
+                        size="sm"
+                        class="opacity-50 hover:opacity-100"
+                      />
+                    </UTooltip>
+                  </div>
 
                   <UButton
                     v-if="!currentQuery.isDefault"
@@ -426,7 +494,7 @@ const timeRangeOptions = [
                 </div>
 
                 <!-- Note Row -->
-                <div class="pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div class="pt-4 border-t border-gray-100 dark:border-gray-800 w-full">
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {{ t('news.note') }}
                   </label>
@@ -436,6 +504,7 @@ const timeRangeOptions = [
                     :rows="6"
                     size="lg"
                     autoresize
+                    class="w-full"
                   />
                 </div>
               </div>

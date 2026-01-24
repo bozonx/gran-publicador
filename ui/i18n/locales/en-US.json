@@ -133,6 +133,7 @@
     "search": "Search news...",
     "searchPlaceholder": "Enter search query",
     "noResults": "No news found",
+    "vectorSearchInfo": "This is a vector-based similarity search, not a direct text match. Results are based on semantic meaning.",
     "loading": "Loading news...",
     "source": "Source",
     "score": "Relevance",
