@@ -13,8 +13,13 @@ import { BubbleMenu as BubbleMenuExtension } from '@tiptap/extension-bubble-menu
 import { common, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { useStt } from '~/composables/useStt'
+import MarkdownIt from 'markdown-it'
 
 const lowlight = createLowlight(common)
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
+})
 
 interface Props {
   /** Initial content (Markdown) */
@@ -140,7 +145,7 @@ const editor = useEditor({
   },
   onCreate: ({ editor }) => {
     if (props.modelValue) {
-      editor.commands.setContent(props.modelValue, { emitUpdate: false })
+      editor.commands.setContent(md.render(props.modelValue), { emitUpdate: false })
     }
   },
   onBlur: () => {
@@ -158,7 +163,7 @@ watch(
     if (editor.value) {
       const currentMarkdown = editor.value.getMarkdown()
       if (newValue !== currentMarkdown) {
-        editor.value.commands.setContent(newValue || '', { emitUpdate: false })
+        editor.value.commands.setContent(md.render(newValue || ''), { emitUpdate: false })
       }
     }
   }
