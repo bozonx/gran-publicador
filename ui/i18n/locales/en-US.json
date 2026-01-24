@@ -148,7 +148,9 @@
     "defaultQuery": "Default query",
     "note": "Note",
     "notePlaceholder": "Enter notes for this search request...",
-    "since": "Time Range"
+    "since": "Time Range",
+    "noConfiguredProjects": "No projects with configured news queries found.",
+    "howToConfigure": "Configure default news queries in project settings."
   },
   "auth": {
     "login": "Log in",

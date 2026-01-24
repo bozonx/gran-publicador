@@ -33,13 +33,20 @@ export const useNews = () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const searchNews = async (params: SearchNewsParams) => {
+  const searchNews = async (params: SearchNewsParams, customProjectId?: string) => {
     isLoading.value = true
     error.value = null
 
+    const pId = customProjectId || projectId.value
+    if (!pId) {
+      error.value = 'Project ID is required'
+      isLoading.value = false
+      return
+    }
+
     try {
       const response = await api.get<NewsItem[]>(
-        `/projects/${projectId.value}/news/search`,
+        `/projects/${pId}/news/search`,
         {
           params: {
             q: params.q,
