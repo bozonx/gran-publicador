@@ -57,7 +57,7 @@ export class SocialPostingRequestFormatter {
         apiKey,
       },
       body,
-      bodyFormat: isTelegram ? 'html' : 'html', // Telegram now uses html too for consistent spoiler support
+      bodyFormat: isTelegram ? 'html' : 'html', // Keep 'html' for all to match tests/microservice intent
       idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,

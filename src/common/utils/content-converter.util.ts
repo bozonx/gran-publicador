@@ -195,7 +195,7 @@ export class ContentConverter {
     }
 
     if (node.type === 'link') {
-      const href = node.url;
+      const href = this.escapeHtml(node.url);
       const content = node.children.map((c: any) => this.astToTelegramHtml(c)).join('');
       return `<a href="${href}">${content}</a>`;
     }
