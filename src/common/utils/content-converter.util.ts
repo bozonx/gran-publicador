@@ -12,104 +12,92 @@ export class ContentConverter {
       return text;
     }
 
-    const tags: { pos: number; type: 'start' | 'end'; tag: string; priority: number }[] = [];
+    const tags: { pos: number; type: 'start' | 'end'; tag: string; priority: number; index: number }[] = [];
 
     // Helper to add tags safely
-    const addTag = (start: number, end: number, startStr: string, endStr: string, priority: number) => {
+    const addTag = (start: number, end: number, startStr: string, endStr: string, priority: number, index: number) => {
       // Ensure we don't go out of bounds
       if (start < 0 || end > text.length) return;
       
-      tags.push({ pos: start, type: 'start', tag: startStr, priority });
-      tags.push({ pos: end, type: 'end', tag: endStr, priority: -priority });
+      tags.push({ pos: start, type: 'start', tag: startStr, priority, index });
+      tags.push({ pos: end, type: 'end', tag: endStr, priority: -priority, index });
     };
 
-    for (const entity of entities) {
-      // Priority helps with nesting: higher number = outer tag (for start)
-      // We want inner tags to close first, so priority logic in sorting will handle that.
-      // But actually, for standard MD, nesting order matters.
-      // Let's stick to the logic:
-      // Inner tags: start later, end earlier.
-      // If same range, we need consistent ordering.
-      // Let's use entity length as priority proxy like in original code.
-      
-      const p = entity.length;
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      let offset = entity.offset;
+      let length = entity.length;
+
+      // Smart trimming: MD doesn't like spaces inside markers like ** text **.
+      // We move the markers inside the text, excluding leading/trailing spaces.
+      // This also helps with nesting when entities are slightly off.
+      while (length > 0 && text[offset] === ' ') {
+        offset++;
+        length--;
+      }
+      while (length > 0 && text[offset + length - 1] === ' ') {
+        length--;
+      }
+
+      if (length <= 0) continue;
+
+      const p = length;
 
       switch (entity.type) {
         case 'bold':
-          addTag(entity.offset, entity.offset + entity.length, '**', '**', p);
+          addTag(offset, offset + length, '**', '**', p, i);
           break;
         case 'italic':
-          addTag(entity.offset, entity.offset + entity.length, '_', '_', p);
+          addTag(offset, offset + length, '_', '_', p, i);
           break;
         case 'underline':
-          // Standard MD doesn't support underline universally, but many processors do or allow HTML.
-          // Tiptap usually supports <u>. Let's use <u> for now as in original.
-          addTag(entity.offset, entity.offset + entity.length, '<u>', '</u>', p);
+          addTag(offset, offset + length, '<u>', '</u>', p, i);
           break;
         case 'strikethrough':
-          addTag(entity.offset, entity.offset + entity.length, '~~', '~~', p);
+          addTag(offset, offset + length, '~~', '~~', p, i);
           break;
         case 'code':
-          addTag(entity.offset, entity.offset + entity.length, '`', '`', p);
+          addTag(offset, offset + length, '`', '`', p, i);
           break;
         case 'pre':
-          addTag(entity.offset, entity.offset + entity.length, '```' + (entity.language || '') + '\n', '\n```', p);
+          addTag(offset, offset + length, '```' + (entity.language || '') + '\n', '\n```', p, i);
           break;
         case 'text_link':
-          addTag(entity.offset, entity.offset + entity.length, '[', `](${entity.url})`, p);
+          addTag(offset, offset + length, '[', `](${entity.url})`, p, i);
           break;
         case 'text_mention':
-          addTag(entity.offset, entity.offset + entity.length, '[', `](tg://user?id=${entity.user?.id})`, p);
+          addTag(offset, offset + length, '[', `](tg://user?id=${entity.user?.id})`, p, i);
           break;
         case 'spoiler':
-          // Standard MD doesn't have spoiler. We use || as agreed.
-          addTag(entity.offset, entity.offset + entity.length, '||', '||', p);
+          addTag(offset, offset + length, '||', '||', p, i);
           break;
         case 'blockquote':
         case 'expandable_blockquote':
-          // Blockquotes are line-based in MD.
-          // We can't just wrap generic range with > ...
-          // Multiline handling is tricky if we just inject strings.
-          // But for simple single-block conversion this works if entities align with lines.
-          // Let's assume standard behavior: prepend > to the block.
-          // However, converting range to blockquote syntax in inline string is hard.
-          // Simplistic approach: add > at start.
-          // LIMITATION: This might break if quote is mid-line (rare in Telegram).
-          // Better approach might be needed for multiline.
-          // For now, consistent with previous implementation: 
-          addTag(entity.offset, entity.offset + entity.length, '> ', '', p);
+          addTag(offset, offset + length, '> ', '', p, i);
           break;
       }
     }
 
     // Sort tags:
     // 1. Position ascending
-    // 2. End tags before Start tags at same position (HTML-style nesting)
-    // 3. For Start tags: Longest first (outer) -> Shortest last (inner).
-    // 4. For End tags: Shortest first (inner) -> Longest last (outer).
+    // 2. IMPORTANT for MD: End tags must come before Start tags at the same position to maintain nesting
+    // 3. For tags of the same type (both start or both end) at the same position:
+    //    - Start: Longer (Outer) first
+    //    - End: Shorter (Inner) first
+    //    - If priority is equal: use index to ensure mirror symmetry (Nested properly)
     tags.sort((a, b) => {
       if (a.pos !== b.pos) return a.pos - b.pos;
-      if (a.type !== b.type) return a.type === 'end' ? -1 : 1; // End tags first at same position
+      if (a.type !== b.type) return a.type === 'end' ? -1 : 1; 
       
-      // For Start tags (positive priority): Larger length (Priority) comes first strategies (Outer first)
-      // For End tags (negative priority): Inner first. 
-      // Inner has shorter length. 
-      // Bold(15) -> Start(15), End(-15).
-      // Italic(6) -> Start(6), End(-6).
-      // At End: We want Italic(-6) before Bold(-15).
-      // b.priority - a.priority:
-      // (-6) - (-15) = 9. (>0) -> b first. Correct.
-      // At Start: We want Bold(15) before Italic(6).
-      // (6) - (15) = -9 (<0) -> a first. Correct.
-      return b.priority - a.priority;
+      const priorityDiff = b.priority - a.priority;
+      if (priorityDiff !== 0) return priorityDiff;
+
+      // Tie-breaker for same length: mirror the start order in the end order
+      return a.type === 'start' ? a.index - b.index : b.index - a.index;
     });
 
     let result = '';
     let lastPos = 0;
-    
-    // We definitely need to deal with UTF-16 characters properly.
-    // Telegram offsets are UTF-16 code units. JS strings are UTF-16.
-    // So substring works natively with these offsets.
     
     for (const tag of tags) {
       if (tag.pos > lastPos) {
@@ -209,14 +197,9 @@ export class ContentConverter {
     }
 
     if (node.type === 'paragraph') {
-      // Telegram doesn't use <p> tags usually, just newlines.
-      // Or it supports them but often clearer to just join children.
-      // If we use <p>, we might get extra margins.
-      // Standard practice for Telegram HTML: just text with logic.
-      // But paragraphs imply separation. Two newlines?
-      // Let's join children and append \n\n if it's not the last one?
-      // Or just join.
-      return node.children.map((c: any) => this.astToTelegramHtml(c)).join('') + '\n';
+      // Telegram doesn't use <p> tags usually, but for standard MD separation 
+      // between blocks, we should use double newlines.
+      return node.children.map((c: any) => this.astToTelegramHtml(c)).join('') + '\n\n';
     }
 
     if (node.type === 'text') {

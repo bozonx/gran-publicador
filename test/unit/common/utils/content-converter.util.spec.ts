@@ -14,6 +14,17 @@ describe('ContentConverter', () => {
        const entities: any[] = [{ type: 'spoiler', offset: 0, length: 6 }];
        expect(ContentConverter.telegramToMd(text, entities)).toBe('||secret|| content');
     });
+
+    it('should correctly handle entities with trailing spaces and same range (nesting fix)', () => {
+       const text = 'bold italic ';
+       const entities: any[] = [
+         { type: 'bold', offset: 0, length: 12 },
+         { type: 'italic', offset: 0, length: 12 }
+       ];
+       // Should trim the trailing space and nest correctly
+       // Result should be **_bold italic_** 
+       expect(ContentConverter.telegramToMd(text, entities)).toBe('**_bold italic_** ');
+    });
   });
 
   describe('mdToTelegramHtml', () => {
