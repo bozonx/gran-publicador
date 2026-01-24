@@ -49,6 +49,7 @@ const toast = useToast()
 
 const linkUrlInput = ref('')
 const isLinkMenuOpen = ref(false)
+const isSourceMode = ref(false)
 
 // STT Integration
 const { 
@@ -270,8 +271,21 @@ const isMaxLengthReached = computed(() => {
       v-if="editor && !disabled"
       class="flex flex-wrap items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
     >
+      <!-- Source Mode Toggle (Always visible) -->
+      <UButton
+        :color="isSourceMode ? 'primary' : 'neutral'"
+        :variant="isSourceMode ? 'solid' : 'ghost'"
+        size="xs"
+        icon="i-heroicons-code-bracket-square"
+        @click="isSourceMode = !isSourceMode"
+      >
+        MD
+      </UButton>
+
+      <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+
       <!-- Text formatting -->
-      <div class="flex items-center gap-0.5">
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           :color="editor.isActive('bold') ? 'primary' : 'neutral'"
           :variant="editor.isActive('bold') ? 'solid' : 'ghost'"
@@ -314,10 +328,10 @@ const isMaxLengthReached = computed(() => {
         ></UButton>
       </div>
 
-      <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+      <div v-if="!isSourceMode" class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
       <!-- Headings -->
-      <div class="flex items-center gap-0.5">
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           :color="editor.isActive('heading', { level: 1 }) ? 'primary' : 'neutral'"
           :variant="editor.isActive('heading', { level: 1 }) ? 'solid' : 'ghost'"
@@ -344,10 +358,10 @@ const isMaxLengthReached = computed(() => {
         </UButton>
       </div>
 
-      <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+      <div v-if="!isSourceMode" class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
       <!-- Lists -->
-      <div class="flex items-center gap-0.5">
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           :color="editor.isActive('bulletList') ? 'primary' : 'neutral'"
           :variant="editor.isActive('bulletList') ? 'solid' : 'ghost'"
@@ -364,10 +378,10 @@ const isMaxLengthReached = computed(() => {
         ></UButton>
       </div>
 
-      <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+      <div v-if="!isSourceMode" class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
       <!-- Block elements -->
-      <div class="flex items-center gap-0.5">
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           :color="editor.isActive('blockquote') ? 'primary' : 'neutral'"
           :variant="editor.isActive('blockquote') ? 'solid' : 'ghost'"
@@ -391,10 +405,10 @@ const isMaxLengthReached = computed(() => {
         ></UButton>
       </div>
 
-      <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+      <div v-if="!isSourceMode" class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
       <!-- Link & Tools -->
-      <div class="flex items-center gap-0.5">
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           :color="editor.isActive('link') ? 'primary' : 'neutral'"
           :variant="editor.isActive('link') ? 'solid' : 'ghost'"
@@ -421,7 +435,7 @@ const isMaxLengthReached = computed(() => {
       <div class="flex-1"></div>
 
       <!-- Undo/Redo -->
-      <div class="flex items-center gap-0.5">
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           color="neutral"
           variant="ghost"
@@ -442,11 +456,23 @@ const isMaxLengthReached = computed(() => {
     </div>
 
     <!-- Editor content -->
-    <EditorContent
-      :editor="editor"
-      class="prose prose-sm dark:prose-invert max-w-none p-4 focus:outline-none overflow-y-auto"
-      :style="{ minHeight: `${minHeight}px` }"
-    ></EditorContent>
+    <div class="relative flex-1">
+      <EditorContent
+        v-show="!isSourceMode"
+        :editor="editor"
+        class="prose prose-sm dark:prose-invert max-w-none p-4 focus:outline-none overflow-y-auto"
+        :style="{ minHeight: `${minHeight}px` }"
+      ></EditorContent>
+      
+      <textarea
+        v-if="isSourceMode"
+        :value="modelValue"
+        class="w-full h-full p-4 font-mono text-sm bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200"
+        :style="{ minHeight: `${minHeight}px` }"
+        placeholder="Markdown source..."
+        @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+      ></textarea>
+    </div>
 
     <!-- Footer with character count -->
     <div
