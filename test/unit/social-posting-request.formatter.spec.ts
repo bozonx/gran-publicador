@@ -44,7 +44,7 @@ describe('SocialPostingRequestFormatter', () => {
     const request = SocialPostingRequestFormatter.prepareRequest(params);
 
     expect(request.platform).toBe('telegram');
-    expect(request.bodyFormat).toBe('md');
+    expect(request.bodyFormat).toBe('html');
     expect(request.title).toBeUndefined();
     expect(request.description).toBeUndefined();
     expect((request as any).tags).toBeUndefined();

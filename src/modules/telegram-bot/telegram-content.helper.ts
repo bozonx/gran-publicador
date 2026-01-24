@@ -1,5 +1,6 @@
 import type { Message, MessageEntity } from 'grammy/types';
 import { MediaType } from '../../generated/prisma/client.js';
+import { ContentConverter } from '../../common/utils/content-converter.util.js';
 
 export interface ExtractedMedia {
   type: MediaType;
@@ -45,92 +46,7 @@ export function extractText(message: Message): string {
  * Convert Telegram entities to Markdown
  */
 export function telegramEntitiesToMarkdown(text: string, entities?: MessageEntity[]): string {
-  if (!entities || entities.length === 0) {
-    return text;
-  }
-
-  const tags: { pos: number; type: 'start' | 'end'; tag: string; priority: number }[] = [];
-
-  for (const entity of entities) {
-    let startTag = '';
-    let endTag = '';
-
-    switch (entity.type) {
-      case 'bold':
-        startTag = '**';
-        endTag = '**';
-        break;
-      case 'italic':
-        startTag = '_';
-        endTag = '_';
-        break;
-      case 'underline':
-        startTag = '<u>';
-        endTag = '</u>';
-        break;
-      case 'strikethrough':
-        startTag = '~~';
-        endTag = '~~';
-        break;
-      case 'code':
-        startTag = '`';
-        endTag = '`';
-        break;
-      case 'pre':
-        startTag = '```' + (entity.language || '') + '\n';
-        endTag = '\n```';
-        break;
-      case 'text_link':
-        startTag = '[';
-        endTag = `](${entity.url})`;
-        break;
-      case 'text_mention':
-        startTag = '[';
-        endTag = `](tg://user?id=${entity.user?.id})`;
-        break;
-      case 'spoiler':
-        startTag = '||';
-        endTag = '||';
-        break;
-      case 'blockquote':
-      case 'expandable_blockquote':
-        startTag = '> ';
-        endTag = '';
-        break;
-    }
-
-    if (startTag || endTag) {
-      tags.push({ pos: entity.offset, type: 'start', tag: startTag, priority: entity.length });
-      tags.push({
-        pos: entity.offset + entity.length,
-        type: 'end',
-        tag: endTag,
-        priority: -entity.length,
-      });
-    }
-  }
-
-  // Sort tags:
-  // 1. By position (offset)
-  // 2. For same position: 'end' tags before 'start' tags
-  // 3. For 'end' tags: shortest first (inner-most first)
-  // 4. For 'start' tags: longest first (outer-most first)
-  tags.sort((a, b) => {
-    if (a.pos !== b.pos) return a.pos - b.pos;
-    if (a.type !== b.type) return a.type === 'end' ? -1 : 1;
-    return b.priority - a.priority;
-  });
-
-  let result = '';
-  let lastPos = 0;
-  for (const tag of tags) {
-    result += text.substring(lastPos, tag.pos);
-    result += tag.tag;
-    lastPos = tag.pos;
-  }
-  result += text.substring(lastPos);
-
-  return result;
+  return ContentConverter.telegramToMd(text, entities);
 }
 
 /**

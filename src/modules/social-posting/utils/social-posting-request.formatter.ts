@@ -8,6 +8,7 @@ import {
 } from '../../../generated/prisma/client.js';
 import { SocialPostingBodyFormatter } from './social-posting-body.formatter.js';
 import { TagsFormatter } from './tags.formatter.js';
+import { ContentConverter } from '../../../common/utils/content-converter.util.js';
 
 export interface FormatterParams {
   post: any; // Post with relations or simplified
@@ -29,7 +30,7 @@ export class SocialPostingRequestFormatter {
     const isTelegram = channel.socialMedia === 'TELEGRAM';
 
     // Generate body using templates
-    const body = SocialPostingBodyFormatter.format(
+    let body = SocialPostingBodyFormatter.format(
       {
         title: publication.title,
         content: post.content || publication.content,
@@ -45,6 +46,10 @@ export class SocialPostingRequestFormatter {
 
     const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl, params.publicMediaBaseUrl, params.mediaService);
 
+    if (isTelegram) {
+      body = ContentConverter.mdToTelegramHtml(body);
+    }
+
     const request: PostRequestDto = {
       platform: channel.socialMedia.toLowerCase(),
       channelId: targetChannelId,
@@ -52,7 +57,7 @@ export class SocialPostingRequestFormatter {
         apiKey,
       },
       body,
-      bodyFormat: isTelegram ? 'md' : 'html', // Telegram needs md, others usually html or plain
+      bodyFormat: isTelegram ? 'html' : 'html', // Telegram now uses html too for consistent spoiler support
       idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,
