@@ -307,7 +307,6 @@ const timeRangeOptions = [
         v-model="activeTabIndex" 
         :items="tabs" 
         class="w-full"
-        :ui="{ wrapper: 'space-y-6' }"
       >
         <template #default="{ item, index }">
           <div class="flex items-center gap-2">
@@ -459,57 +458,12 @@ const timeRangeOptions = [
               </div>
 
               <!-- News list -->
-              <div v-else-if="news.length > 0" class="grid grid-cols-1 gap-4">
-                  <div
-                    v-for="item in news"
-                    :key="item._id"
-                    class="news-config-card p-6 group hover:ring-2 hover:ring-primary-500/50 transition-all duration-300 transform hover:-translate-y-1"
-                  >
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-2">
-                        <UBadge variant="soft" color="primary" size="xs">
-                          {{ item._source }}
-                        </UBadge>
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                          {{ formatDate(item.date) }}
-                        </span>
-                      </div>
-                      
-                      <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-tight">
-                        <a
-                          :href="item.url"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                        >
-                          {{ item.title }}
-                        </a>
-                      </h3>
-                      
-                      <p v-if="item.description" class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                        {{ item.description }}
-                      </p>
-
-                      <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-                          <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 text-green-500" />
-                          <span>{{ formatScore(item._score) }} {{ t('news.score') }}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <UButton
-                      :to="item.url"
-                      target="_blank"
-                      variant="ghost"
-                      color="neutral"
-                      size="sm"
-                      icon="i-heroicons-arrow-top-right-on-square"
-                      class="opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                </div>
+              <div v-else-if="news.length > 0" class="space-y-4">
+                <NewsItem
+                  v-for="item in news"
+                  :key="item._id"
+                  :item="item"
+                />
               </div>
 
               <!-- Empty state -->

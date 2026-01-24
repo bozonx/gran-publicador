@@ -108,22 +108,20 @@ function formatScore(score: number) {
         <template #content>
           <div v-if="currentDefaultQuery" class="space-y-4">
             <!-- Query Information -->
-            <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-4 py-2 px-1">
-              <div class="flex items-center gap-1">
-                <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
-                <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentDefaultQuery.q }}</span>
+            <div class="flex items-start justify-between gap-4 py-2 px-1 text-sm text-gray-500 dark:text-gray-400">
+              <div class="flex items-start gap-2 flex-1 min-w-0">
+                <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4 mt-0.5 shrink-0" />
+                <span class="font-medium text-gray-700 dark:text-gray-300 break-all overflow-hidden">{{ currentDefaultQuery.q }}</span>
+                
+                <div v-if="(currentDefaultQuery as any).since" class="flex items-center gap-1 ml-2 shrink-0">
+                  <UIcon name="i-heroicons-clock" class="w-4 h-4" />
+                  <span>{{ (currentDefaultQuery as any).since }}</span>
+                </div>
               </div>
-              <div v-if="(currentDefaultQuery as any).since" class="flex items-center gap-1">
-                <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-                <span>Range: <span class="font-medium text-gray-700 dark:text-gray-300">{{ (currentDefaultQuery as any).since }}</span></span>
-              </div>
-              <div class="flex items-center gap-1">
+              
+              <div class="flex items-center gap-1 shrink-0">
                 <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
                 <span>Score: <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentDefaultQuery.minScore }}</span></span>
-              </div>
-              <div class="flex items-center gap-1">
-                <UIcon name="i-heroicons-list-bullet" class="w-4 h-4" />
-                <span>Limit: <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentDefaultQuery.limit }}</span></span>
               </div>
             </div>
 
@@ -142,60 +140,11 @@ function formatScore(score: number) {
 
             <!-- News list -->
             <div v-else-if="news.length > 0" class="space-y-4">
-              <div
+              <NewsItem
                 v-for="item in news"
                 :key="item._id"
-                class="app-card p-6 hover:shadow-lg transition-shadow"
-              >
-                <div class="flex items-start justify-between gap-4">
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      <a
-                        :href="item.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="hover:text-primary-600 dark:hover:text-primary-400"
-                      >
-                        {{ item.title }}
-                      </a>
-                    </h3>
-                    
-                    <p v-if="item.description" class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      {{ item.description }}
-                    </p>
-
-                    <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                      <div class="flex items-center gap-1">
-                        <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-                        <span>{{ formatDate(item.date) }}</span>
-                      </div>
-                      
-                      <div class="flex items-center gap-1">
-                        <UIcon name="i-heroicons-newspaper" class="w-4 h-4" />
-                        <span>{{ item._source }}</span>
-                      </div>
-
-                      <div class="flex items-center gap-1">
-                        <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
-                        <span>{{ formatScore(item._score) }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <UButton
-                      :to="item.url"
-                      target="_blank"
-                      variant="ghost"
-                      size="sm"
-                      icon="i-heroicons-arrow-top-right-on-square"
-                      trailing
-                    >
-                      {{ t('common.view') }}
-                    </UButton>
-                  </div>
-                </div>
-              </div>
+                :item="item"
+              />
             </div>
 
             <!-- Empty state -->
