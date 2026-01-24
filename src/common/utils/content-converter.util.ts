@@ -118,13 +118,6 @@ export class ContentConverter {
   static mdToTelegramHtml(markdown: string): string {
     if (!markdown) return '';
 
-    // First, process custom "||" spoilers to HTML-friendly format
-    // Because standard remark parser might mess them up or treat as text.
-    // We can use regex to replace ||text|| with <tg-spoiler>text</tg-spoiler> BEFORE processing?
-    // Or write a remark plugin. Regex is simpler for now but risky with code blocks.
-    // A safer way: Use a custom processor or assume text is clean.
-    // Let's try to handle it as simple replace if it's unique chars.
-    // But better: Parse MD to HTML, then post-process.
     // Standard MD to HTML:
     // **bold** -> <strong>
     // _italic_ -> <em>
@@ -133,60 +126,16 @@ export class ContentConverter {
     // 
     // Telegram needs: <b>, <i>, <u>, <s>, <code>, <pre>, <a href...>, <tg-spoiler>, <blockquote>
     
-    // Step 1: Handle Spoilers
-    // We need to support ||spoiler||.
-    // Let's use a regex replacement that respects code blocks? Hard.
-    // Let's assume we can pre-process || to <tg-spoiler> if it's not inside code.
-    // Actually, `remark` has plugins. 
-    // `remark-gfm` adds strikethrough (~~).
-    // Use unified chain.
-    
     // We'll define a custom strategy:
     // 1. Use remark to parse.
-    // 2. Use remark-rehype to convert to HTML AST.
-    // 3. Use rehype-sringify to get HTML.
+    // 2. Traverse AST to generate HTML string.
     // 
-    // BUT, we need `||` support. 
-    // Let's replace `||` with a temporary marker that remark accepts (or just HTML)
-    // If we replace `||foo||` with `<span data-spoiler>foo</span>` before markdown parsing?
-    // Markdown parser might escape HTML. 
-    // 
-    // If we act on the output HTML?
-    // If input is standard MD: "some ||spoiler|| text".
-    // MD parser sees text "||spoiler||".
-    // Output HTML: "<p>some ||spoiler|| text</p>".
-    // Then we replace regular text ||...|| with <tg-spoiler>.
-    
-    // Setup processor
-    const processor = unified()
-      .use(remarkParse)
-      // We might need remark-gfm for ~~strikethrough~~
-      // .use(remarkGfm) // Need to install if not present. Based on package.json, we don't have it explicitly?
-      // Checking package.json... remark-parse is there. remark-gfm not seen in list.
-      // We do have `remark-parse`, `unified`.
-      // We don't see `remark-html` in package.json from previous `view_file`.
-      // Wait, let me check package.json again.
-      // I saw lines 67, 71. `remark-parse`, `unified`.
-      // I don't see `remark-html` or `remark-rehype`.
-      // So I cannot use `remark-html` unless I install it or it's implicitly there (unlikely).
-      // 
-      // If no `remark-html`:
-      // I can write a simple parser or use regex replacement if complexity is low.
-      // Or I should ask to install it?
-      // BUT `mdast-util-to-string` is there. `unist-util-visit` is there.
-      // 
-      // User requirement: "единый стандарт хранения... стандартный md... tiptap"
-      // So we must rely on standard MD behavior.
-      // Converting MD to Telegram HTML manually using AST is safer without extra libs.
-      // 
-      // Let's implement a AST walker using `unified` and `remark-parse` which are available.
-      
-    // Import dynamically if needed inside, or standard import if ESM.
-    // We are in ESM. 
+    // Note: remark-parse (CommonMark) doesn't support GFM strikethrough (~~) by default.
+    // We handle ~~ in the text node processor manually.
+          
+    const processor = unified().use(remarkParse);
     
     const tree = processor.parse(markdown);
-    
-    // We need to traverse tree and build HTML string manually to control tags exactly for Telegram.
     
     return this.astToTelegramHtml(tree);
   }
@@ -205,14 +154,17 @@ export class ContentConverter {
     if (node.type === 'text') {
       let text = node.value;
       // Handle spoilers in text node: ||text||
-      // Simple regex for ||...||
-      // Note: text node content is already escaped by default? No, AST has raw text.
+      // Handle strikethrough in text node: ~~text~~ (since non-GFM parser treats it as text)
+      
+      // Note: text node content is raw.
       // We need to escape HTML entities (<, >, &)
       text = this.escapeHtml(text);
       
       // Replace ||...|| with <tg-spoiler>...</tg-spoiler>
-      // Non-greedy match
       text = text.replace(/\|\|(.*?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
+      
+      // Replace ~~...~~ with <s>...</s>
+      text = text.replace(/~~(.*?)~~/g, '<s>$1</s>');
       
       return text;
     }

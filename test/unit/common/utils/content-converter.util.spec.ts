@@ -33,9 +33,24 @@ describe('ContentConverter', () => {
        expect(ContentConverter.mdToTelegramHtml(md)).toBe('<b>bold</b>');
     });
 
+    it('should convert strikethrough ~~ to <s>', () => {
+       const md = '~~strike~~';
+       expect(ContentConverter.mdToTelegramHtml(md)).toBe('<s>strike</s>');
+    });
+
     it('should convert italic to <i>', () => {
        const md = '_italic_';
        expect(ContentConverter.mdToTelegramHtml(md)).toBe('<i>italic</i>');
+    });
+
+    it('should handle links correctly', () => {
+       const md = '[link](https://example.com)';
+       expect(ContentConverter.mdToTelegramHtml(md)).toBe('<a href="https://example.com">link</a>');
+    });
+
+    it('should handle mixed content with HTML and links', () => {
+       const md = 'text <u>under</u> [link](https://ya.ru/)';
+       expect(ContentConverter.mdToTelegramHtml(md)).toBe('text <u>under</u> <a href="https://ya.ru/">link</a>');
     });
 
     it('should convert ||spoiler|| to <tg-spoiler>', () => {
