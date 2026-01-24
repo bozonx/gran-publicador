@@ -1,6 +1,7 @@
 import type { MessageEntity } from 'grammy/types';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
 
 export class ContentConverter {
   /**
@@ -113,124 +114,168 @@ export class ContentConverter {
 
   /**
    * Convert standard Markdown to Telegram HTML.
-   * Supports: bold, italic, underline, strikethrough, code, pre, link, spoiler (||).
+   * Uses remark-gfm for standard tables (converted to text), strikethrough etc.
+   * Enforces rigorous nesting rules compatible with Telegram API.
    */
   static mdToTelegramHtml(markdown: string): string {
     if (!markdown) return '';
 
-    // Standard MD to HTML:
-    // **bold** -> <strong>
-    // _italic_ -> <em>
-    // `code` -> <code>
-    // [link](url) -> <a href>
-    // 
-    // Telegram needs: <b>, <i>, <u>, <s>, <code>, <pre>, <a href...>, <tg-spoiler>, <blockquote>
-    
-    // We'll define a custom strategy:
-    // 1. Use remark to parse.
-    // 2. Traverse AST to generate HTML string.
-    // 
-    // Note: remark-parse (CommonMark) doesn't support GFM strikethrough (~~) by default.
-    // We handle ~~ in the text node processor manually.
-          
-    const processor = unified().use(remarkParse);
-    
+    // Parse Markdown to AST
+    const processor = unified().use(remarkParse).use(remarkGfm);
     const tree = processor.parse(markdown);
     
-    return this.astToTelegramHtml(tree);
+    // Convert AST to Telegram HTML
+    return this.astToTelegramHtml(tree, { 
+      isInsideCode: false, 
+      isInsidePre: false 
+    }).trim();
   }
 
-  private static astToTelegramHtml(node: any): string {
+  private static astToTelegramHtml(node: any, context: { isInsideCode: boolean; isInsidePre: boolean }): string {
+    // Helper to process children efficiently
+    const processChildren = (ctx = context) => {
+      if (!node.children) return '';
+      return node.children.map((c: any) => this.astToTelegramHtml(c, ctx)).join('');
+    };
+
+    // 1. Root
     if (node.type === 'root') {
-      return node.children.map((c: any) => this.astToTelegramHtml(c)).join('').trim();
+      return processChildren();
     }
 
-    if (node.type === 'paragraph') {
-      // Telegram doesn't use <p> tags usually, but for standard MD separation 
-      // between blocks, we should use double newlines.
-      return node.children.map((c: any) => this.astToTelegramHtml(c)).join('') + '\n\n';
-    }
-
+    // 2. Text node
     if (node.type === 'text') {
       let text = node.value;
-      // Handle spoilers in text node: ||text||
-      // Handle strikethrough in text node: ~~text~~ (since non-GFM parser treats it as text)
-      
-      // Note: text node content is raw.
-      // We need to escape HTML entities (<, >, &)
+      // Escape HTML entities
       text = this.escapeHtml(text);
       
-      // Replace ||...|| with <tg-spoiler>...</tg-spoiler>
-      text = text.replace(/\|\|(.*?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
-      
-      // Replace ~~...~~ with <s>...</s>
-      text = text.replace(/~~(.*?)~~/g, '<s>$1</s>');
+      // Handle custom spoiler ||text|| if not inside code
+      if (!context.isInsideCode && !context.isInsidePre) {
+         text = text.replace(/\|\|(.*?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
+      }
       
       return text;
     }
 
-    if (node.type === 'strong') {
-      return `<b>${node.children.map((c: any) => this.astToTelegramHtml(c)).join('')}</b>`;
+    // --- Block Elements ---
+
+    // 3. Paragraph
+    if (node.type === 'paragraph') {
+      // Paragraphs are separated by double newline
+      return processChildren() + '\n\n';
     }
 
-    if (node.type === 'emphasis') {
-      return `<i>${node.children.map((c: any) => this.astToTelegramHtml(c)).join('')}</i>`;
-    }
-    
-    if (node.type === 'delete') { // Strikethrough (GFM only? standard remark-parse might not parse this without gfm)
-      // If remark-parse doesn't support gfm default, '~~' might be just text.
-      // If so, we'll see handled in 'text'.
-      return `<s>${node.children.map((c: any) => this.astToTelegramHtml(c)).join('')}</s>`;
-    }
-
-    if (node.type === 'inlineCode') {
-      return `<code>${this.escapeHtml(node.value)}</code>`;
+    // 4. Heading (h1-h6)
+    // Telegram doesn't support headers.
+    // Requirement: "just clear and go as simple text with one empty line after it"
+    // Since paragraph adds \n\n, and strict simple text implies just text...
+    // But we need to distinguish a header block from just inline text. 
+    // Usually headers are blocks. So we treat it like a paragraph (plain text + \n\n)
+    if (node.type === 'heading') {
+      return processChildren() + '\n\n';
     }
 
+    // 5. Code Block (```) -> <pre><code class="..."></code></pre>
     if (node.type === 'code') {
       const code = this.escapeHtml(node.value);
       const lang = node.lang ? ` class="language-${node.lang}"` : '';
-      // <pre><code class="...">...</code></pre>
-      return `<pre><code${lang}>${code}</code></pre>\n`;
+      // Telegram: pre/code cannot contain other entities. 
+      // We are effectively just emitting text here, so no children recursion needed for 'value'.
+      return `<pre><code${lang}>${code}</code></pre>\n\n`;
     }
 
+    // 6. Blockquote
+    if (node.type === 'blockquote') {
+      // Telegram: blockquote can't be nested inside another blockquote (though UI supports it mostly, API is stricter).
+      // We treat it as generic container.
+      // Note: blockquotes in MD often contain paragraphs. 
+      // We strip the last newline to merge into the quote properly, usually.
+      const content = processChildren();
+      // To ensure valid HTML, let's keep it simple.
+      return `<blockquote>${content.trim()}</blockquote>\n\n`;
+    }
+
+    // 7. Lists
+    if (node.type === 'list') {
+      const ordered = node.ordered;
+      const start = node.start || 1;
+      
+      return node.children.map((c: any, i: number) => {
+        // c is listItem
+        // Process children of listItem (usually paragraph)
+        // We need to strip the paragraph's trailing newlines to make it a single line item if possible
+        // or just handle it naturally.
+        
+        let itemContent = this.astToTelegramHtml(c, context).trim();
+        
+        // Remove wrapping paragraphs logic if necessary, but simply trimming is usually enough for simple lists.
+        // If content has multiple blocks, it might get messy, but standard MD lists usually simple.
+        
+        if (ordered) {
+          return `${start + i}. ${itemContent}\n`;
+        } else {
+          return `• ${itemContent}\n`;
+        }
+      }).join('') + '\n';
+    }
+
+    if (node.type === 'listItem') {
+       // Should be handled by parent 'list'
+       return processChildren();
+    }
+
+    // --- Inline Elements ---
+
+    // Special Rule: If inside Code/Pre, ignore formatting logic and just output text (children recursion with flag)
+    if (context.isInsideCode || context.isInsidePre) {
+       return processChildren();
+    }
+
+    // 8. Bold (Strong) -> <b>
+    if (node.type === 'strong') {
+      return `<b>${processChildren()}</b>`;
+    }
+
+    // 9. Italic (Emphasis) -> <i>
+    if (node.type === 'emphasis') {
+      return `<i>${processChildren()}</i>`;
+    }
+
+    // 10. Strikethrough (Delete) -> <s>
+    // Supported by remark-gfm
+    if (node.type === 'delete') {
+      return `<s>${processChildren()}</s>`;
+    }
+
+    // 11. Inline Code -> <code>
+    if (node.type === 'inlineCode') {
+      // Does not support nested entities inside
+      return `<code>${this.escapeHtml(node.value)}</code>`;
+    }
+
+    // 12. Link -> <a href="...">
     if (node.type === 'link') {
       const href = this.escapeHtml(node.url);
-      const content = node.children.map((c: any) => this.astToTelegramHtml(c)).join('');
-      return `<a href="${href}">${content}</a>`;
-    }
-    
-    if (node.type === 'html') {
-      // Raw HTML. Should we allow?
-      // For Telegram, safer to escape or ignore. 
-      // Let's treat as text or ignore. original logic allowed <u>?
-      // If explicit <u> tag was in MD.
-      // If user typed <u>test</u> in MD, remark treats it as html node.
-      // We can allow specific tags: u, s, b, i, em, strong.
-      const val = node.value;
-      if (val.match(/^<\/?(u|s|b|i|strong|em|tg-spoiler)>/)) {
-         return val;
-      }
-      return this.escapeHtml(val);
-    }
-    
-    if (node.type === 'blockquote') {
-       return `<blockquote>${node.children.map((c: any) => this.astToTelegramHtml(c)).join('')}</blockquote>\n`;
-    }
-    
-    // Fallback for list, etc.
-    // List support is nice to have.
-    if (node.type === 'list') {
-      return node.children.map((c: any) => this.astToTelegramHtml(c)).join('');
-    }
-    if (node.type === 'listItem') {
-       // Add a bullet?
-       return `• ${node.children.map((c: any) => this.astToTelegramHtml(c)).join('')}\n`;
+      return `<a href="${href}">${processChildren()}</a>`;
     }
 
-    // Default fallback: traverse children
+    // 13. HTML (Raw)
+    if (node.type === 'html') {
+       // Support basic valid tags if user typed them manually: <u>, <s>, <b>, <i>, <tg-spoiler>
+       const val = node.value;
+       if (val.match(/^<\/?(u|s|b|i|strong|em|tg-spoiler)>/)) {
+          return val;
+       }
+       return this.escapeHtml(val);
+    }
+    
+    // 14. Support for explicit 'underline' if coming from extended AST or if we decide to handle HTML-like nodes parsed as text differently,
+    // but standard remark-gfm doesn't have 'underline' node type usually. 
+    // If it was just text with <u> tags, it falls into 'html' node above.
+    
+    // Fallback: just return children text
     if (node.children) {
-      return node.children.map((c: any) => this.astToTelegramHtml(c)).join('');
+      return processChildren();
     }
 
     return '';
@@ -241,7 +286,5 @@ export class ContentConverter {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
-      // .replace(/"/g, '&quot;') // Not strictly needed for content, mostly for attributes
-      // .replace(/'/g, '&#039;');
   }
 }
