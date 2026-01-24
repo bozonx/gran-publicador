@@ -124,6 +124,12 @@ export class PublicationMetaDto {
   @ValidateNested()
   @Type(() => RepostInfoDto)
   repost?: RepostInfoDto;
+
+  @IsOptional()
+  attempts?: number;
+
+  @IsOptional()
+  lastResult?: any;
 }
 
 
