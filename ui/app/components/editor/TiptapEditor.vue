@@ -104,7 +104,6 @@ const extensions = [
     codeBlock: false,
   }),
   Markdown.configure({
-    html: false,
     transformPastedText: true,
     transformCopiedText: true,
   }),
@@ -131,13 +130,17 @@ const extensions = [
 ]
 
 const editor = useEditor({
-  content: props.modelValue || '',
   editable: !props.disabled,
   extensions: extensions,
   onUpdate: ({ editor }) => {
     const markdown = editor.getMarkdown()
     if (markdown !== props.modelValue) {
       emit('update:modelValue', markdown)
+    }
+  },
+  onCreate: ({ editor }) => {
+    if (props.modelValue) {
+      editor.commands.setContent(props.modelValue, { emitUpdate: false })
     }
   },
   onBlur: () => {
