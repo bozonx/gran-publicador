@@ -17,7 +17,8 @@
     "author": "Author",
     "viewSource": "View source",
     "messageId": "MSG ID",
-    "chatId": "CHAT ID"
+    "chatId": "CHAT ID",
+    "copy": "Copy content"
   },
   "translate": {
     "title": "Translate Text",

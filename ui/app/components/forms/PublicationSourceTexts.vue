@@ -114,6 +114,18 @@ function getTelegramLink(repost: any): string | undefined {
   return undefined
 }
 
+const { copy } = useClipboard()
+const toast = useToast()
+
+function handleCopy(text: string) {
+  copy(text)
+  toast.add({
+    title: 'Copied to clipboard',
+    icon: 'i-heroicons-check-circle',
+    color: 'success'
+  })
+}
+
 </script>
 
 <template>
@@ -205,6 +217,14 @@ function getTelegramLink(repost: any): string | undefined {
                 size="xs"
                 icon="i-heroicons-pencil-square"
                 @click="handleStartEdit(index)"
+              />
+              <UButton
+                color="primary"
+                variant="ghost"
+                size="xs"
+                icon="i-heroicons-clipboard"
+                :title="t('sourceTexts.copy')"
+                @click="handleCopy(item.content)"
               />
               <UButton
                 color="primary"
