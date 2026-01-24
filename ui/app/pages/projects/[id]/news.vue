@@ -169,13 +169,13 @@ watch(activeTabIndex, async (newIndex, oldIndex) => {
 })
 
 // Watch parameters for auto-search
-watch(() => [
+watchDebounced(() => [
     currentQuery.value?.since,
     currentQuery.value?.limit,
     currentQuery.value?.minScore
 ], () => {
     handleSearch()
-}, { deep: true })
+}, { debounce: 500, deep: true })
 
 // Add new search tab
 async function addTab() {

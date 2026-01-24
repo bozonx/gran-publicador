@@ -45,7 +45,7 @@ export const useNews = () => {
     }
 
     try {
-      const response = await api.get<NewsItem[]>(
+      const res = await api.get<any>(
         `/projects/${pId}/news/search`,
         {
           params: {
@@ -58,7 +58,14 @@ export const useNews = () => {
         }
       )
 
-      news.value = response
+      if (Array.isArray(res)) {
+        news.value = res
+      } else if (res && Array.isArray(res.items)) {
+        news.value = res.items
+      } else {
+        // Fallback or empty
+        news.value = []
+      }
     } catch (err: any) {
       console.error('Failed to search news:', err)
       error.value = err.message || 'Failed to search news'

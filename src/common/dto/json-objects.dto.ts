@@ -205,6 +205,10 @@ export class NewsQueryDto {
   @IsOptional()
   note?: string;
 
+  @IsString()
+  @IsOptional()
+  since?: string;
+
   @IsBoolean()
   isDefault!: boolean;
 }
