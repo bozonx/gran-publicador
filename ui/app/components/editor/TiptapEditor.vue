@@ -2,6 +2,7 @@
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
@@ -39,7 +40,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const md = new MarkdownIt({
-  html: false,
+  html: true,
   breaks: true,
   linkify: true,
 })
@@ -102,6 +103,7 @@ const extensions = [
     link: false,
   }),
   Markdown,
+  Underline,
   Link.configure({
     openOnClick: false,
     HTMLAttributes: {
@@ -231,6 +233,14 @@ const isMaxLengthReached = computed(() => {
           icon="i-heroicons-strikethrough"
           :disabled="!editor.can().chain().focus().toggleStrike().run()"
           @click="editor.chain().focus().toggleStrike().run()"
+        ></UButton>
+        <UButton
+          :color="editor.isActive('underline') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('underline') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-underline"
+          :disabled="!editor.can().chain().focus().toggleUnderline().run()"
+          @click="editor.chain().focus().toggleUnderline().run()"
         ></UButton>
         <UButton
           :color="editor.isActive('code') ? 'primary' : 'neutral'"
