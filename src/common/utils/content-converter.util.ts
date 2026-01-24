@@ -255,15 +255,20 @@ export class ContentConverter {
 
     // 12. Link -> <a href="...">
     if (node.type === 'link') {
-      const href = this.escapeHtml(node.url);
+      const encodedUrl = encodeURI(node.url);
+      const href = this.escapeHtml(encodedUrl);
       return `<a href="${href}">${processChildren()}</a>`;
     }
 
     // 13. HTML (Raw)
     if (node.type === 'html') {
-       // Support basic valid tags if user typed them manually: <u>, <s>, <b>, <i>, <tg-spoiler>
+       // Support basic valid tags if user typed them manually
+       // This is crucial for <a> with attributes or <u> which isn't standard MD
        const val = node.value;
-       if (val.match(/^<\/?(u|s|b|i|strong|em|tg-spoiler)>/)) {
+       const allowedTags = 'a|u|s|b|i|strong|em|tg-spoiler|ins|strike|del|span|code|pre|blockquote';
+       const regex = new RegExp(`^<\\/?(${allowedTags})(\\s+[^>]*?)?>`, 'i');
+       
+       if (val.match(regex)) {
           return val;
        }
        return this.escapeHtml(val);
@@ -285,6 +290,8 @@ export class ContentConverter {
     return unsafe
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }
