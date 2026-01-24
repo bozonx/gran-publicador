@@ -9,7 +9,6 @@ interface NewsQuery {
   name: string
   q: string
   since?: string
-  limit: number
   minScore: number
   note: string
   isDefault: boolean
@@ -20,7 +19,6 @@ interface NewsTabItem {
   id: string
   slot: string
   isDefault?: boolean
-  isAddTrigger?: boolean
 }
 
 definePageMeta({
@@ -32,7 +30,7 @@ const route = useRoute()
 const projectId = computed(() => route.params.id as string)
 
 const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading } = useProjects()
-const { news, isLoading: isNewsLoading, error, searchNews } = useNews()
+const { news, isLoading: isNewsLoading, error, searchNews, hasMore } = useNews()
 
 const newsQueries = ref<NewsQuery[]>([])
 const activeTabIndex = ref(0)
@@ -45,10 +43,11 @@ const deletingTabId = ref('')
 const newTabName = ref('')
 const isSaving = ref(false)
 const isDeleting = ref(false)
+const isLoadMoreLoading = ref(false)
 
 // Tabs for UTabs component
 const tabs = computed<NewsTabItem[]>(() => {
-  const sorted = newsQueries.value
+  return newsQueries.value
     .slice()
     .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .map((q) => ({
@@ -57,24 +56,12 @@ const tabs = computed<NewsTabItem[]>(() => {
       isDefault: q.isDefault,
       slot: 'content'
     }))
-    
-  // Add "Add Tab" dummy item
-  return [
-    ...sorted,
-    {
-      label: '+',
-      id: 'add_new_tab_trigger',
-      slot: 'content',
-      isAddTrigger: true
-    }
-  ]
 })
 
 // Find the real index in newsQueries based on the sorted tabs
 const activeQueryIndex = computed(() => {
   const activeTab = tabs.value[activeTabIndex.value]
-  if (!activeTab || activeTab.isAddTrigger) return -1
-  // If we are on the "Add" tab (last index usually), we shouldn't try to find a query
+  if (!activeTab) return -1
   return newsQueries.value.findIndex(q => q.id === activeTab.id)
 })
 
@@ -92,7 +79,11 @@ async function initQueries() {
     
     const prefs = currentProject.value?.preferences as any
     if (prefs?.newsQueries?.length > 0) {
-      newsQueries.value = JSON.parse(JSON.stringify(prefs.newsQueries))
+      // Migrate old configs that might have limit
+      newsQueries.value = JSON.parse(JSON.stringify(prefs.newsQueries)).map((q: any) => {
+        const { limit, ...rest } = q
+        return rest
+      })
       
       // Select default tab or first tab
       activeTabIndex.value = 0
@@ -103,7 +94,6 @@ async function initQueries() {
         name: t('news.title'),
         q: currentProject.value?.name || '',
         since: '1d',
-        limit: 20,
         minScore: 0.5,
         note: '',
         isDefault: true
@@ -133,45 +123,35 @@ async function handleSearch() {
   await searchNews({
     q: currentQuery.value.q,
     since: currentQuery.value.since,
-    limit: currentQuery.value.limit,
     minScore: currentQuery.value.minScore,
   })
 }
 
-// Watch tab changes to refresh news or handle Add Tab
-watch(activeTabIndex, async (newIndex, oldIndex) => {
-  const selectedTab = tabs.value[newIndex]
+// Load more results
+async function loadMore() {
+  if (isLoadMoreLoading.value || !hasMore.value || !currentQuery.value) return
   
-  if (selectedTab && selectedTab.isAddTrigger) {
-    // If the "Add Tab" was clicked
-    // Revert to the previous index immediately so visual switch is minimal
-    // But since we want to show the modal, we do that.
-    
-    // We need to be careful not to create an infinite loop if oldIndex was somehow invalid, 
-    // but typically it should be fine.
-    // However, UTabs v-model updates.
-    
-    // Set flag to avoid processing the revert as a change?
-    // Actually, just opening modal is enough. 
-    // But we want to stay on the previous tab in the UI.
-    
-    // Defer the revert to next tick to let the value propagate and then set it back
-    nextTick(() => {
-        activeTabIndex.value = oldIndex !== undefined ? oldIndex : 0
-    })
-    
-    isAddModalOpen.value = true
-    return
+  isLoadMoreLoading.value = true
+  try {
+    await searchNews({
+      q: currentQuery.value.q,
+      since: currentQuery.value.since,
+      minScore: currentQuery.value.minScore,
+    }, undefined, true)
+  } finally {
+    isLoadMoreLoading.value = false
   }
-  
-  // Normal tab change
+}
+
+// Watch tab changes to refresh news
+watch(activeTabIndex, async (newIndex) => {
   handleSearch()
 })
 
-// Watch parameters for auto-search
+// Watch parameters for auto-search with debounce
 watchDebounced(() => [
+    currentQuery.value?.q,
     currentQuery.value?.since,
-    currentQuery.value?.limit,
     currentQuery.value?.minScore
 ], () => {
     handleSearch()
@@ -186,7 +166,6 @@ async function addTab() {
     name: newTabName.value,
     q: '',
     since: '1d',
-    limit: 20,
     minScore: 0.5,
     note: '',
     isDefault: false
@@ -195,7 +174,7 @@ async function addTab() {
   newsQueries.value.push(newQuery)
   
   // Sort handles order (default first), so new non-default tab goes to end of query list?
-  // We need to find where it ended up in the 'tabs' list (excluding the Add Trigger)
+  // We need to find where it ended up in the 'tabs' list
   // Wait for next tick to let computed `tabs` update
   await nextTick()
   
@@ -275,6 +254,7 @@ async function saveQueries() {
   
   isSaving.value = true
   try {
+    // Ensure we don't save 'limit' by mapping clean objects (though interface should prevent typing it)
     const updatedPrefs = {
       ...(currentProject.value.preferences as any),
       newsQueries: newsQueries.value
@@ -346,20 +326,14 @@ const timeRangeOptions = [
     </div>
 
     <!-- Tabs System -->
-    <div v-if="newsQueries.length > 0" class="space-y-6">
+    <div v-if="newsQueries.length > 0" class="flex items-start gap-4">
       <UTabs 
         v-model="activeTabIndex" 
         :items="tabs" 
-        class="w-full"
+        class="flex-1 min-w-0"
       >
         <template #default="{ item, index }">
-          <!-- Add Tab Trigger -->
-          <div v-if="item.isAddTrigger" class="flex items-center justify-center w-6 h-6">
-             <UIcon name="i-heroicons-plus" class="w-5 h-5 text-gray-500" />
-          </div>
-          
-          <!-- Regular Tab -->
-          <div v-else class="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <UIcon 
               v-if="item.isDefault" 
               name="i-heroicons-star-solid" 
@@ -410,7 +384,7 @@ const timeRangeOptions = [
                 </div>
 
                 <!-- Filters Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                        {{ t('news.since') || 'Time Range' }}
@@ -419,19 +393,6 @@ const timeRangeOptions = [
                       v-model="currentQuery.since"
                       :options="timeRangeOptions"
                       icon="i-heroicons-clock"
-                      size="lg"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Limit
-                    </label>
-                    <UInput
-                      v-model.number="currentQuery.limit"
-                      type="number"
-                      min="1"
-                      max="100"
-                      icon="i-heroicons-list-bullet"
                       size="lg"
                     />
                   </div>
@@ -512,16 +473,8 @@ const timeRangeOptions = [
 
             <!-- Results Section -->
             <div class="space-y-4">
-              <!-- Error message -->
-              <div v-if="error" class="news-config-card p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-                <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
-                  <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5" />
-                  <span>{{ error }}</span>
-                </div>
-              </div>
-
-              <!-- Loading state -->
-              <div v-if="isNewsLoading" class="flex flex-col items-center justify-center py-24 space-y-4">
+              <!-- Loading state initial -->
+              <div v-if="isNewsLoading && news.length === 0" class="flex flex-col items-center justify-center py-24 space-y-4">
                 <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin" />
                 <p class="text-gray-500 dark:text-gray-400 animate-pulse">{{ t('news.loading') }}</p>
               </div>
@@ -533,6 +486,20 @@ const timeRangeOptions = [
                   :key="item._id"
                   :item="item"
                 />
+                
+                <!-- Load More Button -->
+                <div v-if="hasMore" class="flex justify-center pt-4 pb-8">
+                  <UButton
+                    size="lg"
+                    variant="soft"
+                    color="neutral" 
+                    :loading="isLoadMoreLoading"
+                    icon="i-heroicons-arrow-down"
+                    @click="loadMore"
+                  >
+                    {{ t('common.loadMore') || 'Load More' }}
+                  </UButton>
+                </div>
               </div>
 
               <!-- Empty state -->
@@ -550,6 +517,15 @@ const timeRangeOptions = [
           </div>
         </template>
       </UTabs>
+
+      <!-- Add Tab Button (External) -->
+      <UButton
+        icon="i-heroicons-plus"
+        color="neutral"
+        variant="soft"
+        class="mt-1"
+        @click="isAddModalOpen = true"
+      />
     </div>
 
     <!-- Initial state when project is loading -->

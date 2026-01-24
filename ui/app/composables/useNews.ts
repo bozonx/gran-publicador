@@ -20,20 +20,26 @@ export interface SearchNewsParams {
   q: string
   since?: string
   source?: string
-  limit?: number
   minScore?: number
 }
+
+const NEWS_LIMIT = 20
 
 export const useNews = () => {
   const api = useApi()
   const route = useRoute()
+  const toast = useToast()
   const projectId = computed(() => route.params.id as string)
 
   const news = ref<NewsItem[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  
+  // Pagination state
+  const page = ref(1)
+  const hasMore = ref(false)
 
-  const searchNews = async (params: SearchNewsParams, customProjectId?: string) => {
+  const searchNews = async (params: SearchNewsParams, customProjectId?: string, isLoadMore = false) => {
     isLoading.value = true
     error.value = null
 
@@ -44,6 +50,8 @@ export const useNews = () => {
       return
     }
 
+    const targetPage = isLoadMore ? page.value : 1
+
     try {
       const res = await api.get<any>(
         `/projects/${pId}/news/search`,
@@ -52,24 +60,57 @@ export const useNews = () => {
             q: params.q,
             since: params.since,
             source: params.source,
-            limit: params.limit,
+            limit: NEWS_LIMIT,
+            page: targetPage,
             minScore: params.minScore
           }
         }
       )
 
+      let newItems: NewsItem[] = []
+      let total = 0
+      
       if (Array.isArray(res)) {
-        news.value = res
+        newItems = res
+        // If legacy array response, assume more if we got a full page
+        hasMore.value = newItems.length >= NEWS_LIMIT
       } else if (res && Array.isArray(res.items)) {
-        news.value = res.items
+        newItems = res.items
+        total = res.meta?.total || 0
+        
+        // Check if we have more pages
+        if (res.meta && typeof res.meta.total === 'number') {
+            hasMore.value = (targetPage * NEWS_LIMIT) < total
+        } else {
+            hasMore.value = newItems.length >= NEWS_LIMIT
+        }
       } else {
-        // Fallback or empty
-        news.value = []
+        newItems = []
+        hasMore.value = false
       }
+
+      if (isLoadMore) {
+        news.value.push(...newItems)
+      } else {
+        news.value = newItems
+      }
+      
+      // Update page pointer for next load
+      page.value = targetPage + 1
+      
     } catch (err: any) {
       console.error('Failed to search news:', err)
-      error.value = err.message || 'Failed to search news'
-      news.value = []
+      const msg = err.message || 'Failed to search news'
+      error.value = msg
+      
+      toast.add({
+        title: 'News Search Error',
+        description: msg,
+        color: 'red',
+        icon: 'i-heroicons-exclamation-triangle'
+      })
+      
+      if (!isLoadMore) news.value = []
     } finally {
       isLoading.value = false
     }
@@ -79,6 +120,8 @@ export const useNews = () => {
     news,
     isLoading,
     error,
+    hasMore,
     searchNews,
+    page
   }
 }

@@ -196,9 +196,6 @@ export class NewsQueryDto {
   q!: string;
 
   @IsNumber()
-  limit!: number;
-
-  @IsNumber()
   minScore!: number;
 
   @IsString()
