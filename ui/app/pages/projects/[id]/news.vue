@@ -32,14 +32,29 @@ const isAddModalOpen = ref(false)
 const newTabName = ref('')
 const isSaving = ref(false)
 
-const currentQuery = computed(() => newsQueries.value[activeTabIndex.value] || null)
-
 // Tabs for UTabs component
-const tabs = computed(() => newsQueries.value.map((q, index) => ({
-  label: q.name,
-  icon: q.isDefault ? 'i-heroicons-star-20-solid' : undefined,
-  slot: 'content'
-})))
+const tabs = computed(() => {
+  return newsQueries.value
+    .slice()
+    .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+    .map((q) => ({
+      label: q.isDefault ? `* ${q.name}` : q.name,
+      id: q.id,
+      slot: 'content'
+    }))
+})
+
+// Find the real index in newsQueries based on the sorted tabs
+const activeQueryIndex = computed(() => {
+  const activeTab = tabs.value[activeTabIndex.value]
+  if (!activeTab) return -1
+  return newsQueries.value.findIndex(q => q.id === activeTab.id)
+})
+
+const currentQuery = computed(() => {
+  const index = activeQueryIndex.value
+  return index !== -1 ? newsQueries.value[index] : null
+})
 
 // Initialize news queries from project preferences
 async function initQueries() {
@@ -72,9 +87,11 @@ async function initQueries() {
     }
     
     // Initial search
-    if (currentQuery.value?.q) {
-      handleSearch()
-    }
+    nextTick(() => {
+      if (currentQuery.value?.q) {
+        handleSearch()
+      }
+    })
   }
 }
 
@@ -100,6 +117,15 @@ watch(activeTabIndex, () => {
   handleSearch()
 })
 
+// Watch parameters for auto-search
+watch(() => [
+    currentQuery.value?.since,
+    currentQuery.value?.limit,
+    currentQuery.value?.minScore
+], () => {
+    handleSearch()
+}, { deep: true })
+
 // Add new search tab
 async function addTab() {
   if (!newTabName.value.trim()) return
@@ -116,34 +142,42 @@ async function addTab() {
   }
   
   newsQueries.value.push(newQuery)
-  activeTabIndex.value = newsQueries.value.length - 1
+  
+  // Update index to point to the new tab in the sorted list
+  // Since it's not default, it will be at the end of the tabs list
+  await nextTick()
+  activeTabIndex.value = tabs.value.length - 1
   newTabName.value = ''
   isAddModalOpen.value = false
   
   await saveQueries()
 }
 
-// Delete current tab
-async function deleteTab(index: number) {
+// Delete tab
+async function deleteTab(id: string) {
   if (newsQueries.value.length <= 1) return
   
   if (confirm(t('news.deleteTabConfirm'))) {
-    newsQueries.value.splice(index, 1)
-    if (activeTabIndex.value >= newsQueries.value.length) {
-      activeTabIndex.value = newsQueries.value.length - 1
+    const index = newsQueries.value.findIndex(q => q.id === id)
+    if (index !== -1) {
+      newsQueries.value.splice(index, 1)
+      if (activeTabIndex.value >= newsQueries.value.length) {
+        activeTabIndex.value = newsQueries.value.length - 1
+      }
+      await saveQueries()
     }
-    await saveQueries()
   }
 }
 
-// Handle default flag change (only one default allowed)
-async function handleDefaultChange(index: number) {
-  if (newsQueries.value[index].isDefault) {
-    newsQueries.value.forEach((q, i) => {
-      if (i !== index) q.isDefault = false
-    })
-    await saveQueries()
-  }
+// Handle default flag change
+async function makeDefault(id: string) {
+  newsQueries.value.forEach((q) => {
+    q.isDefault = q.id === id
+  })
+  
+  // After making default, it will move to index 0 due to sorting
+  activeTabIndex.value = 0
+  await saveQueries()
 }
 
 // Save all queries to project preferences
@@ -213,7 +247,7 @@ const timeRangeOptions = [
       <div class="flex gap-2">
         <UButton
           icon="i-heroicons-plus"
-          color="gray"
+          color="neutral"
           variant="ghost"
           @click="isAddModalOpen = true"
         >
@@ -236,20 +270,19 @@ const timeRangeOptions = [
         v-model="activeTabIndex" 
         :items="tabs" 
         class="w-full"
-        :ui="{ wrapper: 'space-y-6', list: { height: 'h-10', padding: 'p-1' } }"
+        :ui="{ wrapper: 'space-y-6' }"
       >
-        <template #default="{ item, index, selected }">
+        <template #default="{ item, index }">
           <div class="flex items-center gap-2">
-            <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 text-primary-500" />
             <span>{{ item.label }}</span>
             <UButton
-              v-if="selected && newsQueries.length > 1"
+              v-if="index === activeTabIndex && newsQueries.length > 1"
               icon="i-heroicons-x-mark"
               size="xs"
-              color="gray"
+              color="neutral"
               variant="ghost"
               class="-mr-1"
-              @click.stop="deleteTab(index)"
+              @click.stop="deleteTab(item.id)"
             />
           </div>
         </template>
@@ -258,39 +291,45 @@ const timeRangeOptions = [
           <div v-if="currentQuery" class="space-y-6">
             <!-- Search settings card -->
             <div class="news-config-card overflow-hidden">
-              <div class="p-6 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-heroicons-adjustments-horizontal" class="w-5 h-5 text-primary-500" />
-                  <h2 class="font-semibold text-gray-900 dark:text-white">
-                    {{ t('news.tabName') }}: {{ currentQuery.name }}
-                  </h2>
-                </div>
-                
-                <UCheckbox
-                  v-model="currentQuery.isDefault"
-                  :label="t('news.defaultQuery')"
-                  @change="handleDefaultChange(activeTabIndex)"
-                />
-              </div>
-
               <div class="p-6 space-y-6">
                 <!-- Search row -->
-                <form @submit.prevent="handleSearch" class="flex gap-2">
-                  <UInput
-                    v-model="currentQuery.q"
-                    :placeholder="t('news.searchPlaceholder')"
-                    size="lg"
-                    class="flex-1"
-                    icon="i-heroicons-magnifying-glass"
-                  />
-                  <UButton
-                    type="submit"
-                    size="lg"
-                    :loading="isNewsLoading"
-                    :disabled="!currentQuery.q.trim()"
-                  >
-                    {{ t('common.search') }}
-                  </UButton>
+                <form @submit.prevent="handleSearch" class="flex flex-col gap-4">
+                   <div class="w-full">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                       {{ t('news.searchPlaceholder') }}
+                    </label>
+                    <UTextarea
+                      v-model="currentQuery.q"
+                      :placeholder="t('news.searchPlaceholder')"
+                      size="lg"
+                      class="w-full"
+                      :rows="3"
+                      autoresize
+                    />
+                  </div>
+
+                  <div class="flex justify-between items-center gap-4">
+                    <UButton
+                      type="submit"
+                      size="lg"
+                      :loading="isNewsLoading"
+                      :disabled="!currentQuery.q.trim()"
+                      icon="i-heroicons-magnifying-glass"
+                    >
+                      {{ t('common.search') }}
+                    </UButton>
+
+                    <UButton
+                      v-if="!currentQuery.isDefault"
+                      color="neutral"
+                      variant="soft"
+                      size="sm"
+                      icon="i-heroicons-star"
+                      @click="makeDefault(currentQuery.id)"
+                    >
+                      {{ t('news.makeDefault') }}
+                    </UButton>
+                  </div>
                 </form>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -357,7 +396,7 @@ const timeRangeOptions = [
                   <UTextarea
                     v-model="currentQuery.note"
                     :placeholder="t('news.notePlaceholder')"
-                    :rows="5"
+                    :rows="8"
                     size="lg"
                     autoresize
                   />
@@ -426,7 +465,7 @@ const timeRangeOptions = [
                       :to="item.url"
                       target="_blank"
                       variant="ghost"
-                      color="gray"
+                      color="neutral"
                       size="sm"
                       icon="i-heroicons-arrow-top-right-on-square"
                       class="opacity-0 group-hover:opacity-100 transition-opacity"

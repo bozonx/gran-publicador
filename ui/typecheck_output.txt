@@ -1,0 +1,155 @@
+ℹ Nuxt Icon server bundle mode is set to local
+npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm.
+npm warn Unknown env config "manage-package-manager-versions". This will stop working in the next major version of npm.
+app/components/dashboard/ProblemsWidget.vue(52,62): error TS2339: Property 'items' does not exist on type '{}'.
+app/components/dashboard/ProblemsWidget.vue(53,24): error TS2339: Property 'items' does not exist on type '{}'.
+app/components/dashboard/ProblemsWidget.vue(66,54): error TS2339: Property 'items' does not exist on type '{}'.
+app/components/dashboard/ProblemsWidget.vue(67,20): error TS2339: Property 'items' does not exist on type '{}'.
+app/components/features/SupabaseStatus.vue(31,45): error TS2339: Property 'url' does not exist on type '{}'.
+app/components/forms/PublicationForm.vue(351,13): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/components/forms/channel/parts/ChannelFootersManager.vue(118,5): error TS2532: Object is possibly 'undefined'.
+app/components/forms/channel/parts/ChannelFootersManager.vue(135,31): error TS18048: 'footer' is possibly 'undefined'.
+app/components/forms/channel/parts/ChannelFootersManager.vue(138,31): error TS2345: Argument of type '{ id?: string | undefined; name?: string | undefined; content?: string | undefined; isDefault?: boolean | undefined; }' is not assignable to parameter of type '{ id: string; name: string; content: string; isDefault: boolean; }'.
+  Types of property 'id' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+app/components/forms/channel/parts/ChannelFootersManager.vue(143,7): error TS2532: Object is possibly 'undefined'.
+app/components/forms/channel/parts/ChannelGeneralFields.vue(124,22): error TS2339: Property 'label' does not exist on type 'SelectMenuSlots<{ value: string; label: string; }[], "value", false, { value: string; label: string; }>'.
+app/components/media/MediaGallery.vue(1247,18): error TS2322: Type '"gray"' is not assignable to type '"error" | "primary" | "secondary" | "success" | "info" | "warning" | "neutral" | undefined'.
+app/components/media/MediaGallery.vue(1255,18): error TS2322: Type '"gray"' is not assignable to type '"error" | "primary" | "secondary" | "success" | "info" | "warning" | "neutral" | undefined'.
+app/components/media/MediaViewerModal.vue(46,48): error TS2307: Cannot find module 'reka-ui' or its corresponding type declarations.
+app/components/modals/LlmGeneratorModal.vue(438,48): error TS2307: Cannot find module 'reka-ui' or its corresponding type declarations.
+app/components/modals/ValidationWarningModal.vue(17,48): error TS2307: Cannot find module 'reka-ui' or its corresponding type declarations.
+app/components/posts/AuthorSignatureManager.vue(142,32): error TS2345: Argument of type '{ id: string; userId: string; channelId: string; name: string; content: string; isDefault: boolean; order: number; createdAt: string; updatedAt: string; } | undefined' is not assignable to parameter of type '{ id: string; userId: string; channelId: string; name: string; content: string; isDefault: boolean; order: number; createdAt: string; updatedAt: string; }'.
+  Type 'undefined' is not assignable to type '{ id: string; userId: string; channelId: string; name: string; content: string; isDefault: boolean; order: number; createdAt: string; updatedAt: string; }'.
+app/components/posts/AuthorSignatureSelector.vue(109,18): error TS2339: Property 'label' does not exist on type 'SelectMenuSlots<any[], "value", false, any>'.
+app/components/posts/PostEditBlock.vue(763,32): error TS2339: Property 'label' does not exist on type 'SelectMenuSlots<({ value: { id: string; }; label: string; } | { value: null; label: string; })[], "value", false, { value: { id: string; }; label: string; } | { value: null; label: string; }>'.
+app/components/projects/InviteMemberModal.vue(79,11): error TS2322: Type 'string' is not assignable to type '{ label: string; value: string; }'.
+app/components/ui/AppModal.vue(38,48): error TS2307: Cannot find module 'reka-ui' or its corresponding type declarations.
+app/components/ui/ArchiveDeleteModal.vue(12,48): error TS2307: Cannot find module 'reka-ui' or its corresponding type declarations.
+app/components/ui/LanguageSwitcher.vue(22,19): error TS2345: Argument of type '"ru" | "en"' is not assignable to parameter of type '"en-US" | "ru-RU"'.
+  Type '"ru"' is not assignable to type '"en-US" | "ru-RU"'.
+app/composables/useApiTokens.ts(17,7): error TS2322: Type 'unknown' is not assignable to type 'ApiToken[] | { id: string; userId: string; name: string; plainToken: string; scopeProjectIds: string[]; lastUsedAt: string | null; createdAt: string; updatedAt: string; }[]'.
+app/composables/useApiTokens.ts(23,9): error TS2322: Type 'string | null' is not assignable to type 'StringOrVNode | undefined'.
+  Type 'null' is not assignable to type 'StringOrVNode | undefined'.
+app/composables/useApiTokens.ts(38,28): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '{ id: string; userId: string; name: string; plainToken: string; scopeProjectIds: string[]; lastUsedAt: string | null; createdAt: string; updatedAt: string; }'.
+app/composables/useApiTokens.ts(46,7): error TS2322: Type 'unknown' is not assignable to type 'ApiToken'.
+app/composables/useApiTokens.ts(51,9): error TS2322: Type 'string | null' is not assignable to type 'StringOrVNode | undefined'.
+  Type 'null' is not assignable to type 'StringOrVNode | undefined'.
+app/composables/useApiTokens.ts(69,9): error TS2322: Type 'unknown' is not assignable to type '{ id: string; userId: string; name: string; plainToken: string; scopeProjectIds: string[]; lastUsedAt: string | null; createdAt: string; updatedAt: string; }'.
+app/composables/useApiTokens.ts(78,7): error TS2322: Type 'unknown' is not assignable to type 'ApiToken'.
+app/composables/useApiTokens.ts(83,9): error TS2322: Type 'string | null' is not assignable to type 'StringOrVNode | undefined'.
+  Type 'null' is not assignable to type 'StringOrVNode | undefined'.
+app/composables/useApiTokens.ts(109,9): error TS2322: Type 'string | null' is not assignable to type 'StringOrVNode | undefined'.
+  Type 'null' is not assignable to type 'StringOrVNode | undefined'.
+app/pages/archive/index.vue(75,52): error TS2339: Property 'selected' does not exist on type '{ item: { label: string; value: ArchiveEntityType; count: number; }; index: number; }'.
+app/pages/archive/index.vue(78,62): error TS2322: Type '"primary" | "gray"' is not assignable to type '"error" | "primary" | "secondary" | "success" | "info" | "warning" | "neutral" | undefined'.
+  Type '"gray"' is not assignable to type '"error" | "primary" | "secondary" | "success" | "info" | "warning" | "neutral" | undefined'.
+app/pages/archive/index.vue(86,62): error TS2322: Type '{ key: string; label: string; }[]' is not assignable to type 'TableColumn<unknown, unknown>[]'.
+  Type '{ key: string; label: string; }' is not assignable to type 'TableColumn<unknown, unknown>'.
+app/pages/archive/index.vue(99,45): error TS2339: Property 'archived_at' does not exist on type 'Row<unknown>'.
+app/pages/projects/[id]/news.vue(273,46): error TS2353: Object literal may only specify known properties, and 'padding' does not exist in type 'ClassNameArray'.
+app/pages/projects/[id]/news.vue(275,44): error TS2339: Property 'selected' does not exist on type '{ item: { label: string; id: string; slot: string; }; index: number; }'.
+app/plugins/i18n-loader.client.ts(34,26): error TS2532: Object is possibly 'undefined'.
+app/composables/useApi.ts(9,19): error TS2304: Cannot find name 'useCookie'.
+app/composables/useApiTokens.ts(4,15): error TS2304: Cannot find name 'useApi'.
+app/composables/useApiTokens.ts(5,17): error TS2304: Cannot find name 'useToast'.
+app/composables/useApiTokens.ts(7,18): error TS2304: Cannot find name 'ref'.
+app/composables/useApiTokens.ts(8,19): error TS2304: Cannot find name 'ref'.
+app/composables/useApiTokens.ts(9,17): error TS2304: Cannot find name 'ref'.
+app/composables/useApiTokens.ts(67,45): error TS7006: Parameter 't' implicitly has an 'any' type.
+app/composables/useApiTokens.ts(98,43): error TS7006: Parameter 't' implicitly has an 'any' type.
+app/composables/useArchive.ts(4,17): error TS2304: Cannot find name 'useApi'.
+app/composables/useArchive.ts(5,19): error TS2304: Cannot find name 'useToast'.
+app/composables/useArchive.ts(6,19): error TS2304: Cannot find name 'useI18n'.
+app/composables/useArchive.ts(8,19): error TS2304: Cannot find name 'ref'.
+app/composables/useArchive.ts(9,21): error TS2304: Cannot find name 'ref'.
+app/composables/useAuth.ts(4,23): error TS2304: Cannot find name 'useAuthStore'.
+app/composables/useAuthorSignatures.ts(10,15): error TS2304: Cannot find name 'useApi'.
+app/composables/useChannels.ts(14,17): error TS2304: Cannot find name 'useApi'.
+app/composables/useChannels.ts(16,19): error TS2304: Cannot find name 'useToast'.
+app/composables/useChannels.ts(17,46): error TS2304: Cannot find name 'useArchive'.
+app/composables/useConfig.ts(2,17): error TS2304: Cannot find name 'useApi'.
+app/composables/useConfig.ts(3,21): error TS2304: Cannot find name 'ref'.
+app/composables/useConfig.ts(4,19): error TS2304: Cannot find name 'ref'.
+app/composables/useFormatters.ts(7,17): error TS2304: Cannot find name 'useI18n'.
+app/composables/useLlm.ts(59,20): error TS2304: Cannot find name 'useApi'.
+app/composables/useLlmPromptTemplates.ts(6,17): error TS2304: Cannot find name 'useToast'.
+app/composables/useLlmPromptTemplates.ts(7,17): error TS2304: Cannot find name 'useI18n'.
+app/composables/useLlmPromptTemplates.ts(9,21): error TS2304: Cannot find name 'ref'.
+app/composables/useLlmPromptTemplates.ts(10,17): error TS2304: Cannot find name 'ref'.
+app/composables/useMedia.ts(255,25): error TS2304: Cannot find name 'useAuthStore'.
+app/composables/useMedia.ts(283,25): error TS2304: Cannot find name 'useAuthStore'.
+app/composables/useNews.ts(28,15): error TS2304: Cannot find name 'useApi'.
+app/composables/useNews.ts(29,17): error TS2304: Cannot find name 'useRoute'.
+app/composables/usePosts.ts(99,17): error TS2304: Cannot find name 'useApi'.
+app/composables/usePosts.ts(100,22): error TS2304: Cannot find name 'useAuth'.
+app/composables/usePosts.ts(101,19): error TS2304: Cannot find name 'useI18n'.
+app/composables/usePosts.ts(102,19): error TS2304: Cannot find name 'useToast'.
+app/composables/usePosts.ts(103,46): error TS2304: Cannot find name 'useArchive'.
+app/composables/useProjects.ts(8,17): error TS2304: Cannot find name 'useApi'.
+app/composables/useProjects.ts(9,22): error TS2304: Cannot find name 'useAuth'.
+app/composables/useProjects.ts(10,19): error TS2304: Cannot find name 'useI18n'.
+app/composables/useProjects.ts(11,19): error TS2304: Cannot find name 'useToast'.
+app/composables/useProjects.ts(12,46): error TS2304: Cannot find name 'useArchive'.
+app/composables/usePublicationForm.ts(9,18): error TS2304: Cannot find name 'computed'.
+app/composables/usePublicationForm.ts(58,17): error TS2304: Cannot find name 'reactive'.
+app/composables/usePublicationValidator.ts(9,35): error TS2304: Cannot find name 'useSocialMediaValidation'.
+app/composables/usePublicationValidator.ts(36,33): error TS7006: Parameter 'err' implicitly has an 'any' type.
+app/composables/usePublicationValidator.ts(79,33): error TS7006: Parameter 'err' implicitly has an 'any' type.
+app/composables/usePublications.ts(93,19): error TS2304: Cannot find name 'useI18n'.
+app/composables/usePublications.ts(94,19): error TS2304: Cannot find name 'useToast'.
+app/composables/usePublications.ts(95,46): error TS2304: Cannot find name 'useArchive'.
+app/composables/useRoles.ts(8,17): error TS2304: Cannot find name 'useI18n'.
+app/composables/useRoles.ts(9,17): error TS2304: Cannot find name 'useToast'.
+app/composables/useSocialMediaValidation.ts(48,57): error TS2304: Cannot find name 'useApi'.
+app/composables/useSocialMediaValidation.ts(201,17): error TS2304: Cannot find name 'useI18n'.
+app/composables/useSocialMediaValidation.ts(202,15): error TS2304: Cannot find name 'useApi'.
+app/composables/useSocialPosting.ts(24,15): error TS2304: Cannot find name 'useApi'.
+app/composables/useSocialPosting.ts(27,35): error TS2304: Cannot find name 'useSocialMediaValidation'.
+app/composables/useTranslate.ts(22,20): error TS2304: Cannot find name 'useApi'.
+app/composables/useUsers.ts(6,17): error TS2304: Cannot find name 'useApi'.
+app/composables/useUsers.ts(7,19): error TS2304: Cannot find name 'useI18n'.
+app/composables/useUsers.ts(8,19): error TS2304: Cannot find name 'useToast'.
+app/composables/useUsers.ts(55,43): error TS7006: Parameter 'u' implicitly has an 'any' type.
+app/composables/useViewMode.ts(6,13): error TS2304: Cannot find name 'Ref'.
+app/composables/useViewMode.ts(9,15): error TS2304: Cannot find name 'ComputedRef'.
+app/composables/useViewMode.ts(10,16): error TS2304: Cannot find name 'ComputedRef'.
+app/stores/app.ts(13,28): error TS2304: Cannot find name 'defineStore'.
+app/stores/app.ts(15,25): error TS2304: Cannot find name 'ref'.
+app/stores/app.ts(16,21): error TS2304: Cannot find name 'ref'.
+app/stores/app.ts(17,17): error TS2304: Cannot find name 'ref'.
+app/stores/app.ts(18,28): error TS2304: Cannot find name 'ref'.
+app/stores/app.ts(19,18): error TS2304: Cannot find name 'ref'.
+app/stores/app.ts(22,29): error TS2304: Cannot find name 'computed'.
+app/stores/app.ts(61,43): error TS7006: Parameter 't' implicitly has an 'any' type.
+app/stores/auth.ts(23,19): error TS2304: Cannot find name 'useCookie'.
+app/stores/auth.ts(24,17): error TS2304: Cannot find name 'useApi'.
+app/stores/auth.ts(114,9): error TS2304: Cannot find name 'navigateTo'.
+app/stores/notifications.ts(25,15): error TS2304: Cannot find name 'useApi'.
+app/stores/notifications.ts(27,17): error TS2304: Cannot find name 'useToast'.
+app/stores/notifications.ts(51,49): error TS7006: Parameter 'i' implicitly has an 'any' type.
+app/stores/users.ts(24,30): error TS2304: Cannot find name 'defineStore'.
+app/stores/users.ts(25,17): error TS2304: Cannot find name 'shallowRef'.
+app/stores/users.ts(26,23): error TS2304: Cannot find name 'shallowRef'.
+app/stores/users.ts(27,21): error TS2304: Cannot find name 'ref'.
+app/stores/users.ts(28,17): error TS2304: Cannot find name 'ref'.
+app/stores/users.ts(29,18): error TS2304: Cannot find name 'ref'.
+app/stores/users.ts(30,22): error TS2304: Cannot find name 'ref'.
+app/stores/users.ts(31,22): error TS2304: Cannot find name 'ref'.
+app/stores/users.ts(33,22): error TS2304: Cannot find name 'computed'.
+
+ ERROR  Process exited with non-zero status (2)
+
+    at G._waitForOutput (/mnt/disk2/workspace/gran-publicador/node_modules/.pnpm/tinyexec@1.0.2/node_modules/tinyexec/dist/main.js:574:92)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.run (/mnt/disk2/workspace/gran-publicador/node_modules/.pnpm/@nuxt+cli@3.32.0_cac@6.7.14_magicast@0.5.1/node_modules/@nuxt/cli/dist/typecheck-B-jIcMjP.mjs:66:3)
+    at async runCommand (/mnt/disk2/workspace/gran-publicador/node_modules/.pnpm/citty@0.1.6/node_modules/citty/dist/index.mjs:316:16)
+    at async runCommand (/mnt/disk2/workspace/gran-publicador/node_modules/.pnpm/citty@0.1.6/node_modules/citty/dist/index.mjs:307:11)
+    at async runMain (/mnt/disk2/workspace/gran-publicador/node_modules/.pnpm/citty@0.1.6/node_modules/citty/dist/index.mjs:445:7) 
+
+
+
+ ERROR  Process exited with non-zero status (2)
+
