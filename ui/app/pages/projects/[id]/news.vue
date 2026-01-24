@@ -332,7 +332,7 @@ const timeRangeOptions = [
         :items="tabs" 
         class="flex-1 min-w-0"
       >
-        <template #default="{ item, index }">
+        <template #default="{ item, index, selected }">
           <div class="flex items-center gap-2">
             <UIcon 
               v-if="item.isDefault" 
@@ -341,7 +341,7 @@ const timeRangeOptions = [
             />
             <span class="truncate max-w-[120px] md:max-w-none">{{ item.label }}</span>
             
-            <div v-if="index === activeTabIndex" class="flex items-center gap-0.5 -mr-1">
+            <div v-if="selected" class="flex items-center gap-0.5 -mr-1">
               <UButton
                 icon="i-heroicons-pencil-square"
                 size="xs"
