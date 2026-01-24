@@ -29,8 +29,14 @@ const { news, isLoading: isNewsLoading, error, searchNews } = useNews()
 const newsQueries = ref<NewsQuery[]>([])
 const activeTabIndex = ref(0)
 const isAddModalOpen = ref(false)
+const isEditModalOpen = ref(false)
+const isDeleteModalOpen = ref(false)
+const editingTabId = ref('')
+const editingTabName = ref('')
+const deletingTabId = ref('')
 const newTabName = ref('')
 const isSaving = ref(false)
+const isDeleting = ref(false)
 
 // Tabs for UTabs component
 const tabs = computed(() => {
@@ -153,12 +159,39 @@ async function addTab() {
   await saveQueries()
 }
 
-// Delete tab
-async function deleteTab(id: string) {
-  if (newsQueries.value.length <= 1) return
+// Open edit modal
+function openEditModal(id: string, name: string) {
+  editingTabId.value = id
+  editingTabName.value = name
+  isEditModalOpen.value = true
+}
+
+// Save tab name from modal
+async function saveTabName() {
+  if (!editingTabName.value.trim()) return
   
-  if (confirm(t('news.deleteTabConfirm'))) {
-    const index = newsQueries.value.findIndex(q => q.id === id)
+  const query = newsQueries.value.find(q => q.id === editingTabId.value)
+  if (query) {
+    query.name = editingTabName.value
+    await saveQueries()
+  }
+  isEditModalOpen.value = false
+}
+
+// Open delete confirmation modal
+function openDeleteModal(id: string) {
+  if (newsQueries.value.length <= 1) return
+  deletingTabId.value = id
+  isDeleteModalOpen.value = true
+}
+
+// Delete tab after confirmation
+async function confirmDeleteTab() {
+  if (!deletingTabId.value) return
+  
+  isDeleting.value = true
+  try {
+    const index = newsQueries.value.findIndex(q => q.id === deletingTabId.value)
     if (index !== -1) {
       newsQueries.value.splice(index, 1)
       if (activeTabIndex.value >= newsQueries.value.length) {
@@ -166,6 +199,10 @@ async function deleteTab(id: string) {
       }
       await saveQueries()
     }
+  } finally {
+    isDeleting.value = false
+    isDeleteModalOpen.value = false
+    deletingTabId.value = ""
   }
 }
 
@@ -274,16 +311,24 @@ const timeRangeOptions = [
       >
         <template #default="{ item, index }">
           <div class="flex items-center gap-2">
-            <span>{{ item.label }}</span>
-            <UButton
-              v-if="index === activeTabIndex && newsQueries.length > 1"
-              icon="i-heroicons-x-mark"
-              size="xs"
-              color="neutral"
-              variant="ghost"
-              class="-mr-1"
-              @click.stop="deleteTab(item.id)"
-            />
+            <span class="truncate max-w-[120px] md:max-w-none">{{ item.label }}</span>
+            <div v-if="index === activeTabIndex" class="flex items-center gap-0.5 -mr-1">
+              <UButton
+                icon="i-heroicons-pencil-square"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click.stop="openEditModal(item.id, newsQueries.find(q => q.id === item.id)?.name || '')"
+              />
+              <UButton
+                v-if="newsQueries.length > 1"
+                icon="i-heroicons-trash"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click.stop="openDeleteModal(item.id)"
+              />
+            </div>
           </div>
         </template>
 
@@ -292,47 +337,25 @@ const timeRangeOptions = [
             <!-- Search settings card -->
             <div class="news-config-card overflow-hidden">
               <div class="p-6 space-y-6">
-                <!-- Search row -->
-                <form @submit.prevent="handleSearch" class="flex flex-col gap-4">
-                   <div class="w-full">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                       {{ t('news.searchPlaceholder') }}
-                    </label>
-                    <UTextarea
-                      v-model="currentQuery.q"
-                      :placeholder="t('news.searchPlaceholder')"
-                      size="lg"
-                      class="w-full"
-                      :rows="3"
-                      autoresize
-                    />
-                  </div>
+                <!-- Search row (Query input) -->
+                <div class="w-full">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ t('news.searchPlaceholder') }}
+                  </label>
+                  <UTextarea
+                    v-model="currentQuery.q"
+                    :placeholder="t('news.searchPlaceholder')"
+                    size="lg"
+                    class="w-full"
+                    :rows="3"
+                    autoresize
+                    @keydown.enter.ctrl.prevent="handleSearch"
+                    @keydown.enter.meta.prevent="handleSearch"
+                  />
+                </div>
 
-                  <div class="flex justify-between items-center gap-4">
-                    <UButton
-                      type="submit"
-                      size="lg"
-                      :loading="isNewsLoading"
-                      :disabled="!currentQuery.q.trim()"
-                      icon="i-heroicons-magnifying-glass"
-                    >
-                      {{ t('common.search') }}
-                    </UButton>
-
-                    <UButton
-                      v-if="!currentQuery.isDefault"
-                      color="neutral"
-                      variant="soft"
-                      size="sm"
-                      icon="i-heroicons-star"
-                      @click="makeDefault(currentQuery.id)"
-                    >
-                      {{ t('news.makeDefault') }}
-                    </UButton>
-                  </div>
-                </form>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Filters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                        {{ t('news.since') || 'Time Range' }}
@@ -377,18 +400,33 @@ const timeRangeOptions = [
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {{ t('news.tabName') }}
-                    </label>
-                    <UInput
-                      v-model="currentQuery.name"
-                      icon="i-heroicons-pencil-square"
-                      size="lg"
-                    />
-                  </div>
                 </div>
 
+                <!-- Search Actions Area -->
+                <div class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <UButton
+                    size="lg"
+                    :loading="isNewsLoading"
+                    :disabled="!currentQuery.q.trim()"
+                    icon="i-heroicons-magnifying-glass"
+                    @click="handleSearch"
+                  >
+                    {{ t('common.search') }}
+                  </UButton>
+
+                  <UButton
+                    v-if="!currentQuery.isDefault"
+                    color="neutral"
+                    variant="soft"
+                    size="sm"
+                    icon="i-heroicons-star"
+                    @click="makeDefault(currentQuery.id)"
+                  >
+                    {{ t('news.makeDefault') }}
+                  </UButton>
+                </div>
+
+                <!-- Note Row -->
                 <div class="pt-4 border-t border-gray-100 dark:border-gray-800">
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {{ t('news.note') }}
@@ -396,7 +434,7 @@ const timeRangeOptions = [
                   <UTextarea
                     v-model="currentQuery.note"
                     :placeholder="t('news.notePlaceholder')"
-                    :rows="8"
+                    :rows="6"
                     size="lg"
                     autoresize
                   />
@@ -529,6 +567,53 @@ const timeRangeOptions = [
         </div>
       </form>
     </AppModal>
+
+    <!-- Edit Tab Modal -->
+    <AppModal 
+      v-model:open="isEditModalOpen"
+      :title="t('news.editTab')"
+      :description="t('news.editTabDescription')"
+    >
+      <form @submit.prevent="saveTabName" class="space-y-4">
+        <UFormGroup :label="t('news.tabName')">
+          <UInput
+            v-model="editingTabName"
+            :placeholder="t('news.tabNamePlaceholder')"
+            autofocus
+            size="lg"
+          />
+        </UFormGroup>
+        
+        <div class="flex justify-end gap-3 mt-6">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="isEditModalOpen = false"
+          >
+            {{ t('common.cancel') }}
+          </UButton>
+          <UButton
+            type="submit"
+            color="primary"
+            :disabled="!editingTabName.trim()"
+          >
+            {{ t('common.save') }}
+          </UButton>
+        </div>
+      </form>
+    </AppModal>
+
+    <!-- Delete Tab Confirmation Modal -->
+    <UiConfirmModal
+      v-model:open="isDeleteModalOpen"
+      :title="t('common.confirmDelete')"
+      :description="t('news.deleteTabConfirm')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-trash"
+      :loading="isDeleting"
+      @confirm="confirmDeleteTab"
+    />
   </div>
 </template>
 
