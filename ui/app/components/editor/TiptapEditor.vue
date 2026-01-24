@@ -12,6 +12,10 @@ import { Markdown } from '@tiptap/markdown'
 import { BubbleMenu as BubbleMenuExtension } from '@tiptap/extension-bubble-menu'
 import { common, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TableHeader } from '@tiptap/extension-table-header'
 import { useStt } from '~/composables/useStt'
 import MarkdownIt from 'markdown-it'
 
@@ -132,6 +136,12 @@ const extensions = [
   CharacterCount.configure({ 
     limit: props.maxLength 
   }),
+  Table.configure({
+    resizable: true,
+  }),
+  TableRow,
+  TableHeader,
+  TableCell,
 ]
 
 const editor = useEditor({
@@ -225,6 +235,11 @@ function removeLink() {
   isLinkMenuOpen.value = false
 }
 
+function insertTable() {
+  // @ts-expect-error: Table extension types not automatically inferred
+  editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+}
+
 const characterCount = computed(() => {
   return editor.value?.storage.characterCount.characters() || 0
 })
@@ -271,6 +286,46 @@ const isMaxLengthReached = computed(() => {
           variant="ghost"
           @click="removeLink"
         />
+      </div>
+    </BubbleMenu>
+
+    <!-- BubbleMenu for Tables -->
+    <BubbleMenu
+      v-if="editor && editor.isActive('table')"
+      :editor="editor"
+      :tippy-options="{ duration: 100, placement: 'bottom' }"
+    >
+      <div class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-x-auto max-w-[90vw]">
+        <UTooltip :text="t('editor.table.addColumnBefore', 'Add column before')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-plus-circle" @click="editor.chain().focus().addColumnBefore().run()" />
+        </UTooltip>
+        <UTooltip :text="t('editor.table.addColumnAfter', 'Add column after')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-plus-circle" class="rotate-90" @click="editor.chain().focus().addColumnAfter().run()" />
+        </UTooltip>
+        <UTooltip :text="t('editor.table.deleteColumn', 'Delete column')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-trash" color="error" @click="editor.chain().focus().deleteColumn().run()" />
+        </UTooltip>
+        <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5"></div>
+        <UTooltip :text="t('editor.table.addRowBefore', 'Add row before')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-bars-3-bottom-left" @click="editor.chain().focus().addRowBefore().run()" />
+        </UTooltip>
+        <UTooltip :text="t('editor.table.addRowAfter', 'Add row after')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-bars-3-bottom-right" @click="editor.chain().focus().addRowAfter().run()" />
+        </UTooltip>
+        <UTooltip :text="t('editor.table.deleteRow', 'Delete row')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-trash" color="error" @click="editor.chain().focus().deleteRow().run()" />
+        </UTooltip>
+        <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5"></div>
+        <UTooltip :text="t('editor.table.mergeCells', 'Merge cells')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-arrows-pointing-in" @click="editor.chain().focus().mergeCells().run()" />
+        </UTooltip>
+        <UTooltip :text="t('editor.table.splitCell', 'Split cell')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-arrows-pointing-out" @click="editor.chain().focus().splitCell().run()" />
+        </UTooltip>
+        <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5"></div>
+        <UTooltip :text="t('editor.table.deleteTable', 'Delete table')">
+          <UButton size="xs" variant="ghost" icon="i-heroicons-trash" color="error" @click="editor.chain().focus().deleteTable().run()" />
+        </UTooltip>
       </div>
     </BubbleMenu>
 
@@ -438,6 +493,14 @@ const isMaxLengthReached = computed(() => {
             <span v-if="isRecording" class="ml-1 text-[10px] font-mono">{{ formattedDuration }}</span>
           </UButton>
         </UTooltip>
+
+        <UButton
+          :color="editor.isActive('table') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('table') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-table-cells"
+          @click="insertTable"
+        ></UButton>
       </div>
 
       <div class="flex-1"></div>
@@ -593,6 +656,64 @@ const isMaxLengthReached = computed(() => {
 
   hr {
     @apply border-t border-gray-200 dark:border-gray-700 my-6;
+  }
+
+  table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    margin: 1rem 0;
+    overflow: hidden;
+
+    td,
+    th {
+      min-width: 1em;
+      @apply border border-gray-300 dark:border-gray-600;
+      padding: 0.5rem;
+      vertical-align: top;
+      box-sizing: border-box;
+      position: relative;
+
+      > * {
+        margin-bottom: 0;
+      }
+    }
+
+    th {
+      font-weight: bold;
+      text-align: left;
+      @apply bg-gray-100 dark:bg-gray-800;
+    }
+
+    .selectedCell:after {
+      z-index: 2;
+      position: absolute;
+      content: "";
+      left: 0; right: 0; top: 0; bottom: 0;
+      @apply bg-primary-500/10 pointer-events-none;
+    }
+
+    .column-resize-handle {
+      position: absolute;
+      right: -2px;
+      top: 0;
+      bottom: -2px;
+      width: 4px;
+      @apply bg-primary-400 pointer-events-none;
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .tableWrapper {
+    overflow-x: auto;
+  }
+
+  .resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
   }
 }
 </style>

@@ -933,7 +933,18 @@
   },
   "editor": {
     "characters": "символов",
-    "words": "слов"
+    "words": "слов",
+    "table": {
+      "addColumnBefore": "Добавить столбец слева",
+      "addColumnAfter": "Добавить столбец справа",
+      "deleteColumn": "Удалить столбец",
+      "addRowBefore": "Добавить строку сверху",
+      "addRowAfter": "Добавить строку снизу",
+      "deleteRow": "Удалить строку",
+      "mergeCells": "Объединить ячейки",
+      "splitCell": "Разделить ячейку",
+      "deleteTable": "Удалить таблицу"
+    }
   },
   "archive": {
     "title": "Архив",
