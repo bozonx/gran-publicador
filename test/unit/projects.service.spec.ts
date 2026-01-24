@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
@@ -81,6 +82,10 @@ describe('ProjectsService (unit)', () => {
         {
           provide: RolesService,
           useValue: mockRolesService,
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn() },
         },
       ],
     }).compile();
