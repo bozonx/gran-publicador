@@ -6,7 +6,7 @@ import { SocialPostingService } from '../../src/modules/social-posting/social-po
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { PostStatus, PublicationStatus } from '../../src/generated/prisma/client.js';
+import { PostStatus, PublicationStatus } from '../../src/generated/prisma/index.js';
 
 // Mock ConfigService
 const mockConfigService = {

@@ -4,7 +4,7 @@ import {
   normalizeOverrideContent,
   validatePostContent,
 } from '../../src/common/validators/social-media-validation.validator.js';
-import { SocialMedia } from '../../src/generated/prisma/enums.js';
+import { SocialMedia } from '../../src/generated/prisma/index.js';
 
 describe('social-media-validation.validator (unit)', () => {
   describe('normalizeOverrideContent', () => {

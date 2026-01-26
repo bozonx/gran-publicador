@@ -1,4 +1,4 @@
-import { SocialMedia, MediaType } from '../../generated/prisma/enums.js';
+import { SocialMedia, MediaType } from '../../generated/prisma/index.js';
 
 /**
  * Validation rules for different social media platforms

@@ -4,7 +4,7 @@ import { NotificationsService } from '../../src/modules/notifications/notificati
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { NotificationsGateway } from '../../src/modules/notifications/notifications.gateway.js';
 import { jest } from '@jest/globals';
-import { NotificationType } from '../../src/generated/prisma/client.js';
+import { NotificationType } from '../../src/generated/prisma/index.js';
 
 describe('NotificationsService (unit)', () => {
   let service: NotificationsService;

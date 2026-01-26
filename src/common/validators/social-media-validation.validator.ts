@@ -1,4 +1,4 @@
-import { SocialMedia, PostType, MediaType } from '../../generated/prisma/enums.js';
+import { SocialMedia, PostType, MediaType } from '../../generated/prisma/index.js';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import { SKIP, visit } from 'unist-util-visit';

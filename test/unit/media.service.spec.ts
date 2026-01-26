@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { jest } from '@jest/globals';
-import { MediaType, StorageType } from '../../src/generated/prisma/client.js';
+import { MediaType, StorageType } from '../../src/generated/prisma/index.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { Readable } from 'stream';
 import { MockAgent, setGlobalDispatcher, getGlobalDispatcher } from 'undici';

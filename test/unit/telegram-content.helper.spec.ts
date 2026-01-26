@@ -1,5 +1,5 @@
 import { extractMedia, extractText } from '../../src/modules/telegram-bot/telegram-content.helper.js';
-import { MediaType } from '../../src/generated/prisma/client.js';
+import { MediaType } from '../../src/generated/prisma/index.js';
 
 describe('telegram-content.helper', () => {
   describe('extractMedia', () => {

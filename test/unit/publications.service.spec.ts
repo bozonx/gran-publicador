@@ -5,7 +5,7 @@ import { PublicationsService } from '../../src/modules/publications/publications
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/client.js';
+import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
 
 describe('PublicationsService (unit)', () => {

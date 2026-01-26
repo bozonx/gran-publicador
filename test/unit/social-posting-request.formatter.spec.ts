@@ -4,7 +4,7 @@ import {
   SocialMedia,
   MediaType,
   StorageType,
-} from '../../src/generated/prisma/client.js';
+} from '../../src/generated/prisma/index.js';
 
 describe('SocialPostingRequestFormatter', () => {
   const mockPost = {
