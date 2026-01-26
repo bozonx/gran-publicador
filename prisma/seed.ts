@@ -25,14 +25,17 @@ async function main() {
     // 1. CLEAR OLD DATA
     console.log('  Cleaning up old data...');
     // Delete in order to respect FK constraints
+    await prisma.apiTokenProject.deleteMany({});
     await prisma.apiToken.deleteMany({});
     await prisma.notification.deleteMany({});
     await prisma.post.deleteMany({});
     await prisma.publicationMedia.deleteMany({});
     await prisma.media.deleteMany({});
     await prisma.publication.deleteMany({});
+    await prisma.authorSignature.deleteMany({});
     await prisma.channel.deleteMany({});
     await prisma.projectMember.deleteMany({});
+    await prisma.llmPromptTemplate.deleteMany({});
     await prisma.role.deleteMany({}); // New table
     await prisma.project.deleteMany({});
     await prisma.user.deleteMany({});
@@ -212,6 +215,37 @@ async function main() {
             where: { id: c.id },
             update: c,
             create: c,
+        });
+    }
+
+    // 5.1 AUTHOR SIGNATURES
+    console.log('  Generating author signatures...');
+    const authorSignatures = [
+        {
+            id: 'eee11111-1111-1111-1111-111111111111',
+            userId: devUser.id,
+            channelId: channelData[0].id, // Tech Main
+            name: 'Standard Signature',
+            content: '\n---\n*Sent via Gran Publicador*',
+            isDefault: true,
+            order: 0
+        },
+        {
+            id: 'eee11112-1111-1111-1111-111111111111',
+            userId: devUser.id,
+            channelId: channelData[0].id,
+            name: 'Follow us',
+            content: '\n---\n**Don\'t forget to subscribe!**',
+            isDefault: false,
+            order: 1
+        }
+    ];
+
+    for (const sig of authorSignatures) {
+        await prisma.authorSignature.upsert({
+            where: { id: sig.id },
+            update: sig,
+            create: sig,
         });
     }
 
@@ -484,7 +518,7 @@ async function main() {
     ];
 
     for (const n of notificationData) {
-        await (prisma as any).notification.upsert({
+        await prisma.notification.upsert({
             where: { id: n.id },
             update: n,
             create: n,
