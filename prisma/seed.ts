@@ -1,4 +1,4 @@
-import { PrismaClient, SocialMedia, PostType, PostStatus, PublicationStatus, NotificationType } from '../src/generated/prisma/client.js';
+import { PrismaClient, SocialMedia, PostType, PostStatus, PublicationStatus, NotificationType } from '../src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { config } from 'dotenv';
