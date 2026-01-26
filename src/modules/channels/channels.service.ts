@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/index.js';
 
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';

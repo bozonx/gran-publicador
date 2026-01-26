@@ -1,5 +1,5 @@
 import { BadRequestException, type PipeTransform } from '@nestjs/common';
-import { PublicationStatus } from '../../generated/prisma/client.js';
+import { PublicationStatus } from '../../generated/prisma/index.js';
 
 /**
  * Pipe to parse and validate PublicationStatus enum from query parameters.

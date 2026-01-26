@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, type User } from '../../generated/prisma/client.js';
+import { Prisma, type User } from '../../generated/prisma/index.js';
 
 import { AppConfig } from '../../config/app.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';

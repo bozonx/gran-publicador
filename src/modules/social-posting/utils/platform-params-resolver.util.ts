@@ -1,4 +1,4 @@
-import { SocialMedia } from '../../../generated/prisma/client.js';
+import { SocialMedia } from '../../../generated/prisma/index.js';
 
 export interface PlatformParams {
   channelId: string;

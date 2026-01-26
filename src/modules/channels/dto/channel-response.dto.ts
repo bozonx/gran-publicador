@@ -1,4 +1,4 @@
-import { SocialMedia } from '../../../generated/prisma/client.js';
+import { SocialMedia } from '../../../generated/prisma/index.js';
 import { Type } from 'class-transformer';
 
 export class ChannelProjectDto {

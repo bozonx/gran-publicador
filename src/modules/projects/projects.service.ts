@@ -7,7 +7,7 @@ import {
   type Project,
   PublicationStatus,
   PostStatus,
-} from '../../generated/prisma/client.js';
+} from '../../generated/prisma/index.js';
 
 import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.js';
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';

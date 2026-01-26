@@ -12,7 +12,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { PublicationStatus, SocialMedia } from '../../../generated/prisma/client.js';
+import { PublicationStatus, SocialMedia } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**

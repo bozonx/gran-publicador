@@ -11,7 +11,7 @@ import {
   PostType,
   Prisma,
   SocialMedia,
-} from '../../generated/prisma/client.js';
+} from '../../generated/prisma/index.js';
 import { randomUUID } from 'node:crypto';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';

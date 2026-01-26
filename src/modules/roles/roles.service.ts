@@ -5,7 +5,7 @@ import { UpdateRoleDto } from './dto/update-role.dto.js';
 import { DEFAULT_ROLE_PERMISSIONS, SYSTEM_ROLE_NAMES } from '../../common/constants/default-permissions.constants.js';
 import { SystemRoleType } from '../../common/types/permissions.types.js';
 
-import { Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/index.js';
 
 @Injectable()
 export class RolesService {

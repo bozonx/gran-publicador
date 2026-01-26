@@ -9,7 +9,7 @@ import {
   PostStatus,
   PostType,
   PublicationStatus,
-} from '../../generated/prisma/client.js';
+} from '../../generated/prisma/index.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { normalizeOverrideContent } from '../../common/validators/social-media-validation.validator.js';
 

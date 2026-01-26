@@ -1,5 +1,5 @@
 import type { Message, MessageEntity } from 'grammy/types';
-import { MediaType } from '../../generated/prisma/client.js';
+import { MediaType } from '../../generated/prisma/index.js';
 import { ContentConverter } from '../../common/utils/content-converter.util.js';
 
 export interface ExtractedMedia {

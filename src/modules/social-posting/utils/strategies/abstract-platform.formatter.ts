@@ -2,7 +2,7 @@ import { PostRequestDto } from '../../dto/social-posting.dto.js';
 import {
   MediaType,
   StorageType,
-} from '../../../../generated/prisma/client.js';
+} from '../../../../generated/prisma/index.js';
 
 export interface FormatterParams {
   post: any; // Post with relations or simplified

@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SocialMedia } from '../../../generated/prisma/client.js';
+import { SocialMedia } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { ChannelCredentialsDto, ChannelPreferencesDto } from '../../../common/dto/json-objects.dto.js';
 

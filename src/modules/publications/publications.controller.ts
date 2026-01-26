@@ -13,7 +13,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { PublicationStatus, SocialMedia } from '../../generated/prisma/client.js';
+import { PublicationStatus, SocialMedia } from '../../generated/prisma/index.js';
 
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';

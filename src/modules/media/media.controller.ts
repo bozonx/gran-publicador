@@ -18,7 +18,7 @@ import { MediaService } from './media.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
-import { StorageType } from '../../generated/prisma/client.js';
+import { StorageType } from '../../generated/prisma/index.js';
 import { getMediaTypeFromMime } from './utils/media-type.util.js';
 
 @Controller('media')

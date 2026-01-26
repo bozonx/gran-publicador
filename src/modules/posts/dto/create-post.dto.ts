@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsDate, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { PostStatus, PostType } from '../../../generated/prisma/client.js';
+import { PostStatus, PostType } from '../../../generated/prisma/index.js';
 
 /**
  * DTO for creating a new post.

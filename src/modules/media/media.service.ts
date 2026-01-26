@@ -15,7 +15,7 @@ import { request } from 'undici';
 import * as crypto from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
-import { MediaType, StorageType, Media } from '../../generated/prisma/client.js';
+import { MediaType, StorageType, Media } from '../../generated/prisma/index.js';
 import { MediaConfig } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 

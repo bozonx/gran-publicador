@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
-import { PostStatus, PublicationStatus, NotificationType } from '../../generated/prisma/client.js';
+import { PostStatus, PublicationStatus, NotificationType } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SocialPostingService } from './social-posting.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';

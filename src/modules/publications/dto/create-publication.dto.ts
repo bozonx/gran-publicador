@@ -18,7 +18,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PublicationStatus, PostType } from '../../../generated/prisma/client.js';
+import { PublicationStatus, PostType } from '../../../generated/prisma/index.js';
 import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';

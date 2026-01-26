@@ -1,4 +1,4 @@
-import { MediaType } from '../../../generated/prisma/client.js';
+import { MediaType } from '../../../generated/prisma/index.js';
 
 /**
  * Determines MediaType based on mimetype string.

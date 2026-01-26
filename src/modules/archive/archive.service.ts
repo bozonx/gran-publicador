@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import type { Project, Channel, Publication, Post } from '../../generated/prisma/client.js';
+import type { Project, Channel, Publication, Post } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { ArchiveEntityType, ArchiveStatsDto } from './dto/archive.dto.js';

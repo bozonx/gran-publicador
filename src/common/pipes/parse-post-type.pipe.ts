@@ -1,5 +1,5 @@
 import { BadRequestException, type PipeTransform } from '@nestjs/common';
-import { PostType } from '../../generated/prisma/client.js';
+import { PostType } from '../../generated/prisma/index.js';
 
 /**
  * Pipe to parse and validate PostType enum from query parameters.

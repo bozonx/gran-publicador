@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
-import { MediaType, StorageType } from '../../../generated/prisma/client.js';
+import { MediaType, StorageType } from '../../../generated/prisma/index.js';
 
 export class UpdateMediaDto {
   @IsEnum(MediaType)

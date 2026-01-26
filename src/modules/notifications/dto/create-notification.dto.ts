@@ -1,5 +1,5 @@
 import { IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
-import { NotificationType } from '../../../generated/prisma/client.js';
+import { NotificationType } from '../../../generated/prisma/index.js';
 
 export class CreateNotificationDto {
   @IsUUID()

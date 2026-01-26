@@ -1,6 +1,6 @@
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NotificationType } from '../../../generated/prisma/client.js';
+import { NotificationType } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class NotificationFilterDto {

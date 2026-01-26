@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PublicationStatus, PostStatus } from '../../generated/prisma/client.js';
+import { PublicationStatus, PostStatus } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MediaConfig } from '../../config/media.config.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
@@ -12,7 +12,7 @@ import { AppConfig } from '../../config/app.config.js';
 import { SocialPostingConfig } from '../../config/social-posting.config.js';
 import { PostRequestDto, PostResponseDto, PreviewResponseDto } from './dto/social-posting.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { NotificationType } from '../../generated/prisma/client.js';
+import { NotificationType } from '../../generated/prisma/index.js';
 import { I18nService } from 'nestjs-i18n';
 import { PRESET_SIGNATURES } from '../author-signatures/constants/preset-signatures.constants.js';
 import { request } from 'undici';

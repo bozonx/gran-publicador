@@ -1,4 +1,4 @@
-import type { PostType } from '../../../generated/prisma/client.js';
+import type { PostType } from '../../../generated/prisma/index.js';
 import { TagsFormatter, type TagCase } from './tags.formatter.js';
 
 export interface TemplateBlock {

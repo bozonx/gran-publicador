@@ -3,7 +3,7 @@ import {
   PostType,
   type Prisma,
   type SocialMedia,
-} from '../../../generated/prisma/client.js';
+} from '../../../generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../dto/index.js';
 
 /**

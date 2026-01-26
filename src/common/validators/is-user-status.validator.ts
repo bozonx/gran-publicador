@@ -5,7 +5,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { PublicationStatus } from '../../generated/prisma/client.js';
+import { PublicationStatus } from '../../generated/prisma/index.js';
 
 /**
  * Validator to ensure publication status can only be set to user-selectable values (DRAFT, READY, SCHEDULED)

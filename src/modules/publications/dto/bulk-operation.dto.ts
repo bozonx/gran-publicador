@@ -1,5 +1,5 @@
 import { IsArray, IsEnum, IsOptional, IsString, ArrayMaxSize, ArrayMinSize } from 'class-validator';
-import { PublicationStatus } from '../../../generated/prisma/client.js';
+import { PublicationStatus } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export enum BulkOperationType {

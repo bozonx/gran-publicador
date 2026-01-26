@@ -11,7 +11,7 @@ import { extractMessageContent, formatSource } from './telegram-content.helper.j
 import { SttService } from '../stt/stt.service.js';
 import { AppConfig } from '../../config/app.config.js';
 import PQueue from 'p-queue';
-import { PublicationStatus, StorageType } from '../../generated/prisma/client.js';
+import { PublicationStatus, StorageType } from '../../generated/prisma/index.js';
 import type { Message } from 'grammy/types';
 import type { Readable } from 'stream';
 
