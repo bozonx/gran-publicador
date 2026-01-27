@@ -13,7 +13,7 @@ import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.j
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto } from './dto/index.js';
+import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, SearchNewsQueryDto } from './dto/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
@@ -634,7 +634,7 @@ export class ProjectsService {
     });
   }
 
-  public async searchNews(projectId: string, userId: string, query: any) {
+  public async searchNews(projectId: string, userId: string, query: SearchNewsQueryDto) {
     await this.permissions.checkProjectAccess(projectId, userId);
 
     const config = this.configService.get<NewsConfig>('news')!;
@@ -652,8 +652,15 @@ export class ProjectsService {
         q: query.q,
       };
 
+      if (query.mode) searchParams.mode = query.mode;
       if (query.since) searchParams.since = query.since;
       if (query.source) searchParams.source = query.source;
+      if (query.sourceTags) searchParams.sourceTags = query.sourceTags;
+      if (query.newsTags) searchParams.newsTags = query.newsTags;
+      if (query.tags) searchParams.tags = query.tags;
+      if (query.lang) searchParams.lang = query.lang;
+      
+      if (query.offset !== undefined) searchParams.offset = query.offset;
       if (query.limit) searchParams.limit = query.limit;
       if (query.minScore !== undefined) searchParams.minScore = query.minScore;
 

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsInt, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsInt, MaxLength, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
@@ -13,6 +13,11 @@ export class SearchNewsQueryDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(['text', 'vector', 'hybrid'])
+  mode?: 'text' | 'vector' | 'hybrid';
+
+  @IsOptional()
+  @IsString()
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   since?: string;
 
@@ -20,6 +25,32 @@ export class SearchNewsQueryDto {
   @IsString()
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
+  sourceTags?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
+  newsTags?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
+  tags?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  lang?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  @Min(0)
+  offset?: number;
 
   @IsOptional()
   @IsInt()
