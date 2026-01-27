@@ -766,7 +766,10 @@
     "exif": "EXIF Data",
     "file_info": "File Info",
     "size": "File Size",
-    "created_at": "Uploaded At"
+    "created_at": "Uploaded At",
+    "editImage": "Edit Image",
+    "editSuccess": "Image edited successfully",
+    "editError": "Failed to edit image"
   },
   "postType": {
     "post": "Post",

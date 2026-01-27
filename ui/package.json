@@ -29,6 +29,7 @@
     "@tiptap/vue-3": "^3.17.1",
     "@tma.js/sdk-vue": "^1.0.15",
     "@vueuse/nuxt": "^14.1.0",
+    "filerobot-image-editor": "^4.8.1",
     "highlight.js": "^11.11.1",
     "js-yaml": "^4.1.1",
     "lowlight": "^3.3.0",

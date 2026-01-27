@@ -114,6 +114,7 @@ const selectedMedia = ref<MediaItem | null>(null)
 const selectedMediaLinkId = ref<string | null>(null)
 const editableHasSpoiler = ref(false)
 const isModalOpen = ref(false)
+const isEditorOpen = ref(false)
 
 const editableMetadata = ref<Record<string, any> | null>(null)
 const editableAlt = ref('')
@@ -570,6 +571,58 @@ function closeMediaModal() {
   isModalOpen.value = false
   selectedMedia.value = null
   selectedMediaLinkId.value = null
+}
+
+function handleEditMedia() {
+  isEditorOpen.value = true
+}
+
+async function handleEditorSave(file: File) {
+    if (!selectedMedia.value || !selectedMediaLinkId.value) return
+
+    isSavingMeta.value = true
+    try {
+        // 1. Upload new edited image
+        // Use current optimization settings if available
+        const defaults = getDefaultOptimizationParams()
+        const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
+        
+        const newMedia = await uploadMedia(file, undefined, optimizeParams)
+        
+        // 2. Add to publication at the same position or just add it
+        // To make it a true "replace", we should remove the old one.
+        
+        // Find current index
+        const oldIndex = currentMediaIndex.value
+        
+        // Remove old media link
+        await removeMediaFromPublication(props.publicationId, selectedMediaLinkId.value)
+        
+        // Add new media link
+        await addMediaToPublication(props.publicationId, [{ id: newMedia.id }])
+        
+        // After adding, it will be at the end. If we want to preserve order, we should reorder.
+        // But the refresh will happen and user can move it.
+        // For now, let's just refresh.
+        
+        toast.add({
+            title: t('common.success'),
+            description: t('media.editSuccess', 'Image edited successfully'),
+            color: 'success',
+        })
+        
+        isEditorOpen.value = false
+        isModalOpen.value = false
+        emit('refresh')
+    } catch (error: any) {
+        toast.add({
+            title: t('common.error'),
+            description: error.message || t('media.editError', 'Failed to save edited image'),
+            color: 'error',
+        })
+    } finally {
+        isSavingMeta.value = false
+    }
 }
 
 const transitionName = ref('slide-next')
@@ -1102,6 +1155,18 @@ const emit = defineEmits<Emits>()
     :counter-text="currentMediaIndex >= 0 ? `${currentMediaIndex + 1} / ${localMedia.length}` : undefined"
     @close="closeMediaModal"
   >
+    <template #header-right>
+      <UButton
+        v-if="editable && selectedMedia?.type === 'IMAGE'"
+        icon="i-heroicons-pencil-square"
+        variant="ghost"
+        color="neutral"
+        size="sm"
+        @click="handleEditMedia"
+      >
+        {{ t('common.edit', 'Edit') }}
+      </UButton>
+    </template>
     <div class="p-6 w-full overflow-y-auto">
       <!-- Image preview with navigation buttons -->
       <div v-if="selectedMedia" class="mb-6 relative">
@@ -1244,7 +1309,7 @@ const emit = defineEmits<Emits>()
                <UButton 
                  icon="i-heroicons-clipboard-document"
                  variant="ghost"
-                 color="gray"
+                 color="neutral"
                  size="xs"
                  class="-my-1"
                  @click="copyPublicLink"
@@ -1252,7 +1317,7 @@ const emit = defineEmits<Emits>()
                <UButton 
                  icon="i-heroicons-arrow-top-right-on-square"
                  variant="ghost"
-                 color="gray"
+                 color="neutral"
                  size="xs"
                  class="-my-1"
                  :to="publicMediaUrl"
@@ -1387,6 +1452,25 @@ const emit = defineEmits<Emits>()
     </template>
 
   </MediaViewerModal>
+
+  <!-- Image Editor Modal -->
+  <UiAppModal
+    v-model:open="isEditorOpen"
+    :title="t('media.editImage', 'Edit Image')"
+    :ui="{
+      content: 'w-[98vw] max-w-7xl h-[95vh]',
+      body: 'p-0 h-full flex flex-col',
+    }"
+  >
+    <div v-if="selectedMedia && isEditorOpen" class="flex-1 overflow-hidden">
+        <MediaFilerobotEditor
+            :source="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+            :filename="selectedMedia.filename"
+            @save="handleEditorSave"
+            @close="isEditorOpen = false"
+        />
+    </div>
+  </UiAppModal>
 </template>
 
 <style scoped>
