@@ -109,8 +109,6 @@ model ProjectNewsQuery {
   isNotificationEnabled Boolean   @default(false) @map("is_notification_enabled")
   lastCheckedAt         DateTime? @map("last_checked_at")
   
-  // UI preferences
-  isDefault Boolean  @default(false) @map("is_default")
   order     Int      @default(0)
   
   createdAt DateTime @default(now()) @map("created_at")

@@ -31,7 +31,7 @@ export class NewsQueriesService {
     const queries = await this.prisma.projectNewsQuery.findMany({
       where: {
         projectId: { in: projectIds },
-        isDefault: true,
+        isNotificationEnabled: true,
       },
       include: {
         project: { select: { name: true } }
@@ -46,12 +46,6 @@ export class NewsQueriesService {
 
   async create(projectId: string, dto: CreateNewsQueryDto) {
     // If setting as default, unset others
-    if (dto.isDefault) {
-      await this.prisma.projectNewsQuery.updateMany({
-        where: { projectId },
-        data: { isDefault: false },
-      });
-    }
 
     // Get max order
     const lastItem = await this.prisma.projectNewsQuery.findFirst({
@@ -61,13 +55,12 @@ export class NewsQueriesService {
     const order = (lastItem?.order ?? -1) + 1;
 
     // Separate clean settings from meta
-    const { name, isDefault, ...settings } = dto;
+    const { name, ...settings } = dto;
 
     const query = await this.prisma.projectNewsQuery.create({
       data: {
         projectId,
         name,
-        isDefault: !!isDefault,
         order,
         settings: settings as any,
       },
@@ -85,14 +78,8 @@ export class NewsQueriesService {
       throw new NotFoundException('Query not found');
     }
 
-    if (dto.isDefault) {
-      await this.prisma.projectNewsQuery.updateMany({
-        where: { projectId, id: { not: id } },
-        data: { isDefault: false },
-      });
-    }
 
-    const { name, isDefault, isNotificationEnabled, ...settingsUpdate } = dto;
+    const { name, isNotificationEnabled, ...settingsUpdate } = dto;
     
     // Merge existing settings with updates
     const currentSettings = query.settings as any;
@@ -102,7 +89,6 @@ export class NewsQueriesService {
       where: { id },
       data: {
         name,
-        isDefault,
         isNotificationEnabled,
         settings: newSettings,
       },
@@ -130,7 +116,6 @@ export class NewsQueriesService {
     return {
       id: query.id,
       name: query.name,
-      isDefault: query.isDefault,
       isNotificationEnabled: query.isNotificationEnabled,
       order: query.order,
       createdAt: query.createdAt,

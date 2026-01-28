@@ -16,7 +16,6 @@ interface NewsQuery {
   newsTags?: string
   minScore: number
   note: string
-  isDefault: boolean
   isNotificationEnabled: boolean
 }
 
@@ -24,7 +23,7 @@ interface NewsTabItem {
   label: string
   id: string
   slot: string
-  isDefault?: boolean
+  isNotificationEnabled?: boolean
 }
 
 definePageMeta({
@@ -62,11 +61,10 @@ function handleCreatePublication(item: any) {
 const tabs = computed<NewsTabItem[]>(() => {
   return newsQueries.value
     .slice()
-    .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .map((q) => ({
       label: q.name,
       id: q.id,
-      isDefault: q.isDefault,
+      isNotificationEnabled: q.isNotificationEnabled,
       slot: 'content'
     }))
 })
@@ -96,11 +94,10 @@ async function initQueries() {
       if (queries && queries.length > 0) {
         newsQueries.value = queries
         
-        // Find default or use first
-        // Note: Sort logic in 'tabs' computed property will handle display order
-        // We just need to set active tab
-        const defaultIndex = queries.findIndex((q: any) => q.isDefault)
-        activeTabIndex.value = defaultIndex !== -1 ? defaultIndex : 0
+        // Note: We don't have default anymore, so just use first one or last active?
+        // Let's stick to first one for now, or maybe the one with notifications enabled?
+        // For now index 0 is fine as they are not reordered by default flag anymore.
+        activeTabIndex.value = 0
       } else {
         // Create initial default query
         const defaultQuery = {
@@ -109,7 +106,8 @@ async function initQueries() {
           mode: 'hybrid',
           since: '1d',
           minScore: 0.5,
-          isDefault: true
+          minScore: 0.5,
+          isNotificationEnabled: false
         }
         
         const created = await createQuery(defaultQuery)
@@ -197,7 +195,7 @@ async function addTab() {
     mode: 'hybrid',
     since: '1d',
     minScore: 0.5,
-    isDefault: false
+    isNotificationEnabled: false
   }
   
   try {
@@ -277,23 +275,6 @@ async function confirmDeleteTab() {
   }
 }
 
-// Handle default flag change
-async function makeDefault(id: string) {
-  // Update local state first
-  newsQueries.value.forEach((q) => {
-    q.isDefault = q.id === id
-  })
-  
-  // After making default, it will move to index 0 due to sorting
-  activeTabIndex.value = 0
-  
-  try {
-    await updateQuery(id, { isDefault: true })
-  } catch(e) {
-    console.error(e)
-    // Should revert state ideally
-  }
-}
 
 // Save current query settings
 async function saveQueries() {
@@ -384,9 +365,9 @@ const timeRangeOptions = [
         <template #default="{ item, index }">
           <div class="flex items-center gap-2">
             <UIcon 
-              v-if="item.isDefault" 
-              name="i-heroicons-star-solid" 
-              class="w-4 h-4 text-yellow-400"
+              v-if="item.isNotificationEnabled" 
+              name="i-heroicons-bell-alert" 
+              class="w-4 h-4 text-primary-500"
             />
             <span class="truncate max-w-[120px] md:max-w-none">{{ item.label }}</span>
             
@@ -584,16 +565,6 @@ const timeRangeOptions = [
                     </UTooltip>
                   </div>
 
-                  <UButton
-                    v-if="!currentQuery.isDefault"
-                    color="neutral"
-                    variant="soft"
-                    size="sm"
-                    icon="i-heroicons-star"
-                    @click="makeDefault(currentQuery.id)"
-                  >
-                    {{ t('news.makeDefault') }}
-                  </UButton>
                 </div>
 
                 <!-- Note Row -->

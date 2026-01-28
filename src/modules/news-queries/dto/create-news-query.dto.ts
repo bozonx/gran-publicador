@@ -43,5 +43,5 @@ export class CreateNewsQueryDto {
 
   @IsBoolean()
   @IsOptional()
-  isDefault?: boolean;
+  isNotificationEnabled?: boolean;
 }
