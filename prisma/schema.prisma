@@ -31,6 +31,8 @@ model User {
   updatedAt        DateTime @updatedAt @map("updated_at")
   // Timestamp when user was soft-deleted
   deletedAt        DateTime? @map("deleted_at")
+  // User language (e.g., en-US, ru-RU)
+  language         String   @default("en-US") @map("language")
   // User preferences stored as JSON
   preferences      Json
 

@@ -18,6 +18,7 @@ interface TelegramUser {
   last_name?: string;
   username?: string;
   photo_url?: string;
+  language_code?: string;
   auth_date: number;
   hash: string;
 }
@@ -78,6 +79,7 @@ export class AuthService {
       firstName: tgUser.first_name,
       lastName: tgUser.last_name,
       avatarUrl: tgUser.photo_url,
+      languageCode: tgUser.language_code,
     });
 
     if (user.isBanned) {

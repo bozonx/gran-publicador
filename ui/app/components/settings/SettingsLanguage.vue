@@ -10,18 +10,36 @@ const languageOptions = computed(() =>
   }))
 )
 
+const { refreshUser } = useAuth()
+const api = useApi()
+
 /**
  * Change language
  */
-function changeLanguage(newLocale: string) {
-  setLocale(newLocale as any)
-  // Save to localStorage for persistence
-  localStorage.setItem('locale', newLocale)
-  toast.add({
-    title: t('common.success'),
-    description: t('settings.languageChanged', 'Language changed'),
-    color: 'success',
-  })
+async function changeLanguage(newLocale: string) {
+  try {
+    // Update local i18n
+    setLocale(newLocale as any)
+    
+    // Save to DB
+    await api.patch('/users/me', { language: newLocale })
+    
+    // Refresh user in store
+    await refreshUser()
+
+    toast.add({
+      title: t('common.success'),
+      description: t('settings.languageChanged', 'Language changed'),
+      color: 'success',
+    })
+  } catch (err) {
+    console.error('Failed to change language:', err)
+    toast.add({
+      title: t('common.error'),
+      description: t('settings.syncError', 'Failed to save settings'),
+      color: 'error',
+    })
+  }
 }
 </script>
 

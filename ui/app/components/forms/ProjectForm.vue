@@ -27,7 +27,7 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'submit', data: Partial<ProjectWithRole>): void | Promise<void>
+  (e: 'submit', data: Partial<ProjectWithRole>, options?: { silent?: boolean }): void | Promise<void>
   (e: 'cancel'): void
 }
 
@@ -108,7 +108,7 @@ const { saveStatus, saveError } = useAutosave({
   saveFn: async () => {
     if (!props.autosave) return
     const updateData = prepareUpdateData(state)
-    await emit('submit', updateData)
+    await emit('submit', updateData, { silent: true })
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
@@ -133,7 +133,10 @@ const schema = z.object({
 type Schema = z.output<typeof schema>
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
+const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state, {
+  enableNavigationGuard: !props.autosave,
+  enableBeforeUnload: !props.autosave
+})
 
 // Save original state when component mounts or project changes
 watch(() => props.project, () => {
@@ -173,7 +176,7 @@ watch(() => props.project, () => {
 async function handleSubmit(event: FormSubmitEvent<Schema>) {
   try {
     const updateData = prepareUpdateData(state)
-    await emit('submit', updateData)
+    await emit('submit', updateData, { silent: false })
     formActionsRef.value?.showSuccess()
     // Update original state after successful save
     saveOriginalState()

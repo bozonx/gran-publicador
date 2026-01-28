@@ -1,6 +1,6 @@
 /**
  * Plugin to detect language with specific priority:
- * 1. LocalStorage (user preference)
+ * 1. User profile language (if authorized)
  * 2. Telegram WebApp (if available)
  * 3. Browser language
  * 4. Default (en-US)
@@ -13,6 +13,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     const setLocale = (i18n as any).setLocale
     const locales = (i18n as any).locales // Array of locale objects
 
+    const auth = useAuthStore()
+
     // Get available locale codes from config
     const availableLocales = computed(() => locales.value.map((l: any) => l.code))
 
@@ -22,7 +24,7 @@ export default defineNuxtPlugin((nuxtApp) => {
      * Normalize and find best match for a language code
      * e.g. 'en-GB' -> 'en-US', 'ru' -> 'ru-RU'
      */
-    function findBestMatch(langCode: string): string | null {
+    function findBestMatch(langCode: string | null | undefined): string | null {
         if (!langCode) return null
 
         // 1. Precise match
@@ -31,20 +33,14 @@ export default defineNuxtPlugin((nuxtApp) => {
         }
 
         // 2. Fuzzy match by base language (e.g. 'en' from 'en-GB')
-        const baseLang = langCode?.split('-')[0].toLowerCase()
+        const parts = langCode.split('-')
+        const baseLang = parts[0]?.toLowerCase()
+        if (!baseLang) return null
 
         // Find the first available locale that starts with this base lang
         const match = availableLocales.value.find((l: string) => l.toLowerCase().startsWith(baseLang))
 
         return match || null
-    }
-
-    function getSavedLocale(): string | null {
-        try {
-            return localStorage.getItem('locale')
-        } catch (e) {
-            return null
-        }
     }
 
     function getTelegramLocale(): string | null {
@@ -63,10 +59,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (import.meta.client) {
         let targetLocale = null
 
-        // 1. LocalStorage
-        const saved = getSavedLocale()
-        if (saved) {
-            targetLocale = findBestMatch(saved)
+        // 1. User Profile from DB
+        if (auth.user?.language) {
+            targetLocale = findBestMatch(auth.user.language)
         }
 
         // 2. Telegram WebApp
@@ -97,11 +92,6 @@ export default defineNuxtPlugin((nuxtApp) => {
                 setLocale(targetLocale)
             } else {
                 locale.value = targetLocale
-            }
-
-            // Sync localStorage if it was empty or different (optional, but good for persistence)
-            if (!saved) {
-                localStorage.setItem('locale', targetLocale)
             }
         }
     }

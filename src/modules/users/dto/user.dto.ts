@@ -37,6 +37,9 @@ export class UserDto {
   @Expose()
   public updatedAt!: Date;
 
+  @Expose()
+  public language!: string;
+
   @Exclude()
   public preferences!: string; // Internal use
 }
@@ -54,6 +57,10 @@ export class UpdateUserProfileDto {
   @IsString()
   @IsOptional()
   public avatarUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  public language?: string;
 }
 
 export class BanUserDto {

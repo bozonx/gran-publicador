@@ -9,6 +9,7 @@ export interface User {
     avatarUrl?: string;
 
     isAdmin: boolean;
+    language: string;
     createdAt?: string;
     updatedAt?: string;
 }

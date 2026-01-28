@@ -111,27 +111,31 @@ export function useProjects() {
         }
     }
 
-    async function updateProject(projectId: string, data: Partial<Project>): Promise<Project | null> {
+    async function updateProject(projectId: string, data: Partial<Project>, options: { silent?: boolean } = {}): Promise<Project | null> {
         store.setLoading(true)
         store.setError(null)
 
         try {
             const updatedProject = await api.patch<Project>(`/projects/${projectId}`, data)
-            toast.add({
-                title: t('common.success'),
-                description: t('project.updateSuccess'),
-                color: 'success',
-            })
+            if (!options.silent) {
+                toast.add({
+                    title: t('common.success'),
+                    description: t('project.updateSuccess'),
+                    color: 'success',
+                })
+            }
             store.updateProject(projectId, updatedProject as ProjectWithRole)
             return updatedProject
         } catch (err: any) {
             const message = err.message || 'Failed to update project'
             store.setError(message)
-            toast.add({
-                title: t('common.error'),
-                description: message,
-                color: 'error',
-            })
+            if (!options.silent) {
+                toast.add({
+                    title: t('common.error'),
+                    description: message,
+                    color: 'error',
+                })
+            }
             return null
         } finally {
             store.setLoading(false)

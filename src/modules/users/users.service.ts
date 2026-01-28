@@ -21,6 +21,17 @@ export class UsersService {
     private configService: ConfigService,
   ) {}
 
+  /**
+   * Normalize language code to full format (e.g. ru -> ru-RU, en -> en-US)
+   */
+  private normalizeLanguage(code?: string | null): string {
+    if (!code) return 'en-US';
+    const low = code.toLowerCase();
+    if (low.startsWith('ru')) return 'ru-RU';
+    if (low.startsWith('en')) return 'en-US';
+    return 'en-US'; // Default fallback
+  }
+
   public async findByTelegramId(telegramId: bigint): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { telegramId },
@@ -46,6 +57,7 @@ export class UsersService {
     firstName?: string;
     lastName?: string;
     avatarUrl?: string;
+    languageCode?: string;
   }): Promise<User> {
     const constructedName = [userData.firstName, userData.lastName].filter(Boolean).join(' ');
     let fullName: string | null = constructedName !== '' ? constructedName : null;
@@ -79,6 +91,7 @@ export class UsersService {
         fullName: fullName,
         avatarUrl: userData.avatarUrl,
         isAdmin: isAdmin,
+        language: this.normalizeLanguage(userData.languageCode),
         preferences: JSON.parse(
           JSON.stringify({
             notifications: getDefaultNotificationPreferences(),
@@ -147,6 +160,7 @@ export class UsersService {
       isAdmin: user.isAdmin,
       isBanned: user.isBanned,
       banReason: user.banReason,
+      language: user.language,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       projectsCount: user._count.ownedProjects,
@@ -178,13 +192,14 @@ export class UsersService {
    */
   public async updateProfile(
     userId: string,
-    data: { fullName?: string; avatarUrl?: string },
+    data: { fullName?: string; avatarUrl?: string; language?: string },
   ): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(data.fullName !== undefined && { fullName: data.fullName }),
         ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+        ...(data.language !== undefined && { language: this.normalizeLanguage(data.language) }),
       },
     });
   }

@@ -61,6 +61,7 @@ export class TelegramBotUpdate {
       username: from.username,
       firstName: from.first_name,
       lastName: from.last_name,
+      languageCode: from.language_code,
     });
 
     // Delete previous menu message if exists
