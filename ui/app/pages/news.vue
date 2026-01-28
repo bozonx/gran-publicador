@@ -14,7 +14,7 @@ const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries } =
 const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
-const defaultQueries = ref<any[]>([])
+const trackedQueries = ref<any[]>([])
 const isInitialLoading = ref(true)
 
 function handleCreatePublication(item: any) {
@@ -23,30 +23,30 @@ function handleCreatePublication(item: any) {
 }
 
 const tabs = computed(() => {
-  return defaultQueries.value.map(q => ({
-    label: q.projectName || q.name,
+  return trackedQueries.value.map(q => ({
+    label: `${q.projectName} - ${q.name}`,
     slot: 'content'
   }))
 })
 
-const currentDefaultQuery = computed(() => {
-  return defaultQueries.value[activeTabIndex.value] || null
+const currentTrackedQuery = computed(() => {
+  return trackedQueries.value[activeTabIndex.value] || null
 })
 
 const isLoading = computed(() => isInitialLoading.value || isNewsLoading.value)
 
 async function handleSearch() {
-  if (!currentDefaultQuery.value) return
+  if (!currentTrackedQuery.value) return
 
   await searchNews({
-    q: currentDefaultQuery.value.q,
-    mode: currentDefaultQuery.value.mode,
-    since: currentDefaultQuery.value.since,
-    lang: currentDefaultQuery.value.lang,
-    sourceTags: currentDefaultQuery.value.sourceTags,
-    newsTags: currentDefaultQuery.value.newsTags,
-    minScore: currentDefaultQuery.value.minScore,
-  }, currentDefaultQuery.value.projectId)
+    q: currentTrackedQuery.value.q,
+    mode: currentTrackedQuery.value.mode,
+    since: currentTrackedQuery.value.since,
+    lang: currentTrackedQuery.value.lang,
+    sourceTags: currentTrackedQuery.value.sourceTags,
+    newsTags: currentTrackedQuery.value.newsTags,
+    minScore: currentTrackedQuery.value.minScore,
+  }, currentTrackedQuery.value.projectId)
 }
 
 watch(activeTabIndex, () => {
@@ -56,8 +56,8 @@ watch(activeTabIndex, () => {
 onMounted(async () => {
   isInitialLoading.value = true
   try {
-    defaultQueries.value = await getDefaultQueries()
-    if (defaultQueries.value.length > 0) {
+    trackedQueries.value = await getDefaultQueries()
+    if (trackedQueries.value.length > 0) {
       await handleSearch()
     }
   } finally {
@@ -94,40 +94,40 @@ function formatScore(score: number) {
 
     <!-- No projects with news queries state -->
     <div
-      v-if="!isLoading && defaultQueries.length === 0"
+      v-if="!isLoading && trackedQueries.length === 0"
       class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700"
     >
       <UIcon name="i-heroicons-newspaper" class="w-12 h-12 mx-auto mb-3 text-gray-400" />
-      <p>{{ t('news.noConfiguredProjects') || 'No projects with default news queries found.' }}</p>
+      <p>{{ t('news.noConfiguredProjects') || 'No tracked news queries found.' }}</p>
       <p class="text-sm mt-2">
-        {{ t('news.howToConfigure') || 'Configure default news queries in project settings.' }}
+        {{ t('news.howToConfigure') || 'Enable notifications for news queries in project settings.' }}
       </p>
     </div>
 
     <!-- Tabs System -->
-    <div v-else-if="defaultQueries.length > 0" class="space-y-6">
+    <div v-else-if="trackedQueries.length > 0" class="space-y-6">
       <UTabs 
         v-model="activeTabIndex" 
         :items="tabs" 
         class="w-full"
       >
         <template #content>
-          <div v-if="currentDefaultQuery" class="space-y-4">
+          <div v-if="currentTrackedQuery" class="space-y-4">
             <!-- Query Information -->
             <div class="flex items-start justify-between gap-4 py-2 px-1 text-sm text-gray-500 dark:text-gray-400">
               <div class="flex items-start gap-2 flex-1 min-w-0">
                 <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4 mt-0.5 shrink-0" />
-                <span class="font-medium text-gray-700 dark:text-gray-300 break-all overflow-hidden">{{ currentDefaultQuery.q }}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300 break-all overflow-hidden">{{ currentTrackedQuery.q }}</span>
                 
-                <div v-if="(currentDefaultQuery as any).since" class="flex items-center gap-1 ml-2 shrink-0">
+                <div v-if="(currentTrackedQuery as any).since" class="flex items-center gap-1 ml-2 shrink-0">
                   <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-                  <span>{{ (currentDefaultQuery as any).since }}</span>
+                  <span>{{ (currentTrackedQuery as any).since }}</span>
                 </div>
               </div>
               
               <div class="flex items-center gap-1 shrink-0">
                 <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
-                <span>Score: <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentDefaultQuery.minScore }}</span></span>
+                <span>Score: <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentTrackedQuery.minScore }}</span></span>
               </div>
             </div>
 
@@ -175,7 +175,7 @@ function formatScore(score: number) {
     <NewsCreatePublicationModal
       v-model:open="isCreateModalOpen"
       :url="selectedNewsUrl"
-      :project-id="currentDefaultQuery?.projectId || ''"
+      :project-id="currentTrackedQuery?.projectId || ''"
     />
   </div>
 </template>

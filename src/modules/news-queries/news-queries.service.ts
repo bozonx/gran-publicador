@@ -115,6 +115,7 @@ export class NewsQueriesService {
     const settings = (query.settings as any) || {};
     return {
       id: query.id,
+      projectId: query.projectId,
       name: query.name,
       isNotificationEnabled: query.isNotificationEnabled,
       order: query.order,
