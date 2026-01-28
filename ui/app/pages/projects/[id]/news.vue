@@ -85,13 +85,12 @@ async function initQueries() {
         const defaultQuery = {
           name: t('news.title'),
           q: currentProject.value?.name || '',
-          mode: 'hybrid',
-          since: '1d',
+          mode: 'hybrid' as const,
           minScore: 0.5,
           isNotificationEnabled: false
         }
         
-        const created = await createQuery(defaultQuery)
+        const created = await createQuery(defaultQuery) as NewsQuery
         newsQueries.value = [created]
         selectedQueryId.value = created.id
       }
@@ -120,7 +119,6 @@ async function handleSearch() {
   await searchNews({
     q: currentQuery.value.q,
     mode: currentQuery.value.mode,
-    since: currentQuery.value.since,
     lang: currentQuery.value.lang,
     sourceTags: currentQuery.value.sourceTags,
     newsTags: currentQuery.value.newsTags,
@@ -137,7 +135,6 @@ async function loadMore() {
     await searchNews({
       q: currentQuery.value.q,
       mode: currentQuery.value.mode,
-      since: currentQuery.value.since,
       lang: currentQuery.value.lang,
       sourceTags: currentQuery.value.sourceTags,
       newsTags: currentQuery.value.newsTags,
@@ -175,14 +172,13 @@ async function addTab() {
   const newQuery = {
     name: newTabName.value,
     q: '',
-    mode: 'hybrid',
-    since: '1d',
+    mode: 'hybrid' as const,
     minScore: 0.5,
     isNotificationEnabled: false
   }
   
   try {
-    const created = await createQuery(newQuery)
+    const created = await createQuery(newQuery) as NewsQuery
     newsQueries.value.push(created)
     
     await nextTick()
@@ -266,7 +262,6 @@ async function saveQueries() {
     await updateQuery(currentQuery.value.id, {
         q: currentQuery.value.q,
         mode: currentQuery.value.mode,
-        since: currentQuery.value.since,
         lang: currentQuery.value.lang,
         sourceTags: currentQuery.value.sourceTags,
         newsTags: currentQuery.value.newsTags,
@@ -292,17 +287,6 @@ function formatDate(dateString: string) {
 function formatScore(score: number) {
   return `${Math.round(score * 100)}%`
 }
-
-const timeRangeOptions = [
-  { label: '30m', value: '30m' },
-  { label: '1h', value: '1h' },
-  { label: '6h', value: '6h' },
-  { label: '12h', value: '12h' },
-  { label: '1d', value: '1d' },
-  { label: '2d', value: '2d' },
-  { label: '7d', value: '7d' },
-  { label: '30d', value: '30d' },
-]
 </script>
 
 <template>
@@ -431,25 +415,48 @@ const timeRangeOptions = [
                   <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeHybrid') || 'Hybrid' }}</span>
                 </label>
               </div>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {{ t('news.modeHelp') || 'Text: keyword matching, Vector: semantic similarity, Hybrid: combines both' }}
-              </p>
             </div>
 
-            <!-- Filters Grid -->
+            <!-- Additional Filters Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {{ t('news.since') || 'Time Range' }}
+                  {{ t('news.language') || 'Language' }}
                 </label>
-                <USelect
-                  v-model="currentQuery.since"
-                  :options="timeRangeOptions"
-                  icon="i-heroicons-clock"
+                <UInput
+                  v-model="currentQuery.lang"
+                  :placeholder="t('news.languagePlaceholder') || 'Language code (e.g., en, ru)'"
+                  icon="i-heroicons-language"
                   size="lg"
                 />
               </div>
-              <div>
+              <div v-if="currentQuery">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.sourceTags') || 'Source Tags' }}
+                </label>
+                <UInput
+                  v-model="currentQuery.sourceTags"
+                  :placeholder="t('news.sourceTagsPlaceholder') || 'Comma-separated source tags'"
+                  icon="i-heroicons-tag"
+                  size="lg"
+                />
+              </div>
+            </div>
+
+            <!-- News Tags and Score -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div v-if="currentQuery">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.newsTags') || 'News Tags' }}
+                </label>
+                <UInput
+                  v-model="currentQuery.newsTags"
+                  :placeholder="t('news.newsTagsPlaceholder') || 'Comma-separated news tags'"
+                  icon="i-heroicons-tag"
+                  size="lg"
+                />
+              </div>
+              <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Min Score
                 </label>
@@ -469,45 +476,6 @@ const timeRangeOptions = [
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Additional Filters Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.language') || 'Language' }}
-                </label>
-                <UInput
-                  v-model="currentQuery.lang"
-                  :placeholder="t('news.languagePlaceholder') || 'Language code (e.g., en, ru)'"
-                  icon="i-heroicons-language"
-                  size="lg"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.sourceTags') || 'Source Tags' }}
-                </label>
-                <UInput
-                  v-model="currentQuery.sourceTags"
-                  :placeholder="t('news.sourceTagsPlaceholder') || 'Comma-separated source tags'"
-                  icon="i-heroicons-tag"
-                  size="lg"
-                />
-              </div>
-            </div>
-
-            <!-- News Tags -->
-            <div class="w-full">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ t('news.newsTags') || 'News Tags' }}
-              </label>
-              <UInput
-                v-model="currentQuery.newsTags"
-                :placeholder="t('news.newsTagsPlaceholder') || 'Comma-separated news tags'"
-                icon="i-heroicons-tag"
-                size="lg"
-              />
             </div>
 
             <!-- Notifications Toggle -->
@@ -612,7 +580,7 @@ const timeRangeOptions = [
           <div v-else-if="news.length > 0" class="space-y-4">
             <NewsItem
               v-for="item in news"
-              :key="item._id"
+              :key="item.id"
               :item="item"
               @create-publication="handleCreatePublication"
             />

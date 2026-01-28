@@ -23,8 +23,9 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
     const aIndex = token.attrIndex('target')
     if (aIndex < 0) {
       token.attrPush(['target', '_blank'])
-    } else if (token.attrs) {
-      token.attrs[aIndex][1] = '_blank'
+    } else if (token.attrs && token.attrs[aIndex]) {
+      const attr = token.attrs[aIndex]
+      if (attr) attr[1] = '_blank'
     }
   }
   return defaultRender(tokens, idx, options, env, self)
@@ -32,7 +33,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
 
 const props = defineProps<{
   projectId?: string
-  newsItem?: NewsItem
+  sourceNewsItem?: NewsItem
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
@@ -179,8 +180,8 @@ async function handleNext() {
     if (lang.length > 5) lang = lang.substring(0, 2)
     
     // Prepare metadata: remove fields we use directly to avoid duplication
-    // Use newsItem if available for richer metadata
-    const sourceData = props.newsItem || sd
+    // Use sourceNewsItem if available for richer metadata
+    const sourceData = props.sourceNewsItem || sd
     const otherData: any = { ...sourceData }
     
     // User requested to NOT save title and description in the card data
@@ -248,20 +249,20 @@ async function handleNext() {
 }
 
 function handleUseNewsData() {
-  if (!props.newsItem) return
+  if (!props.sourceNewsItem) return
   
   // Populate scrapedData from news card
   scrapedData.value = {
-    url: props.newsItem.url,
-    title: props.newsItem.title,
-    description: props.newsItem.description,
-    body: props.newsItem.description, // Use description as body
-    date: props.newsItem.date || props.newsItem.savedAt,
-    image: props.newsItem.mainImageUrl || props.newsItem.mainVideoUrl,
-    source: props.newsItem.source,
+    url: props.sourceNewsItem.url,
+    title: props.sourceNewsItem.title,
+    description: props.sourceNewsItem.description,
+    body: props.sourceNewsItem.description || '', // Use description as body
+    date: props.sourceNewsItem.date || props.sourceNewsItem.savedAt,
+    image: props.sourceNewsItem.mainImageUrl || props.sourceNewsItem.mainVideoUrl || '',
+    source: props.sourceNewsItem.source,
     author: '', // Not usually in card
     meta: {
-       lang: props.newsItem.locale
+       lang: props.sourceNewsItem.locale
     }
   }
   error.value = null
@@ -281,18 +282,48 @@ function handleUseNewsData() {
          <p class="text-gray-500">{{ t('common.loading') }}</p>
       </div>
       
-      <div v-else-if="error" class="flex flex-col items-center justify-center py-12 text-red-500 text-center">
-        <UIcon name="i-heroicons-exclamation-circle" class="w-12 h-12 mb-2" />
-        <p class="mb-4">{{ error }}</p>
+      <div v-else-if="error" class="flex flex-col items-center justify-center py-8 text-center max-w-2xl mx-auto">
+        <div class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6 flex items-start gap-3 text-left w-full">
+           <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 shrink-0 mt-0.5" />
+           <div class="space-y-1 text-sm">
+             <p class="font-medium">{{ t('publication.scrapeFailed') === 'publication.scrapeFailed' ? 'Automatic page detection failed' : t('publication.scrapeFailed') }}</p>
+             <p class="opacity-90">{{ error }}</p>
+           </div>
+        </div>
+
+        <div v-if="props.sourceNewsItem" class="w-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden text-left mb-6 shadow-sm">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+            <h4 class="font-medium text-gray-700 dark:text-gray-200 text-sm">
+              {{ t('publication.availableData') === 'publication.availableData' ? 'Available data from News Feed' : t('publication.availableData') }}
+            </h4>
+            <span class="text-xs text-gray-500">{{ t('publication.source') === 'publication.source' ? 'Source' : t('publication.source') }}: {{ props.sourceNewsItem.source }}</span>
+          </div>
+
+          <div class="p-4 flex gap-4">
+             <img 
+               v-if="props.sourceNewsItem.mainImageUrl || props.sourceNewsItem.mainVideoUrl" 
+               :src="props.sourceNewsItem.mainImageUrl || props.sourceNewsItem.mainVideoUrl" 
+               class="w-24 h-24 object-cover rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0"
+             />
+             <div class="min-w-0 space-y-2">
+               <h5 class="font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
+                 {{ props.sourceNewsItem.title }}
+               </h5>
+               <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                 {{ props.sourceNewsItem.description }}
+               </p>
+             </div>
+          </div>
+        </div>
         
         <UButton 
-          v-if="newsItem"
+          v-if="props.sourceNewsItem"
           color="primary" 
-          variant="soft"
-          icon="i-heroicons-arrow-path-rounded-square"
+          size="lg"
+          icon="i-heroicons-arrow-right-circle"
           @click="handleUseNewsData"
         >
-          {{ t('publication.useNewsCardData') || 'Use Data from News Card' }}
+          {{ t('publication.useNewsCardData') === 'publication.useNewsCardData' ? 'Use Data from News Card' : t('publication.useNewsCardData') }}
         </UButton>
       </div>
       

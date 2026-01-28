@@ -727,7 +727,11 @@
     "channelsSelectorHelp": "Choose channels to publish to...",
     "select_channels": "Select Channels",
     "select_project_first": "Select a project first",
-    "create_for_lang": "Create translation for {lang}"
+    "create_for_lang": "Create translation for {lang}",
+    "scrapeFailed": "Automatic page detection failed",
+    "availableData": "Available data from News Feed",
+    "useNewsCardData": "Use Data from News Card",
+    "imageUploadFailed": "Image could not be uploaded, publication created without it."
   },
   "media": {
     "type": "File Type",

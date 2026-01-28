@@ -14,11 +14,11 @@ const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries } =
 const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
-const selectedNewsItem = ref<any>(null)
+const selectedNewsItem = ref<NewsItem | null>(null)
 const trackedQueries = ref<any[]>([])
 const isInitialLoading = ref(true)
 
-function handleCreatePublication(item: any) {
+function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
   selectedNewsItem.value = item
   isCreateModalOpen.value = true
@@ -176,8 +176,8 @@ function formatScore(score: number) {
 
     <NewsCreatePublicationModal
       v-model:open="isCreateModalOpen"
-      :url="selectedNewsUrl"
-      :news-item="selectedNewsItem"
+      v-model:url="selectedNewsUrl"
+      :source-news-item="selectedNewsItem || undefined"
       :project-id="currentTrackedQuery?.projectId || ''"
     />
   </div>
