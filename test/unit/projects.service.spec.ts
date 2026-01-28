@@ -8,6 +8,7 @@ import { jest } from '@jest/globals';
 import { SystemRoleType, PermissionKey } from '../../src/common/types/permissions.types.js';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { RolesService } from '../../src/modules/roles/roles.service.js';
+import { I18nService } from 'nestjs-i18n';
 
 describe('ProjectsService (unit)', () => {
   let service: ProjectsService;
@@ -63,6 +64,10 @@ describe('ProjectsService (unit)', () => {
     createDefaultRoles: jest.fn() as any,
   };
 
+  const mockI18nService = {
+    t: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -86,6 +91,10 @@ describe('ProjectsService (unit)', () => {
         {
           provide: ConfigService,
           useValue: { get: jest.fn() },
+        },
+        {
+          provide: I18nService,
+          useValue: mockI18nService,
         },
       ],
     }).compile();

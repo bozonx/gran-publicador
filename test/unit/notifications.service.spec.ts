@@ -5,6 +5,8 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { NotificationsGateway } from '../../src/modules/notifications/notifications.gateway.js';
 import { jest } from '@jest/globals';
 import { NotificationType } from '../../src/generated/prisma/index.js';
+import { TelegramBotService } from '../../src/modules/telegram-bot/telegram-bot.service.js';
+import { UsersService } from '../../src/modules/users/users.service.js';
 
 describe('NotificationsService (unit)', () => {
   let service: NotificationsService;
@@ -26,6 +28,18 @@ describe('NotificationsService (unit)', () => {
     sendToUser: jest.fn() as any,
   };
 
+  const mockTelegramBotService = {
+    getBot: (jest.fn() as any).mockReturnValue({
+      api: {
+        sendMessage: (jest.fn() as any).mockResolvedValue(true),
+      },
+    }),
+  };
+
+  const mockUsersService = {
+    getNotificationPreferences: (jest.fn() as any).mockResolvedValue({}),
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -37,6 +51,14 @@ describe('NotificationsService (unit)', () => {
         {
           provide: NotificationsGateway,
           useValue: mockGateway,
+        },
+        {
+          provide: TelegramBotService,
+          useValue: mockTelegramBotService,
+        },
+        {
+          provide: UsersService,
+          useValue: mockUsersService,
         },
       ],
     }).compile();
