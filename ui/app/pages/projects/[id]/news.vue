@@ -538,7 +538,11 @@ const timeRangeOptions = [
                       <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('news.notificationsHelp') || 'Get notified when new news matches this query' }}</p>
                     </div>
                   </div>
-                  <UToggle v-model="currentQuery.isNotificationEnabled" />
+                  <UCheckbox 
+                    v-model="currentQuery.isNotificationEnabled" 
+                    size="lg"
+                    color="primary"
+                  />
                 </div>
 
                 <!-- Search Actions Area -->
