@@ -18,8 +18,21 @@ const currentLocale = computed(() => {
   return availableLocales.value.find((l) => l.code === locale.value)
 })
 
-async function switchLocale(code: 'ru' | 'en') {
-  await setLocale(code)
+const { refreshUser, isAuthenticated } = useAuth()
+const api = useApi()
+
+async function switchLocale(code: string) {
+  // code might be 'ru-RU' or 'en-US' (from availableLocales)
+  await setLocale(code as any)
+  
+  if (isAuthenticated.value) {
+    try {
+      await api.patch('/users/me', { language: code })
+      await refreshUser()
+    } catch (e) {
+      console.error('Failed to save language preference', e)
+    }
+  }
 }
 </script>
 
@@ -28,7 +41,7 @@ async function switchLocale(code: 'ru' | 'en') {
     :items="
       availableLocales.map((l) => ({
         label: l.name,
-        click: () => switchLocale(l.code as 'ru' | 'en'),
+        click: () => switchLocale(l.code),
         active: l.code === locale,
       }))
     "

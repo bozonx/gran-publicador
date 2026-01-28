@@ -57,42 +57,56 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     // Logic to run on client init
     if (import.meta.client) {
-        let targetLocale = null
+        // Find initial locale based on priority
+        const findTargetLocale = () => {
+            // 1. User Profile from DB
+            if (auth.user?.language) {
+                const match = findBestMatch(auth.user.language)
+                if (match) return match
+            }
 
-        // 1. User Profile from DB
-        if (auth.user?.language) {
-            targetLocale = findBestMatch(auth.user.language)
-        }
-
-        // 2. Telegram WebApp
-        if (!targetLocale) {
+            // 2. Telegram WebApp
             const tgLang = getTelegramLocale()
             if (tgLang) {
-                targetLocale = findBestMatch(tgLang)
+                const match = findBestMatch(tgLang)
+                if (match) return match
             }
-        }
 
-        // 3. Browser
-        if (!targetLocale) {
+            // 3. Browser
             const browserLang = getBrowserLocale()
             if (browserLang) {
-                targetLocale = findBestMatch(browserLang)
+                const match = findBestMatch(browserLang)
+                if (match) return match
             }
+
+            // 4. Default / Fallback
+            return DEFAULT_LOCALE
         }
 
-        // 4. Default / Fallback
-        if (!targetLocale) {
-            targetLocale = DEFAULT_LOCALE
-        }
-
-        // Apply if different from current
-        if (targetLocale && targetLocale !== locale.value) {
-            console.info(`[i18n] Setting locale to: ${targetLocale}`)
+        // Apply initial locale
+        const initialLocale = findTargetLocale()
+        if (initialLocale && initialLocale !== locale.value) {
+            console.info(`[i18n] Initializing locale to: ${initialLocale}`)
             if (setLocale) {
-                setLocale(targetLocale)
+                setLocale(initialLocale)
             } else {
-                locale.value = targetLocale
+                locale.value = initialLocale
             }
         }
+
+        // Watch for user language changes (e.g. after login or manual change in other tab)
+        watch(() => auth.user?.language, (newLang) => {
+            if (newLang) {
+                const match = findBestMatch(newLang)
+                if (match && match !== locale.value) {
+                    console.info(`[i18n] User language changed, setting locale to: ${match}`)
+                    if (setLocale) {
+                        setLocale(match)
+                    } else {
+                        locale.value = match
+                    }
+                }
+            }
+        })
     }
 })
