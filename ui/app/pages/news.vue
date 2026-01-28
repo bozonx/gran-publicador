@@ -177,7 +177,7 @@ function formatScore(score: number) {
     <NewsCreatePublicationModal
       v-model:open="isCreateModalOpen"
       v-model:url="selectedNewsUrl"
-      :source-news-item="selectedNewsItem?.value || undefined"
+      :source-news-item="selectedNewsItem || undefined"
       :project-id="currentTrackedQuery?.projectId || ''"
     />
   </div>
