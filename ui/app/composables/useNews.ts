@@ -16,6 +16,8 @@ export interface NewsItem {
   _score: number
   locale?: string
   type?: string
+  mainImageUrl?: string
+  mainVideoUrl?: string
 }
 
 export interface SearchNewsParams {

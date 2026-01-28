@@ -3,6 +3,7 @@ import AppModal from '~/components/ui/AppModal.vue'
 import { usePageScraper } from '~/composables/usePageScraper'
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
+import type { NewsItem } from '~/composables/useNews'
 import DOMPurify from 'isomorphic-dompurify'
 import MarkdownIt from 'markdown-it'
 
@@ -31,6 +32,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
 
 const props = defineProps<{
   projectId?: string
+  newsItem?: NewsItem
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
@@ -177,14 +179,20 @@ async function handleNext() {
     if (lang.length > 5) lang = lang.substring(0, 2)
     
     // Prepare metadata: remove fields we use directly to avoid duplication
-    const otherData: any = { ...sd }
+    // Use newsItem if available for richer metadata
+    const sourceData = props.newsItem || sd
+    const otherData: any = { ...sourceData }
+    
+    // User requested to NOT save title and description in the card data
     delete otherData.title
     delete otherData.description
+    
+    // Clean up other fields that might have been mapped or are not needed in meta
     delete otherData.body
     delete otherData.date
     delete otherData.url
     
-    // Also clean up meta nested object
+    // Also clean up meta nested object if coming from scraped data
     if (otherData.meta) {
       otherData.meta = { ...otherData.meta }
       delete otherData.meta.lang
@@ -212,6 +220,15 @@ async function handleNext() {
     })
     
     if (publication) {
+      // Check if image was requested but missing in created publication (failed upload)
+      if (sd.image && (!publication.media || !publication.media.some((m: any) => m.media?.type === 'IMAGE'))) {
+         toast.add({
+            title: t('common.warning'),
+            description: t('publication.imageUploadFailed') || 'Image could not be uploaded, publication created without it.',
+            color: 'warning',
+         })
+      }
+
       // Close modal
       isOpen.value = false
       
@@ -230,6 +247,26 @@ async function handleNext() {
   }
 }
 
+function handleUseNewsData() {
+  if (!props.newsItem) return
+  
+  // Populate scrapedData from news card
+  scrapedData.value = {
+    url: props.newsItem.url,
+    title: props.newsItem.title,
+    description: props.newsItem.description,
+    body: props.newsItem.description, // Use description as body
+    date: props.newsItem.date || props.newsItem.savedAt,
+    image: props.newsItem.mainImageUrl || props.newsItem.mainVideoUrl,
+    source: props.newsItem.source,
+    author: '', // Not usually in card
+    meta: {
+       lang: props.newsItem.locale
+    }
+  }
+  error.value = null
+}
+
 </script>
 
 <template>
@@ -244,9 +281,19 @@ async function handleNext() {
          <p class="text-gray-500">{{ t('common.loading') }}</p>
       </div>
       
-      <div v-else-if="error" class="flex flex-col items-center justify-center py-12 text-red-500">
+      <div v-else-if="error" class="flex flex-col items-center justify-center py-12 text-red-500 text-center">
         <UIcon name="i-heroicons-exclamation-circle" class="w-12 h-12 mb-2" />
-        <p>{{ error }}</p>
+        <p class="mb-4">{{ error }}</p>
+        
+        <UButton 
+          v-if="newsItem"
+          color="primary" 
+          variant="soft"
+          icon="i-heroicons-arrow-path-rounded-square"
+          @click="handleUseNewsData"
+        >
+          {{ t('publication.useNewsCardData') || 'Use Data from News Card' }}
+        </UButton>
       </div>
       
       <div v-else-if="scrapedData" class="space-y-6">
