@@ -31,6 +31,7 @@
     "@vueuse/nuxt": "^14.1.0",
     "filerobot-image-editor": "^4.8.1",
     "highlight.js": "^11.11.1",
+    "isomorphic-dompurify": "^2.35.0",
     "js-yaml": "^4.1.1",
     "lowlight": "^3.3.0",
     "markdown-it": "^14.1.0",
