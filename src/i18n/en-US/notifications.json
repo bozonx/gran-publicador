@@ -1,0 +1,10 @@
+{
+  "PUBLICATION_FAILED_TITLE": "Publication Failed",
+  "PUBLICATION_PARTIAL_FAILED_TITLE": "Publication Partially Failed",
+  "PUBLICATION_FAILED_MESSAGE": "Publication \"{title}\" {finalStatus}.{detailMessage}",
+  "PUBLICATION_FAILED_SINGLE_MESSAGE": "Publication \"{title}\" {finalStatus}.\n{statusIcon} {channelName} ({platform}): {statusText}{error}",
+  "PROJECT_INVITE_TITLE": "Project Invitation",
+  "PROJECT_INVITE_MESSAGE": "{inviterName} invited you to project \"{projectName}\"",
+  "NEW_NEWS_TITLE": "New news for {queryName}",
+  "NEW_NEWS_MESSAGE": "Found {count} new news items matching your query \"{queryName}\"."
+}

@@ -304,6 +304,12 @@ export class SocialPostingService {
       publication.createdBy
     ) {
       try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: publication.createdBy },
+          select: { uiLanguage: true },
+        });
+        const lang = user?.uiLanguage || 'en-US';
+
         const successList = results
           .filter(r => r.success)
           .map(r => `${r.channelName} (${r.platform})`)
@@ -317,14 +323,25 @@ export class SocialPostingService {
         if (successList) detailMessage += `\n✅ Success: ${successList}`;
         if (failedList) detailMessage += `\n❌ Failed: ${failedList}`;
 
+        const titleKey = finalStatus === PublicationStatus.FAILED
+          ? 'notifications.PUBLICATION_FAILED_TITLE'
+          : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
+
+        const title = this.i18n.t(titleKey, { lang });
+        const message = this.i18n.t('notifications.PUBLICATION_FAILED_MESSAGE', {
+          lang,
+          args: {
+            title: publication.title || (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
+            finalStatus: finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published',
+            detailMessage,
+          },
+        });
+
         await this.notifications.create({
           userId: publication.createdBy,
           type: NotificationType.PUBLICATION_FAILED,
-          title:
-            finalStatus === PublicationStatus.FAILED
-              ? 'Publication Failed'
-              : 'Publication Partially Failed',
-          message: `Publication "${publication.title || (publication.content ? publication.content.substring(0, 30) : 'Untitled')}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.${detailMessage}`,
+          title,
+          message,
           meta: { publicationId: publication.id, projectId: publication.projectId },
         });
       } catch (error: any) {
@@ -435,17 +452,38 @@ export class SocialPostingService {
         post.publication.createdBy
       ) {
         try {
+          const user = await this.prisma.user.findUnique({
+            where: { id: post.publication.createdBy },
+            select: { uiLanguage: true },
+          });
+          const lang = user?.uiLanguage || 'en-US';
+
           const statusIcon = result.success ? '✅' : '❌';
           const statusText = result.success ? 'Success' : 'Failed';
+
+          const titleKey = finalStatus === PublicationStatus.FAILED
+            ? 'notifications.PUBLICATION_FAILED_TITLE'
+            : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
+
+          const title = this.i18n.t(titleKey, { lang });
+          const message = this.i18n.t('notifications.PUBLICATION_FAILED_SINGLE_MESSAGE', {
+            lang,
+            args: {
+              title: post.publication.title || (post.publication.content ? post.publication.content.substring(0, 30) : 'Untitled'),
+              finalStatus: finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published',
+              statusIcon,
+              channelName: post.channel.name,
+              platform: post.channel.socialMedia,
+              statusText,
+              error: result.error ? ` (${result.error})` : '',
+            },
+          });
 
           await this.notifications.create({
             userId: post.publication.createdBy,
             type: NotificationType.PUBLICATION_FAILED,
-            title:
-              finalStatus === PublicationStatus.FAILED
-                ? 'Publication Failed'
-                : 'Publication Partially Failed',
-            message: `Publication "${post.publication.title || (post.publication.content ? post.publication.content.substring(0, 30) : 'Untitled')}..." ${finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published'}.\n${statusIcon} ${post.channel.name} (${post.channel.socialMedia}): ${statusText}${result.error ? ` (${result.error})` : ''}`,
+            title,
+            message,
             meta: { publicationId: post.publicationId, projectId: post.publication.projectId },
           });
         } catch (error: any) {

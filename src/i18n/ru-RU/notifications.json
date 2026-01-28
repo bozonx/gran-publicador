@@ -1,0 +1,10 @@
+{
+  "PUBLICATION_FAILED_TITLE": "Ошибка публикации",
+  "PUBLICATION_PARTIAL_FAILED_TITLE": "Публикация выполнена частично",
+  "PUBLICATION_FAILED_MESSAGE": "Публикация \"{title}\" {finalStatus}.{detailMessage}",
+  "PUBLICATION_FAILED_SINGLE_MESSAGE": "Публикация \"{title}\" {finalStatus}.\n{statusIcon} {channelName} ({platform}): {statusText}{error}",
+  "PROJECT_INVITE_TITLE": "Приглашение в проект",
+  "PROJECT_INVITE_MESSAGE": "{inviterName} пригласил(а) вас в проект \"{projectName}\"",
+  "NEW_NEWS_TITLE": "Новые новости для {queryName}",
+  "NEW_NEWS_MESSAGE": "Найдено {count} новых новостей по вашему запросу \"{queryName}\"."
+}

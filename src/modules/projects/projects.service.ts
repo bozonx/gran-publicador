@@ -17,6 +17,7 @@ import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, Sear
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class ProjectsService {
@@ -28,6 +29,7 @@ export class ProjectsService {
     private notifications: NotificationsService,
     private roles: RolesService,
     private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
   ) {}
 
   private hasNoCredentials(creds: any, socialMedia?: string): boolean {
@@ -575,11 +577,19 @@ export class ProjectsService {
           (inviter.telegramUsername ? `@${inviter.telegramUsername}` : 'Unknown User')
         : 'System';
 
+      const lang = userToAdd.uiLanguage || 'en-US';
+
       await this.notifications.create({
         userId: userToAdd.id,
         type: 'PROJECT_INVITE' as any,
-        title: 'Project Invitation',
-        message: `${inviterName} invited you to project "${project?.name || 'Unknown'}"`,
+        title: this.i18n.t('notifications.PROJECT_INVITE_TITLE', { lang }),
+        message: this.i18n.t('notifications.PROJECT_INVITE_MESSAGE', {
+          lang,
+          args: {
+            inviterName,
+            projectName: project?.name || 'Unknown',
+          },
+        }),
         meta: { projectId, invitedBy: userId },
       });
     } catch (error: any) {

@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectsService } from '../projects/projects.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class NewsNotificationsScheduler {
@@ -12,6 +13,7 @@ export class NewsNotificationsScheduler {
     private readonly prisma: PrismaService,
     private readonly projectsService: ProjectsService,
     private readonly notificationsService: NotificationsService,
+    private readonly i18n: I18nService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -24,7 +26,12 @@ export class NewsNotificationsScheduler {
       include: {
         project: {
           include: {
-            members: { select: { userId: true } },
+            owner: { select: { id: true, uiLanguage: true } },
+            members: { 
+              include: { 
+                user: { select: { id: true, uiLanguage: true } } 
+              } 
+            },
           }
         }
       }
@@ -71,18 +78,32 @@ export class NewsNotificationsScheduler {
       this.logger.log(`Found ${newItems.length} new news for project ${query.projectId}, query ${query.name}`);
       
       // Notify owner and members
-      const userIds = new Set<string>();
-      userIds.add(query.project.ownerId);
+      const usersToNotify = new Map<string, string>(); // userId -> uiLanguage
+      
+      if (query.project.owner) {
+        usersToNotify.set(query.project.owner.id, query.project.owner.uiLanguage || 'en-US');
+      }
+      
       if (query.project.members) {
-        query.project.members.forEach((m: any) => userIds.add(m.userId));
+        query.project.members.forEach((m: any) => {
+          if (m.user) {
+            usersToNotify.set(m.user.id, m.user.uiLanguage || 'en-US');
+          }
+        });
       }
 
-      for (const userId of userIds) {
+      for (const [userId, lang] of usersToNotify.entries()) {
         await this.notificationsService.create({
           userId,
           type: 'NEW_NEWS' as any,
-          title: `New news for ${query.name}`,
-          message: `Found ${newItems.length} new news items matching your query "${query.name}".`,
+          title: this.i18n.t('notifications.NEW_NEWS_TITLE', { lang, args: { queryName: query.name } }),
+          message: this.i18n.t('notifications.NEW_NEWS_MESSAGE', { 
+            lang, 
+            args: { 
+              count: newItems.length,
+              queryName: query.name 
+            } 
+          }),
           meta: { 
             projectId: query.projectId, 
             queryId: query.id,
