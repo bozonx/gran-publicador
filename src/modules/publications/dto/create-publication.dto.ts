@@ -175,4 +175,9 @@ export class CreatePublicationDto {
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
   public sourceTexts?: SourceTextDto[];
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_URL_LENGTH)
+  public imageUrl?: string;
 }

@@ -198,6 +198,7 @@ async function handleNext() {
       description: sd.description || undefined,
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
       language: lang,
+      imageUrl: sd.image || undefined,
       meta: {
         newsData: otherData
       },

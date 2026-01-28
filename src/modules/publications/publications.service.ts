@@ -11,6 +11,8 @@ import {
   PostType,
   Prisma,
   SocialMedia,
+  MediaType,
+  StorageType,
 } from '../../generated/prisma/index.js';
 import { randomUUID } from 'node:crypto';
 
@@ -25,6 +27,7 @@ import {
 } from './dto/index.js';
 import { PublicationMediaInputDto } from './dto/publication-media-input.dto.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
+import { MediaService } from '../media/media.service.js';
 
 @Injectable()
 export class PublicationsService {
@@ -33,6 +36,7 @@ export class PublicationsService {
   constructor(
     private prisma: PrismaService,
     private permissions: PermissionsService,
+    private mediaService: MediaService,
   ) {}
 
   private readonly PUBLICATION_WITH_RELATIONS_INCLUDE = {
@@ -210,26 +214,65 @@ export class PublicationsService {
         createdBy: userId ?? null,
         title: data.title,
         description: data.description,
-        content: data.content,
         authorComment: data.authorComment,
-
+        content: data.content,
         media: {
           create: [
+            // New Image from URL
+            ...(data.imageUrl
+              ? [
+                  await (async () => {
+                    try {
+                      const optimization = data.projectId
+                        ? await this.mediaService.getProjectOptimizationSettings(data.projectId)
+                        : undefined;
+                      const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
+                        data.imageUrl!,
+                        undefined,
+                        userId,
+                        'publication',
+                        optimization,
+                      );
+                      const filename = data.imageUrl!.split('/').pop()?.split('?')[0] || 'image.jpg';
+                      return {
+                        order: 0,
+                        media: {
+                          create: {
+                            type: MediaType.IMAGE,
+                            storageType: StorageType.FS,
+                            storagePath: fileId,
+                            filename,
+                            mimeType: metadata.mimeType,
+                            sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
+                            meta: metadata as any,
+                          },
+                        },
+                      };
+                    } catch (err: any) {
+                      this.logger.error(
+                        `Failed to upload image from URL ${data.imageUrl}: ${err.message}`,
+                      );
+                      // If it fails, we just don't add the media, but log it
+                      return null as any;
+                    }
+                  })(),
+                ]
+              : []),
             // New Media
             ...(data.media || []).map((m, i) => ({
-              order: i,
+              order: (data.imageUrl ? 1 : 0) + i,
               media: { create: { ...m, meta: (m.meta || {}) as any } },
             })),
             // Existing Media
             ...(data.existingMediaIds || []).map((item, i) => {
               const input = this.getMediaInput(item);
               return {
-                order: (data.media?.length || 0) + i,
+                order: (data.imageUrl ? 1 : 0) + (data.media?.length || 0) + i,
                 mediaId: input.id,
                 hasSpoiler: input.hasSpoiler,
               };
             }),
-          ],
+          ].filter(Boolean),
         },
 
         tags: data.tags,
