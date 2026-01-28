@@ -1,24 +1,29 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
-import { LlmPromptTemplatesController } from './llm-prompt-templates.controller.js';
-import { LlmPromptTemplatesService } from './llm-prompt-templates.service.js';
-import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
-import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
-import type { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto.js';
+import { LlmPromptTemplatesController } from '../../../../src/modules/llm-prompt-templates/llm-prompt-templates.controller.js';
+import { LlmPromptTemplatesService } from '../../../../src/modules/llm-prompt-templates/llm-prompt-templates.service.js';
+import { PrismaService } from '../../../../src/modules/prisma/prisma.service.js';
+import type { CreateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/create-llm-prompt-template.dto.js';
+import type { UpdateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/update-llm-prompt-template.dto.js';
+import type { ReorderLlmPromptTemplatesDto } from '../../../../src/modules/llm-prompt-templates/dto/reorder-llm-prompt-templates.dto.js';
+import { jest } from '@jest/globals';
 
 describe('LlmPromptTemplatesController', () => {
   let controller: LlmPromptTemplatesController;
   let service: LlmPromptTemplatesService;
 
   const mockService = {
-    create: jest.fn(),
-    findAllByUser: jest.fn(),
-    findAllByProject: jest.fn(),
-    findOne: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
-    reorder: jest.fn(),
+    create: jest.fn() as any,
+    findAllByUser: jest.fn() as any,
+    findAllByProject: jest.fn() as any,
+    findOne: jest.fn() as any,
+    update: jest.fn() as any,
+    remove: jest.fn() as any,
+    reorder: jest.fn() as any,
   };
+
+
+  const mockPrismaService = {};
 
   const mockRequest = {
     user: {
@@ -33,6 +38,10 @@ describe('LlmPromptTemplatesController', () => {
         {
           provide: LlmPromptTemplatesService,
           useValue: mockService,
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
       ],
     }).compile();
@@ -79,12 +88,13 @@ describe('LlmPromptTemplatesController', () => {
     });
 
     it('should throw ForbiddenException when user requests other user templates', async () => {
-      await expect(controller.findAllByUser('other-user', mockRequest)).rejects.toThrow(
+      expect(() => controller.findAllByUser('other-user', mockRequest)).toThrow(
         ForbiddenException,
       );
 
       expect(service.findAllByUser).not.toHaveBeenCalled();
     });
+
   });
 
   describe('findAllByProject', () => {

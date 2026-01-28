@@ -1,15 +1,16 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { LlmController } from './llm.controller.js';
-import { LlmService } from './llm.service.js';
-import type { GenerateContentDto } from './dto/generate-content.dto.js';
+import { LlmController } from '../../../../src/modules/llm/llm.controller.js';
+import { LlmService } from '../../../../src/modules/llm/llm.service.js';
+import type { GenerateContentDto } from '../../../../src/modules/llm/dto/generate-content.dto.js';
+import { jest } from '@jest/globals';
 
 describe('LlmController', () => {
   let controller: LlmController;
   let service: LlmService;
 
   const mockLlmService = {
-    generateContent: jest.fn(),
-    extractContent: jest.fn(),
+    generateContent: jest.fn() as any,
+    extractContent: jest.fn() as any,
   };
 
   beforeEach(async () => {
@@ -31,7 +32,7 @@ describe('LlmController', () => {
     jest.clearAllMocks();
   });
 
-  describe('generateContent', () => {
+  describe('generate', () => {
     it('should call service and return formatted response', async () => {
       const dto: GenerateContentDto = {
         prompt: 'Test prompt',
@@ -70,7 +71,7 @@ describe('LlmController', () => {
       mockLlmService.generateContent.mockResolvedValue(mockResponse);
       mockLlmService.extractContent.mockReturnValue('Generated content');
 
-      const result = await controller.generateContent(dto);
+      const result = await controller.generate(dto);
 
       expect(service.generateContent).toHaveBeenCalledWith(dto);
       expect(service.extractContent).toHaveBeenCalledWith(mockResponse);
@@ -90,7 +91,7 @@ describe('LlmController', () => {
 
       mockLlmService.generateContent.mockRejectedValue(new Error('Service error'));
 
-      await expect(controller.generateContent(dto)).rejects.toThrow('Service error');
+      await expect(controller.generate(dto)).rejects.toThrow('Service error');
     });
   });
 });

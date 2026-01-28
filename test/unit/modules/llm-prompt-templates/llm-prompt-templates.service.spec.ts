@@ -1,9 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { LlmPromptTemplatesService } from './llm-prompt-templates.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
-import type { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
+import { LlmPromptTemplatesService } from '../../../../src/modules/llm-prompt-templates/llm-prompt-templates.service.js';
+import { PrismaService } from '../../../../src/modules/prisma/prisma.service.js';
+import type { CreateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/create-llm-prompt-template.dto.js';
+import type { UpdateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/update-llm-prompt-template.dto.js';
+import { jest } from '@jest/globals';
 
 describe('LlmPromptTemplatesService', () => {
   let service: LlmPromptTemplatesService;
@@ -11,14 +12,14 @@ describe('LlmPromptTemplatesService', () => {
 
   const mockPrismaService = {
     llmPromptTemplate: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      aggregate: jest.fn(),
+      create: jest.fn() as any,
+      findMany: jest.fn() as any,
+      findUnique: jest.fn() as any,
+      update: jest.fn() as any,
+      delete: jest.fn() as any,
+      aggregate: jest.fn() as any,
     },
-    $transaction: jest.fn(),
+    $transaction: jest.fn() as any,
   };
 
   beforeEach(async () => {

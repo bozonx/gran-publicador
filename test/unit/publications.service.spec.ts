@@ -7,6 +7,8 @@ import { PermissionsService } from '../../src/common/services/permissions.servic
 import { jest } from '@jest/globals';
 import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
+import { MediaService } from '../../src/modules/media/media.service.js';
+
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -49,6 +51,12 @@ describe('PublicationsService (unit)', () => {
     checkPermission: jest.fn() as any,
   };
 
+  const mockMediaService = {
+    getProjectOptimizationSettings: jest.fn() as any,
+    uploadFileFromUrl: jest.fn() as any,
+  };
+
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -61,7 +69,12 @@ describe('PublicationsService (unit)', () => {
           provide: PermissionsService,
           useValue: mockPermissionsService,
         },
+        {
+          provide: MediaService,
+          useValue: mockMediaService,
+        },
       ],
+
     }).compile();
 
     service = moduleRef.get<PublicationsService>(PublicationsService);
