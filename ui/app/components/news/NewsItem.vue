@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NewsItem } from '~/composables/useNews'
+import { dump } from 'js-yaml'
 
 const props = defineProps<{
   item: NewsItem
@@ -10,6 +11,12 @@ defineEmits<{
 }>()
 
 const { t, d } = useI18n()
+
+const showDebug = ref(false)
+const yamlData = computed(() => {
+  if (!showDebug.value) return ''
+  return dump(props.item)
+})
 
 // Format date
 function formatDate(dateString: string) {
@@ -77,6 +84,15 @@ function formatScore(score: number) {
         </UButton>
 
         <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
+          icon="i-heroicons-code-bracket"
+          :label="showDebug ? t('common.close') : t('common.meta')"
+          @click="showDebug = !showDebug"
+        />
+
+        <UButton
           variant="soft"
           color="primary"
           size="sm"
@@ -85,6 +101,13 @@ function formatScore(score: number) {
         >
           {{ t('publication.create') }}
         </UButton>
+      </div>
+    </div>
+
+    <!-- Debug Data View -->
+    <div v-if="showDebug" class="mt-4">
+      <div class="text-xs font-mono bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700">
+        <pre>{{ yamlData }}</pre>
       </div>
     </div>
   </div>
