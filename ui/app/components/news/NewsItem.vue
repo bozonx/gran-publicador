@@ -4,6 +4,7 @@ import { dump } from 'js-yaml'
 
 const props = defineProps<{
   item: NewsItem
+  publicationId?: string
 }>()
 
 defineEmits<{
@@ -93,6 +94,16 @@ function formatScore(score: number) {
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
+          <UButton
+            v-if="publicationId"
+            variant="soft"
+            color="success"
+            size="xs"
+            icon="i-heroicons-check-badge"
+            :label="t('publication.processed') || 'Processed'"
+            :to="`/publications/${publicationId}/edit`"
+          />
+
           <UButton
             variant="ghost"
             color="neutral"

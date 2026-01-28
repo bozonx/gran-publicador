@@ -124,7 +124,14 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         (oldValue as any).id !== (newValue as any).id
 
       if (isReferenceChange) {
-        // This is a tab switch or similar - update saved state without saving
+        // If the previous object was dirty, we should try to save it before switching
+        if (isDirty.value && oldValue) {
+          // Use the old data to perform save
+          console.log('Forcing save of old state before reference change')
+          saveFn(oldValue).catch(err => console.error('Failed to save old state on switch:', err))
+        }
+        
+        // This is a tab switch or similar - update saved state without saving for the NEW value
         lastSavedState.value = deepClone(newValue)
         isDirty.value = false
         return

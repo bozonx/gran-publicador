@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useNews } from '~/composables/useNews'
+import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useAutosave } from '~/composables/useAutosave'
 import type { NewsItem } from '~/composables/useNews'
@@ -42,6 +43,7 @@ const projectId = computed(() => route.params.id as string)
 
 const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading } = useProjects()
 const { news, isLoading: isNewsLoading, error, searchNews, hasMore, getQueries, createQuery, updateQuery, deleteQuery } = useNews()
+const { fetchPublicationsByProject } = usePublications()
 const { user } = useAuth()
 
 const newsQueries = ref<NewsQuery[]>([])
@@ -58,6 +60,7 @@ const isLoadMoreLoading = ref(false)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<NewsItem | null>(null)
+const processedNewsMap = ref<Record<string, string>>({}) // newsId -> publicationId
 
 function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
@@ -75,6 +78,9 @@ async function initQueries() {
     if (!currentProject.value || currentProject.value.id !== projectId.value) {
       await fetchProject(projectId.value)
     }
+
+    // Load publications to mark processed news
+    loadProcessedNews()
     
     try {
       const queries = await getQueries()
@@ -111,6 +117,33 @@ async function initQueries() {
     } catch (e) {
       console.error('Failed to load news queries:', e)
     }
+  }
+}
+
+async function loadProcessedNews() {
+  if (!projectId.value) return
+  try {
+    const pubs = await fetchPublicationsByProject(projectId.value, { limit: 100 })
+    const map: Record<string, string> = {}
+    
+    pubs.items.forEach(pub => {
+      // meta is a string in the interface but the backend might return it parsed or we might need to parse it
+      // In usePublications.ts, meta is string: meta: string
+      // But usually useApi handles JSON. Let's be safe.
+      let metaData: any = pub.meta
+      if (typeof metaData === 'string') {
+        try { metaData = JSON.parse(metaData) } catch (e) { metaData = {} }
+      }
+      
+      const newsId = metaData?.newsData?.id
+      if (newsId) {
+        map[newsId] = pub.id
+      }
+    })
+    
+    processedNewsMap.value = map
+  } catch (e) {
+    console.error('Failed to load processed news:', e)
   }
 }
 
@@ -591,6 +624,7 @@ function formatScore(score: number) {
               v-for="item in news"
               :key="item.id"
               :item="item"
+              :publication-id="processedNewsMap[item.id]"
               @create-publication="handleCreatePublication"
             />
             

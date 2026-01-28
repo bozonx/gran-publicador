@@ -47,6 +47,7 @@ const toast = useToast()
 const { scrapePage, isLoading, error } = usePageScraper()
 const { createPublication } = usePublications()
 const { projects, fetchProjects } = useProjects()
+const { user } = useAuth()
 
 const isGeneralNewsPage = computed(() => route.path === '/news')
 const selectedProjectId = ref<string | null>(null)
@@ -197,9 +198,8 @@ async function handleNext() {
     const body = sd.body || ''
     const sourceTextContent = `# ${title}\n\n${body}`
     
-    // Get language from scraped data or project or fallback to 'ru'
-    let lang = sd.meta?.lang || (selectedProject.value?.languages?.[0]) || 'ru'
-    if (lang.length > 5) lang = lang.substring(0, 2)
+    // Get language from scraped data or user preferences or fallback to 'en-US'
+    let lang = sd.meta?.lang || user.value?.language || 'en-US'
     
     // Prepare metadata: remove fields we use directly to avoid duplication
     // Use sourceNewsItem if available for richer metadata
@@ -225,6 +225,7 @@ async function handleNext() {
     // Create publication with all available news info
     const publication = await createPublication({
       projectId: selectedProjectId.value || undefined,
+      postType: 'NEWS',
       title: sd.title || undefined,
       description: sd.description || undefined,
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
