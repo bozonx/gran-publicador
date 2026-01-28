@@ -15,9 +15,9 @@ export class CreateNewsQueryDto {
   @IsIn(['text', 'vector', 'hybrid'])
   mode?: string = 'hybrid';
 
-  @IsOptional()
   @IsString()
-  lang?: string;
+  @IsNotEmpty()
+  lang!: string;
 
   @IsOptional()
   @IsString()

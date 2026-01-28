@@ -6,6 +6,7 @@ import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import { useAuth } from '~/composables/useAuth'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 
@@ -41,6 +42,7 @@ const projectId = computed(() => route.params.id as string)
 
 const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading } = useProjects()
 const { news, isLoading: isNewsLoading, error, searchNews, hasMore, getQueries, createQuery, updateQuery, deleteQuery } = useNews()
+const { user } = useAuth()
 
 const newsQueries = ref<NewsQuery[]>([])
 const selectedQueryId = ref('')
@@ -91,6 +93,7 @@ async function initQueries() {
           q: currentProject.value?.name || '',
           mode: 'hybrid' as const,
           minScore: 0.5,
+          lang: user.value?.language || 'en-US',
           isNotificationEnabled: false
         }
         
@@ -206,6 +209,7 @@ async function addTab() {
     q: '',
     mode: 'hybrid' as const,
     minScore: 0.5,
+    lang: user.value?.language || 'en-US',
     isNotificationEnabled: false
   }
   
@@ -436,7 +440,6 @@ function formatScore(score: number) {
                 <CommonLanguageSelect
                   v-model="currentQuery.lang"
                   mode="all"
-                  allow-all
                   searchable
                 />
               </div>
