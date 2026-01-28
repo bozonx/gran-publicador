@@ -181,6 +181,16 @@ onMounted(async () => {
     if (projectId.value) {
         await fetchChannels({ projectId: projectId.value })
     }
+    
+    // Check if we should auto-open LLM modal (from news creation)
+    if (route.query.openLlm === 'true' && currentPublication.value) {
+        // Wait a bit for the page to fully render
+        await nextTick()
+        showLlmModal.value = true
+        
+        // Remove query parameter from URL without reloading
+        router.replace({ query: { ...route.query, openLlm: undefined } })
+    }
 })
 
 // Watch for project changes (e.g. from the form)

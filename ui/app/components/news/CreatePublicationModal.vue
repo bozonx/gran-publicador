@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import AppModal from '~/components/ui/AppModal.vue'
 import { usePageScraper } from '~/composables/usePageScraper'
+import { usePublications } from '~/composables/usePublications'
+import { useProjects } from '~/composables/useProjects'
 import DOMPurify from 'isomorphic-dompurify'
 import MarkdownIt from 'markdown-it'
 
@@ -32,7 +34,13 @@ const isOpen = defineModel<boolean>('open', { default: false })
 const url = defineModel<string>('url', { default: '' })
 
 const { t } = useI18n()
+const router = useRouter()
+const toast = useToast()
 const { scrapePage, isLoading, error } = usePageScraper()
+const { createPublication } = usePublications()
+const { currentProject } = useProjects()
+
+const isCreating = ref(false)
 
 const scrapedData = ref<any>(null)
 
@@ -103,8 +111,52 @@ async function fetchData(targetUrl: string) {
     }
 }
 
-function handleNext() {
-  // TODO: Implement later
+async function handleNext() {
+  if (!scrapedData.value || !props.projectId) return
+  
+  isCreating.value = true
+  
+  try {
+    // Format news content as Markdown with h1 title
+    const title = scrapedData.value.title || ''
+    const body = scrapedData.value.body || ''
+    const sourceTextContent = `# ${title}\n\n${body}`
+    
+    // Get language from scraped data or project or fallback to 'ru'
+    // Ensure it's a 2-letter code if possible (IsLocale can be strict)
+    let lang = scrapedData.value.meta?.lang || (currentProject.value?.languages?.[0]) || 'ru'
+    if (lang.length > 5) lang = lang.substring(0, 2) // Extreme fallback for long strings
+    
+    // Create publication with sourceText and language
+    const publication = await createPublication({
+      projectId: props.projectId,
+      language: lang,
+      sourceTexts: [
+        {
+          content: sourceTextContent,
+          order: 0,
+          source: scrapedData.value.url
+        }
+      ]
+    })
+    
+    if (publication) {
+      // Close modal
+      isOpen.value = false
+      
+      // Navigate to edit page with openLlm query parameter
+      await router.push(`/publications/${publication.id}/edit?openLlm=true`)
+    }
+  } catch (err: any) {
+    console.error('Failed to create publication from news:', err)
+    toast.add({
+      title: t('common.error'),
+      description: err.message || t('publication.createError'),
+      color: 'error'
+    })
+  } finally {
+    isCreating.value = false
+  }
 }
 
 </script>
@@ -188,7 +240,7 @@ function handleNext() {
       <UButton color="neutral" variant="ghost" @click="isOpen = false">
         {{ t('common.cancel') }}
       </UButton>
-      <UButton color="primary" :disabled="!scrapedData" @click="handleNext">
+      <UButton color="primary" :disabled="!scrapedData" :loading="isCreating" @click="handleNext">
         {{ t('common.next') }}
       </UButton>
     </template>
