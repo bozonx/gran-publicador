@@ -131,6 +131,10 @@ export class PublicationMetaDto {
 
   @IsOptional()
   lastResult?: any;
+
+  @IsOptional()
+  @IsObject()
+  newsData?: any;
 }
 
 

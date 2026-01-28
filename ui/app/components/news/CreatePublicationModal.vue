@@ -17,11 +17,14 @@ const defaultRender = md.renderer.rules.link_open || function (tokens, idx, opti
   return self.renderToken(tokens, idx, options)
 }
 md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
-  const aIndex = tokens[idx].attrIndex('target')
-  if (aIndex < 0) {
-    tokens[idx].attrPush(['target', '_blank'])
-  } else {
-    tokens[idx].attrs[aIndex][1] = '_blank'
+  const token = tokens[idx]
+  if (token) {
+    const aIndex = token.attrIndex('target')
+    if (aIndex < 0) {
+      token.attrPush(['target', '_blank'])
+    } else if (token.attrs) {
+      token.attrs[aIndex][1] = '_blank'
+    }
   }
   return defaultRender(tokens, idx, options, env, self)
 }
@@ -117,25 +120,47 @@ async function handleNext() {
   isCreating.value = true
   
   try {
+    const sd = scrapedData.value
+    
     // Format news content as Markdown with h1 title
-    const title = scrapedData.value.title || ''
-    const body = scrapedData.value.body || ''
+    const title = sd.title || ''
+    const body = sd.body || ''
     const sourceTextContent = `# ${title}\n\n${body}`
     
     // Get language from scraped data or project or fallback to 'ru'
-    // Ensure it's a 2-letter code if possible (IsLocale can be strict)
-    let lang = scrapedData.value.meta?.lang || (currentProject.value?.languages?.[0]) || 'ru'
-    if (lang.length > 5) lang = lang.substring(0, 2) // Extreme fallback for long strings
+    let lang = sd.meta?.lang || (currentProject.value?.languages?.[0]) || 'ru'
+    if (lang.length > 5) lang = lang.substring(0, 2)
     
-    // Create publication with sourceText and language
+    // Prepare metadata: remove fields we use directly to avoid duplication
+    const otherData: any = { ...sd }
+    delete otherData.title
+    delete otherData.description
+    delete otherData.body
+    delete otherData.date
+    delete otherData.url
+    
+    // Also clean up meta nested object
+    if (otherData.meta) {
+      otherData.meta = { ...otherData.meta }
+      delete otherData.meta.lang
+      if (Object.keys(otherData.meta).length === 0) delete otherData.meta
+    }
+    
+    // Create publication with all available news info
     const publication = await createPublication({
       projectId: props.projectId,
+      title: sd.title || undefined,
+      description: sd.description || undefined,
+      postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
       language: lang,
+      meta: {
+        newsData: otherData
+      },
       sourceTexts: [
         {
           content: sourceTextContent,
           order: 0,
-          source: scrapedData.value.url
+          source: sd.url
         }
       ]
     })
