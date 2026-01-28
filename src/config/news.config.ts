@@ -14,11 +14,22 @@ export class NewsConfig {
   @IsString()
   @IsUrl({ require_tld: false })
   public serviceUrl!: string;
+
+  /**
+   * Interval in minutes for checking news notifications.
+   * Defined by NEWS_NOTIFICATION_INTERVAL_MINUTES environment variable.
+   * Default: 10
+   */
+  @IsOptional()
+  public notificationIntervalMinutes: number = 10;
 }
 
 export default registerAs('news', (): NewsConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.NEWS_SERVICE_URL || 'http://news-microservice:8088',
+    notificationIntervalMinutes: process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES 
+      ? parseInt(process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES, 10) 
+      : 10,
   };
 
   const config = plainToClass(NewsConfig, rawConfig);
