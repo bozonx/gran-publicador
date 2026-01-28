@@ -5,6 +5,7 @@ import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 
 interface NewsQuery {
@@ -34,6 +35,7 @@ definePageMeta({
 
 const { t, d } = useI18n()
 const route = useRoute()
+const toast = useToast()
 const projectId = computed(() => route.params.id as string)
 
 const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading } = useProjects()
@@ -48,12 +50,17 @@ const editingTabId = ref('')
 const editingTabName = ref('')
 const deletingTabId = ref('')
 const newTabName = ref('')
-const isSaving = ref(false)
 const isDeleting = ref(false)
 const isLoadMoreLoading = ref(false)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<NewsItem | null>(null)
+
+// Auto-save state
+const saveStatus = ref<'saved' | 'saving' | 'error'>('saved')
+const saveError = ref<string | null>(null)
+const lastSavedAt = ref<Date | null>(null)
+let saveQueue = Promise.resolve()
 
 function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
@@ -154,7 +161,7 @@ watch(selectedQueryId, async (newId) => {
   }
 })
 
-// Watch parameters for auto-search with debounce
+// Watch parameters for auto-save and auto-search with debounce
 watchDebounced(() => [
     currentQuery.value?.q,
     currentQuery.value?.mode,
@@ -162,10 +169,13 @@ watchDebounced(() => [
     currentQuery.value?.lang,
     currentQuery.value?.sourceTags,
     currentQuery.value?.newsTags,
-    currentQuery.value?.minScore
+    currentQuery.value?.minScore,
+    currentQuery.value?.note,
+    currentQuery.value?.isNotificationEnabled
 ], () => {
+    autoSaveQuery()
     handleSearch()
-}, { debounce: 500, deep: true })
+}, { debounce: AUTO_SAVE_DEBOUNCE_MS, deep: true })
 
 // Add new search tab
 async function addTab() {
@@ -255,25 +265,42 @@ async function confirmDeleteTab() {
 }
 
 
-// Save current query settings
-async function saveQueries() {
+// Auto-save current query settings with request queuing
+async function autoSaveQuery() {
   if (!currentQuery.value) return
   
-  isSaving.value = true
-  try {
-    await updateQuery(currentQuery.value.id, {
-        q: currentQuery.value.q,
-        mode: currentQuery.value.mode,
-        lang: currentQuery.value.lang,
-        sourceTags: currentQuery.value.sourceTags,
-        newsTags: currentQuery.value.newsTags,
-        minScore: currentQuery.value.minScore,
-        note: currentQuery.value.note,
-        isNotificationEnabled: currentQuery.value.isNotificationEnabled
-    })
-  } finally {
-    isSaving.value = false
-  }
+  // Add to queue to ensure sequential execution
+  saveQueue = saveQueue.then(async () => {
+    saveStatus.value = 'saving'
+    saveError.value = null
+    
+    try {
+      await updateQuery(currentQuery.value!.id, {
+        q: currentQuery.value!.q,
+        mode: currentQuery.value!.mode,
+        lang: currentQuery.value!.lang,
+        sourceTags: currentQuery.value!.sourceTags,
+        newsTags: currentQuery.value!.newsTags,
+        minScore: currentQuery.value!.minScore,
+        note: currentQuery.value!.note,
+        isNotificationEnabled: currentQuery.value!.isNotificationEnabled
+      })
+      
+      saveStatus.value = 'saved'
+      lastSavedAt.value = new Date()
+    } catch (err: any) {
+      console.error('Auto-save failed:', err)
+      saveStatus.value = 'error'
+      saveError.value = err.message || 'Failed to save'
+      
+      toast.add({
+        title: 'Auto-save Error',
+        description: saveError.value,
+        color: 'error',
+        icon: 'i-heroicons-exclamation-triangle'
+      })
+    }
+  })
 }
 
 // Format date
@@ -331,7 +358,7 @@ function formatScore(score: number) {
               <UButton
                 :label="query.name"
                 :variant="selectedQueryId === query.id ? 'soft' : 'ghost'"
-                :color="selectedQueryId === query.id ? 'primary' : 'gray'"
+                :color="selectedQueryId === query.id ? 'primary' : 'neutral'"
                 size="sm"
                 class="whitespace-nowrap flex-shrink-0"
                 @click="selectedQueryId = query.id"
@@ -510,28 +537,37 @@ function formatScore(score: number) {
                 >
                   {{ t('common.search') }}
                 </UButton>
-                
-                <UTooltip :text="t('news.vectorSearchInfo')" :popper="{ placement: 'right' }">
-                  <UButton
-                    icon="i-heroicons-information-circle"
-                    color="neutral"
-                    variant="ghost"
-                    size="sm"
-                    class="opacity-50 hover:opacity-100"
-                  />
-                </UTooltip>
               </div>
 
-              <div class="flex items-center gap-2">
-                <UButton
-                  color="neutral"
-                  variant="soft"
-                  icon="i-heroicons-check"
-                  :loading="isSaving"
-                  @click="saveQueries"
-                >
-                  {{ t('common.save') }}
-                </UButton>
+              <div class="flex items-center gap-3">
+                <!-- Auto-save status indicator -->
+                <div class="flex items-center gap-2 text-sm">
+                  <UIcon 
+                    v-if="saveStatus === 'saved'" 
+                    name="i-heroicons-check-circle" 
+                    class="w-4 h-4 text-green-500"
+                  />
+                  <UIcon 
+                    v-else-if="saveStatus === 'saving'" 
+                    name="i-heroicons-arrow-path" 
+                    class="w-4 h-4 text-blue-500 animate-spin"
+                  />
+                  <UIcon 
+                    v-else-if="saveStatus === 'error'" 
+                    name="i-heroicons-exclamation-circle" 
+                    class="w-4 h-4 text-red-500"
+                  />
+                  <span 
+                    :class="{
+                      'text-gray-500 dark:text-gray-400': saveStatus === 'saved',
+                      'text-blue-500': saveStatus === 'saving',
+                      'text-red-500': saveStatus === 'error'
+                    }"
+                  >
+                    {{ saveStatus === 'saved' ? t('common.saved') || 'Сохранено' : saveStatus === 'saving' ? t('common.saving') || 'Сохранение...' : t('common.saveError') || 'Ошибка сохранения' }}
+                  </span>
+                </div>
+
                 <UButton
                   color="neutral"
                   variant="ghost"
