@@ -10,6 +10,7 @@ export interface User {
 
     isAdmin: boolean;
     language: string;
+    uiLanguage: string;
     createdAt?: string;
     updatedAt?: string;
 }

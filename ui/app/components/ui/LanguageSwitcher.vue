@@ -18,19 +18,20 @@ const currentLocale = computed(() => {
   return availableLocales.value.find((l) => l.code === locale.value)
 })
 
-const { refreshUser, isAuthenticated } = useAuth()
+const { user, refreshUser, isAuthenticated } = useAuth()
 const api = useApi()
 
 async function switchLocale(code: string) {
-  // code might be 'ru-RU' or 'en-US' (from availableLocales)
+  // Directly set locale for immediate feedback
   await setLocale(code as any)
   
   if (isAuthenticated.value) {
     try {
-      await api.patch('/users/me', { language: code })
+      // Update uiLanguage in DB
+      await api.patch('/users/me', { uiLanguage: code })
       await refreshUser()
     } catch (e) {
-      console.error('Failed to save language preference', e)
+      console.error('Failed to save UI language preference', e)
     }
   }
 }
@@ -39,7 +40,7 @@ async function switchLocale(code: string) {
 <template>
   <div class="w-32">
     <CommonLanguageSelect
-      :model-value="locale"
+      :model-value="user?.uiLanguage || locale"
       mode="ui"
       variant="ghost"
       size="sm"

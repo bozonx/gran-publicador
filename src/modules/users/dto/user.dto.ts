@@ -40,6 +40,9 @@ export class UserDto {
   @Expose()
   public language!: string;
 
+  @Expose()
+  public uiLanguage!: string;
+
   @Exclude()
   public preferences!: string; // Internal use
 }
@@ -61,6 +64,10 @@ export class UpdateUserProfileDto {
   @IsString()
   @IsOptional()
   public language?: string;
+
+  @IsString()
+  @IsOptional()
+  public uiLanguage?: string;
 }
 
 export class BanUserDto {

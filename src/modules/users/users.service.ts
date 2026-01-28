@@ -22,14 +22,31 @@ export class UsersService {
   ) {}
 
   /**
-   * Normalize language code to full format (e.g. ru -> ru-RU, en -> en-US)
+   * Normalize language code for content/data.
+   * If it's a known short code, normalize it to full code.
+   * Otherwise, keep as is (to support all content languages).
    */
   private normalizeLanguage(code?: string | null): string {
     if (!code) return 'en-US';
     const low = code.toLowerCase();
+    if (low === 'ru' || low.startsWith('ru-')) return 'ru-RU';
+    if (low === 'en' || low.startsWith('en-')) return 'en-US';
+    if (low === 'es' || low.startsWith('es-')) return 'es-ES';
+    if (low === 'de' || low.startsWith('de-')) return 'de-DE';
+    if (low === 'fr' || low.startsWith('fr-')) return 'fr-FR';
+    // Add more if needed, otherwise return as is
+    return code;
+  }
+
+  /**
+   * Normalize language code for User Interface.
+   * Only supports languages that have translations.
+   */
+  private normalizeUiLanguage(code?: string | null): string {
+    if (!code) return 'en-US';
+    const low = code.toLowerCase();
     if (low.startsWith('ru')) return 'ru-RU';
-    if (low.startsWith('en')) return 'en-US';
-    return 'en-US'; // Default fallback
+    return 'en-US'; // Default fallback for interface
   }
 
   public async findByTelegramId(telegramId: bigint): Promise<User | null> {
@@ -92,6 +109,7 @@ export class UsersService {
         avatarUrl: userData.avatarUrl,
         isAdmin: isAdmin,
         language: this.normalizeLanguage(userData.languageCode),
+        uiLanguage: this.normalizeUiLanguage(userData.languageCode),
         preferences: JSON.parse(
           JSON.stringify({
             notifications: getDefaultNotificationPreferences(),
@@ -161,6 +179,7 @@ export class UsersService {
       isBanned: user.isBanned,
       banReason: user.banReason,
       language: user.language,
+      uiLanguage: user.uiLanguage,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       projectsCount: user._count.ownedProjects,
@@ -192,7 +211,7 @@ export class UsersService {
    */
   public async updateProfile(
     userId: string,
-    data: { fullName?: string; avatarUrl?: string; language?: string },
+    data: { fullName?: string; avatarUrl?: string; language?: string; uiLanguage?: string },
   ): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
@@ -200,6 +219,7 @@ export class UsersService {
         ...(data.fullName !== undefined && { fullName: data.fullName }),
         ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
         ...(data.language !== undefined && { language: this.normalizeLanguage(data.language) }),
+        ...(data.uiLanguage !== undefined && { uiLanguage: this.normalizeUiLanguage(data.uiLanguage) }),
       },
     });
   }

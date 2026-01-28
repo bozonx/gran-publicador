@@ -59,9 +59,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (import.meta.client) {
         // Find initial locale based on priority
         const findTargetLocale = () => {
-            // 1. User Profile from DB
-            if (auth.user?.language) {
-                const match = findBestMatch(auth.user.language)
+            // 1. User Profile from DB (UI Language specifically)
+            if (auth.user?.uiLanguage) {
+                const match = findBestMatch(auth.user.uiLanguage)
                 if (match) return match
             }
 
@@ -86,7 +86,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         // Apply initial locale
         const initialLocale = findTargetLocale()
         if (initialLocale && initialLocale !== locale.value) {
-            console.info(`[i18n] Initializing locale to: ${initialLocale}`)
+            console.info(`[i18n] Initializing UI locale to: ${initialLocale}`)
             if (setLocale) {
                 setLocale(initialLocale)
             } else {
@@ -94,12 +94,12 @@ export default defineNuxtPlugin((nuxtApp) => {
             }
         }
 
-        // Watch for user language changes (e.g. after login or manual change in other tab)
-        watch(() => auth.user?.language, (newLang) => {
+        // Watch for user UI language changes
+        watch(() => auth.user?.uiLanguage, (newLang) => {
             if (newLang) {
-                const match = findBestMatch(newLang)
-                if (match && match !== locale.value) {
-                    console.info(`[i18n] User language changed, setting locale to: ${match}`)
+                const match = findBestMatch(newLang) || DEFAULT_LOCALE
+                if (match !== locale.value) {
+                    console.info(`[i18n] User UI language changed, setting locale to: ${match}`)
                     if (setLocale) {
                         setLocale(match)
                     } else {
