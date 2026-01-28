@@ -487,36 +487,28 @@ function formatScore(score: number) {
               </div>
             </div>
 
-            <!-- Notifications Toggle -->
-            <div class="w-full flex items-center justify-between p-4 bg-primary-50/30 dark:bg-primary-950/20 rounded-xl border border-primary-100/50 dark:border-primary-900/30">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-primary-100 dark:bg-primary-900 rounded-lg">
-                  <UIcon name="i-heroicons-bell" class="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                </div>
-                <div>
-                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('news.notifications') || 'Query Notifications' }}</h4>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('news.notificationsHelp') || 'Get notified when new news matches this query' }}</p>
-                </div>
-              </div>
-              <UCheckbox 
-                v-model="currentQuery.isNotificationEnabled" 
-                size="lg"
-                color="primary"
-              />
-            </div>
 
-            <!-- Search Actions Area -->
-            <div class="flex justify-between items-center gap-4 pt-4">
-              <div class="flex items-center gap-2">
-                <UButton
-                  size="lg"
-                  :loading="isNewsLoading"
-                  :disabled="!currentQuery.q.trim()"
-                  icon="i-heroicons-magnifying-glass"
-                  @click="handleSearch"
+            <!-- Toolbar: Notifications & Actions -->
+            <div class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <div class="flex items-center gap-1.5 px-1">
+                <UCheckbox 
+                  v-model="currentQuery.isNotificationEnabled" 
+                  size="md"
+                  color="primary"
                 >
-                  {{ t('common.search') }}
-                </UButton>
+                  <template #label>
+                    <div class="flex items-center gap-2 cursor-pointer select-none">
+                      <UIcon 
+                        :name="currentQuery.isNotificationEnabled ? 'i-heroicons-bell-alert' : 'i-heroicons-bell'" 
+                        class="w-5 h-5 transition-colors"
+                        :class="currentQuery.isNotificationEnabled ? 'text-primary-500' : 'text-gray-400'"
+                      />
+                      <span class="text-sm font-medium" :class="currentQuery.isNotificationEnabled ? 'text-gray-900 dark:text-white' : 'text-gray-500'">
+                        {{ t('news.notifications') || 'Уведомления' }}
+                      </span>
+                    </div>
+                  </template>
+                </UCheckbox>
               </div>
 
               <div class="flex items-center gap-3">
@@ -566,7 +558,6 @@ function formatScore(score: number) {
                   {{ t('common.delete') }}
                 </UButton>
               </div>
-
             </div>
 
             <!-- Note Row -->
