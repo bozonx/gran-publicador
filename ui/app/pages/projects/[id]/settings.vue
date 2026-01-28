@@ -165,7 +165,7 @@ function cancelDelete() {
             :is-loading="isSaving"
             :visible-sections="['general']"
             @submit="handleUpdate"
-            :submit-label="t('settings.saveSettings')"
+            autosave
             hide-header
             hide-cancel
             flat
@@ -184,7 +184,7 @@ function cancelDelete() {
             :is-loading="isSaving"
             :visible-sections="['preferences']"
             @submit="handleUpdate"
-            :submit-label="t('settings.saveSettings')"
+            autosave
             hide-header
             hide-cancel
             flat
@@ -202,7 +202,7 @@ function cancelDelete() {
             :is-loading="isSaving"
             :visible-sections="['optimization']"
             @submit="handleUpdate"
-            :submit-label="t('settings.saveSettings')"
+            autosave
             hide-header
             hide-cancel
             flat

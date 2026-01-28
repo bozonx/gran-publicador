@@ -57,7 +57,7 @@ async function syncName() {
     if (!nameToSave) {
         toast.add({
             title: t('common.warning'),
-            description: t('settings.noNameFound', 'Could not determine name from Telegram'),
+            description: t('settings.noNameFound', 'Could determine name from Telegram'),
             color: 'warning',
         })
         return
@@ -86,38 +86,6 @@ async function syncName() {
     })
   } finally {
     isSyncing.value = false
-  }
-}
-
-const isConfirmDeleteOpen = ref(false)
-const isDeleting = ref(false)
-
-async function handleLogout() {
-  await signOut()
-  navigateTo('/auth/login')
-}
-
-async function handleDeleteAccount() {
-  isDeleting.value = true
-  try {
-    await api.delete('/users/me')
-    toast.add({
-      title: t('common.success'),
-      description: t('auth.accountDeletedSuccess'),
-      color: 'success',
-    })
-    await signOut()
-    navigateTo('/auth/login')
-  } catch (err) {
-    console.error('Failed to delete account:', err)
-    toast.add({
-      title: t('common.error'),
-      description: t('auth.deleteAccountError'),
-      color: 'error',
-    })
-  } finally {
-    isDeleting.value = false
-    isConfirmDeleteOpen.value = false
   }
 }
 </script>
@@ -220,53 +188,5 @@ async function handleDeleteAccount() {
         </dd>
       </div>
     </dl>
-
-    <!-- Account management -->
-    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-wrap gap-3">
-      <UButton
-        v-if="authMode !== 'miniApp'"
-        color="neutral"
-        variant="outline"
-        icon="i-heroicons-arrow-left-on-rectangle"
-        @click="handleLogout"
-      >
-        {{ t('auth.logout') }}
-      </UButton>
-
-      <div class="flex-1" />
-
-      <UButton
-        color="error"
-        variant="ghost"
-        icon="i-heroicons-trash"
-        @click="isConfirmDeleteOpen = true"
-      >
-        {{ t('auth.deleteAccount') }}
-      </UButton>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <UiAppModal
-      v-model:open="isConfirmDeleteOpen"
-      :title="t('auth.deleteAccountConfirmTitle')"
-      :description="t('auth.deleteAccountConfirmDescription')"
-    >
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          @click="isConfirmDeleteOpen = false"
-        >
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="error"
-          :loading="isDeleting"
-          @click="handleDeleteAccount"
-        >
-          {{ t('auth.confirmDelete') }}
-        </UButton>
-      </template>
-    </UiAppModal>
   </UiAppCard>
 </template>

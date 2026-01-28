@@ -24,6 +24,8 @@ const { t } = useI18n()
     <SettingsTheme />
     <SettingsApiTokens />
     <SettingsLlmPromptTemplates />
+    <SettingsLogout />
+    <SettingsDangerZone />
   </div>
 </template>
 

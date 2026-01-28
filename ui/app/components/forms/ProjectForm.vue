@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { ProjectWithRole, MediaOptimizationPreferences } from '~/stores/projects'
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 interface Props {
   /** Project data for editing, null for creating new */
@@ -21,6 +22,8 @@ interface Props {
   flat?: boolean
   /** Sections to show */
   visibleSections?: ('general' | 'preferences' | 'optimization')[]
+  /** Whether to enable auto-saving on changes */
+  autosave?: boolean
 }
 
 interface Emits {
@@ -37,6 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
   hideCancel: false,
   flat: false,
   visibleSections: () => ['general', 'preferences', 'optimization'],
+  autosave: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -68,6 +72,46 @@ const state = reactive<FormState>({
     staleChannelsDays: props.project?.preferences?.staleChannelsDays ?? props.project?.preferences?.['stale_channels_days'],
     mediaOptimization: props.project?.preferences?.mediaOptimization ?? props.project?.preferences?.['media_optimization'],
   }
+})
+
+/**
+ * Common logic to prepare update data from state
+ */
+function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
+  const updateData: Partial<ProjectWithRole> = {}
+
+  if (props.visibleSections.includes('general')) {
+    updateData.name = currentState.name
+    updateData.description = currentState.description || null
+  }
+
+  if (props.visibleSections.includes('preferences') || props.visibleSections.includes('optimization')) {
+    updateData.preferences = {
+      ...(props.project?.preferences || {}),
+    }
+
+    if (props.visibleSections.includes('preferences')) {
+      updateData.preferences.staleChannelsDays = currentState.preferences.staleChannelsDays
+    }
+
+    if (props.visibleSections.includes('optimization')) {
+      updateData.preferences.mediaOptimization = currentState.preferences.mediaOptimization
+    }
+  }
+  
+  return updateData
+}
+
+// Auto-save setup
+const { saveStatus, saveError } = useAutosave({
+  data: toRef(() => state),
+  saveFn: async () => {
+    if (!props.autosave) return
+    const updateData = prepareUpdateData(state)
+    await emit('submit', updateData)
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
 })
 
 // Validation Schema
@@ -128,30 +172,7 @@ watch(() => props.project, () => {
  */
 async function handleSubmit(event: FormSubmitEvent<Schema>) {
   try {
-    const updateData: Partial<ProjectWithRole> = {}
-
-    if (props.visibleSections.includes('general')) {
-      updateData.name = event.data.name
-      updateData.description = event.data.description || null // Handle optional description
-    }
-
-    if (props.visibleSections.includes('preferences') || props.visibleSections.includes('optimization')) {
-      // Initialize preferences object if it doesn't exist
-      updateData.preferences = {
-        ...(props.project?.preferences || {}),
-        ...updateData.preferences
-      }
-
-      if (props.visibleSections.includes('preferences')) {
-        updateData.preferences.staleChannelsDays = event.data.preferences?.staleChannelsDays
-      }
-
-      if (props.visibleSections.includes('optimization')) {
-        const mediaOpt = event.data.preferences?.mediaOptimization
-        updateData.preferences.mediaOptimization = mediaOpt
-      }
-    }
-
+    const updateData = prepareUpdateData(state)
     await emit('submit', updateData)
     formActionsRef.value?.showSuccess()
     // Update original state after successful save
@@ -266,16 +287,24 @@ function handleReset() {
       </div>
 
       <!-- Form actions -->
-      <UiFormActions
-        ref="formActionsRef"
-        :loading="isLoading"
-        :is-dirty="isDirty"
-        :save-label="submitLabel || (isEditMode ? t('common.save') : t('common.create'))"
-        :cancel-label="cancelLabel"
-        :hide-cancel="hideCancel"
-        @reset="handleReset"
-        @cancel="handleCancel"
-      />
+      <div class="flex justify-end pt-4">
+        <UiAutosaveStatus 
+          v-if="autosave" 
+          :status="saveStatus" 
+          :error="saveError" 
+        />
+        <UiFormActions
+          v-else
+          ref="formActionsRef"
+          :loading="isLoading"
+          :is-dirty="isDirty"
+          :save-label="submitLabel || (isEditMode ? t('common.save') : t('common.create'))"
+          :cancel-label="cancelLabel"
+          :hide-cancel="hideCancel"
+          @reset="handleReset"
+          @cancel="handleCancel"
+        />
+      </div>
     </UForm>
   </div>
 </template>
