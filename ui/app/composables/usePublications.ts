@@ -18,6 +18,7 @@ export interface Publication {
     language: string
     postType: string
     translationGroupId?: string | null
+    newsItemId?: string | null
     postDate: string | null
     createdAt: string
     updatedAt?: string | null

@@ -180,4 +180,9 @@ export class CreatePublicationDto {
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_URL_LENGTH)
   public imageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  public newsItemId?: string;
 }

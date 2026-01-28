@@ -211,6 +211,7 @@ export class PublicationsService {
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId ?? null,
+        newsItemId: data.newsItemId ?? null,
         createdBy: userId ?? null,
         title: data.title,
         description: data.description,

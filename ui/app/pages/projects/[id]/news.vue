@@ -127,15 +127,7 @@ async function loadProcessedNews() {
     const map: Record<string, string> = {}
     
     pubs.items.forEach(pub => {
-      // meta is a string in the interface but the backend might return it parsed or we might need to parse it
-      // In usePublications.ts, meta is string: meta: string
-      // But usually useApi handles JSON. Let's be safe.
-      let metaData: any = pub.meta
-      if (typeof metaData === 'string') {
-        try { metaData = JSON.parse(metaData) } catch (e) { metaData = {} }
-      }
-      
-      const newsId = metaData?.newsData?.id
+      const newsId = pub.newsItemId
       if (newsId) {
         map[newsId] = pub.id
       }

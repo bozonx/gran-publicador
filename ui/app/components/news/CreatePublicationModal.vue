@@ -226,6 +226,7 @@ async function handleNext() {
     const publication = await createPublication({
       projectId: selectedProjectId.value || undefined,
       postType: 'NEWS',
+      newsItemId: props.sourceNewsItem?.id,
       title: sd.title || undefined,
       description: sd.description || undefined,
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,

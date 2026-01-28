@@ -218,6 +218,8 @@ model Publication {
   projectId          String? @map("project_id")
   // ID for linking translations of the same content
   translationGroupId String? @map("translation_group_id")
+  // ID of the news item from microservice if this publication was created from news
+  newsItemId         String? @map("news_item_id")
 
   // User who created the publication (nullable for system-generated)
   createdBy  String?   @map("created_by")
@@ -269,6 +271,7 @@ model Publication {
   @@index([projectId, createdAt])
   @@index([projectId, scheduledAt])
   @@index([createdBy, projectId, archivedAt])
+  @@index([newsItemId])
   @@map("publications")
 }
 
