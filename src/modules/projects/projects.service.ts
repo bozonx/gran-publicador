@@ -686,14 +686,13 @@ export class ProjectsService {
     await this.permissions.checkProjectAccess(projectId, userId);
 
     const config = this.configService.get<any>('pageScraper')!;
-    let baseUrl = config.serviceUrl.replace(/\/$/, '');
+    const baseUrl = config.serviceUrl.replace(/\/$/, '');
     
-    // Ensure we don't duplicate /api/v1 if it's already in the config
-    if (!baseUrl.endsWith('/api/v1')) {
-      baseUrl = `${baseUrl}/api/v1`;
-    }
-    
+    // The microservice might be configured with or without /api/v1
+    // We expect the endpoint to be /page (at the root of specified baseUrl)
     const url = `${baseUrl}/page`;
+
+    this.logger.debug(`Proxying scrape request to: ${url}`);
 
     try {
       const response = await request(url, {
@@ -706,13 +705,20 @@ export class ProjectsService {
 
       if (response.statusCode >= 400) {
         const errorText = await response.body.text();
-        this.logger.error(`Page Scraper microservice returned ${response.statusCode}: ${errorText}`);
-        throw new Error(`Page Scraper microservice error: ${response.statusCode}`);
+        this.logger.error(`Page Scraper microservice (${url}) returned ${response.statusCode}: ${errorText}`);
+        throw new Error(`Scraper microservice error (${response.statusCode}): ${errorText || 'Unknown error'}`);
       }
 
-      return response.body.json();
+      const result = await response.body.json();
+      return result;
     } catch (error: any) {
-      this.logger.error(`Failed to scrape page: ${error.message}`);
+      this.logger.error(`Failed to scrape page at ${url}: ${error.message}`);
+      
+      // If it's a connection error, provide a clearer message
+      if (error.code === 'ECONNREFUSED') {
+        throw new Error(`Registry connection failed: Scraper microservice is unreachable at ${baseUrl}`);
+      }
+      
       throw error;
     }
   }
