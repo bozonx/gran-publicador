@@ -4,6 +4,8 @@ import { useProjects } from '~/composables/useProjects'
 import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
+import { VueDraggable } from 'vue-draggable-plus'
+
 
 interface NewsQuery {
   id: string
@@ -38,7 +40,7 @@ const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading
 const { news, isLoading: isNewsLoading, error, searchNews, hasMore, getQueries, createQuery, updateQuery, deleteQuery } = useNews()
 
 const newsQueries = ref<NewsQuery[]>([])
-const activeTabIndex = ref(0)
+const selectedQueryId = ref('')
 const isAddModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
@@ -57,28 +59,8 @@ function handleCreatePublication(item: any) {
   isCreateModalOpen.value = true
 }
 
-// Tabs for UTabs component
-const tabs = computed<NewsTabItem[]>(() => {
-  return newsQueries.value
-    .slice()
-    .map((q) => ({
-      label: q.name,
-      id: q.id,
-      isNotificationEnabled: q.isNotificationEnabled,
-      slot: 'content'
-    }))
-})
-
-// Find the real index in newsQueries based on the sorted tabs
-const activeQueryIndex = computed(() => {
-  const activeTab = tabs.value[activeTabIndex.value]
-  if (!activeTab) return -1
-  return newsQueries.value.findIndex(q => q.id === activeTab.id)
-})
-
 const currentQuery = computed(() => {
-  const query = newsQueries.value.find(q => q.id === tabs.value[activeTabIndex.value]?.id)
-  return query || null
+  return newsQueries.value.find(q => q.id === selectedQueryId.value) || null
 })
 
 // Initialize news queries from API
@@ -94,10 +76,10 @@ async function initQueries() {
       if (queries && queries.length > 0) {
         newsQueries.value = queries
         
-        // Note: We don't have default anymore, so just use first one or last active?
-        // Let's stick to first one for now, or maybe the one with notifications enabled?
-        // For now index 0 is fine as they are not reordered by default flag anymore.
-        activeTabIndex.value = 0
+        // Select first query by default if none selected
+        if (!selectedQueryId.value && queries.length > 0) {
+          selectedQueryId.value = queries[0].id
+        }
       } else {
         // Create initial default query
         const defaultQuery = {
@@ -106,13 +88,12 @@ async function initQueries() {
           mode: 'hybrid',
           since: '1d',
           minScore: 0.5,
-          minScore: 0.5,
           isNotificationEnabled: false
         }
         
         const created = await createQuery(defaultQuery)
         newsQueries.value = [created]
-        activeTabIndex.value = 0
+        selectedQueryId.value = created.id
       }
       
       // Initial search
@@ -168,8 +149,10 @@ async function loadMore() {
 }
 
 // Watch tab changes to refresh news
-watch(activeTabIndex, async (newIndex) => {
-  handleSearch()
+watch(selectedQueryId, async (newId) => {
+  if (newId) {
+    handleSearch()
+  }
 })
 
 // Watch parameters for auto-search with debounce
@@ -204,11 +187,8 @@ async function addTab() {
     
     await nextTick()
     
-    // Find index of the new tab in the rendered tabs
-    const newTabIndex = tabs.value.findIndex(t => t.id === created.id)
-    if (newTabIndex !== -1) {
-      activeTabIndex.value = newTabIndex
-    }
+    // Select the new tab
+    selectedQueryId.value = created.id
     
     newTabName.value = ''
     isAddModalOpen.value = false
@@ -262,8 +242,9 @@ async function confirmDeleteTab() {
     const index = newsQueries.value.findIndex(q => q.id === deletingTabId.value)
     if (index !== -1) {
       newsQueries.value.splice(index, 1)
-      if (activeTabIndex.value >= newsQueries.value.length) {
-        activeTabIndex.value = newsQueries.value.length - 1
+      if (selectedQueryId.value === deletingTabId.value) {
+        // If we deleted the active tab, select the previous one or the first one
+        selectedQueryId.value = newsQueries.value[Math.max(0, index - 1)]?.id || ''
       }
     }
   } catch(e) {
@@ -343,307 +324,327 @@ const timeRangeOptions = [
         </h1>
       </div>
 
-      <div class="flex gap-2">
-        <UButton
-          icon="i-heroicons-check"
-          color="primary"
-          :loading="isSaving"
-          @click="saveQueries"
-        >
-          {{ t('common.save') }}
-        </UButton>
-      </div>
+
     </div>
 
     <!-- Tabs System -->
-    <div v-if="newsQueries.length > 0" class="flex items-start gap-4">
-      <UTabs 
-        v-model="activeTabIndex" 
-        :items="tabs" 
-        class="flex-1 min-w-0"
-      >
-        <template #default="{ item, index }">
-          <div class="flex items-center gap-2">
-            <UIcon 
-              v-if="item.isNotificationEnabled" 
-              name="i-heroicons-bell-alert" 
-              class="w-4 h-4 text-primary-500"
-            />
-            <span class="truncate max-w-[120px] md:max-w-none">{{ item.label }}</span>
-            
-            <div v-if="activeTabIndex === index" class="flex items-center gap-0.5 -mr-1">
+    <div v-if="newsQueries.length > 0" class="flex flex-col gap-6">
+      
+      <!-- Draggable Tabs Header -->
+      <div class="flex items-center gap-2">
+        <div class="flex-1 min-w-0 overflow-x-auto">
+          <VueDraggable 
+            v-model="newsQueries"
+            :animation="150"
+            class="flex items-center gap-2 pb-2"
+          >
+            <div 
+              v-for="query in newsQueries" 
+              :key="query.id"
+            >
               <UButton
-                icon="i-heroicons-pencil-square"
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                @click.stop="openEditModal(item.id, newsQueries.find(q => q.id === item.id)?.name || '')"
-              />
-              <UButton
-                v-if="newsQueries.length > 1"
-                icon="i-heroicons-trash"
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                @click.stop="openDeleteModal(item.id)"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #content>
-          <div v-if="currentQuery" class="space-y-6">
-            <!-- Search settings card -->
-            <div class="news-config-card overflow-hidden">
-              <div class="p-6 space-y-6">
-                <!-- Search row (Query input) -->
-                <div class="w-full">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {{ t('news.searchPlaceholder') }}
-                  </label>
-                  <UTextarea
-                    v-model="currentQuery.q"
-                    :placeholder="t('news.searchPlaceholder')"
-                    size="lg"
-                    class="w-full"
-                    :rows="3"
-                    autoresize
-                    @keydown.enter.ctrl.prevent="handleSearch"
-                    @keydown.enter.meta.prevent="handleSearch"
-                  />
-                </div>
-
-
-                <!-- Search Mode Selection -->
-                <div class="w-full">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {{ t('news.mode') || 'Search Mode' }}
-                  </label>
-                  <div class="flex gap-3">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input
-                        v-model="currentQuery.mode"
-                        type="radio"
-                        value="text"
-                        class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                      />
-                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeText') || 'Text' }}</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input
-                        v-model="currentQuery.mode"
-                        type="radio"
-                        value="vector"
-                        class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                      />
-                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeVector') || 'Vector' }}</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input
-                        v-model="currentQuery.mode"
-                        type="radio"
-                        value="hybrid"
-                        class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                      />
-                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeHybrid') || 'Hybrid' }}</span>
-                    </label>
-                  </div>
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {{ t('news.modeHelp') || 'Text: keyword matching, Vector: semantic similarity, Hybrid: combines both' }}
-                  </p>
-                </div>
-
-                <!-- Filters Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                       {{ t('news.since') || 'Time Range' }}
-                    </label>
-                    <USelect
-                      v-model="currentQuery.since"
-                      :options="timeRangeOptions"
-                      icon="i-heroicons-clock"
-                      size="lg"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Min Score
-                    </label>
-                    <div class="flex flex-col gap-2 pt-2">
-                      <input
-                        v-model.number="currentQuery.minScore"
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500 mt-2"
-                      />
-                      <div class="flex justify-between text-xs text-gray-500 font-medium">
-                        <span>0.0</span>
-                        <span class="text-primary-500 font-bold text-sm bg-primary-50 dark:bg-primary-950/30 px-2 py-0.5 rounded border border-primary-100 dark:border-primary-800">{{ currentQuery.minScore }}</span>
-                        <span>1.0</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Additional Filters Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {{ t('news.language') || 'Language' }}
-                    </label>
-                    <UInput
-                      v-model="currentQuery.lang"
-                      :placeholder="t('news.languagePlaceholder') || 'Language code (e.g., en, ru)'"
-                      icon="i-heroicons-language"
-                      size="lg"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {{ t('news.sourceTags') || 'Source Tags' }}
-                    </label>
-                    <UInput
-                      v-model="currentQuery.sourceTags"
-                      :placeholder="t('news.sourceTagsPlaceholder') || 'Comma-separated source tags'"
-                      icon="i-heroicons-tag"
-                      size="lg"
-                    />
-                  </div>
-                </div>
-
-                <!-- News Tags -->
-                <div class="w-full">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {{ t('news.newsTags') || 'News Tags' }}
-                  </label>
-                  <UInput
-                    v-model="currentQuery.newsTags"
-                    :placeholder="t('news.newsTagsPlaceholder') || 'Comma-separated news tags'"
-                    icon="i-heroicons-tag"
-                    size="lg"
-                  />
-                </div>
-
-                <!-- Notifications Toggle -->
-                <div class="w-full flex items-center justify-between p-4 bg-primary-50/30 dark:bg-primary-950/20 rounded-xl border border-primary-100/50 dark:border-primary-900/30">
-                  <div class="flex items-center gap-3">
-                    <div class="p-2 bg-primary-100 dark:bg-primary-900 rounded-lg">
-                      <UIcon name="i-heroicons-bell" class="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                    </div>
-                    <div>
-                      <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('news.notifications') || 'Query Notifications' }}</h4>
-                      <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('news.notificationsHelp') || 'Get notified when new news matches this query' }}</p>
-                    </div>
-                  </div>
-                  <UCheckbox 
-                    v-model="currentQuery.isNotificationEnabled" 
-                    size="lg"
-                    color="primary"
-                  />
-                </div>
-
-                <!-- Search Actions Area -->
-                <div class="flex justify-between items-center gap-4 pt-4">
-                  <div class="flex items-center gap-2">
-                    <UButton
-                      size="lg"
-                      :loading="isNewsLoading"
-                      :disabled="!currentQuery.q.trim()"
-                      icon="i-heroicons-magnifying-glass"
-                      @click="handleSearch"
-                    >
-                      {{ t('common.search') }}
-                    </UButton>
-                    
-                    <UTooltip :text="t('news.vectorSearchInfo')" :popper="{ placement: 'right' }">
-                      <UButton
-                        icon="i-heroicons-information-circle"
-                        color="neutral"
-                        variant="ghost"
-                        size="sm"
-                        class="opacity-50 hover:opacity-100"
-                      />
-                    </UTooltip>
-                  </div>
-
-                </div>
-
-                <!-- Note Row -->
-                <div class="pt-4 border-t border-gray-100 dark:border-gray-800 w-full">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {{ t('news.note') }}
-                  </label>
-                  <UTextarea
-                    v-model="currentQuery.note"
-                    :placeholder="t('news.notePlaceholder')"
-                    :rows="6"
-                    size="lg"
-                    autoresize
-                    class="w-full"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Results Section -->
-            <div class="space-y-4">
-              <!-- Loading state initial -->
-              <div v-if="isNewsLoading && news.length === 0" class="flex flex-col items-center justify-center py-24 space-y-4">
-                <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin" />
-                <p class="text-gray-500 dark:text-gray-400 animate-pulse">{{ t('news.loading') }}</p>
-              </div>
-
-              <!-- News list -->
-              <div v-else-if="news.length > 0" class="space-y-4">
-                <NewsItem
-                  v-for="item in news"
-                  :key="item._id"
-                  :item="item"
-                  @create-publication="handleCreatePublication"
-                />
-                
-                <!-- Load More Button -->
-                <div v-if="hasMore" class="flex justify-center pt-4 pb-8">
-                  <UButton
-                    size="lg"
-                    variant="soft"
-                    color="neutral" 
-                    :loading="isLoadMoreLoading"
-                    icon="i-heroicons-arrow-down"
-                    @click="loadMore"
-                  >
-                    {{ t('common.loadMore') || 'Load More' }}
-                  </UButton>
-                </div>
-              </div>
-
-              <!-- Empty state -->
-              <div
-                v-else-if="!isNewsLoading && currentQuery.q"
-                class="text-center py-24 news-config-card bg-gray-50/50 dark:bg-gray-800/30 border-dashed"
+                :label="query.name"
+                :variant="selectedQueryId === query.id ? 'soft' : 'ghost'"
+                :color="selectedQueryId === query.id ? 'primary' : 'gray'"
+                size="sm"
+                class="whitespace-nowrap flex-shrink-0"
+                @click="selectedQueryId = query.id"
               >
-                <div class="inline-flex p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
-                  <UIcon name="i-heroicons-newspaper" class="w-12 h-12 text-gray-400" />
+                <template #trailing>
+                   <UIcon 
+                    v-if="query.isNotificationEnabled" 
+                    name="i-heroicons-bell-alert" 
+                    class="w-3.5 h-3.5"
+                    :class="selectedQueryId === query.id ? 'text-primary-500' : 'text-gray-400'"
+                  />
+                </template>
+              </UButton>
+            </div>
+          </VueDraggable>
+        </div>
+
+        <!-- Add Tab Button -->
+        <UButton
+          icon="i-heroicons-plus"
+          color="neutral"
+          variant="soft"
+          size="sm"
+          class="shrink-0 mb-2"
+          @click="isAddModalOpen = true"
+        />
+      </div>
+
+      <!-- Tab Content -->
+      <div v-if="currentQuery" class="space-y-6">
+        <!-- Search settings card -->
+        <div class="news-config-card overflow-hidden">
+          <div class="p-6 space-y-6">
+            <!-- Search row (Query input) -->
+            <div class="w-full">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ t('news.searchPlaceholder') }}
+              </label>
+              <UTextarea
+                v-model="currentQuery.q"
+                :placeholder="t('news.searchPlaceholder')"
+                size="lg"
+                class="w-full"
+                :rows="3"
+                autoresize
+                @keydown.enter.ctrl.prevent="handleSearch"
+                @keydown.enter.meta.prevent="handleSearch"
+              />
+            </div>
+
+
+            <!-- Search Mode Selection -->
+            <div class="w-full">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ t('news.mode') || 'Search Mode' }}
+              </label>
+              <div class="flex gap-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="currentQuery.mode"
+                    type="radio"
+                    value="text"
+                    class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                  />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeText') || 'Text' }}</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="currentQuery.mode"
+                    type="radio"
+                    value="vector"
+                    class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                  />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeVector') || 'Vector' }}</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    v-model="currentQuery.mode"
+                    type="radio"
+                    value="hybrid"
+                    class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                  />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeHybrid') || 'Hybrid' }}</span>
+                </label>
+              </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('news.modeHelp') || 'Text: keyword matching, Vector: semantic similarity, Hybrid: combines both' }}
+              </p>
+            </div>
+
+            <!-- Filters Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ t('news.since') || 'Time Range' }}
+                </label>
+                <USelect
+                  v-model="currentQuery.since"
+                  :options="timeRangeOptions"
+                  icon="i-heroicons-clock"
+                  size="lg"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Min Score
+                </label>
+                <div class="flex flex-col gap-2 pt-2">
+                  <input
+                    v-model.number="currentQuery.minScore"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500 mt-2"
+                  />
+                  <div class="flex justify-between text-xs text-gray-500 font-medium">
+                    <span>0.0</span>
+                    <span class="text-primary-500 font-bold text-sm bg-primary-50 dark:bg-primary-950/30 px-2 py-0.5 rounded border border-primary-100 dark:border-primary-800">{{ currentQuery.minScore }}</span>
+                    <span>1.0</span>
+                  </div>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">{{ t('news.noResults') }}</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('channel.adjustFilters') }}</p>
               </div>
             </div>
-          </div>
-        </template>
-      </UTabs>
 
-      <!-- Add Tab Button (External) -->
-      <UButton
-        icon="i-heroicons-plus"
-        color="neutral"
-        variant="soft"
-        class="mt-1"
-        @click="isAddModalOpen = true"
-      />
+            <!-- Additional Filters Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.language') || 'Language' }}
+                </label>
+                <UInput
+                  v-model="currentQuery.lang"
+                  :placeholder="t('news.languagePlaceholder') || 'Language code (e.g., en, ru)'"
+                  icon="i-heroicons-language"
+                  size="lg"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.sourceTags') || 'Source Tags' }}
+                </label>
+                <UInput
+                  v-model="currentQuery.sourceTags"
+                  :placeholder="t('news.sourceTagsPlaceholder') || 'Comma-separated source tags'"
+                  icon="i-heroicons-tag"
+                  size="lg"
+                />
+              </div>
+            </div>
+
+            <!-- News Tags -->
+            <div class="w-full">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ t('news.newsTags') || 'News Tags' }}
+              </label>
+              <UInput
+                v-model="currentQuery.newsTags"
+                :placeholder="t('news.newsTagsPlaceholder') || 'Comma-separated news tags'"
+                icon="i-heroicons-tag"
+                size="lg"
+              />
+            </div>
+
+            <!-- Notifications Toggle -->
+            <div class="w-full flex items-center justify-between p-4 bg-primary-50/30 dark:bg-primary-950/20 rounded-xl border border-primary-100/50 dark:border-primary-900/30">
+              <div class="flex items-center gap-3">
+                <div class="p-2 bg-primary-100 dark:bg-primary-900 rounded-lg">
+                  <UIcon name="i-heroicons-bell" class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div>
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('news.notifications') || 'Query Notifications' }}</h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('news.notificationsHelp') || 'Get notified when new news matches this query' }}</p>
+                </div>
+              </div>
+              <UCheckbox 
+                v-model="currentQuery.isNotificationEnabled" 
+                size="lg"
+                color="primary"
+              />
+            </div>
+
+            <!-- Search Actions Area -->
+            <div class="flex justify-between items-center gap-4 pt-4">
+              <div class="flex items-center gap-2">
+                <UButton
+                  size="lg"
+                  :loading="isNewsLoading"
+                  :disabled="!currentQuery.q.trim()"
+                  icon="i-heroicons-magnifying-glass"
+                  @click="handleSearch"
+                >
+                  {{ t('common.search') }}
+                </UButton>
+                
+                <UTooltip :text="t('news.vectorSearchInfo')" :popper="{ placement: 'right' }">
+                  <UButton
+                    icon="i-heroicons-information-circle"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="opacity-50 hover:opacity-100"
+                  />
+                </UTooltip>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <UButton
+                  color="neutral"
+                  variant="soft"
+                  icon="i-heroicons-check"
+                  :loading="isSaving"
+                  @click="saveQueries"
+                >
+                  {{ t('common.save') }}
+                </UButton>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-pencil-square"
+                  @click="currentQuery && openEditModal(currentQuery.id, currentQuery.name)"
+                >
+                  {{ t('news.rename') || 'Переименовать' }}
+                </UButton>
+                <UButton
+                  v-if="newsQueries.length > 1"
+                  color="error"
+                  variant="ghost"
+                  icon="i-heroicons-trash"
+                  @click="currentQuery && openDeleteModal(currentQuery.id)"
+                >
+                  {{ t('common.delete') }}
+                </UButton>
+              </div>
+
+            </div>
+
+            <!-- Note Row -->
+            <div class="pt-4 border-t border-gray-100 dark:border-gray-800 w-full">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ t('news.note') }}
+              </label>
+              <UTextarea
+                v-model="currentQuery.note"
+                :placeholder="t('news.notePlaceholder')"
+                :rows="6"
+                size="lg"
+                autoresize
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="space-y-4">
+          <!-- Loading state initial -->
+          <div v-if="isNewsLoading && news.length === 0" class="flex flex-col items-center justify-center py-24 space-y-4">
+            <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin" />
+            <p class="text-gray-500 dark:text-gray-400 animate-pulse">{{ t('news.loading') }}</p>
+          </div>
+
+          <!-- News list -->
+          <div v-else-if="news.length > 0" class="space-y-4">
+            <NewsItem
+              v-for="item in news"
+              :key="item._id"
+              :item="item"
+              @create-publication="handleCreatePublication"
+            />
+            
+            <!-- Load More Button -->
+            <div v-if="hasMore" class="flex justify-center pt-4 pb-8">
+              <UButton
+                size="lg"
+                variant="soft"
+                color="neutral" 
+                :loading="isLoadMoreLoading"
+                icon="i-heroicons-arrow-down"
+                @click="loadMore"
+              >
+                {{ t('common.loadMore') || 'Load More' }}
+              </UButton>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div
+            v-else-if="!isNewsLoading && currentQuery.q"
+            class="text-center py-24 news-config-card bg-gray-50/50 dark:bg-gray-800/30 border-dashed"
+          >
+            <div class="inline-flex p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+              <UIcon name="i-heroicons-newspaper" class="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">{{ t('news.noResults') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('channel.adjustFilters') }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Initial state when project is loading -->

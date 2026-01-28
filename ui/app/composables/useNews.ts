@@ -14,6 +14,8 @@ export interface NewsItem {
   description: string
   date: string
   _score: number
+  locale?: string
+  type?: string
 }
 
 export interface SearchNewsParams {
