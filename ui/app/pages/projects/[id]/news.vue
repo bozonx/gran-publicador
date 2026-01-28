@@ -487,6 +487,20 @@ function formatScore(score: number) {
               </div>
             </div>
 
+            <!-- Note Row -->
+            <div class="pt-4 border-t border-gray-100 dark:border-gray-800 w-full">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ t('news.note') }}
+              </label>
+              <UTextarea
+                v-model="currentQuery.note"
+                :placeholder="t('news.notePlaceholder')"
+                :rows="6"
+                size="lg"
+                autoresize
+                class="w-full"
+              />
+            </div>
 
             <!-- Toolbar: Notifications & Actions -->
             <div class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
@@ -560,20 +574,6 @@ function formatScore(score: number) {
               </div>
             </div>
 
-            <!-- Note Row -->
-            <div class="pt-4 border-t border-gray-100 dark:border-gray-800 w-full">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ t('news.note') }}
-              </label>
-              <UTextarea
-                v-model="currentQuery.note"
-                :placeholder="t('news.notePlaceholder')"
-                :rows="6"
-                size="lg"
-                autoresize
-                class="w-full"
-              />
-            </div>
           </div>
         </div>
 
