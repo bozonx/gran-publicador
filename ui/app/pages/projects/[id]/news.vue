@@ -53,9 +53,11 @@ const isDeleting = ref(false)
 const isLoadMoreLoading = ref(false)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
+const selectedNewsItem = ref<NewsItem | null>(null)
 
-function handleCreatePublication(item: any) {
+function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
+  selectedNewsItem.value = item
   isCreateModalOpen.value = true
 }
 
@@ -703,7 +705,8 @@ function formatScore(score: number) {
 
     <NewsCreatePublicationModal
       v-model:open="isCreateModalOpen"
-      :url="selectedNewsUrl"
+      v-model:url="selectedNewsUrl"
+      :source-news-item="selectedNewsItem || undefined"
       :project-id="projectId"
     />
   </div>
