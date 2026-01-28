@@ -148,7 +148,7 @@ function formatScore(score: number) {
             <div v-else-if="news.length > 0" class="space-y-4">
               <NewsItem
                 v-for="item in news"
-                :key="item._id"
+                :key="item.id"
                 :item="item"
                 @create-publication="handleCreatePublication"
               />

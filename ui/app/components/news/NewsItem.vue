@@ -57,7 +57,7 @@ function formatScore(score: number) {
           <!-- Date -->
           <div class="flex items-center gap-1.5">
             <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-            <span>{{ formatDate(item.date) }}</span>
+            <span>{{ formatDate(item.savedAt) }}</span>
           </div>
           
           <!-- Source -->
@@ -69,7 +69,7 @@ function formatScore(score: number) {
               class="hover:text-primary-500 hover:underline transition-colors"
               @click.stop
             >
-              {{ item._source }}
+              {{ item.source }}
             </a>
           </div>
 

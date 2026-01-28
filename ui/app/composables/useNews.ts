@@ -1,14 +1,14 @@
 import { ref, computed } from 'vue'
 
 export interface NewsItem {
-  _id: string
-  _shortId: string
-  _source: string
-  _batchId: string
-  _taskId: string
-  _savedAt: string
-  _uniqueKey: string
-  _dataset: string
+  id: string
+  shortId: string
+  source: string
+  batchId: string
+  taskId: string
+  savedAt: string
+  uniqueKey: string
+  dataset: string
   url: string
   title: string
   description: string
