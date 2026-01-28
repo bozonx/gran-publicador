@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick } from 'vue'
 import AppModal from '~/components/ui/AppModal.vue'
 import { usePageScraper } from '~/composables/usePageScraper'
 import { usePublications } from '~/composables/usePublications'
@@ -68,6 +69,7 @@ onMounted(async () => {
 })
 
 const scrapedData = ref<any>(null)
+const isUsingFallback = ref(false)
 
 // Sanitized HTML content for safe rendering
 const sanitizedContent = computed(() => {
@@ -119,6 +121,12 @@ watch(() => url.value, async (newUrl) => {
 // Also watch isOpen, in case URL was set before opening
 watch(isOpen, async (open) => {
   if (open) {
+    console.log('Modal opened with props:', { 
+      url: url.value, 
+      sourceNewsItem: props.sourceNewsItem,
+      projectId: props.projectId 
+    })
+    
     // Ensure projects are loaded
     if (projects.value.length === 0) {
       await fetchProjects()
@@ -142,23 +150,37 @@ watch(isOpen, async (open) => {
 async function fetchData(targetUrl: string) {
     if (!targetUrl) return
     scrapedData.value = null
+    isUsingFallback.value = false
+    
+    console.log('fetchData called with:', { targetUrl, sourceNewsItem: props.sourceNewsItem })
+    
     // We use the initial projectId for scraping as it usually has the context of the search
     const scrapeProjectId = props.projectId || selectedProjectId.value
     if (!scrapeProjectId) {
-      // If still no project, we might need to handle this differently, 
-      // but for now, we expect at least one project to be available for scraping
-      // or we pick the first project from the list.
       const firstProject = projects.value[0]?.id
       if (firstProject) {
         await scrapePage(targetUrl, firstProject).then(r => scrapedData.value = r)
       } else {
         error.value = 'No project available for scraping'
       }
-      return
+    } else {
+      const result = await scrapePage(targetUrl, scrapeProjectId)
+      if (result) {
+        scrapedData.value = result
+      }
     }
-    const result = await scrapePage(targetUrl, scrapeProjectId)
-    if (result) {
-      scrapedData.value = result
+
+    // Wait for Vue reactivity to update
+    await nextTick()
+
+    console.log('After scraping:', { error: error.value, hasSourceNewsItem: !!props.sourceNewsItem })
+
+    // If scraping failed but we have news item, automatically fall back
+    // Check error from usePageScraper composable
+    if (error.value && props.sourceNewsItem) {
+      console.log('Scraper failed, using fallback data from news item', error.value)
+      handleUseNewsData(false) // Don't clear error
+      isUsingFallback.value = true
     }
 }
 
@@ -248,8 +270,13 @@ async function handleNext() {
   }
 }
 
-function handleUseNewsData() {
-  if (!props.sourceNewsItem) return
+function handleUseNewsData(clearError = true) {
+  console.log('handleUseNewsData called', { sourceNewsItem: props.sourceNewsItem, clearError })
+  
+  if (!props.sourceNewsItem) {
+    console.warn('No sourceNewsItem available for fallback!')
+    return
+  }
   
   // Populate scrapedData from news card
   scrapedData.value = {
@@ -265,7 +292,13 @@ function handleUseNewsData() {
        lang: props.sourceNewsItem.locale
     }
   }
-  error.value = null
+  
+  console.log('scrapedData populated from news item:', scrapedData.value)
+  
+  if (clearError) {
+    error.value = null
+    isUsingFallback.value = false
+  }
 }
 
 </script>
@@ -282,128 +315,121 @@ function handleUseNewsData() {
          <p class="text-gray-500">{{ t('common.loading') }}</p>
       </div>
       
-      <div v-else-if="error" class="flex flex-col items-center justify-center py-8 text-center max-w-2xl mx-auto">
-        <div class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6 flex items-start gap-3 text-left w-full">
+      <div v-else class="space-y-6">
+        <!-- Error Banner -->
+        <div v-if="error" class="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-100 dark:border-red-900/30 flex items-start gap-3">
            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 shrink-0 mt-0.5" />
-           <div class="space-y-1 text-sm">
-             <p class="font-medium">{{ t('publication.scrapeFailed') === 'publication.scrapeFailed' ? 'Automatic page detection failed' : t('publication.scrapeFailed') }}</p>
-             <p class="opacity-90">{{ error }}</p>
+           <div class="space-y-2 text-sm flex-1">
+             <p class="font-bold flex items-center gap-2">
+               {{ t('publication.scrapeFailed') === 'publication.scrapeFailed' ? 'Automatic page detection failed' : t('publication.scrapeFailed') }}
+               <span v-if="isUsingFallback" class="text-xs font-normal opacity-70 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                 Fallback Mode
+               </span>
+             </p>
+             <p class="opacity-80 font-mono text-[11px] leading-tight break-all">{{ error }}</p>
+             <p v-if="isUsingFallback" class="pt-1 font-medium italic opacity-90">
+               We are using available data from the news card instead. You can still proceed.
+             </p>
+             <!-- Manual fallback button if auto-fallback didn't work -->
+             <div v-else-if="props.sourceNewsItem && !scrapedData" class="pt-2">
+               <UButton 
+                 size="xs"
+                 color="primary"
+                 variant="soft"
+                 icon="i-heroicons-arrow-path"
+                 @click="handleUseNewsData(true)"
+               >
+                 Use News Card Data
+               </UButton>
+             </div>
            </div>
         </div>
 
-        <div v-if="props.sourceNewsItem" class="w-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden text-left mb-6 shadow-sm">
-          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
-            <h4 class="font-medium text-gray-700 dark:text-gray-200 text-sm">
-              {{ t('publication.availableData') === 'publication.availableData' ? 'Available data from News Feed' : t('publication.availableData') }}
-            </h4>
-            <span class="text-xs text-gray-500">{{ t('publication.source') === 'publication.source' ? 'Source' : t('publication.source') }}: {{ props.sourceNewsItem.source }}</span>
-          </div>
+        <!-- Success Content / Fallback Data -->
+        <div v-if="scrapedData" class="space-y-6">
+           <!-- Project selection (only on general news page) -->
+           <UFormField v-if="isGeneralNewsPage" :label="t('publication.select_project')">
+              <USelectMenu
+                v-model="selectedProjectId"
+                :items="projectOptions"
+                value-key="value"
+                label-key="label"
+                class="w-full"
+                :placeholder="t('publication.select_project')"
+              >
+                <template #leading>
+                  <UIcon :name="selectedProjectId ? 'i-heroicons-briefcase' : 'i-heroicons-user'" class="w-4 h-4 text-gray-400" />
+                </template>
+              </USelectMenu>
+           </UFormField>
 
-          <div class="p-4 flex gap-4">
-             <img 
-               v-if="props.sourceNewsItem.mainImageUrl || props.sourceNewsItem.mainVideoUrl" 
-               :src="props.sourceNewsItem.mainImageUrl || props.sourceNewsItem.mainVideoUrl" 
-               class="w-24 h-24 object-cover rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0"
-             />
-             <div class="min-w-0 space-y-2">
-               <h5 class="font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
-                 {{ props.sourceNewsItem.title }}
-               </h5>
-               <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-                 {{ props.sourceNewsItem.description }}
-               </p>
-             </div>
-          </div>
+           <!-- Upper section: Image + Metadata -->
+           <div class="flex gap-4">
+               <!-- Image on the left -->
+               <div v-if="scrapedData.image" class="shrink-0">
+                  <img 
+                    :src="scrapedData.image" 
+                    :alt="scrapedData.title"
+                    class="w-32 h-32 rounded-lg object-cover bg-gray-100 dark:bg-gray-800 shadow-sm" 
+                  />
+               </div>
+               
+               <!-- Metadata on the right -->
+               <div class="flex-1 min-w-0 space-y-2">
+                   <!-- Title with text wrapping -->
+                   <h3 class="text-xl font-bold text-gray-900 dark:text-white leading-tight wrap-break-word">
+                     {{ scrapedData.title }}
+                   </h3>
+                   
+                   <!-- Date, Source, Author -->
+                   <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
+                      <span v-if="scrapedData.date" class="flex items-center gap-1.5">
+                          <UIcon name="i-heroicons-calendar" class="w-4 h-4 shrink-0" />
+                          <time :datetime="scrapedData.date">
+                            {{ formatDate(scrapedData.date) }}
+                          </time>
+                      </span>
+                      
+                      <a 
+                        v-if="scrapedData.url" 
+                        :href="scrapedData.url" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        <UIcon name="i-heroicons-globe-alt" class="w-4 h-4 shrink-0" />
+                        <span class="truncate">{{ scrapedData.source || getHostname(scrapedData.url) }}</span>
+                      </a>
+                      
+                      <span v-if="scrapedData.author" class="flex items-center gap-1.5">
+                          <UIcon name="i-heroicons-user" class="w-4 h-4 shrink-0" />
+                          <span class="truncate">{{ scrapedData.author }}</span>
+                      </span>
+                   </div>
+
+                   <!-- Description as plain text when in fallback/error mode -->
+                   <div v-if="isUsingFallback" class="pt-2">
+                      <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-4">
+                        {{ scrapedData.description }}
+                      </p>
+                   </div>
+               </div>
+           </div>
+           
+           <!-- Lower section: Content with HTML markup (hidden in fallback mode as requested) -->
+           <div v-if="scrapedData.body && !isUsingFallback" class="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div 
+                class="content-preview prose prose-sm dark:prose-invert max-w-none"
+                v-html="sanitizedContent"
+              />
+           </div>
         </div>
-        
-        <UButton 
-          v-if="props.sourceNewsItem"
-          color="primary" 
-          size="lg"
-          icon="i-heroicons-arrow-right-circle"
-          @click="handleUseNewsData"
-        >
-          {{ t('publication.useNewsCardData') === 'publication.useNewsCardData' ? 'Use Data from News Card' : t('publication.useNewsCardData') }}
-        </UButton>
-      </div>
-      
-      <div v-else-if="scrapedData" class="space-y-6">
-         <!-- Project selection (only on general news page) -->
-         <UFormField v-if="isGeneralNewsPage" :label="t('publication.select_project')">
-            <USelectMenu
-              v-model="selectedProjectId"
-              :items="projectOptions"
-              value-key="value"
-              label-key="label"
-              class="w-full"
-              :placeholder="t('publication.select_project')"
-            >
-              <template #leading>
-                <UIcon :name="selectedProjectId ? 'i-heroicons-briefcase' : 'i-heroicons-user'" class="w-4 h-4 text-gray-400" />
-              </template>
-            </USelectMenu>
-            <template v-if="!selectedProjectId" #hint>
-               <span class="text-xs text-gray-400 flex items-center gap-1">
-                 <UIcon name="i-heroicons-information-circle" class="w-3 h-3" />
-                 {{ t('publication.personal_draft_help') }}
-               </span>
-            </template>
-         </UFormField>
 
-         <!-- Upper section: Image + Metadata -->
-         <div class="flex gap-4">
-             <!-- Image on the left -->
-             <div v-if="scrapedData.image" class="shrink-0">
-                <img 
-                  :src="scrapedData.image" 
-                  :alt="scrapedData.title"
-                  class="w-32 h-32 rounded-lg object-cover bg-gray-100 dark:bg-gray-800 shadow-sm" 
-                />
-             </div>
-             
-             <!-- Metadata on the right -->
-             <div class="flex-1 min-w-0 space-y-2">
-                 <!-- Title with text wrapping -->
-                 <h3 class="text-xl font-bold text-gray-900 dark:text-white leading-tight wrap-break-word">
-                   {{ scrapedData.title }}
-                 </h3>
-                 
-                 <!-- Date, Source, Author -->
-                 <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
-                    <span v-if="scrapedData.date" class="flex items-center gap-1.5">
-                        <UIcon name="i-heroicons-calendar" class="w-4 h-4 shrink-0" />
-                        <time :datetime="scrapedData.date">
-                          {{ formatDate(scrapedData.date) }}
-                        </time>
-                    </span>
-                    
-                    <a 
-                      v-if="scrapedData.url" 
-                      :href="scrapedData.url" 
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 hover:underline"
-                    >
-                      <UIcon name="i-heroicons-globe-alt" class="w-4 h-4 shrink-0" />
-                      <span class="truncate">{{ scrapedData.source || getHostname(scrapedData.url) }}</span>
-                      <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-3 h-3 shrink-0" />
-                    </a>
-                    
-                    <span v-if="scrapedData.author" class="flex items-center gap-1.5">
-                        <UIcon name="i-heroicons-user" class="w-4 h-4 shrink-0" />
-                        <span class="truncate">{{ scrapedData.author }}</span>
-                    </span>
-                 </div>
-             </div>
-         </div>
-         
-         <!-- Lower section: Content with HTML markup -->
-         <div v-if="scrapedData.body" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div 
-              class="content-preview prose prose-sm dark:prose-invert max-w-none"
-              v-html="sanitizedContent"
-            />
-         </div>
+        <!-- No data found anywhere state -->
+        <div v-else-if="!isLoading && !error" class="flex flex-col items-center justify-center py-12 text-gray-500">
+           <UIcon name="i-heroicons-document-search" class="w-12 h-12 mb-2 opacity-20" />
+           <p>No content available to preview.</p>
+        </div>
       </div>
     </div>
     
