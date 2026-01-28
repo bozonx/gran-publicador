@@ -45,6 +45,7 @@ import { LlmPromptTemplatesModule } from './modules/llm-prompt-templates/llm-pro
 import { TelegramBotModule } from './modules/telegram-bot/index.js';
 import { AuthorSignaturesModule } from './modules/author-signatures/author-signatures.module.js';
 import { RolesModule } from './modules/roles/roles.module.js';
+import { NewsQueriesModule } from './modules/news-queries/news-queries.module.js';
 
 @Module({
   imports: [
@@ -210,6 +211,7 @@ import { RolesModule } from './modules/roles/roles.module.js';
     LlmPromptTemplatesModule,
     AuthorSignaturesModule,
     RolesModule,
+    NewsQueriesModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],

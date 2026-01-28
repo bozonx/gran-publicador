@@ -35,7 +35,7 @@ const route = useRoute()
 const projectId = computed(() => route.params.id as string)
 
 const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading } = useProjects()
-const { news, isLoading: isNewsLoading, error, searchNews, hasMore } = useNews()
+const { news, isLoading: isNewsLoading, error, searchNews, hasMore, getQueries, createQuery, updateQuery, deleteQuery } = useNews()
 
 const newsQueries = ref<NewsQuery[]>([])
 const activeTabIndex = ref(0)
@@ -82,54 +82,49 @@ const currentQuery = computed(() => {
   return query || null
 })
 
-// Initialize news queries from project preferences
+// Initialize news queries from API
 async function initQueries() {
   if (projectId.value) {
     if (!currentProject.value || currentProject.value.id !== projectId.value) {
       await fetchProject(projectId.value)
     }
     
-    const prefs = currentProject.value?.preferences as any
-    if (prefs?.newsQueries?.length > 0) {
-      // Migrate old configs and add defaults for new fields
-      newsQueries.value = JSON.parse(JSON.stringify(prefs.newsQueries)).map((q: any) => {
-        const { limit, ...rest } = q
-        return {
-          ...rest,
-          mode: rest.mode || 'hybrid',
-          lang: rest.lang || undefined,
-          sourceTags: rest.sourceTags || undefined,
-          newsTags: rest.newsTags || undefined
+    try {
+      const queries = await getQueries()
+      
+      if (queries && queries.length > 0) {
+        newsQueries.value = queries
+        
+        // Find default or use first
+        // Note: Sort logic in 'tabs' computed property will handle display order
+        // We just need to set active tab
+        const defaultIndex = queries.findIndex((q: any) => q.isDefault)
+        activeTabIndex.value = defaultIndex !== -1 ? defaultIndex : 0
+      } else {
+        // Create initial default query
+        const defaultQuery = {
+          name: t('news.title'),
+          q: currentProject.value?.name || '',
+          mode: 'hybrid',
+          since: '1d',
+          minScore: 0.5,
+          isDefault: true
+        }
+        
+        const created = await createQuery(defaultQuery)
+        newsQueries.value = [created]
+        activeTabIndex.value = 0
+      }
+      
+      // Initial search
+      nextTick(() => {
+        if (currentQuery.value?.q) {
+          handleSearch()
         }
       })
-      
-      // Select default tab or first tab
-      activeTabIndex.value = 0
-    } else {
-      // Create initial default query
-      const defaultQuery: NewsQuery = {
-        id: crypto.randomUUID(),
-        name: t('news.title'),
-        q: currentProject.value?.name || '',
-        mode: 'hybrid',
-        since: '1d',
-        lang: undefined,
-        sourceTags: undefined,
-        newsTags: undefined,
-        minScore: 0.5,
-        note: '',
-        isDefault: true
-      }
-      newsQueries.value = [defaultQuery]
-      activeTabIndex.value = 0
+    } catch (e) {
+      console.error('Failed to load news queries:', e)
     }
-    
-    // Initial search
-    nextTick(() => {
-      if (currentQuery.value?.q) {
-        handleSearch()
-      }
-    })
   }
 }
 
@@ -195,37 +190,32 @@ watchDebounced(() => [
 async function addTab() {
   if (!newTabName.value.trim()) return
   
-  const newQuery: NewsQuery = {
-    id: crypto.randomUUID(),
+  const newQuery = {
     name: newTabName.value,
     q: '',
     mode: 'hybrid',
     since: '1d',
-    lang: undefined,
-    sourceTags: undefined,
-    newsTags: undefined,
     minScore: 0.5,
-    note: '',
     isDefault: false
   }
   
-  newsQueries.value.push(newQuery)
-  
-  // Sort handles order (default first), so new non-default tab goes to end of query list?
-  // We need to find where it ended up in the 'tabs' list
-  // Wait for next tick to let computed `tabs` update
-  await nextTick()
-  
-  // Find index of the new tab in the rendered tabs
-  const newTabIndex = tabs.value.findIndex(t => t.id === newQuery.id)
-  if (newTabIndex !== -1) {
-    activeTabIndex.value = newTabIndex
+  try {
+    const created = await createQuery(newQuery)
+    newsQueries.value.push(created)
+    
+    await nextTick()
+    
+    // Find index of the new tab in the rendered tabs
+    const newTabIndex = tabs.value.findIndex(t => t.id === created.id)
+    if (newTabIndex !== -1) {
+      activeTabIndex.value = newTabIndex
+    }
+    
+    newTabName.value = ''
+    isAddModalOpen.value = false
+  } catch (e) {
+    console.error('Failed to create tab:', e)
   }
-  
-  newTabName.value = ''
-  isAddModalOpen.value = false
-  
-  await saveQueries()
 }
 
 // Open edit modal
@@ -241,8 +231,16 @@ async function saveTabName() {
   
   const query = newsQueries.value.find(q => q.id === editingTabId.value)
   if (query) {
+    // Optimistic update
+    const oldName = query.name
     query.name = editingTabName.value
-    await saveQueries()
+    
+    try {
+      await updateQuery(query.id, { name: editingTabName.value })
+    } catch (e) {
+      query.name = oldName // Revert on error
+      console.error(e)
+    }
   }
   isEditModalOpen.value = false
 }
@@ -260,14 +258,17 @@ async function confirmDeleteTab() {
   
   isDeleting.value = true
   try {
+    await deleteQuery(deletingTabId.value)
+    
     const index = newsQueries.value.findIndex(q => q.id === deletingTabId.value)
     if (index !== -1) {
       newsQueries.value.splice(index, 1)
       if (activeTabIndex.value >= newsQueries.value.length) {
         activeTabIndex.value = newsQueries.value.length - 1
       }
-      await saveQueries()
     }
+  } catch(e) {
+    console.error(e)
   } finally {
     isDeleting.value = false
     isDeleteModalOpen.value = false
@@ -277,29 +278,37 @@ async function confirmDeleteTab() {
 
 // Handle default flag change
 async function makeDefault(id: string) {
+  // Update local state first
   newsQueries.value.forEach((q) => {
     q.isDefault = q.id === id
   })
   
   // After making default, it will move to index 0 due to sorting
   activeTabIndex.value = 0
-  await saveQueries()
+  
+  try {
+    await updateQuery(id, { isDefault: true })
+  } catch(e) {
+    console.error(e)
+    // Should revert state ideally
+  }
 }
 
-// Save all queries to project preferences
+// Save current query settings
 async function saveQueries() {
-  if (!currentProject.value) return
+  if (!currentQuery.value) return
   
   isSaving.value = true
   try {
-    // Ensure we don't save 'limit' by mapping clean objects (though interface should prevent typing it)
-    const updatedPrefs = {
-      ...(currentProject.value.preferences as any),
-      newsQueries: newsQueries.value
-    }
-    
-    await updateProject(currentProject.value.id, {
-      preferences: updatedPrefs
+    await updateQuery(currentQuery.value.id, {
+        q: currentQuery.value.q,
+        mode: currentQuery.value.mode,
+        since: currentQuery.value.since,
+        lang: currentQuery.value.lang,
+        sourceTags: currentQuery.value.sourceTags,
+        newsTags: currentQuery.value.newsTags,
+        minScore: currentQuery.value.minScore,
+        note: currentQuery.value.note
     })
   } finally {
     isSaving.value = false

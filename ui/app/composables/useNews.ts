@@ -125,12 +125,37 @@ export const useNews = () => {
     }
   }
 
+  const getQueries = async (customProjectId?: string) => {
+    const pId = customProjectId || projectId.value
+    if (!pId) return []
+    return await api.get<any[]>(`/projects/${pId}/news-queries`)
+  }
+
+  const createQuery = async (query: any, customProjectId?: string) => {
+    const pId = customProjectId || projectId.value
+    return await api.post(`/projects/${pId}/news-queries`, query)
+  }
+
+  const updateQuery = async (id: string, query: any, customProjectId?: string) => {
+    const pId = customProjectId || projectId.value
+    return await api.put(`/projects/${pId}/news-queries/${id}`, query)
+  }
+
+  const deleteQuery = async (id: string, customProjectId?: string) => {
+    const pId = customProjectId || projectId.value
+    return await api.delete(`/projects/${pId}/news-queries/${id}`)
+  }
+
   return {
     news,
     isLoading,
     error,
     hasMore,
     searchNews,
-    offset
+    offset,
+    getQueries,
+    createQuery,
+    updateQuery,
+    deleteQuery
   }
 }
