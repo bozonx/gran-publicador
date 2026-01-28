@@ -14,7 +14,34 @@ export class NewsQueriesService {
     });
 
     // Remap DB fields to flat structure for frontend compatibility (and convenience)
-    return queries.map(this.mapToResponse);
+    return queries.map((q) => this.mapToResponse(q));
+  }
+
+  async findAllDefault(userId: string) {
+    // Find all projects where user is owner or member
+    const projects = await this.prisma.project.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: { id: true, name: true },
+    });
+
+    const projectIds = projects.map((p) => p.id);
+
+    const queries = await this.prisma.projectNewsQuery.findMany({
+      where: {
+        projectId: { in: projectIds },
+        isDefault: true,
+      },
+      include: {
+        project: { select: { name: true } }
+      }
+    });
+
+    return queries.map((q) => ({
+      ...this.mapToResponse(q),
+      projectName: q.project.name,
+    }));
   }
 
   async create(projectId: string, dto: CreateNewsQueryDto) {

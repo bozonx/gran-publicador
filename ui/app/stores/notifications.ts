@@ -7,6 +7,7 @@ export enum NotificationType {
   PUBLICATION_FAILED = 'PUBLICATION_FAILED',
   PROJECT_INVITE = 'PROJECT_INVITE',
   SYSTEM = 'SYSTEM',
+  NEW_NEWS = 'NEW_NEWS',
 }
 
 export interface Notification {
@@ -189,6 +190,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
         return 'i-heroicons-user-plus';
       case NotificationType.SYSTEM:
         return 'i-heroicons-information-circle';
+      case NotificationType.NEW_NEWS:
+        return 'i-heroicons-newspaper';
       default:
         return 'i-heroicons-bell';
     }

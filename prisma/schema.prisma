@@ -464,6 +464,7 @@ enum NotificationType {
   PUBLICATION_FAILED     // Issue during publication (failed/partial)
   PROJECT_INVITE        // Invitation to a project
   SYSTEM                // System notification
+  NEW_NEWS              // New news matching project query
 }
 
 enum MediaType {

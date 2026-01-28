@@ -9,55 +9,44 @@ definePageMeta({
 })
 
 const { t, d } = useI18n()
-const { news, isLoading: isNewsLoading, error, searchNews } = useNews()
-const { projects, fetchProjects, isLoading: isProjectsLoading } = useProjects()
+const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries } = useNews()
 
 const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
+const defaultQueries = ref<any[]>([])
+const isInitialLoading = ref(true)
 
 function handleCreatePublication(item: any) {
   selectedNewsUrl.value = item.url
   isCreateModalOpen.value = true
 }
 
-// Projects that have at least one default news query
-const filteredProjects = computed(() => {
-  return projects.value.filter(project => {
-    const prefs = project.preferences as any
-    return prefs?.newsQueries?.some((q: any) => q.isDefault)
-  })
-})
-
 const tabs = computed(() => {
-  return filteredProjects.value.map(project => ({
-    label: project.name,
+  return defaultQueries.value.map(q => ({
+    label: q.projectName || q.name,
     slot: 'content'
   }))
 })
 
-const currentProject = computed(() => filteredProjects.value[activeTabIndex.value])
-
 const currentDefaultQuery = computed(() => {
-  if (!currentProject.value) return null
-  const prefs = currentProject.value.preferences as any
-  return prefs.newsQueries.find((q: any) => q.isDefault)
+  return defaultQueries.value[activeTabIndex.value] || null
 })
 
-const isLoading = computed(() => isProjectsLoading.value || isNewsLoading.value)
+const isLoading = computed(() => isInitialLoading.value || isNewsLoading.value)
 
 async function handleSearch() {
-  if (!currentDefaultQuery.value || !currentProject.value) return
+  if (!currentDefaultQuery.value) return
 
   await searchNews({
     q: currentDefaultQuery.value.q,
-    mode: (currentDefaultQuery.value as any).mode,
-    since: (currentDefaultQuery.value as any).since,
-    lang: (currentDefaultQuery.value as any).lang,
-    sourceTags: (currentDefaultQuery.value as any).sourceTags,
-    newsTags: (currentDefaultQuery.value as any).newsTags,
+    mode: currentDefaultQuery.value.mode,
+    since: currentDefaultQuery.value.since,
+    lang: currentDefaultQuery.value.lang,
+    sourceTags: currentDefaultQuery.value.sourceTags,
+    newsTags: currentDefaultQuery.value.newsTags,
     minScore: currentDefaultQuery.value.minScore,
-  }, currentProject.value.id)
+  }, currentDefaultQuery.value.projectId)
 }
 
 watch(activeTabIndex, () => {
@@ -65,9 +54,14 @@ watch(activeTabIndex, () => {
 })
 
 onMounted(async () => {
-  await fetchProjects()
-  if (filteredProjects.value.length > 0) {
-    handleSearch()
+  isInitialLoading.value = true
+  try {
+    defaultQueries.value = await getDefaultQueries()
+    if (defaultQueries.value.length > 0) {
+      await handleSearch()
+    }
+  } finally {
+    isInitialLoading.value = false
   }
 })
 
@@ -100,7 +94,7 @@ function formatScore(score: number) {
 
     <!-- No projects with news queries state -->
     <div
-      v-if="!isProjectsLoading && filteredProjects.length === 0"
+      v-if="!isLoading && defaultQueries.length === 0"
       class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700"
     >
       <UIcon name="i-heroicons-newspaper" class="w-12 h-12 mx-auto mb-3 text-gray-400" />
@@ -111,7 +105,7 @@ function formatScore(score: number) {
     </div>
 
     <!-- Tabs System -->
-    <div v-else-if="filteredProjects.length > 0" class="space-y-6">
+    <div v-else-if="defaultQueries.length > 0" class="space-y-6">
       <UTabs 
         v-model="activeTabIndex" 
         :items="tabs" 
@@ -174,14 +168,14 @@ function formatScore(score: number) {
     </div>
 
     <!-- Initial loading for projects -->
-    <div v-else-if="isProjectsLoading" class="flex justify-center py-12">
+    <div v-else-if="isLoading" class="flex justify-center py-12">
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-500 animate-spin" />
     </div>
 
     <NewsCreatePublicationModal
       v-model:open="isCreateModalOpen"
       :url="selectedNewsUrl"
-      :project-id="currentProject?.id || ''"
+      :project-id="currentDefaultQuery?.projectId || ''"
     />
   </div>
 </template>

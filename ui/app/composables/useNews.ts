@@ -146,6 +146,10 @@ export const useNews = () => {
     return await api.delete(`/projects/${pId}/news-queries/${id}`)
   }
 
+  const getDefaultQueries = async () => {
+    return await api.get<any[]>('/news-queries/default')
+  }
+
   return {
     news,
     isLoading,
@@ -156,6 +160,7 @@ export const useNews = () => {
     getQueries,
     createQuery,
     updateQuery,
-    deleteQuery
+    deleteQuery,
+    getDefaultQueries
   }
 }

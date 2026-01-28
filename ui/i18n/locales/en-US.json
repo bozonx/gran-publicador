@@ -167,7 +167,9 @@
     "sourceTags": "Source Tags",
     "sourceTagsPlaceholder": "Comma-separated source tags",
     "newsTags": "News Tags",
-    "newsTagsPlaceholder": "Comma-separated news tags"
+    "newsTagsPlaceholder": "Comma-separated news tags",
+    "notifications": "Notifications",
+    "notificationsHelp": "Get notified when new news matches this query"
   },
   "auth": {
     "login": "Log in",
@@ -1041,7 +1043,8 @@
     "manage_notifs": "Manage and view your recent activity notifications",
     "empty_desc": "You don't have any notifications at the moment. We'll let you know when something important happens.",
     "view_publication": "View publication",
-    "view_project": "Go to project"
+    "view_project": "Go to Project",
+    "view_news": "Go to News"
   },
   "llm": {
     "generate": "Generate with AI",

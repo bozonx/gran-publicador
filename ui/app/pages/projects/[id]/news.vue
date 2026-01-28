@@ -17,6 +17,7 @@ interface NewsQuery {
   minScore: number
   note: string
   isDefault: boolean
+  isNotificationEnabled: boolean
 }
 
 interface NewsTabItem {
@@ -308,7 +309,8 @@ async function saveQueries() {
         sourceTags: currentQuery.value.sourceTags,
         newsTags: currentQuery.value.newsTags,
         minScore: currentQuery.value.minScore,
-        note: currentQuery.value.note
+        note: currentQuery.value.note,
+        isNotificationEnabled: currentQuery.value.isNotificationEnabled
     })
   } finally {
     isSaving.value = false
@@ -542,6 +544,20 @@ const timeRangeOptions = [
                     icon="i-heroicons-tag"
                     size="lg"
                   />
+                </div>
+
+                <!-- Notifications Toggle -->
+                <div class="w-full flex items-center justify-between p-4 bg-primary-50/30 dark:bg-primary-950/20 rounded-xl border border-primary-100/50 dark:border-primary-900/30">
+                  <div class="flex items-center gap-3">
+                    <div class="p-2 bg-primary-100 dark:bg-primary-900 rounded-lg">
+                      <UIcon name="i-heroicons-bell" class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('news.notifications') || 'Query Notifications' }}</h4>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('news.notificationsHelp') || 'Get notified when new news matches this query' }}</p>
+                    </div>
+                  </div>
+                  <UToggle v-model="currentQuery.isNotificationEnabled" />
                 </div>
 
                 <!-- Search Actions Area -->

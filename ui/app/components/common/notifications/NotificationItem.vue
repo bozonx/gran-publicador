@@ -21,6 +21,8 @@ const icon = computed(() => {
       return 'i-heroicons-user-plus';
     case NotificationType.SYSTEM:
       return 'i-heroicons-information-circle';
+    case NotificationType.NEW_NEWS:
+      return 'i-heroicons-newspaper';
     default:
       return 'i-heroicons-bell';
   }
@@ -34,6 +36,8 @@ const iconColor = computed(() => {
       return 'text-blue-500';
     case NotificationType.SYSTEM:
       return 'text-gray-500';
+    case NotificationType.NEW_NEWS:
+      return 'text-green-500';
     default:
       return 'text-gray-400';
   }
@@ -50,6 +54,8 @@ async function handleClick() {
     router.push(`/publications/${meta.publicationId}`);
   } else if (props.notification.type === NotificationType.PROJECT_INVITE && meta.projectId) {
     router.push(`/projects/${meta.projectId}`);
+  } else if (props.notification.type === NotificationType.NEW_NEWS && meta.projectId) {
+    router.push(`/projects/${meta.projectId}/news`);
   }
   
   emit('click', props.notification);
@@ -72,7 +78,7 @@ async function handleClick() {
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between gap-2">
           <p class="text-sm font-semibold truncate">{{ notification.title }}</p>
-          <div v-if="!notification.readAt" class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+          <div v-if="!notification.readAt" class="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
         </div>
         <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 whitespace-pre-line leading-relaxed">
           {{ notification.message }}
@@ -82,7 +88,11 @@ async function handleClick() {
             {{ relativeTime }}
           </p>
           <p v-if="notification.meta?.publicationId || notification.meta?.projectId" class="text-[10px] text-blue-500 font-medium hover:underline">
-            {{ notification.type === NotificationType.PUBLICATION_FAILED ? t('notifications.view_publication') : t('notifications.view_project') }} &rarr;
+            {{ 
+              notification.type === NotificationType.PUBLICATION_FAILED ? t('notifications.view_publication') : 
+              notification.type === NotificationType.NEW_NEWS ? t('notifications.view_news') :
+              t('notifications.view_project') 
+            }} &rarr;
           </p>
         </div>
       </div>

@@ -187,52 +187,6 @@ export class MediaOptimizationDto {
   skipOptimization?: boolean;
 }
 
-/**
- * DTO for saved news search queries.
- */
-export class NewsQueryDto {
-  @IsString()
-  id!: string;
-
-  @IsString()
-  name!: string;
-
-  @IsString()
-  q!: string;
-
-  @IsOptional()
-  @IsString()
-  @IsIn(['text', 'vector', 'hybrid'])
-  mode?: 'text' | 'vector' | 'hybrid';
-
-  @IsOptional()
-  @IsString()
-  lang?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  sourceTags?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  newsTags?: string;
-
-  @IsNumber()
-  minScore!: number;
-
-  @IsString()
-  @IsOptional()
-  note?: string;
-
-  @IsString()
-  @IsOptional()
-  since?: string;
-
-  @IsBoolean()
-  isDefault!: boolean;
-}
 
 /**
  * DTO for Project preferences.
@@ -252,11 +206,6 @@ export class ProjectPreferencesDto {
   @Type(() => MediaOptimizationDto)
   mediaOptimization?: MediaOptimizationDto;
 
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => NewsQueryDto)
-  newsQueries?: NewsQueryDto[];
 }
 
 /**
