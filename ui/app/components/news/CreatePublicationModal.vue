@@ -30,7 +30,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
 }
 
 const props = defineProps<{
-  projectId: string
+  projectId?: string
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
@@ -41,9 +41,26 @@ const router = useRouter()
 const toast = useToast()
 const { scrapePage, isLoading, error } = usePageScraper()
 const { createPublication } = usePublications()
-const { currentProject } = useProjects()
+const { projects, fetchProjects } = useProjects()
 
+const selectedProjectId = ref<string | null>(props.projectId || null)
 const isCreating = ref(false)
+
+const projectOptions = computed(() => [
+  { id: null, name: t('publication.personal_draft') },
+  ...projects.value.map(p => ({ id: p.id, name: p.name }))
+])
+
+const selectedProject = computed(() => {
+  if (!selectedProjectId.value) return null
+  return projects.value.find(p => p.id === selectedProjectId.value) || null
+})
+
+onMounted(async () => {
+  if (projects.value.length === 0) {
+    await fetchProjects()
+  }
+})
 
 const scrapedData = ref<any>(null)
 
@@ -96,10 +113,13 @@ watch(() => url.value, async (newUrl) => {
 
 // Also watch isOpen, in case URL was set before opening
 watch(isOpen, async (open) => {
-  if (open && url.value) {
-     if (!scrapedData.value || scrapedData.value.url !== url.value) {
+  if (open) {
+    selectedProjectId.value = props.projectId || null
+    if (url.value) {
+      if (!scrapedData.value || scrapedData.value.url !== url.value) {
         await fetchData(url.value)
-     }
+      }
+    }
   } else if (!open) {
      // We can optional clear scrapedData here if we want to reset state every time
   }
@@ -108,14 +128,28 @@ watch(isOpen, async (open) => {
 async function fetchData(targetUrl: string) {
     if (!targetUrl) return
     scrapedData.value = null
-    const result = await scrapePage(targetUrl, props.projectId)
+    // We use the initial projectId for scraping as it usually has the context of the search
+    const scrapeProjectId = props.projectId || selectedProjectId.value
+    if (!scrapeProjectId) {
+      // If still no project, we might need to handle this differently, 
+      // but for now, we expect at least one project to be available for scraping
+      // or we pick the first project from the list.
+      const firstProject = projects.value[0]?.id
+      if (firstProject) {
+        await scrapePage(targetUrl, firstProject).then(r => scrapedData.value = r)
+      } else {
+        error.value = 'No project available for scraping'
+      }
+      return
+    }
+    const result = await scrapePage(targetUrl, scrapeProjectId)
     if (result) {
       scrapedData.value = result
     }
 }
 
 async function handleNext() {
-  if (!scrapedData.value || !props.projectId) return
+  if (!scrapedData.value) return
   
   isCreating.value = true
   
@@ -128,7 +162,7 @@ async function handleNext() {
     const sourceTextContent = `# ${title}\n\n${body}`
     
     // Get language from scraped data or project or fallback to 'ru'
-    let lang = sd.meta?.lang || (currentProject.value?.languages?.[0]) || 'ru'
+    let lang = sd.meta?.lang || (selectedProject.value?.languages?.[0]) || 'ru'
     if (lang.length > 5) lang = lang.substring(0, 2)
     
     // Prepare metadata: remove fields we use directly to avoid duplication
@@ -148,7 +182,7 @@ async function handleNext() {
     
     // Create publication with all available news info
     const publication = await createPublication({
-      projectId: props.projectId,
+      projectId: selectedProjectId.value || undefined,
       title: sd.title || undefined,
       description: sd.description || undefined,
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
@@ -204,6 +238,28 @@ async function handleNext() {
       </div>
       
       <div v-else-if="scrapedData" class="space-y-6">
+         <!-- Project selection -->
+         <UFormField :label="t('publication.select_project')">
+            <USelectMenu
+              v-model="selectedProjectId"
+              :options="projectOptions"
+              value-attribute="id"
+              option-attribute="name"
+              class="w-full"
+              :placeholder="t('publication.select_project')"
+            >
+              <template #leading>
+                <UIcon :name="selectedProjectId ? 'i-heroicons-briefcase' : 'i-heroicons-user'" class="w-4 h-4 text-gray-400" />
+              </template>
+            </USelectMenu>
+            <template v-if="!selectedProjectId" #hint>
+               <span class="text-xs text-gray-400 flex items-center gap-1">
+                 <UIcon name="i-heroicons-information-circle" class="w-3 h-3" />
+                 {{ t('publication.personal_draft_help') }}
+               </span>
+            </template>
+         </UFormField>
+
          <!-- Upper section: Image + Metadata -->
          <div class="flex gap-4">
              <!-- Image on the left -->
