@@ -4,8 +4,8 @@ import { useProjects } from '~/composables/useProjects'
 import { useAutosave } from '~/composables/useAutosave'
 import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
+import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
-import { VueDraggable } from 'vue-draggable-plus'
 import { useAuth } from '~/composables/useAuth'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
@@ -329,48 +329,30 @@ function formatScore(score: number) {
     <div v-if="newsQueries.length > 0" class="flex flex-col gap-6">
       
       <!-- Draggable Tabs Header -->
-      <div class="flex items-center gap-2">
-        <div class="flex-1 min-w-0 overflow-x-auto">
-          <VueDraggable 
-            v-model="newsQueries"
-            :animation="150"
-            class="flex items-center gap-2 pb-2"
-          >
-            <div 
-              v-for="query in newsQueries" 
-              :key="query.id"
-            >
-              <UButton
-                :label="query.name"
-                :variant="selectedQueryId === query.id ? 'soft' : 'ghost'"
-                :color="selectedQueryId === query.id ? 'primary' : 'neutral'"
-                size="sm"
-                class="whitespace-nowrap flex-shrink-0"
-                @click="selectedQueryId = query.id"
-              >
-                <template #trailing>
-                   <UIcon 
-                    v-if="query.isNotificationEnabled" 
-                    name="i-heroicons-bell-alert" 
-                    class="w-3.5 h-3.5"
-                    :class="selectedQueryId === query.id ? 'text-primary-500' : 'text-gray-400'"
-                  />
-                </template>
-              </UButton>
-            </div>
-          </VueDraggable>
-        </div>
-
-        <!-- Add Tab Button -->
-        <UButton
-          icon="i-heroicons-plus"
-          color="neutral"
-          variant="soft"
-          size="sm"
-          class="shrink-0 mb-2"
-          @click="isAddModalOpen = true"
-        />
-      </div>
+      <AppTabs
+        v-model="selectedQueryId"
+        v-model:items="newsQueries"
+        draggable
+      >
+        <template #tab-trailing="{ item, selected }">
+           <UIcon 
+            v-if="item.isNotificationEnabled" 
+            name="i-heroicons-bell-alert" 
+            class="w-3.5 h-3.5"
+            :class="selected ? 'text-primary-500' : 'text-gray-400'"
+          />
+        </template>
+        
+        <template #append>
+          <UButton
+            icon="i-heroicons-plus"
+            color="neutral"
+            variant="soft"
+            size="sm"
+            @click="isAddModalOpen = true"
+          />
+        </template>
+      </AppTabs>
 
       <!-- Tab Content -->
       <div v-if="currentQuery" class="space-y-6">
