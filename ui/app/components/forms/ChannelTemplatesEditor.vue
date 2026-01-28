@@ -394,12 +394,10 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
               </UFormField>
 
               <UFormField :label="t('channel.templateLanguage')">
-                <USelectMenu
+                <CommonLanguageSelect
                   v-model="templateForm.language"
-                  :items="languageSelectOptions"
-                  value-key="value"
-                  label-key="label"
-                  class="w-full"
+                  mode="all"
+                  allow-all
                 />
               </UFormField>
 

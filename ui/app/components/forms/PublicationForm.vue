@@ -385,13 +385,11 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
               <CommonInfoTooltip :text="t('common.languageTooltip')" />
             </div>
           </template>
-          <USelectMenu
+          <CommonLanguageSelect
             v-model="state.language"
-            :items="languageOptions"
-            value-key="value"
-            label-key="label"
+            mode="all"
+            searchable
             class="w-full"
-            icon="i-heroicons-language"
           />
         </UFormField>
 

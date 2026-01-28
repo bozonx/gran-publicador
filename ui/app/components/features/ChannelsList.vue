@@ -364,17 +364,12 @@ function toggleArchivedChannels() {
       <form @submit.prevent="handleCreateChannel" id="create-channel-form" class="space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField :label="t('channel.language')" required>
-            <USelectMenu
+            <CommonLanguageSelect
               v-model="createFormState.language"
-              :items="languageOptions"
-              value-key="value"
-              label-key="label"
+              mode="all"
+              searchable
               class="w-full"
-            >
-              <template #leading>
-                <UIcon name="i-heroicons-language" class="w-4 h-4" />
-              </template>
-            </USelectMenu>
+            />
           </UFormField>
 
           <UFormField :label="t('channel.socialMedia')" required>

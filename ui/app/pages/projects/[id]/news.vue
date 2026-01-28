@@ -433,11 +433,11 @@ function formatScore(score: number) {
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.language') || 'Language' }}
                 </label>
-                <UInput
+                <CommonLanguageSelect
                   v-model="currentQuery.lang"
-                  :placeholder="t('news.languagePlaceholder') || 'Language code (e.g., en, ru)'"
-                  icon="i-heroicons-language"
-                  size="lg"
+                  mode="all"
+                  allow-all
+                  searchable
                 />
               </div>
               <div v-if="currentQuery">

@@ -37,21 +37,13 @@ async function switchLocale(code: string) {
 </script>
 
 <template>
-  <UDropdownMenu
-    :items="
-      availableLocales.map((l) => ({
-        label: l.name,
-        click: () => switchLocale(l.code),
-        active: l.code === locale,
-      }))
-    "
-  >
-    <UButton
+  <div class="w-32">
+    <CommonLanguageSelect
+      :model-value="locale"
+      mode="ui"
       variant="ghost"
       size="sm"
-      icon="i-lucide-languages"
-      :label="currentLocale?.name"
-      trailing-icon="i-lucide-chevron-down"
+      @update:model-value="switchLocale"
     />
-  </UDropdownMenu>
+  </div>
 </template>

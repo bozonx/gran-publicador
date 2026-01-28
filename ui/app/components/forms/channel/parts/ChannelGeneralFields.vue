@@ -84,17 +84,12 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
         required
         :help="t('channel.languageWarningOnCreate')"
       >
-        <USelectMenu
+        <CommonLanguageSelect
           v-model="state.language"
-          :items="languageOptions"
-          value-key="value"
-          label-key="label"
+          mode="all"
+          searchable
           class="w-full"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-language" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+        />
       </UFormField>
     </div>
     <!-- Display current language for edit mode (read-only) -->

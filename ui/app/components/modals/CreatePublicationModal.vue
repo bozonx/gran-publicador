@@ -218,17 +218,12 @@ function handleClose() {
         :label="t('common.language')"
         required
       >
-        <USelectMenu
+        <CommonLanguageSelect
           v-model="formData.language"
-          :items="languageOptions"
-          value-key="value"
-          label-key="label"
+          mode="all"
+          searchable
           class="w-full"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-language" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+        />
       </UFormField>
 
       <!-- Post Type -->

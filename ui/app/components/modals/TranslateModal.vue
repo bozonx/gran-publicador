@@ -24,17 +24,6 @@ const splitter = ref<'paragraph' | 'markdown' | 'sentence' | 'off'>('paragraph')
 const maxChunkLength = ref<number | undefined>(undefined)
 const action = ref<'insert' | 'add'>('add')
 
-const languages = [
-  { label: 'Russian', value: 'ru-RU' },
-  { label: 'English', value: 'en-US' },
-  { label: 'Spanish', value: 'es-ES' },
-  { label: 'German', value: 'de-DE' },
-  { label: 'French', value: 'fr-FR' },
-  { label: 'Italian', value: 'it-IT' },
-  { label: 'Portuguese', value: 'pt-PT' },
-  { label: 'Chinese', value: 'zh-CN' },
-  { label: 'Japanese', value: 'ja-JP' },
-]
 
 const splitterOptions = computed(() => [
   { label: t('translate.splitterOptions.paragraph'), value: 'paragraph' },
@@ -77,11 +66,10 @@ watch(() => props.defaultTargetLang, (newVal) => {
   >
     <div class="space-y-4 py-2">
       <UFormField :label="t('translate.targetLanguage')">
-        <USelectMenu
+        <CommonLanguageSelect
           v-model="targetLang"
-          :items="languages"
-          value-key="value"
-          label-key="label"
+          mode="all"
+          searchable
         />
       </UFormField>
 

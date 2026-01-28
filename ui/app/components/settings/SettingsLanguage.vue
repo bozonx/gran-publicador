@@ -49,17 +49,12 @@ async function changeLanguage(newLocale: string) {
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
       {{ t('settings.selectLanguage', 'Select your preferred language for the interface') }}
     </p>
-    <div class="flex flex-wrap gap-3">
-      <UButton
-        v-for="lang in languageOptions"
-        :key="lang.value"
-        :color="locale === lang.value ? 'primary' : 'neutral'"
-        :variant="locale === lang.value ? 'solid' : 'outline'"
-        size="lg"
-        @click="changeLanguage(lang.value)"
-      >
-        {{ lang.label }}
-      </UButton>
+    <div class="max-w-xs">
+      <CommonLanguageSelect
+        :model-value="locale"
+        mode="ui"
+        @update:model-value="changeLanguage"
+      />
     </div>
   </UiAppCard>
 </template>
