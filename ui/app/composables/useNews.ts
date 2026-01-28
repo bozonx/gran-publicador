@@ -18,8 +18,13 @@ export interface NewsItem {
 
 export interface SearchNewsParams {
   q: string
+  mode?: 'text' | 'vector' | 'hybrid'
   since?: string
   source?: string
+  sourceTags?: string
+  newsTags?: string
+  lang?: string
+  offset?: number
   minScore?: number
 }
 
@@ -36,7 +41,7 @@ export const useNews = () => {
   const error = ref<string | null>(null)
   
   // Pagination state
-  const page = ref(1)
+  const offset = ref(0)
   const hasMore = ref(false)
 
   const searchNews = async (params: SearchNewsParams, customProjectId?: string, isLoadMore = false) => {
@@ -50,7 +55,7 @@ export const useNews = () => {
       return
     }
 
-    const targetPage = isLoadMore ? page.value : 1
+    const currentOffset = isLoadMore ? offset.value : 0
 
     try {
       const res = await api.get<any>(
@@ -58,10 +63,14 @@ export const useNews = () => {
         {
           params: {
             q: params.q,
+            mode: params.mode,
             since: params.since,
             source: params.source,
+            sourceTags: params.sourceTags,
+            newsTags: params.newsTags,
+            lang: params.lang,
+            offset: currentOffset,
             limit: NEWS_LIMIT,
-            page: targetPage,
             minScore: params.minScore
           }
         }
@@ -80,7 +89,7 @@ export const useNews = () => {
         
         // Check if we have more pages
         if (res.meta && typeof res.meta.total === 'number') {
-            hasMore.value = (targetPage * NEWS_LIMIT) < total
+            hasMore.value = (currentOffset + newItems.length) < total
         } else {
             hasMore.value = newItems.length >= NEWS_LIMIT
         }
@@ -95,8 +104,8 @@ export const useNews = () => {
         news.value = newItems
       }
       
-      // Update page pointer for next load
-      page.value = targetPage + 1
+      // Update offset pointer for next load
+      offset.value = currentOffset + newItems.length
       
     } catch (err: any) {
       console.error('Failed to search news:', err)
@@ -106,7 +115,7 @@ export const useNews = () => {
       toast.add({
         title: 'News Search Error',
         description: msg,
-        color: 'red',
+        color: 'error',
         icon: 'i-heroicons-exclamation-triangle'
       })
       
@@ -122,6 +131,6 @@ export const useNews = () => {
     error,
     hasMore,
     searchNews,
-    page
+    offset
   }
 }

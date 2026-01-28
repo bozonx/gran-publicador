@@ -8,7 +8,11 @@ interface NewsQuery {
   id: string
   name: string
   q: string
+  mode?: 'text' | 'vector' | 'hybrid'
   since?: string
+  lang?: string
+  sourceTags?: string
+  newsTags?: string
   minScore: number
   note: string
   isDefault: boolean
@@ -79,10 +83,16 @@ async function initQueries() {
     
     const prefs = currentProject.value?.preferences as any
     if (prefs?.newsQueries?.length > 0) {
-      // Migrate old configs that might have limit
+      // Migrate old configs and add defaults for new fields
       newsQueries.value = JSON.parse(JSON.stringify(prefs.newsQueries)).map((q: any) => {
         const { limit, ...rest } = q
-        return rest
+        return {
+          ...rest,
+          mode: rest.mode || 'hybrid',
+          lang: rest.lang || undefined,
+          sourceTags: rest.sourceTags || undefined,
+          newsTags: rest.newsTags || undefined
+        }
       })
       
       // Select default tab or first tab
@@ -93,7 +103,11 @@ async function initQueries() {
         id: crypto.randomUUID(),
         name: t('news.title'),
         q: currentProject.value?.name || '',
+        mode: 'hybrid',
         since: '1d',
+        lang: undefined,
+        sourceTags: undefined,
+        newsTags: undefined,
         minScore: 0.5,
         note: '',
         isDefault: true
@@ -122,7 +136,11 @@ async function handleSearch() {
 
   await searchNews({
     q: currentQuery.value.q,
+    mode: currentQuery.value.mode,
     since: currentQuery.value.since,
+    lang: currentQuery.value.lang,
+    sourceTags: currentQuery.value.sourceTags,
+    newsTags: currentQuery.value.newsTags,
     minScore: currentQuery.value.minScore,
   })
 }
@@ -135,7 +153,11 @@ async function loadMore() {
   try {
     await searchNews({
       q: currentQuery.value.q,
+      mode: currentQuery.value.mode,
       since: currentQuery.value.since,
+      lang: currentQuery.value.lang,
+      sourceTags: currentQuery.value.sourceTags,
+      newsTags: currentQuery.value.newsTags,
       minScore: currentQuery.value.minScore,
     }, undefined, true)
   } finally {
@@ -151,7 +173,11 @@ watch(activeTabIndex, async (newIndex) => {
 // Watch parameters for auto-search with debounce
 watchDebounced(() => [
     currentQuery.value?.q,
+    currentQuery.value?.mode,
     currentQuery.value?.since,
+    currentQuery.value?.lang,
+    currentQuery.value?.sourceTags,
+    currentQuery.value?.newsTags,
     currentQuery.value?.minScore
 ], () => {
     handleSearch()
@@ -165,7 +191,11 @@ async function addTab() {
     id: crypto.randomUUID(),
     name: newTabName.value,
     q: '',
+    mode: 'hybrid',
     since: '1d',
+    lang: undefined,
+    sourceTags: undefined,
+    newsTags: undefined,
     minScore: 0.5,
     note: '',
     isDefault: false
@@ -383,6 +413,46 @@ const timeRangeOptions = [
                   />
                 </div>
 
+
+                <!-- Search Mode Selection -->
+                <div class="w-full">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ t('news.mode') || 'Search Mode' }}
+                  </label>
+                  <div class="flex gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input
+                        v-model="currentQuery.mode"
+                        type="radio"
+                        value="text"
+                        class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeText') || 'Text' }}</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input
+                        v-model="currentQuery.mode"
+                        type="radio"
+                        value="vector"
+                        class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeVector') || 'Vector' }}</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input
+                        v-model="currentQuery.mode"
+                        type="radio"
+                        value="hybrid"
+                        class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeHybrid') || 'Hybrid' }}</span>
+                    </label>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('news.modeHelp') || 'Text: keyword matching, Vector: semantic similarity, Hybrid: combines both' }}
+                  </p>
+                </div>
+
                 <!-- Filters Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -416,6 +486,45 @@ const timeRangeOptions = [
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Additional Filters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ t('news.language') || 'Language' }}
+                    </label>
+                    <UInput
+                      v-model="currentQuery.lang"
+                      :placeholder="t('news.languagePlaceholder') || 'Language code (e.g., en, ru)'"
+                      icon="i-heroicons-language"
+                      size="lg"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ t('news.sourceTags') || 'Source Tags' }}
+                    </label>
+                    <UInput
+                      v-model="currentQuery.sourceTags"
+                      :placeholder="t('news.sourceTagsPlaceholder') || 'Comma-separated source tags'"
+                      icon="i-heroicons-tag"
+                      size="lg"
+                    />
+                  </div>
+                </div>
+
+                <!-- News Tags -->
+                <div class="w-full">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ t('news.newsTags') || 'News Tags' }}
+                  </label>
+                  <UInput
+                    v-model="currentQuery.newsTags"
+                    :placeholder="t('news.newsTagsPlaceholder') || 'Comma-separated news tags'"
+                    icon="i-heroicons-tag"
+                    size="lg"
+                  />
                 </div>
 
                 <!-- Search Actions Area -->

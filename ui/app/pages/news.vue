@@ -42,9 +42,12 @@ async function handleSearch() {
 
   await searchNews({
     q: currentDefaultQuery.value.q,
-    limit: currentDefaultQuery.value.limit,
-    minScore: currentDefaultQuery.value.minScore,
+    mode: (currentDefaultQuery.value as any).mode,
     since: (currentDefaultQuery.value as any).since,
+    lang: (currentDefaultQuery.value as any).lang,
+    sourceTags: (currentDefaultQuery.value as any).sourceTags,
+    newsTags: (currentDefaultQuery.value as any).newsTags,
+    minScore: currentDefaultQuery.value.minScore,
   }, currentProject.value.id)
 }
 

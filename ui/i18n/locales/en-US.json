@@ -156,7 +156,18 @@
     "howToConfigure": "Configure default news queries in project settings.",
     "editTab": "Edit tab",
     "deleteTab": "Delete tab",
-    "editTabDescription": "Change the tab name for this search query"
+    "editTabDescription": "Change the tab name for this search query",
+    "mode": "Search Mode",
+    "modeText": "Text (Keyword)",
+    "modeVector": "Vector (Semantic)",
+    "modeHybrid": "Hybrid (Combined)",
+    "modeHelp": "Text: keyword matching, Vector: semantic similarity, Hybrid: combines both",
+    "language": "Language",
+    "languagePlaceholder": "Language code (e.g., en, ru)",
+    "sourceTags": "Source Tags",
+    "sourceTagsPlaceholder": "Comma-separated source tags",
+    "newsTags": "News Tags",
+    "newsTagsPlaceholder": "Comma-separated news tags"
   },
   "auth": {
     "login": "Log in",
