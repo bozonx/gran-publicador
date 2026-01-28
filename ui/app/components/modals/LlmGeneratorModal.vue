@@ -132,6 +132,14 @@ watch(isOpen, async (open) => {
     } finally {
       isLoadingTemplates.value = false
     }
+
+    // Auto-select all source texts and use content by default
+    if (sourceTexts && sourceTexts.length > 0) {
+      sourceTexts.forEach((_, idx) => selectedSourceTexts.value.add(idx))
+    }
+    if (content) {
+      useContent.value = true
+    }
   } else {
     // Reset form when modal closes
     step.value = 1
