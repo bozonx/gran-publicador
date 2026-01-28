@@ -331,13 +331,6 @@ async function handleDelete() {
                 icon="i-heroicons-cog-6-tooth"
                 :to="`/projects/${currentProject.id}/settings`"
               />
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="i-heroicons-newspaper"
-                :to="`/projects/${currentProject.id}/news`"
-                :title="t('news.title')"
-              />
             </div>
           </div>
         </div>
@@ -360,6 +353,18 @@ async function handleDelete() {
 
           <!-- Quick filters -->
           <div class="flex flex-wrap gap-2">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-heroicons-newspaper"
+              :to="`/projects/${currentProject.id}/news`"
+            >
+              {{ t('news.news_selections') }}
+            </UButton>
+            
+            <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 self-center mx-1" />
+
             <UButton
               variant="ghost"
               color="neutral"

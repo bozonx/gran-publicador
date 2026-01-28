@@ -132,6 +132,7 @@
   },
   "news": {
     "title": "News",
+    "news_selections": "News Selections",
     "search": "Search news...",
     "searchPlaceholder": "Enter search query",
     "noResults": "No news found",
