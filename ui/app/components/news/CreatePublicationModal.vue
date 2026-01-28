@@ -10,6 +10,20 @@ const md = new MarkdownIt({
   typographer: true
 })
 
+// Add target="_blank" to external links
+const defaultRender = md.renderer.rules.link_open || function (tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options)
+}
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  const aIndex = tokens[idx].attrIndex('target')
+  if (aIndex < 0) {
+    tokens[idx].attrPush(['target', '_blank'])
+  } else {
+    tokens[idx].attrs[aIndex][1] = '_blank'
+  }
+  return defaultRender(tokens, idx, options, env, self)
+}
+
 const props = defineProps<{
   projectId: string
 }>()
@@ -163,7 +177,7 @@ function handleNext() {
          <!-- Lower section: Content with HTML markup -->
          <div v-if="scrapedData.body" class="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div 
-              class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-primary-600 dark:prose-a:text-primary-400"
+              class="content-preview prose prose-sm dark:prose-invert max-w-none"
               v-html="sanitizedContent"
             />
          </div>
@@ -180,3 +194,35 @@ function handleNext() {
     </template>
   </AppModal>
 </template>
+
+<style scoped>
+.content-preview :deep(a) {
+  color: #3b82f6; /* primary-500 */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.content-preview :deep(a:hover) {
+  color: #2563eb; /* primary-600 */
+}
+
+.content-preview :deep(p) {
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+
+.content-preview :deep(h1), 
+.content-preview :deep(h2), 
+.content-preview :deep(h3) {
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+
+.wrap-break-word {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+</style>
