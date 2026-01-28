@@ -206,6 +206,9 @@ export class ProjectPreferencesDto {
   @Type(() => MediaOptimizationDto)
   mediaOptimization?: MediaOptimizationDto;
 
+  @IsOptional()
+  @IsNumber()
+  staleChannelsDays?: number;
 }
 
 /**

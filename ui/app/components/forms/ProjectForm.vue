@@ -97,6 +97,11 @@ function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
     if (props.visibleSections.includes('optimization')) {
       updateData.preferences.mediaOptimization = currentState.preferences.mediaOptimization
     }
+
+    // Remove legacy properties that might cause validation errors
+    if ('newsQueries' in updateData.preferences) {
+      delete updateData.preferences.newsQueries
+    }
   }
   
   return updateData
