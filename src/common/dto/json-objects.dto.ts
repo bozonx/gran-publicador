@@ -1,5 +1,6 @@
-import { IsOptional, IsString, IsObject, ValidateNested, IsBoolean, IsUUID, IsNumber, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsObject, ValidateNested, IsBoolean, IsUUID, IsNumber, IsArray, IsIn, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
+import { VALIDATION_LIMITS } from '../constants/validation.constants.js';
 
 /**
  * DTO for repost information.
@@ -194,6 +195,25 @@ export class NewsQueryDto {
 
   @IsString()
   q!: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['text', 'vector', 'hybrid'])
+  mode?: 'text' | 'vector' | 'hybrid';
+
+  @IsOptional()
+  @IsString()
+  lang?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
+  sourceTags?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
+  newsTags?: string;
 
   @IsNumber()
   minScore!: number;
