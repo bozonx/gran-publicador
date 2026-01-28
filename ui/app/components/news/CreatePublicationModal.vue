@@ -38,17 +38,19 @@ const url = defineModel<string>('url', { default: '' })
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 const { scrapePage, isLoading, error } = usePageScraper()
 const { createPublication } = usePublications()
 const { projects, fetchProjects } = useProjects()
 
-const selectedProjectId = ref<string | null>(props.projectId || null)
+const isGeneralNewsPage = computed(() => route.path === '/news')
+const selectedProjectId = ref<string | null>(null)
 const isCreating = ref(false)
 
 const projectOptions = computed(() => [
-  { id: null, name: t('publication.personal_draft') },
-  ...projects.value.map(p => ({ id: p.id, name: p.name }))
+  { value: null, label: t('publication.personal_draft') },
+  ...projects.value.map(p => ({ value: p.id, label: p.name }))
 ])
 
 const selectedProject = computed(() => {
@@ -114,7 +116,16 @@ watch(() => url.value, async (newUrl) => {
 // Also watch isOpen, in case URL was set before opening
 watch(isOpen, async (open) => {
   if (open) {
-    selectedProjectId.value = props.projectId || null
+    // Ensure projects are loaded
+    if (projects.value.length === 0) {
+      await fetchProjects()
+    }
+    
+    if (isGeneralNewsPage.value) {
+      selectedProjectId.value = null
+    } else {
+      selectedProjectId.value = props.projectId || null
+    }
     if (url.value) {
       if (!scrapedData.value || scrapedData.value.url !== url.value) {
         await fetchData(url.value)
@@ -238,13 +249,13 @@ async function handleNext() {
       </div>
       
       <div v-else-if="scrapedData" class="space-y-6">
-         <!-- Project selection -->
-         <UFormField :label="t('publication.select_project')">
+         <!-- Project selection (only on general news page) -->
+         <UFormField v-if="isGeneralNewsPage" :label="t('publication.select_project')">
             <USelectMenu
               v-model="selectedProjectId"
-              :options="projectOptions"
-              value-attribute="id"
-              option-attribute="name"
+              :items="projectOptions"
+              value-key="value"
+              label-key="label"
               class="w-full"
               :placeholder="t('publication.select_project')"
             >
