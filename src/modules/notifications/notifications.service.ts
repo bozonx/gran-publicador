@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsGateway } from './notifications.gateway.js';
 import { CreateNotificationDto, NotificationFilterDto } from './dto/index.js';
 import { NotificationType, Prisma } from '../../generated/prisma/index.js';
+import { TelegramBotService } from '../telegram-bot/telegram-bot.service.js';
+import { UsersService } from '../users/users.service.js';
 
 @Injectable()
 export class NotificationsService {
@@ -11,10 +13,13 @@ export class NotificationsService {
   constructor(
     private prisma: PrismaService,
     private gateway: NotificationsGateway,
+    private telegramBotService: TelegramBotService,
+    private usersService: UsersService,
   ) {}
 
   /**
    * Create a new notification and send it via WebSocket if user is online.
+   * Also sends to Telegram if user has enabled Telegram notifications for this type.
    */
   async create(data: CreateNotificationDto) {
     if (!data.userId || !data.type || !data.message) {
@@ -37,6 +42,9 @@ export class NotificationsService {
     } catch (error: any) {
       this.logger.error(`Failed to send notification via WebSocket: ${error.message}`);
     }
+
+    // Send to Telegram if enabled in user preferences
+    await this.sendTelegramNotification(data.userId, data.type, data.title, data.message);
 
     return notification;
   }
@@ -141,5 +149,63 @@ export class NotificationsService {
     }
 
     return result;
+  }
+
+  /**
+   * Send notification to Telegram if user has enabled it for this notification type.
+   */
+  private async sendTelegramNotification(
+    userId: string,
+    type: NotificationType,
+    title: string,
+    message: string,
+  ): Promise<void> {
+    try {
+      // Get user notification preferences
+      const preferences = await this.usersService.getNotificationPreferences(userId);
+
+      // Check if Telegram notifications are enabled for this type
+      if (!preferences[type]?.telegram) {
+        this.logger.debug(`Telegram notifications disabled for user ${userId}, type ${type}`);
+        return;
+      }
+
+      // Get user's Telegram ID
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { telegramId: true },
+      });
+
+      if (!user?.telegramId) {
+        this.logger.debug(`User ${userId} does not have a Telegram ID`);
+        return;
+      }
+
+      // Get bot instance
+      const bot = this.telegramBotService.getBot();
+      if (!bot) {
+        this.logger.warn('Telegram bot is not initialized, cannot send notification');
+        return;
+      }
+
+      // Format and send message
+      const formattedMessage = `*${this.escapeMarkdown(title)}*\n\n${this.escapeMarkdown(message)}`;
+
+      await bot.api.sendMessage(user.telegramId.toString(), formattedMessage, {
+        parse_mode: 'MarkdownV2',
+      });
+
+      this.logger.debug(`Sent Telegram notification to user ${userId} (${user.telegramId})`);
+    } catch (error: any) {
+      this.logger.error(`Failed to send Telegram notification: ${error.message}`, error.stack);
+      // Don't throw - notification was already created in DB
+    }
+  }
+
+  /**
+   * Escape special characters for Telegram MarkdownV2.
+   */
+  private escapeMarkdown(text: string): string {
+    return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
   }
 }

@@ -79,4 +79,12 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       }
     }
   }
+
+  /**
+   * Get the bot instance for sending messages.
+   * Returns null if bot is not initialized.
+   */
+  public getBot(): Bot | null {
+    return this.bot;
+  }
 }
