@@ -204,4 +204,21 @@ export class ProjectsController {
   ) {
     return this.projectsService.searchNews(id, req.user.userId, query);
   }
+
+  @Post(':id/scrape-page')
+  public async scrapePage(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    // Validate project scope for API token users
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.projectsService.scrapePage(id, req.user.userId, body);
+  }
 }

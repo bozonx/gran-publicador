@@ -5,6 +5,10 @@ const props = defineProps<{
   item: NewsItem
 }>()
 
+defineEmits<{
+  (e: 'create-publication', item: NewsItem): void
+}>()
+
 const { t, d } = useI18n()
 
 // Format date
@@ -59,18 +63,29 @@ function formatScore(score: number) {
         </div>
       </div>
 
-      <UButton
-        :to="item.url"
-        target="_blank"
-        variant="ghost"
-        color="neutral"
-        size="sm"
-        icon="i-heroicons-arrow-top-right-on-square"
-        trailing
-        class="shrink-0"
-      >
-        {{ t('common.view') }}
-      </UButton>
+      <div class="flex flex-col gap-2 shrink-0">
+        <UButton
+          :to="item.url"
+          target="_blank"
+          variant="ghost"
+          color="neutral"
+          size="sm"
+          icon="i-heroicons-arrow-top-right-on-square"
+          trailing
+        >
+          {{ t('common.view') }}
+        </UButton>
+
+        <UButton
+          variant="soft"
+          color="primary"
+          size="sm"
+          icon="i-heroicons-document-plus"
+          @click="$emit('create-publication', item)"
+        >
+          {{ t('publication.create') }}
+        </UButton>
+      </div>
     </div>
   </div>
 </template>

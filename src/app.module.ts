@@ -18,6 +18,7 @@ import llmConfig from './config/llm.config.js';
 import sttConfig from './config/stt.config.js';
 import translateConfig from './config/translate.config.js';
 import newsConfig from './config/news.config.js';
+import pageScraperConfig from './config/page-scraper.config.js';
 import redisConfig, { RedisConfig } from './config/redis.config.js';
 import mediaConfig, { MediaConfig } from './config/media.config.js';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -49,7 +50,7 @@ import { RolesModule } from './modules/roles/roles.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, newsConfig, redisConfig, mediaConfig],
+      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, newsConfig, pageScraperConfig, redisConfig, mediaConfig],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),

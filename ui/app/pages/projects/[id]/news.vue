@@ -3,6 +3,7 @@ import { useNews } from '~/composables/useNews'
 import { useProjects } from '~/composables/useProjects'
 import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
+import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 
 interface NewsQuery {
   id: string
@@ -48,6 +49,13 @@ const newTabName = ref('')
 const isSaving = ref(false)
 const isDeleting = ref(false)
 const isLoadMoreLoading = ref(false)
+const isCreateModalOpen = ref(false)
+const selectedNewsUrl = ref('')
+
+function handleCreatePublication(item: any) {
+  selectedNewsUrl.value = item.url
+  isCreateModalOpen.value = true
+}
 
 // Tabs for UTabs component
 const tabs = computed<NewsTabItem[]>(() => {
@@ -362,7 +370,7 @@ const timeRangeOptions = [
         :items="tabs" 
         class="flex-1 min-w-0"
       >
-        <template #default="{ item, index, selected }">
+        <template #default="{ item, index }">
           <div class="flex items-center gap-2">
             <UIcon 
               v-if="item.isDefault" 
@@ -371,7 +379,7 @@ const timeRangeOptions = [
             />
             <span class="truncate max-w-[120px] md:max-w-none">{{ item.label }}</span>
             
-            <div v-if="selected" class="flex items-center gap-0.5 -mr-1">
+            <div v-if="activeTabIndex === index" class="flex items-center gap-0.5 -mr-1">
               <UButton
                 icon="i-heroicons-pencil-square"
                 size="xs"
@@ -594,6 +602,7 @@ const timeRangeOptions = [
                   v-for="item in news"
                   :key="item._id"
                   :item="item"
+                  @create-publication="handleCreatePublication"
                 />
                 
                 <!-- Load More Button -->
@@ -648,14 +657,14 @@ const timeRangeOptions = [
       :title="t('news.addTab')"
     >
       <form @submit.prevent="addTab" class="space-y-4">
-        <UFormGroup :label="t('news.tabName')">
+        <UFormField :label="t('news.tabName')">
           <UInput
             v-model="newTabName"
             :placeholder="t('news.tabNamePlaceholder')"
             autofocus
             size="lg"
           />
-        </UFormGroup>
+        </UFormField>
         
         <div class="flex justify-end gap-3 mt-6">
           <UButton
@@ -683,14 +692,14 @@ const timeRangeOptions = [
       :description="t('news.editTabDescription')"
     >
       <form @submit.prevent="saveTabName" class="space-y-4">
-        <UFormGroup :label="t('news.tabName')">
+        <UFormField :label="t('news.tabName')">
           <UInput
             v-model="editingTabName"
             :placeholder="t('news.tabNamePlaceholder')"
             autofocus
             size="lg"
           />
-        </UFormGroup>
+        </UFormField>
         
         <div class="flex justify-end gap-3 mt-6">
           <UButton
@@ -721,6 +730,12 @@ const timeRangeOptions = [
       icon="i-heroicons-trash"
       :loading="isDeleting"
       @confirm="confirmDeleteTab"
+    />
+
+    <NewsCreatePublicationModal
+      v-model:open="isCreateModalOpen"
+      :url="selectedNewsUrl"
+      :project-id="projectId"
     />
   </div>
 </template>

@@ -9,11 +9,9 @@ export const useApi = () => {
     const token = useCookie('auth_token');
 
     // Base path for API, matching NestJS global prefix
-    // If apiBase is empty (production), use current host + /api/v1
-    // If apiBase is set (development), use it + /api/v1
-    const apiBase = config.public.apiBase
-        ? `${config.public.apiBase}/api/v1`
-        : '/api/v1';
+    const rawApiBase = config.public.apiBase || '';
+    const cleanApiBase = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
+    const apiBase = cleanApiBase ? `${cleanApiBase}/api/v1` : '/api/v1';
 
     // XMLHttpRequest-based upload with progress tracking
     const uploadWithProgress = async <T>(

@@ -681,5 +681,40 @@ export class ProjectsService {
       throw error;
     }
   }
+
+  public async scrapePage(projectId: string, userId: string, data: any) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
+    const config = this.configService.get<any>('pageScraper')!;
+    let baseUrl = config.serviceUrl.replace(/\/$/, '');
+    
+    // Ensure we don't duplicate /api/v1 if it's already in the config
+    if (!baseUrl.endsWith('/api/v1')) {
+      baseUrl = `${baseUrl}/api/v1`;
+    }
+    
+    const url = `${baseUrl}/page`;
+
+    try {
+      const response = await request(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.statusCode >= 400) {
+        const errorText = await response.body.text();
+        this.logger.error(`Page Scraper microservice returned ${response.statusCode}: ${errorText}`);
+        throw new Error(`Page Scraper microservice error: ${response.statusCode}`);
+      }
+
+      return response.body.json();
+    } catch (error: any) {
+      this.logger.error(`Failed to scrape page: ${error.message}`);
+      throw error;
+    }
+  }
 }
 // Force rebuild

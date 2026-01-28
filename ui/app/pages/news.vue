@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useNews } from '~/composables/useNews'
 import { useProjects } from '~/composables/useProjects'
+import AppModal from '~/components/ui/AppModal.vue'
+import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -11,6 +13,13 @@ const { news, isLoading: isNewsLoading, error, searchNews } = useNews()
 const { projects, fetchProjects, isLoading: isProjectsLoading } = useProjects()
 
 const activeTabIndex = ref(0)
+const isCreateModalOpen = ref(false)
+const selectedNewsUrl = ref('')
+
+function handleCreatePublication(item: any) {
+  selectedNewsUrl.value = item.url
+  isCreateModalOpen.value = true
+}
 
 // Projects that have at least one default news query
 const filteredProjects = computed(() => {
@@ -147,6 +156,7 @@ function formatScore(score: number) {
                 v-for="item in news"
                 :key="item._id"
                 :item="item"
+                @create-publication="handleCreatePublication"
               />
             </div>
 
@@ -167,6 +177,12 @@ function formatScore(score: number) {
     <div v-else-if="isProjectsLoading" class="flex justify-center py-12">
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-500 animate-spin" />
     </div>
+
+    <NewsCreatePublicationModal
+      v-model:open="isCreateModalOpen"
+      :url="selectedNewsUrl"
+      :project-id="currentProject?.id || ''"
+    />
   </div>
 </template>
 
