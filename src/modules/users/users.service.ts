@@ -4,6 +4,10 @@ import { Prisma, type User } from '../../generated/prisma/index.js';
 
 import { AppConfig } from '../../config/app.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  NotificationPreferencesDto,
+  getDefaultNotificationPreferences,
+} from './dto/notification-preferences.dto.js';
 
 /**
  * Service for managing user data.
@@ -75,10 +79,15 @@ export class UsersService {
         fullName: fullName,
         avatarUrl: userData.avatarUrl,
         isAdmin: isAdmin,
-        preferences: {},
+        preferences: JSON.parse(
+          JSON.stringify({
+            notifications: getDefaultNotificationPreferences(),
+          }),
+        ),
       },
     });
   }
+
 
   /**
    * Find all users with pagination and filtering.
@@ -239,5 +248,63 @@ export class UsersService {
         where: { userId },
       }),
     ]);
+  }
+
+  /**
+   * Get notification preferences for a user.
+   * Returns default preferences if not set.
+   */
+  public async getNotificationPreferences(userId: string): Promise<NotificationPreferencesDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const preferences = user.preferences as any;
+    
+    // Return existing preferences or defaults
+    if (preferences?.notifications) {
+      return preferences.notifications as NotificationPreferencesDto;
+    }
+
+    return getDefaultNotificationPreferences();
+  }
+
+  /**
+   * Update notification preferences for a user.
+   */
+  public async updateNotificationPreferences(
+    userId: string,
+    notificationPreferences: NotificationPreferencesDto,
+  ): Promise<NotificationPreferencesDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const currentPreferences = (user.preferences as any) || {};
+
+    // Update user preferences with new notification settings
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: JSON.parse(
+          JSON.stringify({
+            ...currentPreferences,
+            notifications: notificationPreferences,
+          }),
+        ),
+      },
+    });
+
+    return notificationPreferences;
   }
 }

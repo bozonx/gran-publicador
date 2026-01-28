@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Patch, UseGuards, Req } from '@nestjs/common';
 import { NewsQueriesService } from './news-queries.service.js';
 import { CreateNewsQueryDto } from './dto/create-news-query.dto.js';
 import { UpdateNewsQueryDto } from './dto/update-news-query.dto.js';
@@ -19,7 +19,7 @@ export class NewsQueriesController {
     return this.newsQueriesService.create(projectId, createNewsQueryDto);
   }
 
-  @Put(':id')
+  @Patch(':id')
   update(
     @Param('projectId') projectId: string,
     @Param('id') id: string,

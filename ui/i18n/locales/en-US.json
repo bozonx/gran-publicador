@@ -107,6 +107,7 @@
     "stopRecording": "Stop recording",
     "current": "Current",
     "saved": "Saved",
+    "saving": "Saving...",
     "user": "User",
     "assistant": "Assistant",
     "confirmDelete": "Confirm Delete",

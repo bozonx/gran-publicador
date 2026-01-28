@@ -120,4 +120,23 @@ export class UsersController {
   public async deleteMe(@Request() req: AuthenticatedRequest) {
     return this.usersService.softDelete(req.user.sub);
   }
+
+  /**
+   * Get notification preferences for current user.
+   */
+  @Get('me/notification-preferences')
+  public async getNotificationPreferences(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getNotificationPreferences(req.user.sub);
+  }
+
+  /**
+   * Update notification preferences for current user.
+   */
+  @Patch('me/notification-preferences')
+  public async updateNotificationPreferences(
+    @Request() req: AuthenticatedRequest,
+    @Body() preferences: any,
+  ) {
+    return this.usersService.updateNotificationPreferences(req.user.sub, preferences);
+  }
 }

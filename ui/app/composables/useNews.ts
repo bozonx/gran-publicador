@@ -142,7 +142,7 @@ export const useNews = () => {
 
   const updateQuery = async (id: string, query: any, customProjectId?: string) => {
     const pId = customProjectId || projectId.value
-    return await api.put(`/projects/${pId}/news-queries/${id}`, query)
+    return await api.patch(`/projects/${pId}/news-queries/${id}`, query)
   }
 
   const deleteQuery = async (id: string, customProjectId?: string) => {

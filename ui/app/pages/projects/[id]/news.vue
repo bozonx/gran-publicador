@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useNews } from '~/composables/useNews'
 import { useProjects } from '~/composables/useProjects'
+import { useAutosave } from '~/composables/useAutosave'
 import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
@@ -55,12 +56,6 @@ const isLoadMoreLoading = ref(false)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<NewsItem | null>(null)
-
-// Auto-save state
-const saveStatus = ref<'saved' | 'saving' | 'error'>('saved')
-const saveError = ref<string | null>(null)
-const lastSavedAt = ref<Date | null>(null)
-let saveQueue = Promise.resolve()
 
 function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
@@ -161,21 +156,46 @@ watch(selectedQueryId, async (newId) => {
   }
 })
 
-// Watch parameters for auto-save and auto-search with debounce
-watchDebounced(() => [
+// Auto-save setup using composable
+const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
+  data: currentQuery,
+  saveFn: async (query) => {
+    if (!query) return
+    
+    await updateQuery(query.id, {
+      q: query.q,
+      mode: query.mode,
+      lang: query.lang,
+      sourceTags: query.sourceTags,
+      newsTags: query.newsTags,
+      minScore: query.minScore,
+      note: query.note,
+      isNotificationEnabled: query.isNotificationEnabled
+    })
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
+})
+
+// Auto-search with debounce (separate from auto-save)
+const debouncedSearch = useDebounceFn(handleSearch, AUTO_SAVE_DEBOUNCE_MS)
+
+watch(
+  () => [
     currentQuery.value?.q,
     currentQuery.value?.mode,
-    currentQuery.value?.since,
     currentQuery.value?.lang,
     currentQuery.value?.sourceTags,
     currentQuery.value?.newsTags,
     currentQuery.value?.minScore,
-    currentQuery.value?.note,
-    currentQuery.value?.isNotificationEnabled
-], () => {
-    autoSaveQuery()
-    handleSearch()
-}, { debounce: AUTO_SAVE_DEBOUNCE_MS, deep: true })
+  ],
+  () => {
+    if (currentQuery.value?.q) {
+      debouncedSearch()
+    }
+  },
+  { deep: true }
+)
 
 // Add new search tab
 async function addTab() {
@@ -262,45 +282,6 @@ async function confirmDeleteTab() {
     isDeleteModalOpen.value = false
     deletingTabId.value = ""
   }
-}
-
-
-// Auto-save current query settings with request queuing
-async function autoSaveQuery() {
-  if (!currentQuery.value) return
-  
-  // Add to queue to ensure sequential execution
-  saveQueue = saveQueue.then(async () => {
-    saveStatus.value = 'saving'
-    saveError.value = null
-    
-    try {
-      await updateQuery(currentQuery.value!.id, {
-        q: currentQuery.value!.q,
-        mode: currentQuery.value!.mode,
-        lang: currentQuery.value!.lang,
-        sourceTags: currentQuery.value!.sourceTags,
-        newsTags: currentQuery.value!.newsTags,
-        minScore: currentQuery.value!.minScore,
-        note: currentQuery.value!.note,
-        isNotificationEnabled: currentQuery.value!.isNotificationEnabled
-      })
-      
-      saveStatus.value = 'saved'
-      lastSavedAt.value = new Date()
-    } catch (err: any) {
-      console.error('Auto-save failed:', err)
-      saveStatus.value = 'error'
-      saveError.value = err.message || 'Failed to save'
-      
-      toast.add({
-        title: 'Auto-save Error',
-        description: saveError.value,
-        color: 'error',
-        icon: 'i-heroicons-exclamation-triangle'
-      })
-    }
-  })
 }
 
 // Format date
