@@ -212,6 +212,23 @@ export class ProjectPreferencesDto {
 }
 
 /**
+ * DTO for Channel Footer.
+ */
+export class ChannelFooterDto {
+  @IsString()
+  id!: string;
+
+  @IsString()
+  name!: string;
+
+  @IsString()
+  content!: string;
+
+  @IsBoolean()
+  isDefault!: boolean;
+}
+
+/**
  * DTO for Channel preferences.
  */
 export class ChannelPreferencesDto {
@@ -222,6 +239,16 @@ export class ChannelPreferencesDto {
   @IsOptional()
   @IsBoolean()
   protectContent?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  staleChannelsDays?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChannelFooterDto)
+  footers?: ChannelFooterDto[];
 }
 
 /**
