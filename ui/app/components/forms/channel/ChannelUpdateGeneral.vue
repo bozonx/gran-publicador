@@ -4,14 +4,18 @@ import { createChannelBaseObject } from '~/utils/schemas/channel'
 import type { ChannelWithProject } from '~/types/channels'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 interface Props {
   channel: ChannelWithProject
   projectId: string
   disabled?: boolean
+  autosave?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    autosave: false
+})
 const emit = defineEmits(['success', 'cancel'])
 
 const { t } = useI18n()
@@ -57,6 +61,38 @@ const isDirty = computed(() => {
            state.tags !== (props.channel.tags || '')
 })
 
+async function performUpdate(data: any, silent: boolean = false) {
+    const result = await updateChannel(props.channel.id, data)
+    if (result) {
+        emit('success', result)
+        if (!silent) {
+            toast.add({
+                title: t('common.success'), 
+                description: t('common.saved'), 
+                color: 'success'
+            })
+        }
+    }
+    return result
+}
+
+// Auto-save setup
+const { saveStatus, saveError } = useAutosave({
+  data: toRef(() => state),
+  saveFn: async () => {
+    if (!props.autosave) return
+    const updateData = {
+      name: state.name,
+      description: state.description || null,
+      channelIdentifier: state.channelIdentifier,
+      tags: state.tags || null,
+    }
+    await performUpdate(updateData, true)
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
+})
+
 async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     const updateData = {
@@ -66,15 +102,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       tags: event.data.tags || null,
     }
 
-    const result = await updateChannel(props.channel.id, updateData)
-    if (result) {
-        emit('success', result)
-        toast.add({
-            title: t('common.success'), 
-            description: t('common.saved'), 
-            color: 'success'
-        })
-    }
+    await performUpdate(updateData, false)
   } catch (error) {
     toast.add({
       title: t('common.error'),
@@ -108,14 +136,22 @@ const currentProjectName = computed(() => {
       />
     </div>
 
-    <UiFormActions
-      :loading="isLoading"
-      :is-dirty="isDirty"
-      :disabled="disabled"
-      :save-label="t('common.save')"
-      hide-cancel
-      show-border
-      class="mt-6"
-    />
+    <div class="mt-6 flex justify-end">
+      <UiAutosaveStatus 
+        v-if="autosave" 
+        :status="saveStatus" 
+        :error="saveError" 
+      />
+      <UiFormActions
+        v-else
+        :loading="isLoading"
+        :is-dirty="isDirty"
+        :disabled="disabled"
+        :save-label="t('common.save')"
+        hide-cancel
+        show-border
+        class="w-full"
+      />
+    </div>
   </UForm>
 </template>

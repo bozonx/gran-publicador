@@ -161,6 +161,7 @@ async function handleDelete() {
           <FormsChannelUpdateGeneral
             :project-id="projectId"
             :channel="channel"
+            autosave
             @success="handleUpdateSuccess"
             @cancel="goBack"
           />
@@ -176,6 +177,7 @@ async function handleDelete() {
           
           <FormsChannelUpdateCredentials
             :channel="channel"
+            autosave
             @success="handleUpdateSuccess"
           />
         </UiAppCard>
@@ -190,6 +192,7 @@ async function handleDelete() {
           <FormsChannelUpdatePreferences
             :channel="channel"
             :disabled="anyPreferencesSaving"
+            autosave
             @success="handleUpdateSuccess"
           />
         </UiAppCard>
