@@ -363,7 +363,7 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
 
       <div :class="GRID_LAYOUTS.twoColumn">
         <!-- Project Selection -->
-        <UFormField name="projectId" :help="t('publication.projectSelectorHelp')">
+        <UFormField v-if="!isEditMode" name="projectId" :help="t('publication.projectSelectorHelp')">
           <template #label>
             <div class="flex items-center gap-1.5">
               <span>{{ t('project.title') }}</span>

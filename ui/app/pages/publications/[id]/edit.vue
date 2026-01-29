@@ -173,6 +173,9 @@ onMounted(async () => {
         await fetchPublication(publicationId.value)
     }
 
+    // Fetch projects for modal
+    await fetchProjects()
+
     // Fetch project if needed
     if (projectId.value && (!currentProject.value || currentProject.value.id !== projectId.value)) {
         await fetchProject(projectId.value)
@@ -331,10 +334,28 @@ const { typeOptions } = usePosts()
 
 const isLanguageModalOpen = ref(false)
 const isTypeModalOpen = ref(false)
+const isProjectModalOpen = ref(false)
 const newLanguage = ref('')
 const newPostType = ref<PostType>('POST')
+const newProjectId = ref<string | null>(null)
 const isUpdatingLanguage = ref(false)
 const isUpdatingType = ref(false)
+const isUpdatingProject = ref(false)
+
+const { projects, fetchProjects } = useProjects()
+const projectOptions = computed(() => {
+    const opts = projects.value.map(p => ({
+        value: p.id,
+        label: p.name
+    }))
+    
+    opts.unshift({
+        value: null,
+        label: t('publication.personal_draft')
+    } as any)
+    
+    return opts
+})
 
 const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
 
@@ -364,6 +385,27 @@ function openLanguageModal() {
 function openTypeModal() {
     if (!currentPublication.value) return
     isTypeModalOpen.value = true
+}
+
+function openProjectModal() {
+    if (!currentPublication.value) return
+    newProjectId.value = currentPublication.value.projectId || null
+    isProjectModalOpen.value = true
+}
+
+async function handleUpdateProject() {
+    if (!currentPublication.value) return
+    isUpdatingProject.value = true
+    try {
+        await updatePublication(currentPublication.value.id, {
+            projectId: newProjectId.value || null
+        })
+        toast.add({ title: t('common.success'), color: 'success' })
+        isProjectModalOpen.value = false
+        await fetchPublication(currentPublication.value.id)
+    } finally {
+        isUpdatingProject.value = false
+    }
 }
 
 async function handleUpdateLanguage() {
@@ -692,6 +734,35 @@ async function executePublish(force: boolean) {
       </div>
     </UiAppModal>
 
+    <!-- Project Change Modal -->
+    <UiAppModal v-if="isProjectModalOpen" v-model:open="isProjectModalOpen" :title="t('publication.changeProject')">
+      <UFormField :label="t('project.title')" required>
+         <USelectMenu
+            v-model="newProjectId"
+            :items="projectOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-folder"
+        />
+      </UFormField>
+
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :label="t('common.cancel')"
+          @click="isProjectModalOpen = false"
+        />
+        <UButton
+          color="primary"
+          :label="t('common.save')"
+          :loading="isUpdatingProject"
+          @click="handleUpdateProject"
+        />
+      </template>
+    </UiAppModal>
+
     <!-- Status Change Modal removed in favor of button group -->
 
     <!-- Back button -->
@@ -792,24 +863,8 @@ async function executePublish(force: boolean) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <!-- Zone 1: Created, Project/Channel Info, Scheduled -->
                     <div>
-                        <!-- Project and Channel Info -->
-                        <div v-if="currentPublication.project" class="mb-3">
-                            <!-- Project -->
-                            <div v-if="currentPublication.project" class="flex items-center gap-1 text-xs mb-1">
-                                <UIcon name="i-heroicons-folder" class="w-3.5 h-3.5 text-gray-400" />
-                                <NuxtLink 
-                                    :to="`/projects/${currentPublication.project.id}`"
-                                    class="text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-                                >
-                                    {{ currentPublication.project.name }}
-                                </NuxtLink>
-                            </div>
-                            
-
-                        </div>
-
                         <!-- Created -->
-                        <div class="text-gray-500 dark:text-gray-400 mb-1">{{ t('post.createdAt') }}</div>
+                        <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">{{ t('post.createdAt') }}</div>
                         <div class="text-gray-900 dark:text-white font-medium">
                             {{ formatDate(currentPublication.createdAt) }}
                         </div>
@@ -856,8 +911,40 @@ async function executePublish(force: boolean) {
                         </div>
                     </div>
 
-                    <!-- Zone 2: Status, Language and Type Column -->
+                    <!-- Zone 2: Status, Project, Language and Type Column -->
                     <div class="space-y-4">
+                        <!-- Project Selector (Prominent if not set) -->
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                {{ t('project.title') }}
+                            </div>
+                            <div v-if="currentPublication.projectId" class="flex items-center gap-2">
+                                <UIcon name="i-heroicons-folder" class="w-5 h-5 text-gray-400" />
+                                <span class="text-gray-900 dark:text-white font-medium text-base">
+                                    {{ currentPublication.project?.name || t('publication.personal_draft') }}
+                                </span>
+                                <UButton
+                                    icon="i-heroicons-pencil-square"
+                                    variant="ghost"
+                                    color="neutral"
+                                    size="xs"
+                                    class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                    @click="openProjectModal"
+                                />
+                            </div>
+                            <div v-else>
+                                <UButton
+                                    icon="i-heroicons-folder"
+                                    variant="soft"
+                                    color="primary"
+                                    class="w-full justify-center shadow-sm"
+                                    @click="openProjectModal"
+                                >
+                                    {{ t('publication.selectProject') }}
+                                </UButton>
+                            </div>
+                        </div>
+
                         <!-- Status -->
                         <div>
                             <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
