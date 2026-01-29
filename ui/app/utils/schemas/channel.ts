@@ -17,7 +17,10 @@ export const createChannelBaseObject = (t: ComposerTranslation) => {
       vkAccessToken: z.string().optional(),
     }),
     preferences: z.object({
-      staleChannelsDays: z.coerce.number().min(1, t('validation.min', { min: 1 })).optional(),
+      staleChannelsDays: z.preprocess(
+        (val) => (val === '' || val === null ? undefined : val),
+        z.coerce.number().min(1, t('validation.min', { min: 1 })).optional()
+      ),
       footers: z.array(z.object({
         id: z.string(),
         name: z.string().min(1, t('validation.required')),

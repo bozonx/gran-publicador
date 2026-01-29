@@ -20,7 +20,7 @@ const { t } = useI18n()
     <UFormField
       name="preferences.staleChannelsDays"
       :label="t('settings.staleChannelsDays', 'Stale Channels Warning (Days)')"
-      :help="t('settings.staleChannelsDaysHelp', 'Show warning if channel has no published posts for this many days')"
+      :help="t('settings.staleChannelsDaysHelpChannel', 'Show warning if channel has no published posts for this many days. Leave empty to use project default.')"
     >
       <UInput
         v-model.number="state.preferences.staleChannelsDays"
