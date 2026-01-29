@@ -19,6 +19,7 @@ import SocialIcon from '~/components/common/SocialIcon.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import AuthorSignatureSelector from './AuthorSignatureSelector.vue'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 interface Props {
   post?: PostWithRelations
@@ -26,6 +27,8 @@ interface Props {
   availableChannels?: ChannelWithProject[]
   channels?: ChannelWithProject[]
   isCreating?: boolean
+  /** Whether to enable auto-saving on changes (only for edit mode) */
+  autosave?: boolean
 }
 
 const props = defineProps<Props>()
@@ -103,7 +106,25 @@ const formData = reactive({
 })
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formData)
+const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formData, {
+    enableNavigationGuard: !props.autosave,
+    enableBeforeUnload: !props.autosave
+})
+
+// Auto-save setup
+const { saveStatus, saveError } = useAutosave({
+  data: toRef(() => formData),
+  saveFn: async (data) => {
+    if (!props.autosave || props.isCreating) return
+    
+    // Only save if valid. If invalid, we skip auto-save to avoid corrupting data
+    if (!validationResult.value.isValid) return
+
+    await performSave()
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
+})
 
 const channelOptions = computed(() => {
     return props.availableChannels?.map(c => ({
@@ -871,7 +892,7 @@ const metaYaml = computed(() => {
                 leave-from-class="transform scale-100 opacity-100"
                 leave-to-class="transform scale-95 opacity-0"
               >
-                <div v-if="isDirty && !isCreating" class="flex items-center gap-3">
+                <div v-if="isDirty && !isCreating && !autosave" class="flex items-center gap-3">
                     <UButton
                         color="neutral"
                         variant="outline"
@@ -881,7 +902,7 @@ const metaYaml = computed(() => {
                     >
                         {{ t('common.reset') }}
                     </UButton>
-                     <span v-if="isDirty" class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                     <span class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                         <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4" />
                         {{ t('form.unsavedChanges', 'Unsaved changes') }}
                     </span>
@@ -914,7 +935,13 @@ const metaYaml = computed(() => {
               ></UButton>
             </UTooltip>
 
+            <UiAutosaveStatus 
+              v-if="autosave && !isCreating" 
+              :status="saveStatus" 
+              :error="saveError" 
+            />
             <UiSaveButton
+              v-else
               ref="saveButtonRef"
               :loading="isLoading"
               :disabled="isSaveDisabled"

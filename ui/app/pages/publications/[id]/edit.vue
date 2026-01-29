@@ -1050,6 +1050,7 @@ async function executePublish(force: boolean) {
                 <FormsPublicationForm
                   :project-id="projectId"
                   :publication="currentPublication"
+                  autosave
                   @success="handleSuccess"
                   @cancel="handleCancel"
                 ></FormsPublicationForm>
@@ -1072,6 +1073,7 @@ async function executePublish(force: boolean) {
                   :post="post"
                   :publication="currentPublication"
                   :channels="channels"
+                  autosave
                   @deleted="handlePostDeleted"
                   @success="() => fetchPublication(publicationId)"
                 ></PostsPostEditBlock>

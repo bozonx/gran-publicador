@@ -15,12 +15,15 @@ import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 import { usePosts } from '~/composables/usePosts'
 import { useLanguages } from '~/composables/useLanguages'
 import { isTextContentEmpty } from '~/utils/text'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 interface Props {
   /** Project ID for fetching channels (optional for personal drafts) */
   projectId?: string | null
   /** Publication data for editing, null for creating new */
   publication?: PublicationWithRelations | null
+  /** Whether to enable auto-saving on changes (only for edit mode) */
+  autosave?: boolean
 }
 
 interface Emits {
@@ -31,6 +34,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   projectId: null,
   publication: null,
+  autosave: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -124,7 +128,10 @@ const isValid = computed(() => validationErrors.value.length === 0)
 
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state)
+const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state, {
+  enableNavigationGuard: !props.autosave,
+  enableBeforeUnload: !props.autosave
+})
 
 // Initial load
 onMounted(async () => {
@@ -140,6 +147,22 @@ onMounted(async () => {
     }
     
     nextTick(() => saveOriginalState())
+})
+
+// Auto-save setup
+const { saveStatus, saveError } = useAutosave({
+  data: toRef(() => state),
+  saveFn: async (data) => {
+    if (!props.autosave || !isEditMode.value) return
+    
+    // Only save if valid. If invalid, we skip auto-save to avoid corrupting data
+    // based on partial/invalid inputs (like wrong date format)
+    if (!isValid.value) return
+
+    await performSubmit(data as PublicationFormData)
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
 })
 
 // Watch for external publication updates (e.g. from modals)
@@ -577,14 +600,22 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
 
       </UiFormAdvancedSection>
 
-      <UiFormActions
-        ref="formActionsRef"
-        :loading="isLoading"
-        :is-dirty="isDirty"
-        :save-label="isEditMode ? t('common.save') : t('common.create')"
-        hide-cancel
-        @reset="handleReset"
-      />
+      <div class="flex justify-end items-center gap-4">
+        <UiAutosaveStatus 
+          v-if="autosave && isEditMode" 
+          :status="saveStatus" 
+          :error="saveError" 
+        />
+        <UiFormActions
+          v-else
+          ref="formActionsRef"
+          :loading="isLoading"
+          :is-dirty="isDirty"
+          :save-label="isEditMode ? t('common.save') : t('common.create')"
+          hide-cancel
+          @reset="handleReset"
+        />
+      </div>
     </UForm>
 
     <!-- Validation Warning Modal -->
