@@ -948,6 +948,14 @@ async function executePublish(force: boolean) {
             </div>
         </div>
 
+        <!-- Channel Quick Access Block -->
+        <PublicationsChannelQuickAccessBlock
+          v-if="currentPublication"
+          :publication="currentPublication"
+          :channels="channels || []"
+          @refresh="() => fetchPublication(publicationId)"
+        />
+
         <!-- Publication Notes -->
         <PublicationsPublicationNotesBlock
           v-if="currentPublication"
@@ -1047,14 +1055,6 @@ async function executePublish(force: boolean) {
                 ></FormsPublicationForm>
             </div>
         </div>
-
-        <!-- Channel Quick Access Block -->
-        <PublicationsChannelQuickAccessBlock
-          v-if="currentPublication"
-          :publication="currentPublication"
-          :channels="channels || []"
-          @refresh="() => fetchPublication(publicationId)"
-        />
 
         <!-- Linked Posts Section -->
         <div>
