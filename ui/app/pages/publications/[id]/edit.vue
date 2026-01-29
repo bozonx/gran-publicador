@@ -403,6 +403,13 @@ async function handleUpdateProject() {
         toast.add({ title: t('common.success'), color: 'success' })
         isProjectModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update project:', err)
+        toast.add({
+            title: t('common.error'),
+            description: err.message || t('common.saveError'),
+            color: 'error'
+        })
     } finally {
         isUpdatingProject.value = false
     }
