@@ -18,6 +18,7 @@ export interface NewsItem {
   type?: string
   mainImageUrl?: string
   mainVideoUrl?: string
+  content?: string
 }
 
 export interface SearchNewsParams {

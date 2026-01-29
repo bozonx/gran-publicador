@@ -28,10 +28,18 @@ function formatDate(dateString: string) {
   }
 }
 
+
 // Format score as percentage
 function formatScore(score: number) {
   return `${Math.round(score * 100)}%`
 }
+
+const displayText = computed(() => {
+  const text = props.item.description || props.item.content || ''
+  if (!text) return ''
+  return text.length > 500 ? text.slice(0, 500) + '...' : text
+})
+
 </script>
 
 <template>
@@ -49,8 +57,8 @@ function formatScore(score: number) {
         </a>
       </h3>
       
-      <p v-if="item.description" class="text-base text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
-        {{ item.description }}
+      <p v-if="displayText" class="text-base text-gray-600 dark:text-gray-400 mb-4 break-words">
+        {{ displayText }}
       </p>
 
       <div class="flex items-center justify-between gap-4 mt-4">
