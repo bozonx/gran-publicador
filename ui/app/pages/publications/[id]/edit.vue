@@ -867,9 +867,9 @@ async function executePublish(force: boolean) {
                 </div>
 
                 <!-- Metadata Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <!-- Zone 1: Status, Project, Language and Type Column (Swapped from right) -->
-                    <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">
+                    <!-- Zone 1: Status, Project, Language and Type Column (40%) -->
+                    <div class="space-y-4 md:col-span-2">
                         <!-- Status (Swapped with Project) -->
                         <div>
                             <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
@@ -987,18 +987,17 @@ async function executePublish(force: boolean) {
                         </div>
                     </div>
 
-                    <!-- Zone 2: Created, Project/Channel Info, Scheduled (Swapped from left) -->
-                    <div>
-                        <!-- Created -->
-                        <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">{{ t('post.createdAt') }}</div>
-                        <div class="text-gray-900 dark:text-white font-medium">
-                            {{ formatDate(currentPublication.createdAt) }}
-                        </div>
-                        <div v-if="currentPublication.creator" class="text-gray-600 dark:text-gray-400 text-xs mt-0.5">
-                            {{ currentPublication.creator.fullName || currentPublication.creator.telegramUsername || t('common.unknown') }}
-                        </div>
-                        
-                        <div class="mt-2 border-t border-gray-100 dark:border-gray-700/50 pt-2">
+                    <!-- Zone 2: Channels & Scheduler (60%) -->
+                    <div class="md:col-span-3 flex flex-col gap-6">
+                        <!-- Channel Quick Access Block -->
+                        <PublicationsChannelQuickAccessBlock
+                          v-if="currentPublication"
+                          :publication="currentPublication"
+                          :channels="channels || []"
+                          @refresh="() => fetchPublication(publicationId)"
+                        />
+
+                        <div class="border-t border-gray-100 dark:border-gray-700/50 pt-2">
                              <div class="text-gray-500 dark:text-gray-400 text-xs mb-1">
                                 {{ currentPublication.scheduledAt ? t('publication.status.willBePublishedAt') : t('publication.status.scheduling') }}
                              </div>
@@ -1037,16 +1036,20 @@ async function executePublish(force: boolean) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Footer: Creation Info -->
+                <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/50 flex justify-end items-center text-xs text-gray-400">
+                    <span class="mr-1">{{ t('post.createdAt') }}</span>
+                    <span>{{ formatDate(currentPublication.createdAt) }}</span>
+                    <template v-if="currentPublication.creator">
+                        <span class="mx-1">·</span>
+                        <span>{{ currentPublication.creator.fullName || currentPublication.creator.telegramUsername }}</span>
+                    </template>
+                </div>
             </div>
         </div>
 
-        <!-- Channel Quick Access Block -->
-        <PublicationsChannelQuickAccessBlock
-          v-if="currentPublication"
-          :publication="currentPublication"
-          :channels="channels || []"
-          @refresh="() => fetchPublication(publicationId)"
-        />
+
 
         <!-- Publication Notes -->
         <PublicationsPublicationNotesBlock
