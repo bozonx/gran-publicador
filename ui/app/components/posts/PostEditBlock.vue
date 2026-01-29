@@ -750,18 +750,27 @@ const metaYaml = computed(() => {
 
 
        <!-- Post-specific settings (Editable) -->
-       <div class="flex flex-col md:flex-row gap-6">
-            <!-- Column 1 (60%) -->
-            <div class="w-full md:w-[60%] space-y-6">
-                <!-- Tags (Override) -->
-                <UFormField :label="t('post.tags')" :help="t('post.tagsOverrideHint')">
-                    <UInput 
-                      v-model="formData.tags" 
-                      :placeholder="t('post.tagsPlaceholder')" 
-                      icon="i-heroicons-hashtag" 
-                      class="w-full"
-                    />
-                </UFormField>
+       <div class="space-y-6">
+            <!-- General Override Hint -->
+            <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/20 rounded-lg p-4 flex gap-3">
+                <UIcon name="i-heroicons-information-circle" class="w-5 h-5 text-blue-500 shrink-0" />
+                <p class="text-sm text-blue-700 dark:text-blue-300">
+                    {{ t('post.overrideHint') }}
+                </p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Column 1 (60%) -->
+                <div class="w-full md:w-[60%] space-y-6">
+                    <!-- Tags (Override) -->
+                    <UFormField :label="t('post.tags')">
+                        <UInput 
+                          v-model="formData.tags" 
+                          :placeholder="t('post.tagsPlaceholder')" 
+                          icon="i-heroicons-hashtag" 
+                          class="w-full"
+                        />
+                    </UFormField>
 
                 <!-- Author Signature Editor -->
                 <div class="space-y-1.5">
@@ -840,6 +849,7 @@ const metaYaml = computed(() => {
                     </USelectMenu>
                 </UFormField>
             </div>
+       </div>
        </div>
        
        <!-- Post Content (Override) -->
