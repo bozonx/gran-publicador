@@ -527,8 +527,11 @@ const metaYaml = computed(() => {
 </script>
 
 <template>
-  <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden mb-4 shadow-sm"
-       :class="{ 'ring-2 ring-primary-500/20': isCreating }">
+  <div 
+    :id="post?.channelId ? `post-${post.channelId}` : undefined"
+    class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden mb-4 shadow-sm"
+    :class="{ 'ring-2 ring-primary-500/20': isCreating }"
+  >
     <!-- Delete Confirmation Modal -->
     <UiConfirmModal
       v-model:open="isDeleteModalOpen"

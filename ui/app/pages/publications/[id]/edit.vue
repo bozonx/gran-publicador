@@ -78,7 +78,7 @@ const hasMediaValidationErrors = computed(() => {
     return publicationProblems.value.some(p => p.key === 'mediaValidation')
 })
 
-const isCreatingPost = ref(false)
+
 const isFormCollapsed = ref(false)
 const isDeleteModalOpen = ref(false)
 const isDeleting = ref(false)
@@ -213,16 +213,7 @@ function handleSuccess(id: string) {
   }
 }
 
-/**
- * Handle post creation success
- */
-async function handlePostCreated() {
-    isCreatingPost.value = false
-    // Refresh publication to show new post
-    if (publicationId.value) {
-        await fetchPublication(publicationId.value)
-    }
-}
+
 
 /**
  * Handle post deletion
@@ -1057,6 +1048,14 @@ async function executePublish(force: boolean) {
             </div>
         </div>
 
+        <!-- Channel Quick Access Block -->
+        <PublicationsChannelQuickAccessBlock
+          v-if="currentPublication"
+          :publication="currentPublication"
+          :channels="channels || []"
+          @refresh="() => fetchPublication(publicationId)"
+        />
+
         <!-- Linked Posts Section -->
         <div>
           <div v-if="currentPublication.posts && currentPublication.posts.length > 0">
@@ -1077,39 +1076,10 @@ async function executePublish(force: boolean) {
                   @deleted="handlePostDeleted"
                   @success="() => fetchPublication(publicationId)"
                 ></PostsPostEditBlock>
-
-                <PostsPostEditBlock 
-                    v-if="isCreatingPost"
-                    is-creating
-                    :publication="currentPublication"
-                    :available-channels="availableChannels"
-                    @success="handlePostCreated"
-                    @cancel="isCreatingPost = false"
-                ></PostsPostEditBlock>
               </div>
           </div>
           <div v-else class="text-center py-6 text-gray-500">
               <p>{{ t('publication.noPosts') }}</p>
-               <PostsPostEditBlock 
-                    v-if="isCreatingPost"
-                    is-creating
-                    :publication="currentPublication"
-                    :available-channels="availableChannels"
-                    class="mt-4"
-                    @success="handlePostCreated"
-                    @cancel="isCreatingPost = false"
-                ></PostsPostEditBlock>
-          </div>
-
-          <div v-if="!isCreatingPost && availableChannels.length > 0" class="mt-4 flex justify-center">
-            <UButton
-                variant="soft"
-                color="primary"
-                icon="i-heroicons-plus"
-                @click="isCreatingPost = true"
-            >
-                {{ t('publication.addChannelToPublication') }}
-            </UButton>
           </div>
         </div>
     </div>
