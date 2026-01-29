@@ -5,6 +5,7 @@ import { PRESET_SIGNATURES } from '~/constants/preset-signatures'
 interface Props {
   channelId: string | null
   disabled?: boolean
+  minimal?: boolean
 }
 
 const props = defineProps<Props>()
@@ -19,9 +20,13 @@ const isLoading = ref(false)
 const selectedValue = ref<string | null>(null)
 
 async function loadSignatures() {
+  if (!props.channelId) {
+    userSignatures.value = []
+    return
+  }
   isLoading.value = true
   try {
-    const user = props.channelId ? await fetchByChannel(props.channelId) : []
+    const user = await fetchByChannel(props.channelId)
     userSignatures.value = user
   } finally {
     isLoading.value = false
@@ -35,13 +40,15 @@ watch(() => props.channelId, () => {
 const options = computed(() => {
   const list: any[] = []
   
-  // Add \"None\" option
-  list.push({
-    value: null,
-    label: t('authorSignature.none', 'No signature'),
-    icon: 'i-heroicons-no-symbol',
-    content: ''
-  })
+  if (!props.minimal) {
+    // Add "None" option only for non-minimal mode
+    list.push({
+      value: null,
+      label: t('authorSignature.none', 'No signature'),
+      icon: 'i-heroicons-no-symbol',
+      content: ''
+    })
+  }
   
   // Add user defined signatures
   if (userSignatures.value.length > 0) {
@@ -85,11 +92,16 @@ const selectedLabel = computed(() => {
   return selectedValue.value // Fallback
 })
 
-function handleSelect(value: string | null) {
-  selectedValue.value = value
-  const opt = options.value.find(o => o.value === value)
-  const content = (opt as any)?.content || ''
+function handleSelect(item: any) {
+  const content = item?.content || ''
   emit('select', content)
+  
+  if (props.minimal) {
+    // Reset selection in minimal mode so trigger remains neutral
+    nextTick(() => {
+      selectedValue.value = null
+    })
+  }
 }
 </script>
 
@@ -97,17 +109,23 @@ function handleSelect(value: string | null) {
   <div class="space-y-1">
     <USelectMenu
       v-model="selectedValue"
-      @update:model-value="handleSelect"
       :items="options"
       value-key="value"
       :disabled="props.disabled || isLoading"
       :loading="isLoading"
-      class="w-full"
+      :class="props.minimal ? 'w-auto' : 'w-full'"
       :placeholder="t('authorSignature.select', 'Select author signature...')"
+      @update:model-value="(val) => {
+        const item = options.find(o => o.value === val)
+        handleSelect(item)
+      }"
     >
       <!-- @ts-ignore -->
       <template #label>
-        <div class="flex items-center gap-2 truncate">
+        <div v-if="props.minimal" class="flex items-center justify-center">
+            <UIcon name="i-heroicons-chevron-down" class="w-4 h-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" />
+        </div>
+        <div v-else class="flex items-center gap-2 truncate">
           <UIcon v-if="selectedValue === null" name="i-heroicons-no-symbol" class="w-4 h-4 text-gray-400" />
           <UIcon v-else name="i-heroicons-pencil-square" class="w-4 h-4 text-primary-500" />
           <span class="truncate">{{ selectedLabel }}</span>

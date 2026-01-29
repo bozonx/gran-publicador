@@ -750,87 +750,96 @@ const metaYaml = computed(() => {
 
 
        <!-- Post-specific settings (Editable) -->
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Tags (Override) -->
-            <UFormField :label="t('post.tags')" :help="t('post.tagsOverrideHint')">
-                <UInput 
-                  v-model="formData.tags" 
-                  :placeholder="t('post.tagsPlaceholder')" 
-                  icon="i-heroicons-hashtag" 
-                />
-            </UFormField>
-
-            <!-- Scheduled At (Custom for post) -->
-            <UFormField :label="t('post.scheduledAt')">
-                <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
+       <div class="flex flex-col md:flex-row gap-6">
+            <!-- Column 1 (60%) -->
+            <div class="w-full md:w-[60%] space-y-6">
+                <!-- Tags (Override) -->
+                <UFormField :label="t('post.tags')" :help="t('post.tagsOverrideHint')">
                     <UInput 
-                        v-model="formData.scheduledAt" 
-                        type="datetime-local" 
-                        class="w-full" 
-                        icon="i-heroicons-clock" 
-                        :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
+                      v-model="formData.tags" 
+                      :placeholder="t('post.tagsPlaceholder')" 
+                      icon="i-heroicons-hashtag" 
+                      class="w-full"
                     />
-                </UTooltip>
-            </UFormField>
+                </UFormField>
 
-            <!-- Template Selector -->
-            <UFormField :label="t('post.template')" v-if="availableTemplates.length > 0">
-                <USelectMenu
-                    v-model="formData.template"
-                    :items="availableTemplates"
-                    value-key="value"
-                    label-key="label"
-                    class="w-full"
-                    :placeholder="t('post.selectTemplate', 'Select template...')"
-                >
-                    <!-- @ts-ignore -->
-                    <template #label>
-
-                        <span v-if="formData.template" class="truncate" :class="{ 'text-red-500': !availableTemplates.find(t => t.value?.id === formData.template?.id) }">
-                            <template v-if="availableTemplates.find(t => t.value?.id === formData.template?.id)">
-                                {{ availableTemplates.find(t => t.value?.id === formData.template?.id)?.label }}
-                            </template>
-                            <template v-else>
-                                {{ t('post.templateNotFound', 'Template Not Found') }}
-                            </template>
-                        </span>
-                        <span v-else class="text-gray-500 truncate">
-                             {{ availableTemplates.find(t => t.value === null)?.label || t('channel.templateDefault', 'Default (Auto)') }}
-                        </span>
-                    </template>
-                </USelectMenu>
-            </UFormField>
-
-            <!-- Author Signature Editor -->
-            <UFormField :label="t('post.authorSignature', 'Author Signature')">
-                <div class="space-y-2">
+                <!-- Author Signature Editor -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                          {{ t('post.authorSignature', 'Author Signature') }}
+                        </label>
+                        <AuthorSignatureSelector
+                            :channel-id="formData.channelId || props.post?.channelId || null"
+                            :disabled="isLoading"
+                            minimal
+                            @select="(content) => formData.authorSignature = content"
+                        />
+                    </div>
                     <UTextarea
                         v-model="formData.authorSignature"
                         :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
                         :disabled="isLoading"
                         :rows="3"
-                    />
-                    <AuthorSignatureSelector
-                        :channel-id="formData.channelId || props.post?.channelId || null"
-                        :disabled="isLoading"
-                        @select="(content) => formData.authorSignature = content"
+                        class="w-full"
                     />
                 </div>
-            </UFormField>
+            </div>
 
+            <!-- Column 2 (40%) -->
+            <div class="w-full md:w-[40%] space-y-6">
+                <!-- Scheduled At (Custom for post) -->
+                <UFormField :label="t('post.scheduledAt')">
+                    <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
+                        <UInput 
+                            v-model="formData.scheduledAt" 
+                            type="datetime-local" 
+                            class="w-full" 
+                            icon="i-heroicons-clock" 
+                            :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
+                        />
+                    </UTooltip>
+                </UFormField>
 
-       </div>
-       
-       <!-- Platform Specific Options -->
-       <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UFormField :label="t('post.options.title', 'Platform Options')">
-                <div class="flex items-center gap-2 py-2">
-                    <UCheckbox 
-                      v-model="formData.platformOptions.disableNotification" 
-                      :label="t('post.options.disableNotification')" 
-                    />
+                <!-- Platform Specific Options -->
+                <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'">
+                    <UFormField :label="t('post.options.title', 'Platform Options')">
+                        <div class="flex items-center gap-2 py-1">
+                            <UCheckbox 
+                            v-model="formData.platformOptions.disableNotification" 
+                            :label="t('post.options.disableNotification')" 
+                            />
+                        </div>
+                    </UFormField>
                 </div>
-            </UFormField>
+
+                <!-- Template Selector -->
+                <UFormField :label="t('post.template')" v-if="availableTemplates.length > 0">
+                    <USelectMenu
+                        v-model="formData.template"
+                        :items="availableTemplates"
+                        value-key="value"
+                        label-key="label"
+                        class="w-full"
+                        :placeholder="t('post.selectTemplate', 'Select template...')"
+                    >
+                        <!-- @ts-ignore -->
+                        <template #label>
+                            <span v-if="formData.template" class="truncate" :class="{ 'text-red-500': !availableTemplates.find(t => t.value?.id === formData.template?.id) }">
+                                <template v-if="availableTemplates.find(t => t.value?.id === formData.template?.id)">
+                                    {{ availableTemplates.find(t => t.value?.id === formData.template?.id)?.label }}
+                                </template>
+                                <template v-else>
+                                    {{ t('post.templateNotFound', 'Template Not Found') }}
+                                </template>
+                            </span>
+                            <span v-else class="text-gray-500 truncate">
+                                {{ availableTemplates.find(t => t.value === null)?.label || t('channel.templateDefault', 'Default (Auto)') }}
+                            </span>
+                        </template>
+                    </USelectMenu>
+                </UFormField>
+            </div>
        </div>
        
        <!-- Post Content (Override) -->
