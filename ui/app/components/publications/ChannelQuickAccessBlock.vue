@@ -113,12 +113,6 @@ async function createPostForChannel(channelId: string, channelName: string) {
       
       // Refresh publication to show new post
       emit('refresh')
-      
-      // Wait a bit for the DOM to update, then scroll to the new post
-      await nextTick()
-      setTimeout(() => {
-        scrollToPost(channelId)
-      }, 300)
     }
   } catch (error: any) {
     toast.add({
