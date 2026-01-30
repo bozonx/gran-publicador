@@ -248,9 +248,9 @@ function getProjectTooltip(project: ProjectWithRole) {
           <!-- Channels List (Horizontal Icons) -->
           <div 
             v-if="expandedProjects.has(project.id)"
-            class="px-3 py-1"
+            class="pl-1 pr-3 py-1"
           >
-            <div v-if="areChannelsLoading[project.id]" class="text-xs text-gray-500">
+            <div v-if="areChannelsLoading[project.id]" class="text-xs text-gray-500 pl-2">
               {{ t('common.loading') }}...
             </div>
             
@@ -262,7 +262,7 @@ function getProjectTooltip(project: ProjectWithRole) {
               >
                 <NuxtLink
                   :to="getChannelLink(project.id, channel.id)"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  class="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                   :class="{ 'bg-primary-100 dark:bg-primary-900 ring-2 ring-primary-500': route.params.channelId === channel.id || route.query.channelId === channel.id }"
                 >
                   <CommonSocialIcon 

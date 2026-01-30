@@ -167,6 +167,13 @@ function openCreateModal() {
 }
 
 async function handleCreateChannel() {
+  const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
+  
+  if (!props.projectId || !isUuid(props.projectId)) {
+    console.error('[ChannelsList] Cannot create channel: projectId is missing or not a valid UUID', props.projectId)
+    return
+  }
+
   if (!createFormState.name || !createFormState.channelIdentifier || !createFormState.language) return
 
   isCreating.value = true

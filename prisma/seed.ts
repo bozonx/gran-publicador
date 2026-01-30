@@ -34,9 +34,10 @@ async function main() {
     await prisma.publication.deleteMany({});
     await prisma.authorSignature.deleteMany({});
     await prisma.channel.deleteMany({});
+    await prisma.projectNewsQuery.deleteMany({});
     await prisma.projectMember.deleteMany({});
+    await prisma.role.deleteMany({});
     await prisma.llmPromptTemplate.deleteMany({});
-    await prisma.role.deleteMany({}); // New table
     await prisma.project.deleteMany({});
     await prisma.user.deleteMany({});
 
@@ -50,6 +51,8 @@ async function main() {
             telegramUsername: 'dev_user',
             fullName: 'Developer',
             isAdmin: true,
+            language: 'ru-RU',
+            uiLanguage: 'ru-RU',
             preferences: {},
         },
         {
@@ -58,6 +61,8 @@ async function main() {
             telegramUsername: 'anna_editor',
             fullName: 'Anna Editor',
             isAdmin: false,
+            language: 'ru-RU',
+            uiLanguage: 'ru-RU',
             preferences: {},
         },
         {
@@ -66,6 +71,8 @@ async function main() {
             telegramUsername: 'viewer_user',
             fullName: 'Victor Viewer',
             isAdmin: false,
+            language: 'en-US',
+            uiLanguage: 'en-US',
             preferences: {},
         },
         {
@@ -74,6 +81,8 @@ async function main() {
             telegramUsername: 'alex_admin',
             fullName: 'Alex Admin',
             isAdmin: true,
+            language: 'ru-RU',
+            uiLanguage: 'ru-RU',
             preferences: {},
         },
     ];
@@ -159,38 +168,85 @@ async function main() {
         });
 
         // CREATE SYSTEM ROLES FOR EACH PROJECT
-        await prisma.role.createMany({
-            data: [
-                { projectId: p.id, name: 'Admin', systemType: 'ADMIN', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.ADMIN as any },
-                { projectId: p.id, name: 'Editor', systemType: 'EDITOR', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.EDITOR as any },
-                { projectId: p.id, name: 'Viewer', systemType: 'VIEWER', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.VIEWER as any },
-            ]
+        const roles = [
+            { id: p.id.replace(/^........-..../, '00000000-0001'), projectId: p.id, name: 'Admin', systemType: 'ADMIN', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.ADMIN as any },
+            { id: p.id.replace(/^........-..../, '00000000-0002'), projectId: p.id, name: 'Editor', systemType: 'EDITOR', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.EDITOR as any },
+            { id: p.id.replace(/^........-..../, '00000000-0003'), projectId: p.id, name: 'Viewer', systemType: 'VIEWER', isSystem: true, permissions: DEFAULT_ROLE_PERMISSIONS.VIEWER as any },
+        ];
+
+        for (const role of roles) {
+            await prisma.role.upsert({
+                where: { id: role.id },
+                update: role,
+                create: role,
+            });
+        }
+
+        // ADD OWNER AS ADMIN MEMBER
+        const ownerRole = roles.find(r => r.systemType === 'ADMIN')!;
+        await prisma.projectMember.upsert({
+            where: { projectId_userId: { projectId: p.id, userId: p.ownerId } },
+            update: { roleId: ownerRole.id },
+            create: {
+                projectId: p.id,
+                userId: p.ownerId,
+                roleId: ownerRole.id,
+            },
         });
     }
 
-    // 4. PROJECT MEMBERSHIPS
-    console.log('  Adding project memberships...');
-    
-    // Helper to get role ID by project and type
-    const getRoleId = async (projectId: string, systemType: string) => {
-        const role = await prisma.role.findFirst({
-            where: { projectId, systemType }
+    // 3.1 PROJECT NEWS QUERIES
+    console.log('  Generating news queries...');
+    const newsQueries = [
+        {
+            id: '90000000-0000-0000-0000-000000000001',
+            projectId: projectData[0].id,
+            name: 'Node.js News',
+            settings: { q: 'Node.js', mode: 'all', lang: 'ru-RU' },
+            isNotificationEnabled: true,
+            order: 0,
+        },
+        {
+            id: '90000000-0000-0000-0000-000000000002',
+            projectId: projectData[0].id,
+            name: 'Rust Development',
+            settings: { q: 'Rust lang', mode: 'all', lang: 'en-US' },
+            isNotificationEnabled: false,
+            order: 1,
+        }
+    ];
+
+    for (const nq of newsQueries) {
+        await prisma.projectNewsQuery.upsert({
+            where: { id: nq.id },
+            update: nq,
+            create: nq,
         });
-        return role!.id;
+    }
+
+    // 4. PROJECT MEMBERSHIPS (GUESTS)
+    console.log('  Adding guest memberships...');
+    
+    // Helper to get role ID by project and type (using our new ID pattern)
+    const getRoleId = (projectId: string, systemType: string) => {
+        const prefix = systemType === 'ADMIN' ? '00000000-0001' : systemType === 'EDITOR' ? '00000000-0002' : '00000000-0003';
+        return projectId.replace(/^........-..../, prefix);
     };
 
     const project1Id = projectData[0].id;
     const project3Id = projectData[2].id;
 
     const memberships = [
-        { projectId: project1Id, userId: editorUser.id, roleId: await getRoleId(project1Id, 'EDITOR') },
-        { projectId: project1Id, userId: viewerUser.id, roleId: await getRoleId(project1Id, 'VIEWER') },
-        { projectId: project3Id, userId: devUser.id, roleId: await getRoleId(project3Id, 'ADMIN') },
+        { projectId: project1Id, userId: editorUser.id, roleId: getRoleId(project1Id, 'EDITOR') },
+        { projectId: project1Id, userId: viewerUser.id, roleId: getRoleId(project1Id, 'VIEWER') },
+        { projectId: project3Id, userId: devUser.id, roleId: getRoleId(project3Id, 'ADMIN') },
     ];
 
     for (const m of memberships) {
-        await prisma.projectMember.create({
-            data: m
+        await prisma.projectMember.upsert({
+            where: { projectId_userId: { projectId: m.projectId, userId: m.userId } },
+            update: { roleId: m.roleId },
+            create: m,
         });
     }
 

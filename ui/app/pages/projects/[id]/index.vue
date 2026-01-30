@@ -64,7 +64,10 @@ const {
   fetchChannels,
 } = useChannels()
 
-const projectId = computed(() => route.params.id as string)
+const projectId = computed(() => {
+  const id = route.params.id
+  return (Array.isArray(id) ? id[0] : id) || ''
+})
 
 
 // Fetch project on mount

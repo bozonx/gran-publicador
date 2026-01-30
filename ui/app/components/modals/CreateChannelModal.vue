@@ -58,6 +58,13 @@ const projectOptions = computed(() =>
 )
 
 async function handleCreate() {
+  const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
+  
+  if (!formState.projectId || !isUuid(formState.projectId)) {
+    console.error('[CreateChannelModal] Cannot create channel: projectId is missing or not a valid UUID', formState.projectId)
+    return
+  }
+
   if (!formState.name || !formState.projectId || !formState.socialMedia) return
 
   try {
