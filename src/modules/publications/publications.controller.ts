@@ -299,4 +299,24 @@ export class PublicationsController {
 
     return this.socialPostingService.publishPublication(id, { force });
   }
+
+  /**
+   * Copy a publication to another project.
+   */
+  @Post(':id/copy')
+  public async copy(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() body: { projectId: string | null },
+  ) {
+    // Validate project scope for API token users
+    if (body.projectId && req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(body.projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.publicationsService.copy(id, body.projectId, req.user.userId);
+  }
 }

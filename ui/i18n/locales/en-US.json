@@ -742,7 +742,9 @@
     "scrapeFailed": "Automatic page detection failed",
     "availableData": "Available data from News Feed",
     "useNewsCardData": "Use Data from News Card",
-    "imageUploadFailed": "Image could not be uploaded, publication created without it."
+    "imageUploadFailed": "Image could not be uploaded, publication created without it.",
+    "copyToProject": "Copy to project",
+    "copySuccess": "Publication copied successfully"
   },
   "media": {
     "type": "File Type",

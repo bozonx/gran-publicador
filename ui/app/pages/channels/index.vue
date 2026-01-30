@@ -4,6 +4,7 @@ import type { ChannelWithProject } from '~/composables/useChannels'
 import { useProjects } from '~/composables/useProjects'
 import { useViewMode } from '~/composables/useViewMode'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import ChannelListItem from '~/components/channels/ChannelListItem.vue'
 import ChannelCard from '~/components/channels/ChannelCard.vue'
 
@@ -37,7 +38,7 @@ const limit = ref(DEFAULT_PAGE_SIZE)
 const searchQuery = ref(
   (route.query.search as string) || ''
 )
-const debouncedSearch = refDebounced(searchQuery, 300)
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 // Ownership filter
 type OwnershipFilter = 'all' | 'own' | 'guest'

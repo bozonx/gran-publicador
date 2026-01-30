@@ -27,6 +27,7 @@ const {
   isLoading: isPublicationLoading, 
   deletePublication, 
   updatePublication,
+  copyPublication,
   statusOptions 
 } = usePublications()
 const { fetchChannels, channels } = useChannels()
@@ -337,10 +338,43 @@ const isTypeModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
 const newLanguage = ref('')
 const newPostType = ref<PostType>('POST')
-const newProjectId = ref<string | null>(null)
+const newProjectId = ref<string | undefined>(undefined)
 const isUpdatingLanguage = ref(false)
 const isUpdatingType = ref(false)
 const isUpdatingProject = ref(false)
+const isCopyModalOpen = ref(false)
+const copyProjectId = ref<string | undefined>(undefined)
+const isCopying = ref(false)
+
+function openCopyModal() {
+    if (!currentPublication.value) return
+    copyProjectId.value = currentPublication.value.projectId || undefined
+    isCopyModalOpen.value = true
+}
+
+async function handleCopyPublication() {
+    if (!currentPublication.value) return
+    isCopying.value = true
+    try {
+        const result = await copyPublication(currentPublication.value.id, copyProjectId.value || null)
+        toast.add({
+            title: t('common.success'),
+            color: 'success'
+        })
+        isCopyModalOpen.value = false
+        // Redirect to new publication edit page
+        router.push(`/publications/${result.id}/edit`)
+    } catch (err: any) {
+        console.error('Failed to copy publication:', err)
+        toast.add({
+            title: t('common.error'),
+            description: err.message || t('common.saveError'),
+            color: 'error'
+        })
+    } finally {
+        isCopying.value = false
+    }
+}
 
 const { projects, fetchProjects } = useProjects()
 const projectOptions = computed(() => {
@@ -350,7 +384,7 @@ const projectOptions = computed(() => {
     }))
     
     opts.unshift({
-        value: null,
+        value: undefined,
         label: t('publication.personal_draft')
     } as any)
     
@@ -389,7 +423,7 @@ function openTypeModal() {
 
 function openProjectModal() {
     if (!currentPublication.value) return
-    newProjectId.value = currentPublication.value.projectId || null
+    newProjectId.value = currentPublication.value.projectId || undefined
     isProjectModalOpen.value = true
 }
 
@@ -770,6 +804,35 @@ async function executePublish(force: boolean) {
       </template>
     </UiAppModal>
 
+    <!-- Copy Project Modal -->
+    <UiAppModal v-if="isCopyModalOpen" v-model:open="isCopyModalOpen" :title="t('publication.copyToProject')">
+      <UFormField :label="t('project.title')" required>
+         <USelectMenu
+            v-model="copyProjectId"
+            :items="projectOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-folder"
+        />
+      </UFormField>
+
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :label="t('common.cancel')"
+          @click="isCopyModalOpen = false"
+        />
+        <UButton
+          color="primary"
+          :label="t('common.confirm')"
+          :loading="isCopying"
+          @click="handleCopyPublication"
+        />
+      </template>
+    </UiAppModal>
+
     <!-- Status Change Modal removed in favor of button group -->
 
     <!-- Back button -->
@@ -854,6 +917,15 @@ async function executePublish(force: boolean) {
                             :is-archived="!!currentPublication.archivedAt"
                             @toggle="handleArchiveToggle"
                         />
+
+                        <UButton
+                            :label="t('publication.copyToProject')"
+                            icon="i-heroicons-document-duplicate"
+                            variant="soft"
+                            size="sm"
+                            color="neutral"
+                            @click="openCopyModal"
+                        ></UButton>
 
                         <UButton
                             :label="t('common.delete')"

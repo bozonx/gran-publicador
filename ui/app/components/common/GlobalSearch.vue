@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
+
 const { t } = useI18n()
 const router = useRouter()
 const isOpen = ref(false)
 const searchQuery = ref('')
-const debouncedSearch = refDebounced(searchQuery, 300)
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const isSearching = ref(false)
 const hasPerformedSearch = ref(false)
 
@@ -218,9 +220,9 @@ const groupedResults = computed(() => {
           >
             <template #leading>
               <UIcon 
-                :name="isSearching ? 'i-heroicons-arrow-path' : 'i-heroicons-magnifying-glass'" 
+                :name="(isSearching || (searchQuery.length >= 2 && searchQuery !== debouncedSearch)) ? 'i-heroicons-arrow-path' : 'i-heroicons-magnifying-glass'" 
                 class="w-5 h-5 text-gray-400"
-                :class="{ 'animate-spin': isSearching }"
+                :class="{ 'animate-spin': isSearching || (searchQuery.length >= 2 && searchQuery !== debouncedSearch) }"
               />
             </template>
             <template #trailing>

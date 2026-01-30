@@ -2,6 +2,7 @@
 import type { UserWithStats } from '~/stores/users'
 import type { TableColumn } from '@nuxt/ui'
 import { FORM_STYLES } from '~/utils/design-tokens'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 
 definePageMeta({
   middleware: ['auth', 'admin'],
@@ -96,6 +97,7 @@ const {
 // Filter state
 const selectedAdminFilter = ref<string | null>(null)
 const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 // Confirmation modal state
 const showConfirmModal = ref(false)
@@ -121,13 +123,13 @@ const adminFilterOptions = computed(() => [
 ])
 
 // Watch for filter changes
-watch([selectedAdminFilter, searchQuery], () => {
+watch([selectedAdminFilter, debouncedSearch], () => {
   const isAdminValue =
     selectedAdminFilter.value === null ? null : selectedAdminFilter.value === 'true'
 
   setFilter({
     is_admin: isAdminValue,
-    search: searchQuery.value || undefined,
+    search: debouncedSearch.value || undefined,
   })
   fetchUsers()
 })
@@ -278,6 +280,7 @@ const hasActiveFilters = computed(() => {
             :placeholder="t('admin.searchUsers', 'Search by name or username')"
             icon="i-heroicons-magnifying-glass"
             class="sm:col-span-2"
+            :loading="isLoading && searchQuery !== debouncedSearch"
           />
 
           <!-- Admin filter -->

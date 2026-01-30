@@ -2,6 +2,7 @@
 import { useMedia, getThumbnailUrl, getMediaFileUrl } from '~/composables/useMedia'
 import type { MediaItem } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -10,6 +11,7 @@ const toast = useToast()
 
 const mediaItems = ref<MediaItem[]>([])
 const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const typeFilter = ref<string>('ALL')
 
 const typeOptions = [
@@ -28,9 +30,9 @@ onMounted(loadMedia)
 
 const filteredMedia = computed(() => {
   return mediaItems.value.filter(item => {
-    const matchesSearch = !searchQuery.value || 
-      item.filename?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchesSearch = !debouncedSearch.value || 
+      item.filename?.toLowerCase().includes(debouncedSearch.value.toLowerCase()) ||
+      item.id.toLowerCase().includes(debouncedSearch.value.toLowerCase())
     
     const matchesType = typeFilter.value === 'ALL' || item.type === typeFilter.value
     

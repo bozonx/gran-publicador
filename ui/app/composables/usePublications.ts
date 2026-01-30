@@ -466,6 +466,24 @@ export function usePublications() {
         return null
     }
 
+    async function copyPublication(id: string, projectId: string | null): Promise<PublicationWithRelations> {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const result = await api.post<PublicationWithRelations>(`/publications/${id}/copy`, {
+                projectId
+            })
+            return result
+        } catch (err: any) {
+            console.error('[usePublications] copyPublication error:', err)
+            error.value = err.message || 'Failed to copy publication'
+            throw err
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     return {
         publications,
         currentPublication,
@@ -479,6 +497,7 @@ export function usePublications() {
         fetchPublication,
         createPublication,
         updatePublication,
+        copyPublication,
         deletePublication,
         bulkOperation,
         createPostsFromPublication,

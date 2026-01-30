@@ -9,6 +9,7 @@ import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 import { useAuth } from '~/composables/useAuth'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 
 
 interface NewsQuery {
@@ -206,7 +207,7 @@ const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
 })
 
 // Auto-search with debounce (separate from auto-save)
-const debouncedSearch = useDebounceFn(handleSearch, AUTO_SAVE_DEBOUNCE_MS)
+const debouncedSearch = useDebounceFn(handleSearch, SEARCH_DEBOUNCE_MS)
 
 watch(
   () => [

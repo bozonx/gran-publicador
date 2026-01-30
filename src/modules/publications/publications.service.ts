@@ -1470,4 +1470,63 @@ export class PublicationsService {
       },
     });
   }
+
+  /**
+   * Copy a publication to another project or personal drafts.
+   *
+   * @param id - The ID of the publication to copy.
+   * @param targetProjectId - The ID of the target project, or null for personal drafts.
+   * @param userId - The ID of the user performing the copy.
+   * @returns The newly created publication copy.
+   */
+  public async copy(id: string, targetProjectId: string | null, userId: string) {
+    const source = await this.findOne(id, userId);
+
+    if (targetProjectId) {
+      await this.permissions.checkPermission(
+        targetProjectId,
+        userId,
+        PermissionKey.PUBLICATIONS_CREATE,
+      );
+    }
+
+    const newPublication = await this.prisma.publication.create({
+      data: {
+        projectId: targetProjectId,
+        createdBy: userId,
+        title: source.title,
+        description: source.description,
+        authorComment: source.authorComment,
+        content: source.content,
+        tags: source.tags,
+        postType: source.postType,
+        language: source.language,
+        meta: source.meta || {},
+        sourceTexts: (source.sourceTexts || []) as any,
+        note: source.note,
+        postDate: source.postDate,
+        status: PublicationStatus.DRAFT,
+        scheduledAt: null,
+        media: {
+          create:
+            source.media?.map(pm => ({
+              mediaId: pm.mediaId,
+              order: pm.order,
+              hasSpoiler: pm.hasSpoiler,
+            })) || [],
+        },
+      },
+      include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
+    });
+
+    this.logger.log(
+      `Publication ${id} copied to project ${targetProjectId || 'personal' } by user ${userId}. New publication ID: ${newPublication.id}`,
+    );
+
+    return {
+      ...newPublication,
+      meta: this.parseMetaJson(newPublication.meta),
+      sourceTexts: this.parseSourceTextsJson(newPublication.sourceTexts),
+    };
+  }
 }

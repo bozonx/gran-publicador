@@ -13,6 +13,39 @@ const router = useRouter();
 
 const relativeTime = useTimeAgo(new Date(props.notification.createdAt));
 
+const target = ref<HTMLDivElement | null>(null);
+let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+const { stop } = useIntersectionObserver(
+  target,
+  (entries) => {
+    const entry = entries[0];
+    if (entry?.isIntersecting && !props.notification.readAt) {
+      if (!timeoutId) {
+        timeoutId = setTimeout(async () => {
+          if (!props.notification.readAt) {
+            await notificationsStore.markAsRead(props.notification.id);
+          }
+          stop();
+        }, 2000);
+      }
+    } else {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    }
+  },
+  { threshold: 0.5 }
+);
+
+onUnmounted(() => {
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+  }
+  stop();
+});
+
 const icon = computed(() => {
   switch (props.notification.type) {
     case NotificationType.PUBLICATION_FAILED:
@@ -64,6 +97,7 @@ async function handleClick() {
 
 <template>
   <div
+    ref="target"
     class="p-4 border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
     :class="{ 
       'bg-blue-50/50 dark:bg-blue-900/10': !notification.readAt,

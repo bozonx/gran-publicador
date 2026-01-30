@@ -3,6 +3,7 @@ import { usePublications } from '~/composables/usePublications'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import { useViewMode } from '~/composables/useViewMode'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
 import { SPACING, CARD_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
 
@@ -30,7 +31,7 @@ const currentPage = ref(
 
 const limit = ref(DEFAULT_PAGE_SIZE)
 const searchQuery = ref((route.query.search as string) || '')
-const debouncedSearch = refDebounced(searchQuery, 300)
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 const sortBy = ref((route.query.sortBy as string) || 'createdAt')
 const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')

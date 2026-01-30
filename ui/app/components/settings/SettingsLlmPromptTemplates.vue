@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 
 const props = defineProps<{
   projectId?: string
@@ -36,14 +37,15 @@ const formData = reactive({
 
 // Search
 const searchQuery = ref('')
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 // Filtered templates based on search
 const filteredTemplates = computed(() => {
-  if (!searchQuery.value.trim()) {
+  if (!debouncedSearch.value.trim()) {
     return templates.value
   }
   
-  const query = searchQuery.value.toLowerCase()
+  const query = debouncedSearch.value.toLowerCase()
   return templates.value.filter(tpl => 
     tpl.name.toLowerCase().includes(query) ||
     (tpl.description && tpl.description.toLowerCase().includes(query)) ||

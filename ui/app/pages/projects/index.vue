@@ -2,6 +2,7 @@
 import type { ProjectWithRole } from '~/stores/projects'
 import { useSorting } from '~/composables/useSorting'
 import { FORM_STYLES } from '~/utils/design-tokens'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 
 definePageMeta({
   middleware: 'auth',
@@ -12,7 +13,7 @@ const router = useRouter()
 const { projects, isLoading, error, fetchProjects, createProject } = useProjects()
 
 const searchQuery = ref('')
-const debouncedSearch = refDebounced(searchQuery, 300)
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const allProjects = ref<ProjectWithRole[]>([])
 const showArchived = ref(false)
 

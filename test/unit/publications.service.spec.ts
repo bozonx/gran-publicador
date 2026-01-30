@@ -5,7 +5,7 @@ import { PublicationsService } from '../../src/modules/publications/publications
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/index.js';
+import { PostStatus, PublicationStatus, SocialMedia, PostType } from '../../src/generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
 import { MediaService } from '../../src/modules/media/media.service.js';
 
@@ -587,6 +587,66 @@ describe('PublicationsService (unit)', () => {
       expect(result.items[1].id).toBe('2');
       expect(result.items[2].id).toBe('3');
       expect(result.items[3].id).toBe('4');
+    });
+  });
+
+  describe('copy', () => {
+    it('should copy a publication to another project', async () => {
+      const userId = 'user-1';
+      const sourceId = 'pub-1';
+      const targetProjectId = 'project-2';
+
+      const mockSourcePublication = {
+        id: sourceId,
+        projectId: 'project-1',
+        createdBy: userId,
+        title: 'Source Title',
+        content: 'Source Content',
+        language: 'en-US',
+        postType: PostType.POST,
+        meta: {},
+        sourceTexts: [],
+        media: [
+          { mediaId: 'media-1', order: 0, hasSpoiler: false }
+        ]
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockSourcePublication);
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+
+      const mockNewPublication = {
+        id: 'pub-copy',
+        projectId: targetProjectId,
+        createdBy: userId,
+        title: 'Source Title',
+        content: 'Source Content',
+        language: 'en-US',
+        status: PublicationStatus.DRAFT,
+        meta: {},
+        sourceTexts: [],
+      };
+
+      mockPrismaService.publication.create.mockResolvedValue(mockNewPublication);
+
+      const result = await service.copy(sourceId, targetProjectId, userId);
+
+      expect(result.id).toBe('pub-copy');
+      expect(result.status).toBe(PublicationStatus.DRAFT);
+      expect(mockPrismaService.publication.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            projectId: targetProjectId,
+            title: 'Source Title',
+            status: PublicationStatus.DRAFT,
+            media: {
+              create: [
+                { mediaId: 'media-1', order: 0, hasSpoiler: false }
+              ]
+            }
+          })
+        })
+      );
     });
   });
 });

@@ -10,6 +10,7 @@ import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
 import type { PublicationStatus } from '~/types/posts'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
 
 definePageMeta({
@@ -80,7 +81,7 @@ const showArchivedFilter = filters.archived
 const sortBy = filters.sortBy
 const sortOrder = filters.sortOrder
 
-const debouncedSearch = refDebounced(searchQuery, 300)
+const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const limit = ref(DEFAULT_PAGE_SIZE)
 
 // Computed model for status UI
