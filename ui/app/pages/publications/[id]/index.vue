@@ -263,16 +263,6 @@ const isAnyPostPublished = computed(() => {
             </p>
           </div>
 
-          <!-- Media Gallery -->
-          <div class="mb-8" v-if="currentPublication.media && currentPublication.media.length > 0">
-            <MediaGallery 
-              :media="currentPublication.media" 
-              :publication-id="currentPublication.id"
-              :editable="false"
-              @refresh="() => fetchPublication(publicationId)"
-            />
-          </div>
-
           <!-- Post Date -->
           <div v-if="currentPublication.postDate" class="mb-6 flex items-center gap-2" :title="t('post.postDate')">
              <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-gray-400" />
@@ -321,6 +311,18 @@ const isAnyPostPublished = computed(() => {
                   </div>
               </div>
             </div>
+
+
+            <!-- Media Gallery -->
+            <div class="mb-8" v-if="currentPublication.media && currentPublication.media.length > 0">
+              <MediaGallery 
+                :media="currentPublication.media" 
+                :publication-id="currentPublication.id"
+                :editable="false"
+                @refresh="() => fetchPublication(publicationId)"
+              />
+            </div>
+            
         </div>
       </div>
     </div>
