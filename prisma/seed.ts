@@ -252,18 +252,19 @@ async function main() {
 
 
     // 5. CHANNELS
+    console.log('  Generating channels...');
     const channelData = [
-        { id: '22222222-2222-2222-2222-222222222221', projectId: projectData[0].id, socialMedia: SocialMedia.TELEGRAM, name: 'Main Tech Channel', channelIdentifier: '@tech_main', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222221', projectId: projectData[0].id, socialMedia: SocialMedia.TELEGRAM, name: 'Main Tech Channel', channelIdentifier: '@tech_main', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100123' }, preferences: {} },
         { id: '22222222-2222-2222-2222-222222222222', projectId: projectData[0].id, socialMedia: SocialMedia.YOUTUBE, name: 'Tech Tutorials YT', channelIdentifier: 'UC_TechTuts', language: 'en-US', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Travel Daily', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222227', projectId: projectData[4].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel', channelIdentifier: '@stress_test', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '99999999-9999-9999-9999-999999999999', projectId: projectData[5].id, socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222228', projectId: projectData[6].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stale Channel', channelIdentifier: '@stale_channel', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true, credentials: { vkAccessToken: 'vk_tok' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Travel Daily', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100124' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true, credentials: { token: 'tok' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222227', projectId: projectData[4].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel', channelIdentifier: '@stress_test', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100125' }, preferences: {} },
+        { id: '99999999-9999-9999-9999-999999999999', projectId: projectData[5].id, socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100126' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222228', projectId: projectData[6].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stale Channel', channelIdentifier: '@stale_channel', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100127' }, preferences: {} },
         { id: '22222222-2222-2222-2222-222222222230', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'No Credentials Channel', channelIdentifier: '@no_creds', language: 'ru-RU', isActive: true, credentials: {}, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222231', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Inactive Channel', channelIdentifier: '@inactive_ch', language: 'ru-RU', isActive: false, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222232', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Failed Posts Channel', channelIdentifier: '@failed_posts', language: 'ru-RU', isActive: true, credentials: { token: 'valid' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222231', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Inactive Channel', channelIdentifier: '@inactive_ch', language: 'ru-RU', isActive: false, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100128' }, preferences: {} },
+        { id: '22222222-2222-2222-2222-222222222232', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Failed Posts Channel', channelIdentifier: '@failed_posts', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100129' }, preferences: {} },
     ];
 
     for (const c of channelData) {
@@ -389,6 +390,19 @@ async function main() {
             meta: {},
             sourceTexts: [],
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        },
+        {
+            id: '44444444-4444-4444-4444-444444444490',
+            projectId: projectData[4].id,
+            createdBy: devUser.id,
+            title: 'UI Stress Test Publication',
+            content: '<h1>Testing UI Layouts</h1><p>This is a publication for project 4.</p>',
+            status: PublicationStatus.PUBLISHED,
+            postType: PostType.ARTICLE,
+            language: 'ru-RU',
+            meta: {},
+            sourceTexts: [],
+            createdAt: new Date(),
         }
     ];
 
@@ -427,6 +441,15 @@ async function main() {
             socialMedia: 'TELEGRAM',
             status: PostStatus.FAILED,
             errorMessage: 'API error',
+            meta: {},
+        },
+        {
+            id: '33333333-3333-3333-3333-333333333390',
+            publicationId: '44444444-4444-4444-4444-444444444490',
+            channelId: '22222222-2222-2222-2222-222222222227',
+            socialMedia: 'TELEGRAM',
+            status: PostStatus.PUBLISHED,
+            publishedAt: new Date(),
             meta: {},
         }
     ];

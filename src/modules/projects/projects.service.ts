@@ -237,7 +237,6 @@ export class ProjectsService {
 
       return {
         ...project,
-        channels: [],
         role: project.ownerId === userId ? 'owner' : userMember?.role?.name?.toLowerCase(),
         channelCount: project._count.channels,
         publicationsCount: project._count.publications,
