@@ -226,26 +226,40 @@ export class ChannelsService {
     const validatedLimit = Math.min(filters.limit ?? 50, 1000);
     const offset = filters.offset ?? 0;
 
-    const userProjects = await this.prisma.project.findMany({
-      where: {
-        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-      },
-      select: { id: true },
+    // Check if user is admin
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true },
     });
-    const userAllowedProjectIds = userProjects.map(p => p.id);
-
-    if (userAllowedProjectIds.length === 0) return { items: [], total: 0 };
-
-    let searchProjectIds = userAllowedProjectIds;
-    if (filters.projectIds && filters.projectIds.length > 0) {
-      searchProjectIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
-      if (searchProjectIds.length === 0) return { items: [], total: 0 };
-    }
 
     const where: any = {
-      projectId: { in: searchProjectIds },
       ...(filters.includeArchived ? {} : { archivedAt: null, project: { archivedAt: null } }),
     };
+
+    if (!user?.isAdmin) {
+      const userProjects = await this.prisma.project.findMany({
+        where: {
+          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+        },
+        select: { id: true },
+      });
+      const userAllowedProjectIds = userProjects.map(p => p.id);
+
+      if (userAllowedProjectIds.length === 0) return { items: [], total: 0 };
+
+      if (filters.projectIds && filters.projectIds.length > 0) {
+        const allowedIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
+        if (allowedIds.length === 0) return { items: [], total: 0 };
+        where.projectId = { in: allowedIds };
+      } else {
+        where.projectId = { in: userAllowedProjectIds };
+      }
+    } else {
+      // Admin can see all, but filter if projectIds provided
+      if (filters.projectIds && filters.projectIds.length > 0) {
+        where.projectId = { in: filters.projectIds };
+      }
+    }
 
     const andConditions: any[] = [];
     if (filters.search) {
