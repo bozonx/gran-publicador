@@ -55,7 +55,7 @@ const { schema } = usePublicationFormValidation(t)
 const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
 
 const languageParam = route.query.language as string | undefined
-const currentProjectId = ref<string | null>(props.publication?.projectId || props.projectId || null)
+const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
 const state = usePublicationFormState(props.publication, languageParam)
 
 const projectOptions = computed(() => {
@@ -65,7 +65,7 @@ const projectOptions = computed(() => {
     }))
     
     opts.unshift({
-        value: null,
+        value: undefined,
         label: t('publication.personal_draft')
     } as any)
     
@@ -355,6 +355,24 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
     }
 }
 
+function handleReplaceContent(text: string) {
+    state.content = text
+}
+
+function handleMoveToSourceTexts() {
+    if (isTextContentEmpty(state.content)) return
+
+    if (!state.sourceTexts) state.sourceTexts = []
+    
+    state.sourceTexts.push({
+        content: state.content || '', // Fallback to empty string for safety, though check passed
+        source: 'manual',
+        order: state.sourceTexts.length
+    })
+    
+    state.content = ''
+}
+
 </script>
 
 <template>
@@ -464,9 +482,22 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
 
       <UFormField name="content">
         <template #label>
-          <div class="flex items-center gap-1.5">
-            <span>{{ t('post.content') }}</span>
-            <CommonInfoTooltip :text="t('post.contentTooltip')" />
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('post.content') }}</span>
+              <CommonInfoTooltip :text="t('post.contentTooltip')" />
+            </div>
+            <UTooltip :text="t('publication.moveToSourceTexts')">
+                <UButton
+                    v-if="!isContentMissing"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost" 
+                    icon="i-heroicons-arrow-down-tray"
+                    :label="t('publication.moveToSourceTexts')"
+                    @click="handleMoveToSourceTexts"
+                />
+            </UTooltip>
           </div>
         </template>
         
@@ -509,6 +540,7 @@ function handleTranslated(result: { translatedText: string; action: 'insert' | '
       <FormsPublicationSourceTexts
         v-model="state.sourceTexts"
         @translate="handleOpenTranslateModal"
+        @replace-content="handleReplaceContent"
       />
 
       
