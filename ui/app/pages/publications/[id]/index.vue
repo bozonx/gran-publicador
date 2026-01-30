@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import yaml from 'js-yaml'
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useFormatters } from '~/composables/useFormatters'
@@ -48,9 +47,20 @@ const hasArchivedChannels = computed(() => currentPublication.value?.posts?.some
 const hasInactiveChannels = computed(() => currentPublication.value?.posts?.some(p => p.channel?.isActive === false))
 
 const isPreviewModalOpen = ref(false)
-const isMetaVisible = ref(false)
 const previewContent = ref('')
 const previewTitle = ref('')
+
+const showDescription = computed(() => {
+  if (!currentPublication.value?.description) return false
+  
+  // Show for ARTICLE and for publications with SITE posts
+  if (currentPublication.value.postType === 'ARTICLE') return true
+  
+  return currentPublication.value.posts?.some(post => {
+    const socialMedia = post.channel?.socialMedia || post.socialMedia
+    return socialMedia === 'SITE'
+  })
+})
 
 async function showPostPreview(post: any) {
   if (!currentPublication.value) return
@@ -77,53 +87,41 @@ async function showPostPreview(post: any) {
   isPreviewModalOpen.value = true
 }
 
-/**
- * Recursively parse nested JSON strings in metadata.
- */
-function recursivelyParseJson(data: any, maxDepth = 5): any {
-  if (maxDepth <= 0) return data
-  
-  if (typeof data === 'string') {
-    try {
-      const trimmed = data.trim()
-      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-        const parsed = JSON.parse(data)
-        return recursivelyParseJson(parsed, maxDepth - 1)
-      }
-    } catch {
-      return data
-    }
-  } else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-    const result: Record<string, any> = {}
-    for (const [key, value] of Object.entries(data)) {
-      result[key] = recursivelyParseJson(value, maxDepth)
-    }
-    return result
-  }
-  
-  return data
-}
+const majoritySchedule = computed(() => {
+    if (!currentPublication.value?.posts?.length) return { date: null, conflict: false }
+    
+    // Collect dates: prefer publishedAt, then scheduledAt
+    const dates = currentPublication.value.posts
+        .map((p: any) => p.publishedAt || p.scheduledAt)
+        .filter((d: string | null) => !!d) as string[]
 
-const metaYaml = computed(() => {
-  if (!currentPublication.value?.meta || (typeof currentPublication.value.meta === 'object' && Object.keys(currentPublication.value.meta).length === 0)) {
-    return ''
-  }
-  
-  const cleanData = recursivelyParseJson(currentPublication.value.meta)
-  
-  try {
-    return yaml.dump(cleanData, {
-      indent: 2,
-      lineWidth: -1,
-      noRefs: true,
-      sortKeys: false
+    if (dates.length === 0) return { date: null, conflict: false }
+
+    const counts: Record<string, number> = {}
+    dates.forEach(d => {
+        counts[d] = (counts[d] || 0) + 1
     })
-  } catch (e) {
-    console.error('Failed to convert to YAML:', e)
-    return ''
-  }
+
+    let maxCount = 0
+    let majorityDate = null
+    
+    for (const [date, count] of Object.entries(counts)) {
+        if (count > maxCount) {
+            maxCount = count
+            majorityDate = date
+        }
+    }
+
+    const uniqueDates = Object.keys(counts)
+    const conflict = uniqueDates.length > 1
+    
+    return { date: majorityDate, conflict }
 })
+
+const isAnyPostPublished = computed(() => {
+    return currentPublication.value?.posts?.some(p => !!p.publishedAt) ?? false
+})
+
 </script>
 
 <template>
@@ -166,6 +164,21 @@ const metaYaml = computed(() => {
 
           <!-- Badge Row -->
           <div class="flex flex-wrap gap-2 mb-6">
+            <!-- Scheduling info -->
+            <UBadge 
+              :color="isAnyPostPublished ? 'success' : 'primary'" 
+              variant="soft" 
+              class="font-normal"
+            >
+              <span class="text-gray-400 mr-1">
+                {{ isAnyPostPublished ? t('post.publishedAt') : t('post.scheduledAt') }}:
+              </span>
+              <span :class="majoritySchedule.date ? (isAnyPostPublished ? 'text-success-600 dark:text-success-400 font-medium' : 'text-primary-600 dark:text-primary-400 font-medium') : 'text-success-600 dark:text-success-400'">
+                {{ majoritySchedule.date ? formatDateWithTime(majoritySchedule.date) : t('common.none') }}
+                <span v-if="majoritySchedule.conflict" class="ml-1 text-orange-500">*</span>
+              </span>
+            </UBadge>
+
             <!-- Archivied status for publication -->
             <UBadge v-if="isArchived" color="error" variant="solid" class="flex items-center gap-1 font-bold">
               <UIcon name="i-heroicons-archive-box" class="w-4 h-4" />
@@ -236,17 +249,6 @@ const metaYaml = computed(() => {
                   <UIcon :name="getSocialMediaIcon(post.channel?.socialMedia || post.socialMedia)" class="w-5 h-5" />
                 </div>
               </UTooltip>
-              <div class="flex flex-col">
-                <span class="text-[10px] uppercase tracking-wider text-gray-400 leading-none mb-0.5">
-                  {{ post.publishedAt ? t('post.publishedAt') : t('post.scheduledAt') }}
-                </span>
-                <span 
-                  class="text-xs font-medium"
-                  :class="post.publishedAt ? 'text-success-600 dark:text-success-400' : 'text-primary-600 dark:text-primary-400'"
-                >
-                  {{ post.publishedAt ? formatDateWithTime(post.publishedAt) : (post.scheduledAt ? formatDateWithTime(post.scheduledAt) : (currentPublication.scheduledAt ? formatDateWithTime(currentPublication.scheduledAt) : t('common.none'))) }}
-                </span>
-              </div>
             </div>
           </div>
 
@@ -297,39 +299,13 @@ const metaYaml = computed(() => {
               </div>
 
               <!-- Description -->
-              <div v-if="currentPublication.description" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
+              <div v-if="showDescription" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
                 <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                   <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
                   {{ t('post.description') }}
                 </h3>
                 <div class="text-sm text-gray-700 dark:text-gray-300">
                   {{ currentPublication.description }}
-                </div>
-              </div>
-
- 
-
-              <!-- Meta Data Section -->
-              <div v-if="metaYaml" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
-                <button 
-                  class="flex items-center justify-between w-full text-left group"
-                  @click="isMetaVisible = !isMetaVisible"
-                >
-                  <div class="flex items-center gap-1.5">
-                    <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-                      {{ t('post.metadata') }}
-                    </h3>
-                  </div>
-                  <UIcon 
-                    name="i-heroicons-chevron-down" 
-                    class="w-4 h-4 text-gray-400 transition-transform duration-200"
-                    :class="{ '-rotate-90': !isMetaVisible }"
-                  />
-                </button>
-                
-                <div v-if="isMetaVisible" class="mt-3 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/50 rounded-lg">
-                  <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">{{ metaYaml }}</pre>
                 </div>
               </div>
 
