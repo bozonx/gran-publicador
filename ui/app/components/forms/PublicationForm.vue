@@ -365,7 +365,7 @@ function handleMoveToSourceTexts() {
     if (!state.sourceTexts) state.sourceTexts = []
     
     state.sourceTexts.push({
-        content: state.content || '', // Fallback to empty string for safety, though check passed
+        content: state.content || '',
         source: 'manual',
         order: state.sourceTexts.length
     })
