@@ -225,8 +225,16 @@ function getProjectTooltip(project: ProjectWithRole) {
               </NuxtLink>
             </UTooltip>
             
+            <NuxtLink 
+              :to="`/news?projectId=${project.id}`"
+              class="px-2 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+              @click.stop
+            >
+              <UIcon name="i-heroicons-newspaper" class="w-4 h-4" />
+            </NuxtLink>
+
             <button
-              class="px-3 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded-r-lg transition-colors"
+              class="px-3 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded-r-lg transition-colors text-gray-400"
               @click.stop="toggleProject(project.id)"
             >
               <UIcon 
@@ -240,13 +248,13 @@ function getProjectTooltip(project: ProjectWithRole) {
           <!-- Channels List (Horizontal Icons) -->
           <div 
             v-if="expandedProjects.has(project.id)"
-            class="pl-4 px-3 py-2"
+            class="px-3 py-1"
           >
             <div v-if="areChannelsLoading[project.id]" class="text-xs text-gray-500">
               {{ t('common.loading') }}...
             </div>
             
-            <div v-else-if="projectChannels[project.id]?.length" class="flex items-center gap-2 flex-wrap">
+            <div v-else-if="projectChannels[project.id]?.length" class="flex items-center gap-1 flex-wrap">
               <UTooltip
                 v-for="channel in projectChannels[project.id]"
                 :key="channel.id"

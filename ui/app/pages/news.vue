@@ -9,17 +9,18 @@ definePageMeta({
   middleware: 'auth',
 })
 
+const route = useRoute()
 const { t, d } = useI18n()
 const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries } = useNews()
 
 const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
-const selectedNewsItem = ref<NewsItem | null>(null)
+const selectedNewsItem = ref<any | null>(null)
 const trackedQueries = ref<any[]>([])
 const isInitialLoading = ref(true)
 
-function handleCreatePublication(item: NewsItem) {
+function handleCreatePublication(item: any) {
   selectedNewsUrl.value = item.url
   selectedNewsItem.value = item
   isCreateModalOpen.value = true
@@ -61,7 +62,20 @@ onMounted(async () => {
   try {
     trackedQueries.value = await getDefaultQueries()
     if (trackedQueries.value.length > 0) {
-      await handleSearch()
+      // If projectId is provided in URL, try to find matching query
+      const projectIdParam = route.query.projectId as string
+      if (projectIdParam) {
+        const matchingIndex = trackedQueries.value.findIndex(q => q.projectId === projectIdParam)
+        if (matchingIndex !== -1) {
+          activeTabIndex.value = matchingIndex
+        }
+      }
+      
+      // If we are at index 0, we need to manually trigger the first search
+      // because the watcher only triggers on change.
+      if (activeTabIndex.value === 0) {
+        await handleSearch()
+      }
     }
   } finally {
     isInitialLoading.value = false
