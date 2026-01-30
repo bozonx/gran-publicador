@@ -270,17 +270,17 @@ const isAnyPostPublished = computed(() => {
           </div>
 
             <!-- Content Section -->
-            <div class="space-y-6">
-              <div v-if="currentPublication.content" class="max-w-none">
-                <div class="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/50 font-mono text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+            <div>
+              <div v-if="currentPublication.content" class="max-w-none mb-4">
+                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/50 font-mono text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">
                   {{ currentPublication.content }}
                 </div>
               </div>
 
               <!-- Author Comment -->
-              <div v-if="currentPublication.authorComment" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
-                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-4 h-4" />
+              <div v-if="currentPublication.authorComment" class="mt-3">
+                <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                  <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-3.5 h-3.5" />
                   {{ t('post.authorComment') }}
                 </h3>
                 <div class="p-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/20 rounded-lg text-sm text-gray-700 dark:text-gray-300">
@@ -289,9 +289,9 @@ const isAnyPostPublished = computed(() => {
               </div>
 
               <!-- Description -->
-              <div v-if="showDescription" class="mt-8 border-t border-gray-100 dark:border-gray-700 pt-6">
-                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
+              <div v-if="showDescription" class="mt-3">
+                <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                  <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
                   {{ t('post.description') }}
                 </h3>
                 <div class="text-sm text-gray-700 dark:text-gray-300">
@@ -314,7 +314,7 @@ const isAnyPostPublished = computed(() => {
 
 
             <!-- Media Gallery -->
-            <div class="mb-8" v-if="currentPublication.media && currentPublication.media.length > 0">
+            <div class="mt-10 mb-8" v-if="currentPublication.media && currentPublication.media.length > 0">
               <MediaGallery 
                 :media="currentPublication.media" 
                 :publication-id="currentPublication.id"
