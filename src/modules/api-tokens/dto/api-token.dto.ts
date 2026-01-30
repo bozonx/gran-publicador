@@ -13,7 +13,7 @@ export class CreateApiTokenDto {
 
   @IsArray()
   @IsString({ each: true })
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_PROJECTS_PER_TOKEN)
   public projectIds?: string[];
@@ -31,7 +31,7 @@ export class UpdateApiTokenDto {
 
   @IsArray()
   @IsString({ each: true })
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_PROJECTS_PER_TOKEN)
   public projectIds?: string[];

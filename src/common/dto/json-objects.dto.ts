@@ -99,19 +99,19 @@ export class TelegramOriginDto {
  */
 export class PublicationMetaDto {
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   publicationId?: string;
 
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   postId?: string;
 
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   channelId?: string;
 
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   projectId?: string;
 
   @IsOptional()

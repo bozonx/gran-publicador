@@ -23,7 +23,7 @@ import { ChannelCredentialsDto, ChannelPreferencesDto } from '../../../common/dt
 export class CreateChannelDto {
   @IsString()
   @IsNotEmpty()
-  @IsUUID('4')
+  @IsUUID()
   public projectId!: string;
 
   @IsEnum(SocialMedia)

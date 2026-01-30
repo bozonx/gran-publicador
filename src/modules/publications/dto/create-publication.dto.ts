@@ -61,7 +61,7 @@ export class SourceTextDto {
 export class CreatePublicationDto {
   @IsString()
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   public projectId?: string;
 
   @IsString()
@@ -145,7 +145,7 @@ export class CreatePublicationDto {
 
   @IsString()
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   public translationGroupId?: string;
 
   @Type(() => Date)
@@ -159,12 +159,12 @@ export class CreatePublicationDto {
 
   @IsString()
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   public linkToPublicationId?: string;
 
   @IsArray()
   @IsString({ each: true })
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_CHANNELS_PER_PUBLICATION)
   public channelIds?: string[];

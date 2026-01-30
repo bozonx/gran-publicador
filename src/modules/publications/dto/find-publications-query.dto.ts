@@ -53,7 +53,7 @@ export enum IssueType {
 export class FindPublicationsQueryDto {
   @IsOptional()
   @IsString()
-  @IsUUID('4')
+  @IsUUID()
   projectId?: string;
 
   @IsOptional()
@@ -67,7 +67,7 @@ export class FindPublicationsQueryDto {
 
   @IsOptional()
   @IsString()
-  @IsUUID('4')
+  @IsUUID()
   channelId?: string;
 
   @IsOptional()

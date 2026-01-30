@@ -17,7 +17,7 @@ export class CreatePostsDto {
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one channel must be specified' })
   @ArrayUnique()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   @IsNotEmpty()
   public channelIds!: string[];
 

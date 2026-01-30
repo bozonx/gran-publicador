@@ -104,7 +104,7 @@ export class UpdatePublicationDto {
   public language?: string;
 
   @IsString()
-  @IsUUID('4')
+  @IsUUID()
   @ValidateIf((o) => o.translationGroupId !== null)
   @IsOptional()
   public translationGroupId?: string | null;
@@ -120,7 +120,7 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID()
   public linkToPublicationId?: string;
 
   @IsArray()
@@ -131,7 +131,7 @@ export class UpdatePublicationDto {
   public sourceTexts?: SourceTextDto[];
 
   @IsString()
-  @IsUUID('4')
+  @IsUUID()
   @ValidateIf((o) => o.projectId !== null)
   @IsOptional()
   public projectId?: string | null;
