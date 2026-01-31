@@ -24,10 +24,7 @@ export class CreateNewsQueryDto {
   @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   sourceTags?: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  newsTags?: string;
+
 
   @IsNumber()
   @IsOptional()
@@ -39,7 +36,15 @@ export class CreateNewsQueryDto {
 
   @IsString()
   @IsOptional()
-  since?: string;
+  savedFrom?: string;
+
+  @IsString()
+  @IsOptional()
+  savedTo?: string;
+
+  @IsString()
+  @IsOptional()
+  orderBy?: 'relevance' | 'savedAt';
 
   @IsBoolean()
   @IsOptional()

@@ -35,14 +35,7 @@ function formatScore(score: number) {
 }
 
 
-// Get hostname from URL
-function getHostname(urlString: string): string {
-  try {
-    return new URL(urlString).hostname.replace('www.', '')
-  } catch {
-    return urlString
-  }
-}
+
 
 const displayDate = computed(() => {
   const dateStr = props.item._savedAt || props.item.savedAt || props.item.date || props.item.publishedAt
@@ -51,7 +44,7 @@ const displayDate = computed(() => {
 })
 
 const displaySource = computed(() => {
-  const source = props.item.publisher || props.item._source || props.item.source || getHostname(props.item.url)
+  const source = props.item.publisher || props.item._source
   if (!source) return ''
   return source.length > 30 ? source.slice(0, 30) + '…' : source
 })

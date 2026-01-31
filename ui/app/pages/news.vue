@@ -45,10 +45,11 @@ async function handleSearch() {
   await searchNews({
     q: currentTrackedQuery.value.q,
     mode: currentTrackedQuery.value.mode,
-    since: currentTrackedQuery.value.since,
+    savedFrom: currentTrackedQuery.value.savedFrom,
+    savedTo: currentTrackedQuery.value.savedTo,
     lang: currentTrackedQuery.value.lang,
     sourceTags: currentTrackedQuery.value.sourceTags,
-    newsTags: currentTrackedQuery.value.newsTags,
+    orderBy: currentTrackedQuery.value.orderBy,
     minScore: currentTrackedQuery.value.minScore,
   }, currentTrackedQuery.value.projectId)
 }

@@ -17,11 +17,12 @@ interface NewsQuery {
   name: string
   q: string
   mode?: 'text' | 'vector' | 'hybrid'
-  since?: string
+  savedFrom?: string
+  savedTo?: string
   lang?: string
   sourceTags?: string
-  newsTags?: string
   minScore: number
+  orderBy?: 'relevance' | 'savedAt'
   note: string
   isNotificationEnabled: boolean
 }
@@ -154,7 +155,8 @@ async function handleSearch() {
     mode: currentQuery.value.mode,
     lang: currentQuery.value.lang,
     sourceTags: currentQuery.value.sourceTags,
-    newsTags: currentQuery.value.newsTags,
+    savedTo: currentQuery.value.savedTo,
+    orderBy: currentQuery.value.orderBy,
     minScore: currentQuery.value.minScore,
   })
 }
@@ -170,7 +172,8 @@ async function loadMore() {
       mode: currentQuery.value.mode,
       lang: currentQuery.value.lang,
       sourceTags: currentQuery.value.sourceTags,
-      newsTags: currentQuery.value.newsTags,
+      savedTo: currentQuery.value.savedTo,
+      orderBy: currentQuery.value.orderBy,
       minScore: currentQuery.value.minScore,
     }, undefined, true)
   } finally {
@@ -196,8 +199,9 @@ const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
       mode: query.mode,
       lang: query.lang,
       sourceTags: query.sourceTags,
-      newsTags: query.newsTags,
+      savedTo: query.savedTo,
       minScore: query.minScore,
+      orderBy: query.orderBy,
       note: query.note,
       isNotificationEnabled: query.isNotificationEnabled
     })
@@ -215,8 +219,9 @@ watch(
     currentQuery.value?.mode,
     currentQuery.value?.lang,
     currentQuery.value?.sourceTags,
-    currentQuery.value?.newsTags,
+    currentQuery.value?.savedTo,
     currentQuery.value?.minScore,
+    currentQuery.value?.orderBy,
   ],
   () => {
     if (currentQuery.value?.q) {
@@ -235,6 +240,7 @@ async function addTab() {
     q: '',
     mode: 'hybrid' as const,
     minScore: 0.5,
+    orderBy: 'relevance' as const,
     lang: user.value?.language || 'en-US',
     isNotificationEnabled: false
   }
@@ -478,19 +484,36 @@ function formatScore(score: number) {
               </div>
             </div>
 
-            <!-- News Tags and Score -->
+            <!-- Saved To and Order By -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.newsTags') || 'News Tags' }}
+                  {{ t('news.savedTo') || 'Saved before' }}
                 </label>
                 <UInput
-                  v-model="currentQuery.newsTags"
-                  :placeholder="t('news.newsTagsPlaceholder') || 'Comma-separated news tags'"
-                  icon="i-heroicons-tag"
+                  v-model="currentQuery.savedTo"
+                  type="date"
+                  size="lg"
+                  icon="i-heroicons-calendar"
+                />
+              </div>
+              <div v-if="currentQuery">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.orderBy') || 'Sort by' }}
+                </label>
+                <USelect
+                  v-model="currentQuery.orderBy"
+                  :options="[
+                    { label: t('news.orderByRelevance') || 'Relevance', value: 'relevance' },
+                    { label: t('news.orderBySavedAt') || 'Date Saved', value: 'savedAt' }
+                  ]"
                   size="lg"
                 />
               </div>
+            </div>
+
+            <!-- Score -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Min Score

@@ -36,7 +36,6 @@ export interface SearchNewsParams {
   cursor?: string
   source?: string
   sourceTags?: string
-  newsTags?: string
   tags?: string[]
   lang?: string
   offset?: number
@@ -45,7 +44,7 @@ export interface SearchNewsParams {
   orderBy?: 'relevance' | 'savedAt'
 }
 
-const NEWS_LIMIT = 20
+const NEWS_LIMIT = 10
 
 export const useNews = () => {
   const api = useApi()
@@ -90,7 +89,6 @@ export const useNews = () => {
         cursor: isLoadMore ? cursor.value : params.cursor,
         source: params.source,
         sourceTags: params.sourceTags,
-        newsTags: params.newsTags,
         tags: params.tags,
         lang: params.lang,
         offset: isLoadMore ? offset.value : params.offset,
@@ -99,6 +97,13 @@ export const useNews = () => {
         includeContent: params.includeContent,
         orderBy: params.orderBy
       }
+
+      // Filter out undefined, null, or empty string values
+      Object.keys(queryParams).forEach(key => {
+        if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
+          delete queryParams[key]
+        }
+      })
 
       const res = await api.get<any>(
         `/projects/${pId}/news/search`,
@@ -120,9 +125,11 @@ export const useNews = () => {
         if (res.meta?.cursor) {
            cursor.value = res.meta.cursor
         }
-        
+
         // Check if we have more pages
-        if (res.meta && typeof res.meta.total === 'number') {
+        if (cursor.value) {
+           hasMore.value = true
+        } else if (res.meta && typeof res.meta.total === 'number') {
             hasMore.value = (offset.value + newItems.length) < total
         } else {
             hasMore.value = newItems.length >= NEWS_LIMIT
