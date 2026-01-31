@@ -20,6 +20,10 @@ export interface NewsItem {
   mainVideoUrl?: string
   content?: string
   tags?: string[]
+  publishedAt?: string
+  publisher?: string
+  _source?: string
+  _savedAt?: string
 }
 
 export interface SearchNewsParams {

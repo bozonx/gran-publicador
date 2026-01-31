@@ -34,12 +34,31 @@ function formatScore(score: number) {
   return `${Math.round(score * 100)}%`
 }
 
+
+// Get hostname from URL
+function getHostname(urlString: string): string {
+  try {
+    return new URL(urlString).hostname.replace('www.', '')
+  } catch {
+    return urlString
+  }
+}
+
+const displayDate = computed(() => {
+  const dateStr = props.item._savedAt || props.item.savedAt || props.item.date || props.item.publishedAt
+  if (!dateStr) return ''
+  return formatDate(dateStr)
+})
+
+const displaySource = computed(() => {
+  return props.item._source || props.item.source || props.item.publisher || getHostname(props.item.url)
+})
+
 const displayText = computed(() => {
   const text = props.item.description || props.item.content || ''
   if (!text) return ''
   return text.length > 500 ? text.slice(0, 500) + '...' : text
 })
-
 </script>
 
 <template>
@@ -64,13 +83,13 @@ const displayText = computed(() => {
       <div class="flex items-center justify-between gap-4 mt-4">
         <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
           <!-- Date -->
-          <div class="flex items-center gap-1.5">
+          <div v-if="displayDate" class="flex items-center gap-1.5">
             <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-            <span>{{ formatDate(item.savedAt) }}</span>
+            <span>{{ displayDate }}</span>
           </div>
           
           <!-- Source -->
-          <div class="flex items-center gap-1.5">
+          <div v-if="displaySource" class="flex items-center gap-1.5">
             <UIcon name="i-heroicons-newspaper" class="w-4 h-4" />
             <a 
               :href="item.url" 
@@ -78,7 +97,7 @@ const displayText = computed(() => {
               class="hover:text-primary-500 hover:underline transition-colors"
               @click.stop
             >
-              {{ item.source }}
+              {{ displaySource }}
             </a>
           </div>
 
