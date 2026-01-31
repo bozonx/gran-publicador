@@ -65,32 +65,44 @@ export class NewsNotificationsScheduler implements OnModuleInit {
   }
 
   private async processQuery(query: any) {
+    const config = this.configService.get<NewsConfig>('news');
+    const lookbackHours = config?.schedulerLookbackHours || 3;
     const settings = (query.settings as any) || {};
-    // Default to last hour if lastCheckedAt is null
-    const lastChecked = query.lastCheckedAt ? new Date(query.lastCheckedAt) : new Date(Date.now() - 3600000);
     
-    // We search news using current settings
-    const results = (await this.projectsService.searchNews(query.projectId, query.project.ownerId, {
+    // Calculate cutoff time
+    const cutoffDate = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
+    
+    const lastCheckedAt = query.lastCheckedAt ? new Date(query.lastCheckedAt) : null;
+    const lastId = settings.lastId || null;
+
+    const searchParams: any = {
       q: settings.q || '',
       mode: settings.mode,
       lang: settings.lang,
       sourceTags: settings.sourceTags,
-      newsTags: settings.newsTags,
       minScore: settings.minScore,
-      limit: 50,
-      // User requested to remove 'since' for now
-    })) as any;
+      limit: 20, // Typical batch for notifications
+    };
 
-    const items = results.items || (Array.isArray(results) ? results : []);
+    // Watermark logic
+    if (lastCheckedAt && lastCheckedAt > cutoffDate) {
+      searchParams.afterSavedAt = lastCheckedAt.toISOString();
+      if (lastId) {
+        searchParams.afterId = lastId;
+      }
+    } else {
+      // Fallback: start fresh from cutoff
+      searchParams.savedFrom = cutoffDate.toISOString();
+    }
     
-    // Filter new items by date (using savedAt if available, otherwise date)
-    const newItems = items.filter((item: any) => {
-      const itemDate = new Date(item.savedAt || item.date);
-      return itemDate > lastChecked;
-    });
+    // Call service
+    const results = (await this.projectsService.searchNews(query.projectId, query.project.ownerId, searchParams)) as any;
+    const items = results.items || (Array.isArray(results) ? results : []);
 
-    if (newItems.length > 0) {
-      this.logger.log(`Found ${newItems.length} new news for project ${query.projectId}, query ${query.name}`);
+    // No manual filtering needed as API handles it via afterSavedAt/savedFrom
+    
+    if (items.length > 0) {
+      this.logger.log(`Found ${items.length} new news for project ${query.projectId}, query ${query.name}`);
       
       // Notify owner and members
       const usersToNotify = new Map<string, string>(); // userId -> uiLanguage
@@ -108,17 +120,17 @@ export class NewsNotificationsScheduler implements OnModuleInit {
       }
 
       // Prepare titles for the message
-      const titlesList = newItems
+      const titlesList = items
         .slice(0, 5)
         .map((item: any) => `• ${item.title}`)
         .join('\n');
-      const suffix = newItems.length > 5 ? `\n... (+${newItems.length - 5})` : '';
+      const suffix = items.length > 5 ? `\n... (+${items.length - 5})` : '';
 
       for (const [userId, lang] of usersToNotify.entries()) {
         const messageBase = this.i18n.t('notifications.NEW_NEWS_MESSAGE', { 
           lang, 
           args: { 
-            count: newItems.length,
+            count: items.length,
             queryName: query.name 
           } 
         });
@@ -131,26 +143,28 @@ export class NewsNotificationsScheduler implements OnModuleInit {
           meta: { 
             projectId: query.projectId, 
             queryId: query.id,
-            newsCount: newItems.length,
-            firstNewsTitle: newItems[0]?.title
+            newsCount: items.length,
+            firstNewsTitle: items[0]?.title
           },
         });
       }
-    }
 
-    // Update lastCheckedAt to the date of the latest news item found minus 1ms
-    if (newItems.length > 0) {
-      const maxDate = Math.max(...newItems.map((i: any) => new Date(i.savedAt || i.date).getTime()));
+      // Update state
+      // The API returns items sorted by savedAt DESC, so the first item is the newest
+      const newestItem = items[0];
+      const newLastCheckedAt = new Date(newestItem._savedAt);
+      const newLastId = newestItem._id;
+      
+      // Preserve existing settings explicitly and update lastId
+      const newSettings = { ...settings, lastId: newLastId };
+
       await this.prisma.projectNewsQuery.update({
         where: { id: query.id },
-        data: { lastCheckedAt: new Date(maxDate - 1) }
+        data: { 
+          lastCheckedAt: newLastCheckedAt,
+          settings: newSettings
+        }
       });
-    } else {
-      // If no news found, we still might want to update lastCheckedAt to "now"
-      // to avoid checking the same gap again, but user instructions imply only on find
-      // Actually, if we don't update, we'll keep checking the same range.
-      // But the user said "lastCheckedAt - переделай на дату savedAt самой последней новости минус 1 милисекунда"
-      // I'll stick to that.
     }
   }
 }

@@ -16,9 +16,6 @@ export class SearchNewsQueryDto {
   @IsIn(['text', 'vector', 'hybrid'])
   mode?: 'text' | 'vector' | 'hybrid';
 
-  @IsOptional()
-  @IsString()
-  since?: string; // Legacy support, maybe map to savedFrom?
 
   @IsOptional()
   @IsISO8601()
@@ -48,25 +45,12 @@ export class SearchNewsQueryDto {
   @IsString()
   sourceTags?: string;
 
-  @IsOptional()
-  @IsString()
-  newsTags?: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  tags?: string[];
 
   @IsOptional()
   @IsString()
   lang?: string;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  offset?: number;
 
   @IsOptional()
   @Type(() => Number)

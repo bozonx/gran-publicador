@@ -662,30 +662,16 @@ export class ProjectsService {
       };
 
       if (query.mode) searchParams.mode = query.mode;
-      if (query.since && !query.savedFrom) searchParams.savedFrom = query.since; // Mapper legacy 'since' to 'savedFrom'
       if (query.savedFrom) searchParams.savedFrom = query.savedFrom;
       if (query.savedTo) searchParams.savedTo = query.savedTo;
       if (query.afterSavedAt) searchParams.afterSavedAt = query.afterSavedAt;
       if (query.afterId) searchParams.afterId = query.afterId;
       if (query.cursor) searchParams.cursor = query.cursor;
-      if (query.source) searchParams.sources = query.source; // API uses 'sources' plural, DTO has singular 'source'. Check API doc again? API doc says 'sources'.
+      if (query.source) searchParams.sources = query.source;
       if (query.sourceTags) searchParams.sourceTags = query.sourceTags;
       if (query.includeContent) searchParams.includeContent = query.includeContent;
 
-      // Map DTO 'tags' (array) to api 'tags' (string)? API docs don't show generic 'tags' param, only 'sourceTags'.
-      // DTO has 'tags' which seemed to map to 'tags' in previous call.
-      // Looking at API reference: "retrieve a flat list of news items". Query params: q, mode, sources, sourceTags, limit, savedFrom...
-      // No general 'tags' param for item tags filtering in the provided docs table. sourceTags is filter sources by tags.
-      // Assuming 'newsTags' maps to nothing or maybe it was missed in docs?  Docs say "sourceTags".
-      // Let's assume 'tags' in DTO was for 'sourceTags' or something else. I will map it if user provided it, but maybe as sourceTags if not present.
-      // Wait, DTO has `newsTags` AND `tags`.
-      // Let's map strict fields.
-
-      if (query.lang) searchParams.locale = query.lang; // API uses 'locale'
-      
-      if (query.offset !== undefined) searchParams.offset = query.offset; // API doc does not list offset, uses cursor. But maybe legacy support? Use 'cursor' if possible.
-      // API doc: "cursor", "afterSavedAt". No offset.
-      // I will keep passing it just in case, or maybe the service wrapper handles it.
+      if (query.lang) searchParams.locale = query.lang;
       
       if (query.limit) searchParams.limit = query.limit;
       if (query.minScore !== undefined) searchParams.minScore = query.minScore;

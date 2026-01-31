@@ -36,9 +36,7 @@ export interface SearchNewsParams {
   cursor?: string
   source?: string
   sourceTags?: string
-  tags?: string[]
   lang?: string
-  offset?: number
   minScore?: number
   includeContent?: boolean
   orderBy?: 'relevance' | 'savedAt'
@@ -57,7 +55,6 @@ export const useNews = () => {
   const error = ref<string | null>(null)
   
   // Pagination state
-  const offset = ref(0)
   const cursor = ref<string | undefined>(undefined)
   const hasMore = ref(false)
 
@@ -74,7 +71,6 @@ export const useNews = () => {
 
     // Reset pagination on new search
     if (!isLoadMore) {
-      offset.value = 0
       cursor.value = undefined
     }
 
@@ -89,7 +85,6 @@ export const useNews = () => {
         cursor: isLoadMore ? cursor.value : params.cursor,
         source: params.source,
         sourceTags: params.sourceTags,
-        tags: params.tags,
         lang: params.lang,
         limit: NEWS_LIMIT,
         minScore: params.minScore,
@@ -110,7 +105,6 @@ export const useNews = () => {
       )
 
       let newItems: NewsItem[] = []
-      let total = 0
       
       if (Array.isArray(res)) {
         newItems = res
@@ -118,20 +112,13 @@ export const useNews = () => {
         hasMore.value = newItems.length >= NEWS_LIMIT
       } else if (res && Array.isArray(res.items)) {
         newItems = res.items
-        total = res.meta?.total || 0
         
         // Update cursor for next page if available
         if (res.nextCursor) {
            cursor.value = res.nextCursor
-        }
-
-        // Check if we have more pages
-        if (cursor.value) {
            hasMore.value = true
-        } else if (res.meta && typeof res.meta.total === 'number') {
-            hasMore.value = (offset.value + newItems.length) < total
         } else {
-            hasMore.value = newItems.length >= NEWS_LIMIT
+           hasMore.value = false
         }
       } else {
         newItems = []
@@ -143,9 +130,6 @@ export const useNews = () => {
       } else {
         news.value = newItems
       }
-      
-      // Update offset pointer for next load
-      offset.value += newItems.length
       
     } catch (err: any) {
       console.error('Failed to search news:', err)
@@ -218,7 +202,6 @@ export const useNews = () => {
     hasMore,
     searchNews,
     fetchNewsContent,
-    offset,
     getQueries,
     createQuery,
     updateQuery,

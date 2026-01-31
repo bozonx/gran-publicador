@@ -155,6 +155,7 @@ async function handleSearch() {
     mode: currentQuery.value.mode,
     lang: currentQuery.value.lang,
     sourceTags: currentQuery.value.sourceTags,
+    savedFrom: currentQuery.value.savedFrom,
     savedTo: currentQuery.value.savedTo,
     orderBy: currentQuery.value.orderBy,
     minScore: currentQuery.value.minScore,
@@ -172,6 +173,7 @@ async function loadMore() {
       mode: currentQuery.value.mode,
       lang: currentQuery.value.lang,
       sourceTags: currentQuery.value.sourceTags,
+      savedFrom: currentQuery.value.savedFrom,
       savedTo: currentQuery.value.savedTo,
       orderBy: currentQuery.value.orderBy,
       minScore: currentQuery.value.minScore,
@@ -199,6 +201,7 @@ const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
       mode: query.mode,
       lang: query.lang,
       sourceTags: query.sourceTags,
+      savedFrom: query.savedFrom,
       savedTo: query.savedTo,
       minScore: query.minScore,
       orderBy: query.orderBy,
@@ -219,6 +222,7 @@ watch(
     currentQuery.value?.mode,
     currentQuery.value?.lang,
     currentQuery.value?.sourceTags,
+    currentQuery.value?.savedFrom,
     currentQuery.value?.savedTo,
     currentQuery.value?.minScore,
     currentQuery.value?.orderBy,
@@ -484,8 +488,20 @@ function formatScore(score: number) {
               </div>
             </div>
 
-            <!-- Saved To and Order By -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Saved From/To & Order By -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div v-if="currentQuery">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.savedFrom') || 'Saved after' }}
+                </label>
+                <UInput
+                  v-model="currentQuery.savedFrom"
+                  type="date"
+                  size="lg"
+                  icon="i-heroicons-calendar"
+                />
+              </div>
+
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.savedTo') || 'Saved before' }}

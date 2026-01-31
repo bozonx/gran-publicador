@@ -11,7 +11,7 @@ definePageMeta({
 
 const route = useRoute()
 const { t, d } = useI18n()
-const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries } = useNews()
+const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries, hasMore } = useNews()
 
 const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
@@ -19,6 +19,7 @@ const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
 const trackedQueries = ref<any[]>([])
 const isInitialLoading = ref(true)
+const isLoadMoreLoading = ref(false)
 
 function handleCreatePublication(item: any) {
   selectedNewsUrl.value = item.url
@@ -45,13 +46,33 @@ async function handleSearch() {
   await searchNews({
     q: currentTrackedQuery.value.q,
     mode: currentTrackedQuery.value.mode,
-    savedFrom: currentTrackedQuery.value.savedFrom,
+    savedFrom: currentTrackedQuery.value.savedFrom || currentTrackedQuery.value.since, // Fallback
     savedTo: currentTrackedQuery.value.savedTo,
     lang: currentTrackedQuery.value.lang,
     sourceTags: currentTrackedQuery.value.sourceTags,
     orderBy: currentTrackedQuery.value.orderBy,
     minScore: currentTrackedQuery.value.minScore,
   }, currentTrackedQuery.value.projectId)
+}
+
+async function loadMore() {
+  if (isLoadMoreLoading.value || !hasMore.value || !currentTrackedQuery.value) return
+  
+  isLoadMoreLoading.value = true
+  try {
+    await searchNews({
+      q: currentTrackedQuery.value.q,
+      mode: currentTrackedQuery.value.mode,
+      savedFrom: currentTrackedQuery.value.savedFrom || currentTrackedQuery.value.since,
+      savedTo: currentTrackedQuery.value.savedTo,
+      lang: currentTrackedQuery.value.lang,
+      sourceTags: currentTrackedQuery.value.sourceTags,
+      orderBy: currentTrackedQuery.value.orderBy,
+      minScore: currentTrackedQuery.value.minScore,
+    }, currentTrackedQuery.value.projectId, true)
+  } finally {
+    isLoadMoreLoading.value = false
+  }
 }
 
 watch(activeTabIndex, () => {
@@ -137,9 +158,9 @@ function formatScore(score: number) {
             <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4 mt-0.5 shrink-0" />
             <span class="font-medium text-gray-700 dark:text-gray-300 break-all overflow-hidden">{{ currentTrackedQuery.q }}</span>
             
-            <div v-if="(currentTrackedQuery as any).since" class="flex items-center gap-1 ml-2 shrink-0">
+            <div v-if="(currentTrackedQuery as any).savedFrom || (currentTrackedQuery as any).since" class="flex items-center gap-1 ml-2 shrink-0">
               <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-              <span>{{ (currentTrackedQuery as any).since }}</span>
+              <span>{{ (currentTrackedQuery as any).savedFrom || (currentTrackedQuery as any).since }}</span>
             </div>
           </div>
           
@@ -163,14 +184,28 @@ function formatScore(score: number) {
         </div>
 
         <!-- News list -->
-        <div v-else-if="news.length > 0" class="space-y-4">
-          <NewsItem
-            v-for="item in news"
-            :key="item.id"
-            :item="item"
-            @create-publication="handleCreatePublication"
-          />
-        </div>
+          <div v-else-if="news.length > 0" class="space-y-4">
+            <NewsItem
+              v-for="item in news"
+              :key="item.id"
+              :item="item"
+              @create-publication="handleCreatePublication"
+            />
+            
+            <!-- Load More Button -->
+            <div v-if="hasMore" class="flex justify-center pt-4 pb-8">
+              <UButton
+                size="lg"
+                variant="soft"
+                color="neutral" 
+                :loading="isLoadMoreLoading"
+                icon="i-heroicons-arrow-down"
+                @click="loadMore"
+              >
+                {{ t('common.loadMore') || 'Load More' }}
+              </UButton>
+            </div>
+          </div>
 
         <!-- Empty state -->
         <div

@@ -22,6 +22,14 @@ export class NewsConfig {
    */
   @IsOptional()
   public notificationIntervalMinutes: number = 10;
+
+  /**
+   * Maximum lookback window in hours for news scheduler.
+   * Defined by NEWS_SCHEDULER_LOOKBACK_HOURS environment variable.
+   * Default: 3
+   */
+  @IsOptional()
+  public schedulerLookbackHours: number = 3;
 }
 
 export default registerAs('news', (): NewsConfig => {
@@ -30,6 +38,9 @@ export default registerAs('news', (): NewsConfig => {
     notificationIntervalMinutes: process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES 
       ? parseInt(process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES, 10) 
       : 10,
+    schedulerLookbackHours: process.env.NEWS_SCHEDULER_LOOKBACK_HOURS
+      ? parseInt(process.env.NEWS_SCHEDULER_LOOKBACK_HOURS, 10)
+      : 3,
   };
 
   const config = plainToClass(NewsConfig, rawConfig);
