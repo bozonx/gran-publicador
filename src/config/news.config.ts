@@ -30,6 +30,20 @@ export class NewsConfig {
    */
   @IsOptional()
   public schedulerLookbackHours: number = 3;
+
+  /**
+   * Default fingerprint for news refresh (JSON string).
+   */
+  @IsOptional()
+  @IsString()
+  public refreshFingerprint?: string;
+
+  /**
+   * Default mode for news refresh (e.g. 'full', 'fast').
+   */
+  @IsOptional()
+  @IsString()
+  public refreshMode?: string;
 }
 
 export default registerAs('news', (): NewsConfig => {
@@ -41,6 +55,8 @@ export default registerAs('news', (): NewsConfig => {
     schedulerLookbackHours: process.env.NEWS_SCHEDULER_LOOKBACK_HOURS
       ? parseInt(process.env.NEWS_SCHEDULER_LOOKBACK_HOURS, 10)
       : 3,
+    refreshFingerprint: process.env.NEWS_REFRESH_FINGERPRINT,
+    refreshMode: process.env.NEWS_REFRESH_MODE,
   };
 
   const config = plainToClass(NewsConfig, rawConfig);

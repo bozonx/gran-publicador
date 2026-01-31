@@ -24,6 +24,7 @@ export interface NewsItem {
   publisher?: string
   _source?: string
   _savedAt?: string
+  contentLength?: number
 }
 
 export interface SearchNewsParams {
@@ -149,12 +150,18 @@ export const useNews = () => {
     }
   }
 
-  const fetchNewsContent = async (newsId: string, customProjectId?: string, force = false): Promise<{ title: string, body: string, image?: string, date?: string, url?: string, author?: string, description?: string } | null> => {
+  const fetchNewsContent = async (item: NewsItem, customProjectId?: string, force = false): Promise<{ title: string, body: string, image?: string, date?: string, url?: string, author?: string, description?: string } | null> => {
+    const newsId = item.id
     const pId = customProjectId || projectId.value
     if (!pId) throw new Error('Project ID is required')
 
     try {
-      const res = await api.post<any>(`/projects/${pId}/news/${newsId}/content`, { force })
+      const res = await api.post<any>(`/projects/${pId}/news/${newsId}/content`, { 
+        force,
+        contentLength: item.contentLength ?? 0,
+        title: item.title,
+        description: item.description
+      })
       return {
         title: res.title,
         body: res.content || res.body,

@@ -176,13 +176,13 @@ async function fetchData(targetUrl: string) {
            // Maybe we can use any project user has access to, or just force project selection?
            const firstProject = projects.value[0]?.id
            if (firstProject) {
-              const res = await fetchNewsContent(props.sourceNewsItem.id, firstProject)
+              const res = await fetchNewsContent(props.sourceNewsItem, firstProject)
               if (res) scrapedData.value = res
            } else {
               error.value = 'No project available to fetch content context'
            }
         } else {
-           const res = await fetchNewsContent(props.sourceNewsItem.id, scrapeProjectId)
+           const res = await fetchNewsContent(props.sourceNewsItem, scrapeProjectId)
            if (res) scrapedData.value = res
         }
     } catch (err: any) {

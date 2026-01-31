@@ -702,28 +702,85 @@ export class ProjectsService {
     let baseUrl = config.serviceUrl.replace(/\/$/, '');
     if (!baseUrl.endsWith('/api/v1')) baseUrl += '/api/v1';
 
-    const url = `${baseUrl}/news/${newsId}/content`;
-
     try {
-      const response = await request(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          force: data.force
-        }),
-      });
+      let response;
+      // If contentLength is 0 or force is true, we call refresh
+      if (data.contentLength === 0 || data.force) {
+        this.logger.debug(`Refreshing news content for ${newsId}`);
+        const url = `${baseUrl}/news/${newsId}/refresh`;
+
+        let fingerprint;
+        if (config.refreshFingerprint) {
+          try {
+            fingerprint = JSON.parse(config.refreshFingerprint);
+          } catch (e) {
+            this.logger.warn(`Failed to parse refreshFingerprint config: ${config.refreshFingerprint}`);
+          }
+        }
+
+        response = await request(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fingerprint,
+            mode: config.refreshMode,
+          }),
+        });
+      } else {
+        // Otherwise we just GET the news item which should already have content
+        this.logger.debug(`Fetching existing news content for ${newsId}`);
+        const url = `${baseUrl}/news/${newsId}`;
+        response = await request(url, {
+          method: 'GET',
+        });
+      }
 
       if (response.statusCode >= 400) {
         const errorText = await response.body.text();
         this.logger.error(`News microservice returned ${response.statusCode}: ${errorText}`);
+        
+        // If it failed and we have fallback data, use it
+        if (data.title || data.description) {
+          this.logger.warn(`Using fallback data for news ${newsId} after service error ${response.statusCode}`);
+          return {
+            title: data.title,
+            content: data.description,
+            description: data.description,
+          };
+        }
+        
         throw new Error(`News microservice error: ${response.statusCode}`);
       }
 
-      return response.body.json();
+      const result = (await response.body.json()) as any;
+
+      // If we got an empty content from refresh/get, try fallback
+      if (!result.content && (data.title || data.description)) {
+        this.logger.warn(`No content returned for news ${newsId}, using fallback data`);
+        return {
+          ...result,
+          title: result.title || data.title,
+          content: data.description,
+          description: result.description || data.description,
+        };
+      }
+
+      return result;
     } catch (error: any) {
       this.logger.error(`Failed to fetch news content: ${error.message}`);
+      
+      // Attempt fallback on catch as well
+      if (data.title || data.description) {
+        this.logger.warn(`Using fallback data for news ${newsId} after exception: ${error.message}`);
+        return {
+          title: data.title,
+          content: data.description,
+          description: data.description,
+        };
+      }
+
       throw error;
     }
   }
