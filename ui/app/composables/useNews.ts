@@ -106,13 +106,11 @@ export const useNews = () => {
       )
 
       let newItems: NewsItem[] = []
-      
-      if (Array.isArray(res)) {
-        newItems = res
-        // If legacy array response, assume more if we got a full page
-        hasMore.value = newItems.length >= NEWS_LIMIT
-      } else if (res && Array.isArray(res.items)) {
-        newItems = res.items
+      if (res && Array.isArray(res.items)) {
+        newItems = res.items.map((it: any) => ({
+          ...it,
+          id: it.id || it._id || it.shortId
+        }))
         
         // Update cursor for next page if available
         if (res.nextCursor) {
@@ -121,6 +119,13 @@ export const useNews = () => {
         } else {
            hasMore.value = false
         }
+      } else if (Array.isArray(res)) {
+        newItems = res.map((it: any) => ({
+          ...it,
+          id: it.id || it._id || it.shortId
+        }))
+        // If legacy array response, assume more if we got a full page
+        hasMore.value = newItems.length >= NEWS_LIMIT
       } else {
         newItems = []
         hasMore.value = false
