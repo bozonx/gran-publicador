@@ -51,7 +51,9 @@ const displayDate = computed(() => {
 })
 
 const displaySource = computed(() => {
-  return props.item._source || props.item.source || props.item.publisher || getHostname(props.item.url)
+  const source = props.item.publisher || props.item._source || props.item.source || getHostname(props.item.url)
+  if (!source) return ''
+  return source.length > 30 ? source.slice(0, 30) + '…' : source
 })
 
 const displayText = computed(() => {
