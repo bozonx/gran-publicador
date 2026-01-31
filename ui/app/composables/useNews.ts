@@ -91,7 +91,6 @@ export const useNews = () => {
         sourceTags: params.sourceTags,
         tags: params.tags,
         lang: params.lang,
-        offset: isLoadMore ? offset.value : params.offset,
         limit: NEWS_LIMIT,
         minScore: params.minScore,
         includeContent: params.includeContent,
