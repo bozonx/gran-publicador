@@ -121,8 +121,8 @@ export const useNews = () => {
         total = res.meta?.total || 0
         
         // Update cursor for next page if available
-        if (res.meta?.cursor) {
-           cursor.value = res.meta.cursor
+        if (res.nextCursor) {
+           cursor.value = res.nextCursor
         }
 
         // Check if we have more pages
