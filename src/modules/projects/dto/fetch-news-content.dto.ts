@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class FetchNewsContentDto {
   @IsOptional()
@@ -6,6 +7,8 @@ export class FetchNewsContentDto {
   force?: boolean;
 
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
   contentLength?: number;
 
   @IsOptional()

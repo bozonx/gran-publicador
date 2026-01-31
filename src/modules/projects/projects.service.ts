@@ -696,6 +696,7 @@ export class ProjectsService {
   }
 
   public async fetchNewsContent(projectId: string, userId: string, newsId: string, data: FetchNewsContentDto) {
+    this.logger.debug(`fetchNewsContent called for ${newsId}, contentLength: ${data.contentLength}, force: ${data.force}`);
     await this.permissions.checkProjectAccess(projectId, userId);
 
     const config = this.configService.get<NewsConfig>('news')!;
@@ -755,19 +756,33 @@ export class ProjectsService {
       }
 
       const result = (await response.body.json()) as any;
+      this.logger.debug(`Microservice response keys for news ${newsId}: ${Object.keys(result).join(', ')}`);
+      if (result.original) this.logger.debug(`Microservice response 'original' keys: ${Object.keys(result.original).join(', ')}`);
+      
+      // Look for content in various possible fields
+      const content = result.content || result.body || result.original?.content || result.text || result.item?.content || result.item?.body;
+      const title = result.title || result.original?.title || result.item?.title;
+      const description = result.description || result.summary || result.item?.description || result.item?.summary;
 
       // If we got an empty content from refresh/get, try fallback
-      if (!result.content && (data.title || data.description)) {
-        this.logger.warn(`No content returned for news ${newsId}, using fallback data`);
+      if (!content && (data.title || data.description)) {
+        this.logger.warn(`No content found in microservice response for news ${newsId}, using fallback from DTO (description length: ${data.description?.length})`);
         return {
           ...result,
-          title: result.title || data.title,
+          title: title || data.title,
           content: data.description,
-          description: result.description || data.description,
+          description: description || data.description,
         };
       }
 
-      return result;
+      this.logger.debug(`Successfully fetched content for news ${newsId} (length: ${content?.length})`);
+
+      return {
+        ...result,
+        title: title || data.title,
+        content: content,
+        description: description || data.description,
+      };
     } catch (error: any) {
       this.logger.error(`Failed to fetch news content: ${error.message}`);
       
