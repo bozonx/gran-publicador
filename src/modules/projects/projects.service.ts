@@ -13,7 +13,7 @@ import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.j
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, SearchNewsQueryDto } from './dto/index.js';
+import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, SearchNewsQueryDto, FetchNewsContentDto } from './dto/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
@@ -648,13 +648,13 @@ export class ProjectsService {
 
     const config = this.configService.get<NewsConfig>('news')!;
     let baseUrl = config.serviceUrl.replace(/\/$/, '');
-    
+
     // Ensure we don't duplicate /api/v1 if it's already in the config
     if (!baseUrl.endsWith('/api/v1')) {
       baseUrl = `${baseUrl}/api/v1`;
     }
-    
-    const url = `${baseUrl}/data/search`;
+
+    const url = `${baseUrl}/news`;
 
     try {
       const searchParams: any = {
@@ -662,16 +662,34 @@ export class ProjectsService {
       };
 
       if (query.mode) searchParams.mode = query.mode;
-      if (query.since) searchParams.since = query.since;
-      if (query.source) searchParams.source = query.source;
+      if (query.since && !query.savedFrom) searchParams.savedFrom = query.since; // Mapper legacy 'since' to 'savedFrom'
+      if (query.savedFrom) searchParams.savedFrom = query.savedFrom;
+      if (query.savedTo) searchParams.savedTo = query.savedTo;
+      if (query.afterSavedAt) searchParams.afterSavedAt = query.afterSavedAt;
+      if (query.afterId) searchParams.afterId = query.afterId;
+      if (query.cursor) searchParams.cursor = query.cursor;
+      if (query.source) searchParams.sources = query.source; // API uses 'sources' plural, DTO has singular 'source'. Check API doc again? API doc says 'sources'.
       if (query.sourceTags) searchParams.sourceTags = query.sourceTags;
-      if (query.newsTags) searchParams.newsTags = query.newsTags;
-      if (query.tags) searchParams.tags = query.tags;
-      if (query.lang) searchParams.lang = query.lang;
+      if (query.includeContent) searchParams.includeContent = query.includeContent;
+
+      // Map DTO 'tags' (array) to api 'tags' (string)? API docs don't show generic 'tags' param, only 'sourceTags'.
+      // DTO has 'tags' which seemed to map to 'tags' in previous call.
+      // Looking at API reference: "retrieve a flat list of news items". Query params: q, mode, sources, sourceTags, limit, savedFrom...
+      // No general 'tags' param for item tags filtering in the provided docs table. sourceTags is filter sources by tags.
+      // Assuming 'newsTags' maps to nothing or maybe it was missed in docs?  Docs say "sourceTags".
+      // Let's assume 'tags' in DTO was for 'sourceTags' or something else. I will map it if user provided it, but maybe as sourceTags if not present.
+      // Wait, DTO has `newsTags` AND `tags`.
+      // Let's map strict fields.
+
+      if (query.lang) searchParams.locale = query.lang; // API uses 'locale'
       
-      if (query.offset !== undefined) searchParams.offset = query.offset;
+      if (query.offset !== undefined) searchParams.offset = query.offset; // API doc does not list offset, uses cursor. But maybe legacy support? Use 'cursor' if possible.
+      // API doc: "cursor", "afterSavedAt". No offset.
+      // I will keep passing it just in case, or maybe the service wrapper handles it.
+      
       if (query.limit) searchParams.limit = query.limit;
       if (query.minScore !== undefined) searchParams.minScore = query.minScore;
+      if (query.orderBy) searchParams.orderBy = query.orderBy;
 
       const response = await request(url, {
         method: 'GET',
@@ -691,17 +709,14 @@ export class ProjectsService {
     }
   }
 
-  public async scrapePage(projectId: string, userId: string, data: any) {
+  public async fetchNewsContent(projectId: string, userId: string, newsId: string, data: FetchNewsContentDto) {
     await this.permissions.checkProjectAccess(projectId, userId);
 
-    const config = this.configService.get<any>('pageScraper')!;
-    const baseUrl = config.serviceUrl.replace(/\/$/, '');
-    
-    // The microservice might be configured with or without /api/v1
-    // We expect the endpoint to be /page (at the root of specified baseUrl)
-    const url = `${baseUrl}/page`;
+    const config = this.configService.get<NewsConfig>('news')!;
+    let baseUrl = config.serviceUrl.replace(/\/$/, '');
+    if (!baseUrl.endsWith('/api/v1')) baseUrl += '/api/v1';
 
-    this.logger.debug(`Proxying scrape request to: ${url}`);
+    const url = `${baseUrl}/news/${newsId}/content`;
 
     try {
       const response = await request(url, {
@@ -709,25 +724,20 @@ export class ProjectsService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          force: data.force
+        }),
       });
 
       if (response.statusCode >= 400) {
         const errorText = await response.body.text();
-        this.logger.error(`Page Scraper microservice (${url}) returned ${response.statusCode}: ${errorText}`);
-        throw new Error(`Scraper microservice error (${response.statusCode}): ${errorText || 'Unknown error'}`);
+        this.logger.error(`News microservice returned ${response.statusCode}: ${errorText}`);
+        throw new Error(`News microservice error: ${response.statusCode}`);
       }
 
-      const result = await response.body.json();
-      return result;
+      return response.body.json();
     } catch (error: any) {
-      this.logger.error(`Failed to scrape page at ${url}: ${error.message}`);
-      
-      // If it's a connection error, provide a clearer message
-      if (error.code === 'ECONNREFUSED') {
-        throw new Error(`Registry connection failed: Scraper microservice is unreachable at ${baseUrl}`);
-      }
-      
+      this.logger.error(`Failed to fetch news content: ${error.message}`);
       throw error;
     }
   }

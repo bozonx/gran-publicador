@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsInt, MaxLength, IsIn } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsInt, MaxLength, IsIn, IsISO8601, IsArray, IsEnum, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
@@ -18,51 +18,76 @@ export class SearchNewsQueryDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  since?: string;
+  since?: string; // Legacy support, maybe map to savedFrom?
+
+  @IsOptional()
+  @IsISO8601()
+  savedFrom?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  savedTo?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  afterSavedAt?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  afterId?: string;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @IsString()
   source?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   sourceTags?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   newsTags?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  tags?: string;
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  tags?: string[];
 
   @IsOptional()
   @IsString()
-  @MaxLength(10)
   lang?: string;
 
   @IsOptional()
-  @IsInt()
   @Type(() => Number)
+  @IsInt()
   @Min(0)
   offset?: number;
 
   @IsOptional()
-  @IsInt()
   @Type(() => Number)
+  @IsInt()
   @Min(1)
   @Max(100)
   limit?: number;
 
   @IsOptional()
-  @IsNumber()
   @Type(() => Number)
+  @IsNumber()
   @Min(0)
   @Max(1)
   minScore?: number;
+
+  @IsOptional()
+  @IsEnum(['relevance', 'savedAt'])
+  orderBy?: 'relevance' | 'savedAt';
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  includeContent?: boolean;
 }

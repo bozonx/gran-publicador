@@ -4,4 +4,4 @@ export * from './find-projects-query.dto.js';
 export * from './add-member.dto.js';
 export * from './update-member.dto.js';
 export * from './search-news-query.dto.js';
-export * from './scrape-page.dto.js';
+export * from './fetch-news-content.dto.js';

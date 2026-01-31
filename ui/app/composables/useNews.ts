@@ -19,18 +19,26 @@ export interface NewsItem {
   mainImageUrl?: string
   mainVideoUrl?: string
   content?: string
+  tags?: string[]
 }
 
 export interface SearchNewsParams {
   q: string
   mode?: 'text' | 'vector' | 'hybrid'
-  since?: string
+  savedFrom?: string
+  savedTo?: string
+  afterSavedAt?: string
+  afterId?: string
+  cursor?: string
   source?: string
   sourceTags?: string
   newsTags?: string
+  tags?: string[]
   lang?: string
   offset?: number
   minScore?: number
+  includeContent?: boolean
+  orderBy?: 'relevance' | 'savedAt'
 }
 
 const NEWS_LIMIT = 20
@@ -47,6 +55,7 @@ export const useNews = () => {
   
   // Pagination state
   const offset = ref(0)
+  const cursor = ref<string | undefined>(undefined)
   const hasMore = ref(false)
 
   const searchNews = async (params: SearchNewsParams, customProjectId?: string, isLoadMore = false) => {
@@ -60,25 +69,36 @@ export const useNews = () => {
       return
     }
 
-    const currentOffset = isLoadMore ? offset.value : 0
+    // Reset pagination on new search
+    if (!isLoadMore) {
+      offset.value = 0
+      cursor.value = undefined
+    }
 
     try {
+      const queryParams: any = {
+        q: params.q,
+        mode: params.mode,
+        savedFrom: params.savedFrom,
+        savedTo: params.savedTo,
+        afterSavedAt: params.afterSavedAt,
+        afterId: params.afterId,
+        cursor: isLoadMore ? cursor.value : params.cursor,
+        source: params.source,
+        sourceTags: params.sourceTags,
+        newsTags: params.newsTags,
+        tags: params.tags,
+        lang: params.lang,
+        offset: isLoadMore ? offset.value : params.offset,
+        limit: NEWS_LIMIT,
+        minScore: params.minScore,
+        includeContent: params.includeContent,
+        orderBy: params.orderBy
+      }
+
       const res = await api.get<any>(
         `/projects/${pId}/news/search`,
-        {
-          params: {
-            q: params.q,
-            mode: params.mode,
-            since: params.since,
-            source: params.source,
-            sourceTags: params.sourceTags,
-            newsTags: params.newsTags,
-            lang: params.lang,
-            offset: currentOffset,
-            limit: NEWS_LIMIT,
-            minScore: params.minScore
-          }
-        }
+        { params: queryParams }
       )
 
       let newItems: NewsItem[] = []
@@ -92,9 +112,14 @@ export const useNews = () => {
         newItems = res.items
         total = res.meta?.total || 0
         
+        // Update cursor for next page if available
+        if (res.meta?.cursor) {
+           cursor.value = res.meta.cursor
+        }
+        
         // Check if we have more pages
         if (res.meta && typeof res.meta.total === 'number') {
-            hasMore.value = (currentOffset + newItems.length) < total
+            hasMore.value = (offset.value + newItems.length) < total
         } else {
             hasMore.value = newItems.length >= NEWS_LIMIT
         }
@@ -110,7 +135,7 @@ export const useNews = () => {
       }
       
       // Update offset pointer for next load
-      offset.value = currentOffset + newItems.length
+      offset.value += newItems.length
       
     } catch (err: any) {
       console.error('Failed to search news:', err)
@@ -127,6 +152,27 @@ export const useNews = () => {
       if (!isLoadMore) news.value = []
     } finally {
       isLoading.value = false
+    }
+  }
+
+  const fetchNewsContent = async (newsId: string, customProjectId?: string, force = false): Promise<{ title: string, body: string, image?: string, date?: string, url?: string, author?: string, description?: string } | null> => {
+    const pId = customProjectId || projectId.value
+    if (!pId) throw new Error('Project ID is required')
+
+    try {
+      const res = await api.post<any>(`/projects/${pId}/news/${newsId}/content`, { force })
+      return {
+        title: res.title,
+        body: res.content || res.body,
+        image: res.image || res.mainImageUrl,
+        date: res.date || res.savedAt || res.publishedAt,
+        url: res.url,
+        author: res.author,
+        description: res.description
+      }
+    } catch (err: any) {
+       console.error('Failed to fetch news content:', err)
+       throw err
     }
   }
 
@@ -161,6 +207,7 @@ export const useNews = () => {
     error,
     hasMore,
     searchNews,
+    fetchNewsContent,
     offset,
     getQueries,
     createQuery,

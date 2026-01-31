@@ -26,6 +26,7 @@ import {
   AddMemberDto,
   UpdateMemberDto,
   SearchNewsQueryDto,
+  FetchNewsContentDto,
 } from './dto/index.js';
 import { ProjectsService } from './projects.service.js';
 
@@ -205,20 +206,21 @@ export class ProjectsController {
     return this.projectsService.searchNews(id, req.user.userId, query);
   }
 
-  @Post(':id/scrape-page')
-  public async scrapePage(
+  @Post(':id/news/:newsId/content')
+  public async fetchNewsContent(
     @Request() req: UnifiedAuthRequest,
-    @Param('id') id: string,
-    @Body() body: any,
+    @Param('id') projectId: string,
+    @Param('newsId') newsId: string,
+    @Body() body: FetchNewsContentDto,
   ) {
     // Validate project scope for API token users
     if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
         userId: req.user.userId,
         tokenId: req.user.tokenId,
       });
     }
 
-    return this.projectsService.scrapePage(id, req.user.userId, body);
+    return this.projectsService.fetchNewsContent(projectId, req.user.userId, newsId, body);
   }
 }

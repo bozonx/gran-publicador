@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick } from 'vue'
 import AppModal from '~/components/ui/AppModal.vue'
-import { usePageScraper } from '~/composables/usePageScraper'
+import { useNews } from '~/composables/useNews'
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import type { NewsItem } from '~/composables/useNews'
@@ -44,7 +44,7 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
-const { scrapePage, isLoading, error } = usePageScraper()
+const { fetchNewsContent, isLoading: isNewsLoading } = useNews()
 const { createPublication } = usePublications()
 const { projects, fetchProjects } = useProjects()
 const { user } = useAuth()
@@ -52,6 +52,8 @@ const { user } = useAuth()
 const isGeneralNewsPage = computed(() => route.path === '/news')
 const selectedProjectId = ref<string | null>(null)
 const isCreating = ref(false)
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 const projectOptions = computed(() => [
   { value: null, label: t('publication.personal_draft') },
@@ -138,10 +140,16 @@ watch(isOpen, async (open) => {
     } else {
       selectedProjectId.value = props.projectId || null
     }
-    if (url.value) {
-      if (!scrapedData.value || scrapedData.value.url !== url.value) {
-        await fetchData(url.value)
-      }
+    // Only fetch if we have a news item. Arbitrary URLs not supported anymore as per news service changes.
+    if (props.sourceNewsItem) {
+        if (!scrapedData.value || scrapedData.value.url !== props.sourceNewsItem.url) {
+           await fetchData(props.sourceNewsItem.url)
+        }
+    } else if (url.value) {
+        // Fallback for arbitrary URLs (should not happen in main flow if button hidden, but direct open?)
+        // Just show warning or use basic info if we can't scrape
+        error.value = 'Scraping arbitrary URLs is not supported. Please select a news item.'
+        isUsingFallback.value = true
     }
   } else if (!open) {
      // We can optional clear scrapedData here if we want to reset state every time
@@ -149,38 +157,48 @@ watch(isOpen, async (open) => {
 })
 
 async function fetchData(targetUrl: string) {
-    if (!targetUrl) return
+    if (!props.sourceNewsItem) return
+    
     scrapedData.value = null
     isUsingFallback.value = false
+    isLoading.value = true
+    error.value = null
     
-    console.log('fetchData called with:', { targetUrl, sourceNewsItem: props.sourceNewsItem })
+    console.log('fetchData called for news:', { id: props.sourceNewsItem.id })
     
     // We use the initial projectId for scraping as it usually has the context of the search
     const scrapeProjectId = props.projectId || selectedProjectId.value
-    if (!scrapeProjectId) {
-      const firstProject = projects.value[0]?.id
-      if (firstProject) {
-        await scrapePage(targetUrl, firstProject).then(r => scrapedData.value = r)
-      } else {
-        error.value = 'No project available for scraping'
-      }
-    } else {
-      const result = await scrapePage(targetUrl, scrapeProjectId)
-      if (result) {
-        scrapedData.value = result
-      }
+    
+    try {
+        if (!scrapeProjectId) {
+           // If no project context, try finding first or use what? 
+           // Fetching content requires project context for permissions mostly.
+           // Maybe we can use any project user has access to, or just force project selection?
+           const firstProject = projects.value[0]?.id
+           if (firstProject) {
+              const res = await fetchNewsContent(props.sourceNewsItem.id, firstProject)
+              if (res) scrapedData.value = res
+           } else {
+              error.value = 'No project available to fetch content context'
+           }
+        } else {
+           const res = await fetchNewsContent(props.sourceNewsItem.id, scrapeProjectId)
+           if (res) scrapedData.value = res
+        }
+    } catch (err: any) {
+        console.error('Failed to fetch content', err)
+        error.value = err.message || 'Failed to fetch content'
+    } finally {
+        isLoading.value = false
     }
 
     // Wait for Vue reactivity to update
     await nextTick()
 
-    console.log('After scraping:', { error: error.value, hasSourceNewsItem: !!props.sourceNewsItem })
-
     // If scraping failed but we have news item, automatically fall back
-    // Check error from usePageScraper composable
-    if (error.value && props.sourceNewsItem) {
-      console.log('Scraper failed, using fallback data from news item', error.value)
-      handleUseNewsData(false) // Don't clear error
+    if (!scrapedData.value && props.sourceNewsItem) {
+      console.log('Fetch failed or no content, using fallback data from news item')
+      handleUseNewsData(false) // Don't clear error if it was a real error
       isUsingFallback.value = true
     }
 }
