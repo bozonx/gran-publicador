@@ -501,14 +501,26 @@ function formatScore(score: number) {
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.orderBy') || 'Sort by' }}
                 </label>
-                <USelect
-                  v-model="currentQuery.orderBy"
-                  :options="[
-                    { label: t('news.orderByRelevance') || 'Relevance', value: 'relevance' },
-                    { label: t('news.orderBySavedAt') || 'Date Saved', value: 'savedAt' }
-                  ]"
-                  size="lg"
-                />
+                <div class="flex gap-3 h-[42px] items-center">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      v-model="currentQuery.orderBy"
+                      type="radio"
+                      value="relevance"
+                      class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                    />
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.orderByRelevance') || 'Relevance' }}</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      v-model="currentQuery.orderBy"
+                      type="radio"
+                      value="savedAt"
+                      class="w-4 h-4 text-primary-500 focus:ring-primary-500"
+                    />
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.orderBySavedAt') || 'Date Saved' }}</span>
+                  </label>
+                </div>
               </div>
             </div>
 
