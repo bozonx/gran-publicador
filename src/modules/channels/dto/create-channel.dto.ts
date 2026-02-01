@@ -47,9 +47,9 @@ export class CreateChannelDto {
   public channelIdentifier!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @IsLocale()
-  public language!: string;
+  public language?: string;
 
   @IsObject()
   @IsOptional()

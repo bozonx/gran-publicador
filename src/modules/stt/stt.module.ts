@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SttService } from './stt.service.js';
 import { SttGateway } from './stt.gateway.js';
+import { UsersModule } from '../users/users.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SttGateway } from './stt.gateway.js';
         signOptions: { expiresIn: '7d' },
       }),
     }),
+    UsersModule,
   ],
   controllers: [],
   providers: [SttService, SttGateway],

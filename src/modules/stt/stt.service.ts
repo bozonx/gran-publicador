@@ -45,6 +45,7 @@ export class SttService {
     file: Readable | Buffer,
     filename: string,
     mimetype: string,
+    language?: string,
   ): Promise<{ text: string }> {
     const config = this.configService.get<SttConfig>('stt');
 
@@ -54,7 +55,9 @@ export class SttService {
     }
 
     try {
-      this.logger.log(`Proxying audio to STT Gateway: ${filename} (${mimetype})`);
+      this.logger.log(
+        `Proxying audio to STT Gateway: ${filename} (${mimetype})${language ? ` [lang: ${language}]` : ''}`,
+      );
 
       const form = new FormData();
       // STT Gateway expects 'file' field
@@ -65,10 +68,14 @@ export class SttService {
           knownLength: file.length, // Help form-data set correct Content-Length
         });
       } else {
-         form.append('file', file, {
+        form.append('file', file, {
           contentType: mimetype,
           filename: filename,
         });
+      }
+
+      if (language) {
+        form.append('language', language);
       }
 
       // Get headers from form-data

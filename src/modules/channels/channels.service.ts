@@ -36,7 +36,7 @@ export class ChannelsService {
         name: data.name,
         description: data.description,
         channelIdentifier: data.channelIdentifier,
-        language: data.language,
+        language: data.language ?? 'en-US',
         credentials: (data.credentials ?? {}) as any,
         preferences: (data.preferences ?? {}) as any,
         isActive: data.isActive ?? true,

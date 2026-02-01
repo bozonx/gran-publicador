@@ -89,7 +89,7 @@ export function useStt() {
     }
   }
 
-  async function start() {
+  async function start(language?: string) {
     error.value = null;
     transcription.value = '';
 
@@ -122,6 +122,7 @@ export function useStt() {
     socket.emit('transcribe-start', {
       mimetype: mimeType.value || 'audio/webm',
       filename: `recording-${Date.now()}.webm`,
+      language,
     });
 
     const started = await startRecording();
@@ -160,7 +161,7 @@ export function useStt() {
   /**
    * One-shot transcription for a full blob (compatibility with LlmGeneratorModal)
    */
-  async function transcribeAudio(blob: Blob): Promise<string> {
+  async function transcribeAudio(blob: Blob, language?: string): Promise<string> {
     error.value = null;
     transcription.value = '';
 
@@ -188,6 +189,7 @@ export function useStt() {
     socket.emit('transcribe-start', {
       mimetype: blob.type || 'audio/webm',
       filename: 'recording.webm',
+      language,
     });
 
     const buffer = await blob.arrayBuffer();

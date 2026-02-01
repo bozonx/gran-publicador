@@ -168,10 +168,10 @@ export class TelegramBotUpdate {
 
     if (!session || session.menu === 'home') {
       // No session or home session - enter HOME menu (create draft)
-      await this.handleHomeMenu(ctx, user.id, from.id, lang, messages);
+      await this.handleHomeMenu(ctx, user.id, from.id, lang, messages, user.language);
     } else {
       // Active session - handle COLLECT menu
-      await this.handleCollectMenu(ctx, user.id, from.id, lang, messages, session);
+      await this.handleCollectMenu(ctx, user.id, from.id, lang, messages, session, user.language);
     }
   }
 
@@ -263,12 +263,13 @@ export class TelegramBotUpdate {
     telegramId: number,
     lang: string | undefined,
     messages: Message[],
+    contentLanguage: string,
   ): Promise<void> {
     try {
       // Re-check session to prevent race conditions
       const freshSession = await this.sessionService.getSession(String(telegramId));
       if (freshSession && freshSession.menu === 'collect') {
-        return this.handleCollectMenu(ctx, userId, telegramId, lang, messages, freshSession);
+        return this.handleCollectMenu(ctx, userId, telegramId, lang, messages, freshSession, contentLanguage);
       }
 
       const firstMessage = messages[0];
@@ -292,7 +293,7 @@ export class TelegramBotUpdate {
 
         for (const m of extracted.media) {
           if (m.isVoice) {
-            const transcribedText = await this.transcribeVoice(ctx, m.fileId);
+            const transcribedText = await this.transcribeVoice(ctx, m.fileId, contentLanguage);
             if (transcribedText) {
               aggregatedSourceTexts.push({
                 content: transcribedText,
@@ -419,6 +420,7 @@ export class TelegramBotUpdate {
     lang: string | undefined,
     messages: Message[],
     session: any,
+    contentLanguage: string,
   ): Promise<void> {
     try {
       // Verify publication still exists
@@ -450,7 +452,7 @@ export class TelegramBotUpdate {
 
         for (const m of extracted.media) {
           if (m.isVoice) {
-            const transcribedText = await this.transcribeVoice(ctx, m.fileId);
+            const transcribedText = await this.transcribeVoice(ctx, m.fileId, contentLanguage);
             if (transcribedText) {
               newSourceTexts.push({
                 content: transcribedText,
@@ -617,7 +619,7 @@ export class TelegramBotUpdate {
   /**
    * Transcribe voice message using STT service
    */
-  private async transcribeVoice(ctx: Context, fileId: string): Promise<string> {
+  private async transcribeVoice(ctx: Context, fileId: string, language?: string): Promise<string> {
     try {
       const file = await ctx.api.getFile(fileId);
       if (!file.file_path) {
@@ -639,6 +641,7 @@ export class TelegramBotUpdate {
         response.body as Readable,
         'voice.ogg',
         'audio/ogg',
+        language,
       );
 
       return transcription.text;

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SttService } from './stt.service.js';
+import { UsersService } from '../users/users.service.js';
 import { PassThrough } from 'node:stream';
 
 @WebSocketGateway({
@@ -31,6 +32,7 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private sttService: SttService,
+    private usersService: UsersService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -61,9 +63,9 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('transcribe-start')
-  handleTranscribeStart(
+  async handleTranscribeStart(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { mimetype: string; filename?: string },
+    @MessageBody() data: { mimetype: string; filename?: string; language?: string },
   ) {
     if (!client.data.userId) {
       this.logger.warn(`Unauthorized transcribe-start attempt from client ${client.id}`);
@@ -97,9 +99,13 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.debug(`Stream ended (no more reads) for client ${client.id}`);
     });
     
+    // Get user language
+    const user = await this.usersService.findById(client.data.userId);
+    const language = data.language || user?.language;
+
     // Start transcription promise
     const transcriptionPromise = this.sttService
-      .transcribeAudioStream(passThrough, filename, mimetype)
+      .transcribeAudioStream(passThrough, filename, mimetype, language)
       .then((result) => {
         client.emit('transcription-result', result);
       })

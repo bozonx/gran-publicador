@@ -330,7 +330,7 @@ async function handleVoiceRecording() {
     }
 
     // Transcribe audio
-    const text = await transcribeAudio(audioBlob)
+    const text = await transcribeAudio(audioBlob, user.value?.language)
     
     if (text) {
       // Append to existing prompt instead of replacing

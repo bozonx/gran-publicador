@@ -18,13 +18,14 @@ const props = defineProps<{
 
 const { projects, fetchProjects } = useProjects()
 const { createChannel, isLoading, getSocialMediaIcon } = useChannels()
+const { user } = useAuth()
 
 
 const formState = reactive({
   projectId: '',
   name: '',
   socialMedia: '' as SocialMedia | '',
-  language: 'ru-RU',
+  language: user.value?.language || 'en-US',
   channelIdentifier: '',
   description: ''
 })
@@ -41,7 +42,7 @@ function resetForm() {
   formState.projectId = props.initialProjectId || projects.value[0]?.id || ''
   formState.name = ''
   formState.socialMedia = '' as SocialMedia | ''
-  formState.language = 'ru-RU'
+  formState.language = user.value?.language || 'en-US'
   formState.channelIdentifier = ''
   formState.description = ''
 }
