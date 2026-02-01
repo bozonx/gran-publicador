@@ -30,7 +30,9 @@ export class UsersService {
     if (!code) return 'en-US';
     const low = code.toLowerCase();
     if (low === 'ru' || low.startsWith('ru-')) return 'ru-RU';
-    if (low === 'en' || low.startsWith('en-')) return 'en-US';
+    if (low === 'en') return 'en-US';
+    if (low === 'en-gb') return 'en-GB';
+    if (low.startsWith('en-')) return 'en-US';
     if (low === 'es' || low.startsWith('es-')) return 'es-ES';
     if (low === 'de' || low.startsWith('de-')) return 'de-DE';
     if (low === 'fr' || low.startsWith('fr-')) return 'fr-FR';

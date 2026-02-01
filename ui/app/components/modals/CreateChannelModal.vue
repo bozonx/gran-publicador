@@ -25,7 +25,7 @@ const formState = reactive({
   projectId: '',
   name: '',
   socialMedia: '' as SocialMedia | '',
-  language: user.value?.language || 'en-US',
+  language: user.value?.language || user.value?.uiLanguage || 'en-US',
   channelIdentifier: '',
   description: ''
 })
@@ -42,7 +42,7 @@ function resetForm() {
   formState.projectId = props.initialProjectId || projects.value[0]?.id || ''
   formState.name = ''
   formState.socialMedia = '' as SocialMedia | ''
-  formState.language = user.value?.language || 'en-US'
+  formState.language = user.value?.language || user.value?.uiLanguage || 'en-US'
   formState.channelIdentifier = ''
   formState.description = ''
 }
