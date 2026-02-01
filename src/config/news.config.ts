@@ -32,6 +32,14 @@ export class NewsConfig {
   public schedulerLookbackHours: number = 3;
 
   /**
+   * Maximum number of news items to fetch in a single scheduler run.
+   * Defined by NEWS_SCHEDULER_FETCH_LIMIT environment variable.
+   * Default: 100
+   */
+  @IsOptional()
+  public schedulerFetchLimit: number = 100;
+
+  /**
    * Default fingerprint for news refresh (JSON string).
    */
   @IsOptional()
@@ -55,11 +63,15 @@ export default registerAs('news', (): NewsConfig => {
     schedulerLookbackHours: process.env.NEWS_SCHEDULER_LOOKBACK_HOURS
       ? parseInt(process.env.NEWS_SCHEDULER_LOOKBACK_HOURS, 10)
       : 3,
+    schedulerFetchLimit: process.env.NEWS_SCHEDULER_FETCH_LIMIT
+      ? parseInt(process.env.NEWS_SCHEDULER_FETCH_LIMIT, 10)
+      : 100,
     refreshFingerprint: process.env.NEWS_REFRESH_FINGERPRINT,
     refreshMode: process.env.NEWS_REFRESH_MODE,
   };
 
   const config = plainToClass(NewsConfig, rawConfig);
+
 
   const errors = validateSync(config, {
     skipMissingProperties: false,

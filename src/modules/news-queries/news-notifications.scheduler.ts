@@ -75,34 +75,69 @@ export class NewsNotificationsScheduler implements OnModuleInit {
     const lastCheckedAt = query.lastCheckedAt ? new Date(query.lastCheckedAt) : null;
     const lastId = settings.lastId || null;
 
-    const searchParams: any = {
-      q: settings.q || '',
-      mode: settings.mode,
-      lang: settings.lang,
-      sourceTags: settings.sourceTags,
-      minScore: settings.minScore,
-      limit: 20, // Typical batch for notifications
-    };
+    const allItems: any[] = [];
+    let currentCursor: string | null = null;
+    let hasMore = true;
+    const limit = 20;
 
-    // Watermark logic
-    if (lastCheckedAt && lastCheckedAt > cutoffDate) {
-      searchParams.afterSavedAt = lastCheckedAt.toISOString();
-      if (lastId) {
-        searchParams.afterId = lastId;
+    // Use a temporary variable to store the "newest" item we find across all pages
+    let newestItemEver: any = null;
+
+    while (hasMore) {
+      const searchParams: any = {
+        q: settings.q || '',
+        mode: settings.mode,
+        lang: settings.lang,
+        sourceTags: settings.sourceTags,
+        minScore: settings.minScore,
+        limit,
+        orderBy: 'savedAt', // Always order by savedAt to ensure deterministic incremental polling
+      };
+
+      if (currentCursor) {
+        // According to API: Do not mix cursor with afterSavedAt/afterId
+        searchParams.cursor = currentCursor;
+      } else {
+        // Watermark logic for the first page
+        if (lastCheckedAt && lastCheckedAt > cutoffDate) {
+          searchParams.afterSavedAt = lastCheckedAt.toISOString();
+          if (lastId) {
+            searchParams.afterId = lastId;
+          }
+        } else {
+          // Fallback: start fresh from cutoff
+          searchParams.savedFrom = cutoffDate.toISOString();
+        }
       }
-    } else {
-      // Fallback: start fresh from cutoff
-      searchParams.savedFrom = cutoffDate.toISOString();
-    }
-    
-    // Call service
-    const results = (await this.projectsService.searchNews(query.projectId, query.project.ownerId, searchParams)) as any;
-    const items = results.items || (Array.isArray(results) ? results : []);
+      
+      // Call service
+      const results = (await this.projectsService.searchNews(query.projectId, query.project.ownerId, searchParams)) as any;
+      const items = results.items || (Array.isArray(results) ? results : []);
+      
+      if (items.length > 0) {
+        allItems.push(...items);
+        
+        // Track the absolutely newest item (which should be items[0] in the first batch since it's sorted DESC)
+        if (!newestItemEver) {
+          newestItemEver = items[0];
+        }
+      }
 
-    // No manual filtering needed as API handles it via afterSavedAt/savedFrom
-    
-    if (items.length > 0) {
-      this.logger.log(`Found ${items.length} new news for project ${query.projectId}, query ${query.name}`);
+      // Pagination logic
+      currentCursor = results.nextCursor || null;
+      // Continue if we have a cursor and we actually got some items (to avoid infinite loops)
+      hasMore = !!currentCursor && items.length > 0;
+      
+      // Safety break to avoid fetching thousands of items in one run
+      if (allItems.length >= (config?.schedulerFetchLimit || 100)) {
+        this.logger.warn(`Reached fetch limit (${config?.schedulerFetchLimit || 100}) for query ${query.id}, stopping pagination`);
+        hasMore = false;
+      }
+
+    }
+
+    if (allItems.length > 0) {
+      this.logger.log(`Found ${allItems.length} new news for project ${query.projectId}, query ${query.name}`);
       
       // Notify owner and members
       const usersToNotify = new Map<string, string>(); // userId -> uiLanguage
@@ -119,18 +154,18 @@ export class NewsNotificationsScheduler implements OnModuleInit {
         });
       }
 
-      // Prepare titles for the message
-      const titlesList = items
+      // Prepare titles for the message (list from the beginning of allItems, which are newest)
+      const titlesList = allItems
         .slice(0, 5)
         .map((item: any) => `• ${item.title}`)
         .join('\n');
-      const suffix = items.length > 5 ? `\n... (+${items.length - 5})` : '';
+      const suffix = allItems.length > 5 ? `\n... (+${allItems.length - 5})` : '';
 
       for (const [userId, lang] of usersToNotify.entries()) {
         const messageBase = this.i18n.t('notifications.NEW_NEWS_MESSAGE', { 
           lang, 
           args: { 
-            count: items.length,
+            count: allItems.length,
             queryName: query.name 
           } 
         });
@@ -143,17 +178,16 @@ export class NewsNotificationsScheduler implements OnModuleInit {
           meta: { 
             projectId: query.projectId, 
             queryId: query.id,
-            newsCount: items.length,
-            firstNewsTitle: items[0]?.title
+            newsCount: allItems.length,
+            firstNewsTitle: allItems[0]?.title
           },
         });
       }
 
       // Update state
-      // The API returns items sorted by savedAt DESC, so the first item is the newest
-      const newestItem = items[0];
-      const newLastCheckedAt = new Date(newestItem._savedAt);
-      const newLastId = newestItem._id;
+      // newestItemEver holds the newest item from the very first batch (since we use orderBy: 'savedAt' DESC)
+      const newLastCheckedAt = new Date(newestItemEver._savedAt);
+      const newLastId = newestItemEver._id;
       
       // Preserve existing settings explicitly and update lastId
       const newSettings = { ...settings, lastId: newLastId };
