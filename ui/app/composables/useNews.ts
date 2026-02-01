@@ -171,14 +171,15 @@ export const useNews = () => {
         locale
       })
       return {
-        title: res.title,
-        body: res.content || res.body,
-        image: res.image || res.mainImageUrl,
-        date: res.date || res.savedAt || res.publishedAt,
-        url: res.url,
-        author: res.author,
-        description: res.description
+        title: res.title || res.item?.title,
+        body: res.content || res.body || res.item?.content || res.item?.description,
+        image: res.image || res.mainImageUrl || res.item?.mainImageUrl || res.item?.mainVideoUrl,
+        date: res.date || res.savedAt || res.publishedAt || res.item?.date || res.item?.savedAt || res.item?._savedAt,
+        url: res.url || res.item?.url,
+        author: res.author || res.item?.publisher || res.item?._source,
+        description: res.description || res.item?.description
       }
+
     } catch (err: any) {
        console.error('Failed to fetch news content:', err)
        throw err

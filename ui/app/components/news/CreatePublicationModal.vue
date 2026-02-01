@@ -266,15 +266,21 @@ async function handleNext() {
     
     if (publication) {
       // Check if image was requested but missing in created publication (failed upload)
+
       if (sd.image && (!publication.media || !publication.media.some((m: any) => m.media?.type === 'IMAGE'))) {
-         console.warn('Image upload failed detected:', { requested: sd.image, actualMedia: publication.media })
+         console.warn('[CreatePublicationModal] Image upload failed detected:', { 
+           requested: sd.image, 
+           actualMedia: publication.media,
+           publicationId: publication.id
+         })
          toast.add({
             title: t('common.error'),
             description: t('publication.imageUploadFailed') || 'Image could not be uploaded, publication created without it.',
             color: 'error',
-            duration: 0, // Sticky
+            duration: 10000,
          })
       }
+
 
       // Close modal
       isOpen.value = false
@@ -382,72 +388,83 @@ function handleUseNewsData(clearError = true) {
                 :placeholder="t('publication.select_project')"
               >
                 <template #leading>
-                  <UIcon :name="selectedProjectId ? 'i-heroicons-briefcase' : 'i-heroicons-user'" class="w-4 h-4 text-gray-400" />
+                   <UIcon :name="selectedProjectId ? 'i-heroicons-briefcase' : 'i-heroicons-user'" class="w-4 h-4 text-gray-400" />
                 </template>
               </USelectMenu>
            </UFormField>
 
-           <!-- Upper section: Image + Metadata -->
-           <div class="flex gap-4">
-               <!-- Image on the left -->
-               <div v-if="scrapedData.image" class="shrink-0">
-                  <img 
-                    :src="scrapedData.image" 
-                    :alt="scrapedData.title"
-                    class="w-32 h-32 rounded-lg object-cover bg-gray-100 dark:bg-gray-800 shadow-sm" 
-                  />
-               </div>
-               
-               <!-- Metadata on the right -->
-               <div class="flex-1 min-w-0 space-y-2">
-                   <!-- Title with text wrapping -->
-                   <h3 class="text-xl font-bold text-gray-900 dark:text-white leading-tight wrap-break-word">
-                     {{ scrapedData.title }}
-                   </h3>
-                   
-                   <!-- Date, Source, Author -->
-                   <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
-                      <span v-if="scrapedData.date" class="flex items-center gap-1.5">
-                          <UIcon name="i-heroicons-calendar" class="w-4 h-4 shrink-0" />
-                          <time :datetime="scrapedData.date">
-                            {{ formatDate(scrapedData.date) }}
-                          </time>
-                      </span>
-                      
-                      <a 
-                        v-if="scrapedData.url" 
-                        :href="scrapedData.url" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 hover:underline"
-                      >
-                        <UIcon name="i-heroicons-globe-alt" class="w-4 h-4 shrink-0" />
-                        <span class="truncate">{{ scrapedData.source || getHostname(scrapedData.url) }}</span>
-                      </a>
-                      
-                      <span v-if="scrapedData.author" class="flex items-center gap-1.5">
-                          <UIcon name="i-heroicons-user" class="w-4 h-4 shrink-0" />
-                          <span class="truncate">{{ scrapedData.author }}</span>
-                      </span>
-                   </div>
+           <!-- Premium News Preview Card -->
+           <div class="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+              <!-- Header Image -->
+              <div v-if="scrapedData.image" class="relative w-full aspect-video md:aspect-21/9 overflow-hidden">
+                 <img 
+                   :src="scrapedData.image" 
+                   :alt="scrapedData.title"
+                   class="w-full h-full object-cover transition-transform duration-700 hover:scale-105" 
+                 />
+                 <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
 
-                   <!-- Description as plain text when in fallback/error mode -->
-                   <div v-if="isUsingFallback" class="pt-2">
-                      <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-4">
-                        {{ scrapedData.description }}
-                      </p>
-                   </div>
-               </div>
-           </div>
-           
-           <!-- Lower section: Content with HTML markup (hidden in fallback mode as requested) -->
-           <div v-if="scrapedData.body && !isUsingFallback" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div 
-                class="content-preview prose prose-sm dark:prose-invert max-w-none"
-                v-html="sanitizedContent"
-              />
+                 
+                 <div class="absolute bottom-4 left-6 right-6">
+                    <UBadge v-if="scrapedData.source || scrapedData.url" variant="solid" color="primary" size="sm" class="mb-2">
+                       {{ scrapedData.source || getHostname(scrapedData.url) }}
+                    </UBadge>
+                 </div>
+              </div>
+
+              <div class="p-6 space-y-4">
+                 <!-- Metadata Row -->
+                 <div class="flex flex-wrap items-center gap-4 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    <span v-if="scrapedData.date" class="flex items-center gap-1.5">
+                        <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
+                        {{ formatDate(scrapedData.date) }}
+                    </span>
+                    
+                    <span v-if="scrapedData.author" class="flex items-center gap-1.5">
+                        <UIcon name="i-heroicons-user" class="w-4 h-4" />
+                        {{ scrapedData.author }}
+                    </span>
+
+                    <span v-if="scrapedData.url" class="flex items-center gap-1.5 ml-auto">
+                        <a 
+                          :href="scrapedData.url" 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="hover:text-primary-500 transition-colors flex items-center gap-1"
+                        >
+                          <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-4 h-4" />
+                          {{ t('news.viewOriginal') || 'Original' }}
+                        </a>
+                    </span>
+                 </div>
+
+                 <!-- Title -->
+                 <h3 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white leading-tight">
+                    {{ scrapedData.title }}
+                 </h3>
+
+                 <!-- Content/Body Section -->
+                 <div class="pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <!-- Plain text description when in fallback mode -->
+                    <div v-if="isUsingFallback" class="text-gray-600 dark:text-gray-400 text-base leading-relaxed whitespace-pre-wrap">
+                       {{ scrapedData.description }}
+                    </div>
+                    
+                    <!-- Rich text content preview -->
+                    <div 
+                      v-else-if="scrapedData.body"
+                      class="content-preview prose prose-neutral dark:prose-invert max-w-none prose-img:rounded-xl prose-a:text-primary-500"
+                      v-html="sanitizedContent"
+                    />
+                    
+                    <div v-else class="text-gray-400 italic text-sm text-center py-4">
+                       {{ t('publication.noContent') || 'No content available for preview' }}
+                    </div>
+                 </div>
+              </div>
            </div>
         </div>
+
 
         <!-- No data found anywhere state -->
         <div v-else-if="!isLoading && !error" class="flex flex-col items-center justify-center py-12 text-gray-500">

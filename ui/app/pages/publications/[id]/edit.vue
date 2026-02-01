@@ -168,6 +168,32 @@ const majoritySchedule = computed(() => {
     return { date: majorityDate, conflict }
 })
 
+
+// Check for openLlm param whenever publication is loaded
+watch(
+    () => [currentPublication.value, route.query.openLlm],
+    async ([pub, openLlm]) => {
+        if (pub && openLlm === 'true') {
+            // Wait for both publication data and route query to be stable
+            await nextTick()
+            
+            // Re-check after tick
+            if (currentPublication.value && route.query.openLlm === 'true') {
+                // Remove query parameter from URL without reloading
+                const { openLlm, ...restQuery } = route.query
+                router.replace({ query: restQuery })
+                
+                // Small delay to ensure the component is fully mounted and ready
+                setTimeout(() => {
+                    showLlmModal.value = true
+                }, 100)
+            }
+
+        }
+    },
+    { immediate: true }
+)
+
 onMounted(async () => {
     // Fetch publication first to get projectId
     if (publicationId.value) {
@@ -185,22 +211,8 @@ onMounted(async () => {
     if (projectId.value) {
         await fetchChannels({ projectId: projectId.value })
     }
-    
-    // Check for openLlm param whenever publication is loaded
-    watch(
-        () => currentPublication.value,
-        async (pub) => {
-            if (pub && route.query.openLlm === 'true') {
-                await nextTick()
-                showLlmModal.value = true
-                
-                // Remove query parameter from URL without reloading
-                router.replace({ query: { ...route.query, openLlm: undefined } })
-            }
-        },
-        { immediate: true }
-    )
 })
+
 
 // Watch for project changes (e.g. from the form)
 watch(projectId, async (newId) => {
