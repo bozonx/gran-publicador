@@ -32,21 +32,6 @@ export default () => {
           hour: 'numeric',
           minute: 'numeric'
         }
-      },
-      'ru': {
-        short: {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric'
-        },
-        long: {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          weekday: 'long',
-          hour: 'numeric',
-          minute: 'numeric'
-        }
       }
     }
   }
