@@ -13,7 +13,7 @@ import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.j
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, SearchNewsQueryDto, FetchNewsContentDto } from './dto/index.js';
+import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, SearchNewsQueryDto, FetchNewsContentDto, TransferProjectDto } from './dto/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
@@ -806,9 +806,92 @@ export class ProjectsService {
           description: data.description,
         };
       }
-
       throw error;
     }
+  }
+
+  public async transfer(projectId: string, userId: string, data: TransferProjectDto) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== userId) {
+      throw new ForbiddenException('Only project owner can transfer project');
+    }
+
+    if (project.name !== data.projectName) {
+      throw new ForbiddenException('Project name mismatch for confirmation');
+    }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: data.targetUserId },
+    });
+
+    if (!targetUser) throw new NotFoundException('Target user not found');
+
+    return this.prisma.$transaction(
+      async tx => {
+        // 1. Update project owner
+        const updatedProject = await tx.project.update({
+          where: { id: projectId },
+          data: { ownerId: data.targetUserId },
+        });
+
+        // 2. Cascade ownership of publications created by old owner
+        await tx.publication.updateMany({
+          where: { projectId, createdBy: userId },
+          data: { createdBy: data.targetUserId },
+        });
+
+        // 3. Optional: Clear channel credentials
+        if (data.clearCredentials) {
+          await tx.channel.updateMany({
+            where: { projectId },
+            data: { credentials: {} as any },
+          });
+        }
+
+        // 4. Remove new owner from members if they were one
+        await tx.projectMember.deleteMany({
+          where: { projectId, userId: data.targetUserId },
+        });
+
+        // 5. Notify the new owner
+        try {
+          const sender = await tx.user.findUnique({ where: { id: userId } });
+          const senderName = sender
+            ? sender.fullName || (sender.telegramUsername ? `@${sender.telegramUsername}` : 'Unknown User')
+            : 'Unknown User';
+          
+          const lang = targetUser.uiLanguage || 'en-US';
+
+          await this.notifications.create({
+            userId: data.targetUserId,
+            type: 'PROJECT_TRANSFER' as any,
+            title: this.i18n.t('notifications.PROJECT_TRANSFER_TITLE', { lang }),
+            message: this.i18n.t('notifications.PROJECT_TRANSFER_MESSAGE', {
+              lang,
+              args: {
+                senderName,
+                projectName: project.name,
+              },
+            }),
+            meta: { projectId, transferredBy: userId },
+          }, tx);
+        } catch (error: any) {
+          this.logger.error(`Failed to send project transfer notification: ${error.message}`);
+        }
+
+        this.logger.log(`Project "${project.name}" (${project.id}) transferred from ${userId} to ${data.targetUserId}`);
+
+        return updatedProject;
+      },
+      {
+        maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
+        timeout: TRANSACTION_TIMEOUT.TIMEOUT,
+      },
+    );
   }
 }
 // Force rebuild

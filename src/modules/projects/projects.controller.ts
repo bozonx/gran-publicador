@@ -27,6 +27,7 @@ import {
   UpdateMemberDto,
   SearchNewsQueryDto,
   FetchNewsContentDto,
+  TransferProjectDto,
 } from './dto/index.js';
 import { ProjectsService } from './projects.service.js';
 
@@ -222,5 +223,22 @@ export class ProjectsController {
     }
 
     return this.projectsService.fetchNewsContent(projectId, req.user.userId, newsId, body);
+  }
+
+  @Post(':id/transfer')
+  public async transfer(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() transferProjectDto: TransferProjectDto,
+  ) {
+    // API tokens with limited scope cannot transfer projects
+    if (req.user.allProjects === false && req.user.projectIds && req.user.projectIds.length > 0) {
+      this.logger.warn(
+        `Project transfer attempt blocked for limited scope API token! User: ${req.user.userId}, TokenUID: ${req.user.tokenId}`,
+      );
+      throw new ForbiddenException('API tokens with limited scope cannot transfer projects');
+    }
+
+    return this.projectsService.transfer(id, req.user.userId, transferProjectDto);
   }
 }

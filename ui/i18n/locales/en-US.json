@@ -206,7 +206,8 @@
     "role": "Role",
     "adminStatus": "Admin Status",
     "isAdmin": "Administrator",
-    "createdAt": "Registration date"
+    "createdAt": "Registration date",
+    "internalId": "Internal ID"
   },
   "project": {
     "title": "Project",
@@ -259,7 +260,18 @@
     "unarchive_info": "Restoring project makes it visible again.",
     "archive_info": "Archive project to save history.",
     "noArchived": "No archived projects",
-    "noRecentActivity": "No recent activity"
+    "noRecentActivity": "No recent activity",
+    "transferProject": "Transfer Project",
+    "transfer_warning": "Transfer ownership to another user. This action is irreversible.",
+    "transfer_info": "Enter the internal ID of the user you want to transfer this project to. You will lose all ownership rights and access, unless the new owner invites you back.",
+    "targetUserId": "New Owner Internal ID",
+    "confirmName": "Confirm Project Name",
+    "confirm_name_desc": "To confirm, type the name of the project:",
+    "clearCredentials": "Clear channel credentials",
+    "clearCredentials_desc": "Highly recommended for security. The new owner will have to reconnect channels.",
+    "transferNow": "Transfer Ownership",
+    "transferSuccess": "Project transferred successfully",
+    "id_placeholder": "e.g. 550e8400-e29b-41d4-a716-446655440000"
   },
   "projectMember": {
     "invite": "Invite member",
@@ -888,6 +900,7 @@
     "noNameFound": "Could not determine name from Telegram",
     "syncedSuccess": "Profile synced with Telegram",
     "syncError": "Failed to sync name",
+    "idCopied": "Internal ID copied to clipboard",
     "apiTokensDescription": "Manage API tokens for external integrations",
     "createToken": "Create token",
     "editToken": "Edit token",

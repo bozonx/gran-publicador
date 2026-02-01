@@ -6,5 +6,7 @@
   "PROJECT_INVITE_TITLE": "Project Invitation",
   "PROJECT_INVITE_MESSAGE": "{inviterName} invited you to project \"{projectName}\"",
   "NEW_NEWS_TITLE": "New news for {queryName}",
-  "NEW_NEWS_MESSAGE": "Found {count} new news items matching your query \"{queryName}\"."
+  "NEW_NEWS_MESSAGE": "Found {count} new news items matching your query \"{queryName}\".",
+  "PROJECT_TRANSFER_TITLE": "Project Transferred",
+  "PROJECT_TRANSFER_MESSAGE": "{senderName} transferred project \"{projectName}\" to you. You are now the owner."
 }

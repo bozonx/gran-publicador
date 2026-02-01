@@ -21,6 +21,7 @@ const {
   fetchProject,
   updateProject,
   deleteProject,
+  transferProject,
   clearCurrentProject,
   canEdit,
   canDelete,
@@ -112,6 +113,31 @@ async function handleDelete() {
  */
 function cancelDelete() {
   showDeleteModal.value = false
+}
+
+// Transfer modal state
+const showTransferModal = ref(false)
+const isTransferring = ref(false)
+const transferData = ref({
+  targetUserId: '',
+  projectName: '',
+  clearCredentials: true,
+})
+
+/**
+ * Handle project transfer
+ */
+async function handleTransfer() {
+  if (!projectId.value || !currentProject.value) return
+
+  isTransferring.value = true
+  const success = await transferProject(projectId.value, transferData.value)
+  isTransferring.value = false
+
+  if (success) {
+    showTransferModal.value = false
+    router.push('/projects')
+  }
 }
 </script>
 
@@ -303,6 +329,26 @@ function cancelDelete() {
               {{ t('project.deleteProject') }}
             </UButton>
           </div>
+
+          <div class="mt-8 pt-8 border-t border-red-100 dark:border-red-900/50 flex items-center justify-between">
+            <div>
+              <h3 class="font-medium text-gray-900 dark:text-white">
+                {{ t('project.transferProject', 'Transfer Project') }}
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {{ t('project.transfer_warning', 'Transfer ownership to another user. This action is irreversible.') }}
+              </p>
+            </div>
+            <UButton
+              color="error"
+              variant="outline"
+              icon="i-heroicons-user-plus"
+              :loading="isTransferring"
+              @click="showTransferModal = true"
+            >
+              {{ t('project.transferProject', 'Transfer Project') }}
+            </UButton>
+          </div>
         </UiAppCard>
       </div>
     </div>
@@ -339,6 +385,54 @@ function cancelDelete() {
           @click="handleDelete"
         >
           {{ t('common.delete') }}
+        </UButton>
+      </template>
+    </UiAppModal>
+
+    <!-- Transfer confirmation modal -->
+    <UiAppModal v-model:open="showTransferModal" :title="t('project.transferProject', 'Transfer Project')">
+      <div v-if="currentProject" class="mb-6">
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          {{ t('project.transfer_info', 'Enter the internal ID of the user you want to transfer this project to. You will lose all ownership rights and access, unless the new owner invites you back.') }}
+        </p>
+
+        <UFormField :label="t('project.targetUserId', 'New Owner Internal ID')" required class="mb-4">
+          <UInput
+            v-model="transferData.targetUserId"
+            :placeholder="t('project.id_placeholder', 'e.g. 550e8400-e29b-41d4-a716-446655440000')"
+            autofocus
+          />
+        </UFormField>
+
+        <UFormField :label="t('project.confirmName', 'Confirm Project Name')" required class="mb-4">
+          <template #description>
+            {{ t('project.confirm_name_desc', 'To confirm, type the name of the project:') }} <span class="font-bold">{{ currentProject.name }}</span>
+          </template>
+          <UInput
+            v-model="transferData.projectName"
+            :placeholder="currentProject.name"
+          />
+        </UFormField>
+
+        <UCheckbox
+          v-model="transferData.clearCredentials"
+          :label="t('project.clearCredentials', 'Clear channel credentials')"
+          :description="t('project.clearCredentials_desc', 'Highly recommended for security. The new owner will have to reconnect channels.')"
+          color="error"
+        />
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" :disabled="isTransferring" @click="showTransferModal = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton 
+          color="error" 
+          :loading="isTransferring" 
+          :disabled="!currentProject || !transferData.targetUserId || transferData.projectName !== currentProject.name"
+          @click="handleTransfer"
+        >
+          {{ t('project.transferNow', 'Transfer Ownership') }}
         </UButton>
       </template>
     </UiAppModal>

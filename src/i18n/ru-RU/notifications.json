@@ -6,5 +6,7 @@
   "PROJECT_INVITE_TITLE": "Приглашение в проект",
   "PROJECT_INVITE_MESSAGE": "{inviterName} пригласил(а) вас в проект \"{projectName}\"",
   "NEW_NEWS_TITLE": "Новые новости для {queryName}",
-  "NEW_NEWS_MESSAGE": "Найдено {count} новых новостей по вашему запросу \"{queryName}\"."
+  "NEW_NEWS_MESSAGE": "Найдено {count} новых новостей по вашему запросу \"{queryName}\".",
+  "PROJECT_TRANSFER_TITLE": "Проект передан",
+  "PROJECT_TRANSFER_MESSAGE": "{senderName} передал(а) вам проект \"{projectName}\". Теперь вы являетесь владельцем."
 }

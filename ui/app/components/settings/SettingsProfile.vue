@@ -88,6 +88,21 @@ async function syncName() {
     isSyncing.value = false
   }
 }
+
+/**
+ * Copy internal user ID to clipboard
+ */
+function copyId() {
+  if (!user.value?.id) return
+  
+  navigator.clipboard.writeText(user.value.id)
+  
+  toast.add({
+    title: t('common.success'),
+    description: t('settings.idCopied', 'Internal ID copied to clipboard'),
+    color: 'success',
+  })
+}
 </script>
 
 <template>
@@ -146,6 +161,22 @@ async function syncName() {
         </dt>
         <dd class="mt-1 text-sm text-gray-900 dark:text-white">
           {{ user.telegramId }}
+        </dd>
+      </div>
+
+      <div v-if="user?.id">
+        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
+          {{ t('user.internalId', 'Internal ID') }}
+        </dt>
+        <dd class="mt-1 text-sm text-gray-900 dark:text-white flex items-center gap-2">
+          <span class="truncate max-w-[120px]" :title="user.id">{{ user.id }}</span>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-clipboard-document"
+            @click="copyId"
+          />
         </dd>
       </div>
       <!-- Auth Mode -->

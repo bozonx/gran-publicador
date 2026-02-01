@@ -397,6 +397,33 @@ export function useProjects() {
         return null
     }
 
+    async function transferProject(projectId: string, data: { targetUserId: string; projectName: string; clearCredentials: boolean }): Promise<boolean> {
+        store.setLoading(true)
+        store.setError(null)
+
+        try {
+            await api.post(`/projects/${projectId}/transfer`, data)
+            toast.add({
+                title: t('common.success'),
+                description: t('project.transferSuccess', 'Project transferred successfully'),
+                color: 'success',
+            })
+            await fetchProjects()
+            return true
+        } catch (err: any) {
+            const message = err.message || 'Failed to transfer project'
+            store.setError(message)
+            toast.add({
+                title: t('common.error'),
+                description: message,
+                color: 'error',
+            })
+            return false
+        } finally {
+            store.setLoading(false)
+        }
+    }
+
     return {
         projects,
         currentProject,
@@ -409,6 +436,7 @@ export function useProjects() {
         createProject,
         updateProject,
         deleteProject,
+        transferProject,
         clearCurrentProject,
         fetchMembers,
         addMember,

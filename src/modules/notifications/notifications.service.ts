@@ -17,16 +17,13 @@ export class NotificationsService {
     private usersService: UsersService,
   ) {}
 
-  /**
-   * Create a new notification and send it via WebSocket if user is online.
-   * Also sends to Telegram if user has enabled Telegram notifications for this type.
-   */
-  async create(data: CreateNotificationDto) {
+  async create(data: CreateNotificationDto, tx?: Prisma.TransactionClient) {
     if (!data.userId || !data.type || !data.message) {
       throw new Error('Missing required notification fields');
     }
 
-    const notification = await this.prisma.notification.create({
+    const client = tx || this.prisma;
+    const notification = await client.notification.create({
       data: {
         userId: data.userId,
         type: data.type,
