@@ -1,802 +1,227 @@
-# API Документация Gran Publicador
+# API Reference — Gran Publicador
+
+Настоящий документ содержит подробное описание всех эндпоинтов API системы Gran Publicador. 
+
+Общие сведения об архитектуре, установке и принципе работы системы находятся в [README.md](../README.md).
 
 ## Содержание
 
-- [Базовая информация](#базовая-информация)
+- [Общая информация](#общая-информация)
 - [Аутентификация](#аутентификация)
-- [Общие параметры и ответы](#общие-параметры-и-ответы)
 - [Auth API](#auth-api)
 - [Projects API](#projects-api)
 - [Channels API](#channels-api)
 - [Publications API](#publications-api)
-- [Posts API](#posts-api)
-- [API Tokens](#api-tokens)
-- [Archive API](#archive-api)
-- [Users API](#users-api)
-- [Media API](#media-api)
-- [System API](#system-api)
+- [News Queries API](#news-queries-api)
+- [System API (Schedulers)](#system-api-schedulers)
 - [Health Check](#health-check)
-- [Коды ошибок](#коды-ошибок)
+- [Приложение: Enum значения](#приложение-enum-значения)
 
-## Базовая информация
+---
+
+## Общая информация
 
 ### Base URL
-
 - **Development**: `http://localhost:8080/api/v1`
 - **Production**: `https://your-domain.com/api/v1`
 
-### Content Type
+### Формат данных
+- **Content-Type**: `application/json`
+- **Даты**: ISO 8601 (`2024-01-15T10:30:00.000Z`)
 
-Все запросы и ответы используют JSON:
+### Пагинация (Query параметры)
+Большинство списочных эндпоинтов поддерживают следующие параметры пагинации:
 
-```
-Content-Type: application/json
-```
+| Параметр | Тип | По умолчанию | Описание |
+| :--- | :--- | :--- | :--- |
+| `limit` | number | 50 | Количество возвращаемых элементов (макс. 100) |
+| `offset` | number | 0 | Смещение для пагинации |
 
-### Формат дат
-
-Все даты в формате ISO 8601:
-
-```
-2024-01-15T10:30:00.000Z
-```
+---
 
 ## Аутентификация
 
-Все эндпоинты (кроме `/auth/telegram`) требуют аутентификации одним из двух способов:
+Для доступа к API требуется передача токена в заголовках.
 
-### 1. JWT токен (для фронтенда)
-
+### 1. JWT Токен (для фронтенда)
+Используется при авторизации через Telegram Mini App.
 ```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <JWT_TOKEN>
 ```
 
-### 2. API токен (для внешних интеграций)
-
-Вариант 1 (рекомендуется):
+### 2. API Токен (для интеграций)
 ```http
-x-api-key: gp_1234567890abcdef...
+x-api-key: gp_<TOKEN_VALUE>
 ```
-
-Вариант 2:
-```http
-Authorization: Bearer gp_1234567890abcdef...
-```
-
-## Общие параметры и ответы
-
-### Пагинация
-
-Параметры запроса:
-- `limit` (number, optional) - количество элементов (по умолчанию: 50, максимум: 100)
-- `offset` (number, optional) - смещение (по умолчанию: 0)
-
-Пример:
-```
-GET /api/v1/projects?limit=20&offset=40
-```
-
-### Формат ошибок
-
-```json
-{
-  "statusCode": 400,
-  "message": "Validation failed",
-  "error": "Bad Request"
-}
-```
-
-или с деталями:
-
-```json
-{
-  "statusCode": 400,
-  "message": [
-    "name should not be empty",
-    "name must be a string"
-  ],
-  "error": "Bad Request"
-}
-```
-
-### Enum значения
-
-#### ProjectRole
-- `OWNER` - владелец проекта
-- `ADMIN` - администратор
-- `EDITOR` - редактор
-- `VIEWER` - наблюдатель
-
-#### SocialMedia
-- `TELEGRAM`
-- `VK`
-- `YOUTUBE`
-- `TIKTOK`
-- `FACEBOOK`
-- `SITE`
-
-#### PostType
-- `POST` - обычный пост
-- `ARTICLE` - статья
-- `NEWS` - новость
-- `VIDEO` - видео
-- `SHORT` - короткое видео
-- `STORY` - история
-
-#### PublicationStatus
-- `DRAFT` - черновик
-- `READY` - готов к публикации
-- `SCHEDULED` - запланировано
-- `PROCESSING` - в процессе публикации
-- `PUBLISHED` - опубликовано
-- `PARTIAL` - опубликовано частично
-- `FAILED` - ошибка публикации
-- `EXPIRED` - истекло (время вышло)
-
-#### PostStatus
-- `PENDING` - ожидает очереди
-- `FAILED` - ошибка публикации в конкретный канал
-- `PUBLISHED` - успешно опубликовано в канал
-
-#### MediaType
-- `IMAGE`
-- `VIDEO`
-- `AUDIO`
-- `DOCUMENT`
-
-#### SortingFields (для публикаций)
-- `createdAt` (по умолчанию)
-- `chronology` — комбинированный режим (сначала запланированные, затем опубликованные)
-- `byScheduled` — приоритет запланированным по дате
-- `byPublished` — приоритет опубликованным по дате
-- `title`
-- `status`
-
-#### StorageType
-- `FS` - локальная файловая система (или S3)
-- `TELEGRAM` - серверы Telegram (через file_id)
+*Также поддерживается заголовок `Authorization: Bearer gp_<TOKEN_VALUE>`.*
 
 ---
 
 ## Auth API
 
-### POST /auth/telegram
-
+### POST `/auth/telegram`
 Аутентификация через Telegram Mini App.
 
-**Не требует авторизации**
+**Параметры Body:**
 
-#### Запрос
-
-```json
-{
-  "initData": "user=%7B%22id%22%3A123456789%2C%22first_name%22%3A%22John%22%7D&hash=abc123..."
-}
-```
-
-**Параметры:**
-- `initData` (string, required) - данные инициализации от Telegram WebApp
-
-#### Ответ
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "telegramId": "123456789",
-    "fullName": "John Doe",
-    "telegramUsername": "johndoe",
-    "avatarUrl": "https://t.me/i/userpic/320/johndoe.jpg",
-    "isAdmin": false,
-    "createdAt": "2024-01-15T10:30:00.000Z",
-    "updatedAt": "2024-01-15T10:30:00.000Z"
-  }
-}
-```
-
-#### Коды ответов
-
-- `200 OK` - успешная аутентификация
-- `401 Unauthorized` - неверная подпись Telegram
-- `400 Bad Request` - некорректные данные
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `initData` | string | Да | Данные инициализации от Telegram WebApp (`window.Telegram.WebApp.initData`) |
 
 ---
 
 ## Projects API
 
-### GET /projects
-
-Получить список проектов текущего пользователя.
-
-#### Запрос
-
-```
-GET /api/v1/projects?limit=20&offset=0
-```
+### GET `/projects`
+Получение списка проектов текущего пользователя.
 
 **Query параметры:**
-- `limit` (number, optional) - количество проектов (по умолчанию: 50)
-- `offset` (number, optional) - смещение (по умолчанию: 0)
 
-#### Ответ
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `search` | string | Поиск по названию или описанию |
+| `includeArchived` | boolean | Включить архивные проекты |
+| `limit` | number | Лимит (см. [Пагинация](#пагинация-query-параметры)) |
 
-```json
-[
-  {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Мой блог",
-    "description": "Личный блог о технологиях",
-    "ownerId": "660e8400-e29b-41d4-a716-446655440001",
-    "createdAt": "2024-01-15T10:30:00.000Z",
-    "updatedAt": "2024-01-15T10:30:00.000Z",
-    "archivedAt": null,
-    "archivedBy": null,
-    "role": "OWNER",
-    "channelCount": 3,
-    "postCount": 42,
-    "lastPostAt": "2024-01-20T15:45:00.000Z"
-  }
-]
-```
+### POST `/projects`
+Создание нового проекта.
 
-### GET /projects/:id
+**Параметры Body:**
 
-Получить информацию о проекте.
-
-#### Запрос
-
-```
-GET /api/v1/projects/550e8400-e29b-41d4-a716-446655440000
-```
-
-#### Ответ
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Мой блог",
-  "description": "Личный блог о технологиях",
-  "ownerId": "660e8400-e29b-41d4-a716-446655440001",
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null,
-  "role": "OWNER",
-  "channelCount": 3,
-  "postCount": 42,
-  "lastPostAt": "2024-01-20T15:45:00.000Z",
-  "owner": {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "fullName": "John Doe",
-    "telegramUsername": "johndoe"
-  },
-  "members": [
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440002",
-      "userId": "880e8400-e29b-41d4-a716-446655440003",
-      "role": "EDITOR",
-      "createdAt": "2024-01-16T12:00:00.000Z",
-      "user": {
-        "id": "880e8400-e29b-41d4-a716-446655440003",
-        "fullName": "Jane Smith",
-        "telegramUsername": "janesmith"
-      }
-    }
-  ]
-}
-```
-
-#### Коды ответов
-
-- `200 OK` - успешно
-- `404 Not Found` - проект не найден
-- `403 Forbidden` - нет доступа к проекту
-
-### POST /projects
-
-Создать новый проект.
-
-#### Запрос
-
-```json
-{
-  "name": "Новый проект",
-  "description": "Описание проекта"
-}
-```
-
-**Параметры:**
-- `name` (string, required) - название проекта
-- `description` (string, optional) - описание проекта
-
-#### Ответ
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Новый проект",
-  "description": "Описание проекта",
-  "ownerId": "660e8400-e29b-41d4-a716-446655440001",
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null
-}
-```
-
-#### Коды ответов
-
-- `201 Created` - проект создан
-- `400 Bad Request` - некорректные данные
-
-### PATCH /projects/:id
-
-Обновить проект.
-
-#### Запрос
-
-```json
-{
-  "name": "Обновленное название",
-  "description": "Новое описание"
-}
-```
-
-**Параметры:**
-- `name` (string, optional) - новое название
-- `description` (string, optional) - новое описание
-
-#### Ответ
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Обновленное название",
-  "description": "Новое описание",
-  "ownerId": "660e8400-e29b-41d4-a716-446655440001",
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T11:00:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null
-}
-```
-
-#### Коды ответов
-
-- `200 OK` - проект обновлен
-- `404 Not Found` - проект не найден
-- `403 Forbidden` - недостаточно прав (требуется ADMIN или OWNER)
-
-### DELETE /projects/:id
-
-Удалить проект.
-
-**Требуется роль:** OWNER
-
-#### Запрос
-
-```
-DELETE /api/v1/projects/550e8400-e29b-41d4-a716-446655440000
-```
-
-#### Ответ
-
-```json
-{
-  "message": "Project deleted successfully"
-}
-```
-
-#### Коды ответов
-
-- `200 OK` - проект удален
-- `404 Not Found` - проект не найден
-- `403 Forbidden` - недостаточно прав (требуется OWNER)
-
-### POST /projects/:id/members
-
-Добавить участника в проект.
-
-**Требуется роль:** ADMIN или OWNER
-
-#### Запрос
-
-```json
-{
-  "telegramUsername": "newuser",
-  "role": "EDITOR"
-}
-```
-
-**Параметры:**
-- `telegramUsername` (string, required) - username в Telegram
-- `role` (ProjectRole, required) - роль участника
-
-#### Ответ
-
-```json
-{
-  "id": "770e8400-e29b-41d4-a716-446655440002",
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "userId": "880e8400-e29b-41d4-a716-446655440003",
-  "role": "EDITOR",
-  "createdAt": "2024-01-16T12:00:00.000Z"
-}
-```
-
-### PATCH /projects/:projectId/members/:memberId
-
-Изменить роль участника.
-
-**Требуется роль:** ADMIN или OWNER
-
-#### Запрос
-
-```json
-{
-  "role": "ADMIN"
-}
-```
-
-### DELETE /projects/:projectId/members/:memberId
-
-Удалить участника из проекта.
-
-**Требуется роль:** ADMIN или OWNER
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `name` | string | Да | Название проекта (макс. 255 символов) |
+| `description` | string | Нет | Описание проекта |
 
 ---
 
 ## Channels API
 
-### GET /channels
-
-Получить список каналов.
-
-#### Запрос
-
-```
-GET /api/v1/channels?projectId=550e8400-e29b-41d4-a716-446655440000&limit=20
-```
+### GET `/channels`
+Получение списка всех каналов, доступных пользователю.
 
 **Query параметры:**
-- `projectId` (string, optional) - фильтр по проекту
-- `socialMedia` (SocialMedia, optional) - фильтр по соц. сети
-- `isActive` (boolean, optional) - фильтр по активности
-- `limit` (number, optional) - количество (по умолчанию: 50)
-- `offset` (number, optional) - смещение (по умолчанию: 0)
 
-#### Ответ
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `projectId` | UUID | Фильтр по конкретному проекту |
+| `socialMedia` | Enum | Фильтр по соцсети (см. [SocialMedia](#socialmedia)) |
+| `issueType` | Enum | Фильтр проблемных каналов |
+| `search` | string | Поиск по названию или идентификатору |
+| `isActive` | boolean | Фильтр по статусу активности |
 
-```json
-[
-  {
-    "id": "990e8400-e29b-41d4-a716-446655440004",
-    "projectId": "550e8400-e29b-41d4-a716-446655440000",
-    "socialMedia": "TELEGRAM",
-    "name": "Мой Telegram канал",
-    "channelIdentifier": "@mychannel",
-    "credentials": {
-      "botToken": "1234567890:ABC..."
-    },
-    "isActive": true,
-    "createdAt": "2024-01-15T10:30:00.000Z",
-    "updatedAt": "2024-01-15T10:30:00.000Z",
-    "archivedAt": null,
-    "archivedBy": null,
-    "postCount": 15,
-    "lastPostAt": "2024-01-20T15:45:00.000Z"
-  }
-]
-```
+### POST `/channels`
+Создание нового канала в проекте.
 
-### GET /channels/:id
+**Параметры Body:**
 
-Получить информацию о канале.
-
-#### Ответ
-
-```json
-{
-  "id": "990e8400-e29b-41d4-a716-446655440004",
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "socialMedia": "TELEGRAM",
-  "name": "Мой Telegram канал",
-  "channelIdentifier": "@mychannel",
-  "credentials": {
-    "botToken": "1234567890:ABC..."
-  },
-  "isActive": true,
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null,
-  "project": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Мой блог"
-  }
-}
-```
-
-### POST /channels
-
-Создать новый канал.
-
-#### Запрос
-
-```json
-{
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "socialMedia": "TELEGRAM",
-  "name": "Новый канал",
-  "channelIdentifier": "@newchannel",
-  "credentials": {
-    "botToken": "1234567890:ABC..."
-  },
-  "isActive": true
-}
-```
-
-**Параметры:**
-- `projectId` (string, required) - ID проекта
-- `socialMedia` (SocialMedia, required) - тип соц. сети
-- `name` (string, required) - название канала
-- `channelIdentifier` (string, required) - идентификатор канала (@username, URL и т.д.)
-- `credentials` (object, optional) - учетные данные (токены, ключи API)
-- `isActive` (boolean, optional) - активен ли канал (по умолчанию: true)
-
-#### Ответ
-
-```json
-{
-  "id": "990e8400-e29b-41d4-a716-446655440004",
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "socialMedia": "TELEGRAM",
-  "name": "Новый канал",
-  "channelIdentifier": "@newchannel",
-  "credentials": {
-    "botToken": "1234567890:ABC..."
-  },
-  "isActive": true,
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null
-}
-```
-
-### PATCH /channels/:id
-
-Обновить канал.
-
-#### Запрос
-
-```json
-{
-  "name": "Обновленное название",
-  "isActive": false
-}
-```
-
-**Параметры:**
-- `name` (string, optional) - новое название
-- `channelIdentifier` (string, optional) - новый идентификатор
-- `credentials` (object, optional) - новые учетные данные
-- `isActive` (boolean, optional) - активность канала
-
-### DELETE /channels/:id
-
-Удалить канал.
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `projectId` | UUID | Да | ID связанного проекта |
+| `socialMedia` | Enum | Да | Тип соцсети (см. [SocialMedia](#socialmedia)) |
+| `name` | string | Да | Название канала для системы |
+| `channelIdentifier` | string | Да | ID в соцсети (@username, URL и т.д.) |
+| `credentials` | object | Нет | JSON с токенами/ключами доступа |
+| `isActive` | boolean | Нет | Активен ли канал (true по умолчанию) |
 
 ---
 
 ## Publications API
 
-### GET /publications
-
-Получить список публикаций.
-
-#### Запрос
-
-```
-GET /api/v1/publications?projectId=550e8400-e29b-41d4-a716-446655440000&status=DRAFT
-```
+### GET `/publications`
+Получение списка публикаций с расширенной фильтрацией.
 
 **Query параметры:**
-- `projectId` (string, optional) - фильтр по проекту
-- `status` (PublicationStatus, optional) - фильтр по статусу
-- `language` (string, optional) - фильтр по языку (ru-RU, en-US и др.)
-- `ownership` (string, optional) - `OWN` (мои), `NOT_OWN` (чужие)
-- `socialMedia` (SocialMedia, optional) - фильтр по соцсети
-- `issueType` (string, optional) - фильтр проблем: `FAILED`, `PARTIAL`, `EXPIRED`
-- `sortBy` (string, optional) - поле сортировки (см. `SortingFields`)
-- `sortOrder` (string, optional) - `asc` или `desc`
-- `search` (string, optional) - текстовый поиск по заголовку и контенту
-- `limit` (number, optional) - количество (по умолчанию: 50)
-- `offset` (number, optional) - смещение (по умолчанию: 0)
 
-#### Ответ
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `projectId` | UUID | Фильтр по проекту |
+| `status` | Enum | Фильтр по [PublicationStatus](#publicationstatus) |
+| `search` | string | Поиск по заголовку и тексту |
+| `language` | string | Фильтр по языку (напр., `ru-RU`) |
+| `ownership` | Enum | `OWN` (мои), `NOT_OWN` (чужие) |
+| `issueType` | Enum | `FAILED`, `PARTIAL`, `EXPIRED` |
+| `sortBy` | Enum | `createdAt`, `title`, `status`, `chronology`, `byScheduled` |
+| `sortOrder` | string | `asc` или `desc` |
 
-```json
-[
-  {
-    "id": "aa0e8400-e29b-41d4-a716-446655440005",
-    "projectId": "550e8400-e29b-41d4-a716-446655440000",
-    "authorId": "660e8400-e29b-41d4-a716-446655440001",
-    "title": "Новая статья",
-    "content": "Содержание публикации...",
-    "media": [
-      {
-        "id": "cc0e8400-e29b-41d4-a716-446655440007",
-        "order": 0,
-        "media": {
-          "id": "dd0e8400-e29b-41d4-a716-444455440008",
-          "storageType": "FS",
-          "storagePath": "uploads/image.jpg"
-        }
-      }
-    ],
-    "tags": "технологии,программирование",
-    "status": "DRAFT",
-    "meta": {},
-    "createdAt": "2024-01-15T10:30:00.000Z",
-    "updatedAt": "2024-01-15T10:30:00.000Z",
-    "archivedAt": null,
-    "archivedBy": null,
-    "author": {
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "fullName": "John Doe"
-    }
-  }
-]
-```
+### POST `/publications`
+Создание новой публикации.
 
-### GET /publications/:id
+**Параметры Body (основные):**
 
-Получить публикацию.
-
-#### Ответ
-
-```json
-{
-  "id": "aa0e8400-e29b-41d4-a716-446655440005",
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "authorId": "660e8400-e29b-41d4-a716-446655440001",
-  "title": "Новая статья",
-  "content": "Содержание публикации...",
-  "mediaFiles": [
-    "https://example.com/image1.jpg"
-  ],
-  "tags": "технологии,программирование",
-  "status": "DRAFT",
-  "meta": {},
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null,
-  "project": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Мой блог"
-  },
-  "author": {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "fullName": "John Doe"
-  },
-  "posts": [
-    {
-      "id": "bb0e8400-e29b-41d4-a716-446655440006",
-      "channelId": "990e8400-e29b-41d4-a716-446655440004",
-      "status": "SCHEDULED",
-      "scheduledAt": "2024-01-20T12:00:00.000Z"
-    }
-  ]
-}
-```
-
-### POST /publications
-
-Создать публикацию.
-
-#### Запрос
-
-```json
-{
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "title": "Новая публикация",
-    "content": "Текст публикации...",
-    "status": "DRAFT"
-}
-```
-
-**Параметры:**
-- `projectId` (string, required) - ID проекта
-- `title` (string, optional) - заголовок
-- `content` (string, required) - содержание
-- `tags` (string, optional) - теги через запятую
-- `status` (PublicationStatus, optional) - статус (по умолчанию: DRAFT)
-- `sourceTexts` (array, optional) - исходные тексты `[{ content, order, source? }]`
-- `meta` (object, optional) - дополнительные метаданные
-
-#### Ответ
-
-```json
-  "id": "aa0e8400-e29b-41d4-a716-446655440005",
-  "projectId": "550e8400-e29b-41d4-a716-446655440000",
-  "createdBy": "660e8400-e29b-41d4-a716-446655440001",
-  "title": "Новая публикация",
-  "content": "Текст публикации...",
-  "tags": "технологии,AI",
-  "status": "DRAFT",
-  "meta": {},
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null
-}
-```
-
-### PATCH /publications/:id
-
-Обновить публикацию.
-
-#### Запрос
-
-```json
-{
-  "title": "Обновленный заголовок",
-  "content": "Обновленный текст...",
-  "status": "SCHEDULED"
-}
-```
-
-### DELETE /publications/:id
-
-Удалить публикацию.
-
-### POST /publications/:id/schedule
-
-Запланировать публикацию в каналы.
-
-#### Запрос
-
-```json
-{
-  "channelIds": [
-    "990e8400-e29b-41d4-a716-446655440004",
-    "cc0e8400-e29b-41d4-a716-446655440007"
-  ],
-  "scheduledAt": "2024-01-20T12:00:00.000Z"
-}
-```
-
-**Параметры:**
-- `channelIds` (string[], required) - массив ID каналов
-- `scheduledAt` (string, required) - дата и время публикации (ISO 8601)
-
-#### Ответ
-
-```json
-{
-  "message": "Publication scheduled successfully",
-  "posts": [
-    {
-      "id": "bb0e8400-e29b-41d4-a716-446655440006",
-      "publicationId": "aa0e8400-e29b-41d4-a716-446655440005",
-      "channelId": "990e8400-e29b-41d4-a716-446655440004",
-      "status": "SCHEDULED",
-      "scheduledAt": "2024-01-20T12:00:00.000Z"
-    }
-  ]
-}
-```
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `projectId` | UUID | Нет | ID проекта (если не указан — личный черновик) |
+| `title` | string | Нет | Заголовок (макс. 255) |
+| `content` | string | Условно* | Текст публикации (обязателен, если нет медиа) |
+| `language` | string | Да | Код языка (напр., `ru-RU`) |
+| `status` | Enum | Нет | Статус (`DRAFT`, `READY`) |
+| `media` | array | Нет | Массив объектов новых медиафайлов |
+| `existingMediaIds` | array | Нет | Массив ID уже загруженных медиа |
+| `sourceTexts` | array | Нет | Массив исходных текстов для контекста AI |
 
 ---
 
-## Posts API
+## News Queries API
 
-### GET /posts
+Управление запросами на автоматический сбор новостей (News Hunter).
 
-Получить список постов.
+### GET `/projects/:projectId/news-queries`
+Список поисковых запросов проекта.
+
+### POST `/projects/:projectId/news-queries`
+Создание нового запроса.
+
+**Параметры Body:**
+
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `name` | string | Да | Название запроса |
+| `query` | string | Да | Ключевые слова для поиска |
+| `sources` | string[] | Нет | Список конкретных доменов/источников |
+| `isActive` | boolean | Нет | Включение сбора по расписанию |
+
+---
+
+## System API (Schedulers)
+
+Принудительный запуск фоновых задач. Требует `X-System-Token`.
+
+### POST `/system/schedulers/publications/trigger`
+Запуск планировщика публикаций (обработка очереди постов).
+
+### POST `/system/schedulers/news/trigger`
+Запуск планировщика новостей (сбор и уведомления).
+
+---
+
+## Health Check
+
+### GET `/health`
+Проверка состояния сервиса. Возвращает `200 OK`, если система работает.
+
+---
+
+## Приложение: Enum значения
+
+### ProjectRole
+- `OWNER`, `ADMIN`, `EDITOR`, `VIEWER`
+
+### SocialMedia
+- `TELEGRAM`, `VK`, `YOUTUBE`, `TIKTOK`, `FACEBOOK`, `SITE`, `X`, `INSTAGRAM`, `LINKEDIN`
+
+### PublicationStatus
+- `DRAFT` — Черновик
+- `READY` — Готов
+- `SCHEDULED` — Запланирован
+- `PROCESSING` — Публикуется
+- `PUBLISHED` — Опубликован
+- `PARTIAL` — Частично опубликован
+- `FAILED` — Ошибка
+- `EXPIRED` — Просрочен
+
+### PostType
+- `POST`, `ARTICLE`, `NEWS`, `VIDEO`, `SHORT`, `STORY`
 
 #### Запрос
 
