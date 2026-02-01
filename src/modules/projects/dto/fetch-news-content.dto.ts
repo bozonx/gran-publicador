@@ -18,4 +18,8 @@ export class FetchNewsContentDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  locale?: string;
 }

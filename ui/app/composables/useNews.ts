@@ -155,7 +155,7 @@ export const useNews = () => {
     }
   }
 
-  const fetchNewsContent = async (item: NewsItem, customProjectId?: string, force = false): Promise<{ title: string, body: string, image?: string, date?: string, url?: string, author?: string, description?: string } | null> => {
+  const fetchNewsContent = async (item: NewsItem, customProjectId?: string, force = false, locale?: string): Promise<{ title: string, body: string, image?: string, date?: string, url?: string, author?: string, description?: string } | null> => {
     const newsId = item.id
     const pId = customProjectId || projectId.value
     if (!pId) throw new Error('Project ID is required')
@@ -165,7 +165,8 @@ export const useNews = () => {
         force,
         contentLength: item.contentLength ?? 0,
         title: item.title,
-        description: item.description
+        description: item.description,
+        locale
       })
       return {
         title: res.title,

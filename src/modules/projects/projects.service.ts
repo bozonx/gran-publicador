@@ -710,13 +710,18 @@ export class ProjectsService {
         this.logger.debug(`Refreshing news content for ${newsId}`);
         const url = `${baseUrl}/news/${newsId}/refresh`;
 
-        let fingerprint;
+        let fingerprint: any = {};
         if (config.refreshFingerprint) {
           try {
             fingerprint = JSON.parse(config.refreshFingerprint);
           } catch (e) {
             this.logger.warn(`Failed to parse refreshFingerprint config: ${config.refreshFingerprint}`);
           }
+        }
+
+        // If locale is provided in DTO, override it in fingerprint
+        if (data.locale) {
+          fingerprint.locale = data.locale;
         }
 
         response = await request(url, {
@@ -731,10 +736,16 @@ export class ProjectsService {
         });
       } else {
         // Otherwise we just GET the news item which should already have content
-        this.logger.debug(`Fetching existing news content for ${newsId}`);
+        this.logger.debug(`Fetching existing news content for ${newsId} with locale ${data.locale}`);
         const url = `${baseUrl}/news/${newsId}`;
+        const query: any = {};
+        if (data.locale) {
+          query.locale = data.locale;
+        }
+        
         response = await request(url, {
           method: 'GET',
+          query,
         });
       }
 
