@@ -14,6 +14,7 @@
 - [Archive API](#archive-api)
 - [Users API](#users-api)
 - [Media API](#media-api)
+- [System API](#system-api)
 - [Health Check](#health-check)
 - [Коды ошибок](#коды-ошибок)
 
@@ -1296,6 +1297,57 @@ GET /api/v1/users?limit=50&offset=0
 ### DELETE /media/:id
 
 Удалить медиафайл (удаляет также физический файл, если `storageType: FS`).
+
+---
+
+## System API
+
+Системные эндпоинты предназначены для интеграции с внешними инструментами автоматизации (например, n8n).
+
+### Аутентификация
+
+Для доступа к System API **обязательно** требуется заголовок `X-System-Token`.
+Значение токена должно совпадать с переменной окружения `SYSTEM_API_SECRET`.
+
+```http
+X-System-Token: your-secure-system-secret
+```
+
+Кроме того, по умолчанию доступ разрешен только из локальных сетей и localhost. Это поведение можно изменить в конфигурации.
+
+### POST /system/schedulers/publications/trigger
+
+Принудительный запуск планировщика публикаций.
+
+#### Запрос
+```http
+POST /api/v1/system/schedulers/publications/trigger
+```
+
+#### Ответ
+```json
+{
+  "status": "triggered",
+  "scheduler": "publications"
+}
+```
+
+### POST /system/schedulers/news/trigger
+
+Принудительный запуск планировщика новостей.
+
+#### Запрос
+```http
+POST /api/v1/system/schedulers/news/trigger
+```
+
+#### Ответ
+```json
+{
+  "status": "triggered",
+  "scheduler": "news"
+}
+```
 
 ---
 
