@@ -225,13 +225,7 @@ function getProjectTooltip(project: ProjectWithRole) {
               </NuxtLink>
             </UTooltip>
             
-            <NuxtLink 
-              :to="`/news?projectId=${project.id}`"
-              class="px-2 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-              @click.stop
-            >
-              <UIcon name="i-heroicons-newspaper" class="w-4 h-4" />
-            </NuxtLink>
+
 
             <button
               class="px-3 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded-r-lg transition-colors text-gray-400"
@@ -248,34 +242,46 @@ function getProjectTooltip(project: ProjectWithRole) {
           <!-- Channels List (Horizontal Icons) -->
           <div 
             v-if="expandedProjects.has(project.id)"
-            class="pl-1 pr-3 py-1"
+            class="pl-3 pr-2 py-1 flex items-start gap-2"
           >
-            <div v-if="areChannelsLoading[project.id]" class="text-xs text-gray-500 pl-2">
-              {{ t('common.loading') }}...
-            </div>
-            
-            <div v-else-if="projectChannels[project.id]?.length" class="flex items-center gap-1 flex-wrap">
-              <UTooltip
-                v-for="channel in projectChannels[project.id]"
-                :key="channel.id"
-                :text="channel.name"
-              >
-                <NuxtLink
-                  :to="getChannelLink(project.id, channel.id)"
-                  class="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                  :class="{ 'bg-primary-100 dark:bg-primary-900 ring-2 ring-primary-500': route.params.channelId === channel.id || route.query.channelId === channel.id }"
+            <div class="flex-1 min-w-0">
+              <div v-if="areChannelsLoading[project.id]" class="text-xs text-gray-500">
+                {{ t('common.loading') }}...
+              </div>
+              
+              <div v-else-if="projectChannels[project.id]?.length" class="flex items-center gap-1 flex-wrap">
+                <UTooltip
+                  v-for="channel in projectChannels[project.id]"
+                  :key="channel.id"
+                  :text="channel.name"
                 >
-                  <CommonSocialIcon 
-                    :platform="channel.socialMedia" 
-                    :problem-level="getChannelProblemLevel(channel)"
-                  />
-                </NuxtLink>
-              </UTooltip>
+                  <NuxtLink
+                    :to="getChannelLink(project.id, channel.id)"
+                    class="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                    :class="{ 'bg-primary-100 dark:bg-primary-900 ring-2 ring-primary-500': route.params.channelId === channel.id || route.query.channelId === channel.id }"
+                  >
+                    <CommonSocialIcon 
+                      :platform="channel.socialMedia" 
+                      :problem-level="getChannelProblemLevel(channel)"
+                    />
+                  </NuxtLink>
+                </UTooltip>
+              </div>
+              
+              <div v-else class="text-xs text-gray-400 italic py-1">
+                {{ t('channel.noChannelsFound') }}
+              </div>
             </div>
-            
-            <div v-else class="text-xs text-gray-400 italic">
-              {{ t('channel.noChannelsFound') }}
-            </div>
+
+            <UTooltip :text="t('navigation.news')">
+              <NuxtLink 
+                :to="`/projects/${project.id}/news`"
+                class="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+                active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 !text-primary-700 dark:!text-primary-300"
+              >
+                <UIcon name="i-heroicons-newspaper" class="w-4 h-4" />
+              </NuxtLink>
+            </UTooltip>
           </div>
         </div>
       </template>

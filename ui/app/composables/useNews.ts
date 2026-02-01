@@ -41,6 +41,7 @@ export interface SearchNewsParams {
   minScore?: number
   includeContent?: boolean
   orderBy?: 'relevance' | 'savedAt'
+  sources?: string
 }
 
 const NEWS_LIMIT = 10
@@ -90,7 +91,8 @@ export const useNews = () => {
         limit: NEWS_LIMIT,
         minScore: params.minScore,
         includeContent: params.includeContent,
-        orderBy: params.orderBy
+        orderBy: params.orderBy,
+        sources: params.sources
       }
 
       // Filter out undefined, null, or empty string values

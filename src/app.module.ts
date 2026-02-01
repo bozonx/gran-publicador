@@ -45,6 +45,7 @@ import { TelegramBotModule } from './modules/telegram-bot/index.js';
 import { AuthorSignaturesModule } from './modules/author-signatures/author-signatures.module.js';
 import { RolesModule } from './modules/roles/roles.module.js';
 import { NewsQueriesModule } from './modules/news-queries/news-queries.module.js';
+import { SourcesModule } from './modules/sources/sources.module.js';
 
 @Module({
   imports: [
@@ -211,6 +212,7 @@ import { NewsQueriesModule } from './modules/news-queries/news-queries.module.js
     AuthorSignaturesModule,
     RolesModule,
     NewsQueriesModule,
+    SourcesModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],

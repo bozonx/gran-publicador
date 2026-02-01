@@ -4,6 +4,7 @@ import { useProjects } from '~/composables/useProjects'
 import AppModal from '~/components/ui/AppModal.vue'
 import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
+import NewsSourceSelector from '~/components/news/SourceSelector.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -17,6 +18,7 @@ const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
+const selectedSources = ref<string[]>([])
 const trackedQueries = ref<any[]>([])
 const isInitialLoading = ref(true)
 const isLoadMoreLoading = ref(false)
@@ -51,7 +53,7 @@ async function handleSearch() {
     lang: currentTrackedQuery.value.lang,
     sourceTags: currentTrackedQuery.value.sourceTags,
     orderBy: currentTrackedQuery.value.orderBy,
-    minScore: currentTrackedQuery.value.minScore,
+    sources: selectedSources.value.join(',')
   }, currentTrackedQuery.value.projectId)
 }
 
@@ -67,8 +69,7 @@ async function loadMore() {
       savedTo: currentTrackedQuery.value.savedTo,
       lang: currentTrackedQuery.value.lang,
       sourceTags: currentTrackedQuery.value.sourceTags,
-      orderBy: currentTrackedQuery.value.orderBy,
-      minScore: currentTrackedQuery.value.minScore,
+      sources: selectedSources.value.join(',')
     }, currentTrackedQuery.value.projectId, true)
   } finally {
     isLoadMoreLoading.value = false
@@ -76,6 +77,11 @@ async function loadMore() {
 }
 
 watch(activeTabIndex, () => {
+  selectedSources.value = []
+  handleSearch()
+})
+
+watch(selectedSources, () => {
   handleSearch()
 })
 
@@ -141,6 +147,11 @@ function formatScore(score: number) {
       <p class="text-sm mt-2">
         {{ t('news.howToConfigure') || 'Enable notifications for news queries in project settings.' }}
       </p>
+    </div>
+
+    <!-- Source Filter -->
+    <div class="mb-6" v-if="trackedQueries.length > 0">
+      <NewsSourceSelector v-model="selectedSources" />
     </div>
 
     <!-- Tabs System -->

@@ -7,6 +7,7 @@ import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
 import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
+import NewsSourceSelector from '~/components/news/SourceSelector.vue'
 import { useAuth } from '~/composables/useAuth'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
@@ -21,6 +22,7 @@ interface NewsQuery {
   savedTo?: string
   lang?: string
   sourceTags?: string
+  sources?: string
   minScore: number
   orderBy?: 'relevance' | 'savedAt'
   note: string
@@ -72,6 +74,16 @@ function handleCreatePublication(item: NewsItem) {
 
 const currentQuery = computed(() => {
   return newsQueries.value.find(q => q.id === selectedQueryId.value) || null
+})
+
+// Initialize news queries from API
+const selectedSources = computed({
+  get: () => currentQuery.value?.sources?.split(',').filter(Boolean) || [],
+  set: (val: string[]) => {
+    if (currentQuery.value) {
+      currentQuery.value.sources = val.join(',')
+    }
+  }
 })
 
 // Initialize news queries from API
@@ -159,6 +171,7 @@ async function handleSearch() {
     savedTo: currentQuery.value.savedTo,
     orderBy: currentQuery.value.orderBy,
     minScore: currentQuery.value.minScore,
+    sources: currentQuery.value.sources
   })
 }
 
@@ -177,6 +190,7 @@ async function loadMore() {
       savedTo: currentQuery.value.savedTo,
       orderBy: currentQuery.value.orderBy,
       minScore: currentQuery.value.minScore,
+      sources: currentQuery.value.sources
     }, undefined, true)
   } finally {
     isLoadMoreLoading.value = false
@@ -203,6 +217,7 @@ const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
       sourceTags: query.sourceTags,
       savedFrom: query.savedFrom,
       savedTo: query.savedTo,
+      sources: query.sources,
       minScore: query.minScore,
       orderBy: query.orderBy,
       note: query.note,
@@ -222,6 +237,7 @@ watch(
     currentQuery.value?.mode,
     currentQuery.value?.lang,
     currentQuery.value?.sourceTags,
+    currentQuery.value?.sources,
     currentQuery.value?.savedFrom,
     currentQuery.value?.savedTo,
     currentQuery.value?.minScore,
@@ -486,6 +502,14 @@ function formatScore(score: number) {
                   size="lg"
                 />
               </div>
+            </div>
+
+            <!-- Source Selection -->
+            <div class="w-full" v-if="currentQuery">
+               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ t('news.sources') || 'Sources' }}
+              </label>
+              <NewsSourceSelector v-model="selectedSources" />
             </div>
 
             <!-- Saved From/To & Order By -->
