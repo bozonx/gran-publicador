@@ -43,6 +43,10 @@ export class SearchNewsQueryDto {
 
   @IsOptional()
   @IsString()
+  sources?: string;
+
+  @IsOptional()
+  @IsString()
   sourceTags?: string;
 
 

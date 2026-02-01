@@ -668,6 +668,7 @@ export class ProjectsService {
       if (query.afterId) searchParams.afterId = query.afterId;
       if (query.cursor) searchParams.cursor = query.cursor;
       if (query.source) searchParams.sources = query.source;
+      if (query.sources) searchParams.sources = query.sources;
       if (query.sourceTags) searchParams.sourceTags = query.sourceTags;
       if (query.includeContent) searchParams.includeContent = query.includeContent;
 
