@@ -62,9 +62,14 @@ async function updateProfile(data: any) {
 
       <!-- Content Language -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ t('settings.contentLanguage', 'Content Language') }}
-        </label>
+        <div class="flex items-center gap-1 mb-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t('settings.contentLanguage', 'Content Language') }}
+          </label>
+          <UTooltip :text="t('settings.contentLanguageDetails')">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400" />
+          </UTooltip>
+        </div>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
           {{ t('settings.contentLanguageHelp', 'Preferred language for news, search and publications.') }}
         </p>

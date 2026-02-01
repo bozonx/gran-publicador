@@ -919,13 +919,13 @@
     "supabaseReady": "Supabase client is ready. Database schema will be created in Step 4.",
     "tokenNamePlaceholder": "My Integration Token",
     "contentLanguage": "Content Language",
-    "contentLanguageHelp": "Language used for content generation and processing",
-    "darkTheme": "Dark Theme",
+    "contentLanguageHelp": "Preferred language for news, search and publications.",
+    "contentLanguageDetails": "Used for: news search, default preferences, and voice message transcription (Speech-to-Text).",
+    "changePassword": "Change Password",
     "lightTheme": "Light Theme",
     "logout_desc": "Sign out of your account",
     "staleChannelsDaysHelpChannel": "Override stale channel warning threshold for this channel",
     "systemTheme": "System Theme",
-    "uiLanguage": "Interface Language",
     "uiLanguageHelp": "Language of the application interface"
   },
   "form": {
