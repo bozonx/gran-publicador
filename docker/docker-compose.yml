@@ -38,7 +38,7 @@ services:
     ports:
       - '6379:6379'
     volumes:
-      - redis_data:/data
+      - gran_p_redis_data:/data
 
   postgres:
     image: postgres:18-alpine
@@ -54,7 +54,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - gran_p_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U gran -d gran_db" ]
       interval: 10s
@@ -62,7 +62,7 @@ services:
       retries: 5
 
 volumes:
-  redis_data:
-  postgres_data:
+  gran_p_redis_data:
+  gran_p_postgres_data:
 
 

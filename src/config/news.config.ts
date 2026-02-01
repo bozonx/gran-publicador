@@ -47,7 +47,7 @@ export class NewsConfig {
   public refreshFingerprint?: string;
 
   /**
-   * Default mode for news refresh (e.g. 'full', 'fast').
+   * Default mode for news refresh (e.g. 'extractor', 'playwright').
    */
   @IsOptional()
   @IsString()
