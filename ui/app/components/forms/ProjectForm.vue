@@ -144,11 +144,20 @@ const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state,
 })
 
 // Save original state when component mounts or project changes
-watch(() => props.project, () => {
-  state.name = props.project?.name || ''
-  state.description = props.project?.description || ''
+// Save original state when component mounts or project changes
+watch(() => props.project, (newProject, oldProject) => {
+  // Fix for race condition/overwrite:
+  // Only update local state if we are switching to a DIFFERENT project.
+  // If we are looking at the same project (same ID), we trust our local state (user input)
+  // more than the props (which might be stale or just an echo from autosave).
+  if (oldProject?.id && newProject?.id === oldProject.id) {
+      return
+  }
+
+  state.name = newProject?.name || ''
+  state.description = newProject?.description || ''
   
-  const rawMediaOpt = props.project?.preferences?.mediaOptimization ?? props.project?.preferences?.['media_optimization']
+  const rawMediaOpt = newProject?.preferences?.mediaOptimization ?? newProject?.preferences?.['media_optimization']
   let mediaOpt = rawMediaOpt
   
   // Handle stringified JSON from backend if applicable
@@ -165,7 +174,7 @@ watch(() => props.project, () => {
   }
 
   state.preferences = {
-    staleChannelsDays: props.project?.preferences?.staleChannelsDays ?? props.project?.preferences?.['stale_channels_days'],
+    staleChannelsDays: newProject?.preferences?.staleChannelsDays ?? newProject?.preferences?.['stale_channels_days'],
     // If backend returns nothing for mediaOptimization, keep the current local state to prevent form collapse
     // This handles cases where the backend response might exclude this field but the save was successful
     mediaOptimization: mediaOpt ?? state.preferences.mediaOptimization,

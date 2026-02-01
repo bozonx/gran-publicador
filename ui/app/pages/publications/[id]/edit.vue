@@ -228,10 +228,8 @@ watch(projectId, async (newId) => {
  * Handle successful publication update
  */
 function handleSuccess(id: string) {
-  // Refresh the data instead of navigating back
-  if (publicationId.value) {
-      fetchPublication(publicationId.value)
-  }
+  // Data is already updated by updatePublication in usePublications hook
+  // No need to refetch, avoiding potential race conditions and overwrite issues
 }
 
 

@@ -166,8 +166,18 @@ const { saveStatus, saveError } = useAutosave({
 })
 
 // Watch for external publication updates (e.g. from modals)
-watch(() => props.publication, (newPub) => {
+// Watch for external publication updates (e.g. from modals)
+watch(() => props.publication, (newPub, oldPub) => {
   if (newPub) {
+    // Fix for race condition/overwrite:
+    // Only update local state if we are switching to a DIFFERENT publication.
+    // If we are looking at the same publication (same ID), we trust our local state (user input)
+    // more than the props (which might be stale or just an echo from autosave).
+    // We strictly avoid overwriting user input with server data while editing.
+    if (oldPub && newPub.id === oldPub.id) {
+        return
+    }
+
     state.title = newPub.title || ''
     state.content = newPub.content || ''
     state.tags = newPub.tags || ''
@@ -191,7 +201,7 @@ watch(() => props.publication, (newPub) => {
     // Reset baseline for dirty tracking AFTER updating state
     nextTick(() => saveOriginalState())
   }
-}, { deep: true })
+}, { deep: true, immediate: true })
 
 // Linking logic
 const availablePublications = computed(() => {
