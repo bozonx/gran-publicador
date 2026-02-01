@@ -171,20 +171,15 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.preset', 'Optimization Preset')"
         :help="t('settings.mediaOptimization.presetHelp', 'Choose a predefined optimization level')"
       >
-        <div class="flex flex-wrap gap-2">
-          <UButton
-            v-for="preset in presetOptions"
-            :key="preset.value"
-            type="button"
-            size="sm"
-            :variant="currentPreset === preset.value ? 'solid' : 'ghost'"
-            :color="currentPreset === preset.value ? 'primary' : 'neutral'"
-            :disabled="disabled"
-            @click="applyPreset(preset.value as MediaOptimizationPresetKey | 'project')"
-          >
-            {{ preset.label }}
-          </UButton>
-        </div>
+        <UiAppButtonGroup
+          :model-value="currentPreset"
+          :options="presetOptions"
+          :disabled="disabled"
+          variant="outline"
+          active-variant="solid"
+          size="sm"
+          @update:model-value="(val) => applyPreset(val as MediaOptimizationPresetKey | 'project')"
+        />
       </UFormField>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -200,8 +195,8 @@ function handleEnabledToggle(val: boolean) {
             { value: 'webp', label: 'WebP' }
           ]"
           :disabled="disabled"
-          variant="ghost"
-          active-variant="subtle"
+          variant="outline"
+          active-variant="solid"
           active-color="primary"
           @update:model-value="(val: string | number | boolean) => updateField('format', val as any)"
         />
@@ -310,8 +305,8 @@ function handleEnabledToggle(val: boolean) {
             { value: '4:4:4', label: '4:4:4' }
           ]"
           :disabled="disabled"
-          variant="ghost"
-          active-variant="subtle"
+          variant="outline"
+          active-variant="solid"
           active-color="primary"
           @update:model-value="(val: string | number | boolean) => updateField('chromaSubsampling', val as any)"
         />
