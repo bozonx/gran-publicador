@@ -18,7 +18,8 @@
     "viewSource": "View source",
     "messageId": "MSG ID",
     "chatId": "CHAT ID",
-    "copy": "Copy content"
+    "copy": "Copy content",
+    "moveToContent": "Move to Content"
   },
   "translate": {
     "title": "Translate Text",
@@ -94,7 +95,6 @@
     },
     "resetFilters": "Reset filters",
     "prev": "Prev",
-    "unknown": "Unknown",
     "unknownChannel": "Unknown channel",
     "role": "Role",
     "selectAll": "Select All",
@@ -115,7 +115,11 @@
     "download": "Download",
     "newline": "Newline",
     "meta": "Meta (YAML)",
-    "metaHelp": "Additional metadata in YAML format"
+    "metaHelp": "Additional metadata in YAML format",
+    "clear": "Clear",
+    "copied": "Copied!",
+    "done": "Done",
+    "noResults": "No results found"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -133,52 +137,42 @@
   "news": {
     "title": "News",
     "news_selections": "News Selections",
-    "search": "Search news...",
     "searchPlaceholder": "Enter search query",
     "noResults": "No news found",
-    "vectorSearchInfo": "This is a vector-based similarity search, not a direct text match. Results are based on semantic meaning.",
     "loading": "Loading news...",
-    "source": "Source",
-    "score": "Relevance",
-    "date": "Date",
     "description": "Project news and updates",
-    "errorLoadingNews": "Failed to load news",
-    "serviceNotConfigured": "News service is not configured",
     "addTab": "Add tab",
     "tabName": "Tab name",
     "tabNamePlaceholder": "Enter tab name",
     "deleteTabConfirm": "Are you sure you want to delete this search query?",
-    "saveQueries": "Save search queries",
-    "defaultQuery": "Default query",
     "note": "Note",
     "notePlaceholder": "Enter notes for this search request...",
-    "since": "Time Range",
-    "makeDefault": "Make default",
     "noConfiguredProjects": "No projects with configured news queries found.",
     "howToConfigure": "Configure default news queries in project settings.",
     "editTab": "Edit tab",
-    "deleteTab": "Delete tab",
     "editTabDescription": "Change the tab name for this search query",
     "mode": "Search Mode",
     "modeText": "Text (Keyword)",
     "modeVector": "Vector (Semantic)",
     "modeHybrid": "Hybrid (Combined)",
-    "modeHelp": "Text: keyword matching, Vector: semantic similarity, Hybrid: combines both",
     "language": "Language",
-    "languagePlaceholder": "Language code (e.g., en, ru)",
     "sourceTags": "Source Tags",
     "sourceTagsPlaceholder": "Comma-separated source tags",
-    "newsTags": "News Tags",
-    "newsTagsPlaceholder": "Comma-separated news tags",
     "notifications": "Notifications",
-    "notificationsHelp": "Get notified when new news matches this query",
     "savedFrom": "Saved after",
     "savedTo": "Saved before",
     "orderBy": "Sort by",
     "orderByRelevance": "Relevance",
     "orderBySavedAt": "Date Saved",
     "sources": "Sources",
-    "filterBySource": "Filter by source"
+    "filterBySource": "Filter by source",
+    "items": "News items",
+    "rename": "Rename",
+    "selectSourceTags": "Select Source Tags",
+    "selectedCount": "{count} selected",
+    "sourcesDescription": "Description of sources",
+    "sourcesSelected": "Sources selected",
+    "viewOriginal": "View Original"
   },
   "auth": {
     "login": "Log in",
@@ -197,7 +191,8 @@
     "confirmDelete": "Delete Account",
     "accountDeletedSuccess": "Account deleted successfully",
     "deleteAccountError": "Failed to delete account",
-    "status": "Authentication Status"
+    "status": "Authentication Status",
+    "delete_warning": "Warning: Deleting your account is irreversible."
   },
   "user": {
     "username": "Username",
@@ -221,7 +216,6 @@
     "editProject": "Edit Project",
     "editDescription": "Update your project information below",
     "deleteProject": "Delete Project",
-    "deleteConfirm": "Are you sure you want to delete this project? This action cannot be undone.",
     "deleteConfirmWithInput": "To confirm deletion, please type the project name: ",
     "deleteCascadeInfo": "All related channels, publications, and posts will be deleted cascadingly (permanently).",
     "noProjectsFound": "No projects found",
@@ -244,7 +238,6 @@
     "archived_info_banner": "Archived projects are hidden from the main list but their data is preserved.",
     "projectsCount": "Projects count",
     "publicationsCountTooltip": "Number of active publications (excluding archived and those not related to active channels)",
-    "unarchive": "Unarchive",
     "noRecentPostsWarning": "No new posts for more than 3 days!",
     "sort": {
       "alphabetical": "Alphabetical",
@@ -277,13 +270,11 @@
   },
   "projectMember": {
     "invite": "Invite member",
-    "changeRole": "Change role",
     "remove": "Remove member",
     "removeConfirm": "Are you sure you want to remove this member?",
     "addSuccess": "Member added successfully",
     "updateSuccess": "Member role updated successfully",
     "removeSuccess": "Member removed successfully",
-    "userUsername": "Telegram Username",
     "changeRoleConfirm": "Are you sure you want to change the role for {user} to {role}?",
     "changeRoleTitle": "Change Role",
     "removeTitle": "Remove Member",
@@ -454,7 +445,6 @@
     "templateLanguage": "Language",
     "templateIsDefault": "Default",
     "templateIsDefaultHelp": "This template will be automatically selected for this channel",
-    "templateInsert": "Insert",
     "templateBefore": "Text BEFORE",
     "templateBeforeTooltip": "Text to insert before the block content. Use for formatting (e.g. markdown or special chars).",
     "templateAfter": "Text AFTER",
@@ -560,8 +550,6 @@
     "scheduledAt": "Scheduled at",
     "publishedAt": "Published at",
     "createdAt": "Created",
-    "updatedAt": "Last updated",
-    "author": "Author",
     "createPost": "Create post",
     "deletePost": "Delete post",
     "deleteConfirm": "Are you sure you want to delete this post?",
@@ -583,7 +571,6 @@
     "deleteSuccess": "Post deleted successfully",
     "contentInheritedFromPublication": "Post content is inherited from publication",
     "contentOverridePlaceholder": "Override publication content specifically for this post. If left empty, the publication content will be used.",
-    "tagsOverrideHint": "Leave empty to use tags from publication",
     "newPostInChannel": "New post in channel",
     "languageMismatch": "Channel language differs from publication",
     "languageMismatchWarning": "Warning: Channel language differs from publication language",
@@ -610,7 +597,9 @@
     "type_short": "Shorts/Reels",
     "type_story": "Story",
     "inheritedScheduledAt": "Inherited from publication: {date}",
-    "templateNotFound": "Template not found"
+    "templateNotFound": "Template not found",
+    "createError": "Failed to create post",
+    "overrideHint": "Override default settings for this post"
   },
   "publication": {
     "title": "Publication",
@@ -620,7 +609,6 @@
     "channelsHelp": "Select channels to create posts immediately",
     "deleted": "Publication deleted successfully",
     "selectChannels": "Select channels",
-    "addChannelToPublication": "Add Channel",
     "languageMismatch": "Language mismatch! Publication language differs from channel language",
     "noChannels": "No channels available. Create a channel first to publish.",
     "linkTranslation": "Link as Translation of",
@@ -648,8 +636,6 @@
     "scheduleUpdated": "Schedule updated for all posts",
     "changeLanguage": "Change Language",
     "changeType": "Change Post Type",
-    "changeStatus": "Change Status",
-    "changeStatusWarning": "Warning! This will change the status for all linked posts.",
     "projectArchived": "Project Archived",
     "hasArchivedChannels": "Archived Channels",
     "hasInactiveChannels": "Inactive Channels",
@@ -712,7 +698,6 @@
     },
     "scheduleLabel": "Schedule",
     "status": {
-      "scheduledAutomatic": "Status SCHEDULED is set automatically when scheduling",
       "publicationTimeRequired": "Set publication time first",
       "draft": "Draft",
       "ready": "Ready",
@@ -754,28 +739,34 @@
     "currentTranslations": "Current version translations",
     "select_project": "Select Project",
     "selectProject": "Select Project",
-    "noProjectSelected": "No Project Selected",
     "changeProject": "Change Project",
     "channelsSelectorHelp": "Choose channels to publish to...",
     "select_channels": "Select Channels",
     "select_project_first": "Select a project first",
     "create_for_lang": "Create translation for {lang}",
     "scrapeFailed": "Automatic page detection failed",
-    "availableData": "Available data from News Feed",
-    "useNewsCardData": "Use Data from News Card",
     "imageUploadFailed": "Image could not be uploaded, publication created without it.",
     "copyToProject": "Copy to project",
-    "copySuccess": "Publication copied successfully"
+    "moveToSourceTexts": "Move to Source Texts",
+    "noContent": "No content",
+    "processed": "Processed"
   },
   "media": {
-    "type": "File Type",
+    "type": {
+      "audio": "Audio",
+      "document": "Document",
+      "image": "Image",
+      "video": "Video"
+    },
     "alt": "Alt Text",
     "altTooltip": "Alternative text for accessibility and SEO. Describes the image for those who cannot see it.",
     "altPlaceholder": "Alt text for the image",
     "description": "Description",
     "descriptionTooltip": "Description is used for captions in some platforms or as meta info.",
     "descriptionPlaceholder": "Description of the media",
-    "sourceType": "Source Type",
+    "sourceType": {
+      "upload": "Upload"
+    },
     "mediaType": "Media Type",
     "filename": "Filename (optional)",
     "add": "Add Media",
@@ -798,7 +789,6 @@
     "preview": "Preview",
     "metadata": "Metadata",
     "yamlHelp": "Additional metadata in YAML format",
-    "spoiler": "Spoiler",
     "hasSpoiler": "Hide content (spoiler)",
     "spoilerDescription": "Content will be hidden until user clicks",
     "originalSpoilerFromTelegram": "Original message from Telegram had spoiler",
@@ -858,8 +848,7 @@
       "problemPublications": "{count} publication with problems | {count} publications with problems",
       "noCredentials": "{count} channel without credentials | {count} channels without credentials",
       "inactiveChannels": "{count} inactive channel (disabled) | {count} inactive channels (disabled)",
-      "staleChannels": "{count} stale channel | {count} stale channels",
-      "noChannels": "No channels configured"
+      "staleChannels": "{count} stale channel | {count} stale channels"
     }
   },
   "settings": {
@@ -928,7 +917,16 @@
     "supabaseUrl": "Supabase URL",
     "supabaseConfigHint": "Please configure SUPABASE_URL and SUPABASE_KEY in .env.development",
     "supabaseReady": "Supabase client is ready. Database schema will be created in Step 4.",
-    "tokenNamePlaceholder": "My Integration Token"
+    "tokenNamePlaceholder": "My Integration Token",
+    "contentLanguage": "Content Language",
+    "contentLanguageHelp": "Language used for content generation and processing",
+    "darkTheme": "Dark Theme",
+    "lightTheme": "Light Theme",
+    "logout_desc": "Sign out of your account",
+    "staleChannelsDaysHelpChannel": "Override stale channel warning threshold for this channel",
+    "systemTheme": "System Theme",
+    "uiLanguage": "Interface Language",
+    "uiLanguageHelp": "Language of the application interface"
   },
   "form": {
     "unsavedChanges": "Unsaved changes",
@@ -966,18 +964,7 @@
     }
   },
   "errors": {
-    "generic": "An error occurred. Please try again.",
-    "notFound": "Not found",
-    "unauthorized": "Authorization required",
-    "forbidden": "Access forbidden",
-    "serverError": "Server error",
-    "networkError": "Network error. Check your internet connection.",
-    "userNotFound": "User not found",
-    "userAlreadyMember": "User is already a member",
-    "fetchUsersFailed": "Failed to fetch users",
-    "fetchUserFailed": "Failed to fetch user",
-    "updateUserFailed": "Failed to update user",
-    "toggleAdminFailed": "Failed to toggle admin rights"
+    "notFound": "Not found"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1083,7 +1070,34 @@
     "empty_desc": "You don't have any notifications at the moment. We'll let you know when something important happens.",
     "view_publication": "View publication",
     "view_project": "Go to Project",
-    "view_news": "Go to News"
+    "view_news": "Go to News",
+    "internal": "Internal Notifications",
+    "internalAlwaysEnabled": "Internal notifications are always enabled",
+    "loadError": "Failed to load notifications",
+    "noPreferences": "No preferences available",
+    "saveError": "Failed to save settings",
+    "saveSuccess": "Settings saved successfully",
+    "settings": "Notification Settings",
+    "telegram": "Telegram Notifications",
+    "type": "Notification Type",
+    "types": {
+      "newNews": {
+        "description": "Notify when new news matches your search criteria",
+        "label": "New News"
+      },
+      "projectInvite": {
+        "description": "Notify when you are invited to a project",
+        "label": "Project Invitation"
+      },
+      "publicationFailed": {
+        "description": "Notify when a publication fails to post",
+        "label": "Publication Failed"
+      },
+      "system": {
+        "description": "System-wide announcements and alerts",
+        "label": "System Notifications"
+      }
+    }
   },
   "llm": {
     "generate": "Generate with AI",
@@ -1100,8 +1114,6 @@
     "error": "Generation Error",
     "errorMessage": "Failed to generate content. Please try again.",
     "tooltip": "Generate content with AI",
-    "voiceInput": "Voice Input",
-    "recording": "Recording...",
     "transcriptionSuccess": "Speech successfully transcribed",
     "recordingError": "Recording error",
     "transcriptionError": "Transcription error",
@@ -1111,7 +1123,6 @@
     "projectTemplates": "Project",
     "addTemplate": "Add Template",
     "editTemplate": "Edit Template",
-    "deleteTemplate": "Delete Template",
     "templateName": "Template Name",
     "templateNamePlaceholder": "Enter template name",
     "templateDescription": "Description",
@@ -1125,7 +1136,6 @@
     "deleteTemplateSuccess": "Template deleted successfully",
     "noTemplates": "No saved templates",
     "manageTemplates": "Manage Prompt Templates",
-    "userTemplates": "Personal Prompt Templates",
     "projectTemplates_desc": "Project Prompt Templates",
     "userTemplates_desc": "Your personal prompt templates available in all projects",
     "estimatedTokens": "Approximately {count} tokens",
@@ -1139,7 +1149,6 @@
     "regenerate": "Regenerate parameters",
     "skipDescription": "Extract parameters from current content without generating new",
     "nextDescription": "Use last AI message to extract parameters",
-    "unsavedChanges": "Unsaved changes",
     "unsavedChangesMessage": "You have unsaved generation results. Are you sure you want to close?",
     "noFieldsSelected": "Select at least one field to apply",
     "extractionFailed": "Failed to extract parameters",
@@ -1174,5 +1183,9 @@
       "editor": "Editor",
       "editorContent": "Edited by editor"
     }
-  }
+  },
+  "archived": "Archived",
+  "confirm": "Confirm",
+  "projectId": "Project ID",
+  "search": "Search"
 }
