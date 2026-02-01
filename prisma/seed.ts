@@ -46,7 +46,7 @@ async function main() {
 
     const users = [
         {
-            id: '00000000-0000-0000-0000-000000000001',
+            id: '00000000-0000-4000-8000-000000000001',
             telegramId: devTelegramId,
             telegramUsername: 'dev_user',
             fullName: 'Developer',
@@ -56,7 +56,7 @@ async function main() {
             preferences: { theme: 'dark', notifications: true },
         },
         {
-            id: '00000000-0000-0000-0000-000000000002',
+            id: '00000000-0000-4000-8000-000000000002',
             telegramId: 111111111n,
             telegramUsername: 'anna_editor',
             fullName: 'Anna Editor',
@@ -66,7 +66,7 @@ async function main() {
             preferences: {},
         },
         {
-            id: '00000000-0000-0000-0000-000000000003',
+            id: '00000000-0000-4000-8000-000000000003',
             telegramId: 987654321n,
             telegramUsername: 'viewer_user',
             fullName: 'Victor Viewer',
@@ -76,7 +76,7 @@ async function main() {
             preferences: {},
         },
         {
-            id: '00000000-0000-0000-0000-000000000004',
+            id: '00000000-0000-4000-8000-000000000004',
             telegramId: 222222222n,
             telegramUsername: 'alex_admin',
             fullName: 'Alex Admin',
@@ -103,56 +103,56 @@ async function main() {
     // 3. CREATE DIVERSE PROJECTS
     const projectData = [
         {
-            id: '11111111-1111-1111-1111-111111111111',
+            id: '11111111-1111-4111-8111-111111111111',
             name: 'Future Tech 🚀',
             description: 'Advanced tutorials on Node.js, Rust and AI agents. Target audience: Professional developers.',
             ownerId: devUser.id,
             preferences: {},
         },
         {
-            id: '11111111-1111-1111-1111-111111111112',
+            id: '11111111-1111-4111-8111-111111111112',
             name: 'Travel Chronicles 🌍',
             description: 'Photo stories from around the world. Budget travel tips and luxury resort reviews.',
             ownerId: devUser.id,
             preferences: {},
         },
         {
-            id: '11111111-1111-1111-1111-111111111113',
+            id: '11111111-1111-4111-8111-111111111113',
             name: 'Finance & Crypto 💰',
             description: 'Market analysis and investment strategies. Not financial advice.',
             ownerId: adminUser.id,
             preferences: {},
         },
         {
-            id: '11111111-1111-1111-1111-111111111114',
+            id: '11111111-1111-4111-8111-111111111114',
             name: 'Healthy Lifestyle 🥗',
             description: null,
             ownerId: devUser.id,
             preferences: {},
         },
         {
-            id: '11111111-1111-1111-1111-111111111115',
+            id: '11111111-1111-4111-8111-111111111115',
             name: 'UI Stress Test Project 🧪',
             description: 'A project designed specifically to break the UI with long strings and edge cases.',
             ownerId: devUser.id,
             preferences: {},
         },
         {
-            id: '88888888-8888-8888-8888-888888888888',
+            id: '88888888-8888-4888-8888-888888888888',
             name: 'Pagination Test Project 📑',
             description: 'Project specifically for testing pagination with many posts.',
             ownerId: devUser.id,
             preferences: {},
         },
         {
-            id: '11111111-1111-1111-1111-111111111116',
+            id: '11111111-1111-4111-8111-111111111116',
             name: 'Stale Test Project 🕸️',
             description: 'Project for testing stale channel warnings.',
             ownerId: devUser.id,
             preferences: {},
         },
         {
-            id: '11111111-1111-1111-1111-111111111117',
+            id: '11111111-1111-4111-8111-111111111117',
             name: 'Problematic Project ⚠️',
             description: 'Project with various problems regarding activity and channels.',
             ownerId: devUser.id,
@@ -199,7 +199,7 @@ async function main() {
     console.log('  Generating news queries...');
     const newsQueries = [
         {
-            id: '90000000-0000-0000-0000-000000000001',
+            id: '90000000-0000-4000-8000-000000000001',
             projectId: projectData[0].id,
             name: 'Node.js News',
             settings: { q: 'Node.js', mode: 'all', lang: 'ru-RU', sourceTags: ['programming', 'tech'], minScore: 0.6 },
@@ -207,7 +207,7 @@ async function main() {
             order: 0,
         },
         {
-            id: '90000000-0000-0000-0000-000000000002',
+            id: '90000000-0000-4000-8000-000000000002',
             projectId: projectData[0].id,
             name: 'Rust Development',
             settings: { q: 'Rust lang', mode: 'all', lang: 'en-US', newsTags: ['rust', 'systems'] },
@@ -254,17 +254,17 @@ async function main() {
     // 5. CHANNELS
     console.log('  Generating channels...');
     const channelData = [
-        { id: '22222222-2222-2222-2222-222222222221', projectId: projectData[0].id, socialMedia: SocialMedia.TELEGRAM, name: 'Main Tech Channel', channelIdentifier: '@tech_main', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100123' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222222', projectId: projectData[0].id, socialMedia: SocialMedia.YOUTUBE, name: 'Tech Tutorials YT', channelIdentifier: 'UC_TechTuts', language: 'en-US', isActive: true, credentials: { token: 'valid' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true, credentials: { vkAccessToken: 'vk_tok' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Travel Daily', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100124' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true, credentials: { token: 'tok' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222227', projectId: projectData[4].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel', channelIdentifier: '@stress_test', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100125' }, preferences: {} },
-        { id: '99999999-9999-9999-9999-999999999999', projectId: projectData[5].id, socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100126' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222228', projectId: projectData[6].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stale Channel', channelIdentifier: '@stale_channel', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100127' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222230', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'No Credentials Channel', channelIdentifier: '@no_creds', language: 'ru-RU', isActive: true, credentials: {}, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222231', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Inactive Channel', channelIdentifier: '@inactive_ch', language: 'ru-RU', isActive: false, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100128' }, preferences: {} },
-        { id: '22222222-2222-2222-2222-222222222232', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Failed Posts Channel', channelIdentifier: '@failed_posts', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100129' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222221', projectId: projectData[0].id, socialMedia: SocialMedia.TELEGRAM, name: 'Main Tech Channel', channelIdentifier: '@tech_main', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100123' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222222', projectId: projectData[0].id, socialMedia: SocialMedia.YOUTUBE, name: 'Tech Tutorials YT', channelIdentifier: 'UC_TechTuts', language: 'en-US', isActive: true, credentials: { token: 'valid' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222223', projectId: projectData[1].id, socialMedia: SocialMedia.VK, name: 'Wanderlust VK', channelIdentifier: 'wander_vk_page', language: 'ru-RU', isActive: true, credentials: { vkAccessToken: 'vk_tok' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222224', projectId: projectData[1].id, socialMedia: SocialMedia.TELEGRAM, name: 'Travel Daily', channelIdentifier: '@travel_daily', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100124' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222226', projectId: projectData[0].id, socialMedia: SocialMedia.TIKTOK, name: 'Tech Shorts', channelIdentifier: '@tech_shorts', language: 'en-US', isActive: true, credentials: { token: 'tok' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222227', projectId: projectData[4].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stress Test Channel', channelIdentifier: '@stress_test', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100125' }, preferences: {} },
+        { id: '99999999-9999-4999-8999-999999999999', projectId: projectData[5].id, socialMedia: SocialMedia.TELEGRAM, name: 'Pagination Channel', channelIdentifier: '@pag_test', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100126' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222228', projectId: projectData[6].id, socialMedia: SocialMedia.TELEGRAM, name: 'Stale Channel', channelIdentifier: '@stale_channel', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100127' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222230', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'No Credentials Channel', channelIdentifier: '@no_creds', language: 'ru-RU', isActive: true, credentials: {}, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222231', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Inactive Channel', channelIdentifier: '@inactive_ch', language: 'ru-RU', isActive: false, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100128' }, preferences: {} },
+        { id: '22222222-2222-4222-8222-222222222232', projectId: projectData[7].id, socialMedia: SocialMedia.TELEGRAM, name: 'Failed Posts Channel', channelIdentifier: '@failed_posts', language: 'ru-RU', isActive: true, credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100129' }, preferences: {} },
     ];
 
     for (const c of channelData) {
@@ -279,7 +279,7 @@ async function main() {
     console.log('  Generating author signatures...');
     const authorSignatures = [
         {
-            id: 'eee11111-1111-1111-1111-111111111111',
+            id: 'eee11111-1111-4111-8111-111111111111',
             userId: devUser.id,
             channelId: channelData[0].id, // Tech Main
             name: 'Standard Signature',
@@ -288,7 +288,7 @@ async function main() {
             order: 0
         },
         {
-            id: 'eee11112-1111-1111-1111-111111111111',
+            id: 'eee11112-1111-4111-8111-111111111111',
             userId: devUser.id,
             channelId: channelData[0].id,
             name: 'Follow us',
@@ -307,10 +307,10 @@ async function main() {
     }
 
     // 6. PUBLICATIONS
-    const translationGroup1 = '55555555-5555-5555-5555-555555555551';
+    const translationGroup1 = '55555555-5555-4555-8555-555555555551';
     const publications = [
         {
-            id: '44444444-4444-4444-4444-444444444441',
+            id: '44444444-4444-4444-8444-444444444441',
             projectId: projectData[0].id,
             createdBy: devUser.id,
             title: 'Intro to Nuxt 4',
@@ -327,7 +327,7 @@ async function main() {
             sourceTexts: [],
         },
         {
-            id: '44444444-4444-4444-4444-444444444445',
+            id: '44444444-4444-4444-8444-444444444445',
             projectId: projectData[0].id,
             createdBy: devUser.id,
             title: 'Introduction to Nuxt 4',
@@ -341,7 +341,7 @@ async function main() {
             sourceTexts: [],
         },
         {
-            id: '44444444-4444-4444-4444-444444444442',
+            id: '44444444-4444-4444-8444-444444444442',
             projectId: projectData[1].id,
             createdBy: devUser.id,
             title: 'Top 5 Kyoto',
@@ -354,7 +354,7 @@ async function main() {
             sourceTexts: [],
         },
         {
-            id: '44444444-4444-4444-4444-444444444443',
+            id: '44444444-4444-4444-8444-444444444443',
             projectId: projectData[2].id,
             createdBy: adminUser.id,
             title: 'Bitcoin 2025',
@@ -367,7 +367,7 @@ async function main() {
             sourceTexts: [],
         },
         {
-            id: '44444444-4444-4444-4444-444444444460',
+            id: '44444444-4444-4444-8444-444444444460',
             projectId: projectData[6].id,
             createdBy: devUser.id,
             title: 'Old Post',
@@ -379,7 +379,7 @@ async function main() {
             sourceTexts: [],
         },
         {
-            id: '44444444-4444-4444-4444-444444444481',
+            id: '44444444-4444-4444-8444-444444444481',
             projectId: projectData[7].id,
             createdBy: devUser.id,
             title: 'Failed in Prob Project',
@@ -392,7 +392,7 @@ async function main() {
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         },
         {
-            id: '44444444-4444-4444-4444-444444444490',
+            id: '44444444-4444-4444-8444-444444444490',
             projectId: projectData[4].id,
             createdBy: devUser.id,
             title: 'UI Stress Test Publication',
@@ -404,7 +404,7 @@ async function main() {
             createdAt: new Date(),
         },
         {
-            id: '44444444-4444-4444-4444-444444444470',
+            id: '44444444-4444-4444-8444-444444444470',
             projectId: projectData[0].id,
             createdBy: devUser.id,
             title: 'News Derived Post',
@@ -432,7 +432,7 @@ async function main() {
     // 7. POSTS
     const posts = [
         {
-            id: '33333333-3333-3333-3333-333333333331',
+            id: '33333333-3333-4333-8333-333333333331',
             publicationId: publications[0].id,
             channelId: channelData[0].id,
             socialMedia: 'TELEGRAM',
@@ -442,7 +442,7 @@ async function main() {
             platformOptions: { disableNotification: true },
         },
         {
-            id: '33333333-3333-3333-3333-333333333360',
+            id: '33333333-3333-4333-8333-333333333360',
             publicationId: publications[4].id,
             channelId: channelData[7].id,
             socialMedia: 'TELEGRAM',
@@ -451,7 +451,7 @@ async function main() {
             meta: {},
         },
         {
-            id: '33333333-3333-3333-3333-333333333380',
+            id: '33333333-3333-4333-8333-333333333380',
             publicationId: publications[5].id,
             channelId: channelData[10].id,
             socialMedia: 'TELEGRAM',
@@ -460,9 +460,9 @@ async function main() {
             meta: {},
         },
         {
-            id: '33333333-3333-3333-3333-333333333390',
-            publicationId: '44444444-4444-4444-4444-444444444490',
-            channelId: '22222222-2222-2222-2222-222222222227',
+            id: '33333333-3333-4333-8333-333333333390',
+            publicationId: '44444444-4444-4444-8444-444444444490',
+            channelId: '22222222-2222-4222-8222-222222222227',
             socialMedia: 'TELEGRAM',
             status: PostStatus.PUBLISHED,
             publishedAt: new Date(),
@@ -483,8 +483,8 @@ async function main() {
     const pagProjectId = projectData[5].id;
     const pagChannelId = channelData[6].id;
     for (let i = 1; i <= 30; i++) {
-        const pubId = `77777777-7777-7777-7777-${i.toString().padStart(12, '0')}`;
-        const postId = `66666666-6666-6666-6666-${i.toString().padStart(12, '0')}`;
+        const pubId = `77777777-7777-4777-8777-${i.toString().padStart(12, '0')}`;
+        const postId = `66666666-6666-4666-8666-${i.toString().padStart(12, '0')}`;
         await prisma.publication.upsert({
             where: { id: pubId },
             create: {
@@ -520,7 +520,7 @@ async function main() {
     console.log('  Generating media data...');
     const mediaSamples = [
         {
-            id: '99999999-9999-9999-9999-000000000001',
+            id: '99999999-9999-4999-8999-000000000001',
             type: 'IMAGE' as const,
             storageType: 'FS' as const,
             storagePath: 'samples/image1.jpg',
@@ -530,7 +530,7 @@ async function main() {
             meta: {},
         },
         {
-            id: '99999999-9999-9999-9999-000000000002',
+            id: '99999999-9999-4999-8999-000000000002',
             type: 'VIDEO' as const,
             storageType: 'FS' as const,
             storagePath: 'samples/video1.mp4',
@@ -550,10 +550,10 @@ async function main() {
     }
 
     await prisma.publicationMedia.upsert({
-        where: { id: '99999999-9999-9999-9999-100000000001' },
+        where: { id: '99999999-9999-4999-8999-100000000001' },
         update: {},
         create: {
-            id: '99999999-9999-9999-9999-100000000001',
+            id: '99999999-9999-4999-8999-100000000001',
             publicationId: publications[0].id,
             mediaId: mediaSamples[0].id,
             order: 0,
@@ -567,7 +567,7 @@ async function main() {
         where: { hashedToken: 'mock-hashed-dev-token' },
         update: {},
         create: {
-            id: '00000000-0000-0000-0000-00000000000a',
+            id: '00000000-0000-4000-8000-00000000000a',
             userId: devUser.id,
             name: 'Dev Local Token',
             hashedToken: 'mock-hashed-dev-token',
@@ -581,7 +581,7 @@ async function main() {
     console.log('  Generating notifications...');
     const notificationData = [
         {
-            id: 'ccccccc1-cccc-cccc-cccc-cccccccccccc',
+            id: 'ccccccc1-cccc-4ccc-8ccc-cccccccccccc',
             userId: devUser.id,
             type: NotificationType.PUBLICATION_FAILED,
             title: 'Publication Error',
@@ -591,7 +591,7 @@ async function main() {
             readAt: null,
         },
         {
-            id: 'ccccccc2-cccc-cccc-cccc-cccccccccccc',
+            id: 'ccccccc2-cccc-4ccc-8ccc-cccccccccccc',
             userId: devUser.id,
             type: NotificationType.PROJECT_INVITE,
             title: 'Project Invitation',
@@ -601,7 +601,7 @@ async function main() {
             readAt: new Date(Date.now() - 1000 * 60 * 60 * 23),
         },
         {
-            id: 'ccccccc3-cccc-cccc-cccc-cccccccccccc',
+            id: 'ccccccc3-cccc-4ccc-8ccc-cccccccccccc',
             userId: devUser.id,
             type: NotificationType.SYSTEM,
             title: 'System Update',
@@ -625,7 +625,7 @@ async function main() {
     const promptTemplates = [
         // Personal templates for devUser
         {
-            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
             userId: devUser.id,
             name: 'Summarization (RU)',
             description: 'Create a brief summary of the text',
@@ -633,7 +633,7 @@ async function main() {
             order: 0
         },
         {
-            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaab',
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab',
             userId: devUser.id,
             name: 'Translate to English (Simple)',
             description: 'Simple translation to English',
@@ -642,7 +642,7 @@ async function main() {
         },
         // Project templates for the first project
         {
-            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
             projectId: projectData[0].id,
             name: 'Tech Post Style',
             description: 'Technical style for our channel',
@@ -650,7 +650,7 @@ async function main() {
             order: 0
         },
         {
-            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbc',
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbc',
             projectId: projectData[0].id,
             name: 'News Announcement',
             description: 'News announcement format',
