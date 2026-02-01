@@ -720,10 +720,8 @@ export class ProjectsService {
           }
         }
 
-        // If locale is provided in DTO, override it in fingerprint
-        if (data.locale) {
-          fingerprint.locale = data.locale;
-        }
+        // We do not pass locale here, letting the microservice use the stored news item locale
+        // to ensure consistency with the locale used during the initial crawling (listing).
 
         response = await request(url, {
           method: 'POST',
@@ -737,16 +735,14 @@ export class ProjectsService {
         });
       } else {
         // Otherwise we just GET the news item which should already have content
-        this.logger.debug(`Fetching existing news content for ${newsId} with locale ${data.locale}`);
+        this.logger.debug(`Fetching existing news content for ${newsId}`);
         const url = `${baseUrl}/news/${newsId}`;
-        const query: any = {};
-        if (data.locale) {
-          query.locale = data.locale;
-        }
+        
+        // We do not pass locale query param to avoid implicit translation; 
+        // we want the item as it exists in the DB (original language/state).
         
         response = await request(url, {
           method: 'GET',
-          query,
         });
       }
 
