@@ -11,6 +11,8 @@ import NewsSourceSelector from '~/components/news/SourceSelector.vue'
 import { useAuth } from '~/composables/useAuth'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
+import NewsSourceTagSelector from '~/components/news/SourceTagSelector.vue'
+
 
 
 interface NewsQuery {
@@ -495,11 +497,9 @@ function formatScore(score: number) {
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.sourceTags') || 'Source Tags' }}
                 </label>
-                <UInput
+                <NewsSourceTagSelector
                   v-model="currentQuery.sourceTags"
-                  :placeholder="t('news.sourceTagsPlaceholder') || 'Comma-separated source tags'"
-                  icon="i-heroicons-tag"
-                  size="lg"
+                  :placeholder="t('news.sourceTagsPlaceholder')"
                 />
               </div>
             </div>

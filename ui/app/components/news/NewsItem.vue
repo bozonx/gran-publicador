@@ -71,9 +71,23 @@ const displayText = computed(() => {
         </a>
       </h3>
       
-      <p v-if="displayText" class="text-base text-gray-600 dark:text-gray-400 mb-4 break-words">
-        {{ displayText }}
-      </p>
+      <div v-if="displayText || item.mainImageUrl" class="flex flex-col sm:flex-row gap-4 mb-4">
+        <div class="flex-1 min-w-0">
+          <p v-if="displayText" class="text-base text-gray-600 dark:text-gray-400 break-words">
+            {{ displayText }}
+          </p>
+        </div>
+        
+        <div v-if="item.mainImageUrl" class="shrink-0">
+          <img 
+            :src="item.mainImageUrl" 
+            :alt="item.title"
+            class="w-full sm:w-48 h-48 sm:h-32 object-cover rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800"
+            loading="lazy"
+            @error="(e) => (e.target as HTMLElement).style.display = 'none'"
+          />
+        </div>
+      </div>
 
       <div class="flex items-center justify-between gap-4 mt-4">
         <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">

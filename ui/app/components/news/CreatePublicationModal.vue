@@ -267,10 +267,12 @@ async function handleNext() {
     if (publication) {
       // Check if image was requested but missing in created publication (failed upload)
       if (sd.image && (!publication.media || !publication.media.some((m: any) => m.media?.type === 'IMAGE'))) {
+         console.warn('Image upload failed detected:', { requested: sd.image, actualMedia: publication.media })
          toast.add({
-            title: t('common.warning'),
+            title: t('common.error'),
             description: t('publication.imageUploadFailed') || 'Image could not be uploaded, publication created without it.',
-            color: 'warning',
+            color: 'error',
+            duration: 0, // Sticky
          })
       }
 
