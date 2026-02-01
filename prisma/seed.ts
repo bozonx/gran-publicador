@@ -53,7 +53,7 @@ async function main() {
             isAdmin: true,
             language: 'ru-RU',
             uiLanguage: 'ru-RU',
-            preferences: {},
+            preferences: { theme: 'dark', notifications: true },
         },
         {
             id: '00000000-0000-0000-0000-000000000002',
@@ -202,7 +202,7 @@ async function main() {
             id: '90000000-0000-0000-0000-000000000001',
             projectId: projectData[0].id,
             name: 'Node.js News',
-            settings: { q: 'Node.js', mode: 'all', lang: 'ru-RU' },
+            settings: { q: 'Node.js', mode: 'all', lang: 'ru-RU', sourceTags: ['programming', 'tech'], minScore: 0.6 },
             isNotificationEnabled: true,
             order: 0,
         },
@@ -210,7 +210,7 @@ async function main() {
             id: '90000000-0000-0000-0000-000000000002',
             projectId: projectData[0].id,
             name: 'Rust Development',
-            settings: { q: 'Rust lang', mode: 'all', lang: 'en-US' },
+            settings: { q: 'Rust lang', mode: 'all', lang: 'en-US', newsTags: ['rust', 'systems'] },
             isNotificationEnabled: false,
             order: 1,
         }
@@ -399,9 +399,24 @@ async function main() {
             content: '<h1>Testing UI Layouts</h1><p>This is a publication for project 4.</p>',
             status: PublicationStatus.PUBLISHED,
             postType: PostType.ARTICLE,
-            language: 'ru-RU',
             meta: {},
             sourceTexts: [],
+            createdAt: new Date(),
+        },
+        {
+            id: '44444444-4444-4444-4444-444444444470',
+            projectId: projectData[0].id,
+            createdBy: devUser.id,
+            title: 'News Derived Post',
+            content: '<p>Content derived from news item...</p>',
+            status: PublicationStatus.DRAFT,
+            postType: PostType.NEWS,
+            language: 'ru-RU',
+            newsItemId: 'news-item-123456789',
+            meta: { originalUrl: 'https://example.com/news/123' },
+            sourceTexts: [
+                { source: 'url:https://example.com/news/123', content: 'Original news text...', order: 0 }
+            ],
             createdAt: new Date(),
         }
     ];
@@ -424,6 +439,7 @@ async function main() {
             status: PostStatus.PUBLISHED,
             publishedAt: new Date(Date.now() - 3600000),
             meta: {},
+            platformOptions: { disableNotification: true },
         },
         {
             id: '33333333-3333-3333-3333-333333333360',
