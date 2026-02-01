@@ -10,6 +10,7 @@ import { NewsConfig } from '../../config/news.config.js';
 @Injectable()
 export class NewsNotificationsScheduler implements OnModuleInit {
   private readonly logger = new Logger(NewsNotificationsScheduler.name);
+  private isProcessing = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -22,8 +23,13 @@ export class NewsNotificationsScheduler implements OnModuleInit {
 
   onModuleInit() {
     const config = this.configService.get<NewsConfig>('news');
-    const intervalMinutes = config?.notificationIntervalMinutes || 10;
+    const intervalMinutes = config?.notificationIntervalMinutes ?? 10;
     
+    if (intervalMinutes === 0) {
+      this.logger.log('News notifications check is DISABLED (interval is 0)');
+      return;
+    }
+
     this.logger.log(`Scheduling news notifications check every ${intervalMinutes} minutes`);
     
     const interval = setInterval(
@@ -33,34 +39,44 @@ export class NewsNotificationsScheduler implements OnModuleInit {
     this.schedulerRegistry.addInterval('news-notifications', interval);
   }
 
-  async handleNewsNotifications() {
-    this.logger.log('Starting news notifications check...');
+  public async handleNewsNotifications() {
+    if (this.isProcessing) {
+      this.logger.debug('Skipping news notifications check (previous run still in progress)');
+      return;
+    }
 
-    // Find queries enabled for notifications
-    const queries = await this.prisma.projectNewsQuery.findMany({
-      where: { isNotificationEnabled: true },
-      include: {
-        project: {
-          include: {
-            owner: { select: { id: true, uiLanguage: true } },
-            members: { 
-              include: { 
-                user: { select: { id: true, uiLanguage: true } } 
-              } 
-            },
+    this.isProcessing = true;
+    try {
+      this.logger.log('Starting news notifications check...');
+
+      // Find queries enabled for notifications
+      const queries = await this.prisma.projectNewsQuery.findMany({
+        where: { isNotificationEnabled: true },
+        include: {
+          project: {
+            include: {
+              owner: { select: { id: true, uiLanguage: true } },
+              members: { 
+                include: { 
+                  user: { select: { id: true, uiLanguage: true } } 
+                } 
+              },
+            }
           }
         }
-      }
-    });
+      });
 
-    this.logger.debug(`Found ${queries.length} active queries to check`);
+      this.logger.debug(`Found ${queries.length} active queries to check`);
 
-    for (const query of queries) {
-      try {
-        await this.processQuery(query);
-      } catch (error: any) {
-        this.logger.error(`Failed to process news notifications for query ${query.id}: ${error.message}`);
+      for (const query of queries) {
+        try {
+          await this.processQuery(query);
+        } catch (error: any) {
+          this.logger.error(`Failed to process news notifications for query ${query.id}: ${error.message}`);
+        }
       }
+    } finally {
+      this.isProcessing = false;
     }
   }
 

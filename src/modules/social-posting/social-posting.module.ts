@@ -6,6 +6,6 @@ import { PublicationSchedulerService } from './publication-scheduler.service.js'
 @Module({
   imports: [PrismaModule],
   providers: [SocialPostingService, PublicationSchedulerService],
-  exports: [SocialPostingService],
+  exports: [SocialPostingService, PublicationSchedulerService],
 })
 export class SocialPostingModule {}

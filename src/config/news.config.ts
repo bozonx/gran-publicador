@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsString, IsUrl, IsOptional, validateSync } from 'class-validator';
+import { IsString, IsUrl, IsOptional, Min, validateSync } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -21,6 +21,7 @@ export class NewsConfig {
    * Default: 10
    */
   @IsOptional()
+  @Min(0)
   public notificationIntervalMinutes: number = 10;
 
   /**

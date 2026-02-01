@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsIn, IsInt, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -104,6 +104,21 @@ export class AppConfig {
   public jwtSecret!: string;
 
   /**
+   * Secret for system API (e.g., from n8n).
+   * Defined by SYSTEM_API_SECRET environment variable.
+   */
+  @IsString()
+  @IsOptional()
+  public systemApiSecret?: string;
+
+  /**
+   * Whether to restrict system API to local network IPs.
+   * Defined by SYSTEM_API_IP_RESTRICTION_ENABLED environment variable.
+   * Default: true
+   */
+  public systemApiIpRestrictionEnabled: boolean = true;
+
+  /**
    * Media configuration.
    */
   public media!: {
@@ -129,7 +144,7 @@ export class AppConfig {
    * Default: 60
    */
   @IsInt()
-  @Min(1)
+  @Min(0)
   public schedulerIntervalSeconds!: number;
 
   /**
@@ -175,6 +190,8 @@ export default registerAs('app', (): AppConfig => {
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
     telegramMiniAppUrl: process.env.TELEGRAM_MINI_APP_URL ?? 'https://t.me/your_bot/app',
     jwtSecret: process.env.JWT_SECRET,
+    systemApiSecret: process.env.SYSTEM_API_SECRET,
+    systemApiIpRestrictionEnabled: process.env.SYSTEM_API_IP_RESTRICTION_ENABLED !== 'false',
 
     // Media Config
     media: {

@@ -11,6 +11,6 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
   imports: [PrismaModule, ProjectsModule, NotificationsModule],
   controllers: [NewsQueriesController, GlobalNewsQueriesController],
   providers: [NewsQueriesService, NewsNotificationsScheduler],
-  exports: [NewsQueriesService],
+  exports: [NewsQueriesService, NewsNotificationsScheduler],
 })
 export class NewsQueriesModule {}

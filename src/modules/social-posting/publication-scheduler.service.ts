@@ -26,6 +26,11 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
     this.logger.log(`Date source of truth: ${new Date().toISOString()}`);
 
     const intervalSeconds = appConfig.schedulerIntervalSeconds;
+    if (intervalSeconds === 0) {
+      this.logger.log('Publication Scheduler is DISABLED (interval is 0)');
+      return;
+    }
+
     const intervalMs = intervalSeconds * 1000;
 
     // Align start to the next interval boundary for better precision
@@ -60,7 +65,7 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
     }
   }
 
-  async handleCron() {
+  public async handleCron() {
     if (this.isProcessing) {
       this.logger.debug('Skipping scheduler run (previous run still in progress)');
       return;
