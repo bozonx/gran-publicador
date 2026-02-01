@@ -40,10 +40,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 // 1. Core utilities
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const { user } = useAuth()
 
 // 2. Publication state & logic
 const { updatePublication, createPublication, createPostsFromPublication, statusOptions, publications, fetchPublicationsByProject } = usePublications()
@@ -183,7 +184,7 @@ watch(() => props.publication, (newPub, oldPub) => {
     state.tags = newPub.tags || ''
     state.postType = newPub.postType as PostType
     state.status = (newPub.status || 'DRAFT') as PublicationStatus
-    state.language = newPub.language || 'en-US'
+    state.language = newPub.language || user.value?.language || locale.value
     state.description = newPub.description || ''
     state.authorComment = newPub.authorComment || ''
     state.note = newPub.note || ''

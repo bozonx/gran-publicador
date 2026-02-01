@@ -3,7 +3,7 @@ import type { SocialMedia } from '~/types/socialMedia'
 import { FORM_STYLES } from '~/utils/design-tokens'
 
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const emit = defineEmits<{
@@ -25,7 +25,7 @@ const formState = reactive({
   projectId: '',
   name: '',
   socialMedia: '' as SocialMedia | '',
-  language: user.value?.language || user.value?.uiLanguage || 'en-US',
+  language: user.value?.language || user.value?.uiLanguage || locale.value,
   channelIdentifier: '',
   description: ''
 })
@@ -42,7 +42,7 @@ function resetForm() {
   formState.projectId = props.initialProjectId || projects.value[0]?.id || ''
   formState.name = ''
   formState.socialMedia = '' as SocialMedia | ''
-  formState.language = user.value?.language || user.value?.uiLanguage || 'en-US'
+  formState.language = user.value?.language || user.value?.uiLanguage || locale.value
   formState.channelIdentifier = ''
   formState.description = ''
 }

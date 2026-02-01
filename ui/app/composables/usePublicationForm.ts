@@ -55,6 +55,8 @@ export function usePublicationFormValidation(t: any) {
 }
 
 export function usePublicationFormState(publication: PublicationWithRelations | null, languageParam?: string) {
+  const { user } = useAuth()
+  const { locale } = useI18n()
   const state = reactive({
     title: publication?.title || '',
     content: publication?.content || '',
@@ -62,7 +64,7 @@ export function usePublicationFormState(publication: PublicationWithRelations | 
     postType: (publication?.postType || 'POST') as PostType,
     status: (publication?.status || 'DRAFT') as PublicationStatus,
     scheduledAt: publication?.scheduledAt ? new Date(publication.scheduledAt).toISOString().slice(0, 16) : '',
-    language: publication?.language || languageParam || 'en-US',
+    language: publication?.language || languageParam || user.value?.language || locale.value,
     channelIds: publication?.posts?.map((p: any) => p.channelId) || [] as string[],
     translationGroupId: (publication?.translationGroupId || undefined) as string | undefined | null,
     meta: (() => {

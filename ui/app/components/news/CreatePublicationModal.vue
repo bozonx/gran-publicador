@@ -40,7 +40,7 @@ const props = defineProps<{
 const isOpen = defineModel<boolean>('open', { default: false })
 const url = defineModel<string>('url', { default: '' })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
@@ -176,15 +176,15 @@ async function fetchData(targetUrl: string) {
            // Maybe we can use any project user has access to, or just force project selection?
            const firstProject = projects.value[0]?.id
            if (firstProject) {
-              const locale = props.sourceNewsItem?.locale || user.value?.language || 'en-US'
-              const res = await fetchNewsContent(props.sourceNewsItem, firstProject, false, locale)
+              const localeCode = props.sourceNewsItem?.locale || user.value?.language || locale.value
+              const res = await fetchNewsContent(props.sourceNewsItem, firstProject, false, localeCode)
               if (res) scrapedData.value = res
            } else {
               error.value = 'No project available to fetch content context'
            }
         } else {
-           const locale = props.sourceNewsItem?.locale || user.value?.language || 'en-US'
-           const res = await fetchNewsContent(props.sourceNewsItem, scrapeProjectId, false, locale)
+           const localeCode = props.sourceNewsItem?.locale || user.value?.language || locale.value
+           const res = await fetchNewsContent(props.sourceNewsItem, scrapeProjectId, false, localeCode)
            if (res) scrapedData.value = res
         }
     } catch (err: any) {
@@ -219,7 +219,7 @@ async function handleNext() {
     const sourceTextContent = `# ${title}\n\n${body}`
     
     // Get language from scraped data or user preferences or fallback to 'en-US'
-    let lang = sd.meta?.lang || user.value?.language || 'en-US'
+    let lang = sd.meta?.lang || user.value?.language || locale.value
     
     // Prepare metadata: remove fields we use directly to avoid duplication
     // Use sourceNewsItem if available for richer metadata

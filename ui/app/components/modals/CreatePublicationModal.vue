@@ -14,13 +14,14 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const { languageOptions } = useLanguages()
 const { channels, fetchChannels } = useChannels()
 const { projects, fetchProjects } = useProjects()
 const { createPublication, isLoading } = usePublications()
 const { typeOptions } = usePosts()
+const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
@@ -28,7 +29,7 @@ const isOpen = defineModel<boolean>('open', { required: true })
 const formData = reactive({
   type: props.projectId ? 'project' : ('personal' as 'personal' | 'project'),
   projectId: props.projectId || '',
-  language: props.preselectedLanguage || 'ru-RU',
+  language: props.preselectedLanguage || user.value?.language || locale.value,
   postType: 'POST' as PostType,
   channelIds: [] as string[],
 })

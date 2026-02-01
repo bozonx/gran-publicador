@@ -42,7 +42,7 @@ definePageMeta({
   middleware: 'auth',
 })
 
-const { t, d } = useI18n()
+const { t, d, locale } = useI18n()
 const route = useRoute()
 const toast = useToast()
 const projectId = computed(() => route.params.id as string)
@@ -115,7 +115,7 @@ async function initQueries() {
           q: currentProject.value?.name || '',
           mode: 'hybrid' as const,
           minScore: 0.5,
-          lang: user.value?.language || 'en-US',
+          lang: user.value?.language || locale.value,
           isNotificationEnabled: false
         }
         
@@ -263,7 +263,7 @@ async function addTab() {
     mode: 'hybrid' as const,
     minScore: 0.5,
     orderBy: 'relevance' as const,
-    lang: user.value?.language || 'en-US',
+    lang: user.value?.language || locale.value,
     isNotificationEnabled: false
   }
   
