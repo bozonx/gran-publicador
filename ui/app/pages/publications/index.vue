@@ -444,35 +444,16 @@ async function handleDelete() {
       <div class="flex flex-wrap items-center gap-4">
         <!-- Ownership Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('publication.filter.ownership.title')">
-          <div class="flex -space-x-px">
-            <UButton 
-              :color="ownershipFilter === 'all' ? 'primary' : 'neutral'"
-              :variant="ownershipFilter === 'all' ? 'solid' : 'outline'"
-              class="rounded-r-none focus:z-10"
-              size="sm"
-              @click="ownershipFilter = 'all'"
-            >
-              {{ t('publication.filter.ownership.all') }}
-            </UButton>
-            <UButton 
-              :color="ownershipFilter === 'own' ? 'primary' : 'neutral'"
-              :variant="ownershipFilter === 'own' ? 'solid' : 'outline'"
-              class="rounded-none focus:z-10"
-              size="sm"
-              @click="ownershipFilter = 'own'"
-            >
-              {{ t('publication.filter.ownership.own') }}
-            </UButton>
-            <UButton 
-              :color="ownershipFilter === 'notOwn' ? 'primary' : 'neutral'"
-              :variant="ownershipFilter === 'notOwn' ? 'solid' : 'outline'"
-              class="rounded-l-none focus:z-10"
-              size="sm"
-              @click="ownershipFilter = 'notOwn'"
-            >
-              {{ t('publication.filter.ownership.notOwn') }}
-            </UButton>
-          </div>
+          <UiAppButtonGroup
+            v-model="ownershipFilter"
+            :options="[
+              { value: 'all', label: t('publication.filter.ownership.all') },
+              { value: 'own', label: t('publication.filter.ownership.own') },
+              { value: 'notOwn', label: t('publication.filter.ownership.notOwn') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+          />
           <UPopover :popper="{ placement: 'top' }">
             <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
             <template #content>

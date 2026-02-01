@@ -36,19 +36,14 @@ function selectStatus(status: string) {
 
 <template>
   <div class="flex items-center gap-2">
-    <div class="inline-flex -space-x-px rounded-lg shadow-sm isolate">
-      <UButton
-        v-for="option in options"
-        :key="option.value"
-        :label="option.label"
-        size="sm"
-        :color="modelValue === option.value ? 'primary' : 'neutral'"
-        :variant="modelValue === option.value ? 'solid' : 'soft'"
-        :disabled="disabled || (option.value === 'READY' && isContentMissing && modelValue === 'DRAFT')"
-        class="focus:z-10 rounded-none! first:rounded-s-lg! last:rounded-e-lg!"
-        @click="selectStatus(option.value)"
-      />
-    </div>
+    <UiAppButtonGroup
+      :model-value="modelValue"
+      :options="options.map(opt => ({
+        ...opt,
+        disabled: disabled || (opt.value === 'READY' && isContentMissing && modelValue === 'DRAFT')
+      }))"
+      @update:model-value="selectStatus"
+    />
     
     <UPopover :popper="{ placement: 'top' }">
       <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />

@@ -17,24 +17,14 @@ function setMode(mode: ViewMode) {
 </script>
 
 <template>
-  <div class="flex -space-x-px">
-    <UButton
-      :color="modelValue === 'list' ? 'primary' : 'neutral'"
-      :variant="modelValue === 'list' ? 'solid' : 'outline'"
-      icon="i-heroicons-list-bullet"
-      size="sm"
-      class="rounded-r-none"
-      :title="t('common.viewMode.list')"
-      @click="setMode('list')"
-    />
-    <UButton
-      :color="modelValue === 'cards' ? 'primary' : 'neutral'"
-      :variant="modelValue === 'cards' ? 'solid' : 'outline'"
-      icon="i-heroicons-squares-2x2"
-      size="sm"
-      class="rounded-l-none"
-      :title="t('common.viewMode.cards')"
-      @click="setMode('cards')"
-    />
-  </div>
+  <UiAppButtonGroup
+    :model-value="modelValue"
+    :options="[
+      { value: 'list', icon: 'i-heroicons-list-bullet', title: t('common.viewMode.list') },
+      { value: 'cards', icon: 'i-heroicons-squares-2x2', title: t('common.viewMode.cards') }
+    ]"
+    active-variant="solid"
+    variant="outline"
+    @update:model-value="setMode"
+  />
 </template>

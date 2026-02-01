@@ -11,25 +11,18 @@ const { t } = useI18n()
     </p>
     
     <ClientOnly>
-      <div class="flex flex-wrap gap-3">
-        <UButton
-          v-for="theme in ['system', 'light', 'dark']"
-          :key="theme"
-          :color="colorMode.preference === theme ? 'primary' : 'neutral'"
-          :variant="colorMode.preference === theme ? 'solid' : 'outline'"
-          size="lg"
-          :icon="
-            theme === 'system' 
-              ? 'i-heroicons-computer-desktop' 
-              : theme === 'light' 
-                ? 'i-heroicons-sun' 
-                : 'i-heroicons-moon'
-          "
-          @click="colorMode.preference = theme"
-        >
-          <span class="capitalize">{{ t(`settings.${theme}Theme`, theme) }}</span>
-        </UButton>
-      </div>
+      <UiAppButtonGroup
+        :model-value="colorMode.preference"
+        :options="[
+          { value: 'system', label: t('settings.systemTheme', 'system'), icon: 'i-heroicons-computer-desktop' },
+          { value: 'light', label: t('settings.lightTheme', 'light'), icon: 'i-heroicons-sun' },
+          { value: 'dark', label: t('settings.darkTheme', 'dark'), icon: 'i-heroicons-moon' }
+        ]"
+        size="lg"
+        variant="outline"
+        active-variant="solid"
+        @update:model-value="(val: any) => colorMode.preference = val"
+      />
       
       <template #fallback>
         <div class="flex flex-wrap gap-3">

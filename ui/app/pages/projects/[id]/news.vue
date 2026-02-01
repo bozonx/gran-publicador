@@ -450,35 +450,18 @@ function formatScore(score: number) {
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {{ t('news.mode') || 'Search Mode' }}
               </label>
-              <div class="flex gap-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    v-model="currentQuery.mode"
-                    type="radio"
-                    value="text"
-                    class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeText') || 'Text' }}</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    v-model="currentQuery.mode"
-                    type="radio"
-                    value="vector"
-                    class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeVector') || 'Vector' }}</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    v-model="currentQuery.mode"
-                    type="radio"
-                    value="hybrid"
-                    class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.modeHybrid') || 'Hybrid' }}</span>
-                </label>
-              </div>
+              <UiAppButtonGroup
+                v-model="currentQuery.mode"
+                :options="[
+                  { value: 'text', label: t('news.modeText') || 'Text' },
+                  { value: 'vector', label: t('news.modeVector') || 'Vector' },
+                  { value: 'hybrid', label: t('news.modeHybrid') || 'Hybrid' }
+                ]"
+                variant="outline"
+                active-variant="solid"
+                fluid
+                size="lg"
+              />
             </div>
 
             <!-- Additional Filters Grid -->
@@ -544,26 +527,17 @@ function formatScore(score: number) {
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.orderBy') || 'Sort by' }}
                 </label>
-                <div class="flex gap-3 h-[42px] items-center">
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      v-model="currentQuery.orderBy"
-                      type="radio"
-                      value="relevance"
-                      class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                    />
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.orderByRelevance') || 'Relevance' }}</span>
-                  </label>
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      v-model="currentQuery.orderBy"
-                      type="radio"
-                      value="savedAt"
-                      class="w-4 h-4 text-primary-500 focus:ring-primary-500"
-                    />
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('news.orderBySavedAt') || 'Date Saved' }}</span>
-                  </label>
-                </div>
+                <UiAppButtonGroup
+                  v-model="currentQuery.orderBy"
+                  :options="[
+                    { value: 'relevance', label: t('news.orderByRelevance') || 'Relevance' },
+                    { value: 'savedAt', label: t('news.orderBySavedAt') || 'Date Saved' }
+                  ]"
+                  variant="outline"
+                  active-variant="solid"
+                  fluid
+                  size="lg"
+                />
               </div>
             </div>
 

@@ -193,34 +193,18 @@ function handleEnabledToggle(val: boolean) {
         :label="t('settings.mediaOptimization.format', 'Format')"
         :help="t('settings.mediaOptimization.formatHelp', 'Target output format')"
       >
-        <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-inner">
-          <button
-            type="button"
-            @click="updateField('format', 'avif')"
-            :disabled="disabled"
-            :class="[
-              'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
-              state.format === 'avif' 
-                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            ]"
-          >
-            AVIF
-          </button>
-          <button
-            type="button"
-            @click="updateField('format', 'webp')"
-            :disabled="disabled"
-            :class="[
-              'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
-              state.format === 'webp' 
-                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            ]"
-          >
-            WebP
-          </button>
-        </div>
+        <UiAppButtonGroup
+          :model-value="state.format"
+          :options="[
+            { value: 'avif', label: 'AVIF' },
+            { value: 'webp', label: 'WebP' }
+          ]"
+          :disabled="disabled"
+          variant="ghost"
+          active-variant="subtle"
+          active-color="primary"
+          @update:model-value="(val: string | number | boolean) => updateField('format', val as any)"
+        />
       </UFormField>
 
       <!-- Quality -->
@@ -319,34 +303,18 @@ function handleEnabledToggle(val: boolean) {
         <UFormField
           :label="t('settings.mediaOptimization.chromaSubsampling', 'Chroma Subsampling')"
         >
-          <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-inner">
-            <button
-              type="button"
-              @click="updateField('chromaSubsampling', '4:2:0')"
-              :disabled="disabled"
-              :class="[
-                'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
-                state.chromaSubsampling === '4:2:0' 
-                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-              ]"
-            >
-              4:2:0
-            </button>
-            <button
-              type="button"
-              @click="updateField('chromaSubsampling', '4:4:4')"
-              :disabled="disabled"
-              :class="[
-                'px-6 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
-                state.chromaSubsampling === '4:4:4' 
-                  ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' 
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-              ]"
-            >
-              4:4:4
-            </button>
-          </div>
+        <UiAppButtonGroup
+          :model-value="state.chromaSubsampling"
+          :options="[
+            { value: '4:2:0', label: '4:2:0' },
+            { value: '4:4:4', label: '4:4:4' }
+          ]"
+          :disabled="disabled"
+          variant="ghost"
+          active-variant="subtle"
+          active-color="primary"
+          @update:model-value="(val: string | number | boolean) => updateField('chromaSubsampling', val as any)"
+        />
         </UFormField>
       </div>
 
