@@ -124,6 +124,30 @@ const transferData = ref({
   clearCredentials: true,
 })
 
+// Validation for transfer
+const isTransferUserIdValid = computed(() => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  return uuidRegex.test(transferData.value.targetUserId)
+})
+
+const isTransferProjectNameValid = computed(() => {
+  return transferData.value.projectName === currentProject.value?.name
+})
+
+const transferUserIdError = computed(() => {
+  if (!transferData.value.targetUserId) return undefined
+  return isTransferUserIdValid.value ? undefined : t('project.error_invalid_id')
+})
+
+const transferProjectNameError = computed(() => {
+  if (!transferData.value.projectName) return undefined
+  return isTransferProjectNameValid.value ? undefined : t('project.error_name_mismatch')
+})
+
+const isTransferButtonDisabled = computed(() => {
+  return !currentProject.value || !isTransferUserIdValid.value || !isTransferProjectNameValid.value
+})
+
 /**
  * Handle project transfer
  */
@@ -396,22 +420,54 @@ async function handleTransfer() {
           {{ t('project.transfer_info', 'Enter the internal ID of the user you want to transfer this project to. You will lose all ownership rights and access, unless the new owner invites you back.') }}
         </p>
 
-        <UFormField :label="t('project.targetUserId', 'New Owner Internal ID')" required class="mb-4">
-          <UInput
-            v-model="transferData.targetUserId"
-            :placeholder="t('project.id_placeholder', 'e.g. 550e8400-e29b-41d4-a716-446655440000')"
-            autofocus
-          />
+        <UFormField 
+          :label="t('project.targetUserId', 'New Owner Internal ID')" 
+          required 
+          class="mb-4"
+          :error="transferUserIdError"
+        >
+          <div class="relative flex items-center">
+            <UInput
+              v-model="transferData.targetUserId"
+              :placeholder="t('project.id_placeholder', 'e.g. 550e8400-e29b-41d4-a716-446655440000')"
+              autofocus
+              class="flex-1"
+              :color="isTransferUserIdValid ? 'success' : undefined"
+            />
+            <Transition name="scale-fade">
+              <UIcon 
+                v-if="isTransferUserIdValid" 
+                name="i-heroicons-check-circle" 
+                class="absolute right-3 w-5 h-5 text-green-500"
+              />
+            </Transition>
+          </div>
         </UFormField>
 
-        <UFormField :label="t('project.confirmName', 'Confirm Project Name')" required class="mb-4">
+        <UFormField 
+          :label="t('project.confirmName', 'Confirm Project Name')" 
+          required 
+          class="mb-4"
+          :error="transferProjectNameError"
+        >
           <template #description>
             {{ t('project.confirm_name_desc', 'To confirm, type the name of the project:') }} <span class="font-bold">{{ currentProject.name }}</span>
           </template>
-          <UInput
-            v-model="transferData.projectName"
-            :placeholder="currentProject.name"
-          />
+          <div class="relative flex items-center">
+            <UInput
+              v-model="transferData.projectName"
+              :placeholder="currentProject.name"
+              class="flex-1"
+              :color="isTransferProjectNameValid ? 'success' : undefined"
+            />
+            <Transition name="scale-fade">
+              <UIcon 
+                v-if="isTransferProjectNameValid" 
+                name="i-heroicons-check-circle" 
+                class="absolute right-3 w-5 h-5 text-green-500"
+              />
+            </Transition>
+          </div>
         </UFormField>
 
         <UCheckbox
@@ -429,7 +485,7 @@ async function handleTransfer() {
         <UButton 
           color="error" 
           :loading="isTransferring" 
-          :disabled="!currentProject || !transferData.targetUserId || transferData.projectName !== currentProject.name"
+          :disabled="isTransferButtonDisabled"
           @click="handleTransfer"
         >
           {{ t('project.transferNow', 'Transfer Ownership') }}
@@ -438,3 +494,16 @@ async function handleTransfer() {
     </UiAppModal>
   </div>
 </template>
+
+<style scoped>
+.scale-fade-enter-active,
+.scale-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.scale-fade-enter-from,
+.scale-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.5);
+}
+</style>

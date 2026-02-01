@@ -271,7 +271,9 @@
     "clearCredentials_desc": "Highly recommended for security. The new owner will have to reconnect channels.",
     "transferNow": "Transfer Ownership",
     "transferSuccess": "Project transferred successfully",
-    "id_placeholder": "e.g. 550e8400-e29b-41d4-a716-446655440000"
+    "id_placeholder": "e.g. 550e8400-e29b-41d4-a716-446655440000",
+    "error_invalid_id": "Invalid User ID format (UUID expected)",
+    "error_name_mismatch": "Project name does not match"
   },
   "projectMember": {
     "invite": "Invite member",
