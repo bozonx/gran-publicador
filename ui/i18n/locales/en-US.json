@@ -171,7 +171,14 @@
     "newsTags": "News Tags",
     "newsTagsPlaceholder": "Comma-separated news tags",
     "notifications": "Notifications",
-    "notificationsHelp": "Get notified when new news matches this query"
+    "notificationsHelp": "Get notified when new news matches this query",
+    "savedFrom": "Saved after",
+    "savedTo": "Saved before",
+    "orderBy": "Sort by",
+    "orderByRelevance": "Relevance",
+    "orderBySavedAt": "Date Saved",
+    "sources": "Sources",
+    "filterBySource": "Filter by source"
   },
   "auth": {
     "login": "Log in",

@@ -65,7 +65,7 @@ function isSelected(value: any) {
       :variant="isSelected(option.value) ? activeVariant : variant"
       :disabled="disabled || option.disabled"
       :title="option.title"
-      class="focus:z-10 rounded-none! transition-all duration-200 justify-center whitespace-nowrap"
+      class="focus:z-10 rounded-none! transition-all duration-200 justify-center whitespace-normal h-auto py-2"
       :class="[
         orientation === 'horizontal' 
           ? 'first:rounded-s-lg! last:rounded-e-lg!' 

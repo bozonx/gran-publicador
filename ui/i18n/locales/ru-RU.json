@@ -169,8 +169,14 @@
     "sourceTagsPlaceholder": "Теги источников через запятую",
     "newsTags": "Теги новостей",
     "newsTagsPlaceholder": "Теги новостей через запятую",
-    "notifications": "Уведомления",
-    "notificationsHelp": "Получать уведомления при появлении новых новостей по этому запросу"
+    "notificationsHelp": "Получать уведомления при появлении новых новостей по этому запросу",
+    "savedFrom": "Дата (от)",
+    "savedTo": "Дата (до)",
+    "orderBy": "Сортировка",
+    "orderByRelevance": "По релевантности",
+    "orderBySavedAt": "По дате сохранения",
+    "sources": "Источники",
+    "filterBySource": "Фильтр по источнику"
   },
   "auth": {
     "login": "Войти",
