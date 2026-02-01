@@ -506,8 +506,11 @@ function formatScore(score: number) {
 
             <!-- Source Selection -->
             <div class="w-full" v-if="currentQuery">
-               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+               <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {{ t('news.sources') || 'Sources' }}
+                <UTooltip :text="t('news.sourcesDescription') || 'Источник обычно это доменное имя сайта, поэтому если вы точно знаете новостной сайт то вводите его доменное имя и найдете его в списке'">
+                  <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
+                </UTooltip>
               </label>
               <NewsSourceSelector v-model="selectedSources" />
             </div>

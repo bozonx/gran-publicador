@@ -706,8 +706,8 @@ export class ProjectsService {
 
     try {
       let response;
-      // If contentLength is 0 or force is true, we call refresh
-      if (data.contentLength === 0 || data.force) {
+      // If contentLength is 0 or no value (undefined/null), or force is true, we call refresh
+      if (!data.contentLength || data.force) {
         this.logger.debug(`Refreshing news content for ${newsId}`);
         const url = `${baseUrl}/news/${newsId}/refresh`;
 
@@ -769,12 +769,15 @@ export class ProjectsService {
 
       const result = (await response.body.json()) as any;
       this.logger.debug(`Microservice response keys for news ${newsId}: ${Object.keys(result).join(', ')}`);
-      if (result.original) this.logger.debug(`Microservice response 'original' keys: ${Object.keys(result.original).join(', ')}`);
       
-      // Look for content in various possible fields
-      const content = result.content || result.body || result.original?.content || result.text || result.item?.content || result.item?.body;
-      const title = result.title || result.original?.title || result.item?.title;
-      const description = result.description || result.summary || result.item?.description || result.item?.summary;
+      // Extract data with proper priority
+      // 1. Check result.item (new API)
+      // 2. Check result top level (original API/compatibility)
+      const item = result.item || result;
+      
+      const content = item.content || item.body || item.text || item.original?.content;
+      const title = item.title || item.original?.title || data.title;
+      const description = item.description || item.summary || item.original?.description || data.description;
 
       // If we got an empty content from refresh/get, try fallback
       if (!content && (data.title || data.description)) {
@@ -791,9 +794,9 @@ export class ProjectsService {
 
       return {
         ...result,
-        title: title || data.title,
-        content: content,
-        description: description || data.description,
+        title,
+        content,
+        description,
       };
     } catch (error: any) {
       this.logger.error(`Failed to fetch news content: ${error.message}`);

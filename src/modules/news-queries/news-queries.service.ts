@@ -126,9 +126,14 @@ export class NewsQueriesService {
       mode: settings.mode,
       lang: settings.lang,
       sourceTags: settings.sourceTags,
+      source: settings.source,
+      sources: settings.sources,
       newsTags: settings.newsTags,
       minScore: settings.minScore,
       since: settings.since,
+      savedFrom: settings.savedFrom,
+      savedTo: settings.savedTo,
+      orderBy: settings.orderBy,
       note: settings.note,
     };
   }

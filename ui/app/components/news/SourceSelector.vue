@@ -26,7 +26,13 @@ const handleSearch = async (q: string) => {
     orderBy: 'itemCount',
     order: 'desc'
   })
-  items.value = res?.items || []
+  // Map items to satisfy SelectMenuItem and avoid 'type' conflict
+  items.value = (res?.items || []).map(i => ({
+    ...i,
+    label: i.name,
+    // Put the original type into a different field as SelectMenuItem uses 'type' for internal logic
+    srcType: i.type 
+  })) as any[]
 }
 
 // Watch searchTermDebounced to trigger fetch
@@ -61,7 +67,7 @@ const internalValue = computed({
        <UIcon name="i-heroicons-funnel" class="w-4 h-4 text-primary-500" />
     </template>
 
-    <template #label>
+    <template v-slot:default>
       <span v-if="modelValue.length" class="truncate font-semibold text-primary-600 dark:text-primary-400">
         {{ modelValue.length === 1 ? modelValue[0] : `${modelValue.length} ${t('news.sourcesSelected')}` }}
       </span>
@@ -70,13 +76,13 @@ const internalValue = computed({
       </span>
     </template>
 
-    <template #item-label="{ item: option }">
+    <template #item-label="{ item }">
       <div class="flex flex-col min-w-0 py-0.5">
-        <span class="truncate font-medium">{{ option.name }}</span>
+        <span class="truncate font-medium">{{ item.name }}</span>
         <div class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-tighter">
-          <span v-if="option.lang" class="bg-gray-100 dark:bg-gray-800 px-1 rounded font-bold">{{ option.lang }}</span>
-          <span v-if="option.type" class="opacity-80">{{ option.type }}</span>
-          <span class="ml-auto lowercase italic opacity-60 font-medium">{{ option.itemCount }} {{ t('news.items') || 'items' }}</span>
+          <span v-if="item.lang" class="bg-gray-100 dark:bg-gray-800 px-1 rounded font-bold">{{ item.lang }}</span>
+          <span v-if="item.srcType" class="opacity-80">{{ item.srcType }}</span>
+          <span class="ml-auto lowercase italic opacity-60 font-medium">{{ item.itemCount }} {{ t('news.items') || 'items' }}</span>
         </div>
       </div>
     </template>

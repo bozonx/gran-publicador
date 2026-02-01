@@ -89,6 +89,8 @@ export class NewsNotificationsScheduler implements OnModuleInit {
         mode: settings.mode,
         lang: settings.lang,
         sourceTags: settings.sourceTags,
+        source: settings.source,
+        sources: settings.sources,
         minScore: settings.minScore,
         limit,
         orderBy: 'savedAt', // Always order by savedAt to ensure deterministic incremental polling

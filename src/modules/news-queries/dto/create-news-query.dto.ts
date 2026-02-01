@@ -24,6 +24,14 @@ export class CreateNewsQueryDto {
   @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   sourceTags?: string;
 
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  sources?: string;
+
 
 
   @IsNumber()
