@@ -284,7 +284,12 @@ export class ChannelsService {
     } else if (filters.issueType === 'stale') {
       const staleDate = new Date();
       staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
-      where.posts = { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } };
+      andConditions.push({
+        AND: [
+          { posts: { some: { status: 'PUBLISHED' } } },
+          { posts: { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } } },
+        ],
+      });
     } else if (filters.issueType === 'problematic') {
       const staleDate = new Date();
       staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
@@ -297,7 +302,12 @@ export class ChannelsService {
         // Failed posts
         { posts: { some: { status: 'FAILED' } } },
         // Stale
-        { posts: { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } } }
+        {
+          AND: [
+            { posts: { some: { status: 'PUBLISHED' } } },
+            { posts: { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } } },
+          ],
+        },
       ];
       
       andConditions.push({ OR: problemConditions });
