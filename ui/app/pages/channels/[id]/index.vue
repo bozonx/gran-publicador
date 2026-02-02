@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChannelWithProject } from '~/composables/useChannels'
-import type { PostWithRelations, PostStatus } from '~/composables/usePosts'
+import type { PostWithRelations, PostStatus, PostType } from '~/composables/usePosts'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
@@ -32,7 +32,8 @@ const {
   unarchiveChannel,
   // Problem detection
   getChannelProblems,
-  getChannelProblemLevel
+  getChannelProblemLevel,
+  fetchChannels
 } = useChannels()
 
 const {
@@ -41,6 +42,7 @@ const {
   fetchPostsByProject,
   deletePost,
   setFilter,
+  typeOptions
 } = usePosts()
 
 // Separate composable instance for failed posts (Problematic)
@@ -59,13 +61,13 @@ const {
   setFilter: setScheduledFilter,
 } = usePosts()
 
-// Drafts data
 const {
   publications: draftPublications,
   fetchPublicationsByProject: fetchDrafts,
   totalCount: draftsCount,
   isLoading: draftsLoading,
-  deletePublication
+  deletePublication,
+  createPublication
 } = usePublications()
 
 // Import utility function for getting post title
@@ -84,6 +86,58 @@ const showCreatePublicationModal = ref(false)
 
 function openCreatePublicationModal() {
   showCreatePublicationModal.value = true
+}
+
+const isCreatingPublication = computed(() => !!creatingType.value)
+const creatingType = ref<PostType | null>(null)
+
+async function quickCreatePublication(postType: PostType) {
+  if (creatingType.value) return
+  
+  creatingType.value = postType
+  try {
+    const createData = {
+      projectId: projectId.value,
+      language: channel.value?.language,
+      postType,
+      channelIds: [channelId.value],
+      content: '', 
+    }
+
+    const publication = await createPublication(createData)
+
+    if (publication) {
+      router.push(`/publications/${publication.id}/edit`)
+    }
+  } catch (error) {
+    console.error('Failed to quick create publication:', error)
+  } finally {
+    creatingType.value = null
+  }
+}
+
+function getPostTypeIcon(type: string): string {
+    switch (type) {
+        case 'POST': return 'i-heroicons-chat-bubble-bottom-center-text'
+        case 'ARTICLE': return 'i-heroicons-document-text'
+        case 'NEWS': return 'i-heroicons-newspaper'
+        case 'VIDEO': return 'i-heroicons-video-camera'
+        case 'SHORT': return 'i-heroicons-bolt'
+        case 'STORY': return 'i-heroicons-camera'
+        default: return 'i-heroicons-plus'
+    }
+}
+
+function getPostTypeColor(type: string): any {
+    switch (type) {
+        case 'POST': return 'primary'
+        case 'ARTICLE': return 'emerald'
+        case 'NEWS': return 'amber'
+        case 'VIDEO': return 'rose'
+        case 'SHORT': return 'sky'
+        case 'STORY': return 'violet'
+        default: return 'primary'
+    }
 }
 
 // View mode (list or cards)
@@ -435,14 +489,21 @@ const channelProblems = computed(() => {
 
                 <!-- Actions Footer -->
                 <div class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
-                    <UButton 
-                        icon="i-heroicons-plus" 
-                        color="primary" 
-                        size="sm"
-                        @click="openCreatePublicationModal"
-                    >
-                        {{ t('post.createPost') }}
-                    </UButton>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <UButton 
+                            v-for="option in typeOptions"
+                            :key="option.value"
+                            :icon="getPostTypeIcon(option.value)" 
+                            :color="getPostTypeColor(option.value)" 
+                            size="sm"
+                            variant="soft"
+                            :loading="creatingType === option.value"
+                            :disabled="isCreatingPublication && creatingType !== option.value"
+                            @click="quickCreatePublication(option.value as PostType)"
+                        >
+                            {{ option.label }}
+                        </UButton>
+                    </div>
 
                     <div class="flex items-center gap-2">
                         <UButton 
