@@ -33,24 +33,52 @@ const limit = ref(DEFAULT_PAGE_SIZE)
 const searchQuery = ref((route.query.search as string) || '')
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
+const scope = ref<'personal' | 'projects' | 'all'>((route.query.scope as any) || 'personal')
+const statusFilter = ref<'DRAFT' | 'READY' | 'all'>((route.query.status as any) || 'DRAFT')
+
 const sortBy = ref((route.query.sortBy as string) || 'createdAt')
 const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')
 
 const { viewMode, isListView } = useViewMode('drafts-view', 'cards')
 
+const scopeOptions = [
+  { label: t('drafts.filters.scope.personal'), value: 'personal' },
+  { label: t('drafts.filters.scope.projects'), value: 'projects' },
+  { label: t('drafts.filters.scope.all'), value: 'all' },
+]
+
+const statusOptionsByStatus = [
+  { label: t('drafts.filters.status.draft'), value: 'DRAFT' },
+  { label: t('drafts.filters.status.ready'), value: 'READY' },
+  { label: t('drafts.filters.status.all'), value: 'all' },
+]
+
 // Reactive fetch with automatic refetch on dependency changes
-watch([debouncedSearch, sortBy, sortOrder, currentPage], async () => {
+watch([debouncedSearch, sortBy, sortOrder, currentPage, scope, statusFilter], async () => {
   await fetchUserDrafts({
     limit: limit.value,
     offset: (currentPage.value - 1) * limit.value,
     search: debouncedSearch.value,
     sortBy: sortBy.value,
     sortOrder: sortOrder.value,
+    scope: scope.value,
+    status: statusFilter.value === 'all' ? ['DRAFT', 'READY'] : statusFilter.value,
+  })
+
+  // Update URL
+  router.replace({
+    query: {
+      ...route.query,
+      search: searchQuery.value || undefined,
+      scope: scope.value !== 'all' ? scope.value : undefined,
+      status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+      page: currentPage.value > 1 ? String(currentPage.value) : undefined,
+    }
   })
 }, { immediate: true })
 
-// Reset to page 1 when search/sort changes
-watch([debouncedSearch, sortBy, sortOrder], () => {
+// Reset to page 1 when search/sort/filters change
+watch([debouncedSearch, sortBy, sortOrder, scope, statusFilter], () => {
   currentPage.value = 1
 })
 
@@ -111,15 +139,29 @@ async function handleDelete() {
       </div>
     </div>
 
-    <div :class="[CARD_STYLES.base, CARD_STYLES.paddingNormal]">
-      <UInput
-        v-model="searchQuery"
-        icon="i-heroicons-magnifying-glass"
-        :placeholder="t('common.search')"
-        size="md"
-        class="w-full"
-        :loading="isLoading && searchQuery !== debouncedSearch"
-      />
+    <div :class="[CARD_STYLES.base, CARD_STYLES.paddingNormal, 'flex flex-col md:flex-row gap-4']">
+      <div class="flex-1">
+        <UInput
+          v-model="searchQuery"
+          icon="i-heroicons-magnifying-glass"
+          :placeholder="t('common.search')"
+          size="md"
+          class="w-full"
+          :loading="isLoading && searchQuery !== debouncedSearch"
+        />
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <UiAppButtonGroup
+          v-model="scope"
+          :options="scopeOptions"
+          size="md"
+        />
+        <UiAppButtonGroup
+          v-model="statusFilter"
+          :options="statusOptionsByStatus"
+          size="md"
+        />
+      </div>
     </div>
 
     <div v-if="isLoading && publications.length === 0" class="flex items-center justify-center py-12">

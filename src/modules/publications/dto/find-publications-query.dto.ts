@@ -47,6 +47,12 @@ export enum IssueType {
   EXPIRED = 'expired',
 }
 
+export enum DraftScope {
+  PERSONAL = 'personal',
+  PROJECTS = 'projects',
+  ALL = 'all',
+}
+
 /**
  * DTO for query parameters when fetching publications
  */
@@ -55,6 +61,10 @@ export class FindPublicationsQueryDto {
   @IsString()
   @IsUUID()
   projectId?: string;
+
+  @IsOptional()
+  @IsEnum(DraftScope)
+  scope?: DraftScope;
 
   @IsOptional()
   @Transform(({ value }) => {

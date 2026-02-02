@@ -76,6 +76,7 @@ export interface PublicationsFilter {
     ownership?: 'own' | 'notOwn' | 'all'
     issueType?: 'failed' | 'partial' | 'expired' | 'all'
     socialMedia?: string
+    scope?: 'personal' | 'projects' | 'all'
     publishedAfter?: string
 }
 

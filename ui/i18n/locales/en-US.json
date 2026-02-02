@@ -1172,10 +1172,22 @@
     "lastMessageEmpty": "Last AI message is empty. Try generating content first."
   },
   "drafts": {
-    "page_title": "Drafts and Templates",
-    "description": "Personal drafts and publication templates",
+    "page_title": "Drafts",
+    "description": "Publications that have not been published yet",
     "no_drafts": "You don't have any drafts yet",
-    "create_first": "Create your first draft"
+    "create_first": "Create a draft",
+    "filters": {
+      "scope": {
+        "all": "All",
+        "personal": "Personal",
+        "projects": "From Projects"
+      },
+      "status": {
+        "all": "All status",
+        "draft": "Drafts",
+        "ready": "Ready/Status"
+      }
+    }
   },
   "authorSignature": {
     "none": "No signature",

@@ -26,22 +26,13 @@ function handleProjectCreated(projectId: string) {
 // Projects data
 const { projects, fetchProjects, isLoading: projectsLoading } = useProjects()
 
-// Drafts data (across all projects)
-const { 
-  publications: projectDraftPublications, 
-  fetchUserPublications: fetchProjectDrafts, 
-  totalCount: projectDraftsCount, 
-  isLoading: projectDraftsLoading,
-  deletePublication: deleteProjectPublication
-} = usePublications()
-
-// Personal Drafts data (no project)
+// Drafts data (all: personal + projects)
 const {
-  publications: personalDraftPublications,
-  fetchUserDrafts: fetchPersonalDrafts,
-  totalCount: personalDraftsCount,
-  isLoading: personalDraftsLoading,
-  deletePublication: deletePersonalPublication
+  publications: draftPublications,
+  fetchUserDrafts,
+  totalCount: draftsCount,
+  isLoading: draftsLoading,
+  deletePublication
 } = usePublications()
 
 // Scheduled data
@@ -74,8 +65,7 @@ onMounted(async () => {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     await Promise.all([
       fetchProjects(),
-      fetchPersonalDrafts({ limit: 5 }),
-      fetchProjectDrafts({ status: 'DRAFT', limit: 5 }),
+      fetchUserDrafts({ scope: 'all', status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
       fetchRecentPublished({ 
         status: 'PUBLISHED', 
         publishedAfter: yesterday,
@@ -164,17 +154,13 @@ async function handleDeletePublication() {
   isDeletingPublication.value = true
   
   // Decide which delete function to use based on whether it has a project
-  const success = publicationToDelete.value.projectId 
-    ? await deleteProjectPublication(publicationToDelete.value.id)
-    : await deletePersonalPublication(publicationToDelete.value.id)
+  const success = await deletePublication(publicationToDelete.value.id)
     
   isDeletingPublication.value = false
   if (success) {
     showDeletePublicationModal.value = false
     publicationToDelete.value = null
-    // Refresh both lists just in case
-    fetchPersonalDrafts({ limit: 5 })
-    fetchProjectDrafts({ status: 'DRAFT', limit: 5 })
+    fetchUserDrafts({ scope: 'all', status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' })
   }
 }
 </script>
@@ -192,23 +178,14 @@ async function handleDeletePublication() {
     </div>
 
     <div class="space-y-8">
-      <!-- User Personal Drafts -->
+      <!-- Combined Drafts -->
       <PublicationsDraftsSection
-        v-if="personalDraftsCount > 0 || personalDraftsLoading"
-        :publications="personalDraftPublications"
-        :total-count="personalDraftsCount"
-        :loading="personalDraftsLoading"
-        view-all-to="/drafts"
+        v-if="draftsCount > 0 || draftsLoading"
+        :publications="draftPublications"
+        :total-count="draftsCount"
+        :loading="draftsLoading"
+        view-all-to="/drafts?scope=all&status=DRAFT"
         :title="t('dashboard.your_recent_drafts')"
-        @delete="confirmDeletePublication"
-      />
-
-      <!-- Project Drafts -->
-      <PublicationsDraftsSection
-        :publications="projectDraftPublications"
-        :total-count="projectDraftsCount"
-        :loading="projectDraftsLoading"
-        view-all-to="/publications?status=DRAFT"
         show-project-info
         @delete="confirmDeletePublication"
       />

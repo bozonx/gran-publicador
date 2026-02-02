@@ -416,13 +416,35 @@ export class PublicationsService {
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
       search?: string;
+      scope?: string;
     },
   ) {
+    // 1. Get all projects where user is a member or owner
+    const userProjects = await this.prisma.project.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: { id: true },
+    });
+    const userProjectIds = userProjects.map(p => p.id);
+
     const where: Prisma.PublicationWhereInput = {
-      projectId: null as any,
-      createdBy: userId,
       archivedAt: null,
     };
+
+    // Filter by scope
+    if (filters?.scope === 'personal') {
+      where.projectId = null as any;
+      where.createdBy = userId;
+    } else if (filters?.scope === 'projects') {
+      where.projectId = { in: userProjectIds };
+    } else {
+      // ALL: both personal and project-based drafts
+      where.OR = [
+        { projectId: null as any, createdBy: userId },
+        { projectId: { in: userProjectIds } },
+      ];
+    }
 
     if (filters?.status) {
       where.status = Array.isArray(filters.status) ? { in: filters.status } : filters.status;
