@@ -304,7 +304,7 @@ export class UsersService {
     const preferences = user.preferences as any;
     
     // Return existing preferences or defaults
-    if (preferences?.notifications) {
+    if (preferences?.notifications && typeof preferences.notifications === 'object') {
       return preferences.notifications as NotificationPreferencesDto;
     }
 

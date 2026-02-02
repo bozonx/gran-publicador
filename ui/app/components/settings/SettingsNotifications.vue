@@ -65,12 +65,15 @@ async function loadPreferences() {
 
 // Update notification preferences
 async function updatePreferences(type: NotificationType, channel: 'telegram', value: boolean) {
-  if (!preferences.value)
+  if (!preferences.value || typeof preferences.value !== 'object')
     return
 
   isSaving.value = true
   try {
     // Update local state
+    if (!preferences.value[type]) {
+      preferences.value[type] = { internal: true, telegram: false }
+    }
     preferences.value[type][channel] = value
 
     // Save to backend
@@ -164,7 +167,7 @@ onMounted(() => {
                 <input
                   type="checkbox"
                   class="sr-only peer"
-                  :checked="preferences[notif.key].telegram"
+                  :checked="preferences[notif.key]?.telegram ?? false"
                   :disabled="isSaving"
                   @change="(e) => updatePreferences(notif.key, 'telegram', (e.target as HTMLInputElement).checked)"
                 >

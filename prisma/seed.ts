@@ -53,7 +53,15 @@ async function main() {
             isAdmin: true,
             language: 'ru-RU',
             uiLanguage: 'ru-RU',
-            preferences: { theme: 'dark', notifications: true },
+            preferences: { 
+                theme: 'dark', 
+                notifications: {
+                    PUBLICATION_FAILED: { internal: true, telegram: true },
+                    PROJECT_INVITE: { internal: true, telegram: true },
+                    SYSTEM: { internal: true, telegram: true },
+                    NEW_NEWS: { internal: true, telegram: true }
+                } 
+            },
         },
         {
             id: '00000000-0000-4000-8000-000000000002',

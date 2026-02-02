@@ -848,7 +848,8 @@
       "problemPublications": "{count} publication with problems | {count} publications with problems",
       "noCredentials": "{count} channel without credentials | {count} channels without credentials",
       "inactiveChannels": "{count} inactive channel (disabled) | {count} inactive channels (disabled)",
-      "staleChannels": "{count} stale channel | {count} stale channels"
+      "staleChannels": "{count} stale channel | {count} stale channels",
+      "noChannels": "No channels in project"
     }
   },
   "settings": {
@@ -921,12 +922,14 @@
     "contentLanguage": "Content Language",
     "contentLanguageHelp": "Preferred language for news, search and publications.",
     "contentLanguageDetails": "Used for: news search, default preferences, and voice message transcription (Speech-to-Text).",
-    "changePassword": "Change Password",
+    "darkTheme": "Dark Theme",
     "lightTheme": "Light Theme",
     "logout_desc": "Sign out of your account",
-    "staleChannelsDaysHelpChannel": "Override stale channel warning threshold for this channel",
     "systemTheme": "System Theme",
-    "uiLanguageHelp": "Language of the application interface"
+    "uiLanguage": "UI Language",
+    "uiLanguageHelp": "Language of the application interface",
+    "changePassword": "Change Password",
+    "staleChannelsDaysHelpChannel": "Override stale channel warning threshold for this channel"
   },
   "form": {
     "unsavedChanges": "Unsaved changes",
