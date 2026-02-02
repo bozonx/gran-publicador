@@ -424,6 +424,21 @@ export function useProjects() {
         }
     }
 
+    async function updateProjectOrder(order: string[]): Promise<boolean> {
+        if (!user.value) return false
+
+        try {
+            await api.patch('/users/me', { projectOrder: order })
+            if (user.value) {
+                user.value.projectOrder = order
+            }
+            return true
+        } catch (err: any) {
+            console.error('Failed to update project order', err)
+            return false
+        }
+    }
+
     return {
         projects,
         currentProject,
@@ -437,6 +452,7 @@ export function useProjects() {
         updateProject,
         deleteProject,
         transferProject,
+        updateProjectOrder,
         clearCurrentProject,
         fetchMembers,
         addMember,

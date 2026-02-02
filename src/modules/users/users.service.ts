@@ -219,6 +219,7 @@ export class UsersService {
       language?: string; 
       uiLanguage?: string;
       isUiLanguageAuto?: boolean;
+      projectOrder?: string[];
     },
   ): Promise<User> {
     const updateData: Prisma.UserUpdateInput = {};
@@ -228,20 +229,19 @@ export class UsersService {
     if (data.language !== undefined) updateData.language = this.normalizeLanguage(data.language);
     if (data.uiLanguage !== undefined) updateData.uiLanguage = this.normalizeUiLanguage(data.uiLanguage);
 
-    if (data.isUiLanguageAuto !== undefined) {
+    if (data.isUiLanguageAuto !== undefined || data.projectOrder !== undefined) {
       // Get current preferences to merge
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
         select: { preferences: true },
       });
       const currentPreferences = (user?.preferences as any) || {};
-      
-      updateData.preferences = JSON.parse(
-        JSON.stringify({
-          ...currentPreferences,
-          isUiLanguageAuto: data.isUiLanguageAuto,
-        }),
-      );
+
+      const newPreferences = { ...currentPreferences };
+      if (data.isUiLanguageAuto !== undefined) newPreferences.isUiLanguageAuto = data.isUiLanguageAuto;
+      if (data.projectOrder !== undefined) newPreferences.projectOrder = data.projectOrder;
+
+      updateData.preferences = JSON.parse(JSON.stringify(newPreferences));
     }
 
     return this.prisma.user.update({

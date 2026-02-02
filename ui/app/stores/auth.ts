@@ -9,9 +9,10 @@ export interface User {
     avatarUrl?: string;
 
     isAdmin: boolean;
-    language: string;
-    uiLanguage: string;
-    isUiLanguageAuto: boolean;
+    language?: string;
+    uiLanguage?: string;
+    isUiLanguageAuto?: boolean;
+    projectOrder?: string[];
     createdAt?: string;
     updatedAt?: string;
 }

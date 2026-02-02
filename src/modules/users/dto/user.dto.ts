@@ -50,6 +50,12 @@ export class UserDto {
   })
   public isUiLanguageAuto!: boolean;
 
+  @Expose()
+  @Transform(({ obj }) => {
+    return obj.preferences?.projectOrder || [];
+  })
+  public projectOrder!: string[];
+
   @Exclude({ toPlainOnly: true })
   public preferences!: any; // Internal use
 }
@@ -79,6 +85,9 @@ export class UpdateUserProfileDto {
   @IsBoolean()
   @IsOptional()
   public isUiLanguageAuto?: boolean;
+
+  @IsOptional()
+  public projectOrder?: string[];
 }
 
 export class BanUserDto {

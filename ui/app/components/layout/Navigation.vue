@@ -82,7 +82,24 @@ const { projects, fetchProjects, isLoading: isProjectsLoading, getProjectProblem
 // Instantiate useChannels at the top level
 const { fetchChannels: fetchChannelsApi, getChannelProblemLevel } = useChannels()
 
-const activeProjects = computed(() => projects.value.filter(p => p.archivedAt === null || p.archivedAt === undefined))
+const { user } = useAuth()
+const activeProjects = computed(() => {
+  const list = projects.value.filter(p => !p.archivedAt)
+  const order = user.value?.projectOrder || []
+  
+  if (order.length === 0) return list
+  
+  return [...list].sort((a, b) => {
+    const indexA = order.indexOf(a.id)
+    const indexB = order.indexOf(b.id)
+    
+    if (indexA === -1 && indexB === -1) return a.name.localeCompare(b.name)
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    
+    return indexA - indexB
+  })
+})
 const expandedProjects = ref<Set<string>>(new Set())
 const projectChannels = ref<Record<string, ChannelWithProject[]>>({})
 const areChannelsLoading = ref<Record<string, boolean>>({})

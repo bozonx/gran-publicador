@@ -70,7 +70,7 @@ watch([debouncedSearch, sortBy, sortOrder, currentPage, scope, statusFilter], as
     query: {
       ...route.query,
       search: searchQuery.value || undefined,
-      scope: scope.value !== 'all' ? scope.value : undefined,
+      scope: scope.value,
       status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
       page: currentPage.value > 1 ? String(currentPage.value) : undefined,
     }

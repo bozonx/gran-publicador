@@ -214,6 +214,7 @@ export function usePublications() {
             if (filters.sortBy) params.sortBy = filters.sortBy
             if (filters.sortOrder) params.sortOrder = filters.sortOrder
             if (filters.search) params.search = filters.search
+            if (filters.scope) params.scope = filters.scope
 
             const data = await api.get<PaginatedPublications>('/publications/user/drafts', { params })
             publications.value = data.items

@@ -83,13 +83,31 @@ const roleWeights: Record<string, number> = {
 }
 
 const sortOptions = computed(() => [
+  { id: 'custom', label: t('project.sort.custom'), icon: 'i-heroicons-hand-raised' },
   { id: 'alphabetical', label: t('project.sort.alphabetical'), icon: 'i-heroicons-bars-3-bottom-left' },
   { id: 'role', label: t('project.sort.role'), icon: 'i-heroicons-user-circle' },
   { id: 'publicationsCount', label: t('project.sort.publicationsCount'), icon: 'i-heroicons-document-text' },
   { id: 'lastPublication', label: t('project.sort.lastPublication'), icon: 'i-heroicons-calendar' }
 ])
 
+const { user } = useAuth()
+const { updateProjectOrder } = useProjects()
+
 function sortProjectsFn(list: ProjectWithRole[], sortBy: string, sortOrder: 'asc' | 'desc') {
+  if (sortBy === 'custom') {
+    const order = user.value?.projectOrder || []
+    return [...list].sort((a, b) => {
+      const indexA = order.indexOf(a.id)
+      const indexB = order.indexOf(b.id)
+      
+      if (indexA === -1 && indexB === -1) return a.name.localeCompare(b.name)
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      
+      return indexA - indexB
+    })
+  }
+
   return [...list].sort((a, b) => {
     let result = 0
     if (sortBy === 'alphabetical') {
@@ -119,12 +137,23 @@ const {
   sortList
 } = useSorting<ProjectWithRole>({
   storageKey: 'projects',
-  defaultSortBy: 'alphabetical',
+  defaultSortBy: 'custom',
   sortOptions: sortOptions.value,
   sortFn: sortProjectsFn
 })
 
 const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id === sortBy.value))
+
+const displayProjects = ref<ProjectWithRole[]>([])
+
+watch([sortedProjects, sortBy], () => {
+  displayProjects.value = [...sortedProjects.value]
+}, { immediate: true })
+
+async function onDragEnd() {
+  const newOrder = displayProjects.value.map(p => p.id)
+  await updateProjectOrder(newOrder)
+}
 </script>
 
 <template>
@@ -154,6 +183,7 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
             </template>
           </USelectMenu>
           <UButton
+            v-if="sortBy !== 'custom'"
             :icon="sortOrder === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down'"
             color="neutral"
             variant="ghost"
@@ -222,14 +252,31 @@ const activeSortOption = computed(() => sortOptions.value.find(opt => opt.id ===
 
     <!-- Projects list -->
     <div v-else-if="projects.length > 0" class="space-y-6">
-      <!-- Active Projects -->
-      <div class="space-y-4">
+      <div 
+        class="space-y-4"
+        v-draggable="[displayProjects, { 
+          animation: 150, 
+          handle: '.drag-handle',
+          disabled: sortBy !== 'custom',
+          onEnd: onDragEnd
+        }]"
+      >
         <ProjectsProjectListItem
-          v-for="project in sortedProjects"
+          v-for="project in displayProjects"
           :key="project.id"
           :project="project"
           :show-description="true"
-        />
+        >
+          <template v-if="sortBy === 'custom'" #leading>
+            <div 
+              class="drag-handle p-1.5 -ml-1.5 mr-1 rounded cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+              @click.stop.prevent
+              @mousedown.stop
+            >
+              <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
+            </div>
+          </template>
+        </ProjectsProjectListItem>
       </div>
       
       <!-- Show/Hide Archived Button -->

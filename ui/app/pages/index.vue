@@ -201,6 +201,17 @@ async function handleDeletePublication() {
               {{ t('publicationStatus.scheduled') }}
               <CommonCountBadge :count="scheduledCount" />
             </h3>
+            <UButton
+              v-if="scheduledCount > 0"
+              to="/publications?status=SCHEDULED&sortBy=byScheduled"
+              variant="ghost"
+              size="xs"
+              color="primary"
+              icon="i-heroicons-arrow-right"
+              trailing
+            >
+              {{ t('common.viewAll') }}
+            </UButton>
           </div>
 
           <div v-if="scheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
