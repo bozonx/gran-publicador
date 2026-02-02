@@ -360,7 +360,7 @@ const showPagination = computed(() => {
 
         <!-- Archive Filter (Toggle) - moved to end -->
         <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">
-          <UToggle 
+          <USwitch 
             v-model="showArchivedFilter" 
             size="md"
           />

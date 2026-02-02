@@ -14,7 +14,7 @@ const { t, d } = useI18n()
 const { user } = useAuth()
 const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries, hasMore, updateNewsQueryOrder } = useNews()
 
-const activeTabId = ref<string | number>(0)
+const activeTabId = useLocalStorage('news-active-tab-id', 0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
@@ -162,6 +162,12 @@ onMounted(async () => {
         if (matching) {
           activeTabId.value = matching.id
           found = true
+        }
+      } else {
+        // Validation: Check if stored activeTabId exists in the current queries
+        const exists = trackedQueries.value.some(q => q.id === activeTabId.value)
+        if (exists) {
+           found = true
         }
       }
       
