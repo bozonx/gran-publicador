@@ -26,7 +26,7 @@ const isOpen = defineModel<boolean>('open', { required: true })
 
 const isProjectLocked = computed(() => Boolean(props.projectId) || Boolean(props.preselectedChannelId))
 const isChannelLocked = computed(() => Boolean(props.preselectedChannelId))
-const isLanguageLocked = computed(() => Boolean(props.preselectedChannelId))
+const isLanguageLocked = computed(() => Boolean(props.preselectedChannelId) || Boolean(props.preselectedLanguage))
 
 // Form data
 const formData = reactive({

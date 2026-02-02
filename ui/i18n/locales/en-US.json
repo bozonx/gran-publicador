@@ -769,7 +769,7 @@
     "channelsSelectorHelp": "Choose channels to publish to...",
     "select_channels": "Select Channels",
     "select_project_first": "Select a project first",
-    "create_for_lang": "Create translation for {lang}",
+    "create_for_lang": "Make a post in {lang}",
     "scrapeFailed": "Automatic page detection failed",
     "imageUploadFailed": "Image could not be uploaded, publication created without it.",
     "copyToProject": "Copy to project",

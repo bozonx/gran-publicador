@@ -767,7 +767,7 @@
     "channelsSelectorHelp": "Выберите каналы для публикации...",
     "select_channels": "Выберите каналы",
     "select_project_first": "Сначала выберите проект",
-    "create_for_lang": "Создать перевод для {lang}",
+    "create_for_lang": "Сделать пост на {lang}",
     "scrapeFailed": "Автоматическое определение страницы не удалось",
     "imageUploadFailed": "Не удалось загрузить изображение, публикация создана без него.",
     "copyToProject": "Скопировать в проект",
