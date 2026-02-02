@@ -19,6 +19,7 @@ describe('PublicationsService (unit)', () => {
   let moduleRef: TestingModule;
 
   const mockPrismaService = {
+    $queryRaw: jest.fn() as any,
     publication: {
       create: jest.fn() as any,
       findMany: jest.fn() as any,
@@ -196,8 +197,10 @@ describe('PublicationsService (unit)', () => {
       };
 
       mockPrismaService.publication.findMany
-        .mockResolvedValueOnce([pubA, pubB, pubC])
+        .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
         .mockResolvedValueOnce([pubA, pubB, pubC]);
+
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([{ id: 'a' }, { id: 'c' }, { id: 'b' }]);
 
       const desc = await service.findAll(projectId, userId, {
         sortBy: 'chronology',
@@ -209,9 +212,13 @@ describe('PublicationsService (unit)', () => {
       expect(desc.items.map((i: any) => i.id)).toEqual(['a', 'c', 'b']);
 
       mockPrismaService.publication.findMany.mockClear();
+      mockPrismaService.$queryRaw.mockClear();
+
       mockPrismaService.publication.findMany
-        .mockResolvedValueOnce([pubA, pubB, pubC])
+        .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
         .mockResolvedValueOnce([pubA, pubB, pubC]);
+
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([{ id: 'b' }, { id: 'c' }, { id: 'a' }]);
 
       const asc = await service.findAll(projectId, userId, {
         sortBy: 'chronology',

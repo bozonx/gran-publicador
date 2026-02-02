@@ -359,7 +359,7 @@
         "stale": "Stale",
         "inactive": "Inactive",
         "title": "Problems",
-        "tooltip": "Filter channels with problems"
+        "tooltip": "Channel status filter:\n\n• **Problematic** — show only channels requiring attention. Includes:\n  - Channels without configured credentials\n  - Channels with post publication errors\n  - Stale channels (no new posts for more than 3 days)\n  - Deactivated channels\n\n• **All** — show full list of channels, including healthy ones."
       },
       "archiveStatus": {
         "active": "Actual",

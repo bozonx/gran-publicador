@@ -94,69 +94,44 @@ export class PublicationsService {
     return PublicationQueryBuilder.getOrderBy(sortField || 'chronology', sortDirection || 'desc');
   }
 
-  private computeChronologyEffectiveAt(input: {
-    scheduledAt: Date | null;
-    createdAt: Date;
-    posts?: Array<{ publishedAt: Date | null; status?: any }>;
-  }): Date {
-    const publishedAts = (input.posts || [])
-      .filter(p => p?.publishedAt)
-      .map(p => p.publishedAt as Date);
-
-    if (publishedAts.length > 0) {
-      return new Date(Math.max(...publishedAts.map(d => d.getTime())));
-    }
-
-    if (input.scheduledAt) {
-      return input.scheduledAt;
-    }
-
-    return input.createdAt;
-  }
-
   private async findPublicationsChronologySorted(params: {
-    where: any;
-    include: any;
+    where: Prisma.PublicationWhereInput;
+    include: Prisma.PublicationInclude;
     take?: number;
     skip?: number;
     sortOrder: 'asc' | 'desc';
   }) {
-    const { where, include, take, skip, sortOrder } = params;
+    const { where, include, take = 20, skip = 0, sortOrder } = params;
 
-    const rows = await this.prisma.publication.findMany({
+    const candidates = await this.prisma.publication.findMany({
       where,
       select: {
         id: true,
-        scheduledAt: true,
-        createdAt: true,
-        posts: {
-          select: {
-            publishedAt: true,
-          },
-        },
       },
     });
 
-    const direction = sortOrder === 'asc' ? 1 : -1;
+    const candidateIds = candidates.map(c => c.id);
+    if (candidateIds.length === 0) return [];
 
-    const orderedIds = rows
-      .map(r => ({
-        id: r.id,
-        effectiveAt: this.computeChronologyEffectiveAt({
-          scheduledAt: r.scheduledAt,
-          createdAt: r.createdAt,
-          posts: r.posts as any,
-        }),
-      }))
-      .sort((a, b) => {
-        const diff = a.effectiveAt.getTime() - b.effectiveAt.getTime();
-        if (diff !== 0) return diff * direction;
-        if (a.id === b.id) return 0;
-        return a.id < b.id ? -1 * direction : 1 * direction;
-      })
-      .map(x => x.id);
+    const directionSql = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
-    const pageIds = orderedIds.slice(skip || 0, (skip || 0) + (take ?? orderedIds.length));
+    const pageRows = await this.prisma.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`
+        SELECT
+          p.id
+        FROM "publications" p
+        LEFT JOIN "posts" po ON po.publication_id = p.id
+        WHERE p.id = ANY(${candidateIds}::uuid[])
+        GROUP BY p.id, p.scheduled_at, p.created_at
+        ORDER BY
+          COALESCE(MAX(po.published_at), p.scheduled_at, p.created_at) ${Prisma.raw(directionSql)},
+          p.id ${Prisma.raw(directionSql)}
+        LIMIT ${take}
+        OFFSET ${skip}
+      `,
+    );
+
+    const pageIds = pageRows.map(r => r.id);
     if (pageIds.length === 0) return [];
 
     const pageItems = await this.prisma.publication.findMany({
