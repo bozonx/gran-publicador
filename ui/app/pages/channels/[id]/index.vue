@@ -131,11 +131,11 @@ function getPostTypeIcon(type: string): string {
 function getPostTypeColor(type: string): any {
     switch (type) {
         case 'POST': return 'primary'
-        case 'ARTICLE': return 'emerald'
-        case 'NEWS': return 'amber'
-        case 'VIDEO': return 'rose'
-        case 'SHORT': return 'sky'
-        case 'STORY': return 'violet'
+        case 'ARTICLE': return 'success'
+        case 'NEWS': return 'warning'
+        case 'VIDEO': return 'error'
+        case 'SHORT': return 'info'
+        case 'STORY': return 'neutral'
         default: return 'primary'
     }
 }
