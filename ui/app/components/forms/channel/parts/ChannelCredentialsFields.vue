@@ -7,14 +7,14 @@ interface Props {
   currentSocialMedia: SocialMedia | undefined
 }
 
-const { state, currentSocialMedia } = defineProps<Props>()
+const props = defineProps<Props>()
 const { t } = useI18n()
 </script>
 
 <template>
   <div class="space-y-4">
     <!-- Telegram credentials -->
-    <div v-if="currentSocialMedia === 'TELEGRAM'" class="space-y-4">
+    <div v-if="props.currentSocialMedia === 'TELEGRAM'" class="space-y-4">
       <div class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
         <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <span>{{ t('channel.telegramCredentials', 'Telegram Credentials') }}</span>
@@ -29,7 +29,7 @@ const { t } = useI18n()
           :help="t('channel.telegramChannelIdHelp', 'Telegram channel ID (e.g., -1001234567890)')"
         >
           <UInput
-            v-model="state.credentials.telegramChannelId"
+            v-model="props.state.credentials.telegramChannelId"
             :placeholder="t('channel.telegramChannelIdPlaceholder', '-1001234567890')"
             class="w-full"
           />
@@ -41,7 +41,7 @@ const { t } = useI18n()
           :help="t('channel.telegramBotTokenHelp', 'Telegram bot token from @BotFather')"
         >
           <UInput
-            v-model="state.credentials.telegramBotToken"
+            v-model="props.state.credentials.telegramBotToken"
             type="password"
             :placeholder="t('channel.telegramBotTokenPlaceholder', '110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw')"
             class="w-full"
@@ -51,7 +51,7 @@ const { t } = useI18n()
     </div>
 
     <!-- VK credentials -->
-    <div v-if="currentSocialMedia === 'VK'" class="space-y-4">
+    <div v-if="props.currentSocialMedia === 'VK'" class="space-y-4">
         <div class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
         <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
           {{ t('channel.vkCredentials', 'VK Credentials') }}
@@ -65,7 +65,7 @@ const { t } = useI18n()
           :help="t('channel.vkAccessTokenHelp', 'Service or user access token for VK API')"
         >
           <UInput
-            v-model="state.credentials.vkAccessToken"
+            v-model="props.state.credentials.vkAccessToken"
             type="password"
             :placeholder="t('channel.vkAccessTokenPlaceholder', 'vk1.a.abc...')"
             class="w-full"

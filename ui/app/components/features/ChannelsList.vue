@@ -321,7 +321,7 @@ function toggleArchivedChannels() {
 
     <!-- Create Channel Modal -->
     <UiAppModal v-model:open="isCreateModalOpen" :title="t('channel.createChannel')">
-      <FormsChannelChannelCreateForm
+      <FormsChannelCreateForm
         ref="createFormRef"
         id="create-channel-form"
         :initial-project-id="projectId"

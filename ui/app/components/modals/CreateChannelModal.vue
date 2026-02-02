@@ -38,7 +38,7 @@ function handleClose() {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
-    <FormsChannelChannelCreateForm
+    <FormsChannelCreateForm
       ref="createFormRef"
       id="create-channel-form"
       :initial-project-id="props.initialProjectId"
