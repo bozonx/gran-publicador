@@ -153,7 +153,7 @@ onMounted(async () => {
     trackedQueries.value = queries
 
     if (trackedQueries.value.length > 0) {
-      // If projectId is provided in URL, try to find matching query
+      // If projectId is provided in URL, prioritize it
       const projectIdParam = route.query.projectId as string
       let found = false
       
@@ -163,17 +163,15 @@ onMounted(async () => {
           activeTabId.value = matching.id
           found = true
         }
-      } else {
-        // Validation: Check if stored activeTabId exists in the current queries
-        const exists = trackedQueries.value.some(q => q.id === activeTabId.value)
-        if (exists) {
-           found = true
-        }
       }
       
-      // Default to first if not found
       if (!found) {
-        activeTabId.value = trackedQueries.value[0].id
+        // Validation: Check if stored activeTabId exists in the current queries
+        const exists = trackedQueries.value.some(q => q.id === activeTabId.value)
+        if (!exists) {
+           // If not exists, default to first
+           activeTabId.value = trackedQueries.value[0].id
+        }
       }
       
       // Trigger search immediately

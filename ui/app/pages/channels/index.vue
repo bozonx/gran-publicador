@@ -358,13 +358,18 @@ const showPagination = computed(() => {
           </UPopover>
         </div>
 
-        <!-- Archive Filter (Toggle) - moved to end -->
+        <!-- Archive Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">
-          <USwitch 
-            v-model="showArchivedFilter" 
-            size="md"
+          <UiAppButtonGroup
+            v-model="archiveStatus"
+            :options="[
+              { value: 'active', label: t('channel.filter.archiveStatus.active') },
+              { value: 'archived', label: t('channel.filter.archiveStatus.archived') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+            color="white"
           />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('channel.filter.showArchived') }}</span>
         </div>
         
         <!-- Project Filter (Select) -->
