@@ -9,6 +9,7 @@ import { useViewMode } from '~/composables/useViewMode'
 import { getSocialMediaOptions, getSocialMediaIcon } from '~/utils/socialMedia'
 import type { SocialMedia } from '~/types/socialMedia'
 import type { PublicationStatus } from '~/types/posts'
+import { mapStatusGroupToApiStatus, type PublicationsStatusGroupFilter } from './statusGroupFilter'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
@@ -21,6 +22,9 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const { user } = useAuth()
+
+const ALLOWED_SORT_BY = ['chronology', 'byScheduled', 'byPublished', 'createdAt', 'postDate'] as const
+const ALLOWED_SORT_ORDER = ['asc', 'desc'] as const
 
 const {
   publications,
@@ -38,12 +42,11 @@ const { channels, fetchChannels } = useChannels()
 // Filters synced with URL
 const filters = useUrlFilters<{
   page: number
-  status: PublicationStatus | PublicationStatus[] | null
+  statusGroup: PublicationsStatusGroupFilter
   channelId: string | null
   projectId: string | null
   search: string
   ownership: 'all' | 'own' | 'notOwn'
-  issue: 'all' | 'problematic'
   socialMedia: SocialMedia | null
   language: string | null
   archived: string
@@ -51,30 +54,30 @@ const filters = useUrlFilters<{
   sortOrder: string
 }>({
   page: { defaultValue: 1, deserialize: (v: string) => Math.max(1, parseInt(v) || 1) },
-  status: { 
-    defaultValue: null, 
-    deserialize: (v: string) => (v.includes(',') ? v.split(',') : v) as any,
-    serialize: (v: any) => Array.isArray(v) ? v.join(',') : v
-  },
+  statusGroup: { defaultValue: 'active' },
   channelId: { defaultValue: null },
   projectId: { defaultValue: null },
   search: { defaultValue: '' },
   ownership: { defaultValue: 'all' },
-  issue: { defaultValue: 'all' },
   socialMedia: { defaultValue: null },
   language: { defaultValue: null },
   archived: { defaultValue: 'active' },
-  sortBy: { defaultValue: 'chronology' },
-  sortOrder: { defaultValue: 'desc' },
+  sortBy: {
+    defaultValue: 'chronology',
+    deserialize: (v: string) => (ALLOWED_SORT_BY as readonly string[]).includes(v) ? v : 'chronology',
+  },
+  sortOrder: {
+    defaultValue: 'desc',
+    deserialize: (v: string) => (ALLOWED_SORT_ORDER as readonly string[]).includes(v) ? v : 'desc',
+  },
 })
 
 const currentPage = filters.page
-const selectedStatus = filters.status
+const selectedStatusGroup = filters.statusGroup
 const selectedChannelId = filters.channelId
 const selectedProjectId = filters.projectId
 const searchQuery = filters.search
 const ownershipFilter = filters.ownership
-const selectedIssueType = filters.issue
 const selectedSocialMedia = filters.socialMedia
 const selectedLanguage = filters.language
 const showArchivedFilter = filters.archived
@@ -84,10 +87,8 @@ const sortOrder = filters.sortOrder
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const limit = ref(DEFAULT_PAGE_SIZE)
 
-// Computed model for status UI
-const selectedStatusModel = computed({
-  get: () => selectedStatus.value as any,
-  set: (v) => { selectedStatus.value = v }
+const selectedStatusForApi = computed<PublicationStatus | PublicationStatus[] | null>(() => {
+  return mapStatusGroupToApiStatus(selectedStatusGroup.value)
 })
 
 // Sorting options
@@ -119,13 +120,12 @@ async function fetchPublications() {
     archivedOnly: showArchivedFilter.value === 'archived',
     sortBy: sortBy.value as any,
     sortOrder: sortOrder.value as any,
-    status: selectedStatus.value as any,
+    status: selectedStatusForApi.value as any,
     language: selectedLanguage.value || undefined,
     search: debouncedSearch.value || undefined,
     channelId: selectedChannelId.value || undefined,
     projectId: selectedProjectId.value || undefined,
     ownership: ownershipFilter.value as any,
-    issueType: selectedIssueType.value as any,
     socialMedia: selectedSocialMedia.value as any,
   })
 }
@@ -142,7 +142,7 @@ onMounted(async () => {
 
 // Reactively re-fetch when any filter changes
 watch(
-  [selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], 
+  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], 
   () => {
     fetchPublications()
   }
@@ -150,7 +150,7 @@ watch(
 
 // Reset to page 1 on filter change
 watch(
-  [selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
+  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
   () => {
     currentPage.value = 1
   }
@@ -160,33 +160,22 @@ function goToPublication(pub: PublicationWithRelations) {
     router.push(`/publications/${pub.id}`)
 }
 
-const statusFilterOptions = computed(() => [
-  { value: null, label: t('publication.filter.allStatuses') },
-  ...statusOptions.value.map(opt => {
-    if (opt.value === 'READY') return { ...opt, label: t('publication.filter.ready') }
-    if (opt.value === 'PUBLISHED') return { ...opt, label: t('publication.filter.published') }
-    return opt
-  }),
-])
-
 const hasActiveFilters = computed(() => {
-  return selectedStatus.value || 
+  return selectedStatusGroup.value !== 'active' || 
          selectedChannelId.value || 
          searchQuery.value || 
          selectedProjectId.value || 
          ownershipFilter.value !== 'all' || 
-         selectedIssueType.value !== 'all' || 
          selectedSocialMedia.value ||
          selectedLanguage.value
 })
 
 function resetFilters() {
-  selectedStatus.value = null
+  selectedStatusGroup.value = 'active'
   selectedChannelId.value = null
   selectedProjectId.value = null
   searchQuery.value = ''
   ownershipFilter.value = 'all'
-  selectedIssueType.value = 'all'
   selectedSocialMedia.value = null
   selectedLanguage.value = null
 }
@@ -320,7 +309,7 @@ function toggleSelection(pubId: string) {
 }
 
 // Reset selection on filter change
-watch([selectedStatus, selectedChannelId, selectedProjectId, ownershipFilter, selectedIssueType, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], () => {
+watch([selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], () => {
     selectedIds.value = []
 })
 
@@ -438,6 +427,31 @@ async function handleDelete() {
 
       <!-- Filters -->
       <div class="flex flex-wrap items-center gap-4">
+        <!-- Status Group Filter (Button group) -->
+        <div class="flex items-center gap-2" :title="t('publication.filter.statusGroup.title')">
+          <UiAppButtonGroup
+            v-model="selectedStatusGroup"
+            :options="[
+              { value: 'active', label: t('publication.filter.statusGroup.active') },
+              { value: 'draft', label: t('publication.filter.statusGroup.draft') },
+              { value: 'ready', label: t('publication.filter.statusGroup.ready') },
+              { value: 'problematic', label: t('publication.filter.statusGroup.problematic') },
+              { value: 'all', label: t('publication.filter.statusGroup.all') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+            color="neutral"
+          />
+          <UPopover :popper="{ placement: 'top' }">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+            <template #content>
+              <div class="p-4 max-w-xs">
+                <p class="text-sm whitespace-pre-line">{{ t('publication.filter.statusGroup.tooltip') }}</p>
+              </div>
+            </template>
+          </UPopover>
+        </div>
+
         <!-- Ownership Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('publication.filter.ownership.title')">
           <UiAppButtonGroup
@@ -455,28 +469,6 @@ async function handleDelete() {
             <template #content>
               <div class="p-4 max-w-xs">
                 <p class="text-sm whitespace-pre-line">{{ t('publication.filter.ownership.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
-        </div>
-
-        <!-- Issues Filter (Button group) -->
-        <div class="flex items-center gap-2" :title="t('publication.filter.problems.title')">
-          <UiAppButtonGroup
-            v-model="selectedIssueType"
-            :options="[
-              { value: 'problematic', label: t('publication.filter.problems.onlyProblems') },
-              { value: 'all', label: t('common.all') }
-            ]"
-            variant="outline"
-            active-variant="solid"
-            color="warning"
-          />
-          <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm whitespace-pre-line">{{ t('publication.filter.problems.tooltip') }}</p>
               </div>
             </template>
           </UPopover>
@@ -556,21 +548,6 @@ async function handleDelete() {
         >
           <template #leading>
             <UIcon name="i-heroicons-megaphone" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
-
-        <!-- Status Filter (Select) -->
-        <USelectMenu
-          v-model="selectedStatusModel"
-          :items="statusFilterOptions"
-          value-key="value"
-          label-key="label"
-          :placeholder="t('post.statusLabel')"
-          :title="t('publication.filter.statusTitle')"
-          class="w-full sm:w-48"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-tag" class="w-4 h-4" />
           </template>
         </USelectMenu>
       </div>

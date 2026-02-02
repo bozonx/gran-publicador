@@ -11,6 +11,15 @@ import { IssueType, OwnershipType } from '../dto/index.js';
  * Enhances SOLID by separating query construction logic from the main service.
  */
 export class PublicationQueryBuilder {
+  private static readonly ALLOWED_SORT_FIELDS = new Set([
+    'chronology',
+    'byScheduled',
+    'byPublished',
+    'createdAt',
+    'scheduledAt',
+    'postDate',
+  ]);
+
   /**
    * Build WHERE clause for publication queries with filters.
    */
@@ -169,18 +178,30 @@ export class PublicationQueryBuilder {
     sortField: string,
     sortDirection: 'asc' | 'desc',
   ): Prisma.PublicationOrderByWithRelationInput[] {
+    if (!this.ALLOWED_SORT_FIELDS.has(sortField)) {
+      sortField = 'chronology';
+    }
+
     if (sortField === 'chronology') {
       return [{ effectiveAt: sortDirection }, { id: sortDirection }];
     }
 
     if (sortField === 'byScheduled') {
-      return [{ scheduledAt: sortDirection }, { createdAt: 'desc' }, { id: 'desc' }];
+      return [
+        { scheduledAt: { sort: sortDirection, nulls: 'last' } },
+        { createdAt: sortDirection },
+        { id: sortDirection },
+      ];
     }
 
     if (sortField === 'byPublished') {
       // We can't sort by aggregate of related posts easily in Prisma
       // Fallback to createdAt or use separate field
       return [{ createdAt: sortDirection }, { id: sortDirection }];
+    }
+
+    if (sortField === 'postDate') {
+      return [{ postDate: { sort: sortDirection, nulls: 'last' } }, { id: sortDirection }];
     }
 
     // Default standard fields

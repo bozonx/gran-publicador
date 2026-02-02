@@ -693,7 +693,16 @@
       "allLanguages": "All languages",
       "allProjects": "All projects",
       "allChannels": "All channels",
-      "allStatuses": "All statuses"
+      "allStatuses": "All statuses",
+      "statusGroup": {
+        "title": "Status",
+        "active": "Active",
+        "draft": "Draft",
+        "ready": "Ready",
+        "problematic": "Problematic",
+        "all": "All",
+        "tooltip": "Status group filter:\n\n• Active — Scheduled, Processing, Published\n• Draft — Draft\n• Ready — Ready\n• Problematic — Failed, Partial, Expired\n• All — no status filtering"
+      }
     },
     "sort": {
       "chronology": "Chronology (future → past)",

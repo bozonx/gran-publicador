@@ -24,7 +24,6 @@ export enum PublicationSortBy {
   BY_PUBLISHED = 'byPublished',
   CREATED_AT = 'createdAt',
   SCHEDULED_AT = 'scheduledAt',
-  PUBLISHED_AT = 'publishedAt',
   POST_DATE = 'postDate',
 }
 

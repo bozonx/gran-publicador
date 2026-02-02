@@ -650,6 +650,50 @@ describe('PublicationsService (unit)', () => {
       expect(result.items[2].id).toBe('3');
       expect(result.items[3].id).toBe('4');
     });
+
+    it('should sort by scheduledAt with nulls last and stable tie-breakers', async () => {
+      const userId = 'u1';
+      const projectId = 'p1';
+
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.findMany.mockResolvedValue([]);
+      mockPrismaService.publication.count.mockResolvedValue(0);
+
+      await service.findAll(projectId, userId, {
+        sortBy: 'byScheduled',
+        sortOrder: 'asc',
+      });
+
+      expect(mockPrismaService.publication.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [
+            { scheduledAt: { sort: 'asc', nulls: 'last' } },
+            { createdAt: 'asc' },
+            { id: 'asc' },
+          ],
+        }),
+      );
+    });
+
+    it('should sort by postDate with nulls last', async () => {
+      const userId = 'u1';
+      const projectId = 'p1';
+
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.findMany.mockResolvedValue([]);
+      mockPrismaService.publication.count.mockResolvedValue(0);
+
+      await service.findAll(projectId, userId, {
+        sortBy: 'postDate',
+        sortOrder: 'desc',
+      });
+
+      expect(mockPrismaService.publication.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ postDate: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }],
+        }),
+      );
+    });
   });
 
   describe('copy', () => {
