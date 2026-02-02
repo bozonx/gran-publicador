@@ -14,7 +14,7 @@ const { t, d } = useI18n()
 const { user } = useAuth()
 const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries, hasMore, updateNewsQueryOrder } = useNews()
 
-const activeTabId = useLocalStorage('news-active-tab-id', 0)
+const activeTabId = useLocalStorage<string>('news-active-tab-id', '')
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
@@ -38,10 +38,6 @@ const tabs = computed(() => {
 
 const currentTrackedQuery = computed(() => {
   if (trackedQueries.value.length === 0) return null
-  if (typeof activeTabId.value === 'number') {
-    // If it's a number, treat as index (fallback)
-    return trackedQueries.value[activeTabId.value] || trackedQueries.value[0]
-  }
   return trackedQueries.value.find(q => q.id === activeTabId.value) || null
 })
 
@@ -167,10 +163,10 @@ onMounted(async () => {
       
       if (!found) {
         // Validation: Check if stored activeTabId exists in the current queries
-        const exists = trackedQueries.value.some(q => q.id === activeTabId.value)
+        const exists = Boolean(activeTabId.value) && trackedQueries.value.some(q => q.id === activeTabId.value)
         if (!exists) {
-           // If not exists, default to first
-           activeTabId.value = trackedQueries.value[0].id
+          // If not exists (or empty), default to first
+          activeTabId.value = trackedQueries.value[0].id
         }
       }
       
