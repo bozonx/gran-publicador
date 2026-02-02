@@ -10,19 +10,24 @@ const props = defineProps<{
 const { t } = useI18n()
 const { user } = useAuth()
 const {
+  fetchSystemTemplates,
   fetchUserTemplates,
   fetchProjectTemplates,
   createTemplate,
   updateTemplate,
   deleteTemplate,
   reorderTemplates,
+  overrideSystemTemplate,
+  hideSystemTemplate,
+  restoreSystemTemplate,
   isLoading
 } = useLlmPromptTemplates()
 
 // State
+const systemTemplates = ref<LlmPromptTemplate[]>([])
 const templates = ref<LlmPromptTemplate[]>([])
 const isModalOpen = ref(false)
-const modalMode = ref<'create' | 'edit'>('create')
+const modalMode = ref<'create' | 'edit' | 'override'>('create')
 const editingTemplate = ref<LlmPromptTemplate | null>(null)
 const isSubmitting = ref(false)
 const isDeleteConfirmOpen = ref(false)
@@ -82,11 +87,16 @@ const canSubmit = computed(() => {
 
 // Load templates
 const loadTemplates = async () => {
-  if (props.projectId) {
-    templates.value = await fetchProjectTemplates(props.projectId)
-  } else if (user.value?.id) {
-    templates.value = await fetchUserTemplates(user.value.id)
-  }
+  const [sysTemplates, userOrProjectTemplates] = await Promise.all([
+    fetchSystemTemplates(),
+    props.projectId
+      ? fetchProjectTemplates(props.projectId)
+      : user.value?.id
+      ? fetchUserTemplates(user.value.id)
+      : Promise.resolve([])
+  ])
+  systemTemplates.value = sysTemplates
+  templates.value = userOrProjectTemplates
 }
 
 onMounted(() => {
@@ -105,7 +115,11 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (template: LlmPromptTemplate) => {
-  modalMode.value = 'edit'
+  if (template.isSystem) {
+    modalMode.value = 'override'
+  } else {
+    modalMode.value = 'edit'
+  }
   editingTemplate.value = template
   formData.name = template.name
   formData.description = template.description || ''
@@ -125,6 +139,8 @@ const handleSubmit = async () => {
         userId: props.projectId ? undefined : user.value?.id,
         projectId: props.projectId
       })
+    } else if (modalMode.value === 'override' && editingTemplate.value?.systemKey) {
+      await overrideSystemTemplate(editingTemplate.value.systemKey, formData)
     } else if (editingTemplate.value) {
       await updateTemplate(editingTemplate.value.id, formData)
     }
@@ -153,6 +169,23 @@ const confirmDelete = async () => {
   tplToDelete.value = null
 }
 
+// System template actions
+const handleHideSystem = async (tpl: LlmPromptTemplate) => {
+  if (!tpl.systemKey) return
+  const success = await hideSystemTemplate(tpl.systemKey)
+  if (success) {
+    await loadTemplates()
+  }
+}
+
+const handleRestoreSystem = async (tpl: LlmPromptTemplate) => {
+  if (!tpl.systemKey) return
+  const success = await restoreSystemTemplate(tpl.systemKey)
+  if (success) {
+    await loadTemplates()
+  }
+}
+
 // Reorder Action
 const handleReorder = async () => {
   const ids = templates.value.map((tpl: LlmPromptTemplate) => tpl.id)
@@ -160,6 +193,27 @@ const handleReorder = async () => {
 }
 
 const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : t('llm.userTemplates_desc'))
+
+// Filtered system templates
+const filteredSystemTemplates = computed(() => {
+  const query = debouncedSearch.value.trim().toLowerCase()
+
+  return systemTemplates.value.filter((tpl) => {
+    const matchesCategory =
+      categoryFilter.value === 'ALL' ||
+      (tpl.category ?? 'GENERAL') === categoryFilter.value
+
+    if (!matchesCategory) return false
+
+    if (!query) return true
+
+    return (
+      tpl.name.toLowerCase().includes(query) ||
+      (tpl.description && tpl.description.toLowerCase().includes(query)) ||
+      tpl.prompt.toLowerCase().includes(query)
+    )
+  })
+})
 
 // Use filtered templates for draggable
 const displayTemplates = computed({
@@ -216,12 +270,90 @@ const displayTemplates = computed({
       </div>
     </div>
 
+    <!-- System Templates Section -->
+    <div v-if="filteredSystemTemplates.length > 0" class="mb-6">
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+        <UIcon name="i-heroicons-sparkles" class="w-4 h-4" />
+        {{ t('llm.systemTemplates') }}
+      </h3>
+      <div class="space-y-3">
+        <div
+          v-for="tpl in filteredSystemTemplates"
+          :key="tpl.id"
+          class="flex items-start gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-lg group"
+          :class="{ 'opacity-60': tpl.isHidden }"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                {{ tpl.name }}
+              </h4>
+
+              <UBadge v-if="tpl.isOverridden" size="xs" color="primary" variant="subtle">
+                {{ t('common.modified') }}
+              </UBadge>
+
+              <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle">
+                {{ t('common.hidden') }}
+              </UBadge>
+
+              <UBadge size="xs" color="neutral" variant="subtle">
+                {{ categoryOptions.find(o => o.value === (tpl.category || 'GENERAL'))?.label }}
+              </UBadge>
+            </div>
+            <p v-if="tpl.description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+              {{ tpl.description }}
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-white/50 dark:bg-gray-900/50 p-1.5 rounded">
+              {{ tpl.prompt }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <UButton
+              icon="i-heroicons-pencil"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :title="t('common.edit')"
+              @click.stop="openEditModal(tpl)"
+            />
+            <UButton
+              v-if="tpl.isHidden"
+              icon="i-heroicons-arrow-uturn-left"
+              color="primary"
+              variant="ghost"
+              size="xs"
+              :title="t('common.restore')"
+              @click.stop="handleRestoreSystem(tpl)"
+            />
+            <UButton
+              v-else
+              icon="i-heroicons-eye-slash"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :title="t('common.hide')"
+              @click.stop="handleHideSystem(tpl)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User/Project Templates Section -->
+    <div v-if="templates.length > 0 || filteredSystemTemplates.length > 0">
+      <h3 v-if="filteredSystemTemplates.length > 0" class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+        {{ props.projectId ? t('llm.projectTemplates') : t('llm.personalTemplates') }}
+      </h3>
+    </div>
+
     <!-- Templates List -->
-    <div v-if="isLoading && templates.length === 0" class="py-4 text-center">
+    <div v-if="isLoading && templates.length === 0 && systemTemplates.length === 0" class="py-4 text-center">
       <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-gray-400 mx-auto" />
     </div>
     
-    <div v-else-if="templates.length === 0" class="text-center py-12 px-4">
+    <div v-else-if="templates.length === 0 && systemTemplates.length === 0" class="text-center py-12 px-4">
       <div class="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
         <UIcon name="i-heroicons-document-text" class="w-8 h-8 text-gray-400" />
       </div>

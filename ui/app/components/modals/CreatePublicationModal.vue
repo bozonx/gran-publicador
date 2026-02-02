@@ -16,14 +16,15 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const router = useRouter()
-const { languageOptions } = useLanguages()
-const { channels, fetchChannels } = useChannels()
+const { channels, fetchChannels, fetchChannel } = useChannels()
 const { projects, fetchProjects } = useProjects()
 const { createPublication, isLoading } = usePublications()
 const { typeOptions } = usePosts()
 const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
+
+const isLanguageLocked = computed(() => Boolean(props.preselectedChannelId))
 
 // Form data
 const formData = reactive({
@@ -34,11 +35,19 @@ const formData = reactive({
   channelIds: [] as string[],
 })
 
+const isInitializedForOpen = ref(false)
+
 // Load projects if needed
 onMounted(async () => {
     if (projects.value.length === 0) {
         await fetchProjects()
     }
+})
+
+watch(isOpen, (open) => {
+  if (open) {
+    isInitializedForOpen.value = false
+  }
 })
 
 const activeProjects = computed(() => {
@@ -54,6 +63,12 @@ const activeProjects = computed(() => {
 watch(() => formData.projectId, async (newProjectId) => {
   if (newProjectId && formData.type === 'project') {
     await fetchChannels({ projectId: newProjectId })
+
+    if (!props.preselectedChannelId) {
+      formData.channelIds = channels.value
+        .filter(ch => ch.language === formData.language)
+        .map(ch => ch.id)
+    }
   } else {
     channels.value = []
     formData.channelIds = []
@@ -72,7 +87,9 @@ watch(() => formData.type, async (newType) => {
 
 // Initialize form when modal opens or props change
 watch([isOpen, () => props.preselectedLanguage, () => props.preselectedChannelId, () => channels.value.length], ([open]) => {
-  if (open && channels.value.length > 0) {
+  if (!open) return
+  if (isInitializedForOpen.value) return
+  if (channels.value.length > 0) {
     const requestedChannelId = props.preselectedChannelId
     
     // Auto-select requested channel if available
@@ -105,8 +122,23 @@ watch([isOpen, () => props.preselectedLanguage, () => props.preselectedChannelId
         formData.channelIds = matchingChannels
       }
     }
+
+    isInitializedForOpen.value = true
   }
 }, { immediate: true })
+
+watch([isOpen, () => props.preselectedChannelId], async ([open, preselectedChannelId]) => {
+  if (!open) return
+  if (!preselectedChannelId) return
+
+  const channel = await fetchChannel(preselectedChannelId)
+  if (!channel) return
+
+  formData.type = 'project'
+  formData.projectId = channel.projectId
+  formData.language = channel.language
+  formData.channelIds = [preselectedChannelId]
+})
 
 // Watch language changes to auto-select matching channels
 watch(() => formData.language, (newLang) => {
@@ -216,6 +248,7 @@ function handleClose() {
 
       <!-- Language -->
       <UFormField
+        v-if="!isLanguageLocked"
         :label="t('common.language')"
         required
       >

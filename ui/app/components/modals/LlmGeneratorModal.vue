@@ -26,7 +26,7 @@ const {
   startRecording,
   stopRecording,
 } = useVoiceRecorder()
-const { fetchUserTemplates, fetchProjectTemplates } = useLlmPromptTemplates()
+const { fetchAvailableTemplates } = useLlmPromptTemplates()
 const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
@@ -64,6 +64,7 @@ const maxTokens = ref(2000)
 
 // Template selection
 const selectedTemplateId = ref<string | null>(null)
+const systemTemplates = ref<LlmPromptTemplate[]>([])
 const userTemplates = ref<LlmPromptTemplate[]>([])
 const projectTemplates = ref<LlmPromptTemplate[]>([])
 const isLoadingTemplates = ref(false)
@@ -123,12 +124,10 @@ watch(isOpen, async (open) => {
     // Load templates
     isLoadingTemplates.value = true
     try {
-      if (user.value?.id) {
-        userTemplates.value = await fetchUserTemplates(user.value.id)
-      }
-      if (projectId) {
-        projectTemplates.value = await fetchProjectTemplates(projectId)
-      }
+      const templates = await fetchAvailableTemplates({ projectId })
+      systemTemplates.value = templates.system
+      userTemplates.value = templates.user
+      projectTemplates.value = templates.project
     } finally {
       isLoadingTemplates.value = false
     }
@@ -160,7 +159,7 @@ watch(isOpen, async (open) => {
 watch(selectedTemplateId, (templateId) => {
   if (!templateId) return
   
-  const allTemplates = [...userTemplates.value, ...projectTemplates.value]
+  const allTemplates = [...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value]
   const template = allTemplates.find(t => t.id === templateId)
   
   if (template) {
@@ -177,6 +176,13 @@ const templateOptions = computed(() => {
   const options: Array<{ label: string; value: string | null; disabled?: boolean }> = [
     { label: t('llm.noTemplate'), value: null }
   ]
+  
+  if (systemTemplates.value.length > 0) {
+    options.push({ label: t('llm.systemTemplates'), value: 'system-header', disabled: true })
+    systemTemplates.value.forEach(template => {
+      options.push({ label: `  ${template.name}`, value: template.id })
+    })
+  }
   
   if (userTemplates.value.length > 0) {
     options.push({ label: t('llm.personalTemplates'), value: 'personal-header', disabled: true })

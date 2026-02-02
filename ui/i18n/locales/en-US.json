@@ -48,6 +48,10 @@
     "create": "Create",
     "configure": "Configure",
     "search": "Search",
+    "hide": "Hide",
+    "restore": "Restore",
+    "modified": "Modified",
+    "hidden": "Hidden",
     "type": "Type",
     "actions": "Actions",
     "confirm": "Confirm",
@@ -75,7 +79,6 @@
     "back_to_channel": "Back to Channel",
     "danger_zone": "Danger Zone",
     "archive": "Archive",
-    "restore": "Restore",
     "archived": "Archived",
     "sortOrder": {
       "asc": "Ascending",

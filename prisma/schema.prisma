@@ -44,6 +44,7 @@ model User {
   apiTokens      ApiToken[]
   notifications  Notification[]
   llmPromptTemplates LlmPromptTemplate[]
+  llmSystemPromptOverrides LlmSystemPromptOverride[]
   authorSignatures AuthorSignature[]
 
   @@index([telegramUsername])

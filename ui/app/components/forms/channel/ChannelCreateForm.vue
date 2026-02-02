@@ -6,11 +6,10 @@ const { t } = useI18n()
 const { projects, fetchProjects } = useProjects()
 const { user } = useAuth()
 
-const attrs = useAttrs()
-
 const props = defineProps<{
   initialProjectId?: string
   showProjectSelect?: boolean
+  id?: string
 }>()
 
 const emit = defineEmits<{
@@ -133,10 +132,7 @@ const currentSocialMedia = computed(() => {
   return formState.socialMedia ? (formState.socialMedia as SocialMedia) : undefined
 })
 
-const formId = computed(() => {
-  const id = attrs.id
-  return typeof id === 'string' && id.length > 0 ? id : 'channel-create-form'
-})
+const formId = computed(() => props.id || 'channel-create-form')
 
 defineExpose({
   formState,
@@ -168,7 +164,7 @@ defineExpose({
       :state="formState"
       :is-edit-mode="false"
       :show-project="false"
-      :current-social-media="formState.socialMedia || 'TELEGRAM'"
+      :current-social-media="currentSocialMedia || 'TELEGRAM'"
     />
 
     <FormsChannelPartsChannelCredentialsFields

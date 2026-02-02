@@ -47,6 +47,10 @@
     "create": "Создать",
     "configure": "Настроить",
     "search": "Поиск",
+    "hide": "Скрыть",
+    "restore": "Восстановить",
+    "modified": "Изменён",
+    "hidden": "Скрыт",
     "type": "Тип",
     "actions": "Действия",
     "confirm": "Подтвердить",
@@ -74,7 +78,6 @@
     "back_to_channel": "Назад к каналу",
     "danger_zone": "Опасная зона",
     "archive": "Архивировать",
-    "restore": "Восстановить",
     "archived": "В архиве",
     "sortOrder": {
       "asc": "По возрастанию",
