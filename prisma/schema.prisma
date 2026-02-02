@@ -428,6 +428,32 @@ model LlmPromptTemplate {
   @@map("llm_prompt_templates")
 }
 
+model LlmSystemPromptOverride {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  systemKey String   @map("system_key")
+  action    LlmSystemPromptOverrideAction
+
+  name        String?
+  description String?
+  prompt      String?
+  category    LlmPromptTemplateCategory?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, systemKey])
+  @@index([userId])
+  @@map("llm_system_prompt_overrides")
+}
+
+enum LlmSystemPromptOverrideAction {
+  OVERRIDE
+  HIDE
+}
+
 enum LlmPromptTemplateCategory {
   GENERAL
   CHAT

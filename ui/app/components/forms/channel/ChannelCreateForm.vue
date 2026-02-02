@@ -6,6 +6,8 @@ const { t } = useI18n()
 const { projects, fetchProjects } = useProjects()
 const { user } = useAuth()
 
+const attrs = useAttrs()
+
 const props = defineProps<{
   initialProjectId?: string
   showProjectSelect?: boolean
@@ -19,11 +21,16 @@ const emit = defineEmits<{
 const formState = reactive({
   projectId: props.initialProjectId || '',
   name: '',
-  socialMedia: '' as SocialMedia | '',
+  socialMedia: 'TELEGRAM' as SocialMedia | '',
   language: user.value?.language || 'en-US',
   channelIdentifier: '',
   description: '',
-  isActive: true
+  isActive: true,
+  credentials: {
+    telegramChannelId: '',
+    telegramBotToken: '',
+    vkAccessToken: '',
+  },
 })
 
 // Options for project selection
@@ -52,6 +59,43 @@ watch(() => props.initialProjectId, (newId) => {
   }
 }, { immediate: true })
 
+// Sync user language if available
+watch(() => user.value?.language, (newLang) => {
+  if (newLang && !formState.name) { // Only sync if form hasn't been edited much
+    formState.language = newLang
+  }
+}, { immediate: true })
+
+watch(() => formState.socialMedia, (newSocialMedia) => {
+  if (!newSocialMedia) return
+
+  if (newSocialMedia !== 'TELEGRAM') {
+    formState.credentials.telegramChannelId = ''
+    formState.credentials.telegramBotToken = ''
+  }
+
+  if (newSocialMedia !== 'VK') {
+    formState.credentials.vkAccessToken = ''
+  }
+})
+
+function getCredentials(): ChannelCreateInput['credentials'] | undefined {
+  if (formState.socialMedia === 'TELEGRAM') {
+    return {
+      telegramChannelId: formState.credentials.telegramChannelId,
+      telegramBotToken: formState.credentials.telegramBotToken,
+    }
+  }
+
+  if (formState.socialMedia === 'VK') {
+    return {
+      vkAccessToken: formState.credentials.vkAccessToken,
+    }
+  }
+
+  return undefined
+}
+
 function handleSubmit() {
   if (!formState.projectId || !formState.name || !formState.socialMedia || !formState.channelIdentifier) {
     return
@@ -64,12 +108,34 @@ function handleSubmit() {
     language: formState.language,
     channelIdentifier: formState.channelIdentifier,
     description: formState.description || undefined,
-    isActive: formState.isActive
+    isActive: formState.isActive,
+    credentials: getCredentials(),
   })
 }
 
 const isFormValid = computed(() => {
-  return !!(formState.projectId && formState.name && formState.socialMedia && formState.channelIdentifier)
+  if (!(formState.projectId && formState.name && formState.socialMedia && formState.channelIdentifier)) {
+    return false
+  }
+
+  if (formState.socialMedia === 'TELEGRAM') {
+    return !!(formState.credentials.telegramChannelId && formState.credentials.telegramBotToken)
+  }
+
+  if (formState.socialMedia === 'VK') {
+    return !!formState.credentials.vkAccessToken
+  }
+
+  return true
+})
+
+const currentSocialMedia = computed(() => {
+  return formState.socialMedia ? (formState.socialMedia as SocialMedia) : undefined
+})
+
+const formId = computed(() => {
+  const id = attrs.id
+  return typeof id === 'string' && id.length > 0 ? id : 'channel-create-form'
 })
 
 defineExpose({
@@ -80,7 +146,7 @@ defineExpose({
 </script>
 
 <template>
-  <form :id="$attrs.id as string || 'channel-create-form'" @submit.prevent="handleSubmit" class="space-y-6">
+  <form :id="formId" @submit.prevent="handleSubmit" class="space-y-6">
     <!-- Project Selection (Optional) -->
     <UFormField v-if="showProjectSelect" :label="t('channel.project')" required>
       <USelectMenu
@@ -102,8 +168,16 @@ defineExpose({
       :state="formState"
       :is-edit-mode="false"
       :show-project="false"
-      :current-social-media="(formState.socialMedia as SocialMedia)"
+      :current-social-media="formState.socialMedia || 'TELEGRAM'"
     />
+
+    <FormsChannelPartsChannelCredentialsFields
+      :state="formState"
+      :current-social-media="currentSocialMedia"
+    />
+
+    <!-- Debug Text (Temporary) -->
+    <!-- <div v-if="!formState.name">Form loaded</div> -->
 
     <slot name="extra-fields" :state="formState" />
   </form>

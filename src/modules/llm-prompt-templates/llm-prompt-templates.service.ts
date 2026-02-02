@@ -7,12 +7,227 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
+import {
+  LlmSystemPromptOverrideAction,
+  type LlmPromptTemplate,
+} from '../../generated/prisma/index.js';
+import { SYSTEM_LLM_PROMPT_TEMPLATES, type SystemLlmPromptTemplate } from './system-prompts.js';
+import type { UpsertSystemLlmPromptOverrideDto } from './dto/upsert-system-llm-prompt-override.dto.js';
 
 const MAX_PROMPT_LENGTH = 5000;
 
 @Injectable()
 export class LlmPromptTemplatesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private mapSystemTemplateToApiTemplate(systemTpl: SystemLlmPromptTemplate) {
+    return {
+      id: `system:${systemTpl.key}`,
+      systemKey: systemTpl.key,
+      isSystem: true,
+      userId: undefined,
+      projectId: undefined,
+      name: systemTpl.name,
+      description: systemTpl.description,
+      prompt: systemTpl.prompt,
+      category: systemTpl.category,
+      order: 0,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+    };
+  }
+
+  private async verifyProjectAccess(projectId: string, userId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        ownerId: true,
+        members: {
+          where: { userId },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const isOwner = project.ownerId === userId;
+    const isMember = project.members.length > 0;
+
+    if (!isOwner && !isMember) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+  }
+
+  private applyOverride(
+    systemTpl: SystemLlmPromptTemplate,
+    override:
+      | {
+          action: LlmSystemPromptOverrideAction;
+          name: string | null;
+          description: string | null;
+          prompt: string | null;
+          category: any | null;
+        }
+      | undefined,
+  ) {
+    if (!override) {
+      return {
+        ...this.mapSystemTemplateToApiTemplate(systemTpl),
+        isHidden: false,
+        isOverridden: false,
+      };
+    }
+
+    if (override.action === LlmSystemPromptOverrideAction.HIDE) {
+      return {
+        ...this.mapSystemTemplateToApiTemplate(systemTpl),
+        isHidden: true,
+        isOverridden: false,
+      };
+    }
+
+    return {
+      ...this.mapSystemTemplateToApiTemplate(systemTpl),
+      name: override.name ?? systemTpl.name,
+      description: override.description ?? systemTpl.description,
+      prompt: override.prompt ?? systemTpl.prompt,
+      category: override.category ?? systemTpl.category,
+      isHidden: false,
+      isOverridden: true,
+    };
+  }
+
+  async getSystemTemplatesForUser(userId: string) {
+    const overrides = await this.prisma.llmSystemPromptOverride.findMany({
+      where: { userId },
+      select: {
+        systemKey: true,
+        action: true,
+        name: true,
+        description: true,
+        prompt: true,
+        category: true,
+      },
+    });
+
+    const overrideByKey = new Map(overrides.map(o => [o.systemKey, o]));
+
+    return SYSTEM_LLM_PROMPT_TEMPLATES.map(tpl =>
+      this.applyOverride(tpl, overrideByKey.get(tpl.key)),
+    );
+  }
+
+  async getAvailableTemplatesForUser(params: { userId: string; projectId?: string }) {
+    const { userId, projectId } = params;
+
+    const [systemTemplates, userTemplates] = await Promise.all([
+      this.getSystemTemplatesForUser(userId),
+      this.findAllByUser(userId),
+    ]);
+
+    const visibleSystemTemplates = systemTemplates.filter(t => !t.isHidden);
+
+    let projectTemplates: LlmPromptTemplate[] = [];
+    if (projectId) {
+      await this.verifyProjectAccess(projectId, userId);
+      projectTemplates = await this.findAllByProject(projectId);
+    }
+
+    return {
+      system: visibleSystemTemplates,
+      user: userTemplates,
+      project: projectTemplates,
+    };
+  }
+
+  async upsertSystemPromptOverride(params: {
+    userId: string;
+    systemKey: string;
+    data: UpsertSystemLlmPromptOverrideDto;
+  }) {
+    const { userId, systemKey, data } = params;
+
+    const systemExists = SYSTEM_LLM_PROMPT_TEMPLATES.some(t => t.key === systemKey);
+    if (!systemExists) {
+      throw new NotFoundException('System template not found');
+    }
+
+    return this.prisma.llmSystemPromptOverride.upsert({
+      where: {
+        userId_systemKey: {
+          userId,
+          systemKey,
+        },
+      },
+      create: {
+        id: crypto.randomUUID(),
+        userId,
+        systemKey,
+        action: LlmSystemPromptOverrideAction.OVERRIDE,
+        name: data.name,
+        description: data.description,
+        prompt: data.prompt,
+        category: data.category,
+      },
+      update: {
+        action: LlmSystemPromptOverrideAction.OVERRIDE,
+        name: data.name,
+        description: data.description,
+        prompt: data.prompt,
+        category: data.category,
+      },
+    });
+  }
+
+  async hideSystemPrompt(params: { userId: string; systemKey: string }) {
+    const { userId, systemKey } = params;
+
+    const systemExists = SYSTEM_LLM_PROMPT_TEMPLATES.some(t => t.key === systemKey);
+    if (!systemExists) {
+      throw new NotFoundException('System template not found');
+    }
+
+    return this.prisma.llmSystemPromptOverride.upsert({
+      where: {
+        userId_systemKey: {
+          userId,
+          systemKey,
+        },
+      },
+      create: {
+        id: crypto.randomUUID(),
+        userId,
+        systemKey,
+        action: LlmSystemPromptOverrideAction.HIDE,
+      },
+      update: {
+        action: LlmSystemPromptOverrideAction.HIDE,
+        name: null,
+        description: null,
+        prompt: null,
+        category: null,
+      },
+    });
+  }
+
+  async restoreSystemPrompt(params: { userId: string; systemKey: string }) {
+    const { userId, systemKey } = params;
+
+    await this.prisma.llmSystemPromptOverride.delete({
+      where: {
+        userId_systemKey: {
+          userId,
+          systemKey,
+        },
+      },
+    });
+
+    return { success: true };
+  }
 
   /**
    * Creates a new LLM prompt template for either a user or a project.

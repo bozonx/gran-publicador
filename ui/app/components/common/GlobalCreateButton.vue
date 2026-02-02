@@ -14,6 +14,11 @@ const props = withDefaults(defineProps<{
   mode: 'header'
 })
 
+const initialProjectId = computed(() => {
+  const id = route.params.id
+  return typeof id === 'string' ? id : undefined
+})
+
 // Modals state
 const isPublicationModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
@@ -350,7 +355,7 @@ function closePublicationModal() {
     <!-- Create Channel Modal -->
     <ModalsCreateChannelModal
       v-model:open="isChannelModalOpen"
-      :initial-project-id="route.params.id as string"
+      :initial-project-id="initialProjectId"
       @created="handleChannelCreated"
     />
   </div>

@@ -1,5 +1,9 @@
 export interface LlmPromptTemplate {
   id: string;
+  isSystem?: boolean;
+  systemKey?: string;
+  isHidden?: boolean;
+  isOverridden?: boolean;
   userId?: string;
   projectId?: string;
   name: string;

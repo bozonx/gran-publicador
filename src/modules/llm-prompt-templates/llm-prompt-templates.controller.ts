@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Query,
   Param,
   Delete,
   UseGuards,
@@ -14,6 +15,8 @@ import { LlmPromptTemplatesService } from './llm-prompt-templates.service.js';
 import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
 import { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto.js';
+import { AvailableLlmPromptTemplatesQueryDto } from './dto/available-llm-prompt-templates-query.dto.js';
+import { UpsertSystemLlmPromptOverrideDto } from './dto/upsert-system-llm-prompt-override.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { TemplateOwnershipGuard } from './guards/template-ownership.guard.js';
 
@@ -21,6 +24,48 @@ import { TemplateOwnershipGuard } from './guards/template-ownership.guard.js';
 @UseGuards(JwtAuthGuard)
 export class LlmPromptTemplatesController {
   constructor(private readonly llmPromptTemplatesService: LlmPromptTemplatesService) {}
+
+  @Get('available')
+  getAvailable(@Query() query: AvailableLlmPromptTemplatesQueryDto, @Request() req: any) {
+    return this.llmPromptTemplatesService.getAvailableTemplatesForUser({
+      userId: req.user.id,
+      projectId: query.projectId,
+    });
+  }
+
+  @Get('system')
+  getSystem(@Request() req: any) {
+    return this.llmPromptTemplatesService.getSystemTemplatesForUser(req.user.id);
+  }
+
+  @Patch('system/:systemKey')
+  overrideSystem(
+    @Param('systemKey') systemKey: string,
+    @Body() dto: UpsertSystemLlmPromptOverrideDto,
+    @Request() req: any,
+  ) {
+    return this.llmPromptTemplatesService.upsertSystemPromptOverride({
+      userId: req.user.id,
+      systemKey,
+      data: dto,
+    });
+  }
+
+  @Post('system/:systemKey/hide')
+  hideSystem(@Param('systemKey') systemKey: string, @Request() req: any) {
+    return this.llmPromptTemplatesService.hideSystemPrompt({
+      userId: req.user.id,
+      systemKey,
+    });
+  }
+
+  @Delete('system/:systemKey')
+  restoreSystem(@Param('systemKey') systemKey: string, @Request() req: any) {
+    return this.llmPromptTemplatesService.restoreSystemPrompt({
+      userId: req.user.id,
+      systemKey,
+    });
+  }
 
   @Post()
   create(@Body() createDto: CreateLlmPromptTemplateDto) {

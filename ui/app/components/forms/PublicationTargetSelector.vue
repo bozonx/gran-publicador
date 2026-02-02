@@ -46,6 +46,8 @@ const currentProjectId = computed({
   }
 })
 
+const currentProjectIdValue = computed(() => currentProjectId.value || undefined)
+
 const selectedChannelIds = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
@@ -57,7 +59,7 @@ const selectedChannelIds = computed({
     <!-- Project Selection -->
     <UFormField :label="t('project.title')" :help="t('publication.projectSelectorHelp')">
       <USelectMenu
-        :model-value="currentProjectId as string | undefined"
+        :model-value="currentProjectIdValue"
         @update:model-value="currentProjectId = $event"
         :items="activeProjectsOptions"
         value-key="value"

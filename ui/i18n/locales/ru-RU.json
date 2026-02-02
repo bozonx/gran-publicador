@@ -1114,6 +1114,7 @@
     "transcriptionError": "Ошибка распознавания речи",
     "selectTemplate": "Выберите шаблон",
     "noTemplate": "Без шаблона",
+    "systemTemplates": "Системные",
     "personalTemplates": "Личные",
     "projectTemplates": "Проектные",
     "addTemplate": "Добавить шаблон",

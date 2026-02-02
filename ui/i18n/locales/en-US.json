@@ -1155,6 +1155,7 @@
     "transcriptionError": "Transcription error",
     "selectTemplate": "Select template",
     "noTemplate": "No template",
+    "systemTemplates": "System",
     "personalTemplates": "Personal",
     "projectTemplates": "Project",
     "addTemplate": "Add Template",

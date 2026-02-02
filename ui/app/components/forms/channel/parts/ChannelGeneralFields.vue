@@ -116,11 +116,13 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
           label-key="label"
           class="w-full"
         >
-          <template #label>
-              <span v-if="state.socialMedia">{{ socialMediaOptions.find(o => o.value === state.socialMedia)?.label }}</span>
+          <template #default>
+              <div v-if="state.socialMedia" class="flex items-center gap-2">
+                <UIcon :name="getSocialMediaIcon(state.socialMedia)" class="w-4 h-4" />
+                <span>{{ socialMediaOptions.find(o => o.value === state.socialMedia)?.label }}</span>
+              </div>
               <span v-else class="text-gray-400">{{ t('common.select') }}</span>
           </template>
-
         </USelectMenu>
       </UFormField>
 
@@ -199,7 +201,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
     <UFormField
       name="channelIdentifier"
       required
-      :help="getIdentifierHelp(currentSocialMedia)"
+      :help="getIdentifierHelp(currentSocialMedia || state.socialMedia)"
     >
       <template #label>
         <div class="flex items-center gap-1.5">
@@ -209,7 +211,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
       </template>
       <UInput
         v-model="state.channelIdentifier"
-        :placeholder="getIdentifierPlaceholder(currentSocialMedia)"
+        :placeholder="getIdentifierPlaceholder(currentSocialMedia || state.socialMedia)"
         class="w-full"
       />
     </UFormField>
