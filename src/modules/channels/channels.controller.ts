@@ -68,6 +68,7 @@ export class ChannelsController {
       limit = 50,
       offset = 0,
       includeArchived = false,
+      archivedOnly = false,
     } = query;
 
     // Validate and cap limit
@@ -84,6 +85,7 @@ export class ChannelsController {
       limit: validatedLimit,
       offset,
       includeArchived,
+      archivedOnly,
       projectIds: req.user.allProjects === false ? req.user.projectIds : undefined,
     };
 

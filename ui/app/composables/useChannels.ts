@@ -48,13 +48,16 @@ export function useChannels() {
             const params: any = { ...filters }
             
             // Handle archived flags
+            // Handle archived flags
             if (filters?.archivedOnly) {
                 params.archivedOnly = true
                 delete params.includeArchived
             } else if (filters?.includeArchived) {
                 params.includeArchived = true
+                delete params.archivedOnly
             } else {
                 delete params.includeArchived
+                delete params.archivedOnly
             }
             
             const response = await api.get<{ items: ChannelWithProject[]; meta: { total: number; limit: number; offset: number } }>('/channels', { params })
