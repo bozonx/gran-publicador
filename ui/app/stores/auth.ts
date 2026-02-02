@@ -13,6 +13,7 @@ export interface User {
     uiLanguage?: string;
     isUiLanguageAuto?: boolean;
     projectOrder?: string[];
+    newsQueryOrder?: string[];
     createdAt?: string;
     updatedAt?: string;
 }

@@ -48,6 +48,7 @@ const NEWS_LIMIT = 10
 
 export const useNews = () => {
   const api = useApi()
+  const { user } = useAuth()
   const route = useRoute()
   const toast = useToast()
   const projectId = computed(() => route.params.id as string)
@@ -211,6 +212,20 @@ export const useNews = () => {
     return await api.get<any[]>('/news-queries/default')
   }
 
+  const updateNewsQueryOrder = async (order: string[]) => {
+    if (!user.value) return false
+    try {
+      await api.patch('/users/me', { newsQueryOrder: order })
+      if (user.value) {
+        user.value.newsQueryOrder = order
+      }
+      return true
+    } catch (err: any) {
+      console.error('Failed to update news query order', err)
+      return false
+    }
+  }
+
   return {
     news,
     isLoading,
@@ -222,6 +237,7 @@ export const useNews = () => {
     createQuery,
     updateQuery,
     deleteQuery,
-    getDefaultQueries
+    getDefaultQueries,
+    updateNewsQueryOrder
   }
 }

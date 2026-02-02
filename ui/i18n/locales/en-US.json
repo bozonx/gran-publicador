@@ -211,6 +211,7 @@
   "project": {
     "title": "Project",
     "titlePlural": "Projects",
+    "allProjects": "All projects",
     "name": "Project Name",
     "namePlaceholder": "Enter project name",
     "description": "Description",

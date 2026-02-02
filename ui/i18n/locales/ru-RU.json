@@ -209,6 +209,7 @@
   "project": {
     "title": "Проект",
     "titlePlural": "Проекты",
+    "allProjects": "Все проекты",
     "name": "Название проекта",
     "namePlaceholder": "Введите название проекта",
     "description": "Описание",

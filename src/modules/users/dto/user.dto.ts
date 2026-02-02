@@ -56,6 +56,12 @@ export class UserDto {
   })
   public projectOrder!: string[];
 
+  @Expose()
+  @Transform(({ obj }) => {
+    return obj.preferences?.newsQueryOrder || [];
+  })
+  public newsQueryOrder!: string[];
+
   @Exclude({ toPlainOnly: true })
   public preferences!: any; // Internal use
 }
@@ -88,6 +94,9 @@ export class UpdateUserProfileDto {
 
   @IsOptional()
   public projectOrder?: string[];
+
+  @IsOptional()
+  public newsQueryOrder?: string[];
 }
 
 export class BanUserDto {

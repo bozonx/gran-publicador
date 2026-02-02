@@ -11,9 +11,10 @@ definePageMeta({
 
 const route = useRoute()
 const { t, d } = useI18n()
-const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries, hasMore } = useNews()
+const { user } = useAuth()
+const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries, hasMore, updateNewsQueryOrder } = useNews()
 
-const activeTabIndex = ref(0)
+const activeTabId = ref<string | number>(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
@@ -30,12 +31,18 @@ function handleCreatePublication(item: any) {
 const tabs = computed(() => {
   return trackedQueries.value.map(q => ({
     label: `${q.projectName} - ${q.name}`,
-    slot: 'content'
+    slot: 'content',
+    id: q.id
   }))
 })
 
 const currentTrackedQuery = computed(() => {
-  return trackedQueries.value[activeTabIndex.value] || null
+  if (trackedQueries.value.length === 0) return null
+  if (typeof activeTabId.value === 'number') {
+    // If it's a number, treat as index (fallback)
+    return trackedQueries.value[activeTabId.value] || trackedQueries.value[0]
+  }
+  return trackedQueries.value.find(q => q.id === activeTabId.value) || null
 })
 
 const isLoading = computed(() => isInitialLoading.value || isNewsLoading.value)
@@ -98,29 +105,73 @@ async function loadMore() {
   }
 }
 
-watch(activeTabIndex, () => {
+watch(activeTabId, () => {
   handleSearch()
 })
+
+async function handleTabsUpdate(newItems: any[]) {
+  // newItems contains the tabs in new order
+  const newOrder = newItems.map(t => t.id)
+  
+  // Reorder trackedQueries to match newOrder
+  const newQueries: any[] = []
+  for (const id of newOrder) {
+    const q = trackedQueries.value.find(x => x.id === id)
+    if (q) newQueries.push(q)
+  }
+  // Add any missing ones (safety)
+  trackedQueries.value.forEach(q => {
+    if (!newOrder.includes(q.id)) newQueries.push(q)
+  })
+  
+  trackedQueries.value = newQueries
+  
+  // Persist order
+  await updateNewsQueryOrder(newOrder)
+}
 
 onMounted(async () => {
   isInitialLoading.value = true
   try {
-    trackedQueries.value = await getDefaultQueries()
+    const queries = await getDefaultQueries()
+    
+    // Sort based on user preference
+    if (user.value?.newsQueryOrder && Array.isArray(user.value.newsQueryOrder)) {
+       const order = user.value.newsQueryOrder
+       queries.sort((a, b) => {
+          const indexA = order.indexOf(a.id)
+          const indexB = order.indexOf(b.id)
+          
+          if (indexA === -1 && indexB === -1) return 0
+          if (indexA === -1) return 1
+          if (indexB === -1) return -1
+          
+          return indexA - indexB
+       })
+    }
+    
+    trackedQueries.value = queries
+
     if (trackedQueries.value.length > 0) {
       // If projectId is provided in URL, try to find matching query
       const projectIdParam = route.query.projectId as string
+      let found = false
+      
       if (projectIdParam) {
-        const matchingIndex = trackedQueries.value.findIndex(q => q.projectId === projectIdParam)
-        if (matchingIndex !== -1) {
-          activeTabIndex.value = matchingIndex
+        const matching = trackedQueries.value.find(q => q.projectId === projectIdParam)
+        if (matching) {
+          activeTabId.value = matching.id
+          found = true
         }
       }
       
-      // If we are at index 0, we need to manually trigger the first search
-      // because the watcher only triggers on change.
-      if (activeTabIndex.value === 0) {
-        await handleSearch()
+      // Default to first if not found
+      if (!found) {
+        activeTabId.value = trackedQueries.value[0].id
       }
+      
+      // Trigger search immediately
+      await handleSearch()
     }
   } finally {
     isInitialLoading.value = false
@@ -169,9 +220,11 @@ function formatScore(score: number) {
     <!-- Tabs System -->
     <div v-if="trackedQueries.length > 0" class="space-y-6">
       <AppTabs 
-        v-model="activeTabIndex" 
+        v-model="activeTabId" 
         :items="tabs" 
+        :draggable="true"
         class="w-full"
+        @update:items="handleTabsUpdate"
       />
 
       <div v-if="currentTrackedQuery" class="space-y-4">
@@ -270,4 +323,3 @@ function formatScore(score: number) {
     />
   </div>
 </template>
-

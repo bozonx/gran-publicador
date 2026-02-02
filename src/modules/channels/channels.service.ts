@@ -220,6 +220,7 @@ export class ChannelsService {
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
+      archivedOnly?: boolean;
       projectIds?: string[];
     } = {},
   ): Promise<{ items: ChannelResponseDto[]; total: number }> {
@@ -232,15 +233,27 @@ export class ChannelsService {
       select: { isAdmin: true },
     });
 
-    const where: any = {
-      ...(filters.includeArchived ? {} : { archivedAt: null, project: { archivedAt: null } }),
-    };
+    const where: any = {};
+    if (filters.archivedOnly) {
+      where.OR = [{ archivedAt: { not: null } }, { project: { archivedAt: { not: null } } }];
+    } else if (!filters.includeArchived) {
+      where.archivedAt = null;
+      where.project = { archivedAt: null };
+    }
 
     if (!user?.isAdmin) {
+      const projectWhere: any = {
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      };
+
+      if (filters.ownership === 'own') {
+        projectWhere.OR = [{ ownerId: userId }];
+      } else if (filters.ownership === 'guest') {
+        projectWhere.OR = [{ members: { some: { userId } }, ownerId: { not: userId } }];
+      }
+
       const userProjects = await this.prisma.project.findMany({
-        where: {
-          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-        },
+        where: projectWhere,
         select: { id: true },
       });
       const userAllowedProjectIds = userProjects.map(p => p.id);
@@ -258,6 +271,17 @@ export class ChannelsService {
       // Admin can see all, but filter if projectIds provided
       if (filters.projectIds && filters.projectIds.length > 0) {
         where.projectId = { in: filters.projectIds };
+      }
+
+      // If ownership filter is set for admin, we need to respect it relative to their own user ID
+      if (filters.ownership) {
+         if (filters.ownership === 'own') {
+             // Projects owned by admin
+             where.project = { ...where.project, ownerId: userId };
+         } else if (filters.ownership === 'guest') {
+             // Projects where admin is a member but not owner
+             where.project = { ...where.project, ownerId: { not: userId }, members: { some: { userId } } };
+         }
       }
     }
 

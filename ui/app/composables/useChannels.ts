@@ -39,6 +39,7 @@ export function useChannels() {
         limit?: number;
         offset?: number;
         includeArchived?: boolean;
+        archivedOnly?: boolean;
     }): Promise<ChannelWithProject[]> {
         isLoading.value = true
         error.value = null
@@ -46,8 +47,11 @@ export function useChannels() {
         try {
             const params: any = { ...filters }
             
-            // Only send includeArchived if true
-            if (filters?.includeArchived) {
+            // Handle archived flags
+            if (filters?.archivedOnly) {
+                params.archivedOnly = true
+                delete params.includeArchived
+            } else if (filters?.includeArchived) {
                 params.includeArchived = true
             } else {
                 delete params.includeArchived

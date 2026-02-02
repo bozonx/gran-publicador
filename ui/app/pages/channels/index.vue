@@ -86,7 +86,8 @@ async function loadChannels() {
     sortOrder: sortOrder.value,
     limit: limit.value,
     offset: (currentPage.value - 1) * limit.value,
-    includeArchived: showArchivedFilter.value,
+    archivedOnly: showArchivedFilter.value,
+    includeArchived: false,
   })
 }
 
@@ -206,7 +207,7 @@ const nonArchivedChannelsCount = computed(() => {
 // Project filter options
 const projectFilterOptions = computed(() => {
   const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('common.all') }
+    { value: null, label: t('project.allProjects') }
   ]
   
   const sortedProjects = [...projects.value].sort((a, b) => a.name.localeCompare(b.name))
@@ -227,7 +228,8 @@ const hasActiveFilters = computed(() => {
     return searchQuery.value || 
            selectedProjectId.value || 
            ownershipFilter.value !== 'all' || 
-           selectedIssueType.value !== 'all'
+           selectedIssueType.value !== 'all' ||
+           showArchivedFilter.value
 })
 
 function resetFilters() {
@@ -235,6 +237,7 @@ function resetFilters() {
     selectedProjectId.value = null
     ownershipFilter.value = 'all'
     selectedIssueType.value = 'all'
+    showArchivedFilter.value = false
 }
 
 const showPagination = computed(() => {
@@ -315,9 +318,9 @@ const showPagination = computed(() => {
           <UiAppButtonGroup
             v-model="ownershipFilter"
             :options="[
-              { value: 'all', label: t('channel.filter.ownership.all') },
               { value: 'own', label: t('channel.filter.ownership.own') },
-              { value: 'guest', label: t('channel.filter.ownership.guest') }
+              { value: 'guest', label: t('channel.filter.ownership.guest') },
+              { value: 'all', label: t('channel.filter.ownership.all') }
             ]"
             variant="outline"
             active-variant="solid"
@@ -355,13 +358,13 @@ const showPagination = computed(() => {
           </UPopover>
         </div>
 
-        <!-- Archive Filter (Checkbox) - moved to end -->
-        <div class="flex items-center gap-1.5" :title="t('channel.filter.archiveStatus.tooltip')">
-          <UCheckbox 
+        <!-- Archive Filter (Toggle) - moved to end -->
+        <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">
+          <UToggle 
             v-model="showArchivedFilter" 
-            :label="t('channel.filter.showArchived')"
-            :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
+            size="md"
           />
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('channel.filter.showArchived') }}</span>
         </div>
         
         <!-- Project Filter (Select) -->

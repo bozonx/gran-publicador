@@ -109,4 +109,9 @@ export class FindChannelsQueryDto {
   @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
   @IsBoolean()
   includeArchived?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
+  @IsBoolean()
+  archivedOnly?: boolean;
 }
