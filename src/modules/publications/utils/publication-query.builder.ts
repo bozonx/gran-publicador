@@ -118,9 +118,9 @@ export class PublicationQueryBuilder {
     if (filters?.search) {
       conditions.push({
         OR: [
-          { title: { contains: filters.search } },
-          { description: { contains: filters.search } },
-          { content: { contains: filters.search } },
+          { title: { contains: filters.search, mode: 'insensitive' } },
+          { description: { contains: filters.search, mode: 'insensitive' } },
+          { content: { contains: filters.search, mode: 'insensitive' } },
         ],
       });
     }

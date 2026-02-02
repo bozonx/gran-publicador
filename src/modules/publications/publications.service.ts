@@ -455,8 +455,8 @@ export class PublicationsService {
     if (filters?.search) {
       const searchTerms: Prisma.PublicationWhereInput = {
         OR: [
-          { title: { contains: filters.search } },
-          { content: { contains: filters.search } },
+          { title: { contains: filters.search, mode: 'insensitive' } },
+          { content: { contains: filters.search, mode: 'insensitive' } },
         ],
       };
       

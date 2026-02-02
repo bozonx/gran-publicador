@@ -265,8 +265,8 @@ export class ChannelsService {
     if (filters.search) {
       andConditions.push({
         OR: [
-          { name: { contains: filters.search } },
-          { channelIdentifier: { contains: filters.search } },
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { channelIdentifier: { contains: filters.search, mode: 'insensitive' } },
         ],
       });
     }

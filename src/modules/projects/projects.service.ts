@@ -98,7 +98,10 @@ export class ProjectsService {
     };
 
     if (search) {
-      where.OR = [{ name: { contains: search } }, { description: { contains: search } }];
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     const projects = await this.prisma.project.findMany({
