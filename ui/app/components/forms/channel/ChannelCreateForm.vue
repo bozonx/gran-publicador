@@ -144,7 +144,7 @@ defineExpose({
 <template>
   <form :id="formId" @submit.prevent="handleSubmit" class="space-y-6">
     <!-- Project Selection (Optional) -->
-    <UFormField v-if="showProjectSelect" :label="t('channel.project')" required>
+    <UFormField v-if="props.showProjectSelect" :label="t('channel.project')" required>
       <USelectMenu
         v-model="formState.projectId"
         :items="projectOptions"

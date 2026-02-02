@@ -24,11 +24,13 @@ const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
+const isProjectLocked = computed(() => Boolean(props.projectId) || Boolean(props.preselectedChannelId))
+const isChannelLocked = computed(() => Boolean(props.preselectedChannelId))
 const isLanguageLocked = computed(() => Boolean(props.preselectedChannelId))
 
 // Form data
 const formData = reactive({
-  type: props.projectId ? 'project' : ('personal' as 'personal' | 'project'),
+  type: (props.projectId || props.preselectedChannelId) ? 'project' : ('personal' as 'personal' | 'project'),
   projectId: props.projectId || '',
   language: props.preselectedLanguage || user.value?.language || locale.value,
   postType: 'POST' as PostType,
@@ -47,6 +49,11 @@ onMounted(async () => {
 watch(isOpen, (open) => {
   if (open) {
     isInitializedForOpen.value = false
+
+    if (props.projectId) {
+      formData.type = 'project'
+      formData.projectId = props.projectId
+    }
   }
 })
 
@@ -76,6 +83,14 @@ watch(() => formData.projectId, async (newProjectId) => {
 }, { immediate: true })
 
 watch(() => formData.type, async (newType) => {
+    if (isProjectLocked.value) {
+        formData.type = 'project'
+        if (props.projectId) {
+            formData.projectId = props.projectId
+        }
+        return
+    }
+
     if (newType === 'personal') {
         formData.projectId = ''
         channels.value = []
@@ -219,7 +234,7 @@ function handleClose() {
     <!-- Form -->
     <form id="create-publication-form" class="space-y-6" @submit.prevent="handleCreate">
       <!-- Publication Type Toggle -->
-      <UFormField :label="t('common.type')">
+      <UFormField v-if="!isProjectLocked" :label="t('common.type')">
         <URadioGroup
           v-model="formData.type"
           :items="[
@@ -231,7 +246,7 @@ function handleClose() {
 
       <!-- Project Selection (only if project type selected) -->
       <UFormField
-        v-if="formData.type === 'project'"
+        v-if="formData.type === 'project' && !isProjectLocked"
         :label="t('project.title')"
         required
       >
@@ -276,7 +291,7 @@ function handleClose() {
 
       <!-- Channels (only if project selected) -->
       <UFormField
-        v-if="formData.type === 'project' && formData.projectId"
+        v-if="formData.type === 'project' && formData.projectId && !isChannelLocked"
         :label="t('publication.selectChannels')"
         :help="t('publication.channelsHelp')"
       >
