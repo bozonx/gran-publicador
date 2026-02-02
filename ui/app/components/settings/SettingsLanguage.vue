@@ -4,10 +4,21 @@ const toast = useToast()
 const { user, refreshUser } = useAuth()
 const api = useApi()
 
+// Local state for immediate UI feedback
+const isUiLanguageAutoLocal = ref(user.value?.isUiLanguageAuto ?? true)
+
+// Sync local state when user updates from store (e.g. after refreshUser)
+watch(() => user.value?.isUiLanguageAuto, (newVal) => {
+  if (newVal !== undefined) {
+    isUiLanguageAutoLocal.value = newVal
+  }
+})
+
 /**
  * Determine effective UI language based on content language and available translations
  */
 function getEffectiveUiLanguage(contentLang: string): string {
+  if (!contentLang) return 'en-US'
   const availableCodes = (locales.value as any[]).map(l => l.code)
   
   // 1. Exact match
@@ -32,7 +43,7 @@ function getEffectiveUiLanguage(contentLang: string): string {
 const effectiveUiLanguageName = computed(() => {
   const code = getEffectiveUiLanguage(user.value?.language || 'en-US')
   const locale = (locales.value as any[]).find(l => l.code === code)
-  return locale?.name || code
+  return locale ? (locale.name || code) : code
 })
 
 /**
@@ -44,10 +55,10 @@ async function changeContentLanguage(newLocale: string) {
   const data: any = { language: newLocale }
   
   // If auto-mode is enabled, also update uiLanguage
-  if (user.value?.isUiLanguageAuto) {
+  if (isUiLanguageAutoLocal.value) {
     const nextUiLang = getEffectiveUiLanguage(newLocale)
     data.uiLanguage = nextUiLang
-    // Apply immediately to the current session
+    // Apply immediately to the current session interface
     setLocale(nextUiLang)
   }
   
@@ -58,7 +69,6 @@ async function changeContentLanguage(newLocale: string) {
  * Toggle automatic interface language mode
  */
 async function toggleAutoUiMode(enabled: boolean) {
-  console.log('toggleAutoUiMode called with:', enabled)
   const data: any = { isUiLanguageAuto: enabled }
   
   if (enabled && user.value?.language) {
@@ -75,7 +85,6 @@ async function toggleAutoUiMode(enabled: boolean) {
  */
 async function changeUiLanguage(newLocale: string) {
   if (!newLocale) return
-  console.log('changeUiLanguage called with:', newLocale)
   
   // When changing manually, we ensure isUiLanguageAuto is false
   const data: any = { 
@@ -83,17 +92,17 @@ async function changeUiLanguage(newLocale: string) {
     isUiLanguageAuto: false 
   }
   
+  // Local update for immediate UI response
+  isUiLanguageAutoLocal.value = false
+  
   await updateProfile(data)
   setLocale(newLocale)
 }
 
 async function updateProfile(data: any) {
-  console.log('Updating profile with data:', data)
   try {
-    const result = await api.patch('/users/me', data)
-    console.log('Update result:', result)
+    await api.patch('/users/me', data)
     await refreshUser()
-    console.log('User refreshed, new state:', user.value)
     toast.add({
       title: t('common.success'),
       description: t('settings.languageChanged', 'Language settings updated'),
@@ -143,13 +152,13 @@ async function updateProfile(data: any) {
           <!-- Auto Logic Toggle -->
           <div class="flex items-start">
             <UCheckbox
-              :model-value="user?.isUiLanguageAuto"
+              v-model="isUiLanguageAutoLocal"
               @update:model-value="toggleAutoUiMode"
             >
               <template #label>
                 <div class="flex flex-col select-none">
                   <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                    <template v-if="user?.isUiLanguageAuto">
+                    <template v-if="isUiLanguageAutoLocal">
                       {{ t('settings.uiLanguageAutoWithLabel', { lang: effectiveUiLanguageName }) }}
                     </template>
                     <template v-else>
@@ -173,7 +182,7 @@ async function updateProfile(data: any) {
             leave-from-class="transform translate-y-0 opacity-100"
             leave-to-class="transform -translate-y-2 opacity-0"
           >
-            <div v-if="!user?.isUiLanguageAuto" class="pl-7 max-w-xs">
+            <div v-if="!isUiLanguageAutoLocal" class="pl-7 max-w-xs">
               <label class="block text-xs font-medium text-gray-500 mb-1.5">
                 {{ t('settings.uiLanguageSelect', 'Select Interface Language') }}
               </label>

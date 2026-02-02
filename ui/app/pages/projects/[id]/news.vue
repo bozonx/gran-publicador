@@ -63,6 +63,7 @@ const deletingTabId = ref('')
 const newTabName = ref('')
 const isDeleting = ref(false)
 const isLoadMoreLoading = ref(false)
+const isQueriesLoading = ref(true)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<NewsItem | null>(null)
@@ -99,6 +100,7 @@ async function initQueries() {
     loadProcessedNews()
     
     try {
+      isQueriesLoading.value = true
       const queries = await getQueries()
       
       if (queries && queries.length > 0) {
@@ -116,20 +118,6 @@ async function initQueries() {
         } else if (!selectedQueryId.value) {
           selectedQueryId.value = queries[0].id
         }
-      } else {
-        // Create initial default query
-        const defaultQuery = {
-          name: t('news.title'),
-          q: currentProject.value?.name || '',
-          mode: 'hybrid' as const,
-          minScore: 0.5,
-          lang: user.value?.language || locale.value,
-          isNotificationEnabled: false
-        }
-        
-        const created = await createQuery(defaultQuery) as NewsQuery
-        newsQueries.value = [created]
-        selectedQueryId.value = created.id
       }
       
       // Initial search
@@ -140,6 +128,8 @@ async function initQueries() {
       })
     } catch (e) {
       console.error('Failed to load news queries:', e)
+    } finally {
+      isQueriesLoading.value = false
     }
   }
 }
@@ -319,8 +309,8 @@ async function saveTabName() {
 }
 
 // Open delete confirmation modal
+// Open delete confirmation modal
 function openDeleteModal(id: string) {
-  if (newsQueries.value.length <= 1) return
   deletingTabId.value = id
   isDeleteModalOpen.value = true
 }
@@ -649,7 +639,6 @@ function formatScore(score: number) {
                   {{ t('news.rename') || 'Переименовать' }}
                 </UButton>
                 <UButton
-                  v-if="newsQueries.length > 1"
                   color="error"
                   variant="ghost"
                   icon="i-heroicons-trash"
@@ -712,7 +701,27 @@ function formatScore(score: number) {
     </div>
 
     <!-- Initial state when project is loading -->
-    <div v-else-if="isProjectLoading" class="flex justify-center py-24">
+    <!-- Empty State (No Queries) -->
+    <div v-else-if="!isQueriesLoading && !isProjectLoading && newsQueries.length === 0" class="flex flex-col items-center justify-center py-24 space-y-6 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800">
+      <div class="p-4 bg-white dark:bg-gray-800 rounded-full shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <UIcon name="i-heroicons-newspaper" class="w-12 h-12 text-primary-500" />
+      </div>
+      <div class="text-center max-w-md space-y-2 px-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('news.noQueriesTitle') }}</h3>
+        <p class="text-gray-500 dark:text-gray-400">{{ t('news.noQueriesDescription') }}</p>
+      </div>
+      <UButton
+        size="lg"
+        color="primary"
+        icon="i-heroicons-plus"
+        @click="isAddModalOpen = true"
+      >
+        {{ t('news.createFirstQuery') }}
+      </UButton>
+    </div>
+
+    <!-- Initial state when project is loading -->
+    <div v-else-if="isProjectLoading || isQueriesLoading" class="flex justify-center py-24">
       <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin" />
     </div>
 

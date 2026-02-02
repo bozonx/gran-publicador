@@ -45,12 +45,12 @@ export class UserDto {
 
   @Expose()
   @Transform(({ obj }) => {
-    const prefs = (typeof obj.preferences === 'string' ? JSON.parse(obj.preferences) : obj.preferences) as any;
-    return prefs?.isUiLanguageAuto ?? true;
-  }, { toPlainOnly: true })
+    const prefs = obj.preferences || {};
+    return prefs.isUiLanguageAuto !== false;
+  })
   public isUiLanguageAuto!: boolean;
 
-  @Exclude()
+  @Exclude({ toPlainOnly: true })
   public preferences!: any; // Internal use
 }
 

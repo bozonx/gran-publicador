@@ -270,28 +270,32 @@ const displayTemplates = computed({
       :title="modalMode === 'create' ? t('llm.addTemplate') : t('llm.editTemplate')"
     >
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <UFormField :label="t('llm.templateName')" required>
+        <UFormField :label="t('llm.templateName')" required class="w-full">
           <UInput
             v-model="formData.name"
             :placeholder="t('llm.templateNamePlaceholder')"
             autofocus
+            class="w-full"
           />
         </UFormField>
 
-        <UFormField :label="t('llm.templateDescription')">
-          <UInput
-            v-model="formData.description"
-            :placeholder="t('llm.templateDescriptionPlaceholder')"
-          />
-        </UFormField>
-
-        <UFormField :label="t('llm.templatePrompt')" required>
+        <UFormField :label="t('llm.templatePrompt')" required class="w-full">
           <UTextarea
             v-model="formData.prompt"
             :placeholder="t('llm.templatePromptPlaceholder')"
             :rows="6"
             autoresize
-            class="font-mono text-sm"
+            class="font-mono text-sm w-full"
+          />
+        </UFormField>
+
+        <UFormField :label="t('llm.templateDescription')" class="w-full">
+          <UTextarea
+            v-model="formData.description"
+            :placeholder="t('llm.templateDescriptionPlaceholder')"
+            :rows="3"
+            autoresize
+            class="w-full"
           />
         </UFormField>
       </form>

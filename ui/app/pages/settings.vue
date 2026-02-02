@@ -19,11 +19,11 @@ const { t } = useI18n()
     </div>
 
     <SettingsProfile />
+    <SettingsLlmPromptTemplates />
     <SettingsNotifications />
     <SettingsLanguage />
     <SettingsTheme />
     <SettingsApiTokens />
-    <SettingsLlmPromptTemplates />
     <SettingsLogout />
     <SettingsDangerZone />
   </div>

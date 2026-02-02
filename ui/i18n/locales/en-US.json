@@ -172,7 +172,10 @@
     "selectedCount": "{count} selected",
     "sourcesDescription": "Description of sources",
     "sourcesSelected": "Sources selected",
-    "viewOriginal": "View Original"
+    "viewOriginal": "View Original",
+    "noQueriesTitle": "No news collections created yet",
+    "noQueriesDescription": "Create your first news collection to start tracking news for this project.",
+    "createFirstQuery": "Create collection"
   },
   "auth": {
     "login": "Log in",
