@@ -345,8 +345,8 @@ const showPagination = computed(() => {
           <UiAppButtonGroup
             v-model="selectedIssueType"
             :options="[
-              { value: 'all', label: t('common.all') },
-              { value: 'problematic', label: t('channel.filter.problems.onlyProblems') }
+              { value: 'problematic', label: t('channel.filter.problems.onlyProblems') },
+              { value: 'all', label: t('common.all') }
             ]"
             variant="outline"
             active-variant="solid"
@@ -367,8 +367,8 @@ const showPagination = computed(() => {
           <UiAppButtonGroup
             v-model="archiveStatus"
             :options="[
-              { value: 'active', label: t('channel.filter.archiveStatus.active') },
-              { value: 'archived', label: t('channel.filter.archiveStatus.archived') }
+              { value: 'archived', label: t('channel.filter.archiveStatus.archived') },
+              { value: 'active', label: t('channel.filter.archiveStatus.active') }
             ]"
             variant="outline"
             active-variant="solid"

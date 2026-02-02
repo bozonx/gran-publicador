@@ -43,7 +43,7 @@ const filters = useUrlFilters<{
   projectId: string | null
   search: string
   ownership: 'all' | 'own' | 'notOwn'
-  issue: 'all' | 'failed' | 'partial' | 'expired'
+  issue: 'all' | 'problematic'
   socialMedia: SocialMedia | null
   language: string | null
   archived: boolean
@@ -207,12 +207,7 @@ const socialMediaFilterOptions = computed(() => [
 ])
 
 // Issue filter options
-const issueFilterOptions = computed(() => [
-  { value: 'all', label: t('publication.filter.problems.all') },
-  { value: 'failed', label: t('publication.filter.problems.failed') },
-  { value: 'partial', label: t('publication.filter.problems.partial') },
-  { value: 'expired', label: t('publication.filter.problems.expired') }
-])
+// Issue filter options removed as we switched to button group with static options
 
 // Language filter options
 const languageFilterOptions = computed(() => {
@@ -464,20 +459,18 @@ async function handleDelete() {
           </UPopover>
         </div>
 
-        <!-- Issues Filter (Select) -->
-        <div class="flex items-center gap-2">
-          <USelectMenu
+        <!-- Issues Filter (Button group) -->
+        <div class="flex items-center gap-2" :title="t('publication.filter.problems.title')">
+          <UiAppButtonGroup
             v-model="selectedIssueType"
-            :items="issueFilterOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full sm:w-48"
-            :title="t('publication.filter.problems.title')"
-          >
-            <template #leading>
-              <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-orange-500" />
-            </template>
-          </USelectMenu>
+            :options="[
+              { value: 'all', label: t('common.all') },
+              { value: 'problematic', label: t('publication.filter.problems.onlyProblems') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+            color="warning"
+          />
           <UPopover :popper="{ placement: 'top' }">
             <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
             <template #content>

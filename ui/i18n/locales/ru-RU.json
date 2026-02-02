@@ -663,6 +663,7 @@
       "showIssuesOnly": "Проблемные",
       "problems": {
         "all": "Все проблемы",
+        "onlyProblems": "Проблемные",
         "failed": "Ошибки публикации",
         "partial": "Частичные",
         "expired": "Просроченно",

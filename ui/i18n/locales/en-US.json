@@ -665,6 +665,7 @@
       "showIssuesOnly": "Issues",
       "problems": {
         "all": "All problems",
+        "onlyProblems": "Problematic",
         "failed": "Failed posts",
         "partial": "Partial status",
         "expired": "Expired",

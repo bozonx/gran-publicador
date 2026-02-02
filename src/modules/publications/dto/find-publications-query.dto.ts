@@ -45,6 +45,7 @@ export enum IssueType {
   FAILED = 'failed',
   PARTIAL = 'partial',
   EXPIRED = 'expired',
+  PROBLEMATIC = 'problematic',
 }
 
 export enum DraftScope {

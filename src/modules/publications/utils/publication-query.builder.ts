@@ -111,6 +111,15 @@ export class PublicationQueryBuilder {
         where.status = PublicationStatus.PARTIAL;
       } else if (filters.issueType === IssueType.EXPIRED) {
         where.status = PublicationStatus.EXPIRED;
+      } else if (filters.issueType === IssueType.PROBLEMATIC) {
+        conditions.push({
+          OR: [
+            { status: PublicationStatus.FAILED },
+            { status: PublicationStatus.PARTIAL },
+            { status: PublicationStatus.EXPIRED },
+            { posts: { some: { status: PostStatus.FAILED } } },
+          ],
+        });
       }
     }
 
