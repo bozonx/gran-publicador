@@ -135,37 +135,13 @@ function handleChannelCreatedEvent(channel: any) {
 
 
 const isCreateModalOpen = ref(false)
-const { createChannel, isLoading: isCreatingChannel } = useChannels()
 const router = useRouter()
-const createFormRef = ref()
 
-async function handleCreateChannel(data: any) {
-  try {
-    const channel = await createChannel(data)
-
-    if (channel) {
-      isCreateModalOpen.value = false
-      router.push(`/channels/${channel.id}`)
-    }
-  } catch (error: any) {
-    // Error is handled by createChannel toast
-  }
+function handleChannelCreated(channelId: string) {
+  isCreateModalOpen.value = false
+  router.push(`/channels/${channelId}`)
 }
 
-/**
- * Get identifier placeholder based on selected social media
- */
-function getIdentifierPlaceholder(socialMedia: SocialMedia): string {
-  const placeholders: Record<string, string> = {
-    TELEGRAM: '@channel_name',
-    VK: 'club123456789',
-    YOUTUBE: '@channelhandle',
-    TIKTOK: '@username',
-    FACEBOOK: 'page_username',
-    SITE: 'https://example.com',
-  }
-  return placeholders[socialMedia] || ''
-}
 function toggleArchivedChannels() {
   showArchived.value = !showArchived.value
 }
@@ -320,23 +296,10 @@ function toggleArchivedChannels() {
     </div>
 
     <!-- Create Channel Modal -->
-    <UiAppModal v-model:open="isCreateModalOpen" :title="t('channel.createChannel')">
-      <FormsChannelCreateForm
-        ref="createFormRef"
-        id="create-channel-form"
-        :initial-project-id="projectId"
-        :show-project-select="false"
-        @submit="handleCreateChannel"
-      />
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" :disabled="isCreatingChannel" @click="isCreateModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton color="primary" :loading="isCreatingChannel" :disabled="!createFormRef?.isFormValid" type="submit" form="create-channel-form">
-          {{ t('common.create') }}
-        </UButton>
-      </template>
-    </UiAppModal>
+    <ModalsCreateChannelModal
+      v-model:open="isCreateModalOpen"
+      :initial-project-id="projectId"
+      @created="handleChannelCreated"
+    />
   </div>
 </template>
