@@ -212,7 +212,7 @@ export class ChannelsService {
     filters: {
       search?: string;
       ownership?: 'all' | 'own' | 'guest';
-      issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive';
+      issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive' | 'problematic';
       socialMedia?: string;
       language?: string;
       sortBy?: 'alphabetical' | 'socialMedia' | 'language' | 'postsCount';
@@ -285,6 +285,22 @@ export class ChannelsService {
       const staleDate = new Date();
       staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
       where.posts = { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } };
+    } else if (filters.issueType === 'problematic') {
+      const staleDate = new Date();
+      staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
+      
+      const problemConditions: any[] = [
+        // Inactive
+        { isActive: false },
+        // No credentials
+        { OR: [{ credentials: { equals: {} } }, { credentials: { equals: Prisma.AnyNull } }] },
+        // Failed posts
+        { posts: { some: { status: 'FAILED' } } },
+        // Stale
+        { posts: { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } } }
+      ];
+      
+      andConditions.push({ OR: problemConditions });
     }
 
     if (andConditions.length > 0) where.AND = andConditions;

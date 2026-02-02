@@ -5,7 +5,7 @@ import { getSocialMediaColor as getColorBase, getSocialMediaIcon as getIconBase,
 import type { SocialMedia } from '~/types/socialMedia'
 import type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, ChannelFooter } from '~/types/channels'
 import { useI18n } from 'vue-i18n'
-import { isChannelCredentialsEmpty } from '~/utils/channels'
+import { isChannelCredentialsEmpty, getChannelProblems, getChannelProblemLevel } from '~/utils/channels'
 
 export type { SocialMedia }
 export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, ChannelFooter }
@@ -31,7 +31,7 @@ export function useChannels() {
         projectId?: string;
         search?: string;
         ownership?: 'all' | 'own' | 'guest';
-        issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive';
+        issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive' | 'problematic';
         socialMedia?: string;
         language?: string;
         sortBy?: 'alphabetical' | 'socialMedia' | 'language' | 'postsCount';
@@ -265,44 +265,7 @@ export function useChannels() {
         return channelObj.role === 'owner' || channelObj.role === 'admin'
     }
 
-    // Problem detection functions
-    function getChannelProblems(channel: any) {
-        const problems: Array<{ type: 'critical' | 'warning', key: string, count?: number }> = []
-        
-        // Critical: No credentials
-        if (isChannelCredentialsEmpty(channel.credentials, channel.socialMedia)) {
-            problems.push({ type: 'critical', key: 'noCredentials' })
-        }
-        
-        // Critical: Failed posts
-        if (channel.failedPostsCount && channel.failedPostsCount > 0) {
-            problems.push({ 
-                type: 'critical', 
-                key: 'failedPosts',
-                count: channel.failedPostsCount 
-            })
-        }
-        
-        // Warning: Stale channel
-        if (channel.isStale) {
-            problems.push({ type: 'warning', key: 'staleChannel' })
-        }
-        
-        // Warning: Inactive channel
-        if (channel.isActive !== undefined && !channel.isActive) {
-            problems.push({ type: 'warning', key: 'inactiveChannel' })
-        }
-        
-        return problems
-    }
 
-    function getChannelProblemLevel(channel: any): 'critical' | 'warning' | null {
-        if (!channel) return null
-        const problems = getChannelProblems(channel)
-        if (problems.some(p => p.type === 'critical')) return 'critical'
-        if (problems.some(p => p.type === 'warning')) return 'warning'
-        return null
-    }
 
     return {
         channels,

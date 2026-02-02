@@ -180,16 +180,17 @@ function formatScore(score: number) {
           <div class="flex items-center gap-3 flex-1 min-w-0">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 shrink-0">
               <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
-              <span class="font-medium">{{ t('news.query') || 'Запрос' }}:</span>
+
             </div>
             <span class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ currentTrackedQuery.q }}</span>
             
-            <div v-if="currentTrackedQuery.lang" class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 shrink-0">
-              {{ currentTrackedQuery.lang }}
-            </div>
+
           </div>
           
           <div class="flex items-center gap-4 shrink-0">
+             <div v-if="currentTrackedQuery.lang" class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 shrink-0">
+              {{ currentTrackedQuery.lang }}
+            </div>
              <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
               <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
               <span>Score: <span class="font-bold text-gray-900 dark:text-gray-100">{{ currentTrackedQuery.minScore }}</span></span>

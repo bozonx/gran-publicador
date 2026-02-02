@@ -50,6 +50,7 @@ export enum IssueTypeFilter {
   FAILED_POSTS = 'failedPosts',
   STALE = 'stale',
   INACTIVE = 'inactive',
+  PROBLEMATIC = 'problematic',
 }
 
 /**

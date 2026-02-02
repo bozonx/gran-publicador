@@ -50,7 +50,7 @@ const ownershipFilter = ref<OwnershipFilter>(
 const showArchivedFilter = ref(route.query.archived === 'true')
 
 // Issue type filter
-type ChannelIssueFilter = 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive'
+type ChannelIssueFilter = 'all' | 'problematic'
 const selectedIssueType = ref<ChannelIssueFilter>(
   (route.query.issue as ChannelIssueFilter) || 'all'
 )
@@ -221,14 +221,7 @@ const projectFilterOptions = computed(() => {
   return options
 })
 
-// Issue filter options
-const issueFilterOptions = computed(() => [
-  { value: 'all', label: t('channel.filter.problems.all') },
-  { value: 'noCredentials', label: t('channel.filter.problems.noCredentials') },
-  { value: 'failedPosts', label: t('channel.filter.problems.failedPosts') },
-  { value: 'stale', label: t('channel.filter.problems.stale') },
-  { value: 'inactive', label: t('channel.filter.problems.inactive') }
-])
+
 
 const hasActiveFilters = computed(() => {
     return searchQuery.value || 
@@ -340,20 +333,19 @@ const showPagination = computed(() => {
         </div>
 
         <!-- Issues Filter (Select) -->
-        <div class="flex items-center gap-2">
-          <USelectMenu
+        <!-- Issues Filter (Button group) -->
+        <div class="flex items-center gap-2" :title="t('channel.filter.problems.title')">
+          <UiAppButtonGroup
             v-model="selectedIssueType"
-            :items="issueFilterOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full sm:w-56"
-            :title="t('channel.filter.problems.title')"
-          >
-            <template #leading>
-              <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-orange-500" />
-            </template>
-          </USelectMenu>
-          <UPopover :popper="{ placement: 'top' }">
+            :options="[
+              { value: 'all', label: t('common.all') },
+              { value: 'problematic', label: t('channel.filter.problems.onlyProblems') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+            color="warning"
+          />
+           <UPopover :popper="{ placement: 'top' }">
             <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
             <template #content>
               <div class="p-4 max-w-xs">

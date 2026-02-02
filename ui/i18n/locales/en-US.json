@@ -46,6 +46,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
+    "configure": "Configure",
     "search": "Search",
     "type": "Type",
     "actions": "Actions",
@@ -140,7 +141,7 @@
     "searchPlaceholder": "Enter search query",
     "noResults": "No news found",
     "loading": "Loading news...",
-    "description": "Project news and updates",
+    "description": "News collections by project topics for creating publications",
     "addTab": "Add tab",
     "tabName": "Tab name",
     "tabNamePlaceholder": "Enter tab name",
@@ -351,6 +352,7 @@
     "filter": {
       "problems": {
         "all": "All problems",
+        "onlyProblems": "Problematic",
         "noCredentials": "No credentials",
         "failedPosts": "Failed posts",
         "stale": "Stale",
