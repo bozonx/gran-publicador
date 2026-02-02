@@ -411,6 +411,7 @@ model LlmPromptTemplate {
   
   name        String
   description String?
+  category    LlmPromptTemplateCategory @default(GENERAL)
   // The actual prompt template text
   prompt      String
   // Display order for UI
@@ -425,6 +426,14 @@ model LlmPromptTemplate {
   @@index([userId])
   @@index([projectId])
   @@map("llm_prompt_templates")
+}
+
+enum LlmPromptTemplateCategory {
+  GENERAL
+  CHAT
+  CONTENT
+  EDITING
+  METADATA
 }
 
 

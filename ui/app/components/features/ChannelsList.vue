@@ -135,63 +135,13 @@ function handleChannelCreatedEvent(channel: any) {
 
 
 const isCreateModalOpen = ref(false)
-const isCreating = ref(false)
-const { languageOptions } = useLanguages()
-const { 
-  createChannel, 
-  socialMediaOptions,
-  getSocialMediaIcon,
-  getSocialMediaColor 
-} = useChannels()
+const { createChannel, isLoading: isCreatingChannel } = useChannels()
 const router = useRouter()
+const createFormRef = ref()
 
-const defaultChannelLanguage = computed(() => {
-  return user.value?.language || user.value?.uiLanguage || locale.value || 'en-US'
-})
-
-const createFormState = reactive({
-  language: defaultChannelLanguage.value,
-  socialMedia: 'TELEGRAM' as SocialMedia,
-  name: '',
-  description: '',
-  channelIdentifier: ''
-})
-
-function resetCreateForm() {
-  createFormState.language = defaultChannelLanguage.value
-  createFormState.socialMedia = 'TELEGRAM'
-  createFormState.name = ''
-  createFormState.description = ''
-  createFormState.channelIdentifier = ''
-  isCreating.value = false
-}
-
-function openCreateModal() {
-  resetCreateForm()
-  isCreateModalOpen.value = true
-}
-
-async function handleCreateChannel() {
-  const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
-  
-  if (!props.projectId || !isUuid(props.projectId)) {
-    console.error('[ChannelsList] Cannot create channel: projectId is missing or not a valid UUID', props.projectId)
-    return
-  }
-
-  if (!createFormState.name || !createFormState.channelIdentifier || !createFormState.language) return
-
-  isCreating.value = true
+async function handleCreateChannel(data: any) {
   try {
-    const channel = await createChannel({
-      projectId: props.projectId,
-      name: createFormState.name,
-      description: createFormState.description || undefined,
-      socialMedia: createFormState.socialMedia,
-      channelIdentifier: createFormState.channelIdentifier,
-      language: createFormState.language,
-      isActive: true
-    })
+    const channel = await createChannel(data)
 
     if (channel) {
       isCreateModalOpen.value = false
@@ -199,8 +149,6 @@ async function handleCreateChannel() {
     }
   } catch (error: any) {
     // Error is handled by createChannel toast
-  } finally {
-    isCreating.value = false
   }
 }
 
@@ -261,7 +209,7 @@ function toggleArchivedChannels() {
         <UButton
           icon="i-heroicons-plus"
           color="primary"
-          @click="openCreateModal"
+          @click="isCreateModalOpen = true"
         >
           {{ t('channel.createChannel', 'Create channel') }}
         </UButton>
@@ -296,7 +244,7 @@ function toggleArchivedChannels() {
       <p class="text-gray-500 dark:text-gray-400 mb-6">
         {{ t('channel.noChannelsDescription') }}
       </p>
-      <UButton icon="i-heroicons-plus" color="primary" @click="openCreateModal">
+      <UButton icon="i-heroicons-plus" color="primary" @click="isCreateModalOpen = true">
         {{ t('channel.createChannel', 'Create channel') }}
       </UButton>
     </div>
@@ -373,46 +321,19 @@ function toggleArchivedChannels() {
 
     <!-- Create Channel Modal -->
     <UiAppModal v-model:open="isCreateModalOpen" :title="t('channel.createChannel')">
-      <form @submit.prevent="handleCreateChannel" id="create-channel-form" class="space-y-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UFormField :label="t('channel.language')" required>
-            <CommonLanguageSelect
-              v-model="createFormState.language"
-              mode="all"
-              searchable
-              class="w-full"
-            />
-          </UFormField>
-
-          <UFormField :label="t('channel.socialMedia')" required>
-            <USelectMenu
-              v-model="createFormState.socialMedia"
-              :items="socialMediaOptions"
-              value-key="value"
-              label-key="label"
-              class="w-full"
-            />
-          </UFormField>
-        </div>
-
-        <UFormField :label="t('channel.name')" required>
-          <UInput v-model="createFormState.name" :placeholder="t('channel.namePlaceholder')" class="w-full" size="lg" />
-        </UFormField>
-
-        <UFormField :label="t('channel.description')" :help="t('common.optional')">
-          <UTextarea v-model="createFormState.description" :placeholder="t('channel.descriptionPlaceholder')" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
-        </UFormField>
-
-        <UFormField :label="t('channel.identifier')" required :help="t('channel.identifierHelp')">
-          <UInput v-model="createFormState.channelIdentifier" :placeholder="getIdentifierPlaceholder(createFormState.socialMedia)" class="w-full" />
-        </UFormField>
-      </form>
+      <FormsChannelChannelCreateForm
+        ref="createFormRef"
+        id="create-channel-form"
+        :initial-project-id="projectId"
+        :show-project-select="false"
+        @submit="handleCreateChannel"
+      />
 
       <template #footer>
-        <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isCreateModalOpen = false">
+        <UButton color="neutral" variant="ghost" :disabled="isCreatingChannel" @click="isCreateModalOpen = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton color="primary" :loading="isCreating" :disabled="!createFormState.name || !createFormState.channelIdentifier || !createFormState.language" type="submit" form="create-channel-form">
+        <UButton color="primary" :loading="isCreatingChannel" :disabled="!createFormRef?.isFormValid" type="submit" form="create-channel-form">
           {{ t('common.create') }}
         </UButton>
       </template>

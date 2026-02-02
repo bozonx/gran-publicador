@@ -32,8 +32,20 @@ const tplToDelete = ref<LlmPromptTemplate | null>(null)
 const formData = reactive({
   name: '',
   description: '',
+  category: 'GENERAL' as 'GENERAL' | 'CHAT' | 'CONTENT' | 'EDITING' | 'METADATA',
   prompt: ''
 })
+
+const categoryFilter = ref<'ALL' | 'GENERAL' | 'CHAT' | 'CONTENT' | 'EDITING' | 'METADATA'>('ALL')
+
+const categoryOptions = computed(() => [
+  { value: 'ALL', label: t('common.all') },
+  { value: 'GENERAL', label: t('llm.categories.general') },
+  { value: 'CHAT', label: t('llm.categories.chat') },
+  { value: 'CONTENT', label: t('llm.categories.content') },
+  { value: 'EDITING', label: t('llm.categories.editing') },
+  { value: 'METADATA', label: t('llm.categories.metadata') },
+])
 
 // Search
 const searchQuery = ref('')
@@ -41,16 +53,23 @@ const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 // Filtered templates based on search
 const filteredTemplates = computed(() => {
-  if (!debouncedSearch.value.trim()) {
-    return templates.value
-  }
-  
-  const query = debouncedSearch.value.toLowerCase()
-  return templates.value.filter(tpl => 
-    tpl.name.toLowerCase().includes(query) ||
-    (tpl.description && tpl.description.toLowerCase().includes(query)) ||
-    tpl.prompt.toLowerCase().includes(query)
-  )
+  const query = debouncedSearch.value.trim().toLowerCase()
+
+  return templates.value.filter((tpl) => {
+    const matchesCategory =
+      categoryFilter.value === 'ALL' ||
+      (tpl.category ?? 'GENERAL') === categoryFilter.value
+
+    if (!matchesCategory) return false
+
+    if (!query) return true
+
+    return (
+      tpl.name.toLowerCase().includes(query) ||
+      (tpl.description && tpl.description.toLowerCase().includes(query)) ||
+      tpl.prompt.toLowerCase().includes(query)
+    )
+  })
 })
 
 // Character count for prompt
@@ -80,6 +99,7 @@ const openCreateModal = () => {
   editingTemplate.value = null
   formData.name = ''
   formData.description = ''
+  formData.category = 'GENERAL'
   formData.prompt = ''
   isModalOpen.value = true
 }
@@ -89,6 +109,7 @@ const openEditModal = (template: LlmPromptTemplate) => {
   editingTemplate.value = template
   formData.name = template.name
   formData.description = template.description || ''
+  formData.category = template.category || 'GENERAL'
   formData.prompt = template.prompt
   isModalOpen.value = true
 }
@@ -166,21 +187,33 @@ const displayTemplates = computed({
 
     <!-- Search Field -->
     <div v-if="templates.length > 0" class="mb-4">
-      <UInput
-        v-model="searchQuery"
-        icon="i-heroicons-magnifying-glass"
-        :placeholder="t('llm.searchTemplates')"
-      >
-        <template v-if="searchQuery" #trailing>
-          <UButton
-            color="neutral"
-            variant="link"
-            icon="i-heroicons-x-mark"
-            :padded="false"
-            @click="searchQuery = ''"
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <UInput
+          v-model="searchQuery"
+          icon="i-heroicons-magnifying-glass"
+          :placeholder="t('llm.searchTemplates')"
+        >
+          <template v-if="searchQuery" #trailing>
+            <UButton
+              color="neutral"
+              variant="link"
+              icon="i-heroicons-x-mark"
+              :padded="false"
+              @click="searchQuery = ''"
+            />
+          </template>
+        </UInput>
+
+        <UFormField :label="t('llm.templateCategory')" class="w-full">
+          <USelectMenu
+            v-model="categoryFilter"
+            :items="categoryOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
           />
-        </template>
-      </UInput>
+        </UFormField>
+      </div>
     </div>
 
     <!-- Templates List -->
@@ -216,11 +249,11 @@ const displayTemplates = computed({
       v-model="displayTemplates"
       handle=".drag-handle"
       class="space-y-3"
-      :disabled="searchQuery.length > 0"
+      :disabled="searchQuery.length > 0 || categoryFilter !== 'ALL'"
       @end="handleReorder"
     >
       <div
-        v-for="tpl in templates"
+        v-for="tpl in displayTemplates"
         :key="tpl.id"
         class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group"
       >
@@ -234,6 +267,10 @@ const displayTemplates = computed({
             <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
               {{ tpl.name }}
             </h4>
+
+            <UBadge size="xs" color="neutral" variant="subtle">
+              {{ categoryOptions.find(o => o.value === (tpl.category || 'GENERAL'))?.label }}
+            </UBadge>
           </div>
           <p v-if="tpl.description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
             {{ tpl.description }}
@@ -275,6 +312,16 @@ const displayTemplates = computed({
             v-model="formData.name"
             :placeholder="t('llm.templateNamePlaceholder')"
             autofocus
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField :label="t('llm.templateCategory')" required class="w-full">
+          <USelectMenu
+            v-model="formData.category"
+            :items="categoryOptions.filter(o => o.value !== 'ALL')"
+            value-key="value"
+            label-key="label"
             class="w-full"
           />
         </UFormField>

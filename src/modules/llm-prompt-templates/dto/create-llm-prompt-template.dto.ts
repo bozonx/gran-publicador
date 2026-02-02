@@ -1,5 +1,16 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min, Max, MaxLength, ValidateIf } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  MaxLength,
+  ValidateIf,
+  IsEnum,
+} from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { LlmPromptTemplateCategory } from '../../../generated/prisma/index.js';
 
 export class CreateLlmPromptTemplateDto {
   @IsString()
@@ -16,6 +27,10 @@ export class CreateLlmPromptTemplateDto {
   @IsNotEmpty()
   @MaxLength(VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_PROMPT_LENGTH)
   prompt!: string;
+
+  @IsEnum(LlmPromptTemplateCategory)
+  @IsOptional()
+  category?: LlmPromptTemplateCategory;
 
   @IsInt()
   @Min(VALIDATION_LIMITS.MIN_ORDER)

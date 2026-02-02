@@ -1165,6 +1165,14 @@
     "templateDescriptionPlaceholder": "Short description of the template",
     "templatePrompt": "Prompt Text",
     "templatePromptPlaceholder": "Enter prompt text...",
+    "templateCategory": "Category",
+    "categories": {
+      "general": "General",
+      "chat": "Chat",
+      "content": "Content",
+      "editing": "Editing",
+      "metadata": "Metadata"
+    },
     "confirmDelete": "Are you sure you want to delete this template?",
     "deleteTemplateTitle": "Delete Template",
     "createTemplateSuccess": "Template created successfully",

@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import type { SocialMedia } from '~/types/socialMedia'
-import { FORM_STYLES } from '~/utils/design-tokens'
+import type { ChannelCreateInput } from '~/types/channels'
 
-
-const { t, locale } = useI18n()
-const toast = useToast()
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'created', channelId: string, projectId: string): void
@@ -16,83 +14,17 @@ const props = defineProps<{
   initialProjectId?: string
 }>()
 
-const { projects, fetchProjects } = useProjects()
-const { createChannel, isLoading, getSocialMediaIcon } = useChannels()
-const { user } = useAuth()
+const { createChannel, isLoading } = useChannels()
 
+const createFormRef = ref()
 
-const formState = reactive({
-  projectId: '',
-  name: '',
-  socialMedia: '' as SocialMedia | '',
-  language: user.value?.language || 'en-US',
-  channelIdentifier: '',
-  description: ''
-})
-
-// Load projects when modal opens
-watch(isOpen, async (open) => {
-  if (open) {
-    if (user.value?.language) {
-      formState.language = user.value.language
-    }
-    await fetchProjects()
-    resetForm()
-  }
-})
-
-function resetForm() {
-  formState.projectId = props.initialProjectId || projects.value[0]?.id || ''
-  formState.name = ''
-  formState.socialMedia = '' as SocialMedia | ''
-  formState.language = user.value?.language || 'en-US'
-  formState.channelIdentifier = ''
-  formState.description = ''
-}
-
-// Watch for user language changes and sync if modal is closed or language is not set
-watch(() => user.value?.language, (newVal) => {
-    if (newVal) {
-        formState.language = newVal
-    }
-}, { immediate: true })
-
-
-// Social media options
-
-
-// Project options
-const projectOptions = computed(() => 
-  projects.value.map(p => ({
-    value: p.id,
-    label: p.name
-  }))
-)
-
-async function handleCreate() {
-  const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
-  
-  if (!formState.projectId || !isUuid(formState.projectId)) {
-    console.error('[CreateChannelModal] Cannot create channel: projectId is missing or not a valid UUID', formState.projectId)
-    return
-  }
-
-  if (!formState.name || !formState.projectId || !formState.socialMedia) return
-
+async function handleCreate(data: ChannelCreateInput) {
   try {
-    const channel = await createChannel({
-      projectId: formState.projectId,
-      name: formState.name,
-      socialMedia: formState.socialMedia as SocialMedia,
-      language: formState.language,
-      channelIdentifier: formState.channelIdentifier,
-      description: formState.description || undefined
-    })
+    const channel = await createChannel(data)
 
     if (channel) {
-      resetForm()
       isOpen.value = false
-      emit('created', channel.id, formState.projectId)
+      emit('created', channel.id, data.projectId)
     }
   } catch (error: any) {
     // Error handled by useChannels
@@ -100,35 +32,19 @@ async function handleCreate() {
 }
 
 function handleClose() {
-  resetForm()
   isOpen.value = false
 }
 </script>
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
-    <form id="create-channel-form" @submit.prevent="handleCreate" class="space-y-6">
-      <!-- Project -->
-      <UFormField :label="t('channel.project')" required>
-        <USelectMenu
-          v-model="formState.projectId"
-          :items="projectOptions"
-          value-key="value"
-          label-key="label"
-          class="w-full"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
-      </UFormField>
-
-      <FormsChannelPartsChannelGeneralFields
-        :state="formState"
-        :is-edit-mode="false"
-        :show-project="false"
-      />
-    </form>
+    <FormsChannelChannelCreateForm
+      ref="createFormRef"
+      id="create-channel-form"
+      :initial-project-id="initialProjectId"
+      :show-project-select="!initialProjectId"
+      @submit="handleCreate"
+    />
 
     <template #footer>
       <UButton 
@@ -142,7 +58,7 @@ function handleClose() {
       <UButton 
         color="primary" 
         :loading="isLoading" 
-        :disabled="!formState.name || !formState.projectId || !formState.socialMedia || !formState.channelIdentifier" 
+        :disabled="!createFormRef?.isFormValid" 
         form="create-channel-form"
         type="submit"
       >

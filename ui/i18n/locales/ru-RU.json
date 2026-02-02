@@ -1124,8 +1124,16 @@
     "templateDescriptionPlaceholder": "Краткое описание шаблона",
     "templatePrompt": "Текст промпта",
     "templatePromptPlaceholder": "Введите текст промпта...",
+    "templateCategory": "Категория",
+    "categories": {
+      "general": "Общие",
+      "chat": "Чат",
+      "content": "Контент",
+      "editing": "Редактирование",
+      "metadata": "Метаданные"
+    },
     "confirmDelete": "Вы уверены, что хотите удалить этот шаблон?",
-    "deleteTemplateTitle": "Удаление шаблона",
+    "deleteTemplateTitle": "Удалить шаблон",
     "createTemplateSuccess": "Шаблон успешно создан",
     "updateTemplateSuccess": "Шаблон успешно обновлен",
     "deleteTemplateSuccess": "Шаблон успешно удален",

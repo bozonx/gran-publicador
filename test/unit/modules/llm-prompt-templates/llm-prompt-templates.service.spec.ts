@@ -56,6 +56,7 @@ describe('LlmPromptTemplatesService', () => {
       mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
         id: 'template-1',
         ...dto,
+        category: 'GENERAL',
         order: 3,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -92,6 +93,7 @@ describe('LlmPromptTemplatesService', () => {
       mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
         id: 'template-1',
         ...dto,
+        category: 'GENERAL',
         order: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
