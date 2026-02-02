@@ -10,6 +10,12 @@ describe('ChannelsService (unit)', () => {
   let moduleRef: TestingModule;
 
   const mockPrismaService = {
+    user: {
+      findUnique: jest.fn() as any,
+    },
+    project: {
+      findMany: jest.fn() as any,
+    },
     channel: {
       create: jest.fn() as any,
       findMany: jest.fn() as any,
@@ -52,6 +58,8 @@ describe('ChannelsService (unit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockPrismaService.user.findUnique.mockResolvedValue({ isAdmin: true });
   });
 
   const projectId = 'proj-1';
@@ -122,6 +130,46 @@ describe('ChannelsService (unit)', () => {
         projectId,
         userId,
         PermissionKey.CHANNELS_READ,
+      );
+    });
+  });
+
+  describe('findAllForUser sorting', () => {
+    it('should sort alphabetically with stable tie-breaker by id', async () => {
+      mockPrismaService.channel.findMany.mockResolvedValue([]);
+      mockPrismaService.channel.count.mockResolvedValue(0);
+      mockPrismaService.post.groupBy.mockResolvedValue([]);
+
+      await service.findAllForUser(userId, {
+        sortBy: 'alphabetical',
+        sortOrder: 'asc',
+        limit: 10,
+        offset: 0,
+      });
+
+      expect(mockPrismaService.channel.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        }),
+      );
+    });
+
+    it('should sort by postsCount with stable tie-breakers', async () => {
+      mockPrismaService.channel.findMany.mockResolvedValue([]);
+      mockPrismaService.channel.count.mockResolvedValue(0);
+      mockPrismaService.post.groupBy.mockResolvedValue([]);
+
+      await service.findAllForUser(userId, {
+        sortBy: 'postsCount',
+        sortOrder: 'desc',
+        limit: 10,
+        offset: 0,
+      });
+
+      expect(mockPrismaService.channel.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ posts: { _count: 'desc' } }, { name: 'asc' }, { id: 'asc' }],
+        }),
       );
     });
   });

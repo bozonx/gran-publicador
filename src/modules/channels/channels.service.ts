@@ -23,11 +23,7 @@ export class ChannelsService {
     projectId: string,
     data: Omit<CreateChannelDto, 'projectId'>,
   ) {
-    await this.permissions.checkPermission(
-      projectId,
-      userId,
-      PermissionKey.CHANNELS_CREATE,
-    );
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.CHANNELS_CREATE);
 
     return this.prisma.channel.create({
       data: {
@@ -52,11 +48,7 @@ export class ChannelsService {
     userId: string,
     options: { allowArchived?: boolean; isActive?: boolean; limit?: number } = {},
   ): Promise<ChannelResponseDto[]> {
-    await this.permissions.checkPermission(
-      projectId,
-      userId,
-      PermissionKey.CHANNELS_READ,
-    );
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.CHANNELS_READ);
 
     const publishedPostFilter = { status: 'PUBLISHED' as const };
 
@@ -104,7 +96,7 @@ export class ChannelsService {
     return channels.map(channel => this.mapToDto(channel, countsMap.get(channel.id)));
   }
 
-// ... (skip findAllForUser as it iterates projects)
+  // ... (skip findAllForUser as it iterates projects)
 
   public async update(id: string, userId: string, data: UpdateChannelDto) {
     const channel = await this.findOne(id, userId, true);
@@ -275,13 +267,17 @@ export class ChannelsService {
 
       // If ownership filter is set for admin, we need to respect it relative to their own user ID
       if (filters.ownership) {
-         if (filters.ownership === 'own') {
-             // Projects owned by admin
-             where.project = { ...where.project, ownerId: userId };
-         } else if (filters.ownership === 'guest') {
-             // Projects where admin is a member but not owner
-             where.project = { ...where.project, ownerId: { not: userId }, members: { some: { userId } } };
-         }
+        if (filters.ownership === 'own') {
+          // Projects owned by admin
+          where.project = { ...where.project, ownerId: userId };
+        } else if (filters.ownership === 'guest') {
+          // Projects where admin is a member but not owner
+          where.project = {
+            ...where.project,
+            ownerId: { not: userId },
+            members: { some: { userId } },
+          };
+        }
       }
     }
 
@@ -317,7 +313,7 @@ export class ChannelsService {
     } else if (filters.issueType === 'problematic') {
       const staleDate = new Date();
       staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
-      
+
       const problemConditions: any[] = [
         // Inactive
         { isActive: false },
@@ -333,7 +329,7 @@ export class ChannelsService {
           ],
         },
       ];
-      
+
       andConditions.push({ OR: problemConditions });
     }
 
@@ -342,10 +338,17 @@ export class ChannelsService {
     const orderBy: any[] = [];
     const sortField = filters.sortBy ?? 'alphabetical';
     const sortOrder = filters.sortOrder ?? 'asc';
-    if (sortField === 'alphabetical') orderBy.push({ name: sortOrder });
-    else if (sortField === 'socialMedia') orderBy.push({ socialMedia: sortOrder }, { name: 'asc' });
-    else if (sortField === 'language') orderBy.push({ language: sortOrder }, { name: 'asc' });
-    else if (sortField === 'postsCount') orderBy.push({ posts: { _count: sortOrder } });
+    if (sortField === 'alphabetical') {
+      orderBy.push({ name: sortOrder }, { id: 'asc' });
+    } else if (sortField === 'socialMedia') {
+      orderBy.push({ socialMedia: sortOrder }, { name: 'asc' }, { id: 'asc' });
+    } else if (sortField === 'language') {
+      orderBy.push({ language: sortOrder }, { name: 'asc' }, { id: 'asc' });
+    } else if (sortField === 'postsCount') {
+      orderBy.push({ posts: { _count: sortOrder } }, { name: 'asc' }, { id: 'asc' });
+    } else {
+      orderBy.push({ name: sortOrder }, { id: 'asc' });
+    }
 
     const [channels, total] = await Promise.all([
       this.prisma.channel.findMany({
@@ -479,8 +482,6 @@ export class ChannelsService {
       role ?? undefined,
     );
   }
-
-
 
   private mapToDto(
     channel: any,

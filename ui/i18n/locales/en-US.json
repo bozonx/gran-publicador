@@ -696,12 +696,11 @@
       "allStatuses": "All statuses",
       "statusGroup": {
         "title": "Status",
-        "active": "Active",
+        "active": "In Progress",
         "draft": "Draft",
         "ready": "Ready",
         "problematic": "Problematic",
-        "all": "All",
-        "tooltip": "Status group filter:\n\n• Active — Scheduled, Processing, Published\n• Draft — Draft\n• Ready — Ready\n• Problematic — Failed, Partial, Expired\n• All — no status filtering"
+        "tooltip": "Status group filter:\n\n• In Progress — Scheduled, Processing, Published, Failed, Partial, Expired\n• Draft — Draft\n• Ready — Ready\n• Problematic — Failed, Partial, Expired"
       }
     },
     "sort": {

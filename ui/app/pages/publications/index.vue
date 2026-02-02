@@ -25,6 +25,7 @@ const { user } = useAuth()
 
 const ALLOWED_SORT_BY = ['chronology', 'byScheduled', 'byPublished', 'createdAt', 'postDate'] as const
 const ALLOWED_SORT_ORDER = ['asc', 'desc'] as const
+const ALLOWED_STATUS_GROUP = ['active', 'draft', 'ready', 'problematic'] as const
 
 const {
   publications,
@@ -54,7 +55,10 @@ const filters = useUrlFilters<{
   sortOrder: string
 }>({
   page: { defaultValue: 1, deserialize: (v: string) => Math.max(1, parseInt(v) || 1) },
-  statusGroup: { defaultValue: 'active' },
+  statusGroup: {
+    defaultValue: 'active',
+    deserialize: (v: string) => (ALLOWED_STATUS_GROUP as readonly string[]).includes(v) ? (v as PublicationsStatusGroupFilter) : 'active',
+  },
   channelId: { defaultValue: null },
   projectId: { defaultValue: null },
   search: { defaultValue: '' },
@@ -467,8 +471,7 @@ async function handleDelete() {
               { value: 'active', label: t('publication.filter.statusGroup.active') },
               { value: 'draft', label: t('publication.filter.statusGroup.draft') },
               { value: 'ready', label: t('publication.filter.statusGroup.ready') },
-              { value: 'problematic', label: t('publication.filter.statusGroup.problematic') },
-              { value: 'all', label: t('publication.filter.statusGroup.all') }
+              { value: 'problematic', label: t('publication.filter.statusGroup.problematic') }
             ]"
             variant="outline"
             active-variant="solid"

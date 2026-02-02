@@ -66,12 +66,24 @@ const selectedProjectId = ref<string | null>(
 
 // Sorting
 type SortBy = 'alphabetical' | 'socialMedia' | 'language' | 'postsCount'
-const sortBy = ref<SortBy>(
-  (route.query.sortBy as SortBy) || 'alphabetical'
-)
-const sortOrder = ref<'asc' | 'desc'>(
-  (route.query.sortOrder as 'asc' | 'desc') || 'asc'
-)
+const ALLOWED_SORT_BY = ['alphabetical', 'socialMedia', 'language', 'postsCount'] as const
+const ALLOWED_SORT_ORDER = ['asc', 'desc'] as const
+
+const SORT_BY_STORAGE_KEY = 'channels-sort-by'
+const SORT_ORDER_STORAGE_KEY = 'channels-sort-order'
+
+function parseSortBy(value: unknown): SortBy {
+  const v = typeof value === 'string' ? value : ''
+  return (ALLOWED_SORT_BY as readonly string[]).includes(v) ? (v as SortBy) : 'alphabetical'
+}
+
+function parseSortOrder(value: unknown): 'asc' | 'desc' {
+  const v = typeof value === 'string' ? value : ''
+  return (ALLOWED_SORT_ORDER as readonly string[]).includes(v) ? (v as 'asc' | 'desc') : 'asc'
+}
+
+const sortBy = ref<SortBy>(parseSortBy(route.query.sortBy))
+const sortOrder = ref<'asc' | 'desc'>(parseSortOrder(route.query.sortOrder))
 
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list')
@@ -97,11 +109,40 @@ async function loadChannels() {
 
 // Fetch on mount
 onMounted(async () => {
+    if (import.meta.client) {
+      const hasSortByInUrl = route.query.sortBy !== undefined
+      const hasSortOrderInUrl = route.query.sortOrder !== undefined
+
+      if (!hasSortByInUrl) {
+        const storedSortBy = localStorage.getItem(SORT_BY_STORAGE_KEY)
+        if (storedSortBy && (ALLOWED_SORT_BY as readonly string[]).includes(storedSortBy)) {
+          sortBy.value = storedSortBy as SortBy
+        }
+      }
+
+      if (!hasSortOrderInUrl) {
+        const storedSortOrder = localStorage.getItem(SORT_ORDER_STORAGE_KEY)
+        if (storedSortOrder && (ALLOWED_SORT_ORDER as readonly string[]).includes(storedSortOrder)) {
+          sortOrder.value = storedSortOrder as 'asc' | 'desc'
+        }
+      }
+    }
+
     await Promise.all([
         loadChannels(),
         fetchProjects(true) // including archived projects
     ])
 })
+
+if (import.meta.client) {
+  watch(sortBy, (val) => {
+    localStorage.setItem(SORT_BY_STORAGE_KEY, val)
+  })
+
+  watch(sortOrder, (val) => {
+    localStorage.setItem(SORT_ORDER_STORAGE_KEY, val)
+  })
+}
 
 // Update URL when filters change
 watch(
