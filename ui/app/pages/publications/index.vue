@@ -84,6 +84,9 @@ const showArchivedFilter = filters.archived
 const sortBy = filters.sortBy
 const sortOrder = filters.sortOrder
 
+const SORT_BY_STORAGE_KEY = 'publications-sort-by'
+const SORT_ORDER_STORAGE_KEY = 'publications-sort-order'
+
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const limit = ref(DEFAULT_PAGE_SIZE)
 
@@ -106,6 +109,16 @@ const currentSortOption = computed(() =>
 
 function toggleSortOrder() {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
+
+if (import.meta.client) {
+  watch(sortBy, (val) => {
+    localStorage.setItem(SORT_BY_STORAGE_KEY, val)
+  })
+
+  watch(sortOrder, (val) => {
+    localStorage.setItem(SORT_ORDER_STORAGE_KEY, val)
+  })
 }
 
 // View mode (list or cards)
@@ -132,6 +145,25 @@ async function fetchPublications() {
 
 // Initial data load
 onMounted(async () => {
+    if (import.meta.client) {
+      const hasSortByInUrl = route.query.sortBy !== undefined
+      const hasSortOrderInUrl = route.query.sortOrder !== undefined
+
+      if (!hasSortByInUrl) {
+        const storedSortBy = localStorage.getItem(SORT_BY_STORAGE_KEY)
+        if (storedSortBy && (ALLOWED_SORT_BY as readonly string[]).includes(storedSortBy)) {
+          sortBy.value = storedSortBy
+        }
+      }
+
+      if (!hasSortOrderInUrl) {
+        const storedSortOrder = localStorage.getItem(SORT_ORDER_STORAGE_KEY)
+        if (storedSortOrder && (ALLOWED_SORT_ORDER as readonly string[]).includes(storedSortOrder)) {
+          sortOrder.value = storedSortOrder
+        }
+      }
+    }
+
     await Promise.all([
         fetchProjects(true),
         fetchChannels()
