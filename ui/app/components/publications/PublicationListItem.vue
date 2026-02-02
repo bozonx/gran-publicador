@@ -159,9 +159,10 @@ function handleDelete(e: Event) {
         </div>
         
         <!-- Project Info (Optional) -->
-        <div v-if="showProjectInfo && publication.projectId" class="flex items-center gap-1.5 ml-auto">
+        <div v-if="showProjectInfo && (publication.project || publication.projectId)" class="flex items-center gap-1.5 ml-auto">
            <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
-           <span class="text-[11px] font-mono">{{ publication.projectId.slice(0, 8) }}</span>
+           <span v-if="publication.project" class="text-xs truncate max-w-[150px]">{{ publication.project.name }}</span>
+           <span v-else class="text-[11px] font-mono">{{ publication.projectId?.slice(0, 8) }}</span>
         </div>
       </div>
 
