@@ -170,8 +170,7 @@ export class PublicationQueryBuilder {
     sortDirection: 'asc' | 'desc',
   ): Prisma.PublicationOrderByWithRelationInput[] {
     if (sortField === 'chronology') {
-      // Best approximation for DB-level chronology sort without denormalization
-      return [{ scheduledAt: sortDirection }, { createdAt: sortDirection }, { id: sortDirection }];
+      return [{ effectiveAt: sortDirection }, { id: sortDirection }];
     }
 
     if (sortField === 'byScheduled') {

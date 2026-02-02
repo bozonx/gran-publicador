@@ -40,6 +40,25 @@ export class SocialPostingService {
     this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
   }
 
+  private async refreshPublicationEffectiveAt(publicationId: string, lastPublishedAt: Date) {
+    const agg = await this.prisma.post.aggregate({
+      where: {
+        publicationId,
+        status: PostStatus.PUBLISHED,
+        publishedAt: { not: null },
+      },
+      _max: {
+        publishedAt: true,
+      },
+    });
+
+    const maxPublishedAt = (agg._max.publishedAt as Date | null) ?? lastPublishedAt;
+    await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: { effectiveAt: maxPublishedAt },
+    });
+  }
+
   /**
    * Test channel connection and credentials using microservice preview endpoint
    */
@@ -323,16 +342,20 @@ export class SocialPostingService {
         if (successList) detailMessage += `\n✅ Success: ${successList}`;
         if (failedList) detailMessage += `\n❌ Failed: ${failedList}`;
 
-        const titleKey = finalStatus === PublicationStatus.FAILED
-          ? 'notifications.PUBLICATION_FAILED_TITLE'
-          : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
+        const titleKey =
+          finalStatus === PublicationStatus.FAILED
+            ? 'notifications.PUBLICATION_FAILED_TITLE'
+            : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
 
         const title = this.i18n.t(titleKey, { lang });
         const message = this.i18n.t('notifications.PUBLICATION_FAILED_MESSAGE', {
           lang,
           args: {
-            title: publication.title || (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
-            finalStatus: finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published',
+            title:
+              publication.title ||
+              (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
+            finalStatus:
+              finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published',
             detailMessage,
           },
         });
@@ -461,16 +484,22 @@ export class SocialPostingService {
           const statusIcon = result.success ? '✅' : '❌';
           const statusText = result.success ? 'Success' : 'Failed';
 
-          const titleKey = finalStatus === PublicationStatus.FAILED
-            ? 'notifications.PUBLICATION_FAILED_TITLE'
-            : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
+          const titleKey =
+            finalStatus === PublicationStatus.FAILED
+              ? 'notifications.PUBLICATION_FAILED_TITLE'
+              : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
 
           const title = this.i18n.t(titleKey, { lang });
           const message = this.i18n.t('notifications.PUBLICATION_FAILED_SINGLE_MESSAGE', {
             lang,
             args: {
-              title: post.publication.title || (post.publication.content ? post.publication.content.substring(0, 30) : 'Untitled'),
-              finalStatus: finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published',
+              title:
+                post.publication.title ||
+                (post.publication.content ? post.publication.content.substring(0, 30) : 'Untitled'),
+              finalStatus:
+                finalStatus === PublicationStatus.FAILED
+                  ? 'failed'
+                  : 'was only partially published',
               statusIcon,
               channelName: post.channel.name,
               platform: post.channel.socialMedia,
@@ -576,6 +605,8 @@ export class SocialPostingService {
             errorMessage: null,
           },
         });
+
+        await this.refreshPublicationEffectiveAt(post.publicationId, publishedAt);
         return { success: true, url: response.data.url };
       } else {
         const platformError = response;

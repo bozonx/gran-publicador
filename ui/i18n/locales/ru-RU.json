@@ -686,11 +686,16 @@
       "badgeCountTooltip": "Количество неархивных публикаций (без учета фильтров)",
       "all": "Все публикации",
       "ready": "Готовые",
-      "published": "Опубликованные"
+      "published": "Опубликованные",
+      "allSocialMedia": "Все соцсети",
+      "allLanguages": "Все языки",
+      "allProjects": "Все проекты",
+      "allChannels": "Все каналы",
+      "allStatuses": "Все статусы"
     },
     "sort": {
       "chronology": "Хронология (будущее → прошлое)",
-      "byScheduled": "По запланированным",
+      "byScheduled": "По расписанию",
       "byPublished": "По опубликованным",
       "createdAt": "По дате создания",
       "postDate": "По дате контента"

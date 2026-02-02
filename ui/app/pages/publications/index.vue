@@ -161,7 +161,7 @@ function goToPublication(pub: PublicationWithRelations) {
 }
 
 const statusFilterOptions = computed(() => [
-  { value: null, label: t('publication.filter.all') },
+  { value: null, label: t('publication.filter.allStatuses') },
   ...statusOptions.value.map(opt => {
     if (opt.value === 'READY') return { ...opt, label: t('publication.filter.ready') }
     if (opt.value === 'PUBLISHED') return { ...opt, label: t('publication.filter.published') }
@@ -203,7 +203,7 @@ const sortOrderLabel = computed(() =>
 
 // Social media filter options
 const socialMediaFilterOptions = computed(() => [
-  { value: null, label: t('common.all') },
+  { value: null, label: t('publication.filter.allSocialMedia') },
   ...getSocialMediaOptions(t)
 ])
 
@@ -213,7 +213,7 @@ const socialMediaFilterOptions = computed(() => [
 // Language filter options
 const languageFilterOptions = computed(() => {
   const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('common.all') }
+    { value: null, label: t('publication.filter.allLanguages') }
   ]
   
   LANGUAGE_OPTIONS.forEach(lang => {
@@ -229,7 +229,7 @@ const languageFilterOptions = computed(() => {
 // Project filter options
 const projectFilterOptions = computed(() => {
   const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('common.all') }
+    { value: null, label: t('publication.filter.allProjects') }
   ]
   
   // Sort and add all projects
@@ -248,7 +248,7 @@ const projectFilterOptions = computed(() => {
 // Channel filter options
 const channelFilterOptions = computed(() => {
   const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('common.all') }
+    { value: null, label: t('publication.filter.allChannels') }
   ]
   
   // Sort and add all channels
@@ -487,8 +487,8 @@ async function handleDelete() {
           <UiAppButtonGroup
             v-model="showArchivedFilter"
             :options="[
+              { value: 'archived', label: t('channel.filter.archiveStatus.archived') },
               { value: 'active', label: t('channel.filter.archiveStatus.active') },
-              { value: 'archived', label: t('channel.filter.archiveStatus.archived') }
             ]"
             variant="outline"
             active-variant="solid"
@@ -507,7 +507,10 @@ async function handleDelete() {
           class="w-full sm:w-48"
         >
           <template #leading>
-            <UIcon v-if="selectedSocialMedia" :name="getSocialMediaIcon(selectedSocialMedia)" class="w-4 h-4" />
+            <UIcon
+              :name="selectedSocialMedia ? getSocialMediaIcon(selectedSocialMedia) : 'i-heroicons-share'"
+              class="w-4 h-4"
+            />
           </template>
         </USelectMenu>
 
@@ -520,7 +523,11 @@ async function handleDelete() {
           :placeholder="t('publication.filter.language')"
           :title="t('publication.filter.languageTitle')"
           class="w-full sm:w-40"
-        />
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-language" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
 
         <!-- Project Filter (Select) -->
         <USelectMenu
@@ -533,7 +540,7 @@ async function handleDelete() {
           class="w-full sm:w-48"
         >
           <template #leading>
-            <UIcon v-if="selectedProjectId" name="i-heroicons-folder" class="w-4 h-4" />
+            <UIcon name="i-heroicons-folder" class="w-4 h-4" />
           </template>
         </USelectMenu>
 
@@ -548,7 +555,7 @@ async function handleDelete() {
           class="w-full sm:w-48"
         >
           <template #leading>
-            <UIcon v-if="selectedChannelId" name="i-heroicons-megaphone" class="w-4 h-4" />
+            <UIcon name="i-heroicons-megaphone" class="w-4 h-4" />
           </template>
         </USelectMenu>
 
@@ -561,7 +568,11 @@ async function handleDelete() {
           :placeholder="t('post.statusLabel')"
           :title="t('publication.filter.statusTitle')"
           class="w-full sm:w-48"
-        />
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-tag" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
       </div>
     </div>
 

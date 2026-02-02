@@ -688,7 +688,12 @@
       "languageTitle": "Language Filter",
       "projectTitle": "Project Filter",
       "channelTitle": "Channel Filter",
-      "statusTitle": "Status Filter"
+      "statusTitle": "Status Filter",
+      "allSocialMedia": "All social media",
+      "allLanguages": "All languages",
+      "allProjects": "All projects",
+      "allChannels": "All channels",
+      "allStatuses": "All statuses"
     },
     "sort": {
       "chronology": "Chronology (future → past)",

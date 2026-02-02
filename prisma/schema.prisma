@@ -231,6 +231,8 @@ model Publication {
   archivedBy String?   @map("archived_by")
   // When the publication is scheduled to be published
   scheduledAt   DateTime? @map("scheduled_at")
+  // Denormalized effective timestamp for chronology sorting (publishedAt > scheduledAt > createdAt)
+  effectiveAt   DateTime  @default(now()) @map("effective_at")
   // Timestamp when processing started (to detect timeouts)
   processingStartedAt DateTime? @map("processing_started_at")
 
@@ -270,6 +272,8 @@ model Publication {
   @@index([projectId, status])
   @@index([projectId, createdAt])
   @@index([projectId, scheduledAt])
+  @@index([projectId, effectiveAt])
+  @@index([effectiveAt])
   @@index([createdBy, projectId, archivedAt])
   @@index([newsItemId])
   @@map("publications")

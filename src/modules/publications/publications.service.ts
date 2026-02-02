@@ -94,53 +94,34 @@ export class PublicationsService {
     return PublicationQueryBuilder.getOrderBy(sortField || 'chronology', sortDirection || 'desc');
   }
 
-  private async findPublicationsChronologySorted(params: {
-    where: Prisma.PublicationWhereInput;
-    include: Prisma.PublicationInclude;
-    take?: number;
-    skip?: number;
-    sortOrder: 'asc' | 'desc';
-  }) {
-    const { where, include, take = 20, skip = 0, sortOrder } = params;
+  private async refreshPublicationEffectiveAt(publicationId: string) {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+      select: { id: true, createdAt: true, scheduledAt: true },
+    });
 
-    const candidates = await this.prisma.publication.findMany({
-      where,
-      select: {
-        id: true,
+    if (!publication) return;
+
+    const publishedAgg = await this.prisma.post.aggregate({
+      where: {
+        publicationId,
+        status: PostStatus.PUBLISHED,
+        publishedAt: { not: null },
+      },
+      _max: {
+        publishedAt: true,
       },
     });
 
-    const candidateIds = candidates.map(c => c.id);
-    if (candidateIds.length === 0) return [];
+    const effectiveAt =
+      (publishedAgg._max.publishedAt as Date | null) ??
+      publication.scheduledAt ??
+      publication.createdAt;
 
-    const directionSql = sortOrder === 'asc' ? 'ASC' : 'DESC';
-
-    const pageRows = await this.prisma.$queryRaw<Array<{ id: string }>>(
-      Prisma.sql`
-        SELECT
-          p.id
-        FROM "publications" p
-        LEFT JOIN "posts" po ON po.publication_id = p.id
-        WHERE p.id = ANY(${candidateIds}::uuid[])
-        GROUP BY p.id, p.scheduled_at, p.created_at
-        ORDER BY
-          COALESCE(MAX(po.published_at), p.scheduled_at, p.created_at) ${Prisma.raw(directionSql)},
-          p.id ${Prisma.raw(directionSql)}
-        LIMIT ${take}
-        OFFSET ${skip}
-      `,
-    );
-
-    const pageIds = pageRows.map(r => r.id);
-    if (pageIds.length === 0) return [];
-
-    const pageItems = await this.prisma.publication.findMany({
-      where: { id: { in: pageIds } },
-      include,
+    await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: { effectiveAt },
     });
-
-    const byId = new Map(pageItems.map((it: any) => [it.id, it]));
-    return pageIds.map(id => byId.get(id)).filter(Boolean);
   }
 
   /**
@@ -343,6 +324,11 @@ export class PublicationsService {
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
 
+    await this.prisma.publication.update({
+      where: { id: publication.id },
+      data: { effectiveAt: publication.scheduledAt ?? publication.createdAt },
+    });
+
     const author = userId ? `user ${userId}` : 'external system';
     const projectInfo = data.projectId ? `project ${data.projectId}` : 'personal drafts';
     this.logger.log(
@@ -439,21 +425,13 @@ export class PublicationsService {
     const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
     const [items, total] = await Promise.all([
-      sortBy === 'chronology'
-        ? this.findPublicationsChronologySorted({
-            where,
-            include,
-            take: filters?.limit,
-            skip: filters?.offset,
-            sortOrder,
-          })
-        : this.prisma.publication.findMany({
-            where,
-            include,
-            orderBy: this.prepareOrderBy(sortBy, sortOrder),
-            take: filters?.limit,
-            skip: filters?.offset,
-          }),
+      this.prisma.publication.findMany({
+        where,
+        include,
+        orderBy: this.prepareOrderBy(sortBy, sortOrder),
+        take: filters?.limit,
+        skip: filters?.offset,
+      }),
       this.prisma.publication.count({ where }),
     ]);
 
@@ -568,21 +546,13 @@ export class PublicationsService {
     const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
     const [items, total] = await Promise.all([
-      sortBy === 'chronology'
-        ? this.findPublicationsChronologySorted({
-            where,
-            include,
-            take: filters?.limit,
-            skip: filters?.offset,
-            sortOrder,
-          })
-        : this.prisma.publication.findMany({
-            where,
-            include,
-            orderBy: this.prepareOrderBy(sortBy, sortOrder),
-            take: filters?.limit,
-            skip: filters?.offset,
-          }),
+      this.prisma.publication.findMany({
+        where,
+        include,
+        orderBy: this.prepareOrderBy(sortBy, sortOrder),
+        take: filters?.limit,
+        skip: filters?.offset,
+      }),
       this.prisma.publication.count({ where }),
     ]);
 
@@ -686,21 +656,13 @@ export class PublicationsService {
     const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
     const [items, total] = await Promise.all([
-      sortBy === 'chronology'
-        ? this.findPublicationsChronologySorted({
-            where,
-            include,
-            take: filters?.limit,
-            skip: filters?.offset,
-            sortOrder,
-          })
-        : this.prisma.publication.findMany({
-            where,
-            include,
-            orderBy: this.prepareOrderBy(sortBy, sortOrder),
-            take: filters?.limit,
-            skip: filters?.offset,
-          }),
+      this.prisma.publication.findMany({
+        where,
+        include,
+        orderBy: this.prepareOrderBy(sortBy, sortOrder),
+        take: filters?.limit,
+        skip: filters?.offset,
+      }),
       this.prisma.publication.count({ where }),
     ]);
 
@@ -1188,20 +1150,16 @@ export class PublicationsService {
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
 
+    if (data.scheduledAt !== undefined || data.status !== undefined) {
+      await this.refreshPublicationEffectiveAt(id);
+    }
+
     return {
       ...updated,
       meta: this.parseMetaJson(updated.meta),
-      sourceTexts: this.parseSourceTextsJson(updated.sourceTexts),
+      sourceTexts: this.parseSourceTextsJson((updated as any).sourceTexts),
     };
   }
-
-  /**
-   * Delete a publication.
-   * Allowed for the author or project OWNER/ADMIN.
-   *
-   * @param id - The ID of the publication to remove.
-   * @param userId - The ID of the user.
-   */
   public async remove(id: string, userId: string) {
     const publication = await this.findOne(id, userId);
 
