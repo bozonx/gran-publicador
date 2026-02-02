@@ -168,23 +168,23 @@ export class PublicationQueryBuilder {
   ): Prisma.PublicationOrderByWithRelationInput[] {
     if (sortField === 'chronology') {
       // Best approximation for DB-level chronology sort without denormalization
-      return [{ scheduledAt: 'desc' }, { createdAt: 'desc' }];
+      return [{ scheduledAt: sortDirection }, { createdAt: sortDirection }, { id: sortDirection }];
     }
 
     if (sortField === 'byScheduled') {
-      return [{ scheduledAt: sortDirection }, { createdAt: 'desc' }];
+      return [{ scheduledAt: sortDirection }, { createdAt: 'desc' }, { id: 'desc' }];
     }
 
     if (sortField === 'byPublished') {
       // We can't sort by aggregate of related posts easily in Prisma
       // Fallback to createdAt or use separate field
-      return [{ createdAt: sortDirection }];
+      return [{ createdAt: sortDirection }, { id: sortDirection }];
     }
 
     // Default standard fields
     const orderBy: any = {};
     orderBy[sortField] = sortDirection;
-    return [orderBy];
+    return [orderBy, { id: sortDirection }];
   }
 }
 

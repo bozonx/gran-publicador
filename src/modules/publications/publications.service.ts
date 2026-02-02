@@ -94,6 +94,80 @@ export class PublicationsService {
     return PublicationQueryBuilder.getOrderBy(sortField || 'chronology', sortDirection || 'desc');
   }
 
+  private computeChronologyEffectiveAt(input: {
+    scheduledAt: Date | null;
+    createdAt: Date;
+    posts?: Array<{ publishedAt: Date | null; status?: any }>;
+  }): Date {
+    const publishedAts = (input.posts || [])
+      .filter(p => p?.publishedAt)
+      .map(p => p.publishedAt as Date);
+
+    if (publishedAts.length > 0) {
+      return new Date(Math.max(...publishedAts.map(d => d.getTime())));
+    }
+
+    if (input.scheduledAt) {
+      return input.scheduledAt;
+    }
+
+    return input.createdAt;
+  }
+
+  private async findPublicationsChronologySorted(params: {
+    where: any;
+    include: any;
+    take?: number;
+    skip?: number;
+    sortOrder: 'asc' | 'desc';
+  }) {
+    const { where, include, take, skip, sortOrder } = params;
+
+    const rows = await this.prisma.publication.findMany({
+      where,
+      select: {
+        id: true,
+        scheduledAt: true,
+        createdAt: true,
+        posts: {
+          select: {
+            publishedAt: true,
+          },
+        },
+      },
+    });
+
+    const direction = sortOrder === 'asc' ? 1 : -1;
+
+    const orderedIds = rows
+      .map(r => ({
+        id: r.id,
+        effectiveAt: this.computeChronologyEffectiveAt({
+          scheduledAt: r.scheduledAt,
+          createdAt: r.createdAt,
+          posts: r.posts as any,
+        }),
+      }))
+      .sort((a, b) => {
+        const diff = a.effectiveAt.getTime() - b.effectiveAt.getTime();
+        if (diff !== 0) return diff * direction;
+        if (a.id === b.id) return 0;
+        return a.id < b.id ? -1 * direction : 1 * direction;
+      })
+      .map(x => x.id);
+
+    const pageIds = orderedIds.slice(skip || 0, (skip || 0) + (take ?? orderedIds.length));
+    if (pageIds.length === 0) return [];
+
+    const pageItems = await this.prisma.publication.findMany({
+      where: { id: { in: pageIds } },
+      include,
+    });
+
+    const byId = new Map(pageItems.map((it: any) => [it.id, it]));
+    return pageIds.map(id => byId.get(id)).filter(Boolean);
+  }
+
   /**
    * Helper to normalize media input from string or object.
    */
@@ -119,7 +193,11 @@ export class PublicationsService {
   public async create(data: CreatePublicationDto, userId?: string) {
     if (userId && data.projectId) {
       // Check if user has access to the project
-      await this.permissions.checkPermission(data.projectId, userId, PermissionKey.PUBLICATIONS_CREATE);
+      await this.permissions.checkPermission(
+        data.projectId,
+        userId,
+        PermissionKey.PUBLICATIONS_CREATE,
+      );
     }
 
     // Validation for personal drafts (no project)
@@ -234,7 +312,8 @@ export class PublicationsService {
                         'publication',
                         optimization,
                       );
-                      const filename = data.imageUrl!.split('/').pop()?.split('?')[0] || 'image.jpg';
+                      const filename =
+                        data.imageUrl!.split('/').pop()?.split('?')[0] || 'image.jpg';
                       return {
                         order: 0,
                         media: {
@@ -344,49 +423,61 @@ export class PublicationsService {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PUBLICATIONS_READ);
 
     const where = PublicationQueryBuilder.buildWhere(userId, projectId, filters);
-    const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
+
+    const include: Prisma.PublicationInclude = {
+      creator: {
+        select: {
+          id: true,
+          fullName: true,
+          telegramUsername: true,
+          avatarUrl: true,
+        },
+      },
+      posts: {
+        include: {
+          channel: true,
+        },
+      },
+      media: {
+        include: {
+          media: true,
+        },
+        orderBy: {
+          order: Prisma.SortOrder.asc,
+        },
+      },
+      _count: {
+        select: {
+          posts: true,
+        },
+      },
+      project: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    };
+
+    const sortBy = filters?.sortBy || 'chronology';
+    const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
     const [items, total] = await Promise.all([
-      this.prisma.publication.findMany({
-        where,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              fullName: true,
-              telegramUsername: true,
-              avatarUrl: true,
-            },
-          },
-          posts: {
-            include: {
-              channel: true,
-            },
-          },
-          media: {
-            include: {
-              media: true,
-            },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-          _count: {
-            select: {
-              posts: true,
-            },
-          },
-          project: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy,
-        take: filters?.limit,
-        skip: filters?.offset,
-      }),
+      sortBy === 'chronology'
+        ? this.findPublicationsChronologySorted({
+            where,
+            include,
+            take: filters?.limit,
+            skip: filters?.offset,
+            sortOrder,
+          })
+        : this.prisma.publication.findMany({
+            where,
+            include,
+            orderBy: this.prepareOrderBy(sortBy, sortOrder),
+            take: filters?.limit,
+            skip: filters?.offset,
+          }),
       this.prisma.publication.count({ where }),
     ]);
 
@@ -428,7 +519,9 @@ export class PublicationsService {
     });
     const userProjectIds = userProjects.map(p => p.id);
 
-    this.logger.log(`findUserDrafts called for user ${userId} with filters: ${JSON.stringify(filters)}`);
+    this.logger.log(
+      `findUserDrafts called for user ${userId} with filters: ${JSON.stringify(filters)}`,
+    );
 
     const where: Prisma.PublicationWhereInput = {
       archivedAt: null,
@@ -459,15 +552,12 @@ export class PublicationsService {
           { content: { contains: filters.search, mode: 'insensitive' } },
         ],
       };
-      
+
       // If we already have an OR for scope (the default case), we need to wrap everything in an AND
       if (where.OR) {
         const scopeOr = where.OR;
         delete where.OR;
-        where.AND = [
-          { OR: scopeOr },
-          searchTerms
-        ];
+        where.AND = [{ OR: scopeOr }, searchTerms];
       } else {
         where.AND = [searchTerms];
       }
@@ -475,37 +565,48 @@ export class PublicationsService {
 
     this.logger.log(`findUserDrafts final where clause: ${JSON.stringify(where)}`);
 
-    const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
+    const include: Prisma.PublicationInclude = {
+      creator: {
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+        },
+      },
+      media: {
+        include: {
+          media: true,
+        },
+        orderBy: {
+          order: Prisma.SortOrder.asc,
+        },
+      },
+      _count: {
+        select: {
+          posts: true,
+        },
+      },
+    };
+
+    const sortBy = filters?.sortBy || 'chronology';
+    const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
     const [items, total] = await Promise.all([
-      this.prisma.publication.findMany({
-        where,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              fullName: true,
-              avatarUrl: true,
-            },
-          },
-          media: {
-            include: {
-              media: true,
-            },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-          _count: {
-            select: {
-              posts: true,
-            },
-          },
-        },
-        orderBy,
-        take: filters?.limit,
-        skip: filters?.offset,
-      }),
+      sortBy === 'chronology'
+        ? this.findPublicationsChronologySorted({
+            where,
+            include,
+            take: filters?.limit,
+            skip: filters?.offset,
+            sortOrder,
+          })
+        : this.prisma.publication.findMany({
+            where,
+            include,
+            orderBy: this.prepareOrderBy(sortBy, sortOrder),
+            take: filters?.limit,
+            skip: filters?.offset,
+          }),
       this.prisma.publication.count({ where }),
     ]);
 
@@ -568,49 +669,61 @@ export class PublicationsService {
     }
 
     const where = PublicationQueryBuilder.buildWhere(userId, undefined, filters, userProjectIds);
-    const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
+
+    const include: Prisma.PublicationInclude = {
+      creator: {
+        select: {
+          id: true,
+          fullName: true,
+          telegramUsername: true,
+          avatarUrl: true,
+        },
+      },
+      posts: {
+        include: {
+          channel: true,
+        },
+      },
+      media: {
+        include: {
+          media: true,
+        },
+        orderBy: {
+          order: Prisma.SortOrder.asc,
+        },
+      },
+      _count: {
+        select: {
+          posts: true,
+        },
+      },
+      project: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    };
+
+    const sortBy = filters?.sortBy || 'chronology';
+    const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
     const [items, total] = await Promise.all([
-      this.prisma.publication.findMany({
-        where,
-        include: {
-          creator: {
-            select: {
-              id: true,
-              fullName: true,
-              telegramUsername: true,
-              avatarUrl: true,
-            },
-          },
-          posts: {
-            include: {
-              channel: true,
-            },
-          },
-          media: {
-            include: {
-              media: true,
-            },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-          _count: {
-            select: {
-              posts: true,
-            },
-          },
-          project: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy,
-        take: filters?.limit,
-        skip: filters?.offset,
-      }),
+      sortBy === 'chronology'
+        ? this.findPublicationsChronologySorted({
+            where,
+            include,
+            take: filters?.limit,
+            skip: filters?.offset,
+            sortOrder,
+          })
+        : this.prisma.publication.findMany({
+            where,
+            include,
+            orderBy: this.prepareOrderBy(sortBy, sortOrder),
+            take: filters?.limit,
+            skip: filters?.offset,
+          }),
       this.prisma.publication.count({ where }),
     ]);
 
@@ -709,9 +822,17 @@ export class PublicationsService {
 
     if (publication.projectId) {
       if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_OWN,
+        );
       } else {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       }
     } else if (publication.createdBy !== userId) {
       throw new NotFoundException('Publication not found');
@@ -1109,9 +1230,17 @@ export class PublicationsService {
 
     if (publication.projectId) {
       if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_OWN);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_DELETE_OWN,
+        );
       } else {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_ALL);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_DELETE_ALL,
+        );
       }
     } else if (publication.createdBy !== userId) {
       throw new ForbiddenException('Access denied to personal draft');
@@ -1153,9 +1282,7 @@ export class PublicationsService {
       try {
         if (pub.createdBy !== userId) {
           if (pub.projectId) {
-            await this.permissions.checkProjectPermission(pub.projectId, userId, [
-              'ADMIN',
-            ]);
+            await this.permissions.checkProjectPermission(pub.projectId, userId, ['ADMIN']);
           } else {
             throw new ForbiddenException('Access denied to personal draft');
           }
@@ -1332,9 +1459,17 @@ export class PublicationsService {
 
     if (publication.projectId) {
       if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_OWN,
+        );
       } else {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       }
     } else if (publication.createdBy !== userId) {
       throw new ForbiddenException('Access denied to personal draft');
@@ -1400,9 +1535,17 @@ export class PublicationsService {
 
     if (publication.projectId) {
       if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_OWN,
+        );
       } else {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       }
     } else if (publication.createdBy !== userId) {
       throw new ForbiddenException('Access denied to personal draft');
@@ -1445,9 +1588,17 @@ export class PublicationsService {
 
     if (publication.projectId) {
       if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_OWN,
+        );
       } else {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       }
     } else if (publication.createdBy !== userId) {
       throw new ForbiddenException('Access denied to personal draft');
@@ -1491,9 +1642,17 @@ export class PublicationsService {
 
     if (publication.projectId) {
       if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_OWN,
+        );
       } else {
-        await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          publication.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       }
     } else if (publication.createdBy !== userId) {
       throw new ForbiddenException('Access denied to personal draft');
@@ -1560,7 +1719,7 @@ export class PublicationsService {
     });
 
     this.logger.log(
-      `Publication ${id} copied to project ${targetProjectId || 'personal' } by user ${userId}. New publication ID: ${newPublication.id}`,
+      `Publication ${id} copied to project ${targetProjectId || 'personal'} by user ${userId}. New publication ID: ${newPublication.id}`,
     );
 
     return {

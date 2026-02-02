@@ -5,10 +5,14 @@ import { PublicationsService } from '../../src/modules/publications/publications
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { PostStatus, PublicationStatus, SocialMedia, PostType } from '../../src/generated/prisma/index.js';
+import {
+  PostStatus,
+  PublicationStatus,
+  SocialMedia,
+  PostType,
+} from '../../src/generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
 import { MediaService } from '../../src/modules/media/media.service.js';
-
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -56,7 +60,6 @@ describe('PublicationsService (unit)', () => {
     uploadFileFromUrl: jest.fn() as any,
   };
 
-
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -74,7 +77,6 @@ describe('PublicationsService (unit)', () => {
           useValue: mockMediaService,
         },
       ],
-
     }).compile();
 
     service = moduleRef.get<PublicationsService>(PublicationsService);
@@ -163,6 +165,62 @@ describe('PublicationsService (unit)', () => {
           },
         }),
       );
+    });
+
+    it('should sort by chronology using publishedAt/scheduledAt/createdAt and respect sortOrder', async () => {
+      const userId = 'user-1';
+      const projectId = 'project-1';
+
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.count.mockResolvedValue(3);
+
+      const pubA = {
+        id: 'a',
+        scheduledAt: null,
+        createdAt: new Date('2026-01-01T10:00:00.000Z'),
+        posts: [{ publishedAt: new Date('2026-01-05T10:00:00.000Z') }],
+      };
+
+      const pubB = {
+        id: 'b',
+        scheduledAt: new Date('2026-01-03T10:00:00.000Z'),
+        createdAt: new Date('2026-01-02T10:00:00.000Z'),
+        posts: [],
+      };
+
+      const pubC = {
+        id: 'c',
+        scheduledAt: null,
+        createdAt: new Date('2026-01-04T10:00:00.000Z'),
+        posts: [],
+      };
+
+      mockPrismaService.publication.findMany
+        .mockResolvedValueOnce([pubA, pubB, pubC])
+        .mockResolvedValueOnce([pubA, pubB, pubC]);
+
+      const desc = await service.findAll(projectId, userId, {
+        sortBy: 'chronology',
+        sortOrder: 'desc',
+        limit: 50,
+        offset: 0,
+      });
+
+      expect(desc.items.map((i: any) => i.id)).toEqual(['a', 'c', 'b']);
+
+      mockPrismaService.publication.findMany.mockClear();
+      mockPrismaService.publication.findMany
+        .mockResolvedValueOnce([pubA, pubB, pubC])
+        .mockResolvedValueOnce([pubA, pubB, pubC]);
+
+      const asc = await service.findAll(projectId, userId, {
+        sortBy: 'chronology',
+        sortOrder: 'asc',
+        limit: 50,
+        offset: 0,
+      });
+
+      expect(asc.items.map((i: any) => i.id)).toEqual(['b', 'c', 'a']);
     });
 
     it('should apply complex filters (socialMedia, issueType, ownership)', async () => {
@@ -606,9 +664,7 @@ describe('PublicationsService (unit)', () => {
         postType: PostType.POST,
         meta: {},
         sourceTexts: [],
-        media: [
-          { mediaId: 'media-1', order: 0, hasSpoiler: false }
-        ]
+        media: [{ mediaId: 'media-1', order: 0, hasSpoiler: false }],
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockSourcePublication);
@@ -640,12 +696,10 @@ describe('PublicationsService (unit)', () => {
             title: 'Source Title',
             status: PublicationStatus.DRAFT,
             media: {
-              create: [
-                { mediaId: 'media-1', order: 0, hasSpoiler: false }
-              ]
-            }
-          })
-        })
+              create: [{ mediaId: 'media-1', order: 0, hasSpoiler: false }],
+            },
+          }),
+        }),
       );
     });
   });
