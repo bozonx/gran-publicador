@@ -213,16 +213,40 @@ export class UsersService {
    */
   public async updateProfile(
     userId: string,
-    data: { fullName?: string; avatarUrl?: string; language?: string; uiLanguage?: string },
+    data: { 
+      fullName?: string; 
+      avatarUrl?: string; 
+      language?: string; 
+      uiLanguage?: string;
+      isUiLanguageAuto?: boolean;
+    },
   ): Promise<User> {
+    const updateData: Prisma.UserUpdateInput = {};
+
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+    if (data.language !== undefined) updateData.language = this.normalizeLanguage(data.language);
+    if (data.uiLanguage !== undefined) updateData.uiLanguage = this.normalizeUiLanguage(data.uiLanguage);
+
+    if (data.isUiLanguageAuto !== undefined) {
+      // Get current preferences to merge
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { preferences: true },
+      });
+      const currentPreferences = (user?.preferences as any) || {};
+      
+      updateData.preferences = JSON.parse(
+        JSON.stringify({
+          ...currentPreferences,
+          isUiLanguageAuto: data.isUiLanguageAuto,
+        }),
+      );
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(data.fullName !== undefined && { fullName: data.fullName }),
-        ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
-        ...(data.language !== undefined && { language: this.normalizeLanguage(data.language) }),
-        ...(data.uiLanguage !== undefined && { uiLanguage: this.normalizeUiLanguage(data.uiLanguage) }),
-      },
+      data: updateData,
     });
   }
 

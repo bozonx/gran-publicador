@@ -43,8 +43,15 @@ export class UserDto {
   @Expose()
   public uiLanguage!: string;
 
+  @Expose()
+  @Transform(({ obj }) => {
+    const prefs = (typeof obj.preferences === 'string' ? JSON.parse(obj.preferences) : obj.preferences) as any;
+    return prefs?.isUiLanguageAuto ?? true;
+  }, { toPlainOnly: true })
+  public isUiLanguageAuto!: boolean;
+
   @Exclude()
-  public preferences!: string; // Internal use
+  public preferences!: any; // Internal use
 }
 
 export class UpdateUserAdminDto {
@@ -68,6 +75,10 @@ export class UpdateUserProfileDto {
   @IsString()
   @IsOptional()
   public uiLanguage?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  public isUiLanguageAuto?: boolean;
 }
 
 export class BanUserDto {

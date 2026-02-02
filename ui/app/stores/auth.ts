@@ -11,6 +11,7 @@ export interface User {
     isAdmin: boolean;
     language: string;
     uiLanguage: string;
+    isUiLanguageAuto: boolean;
     createdAt?: string;
     updatedAt?: string;
 }

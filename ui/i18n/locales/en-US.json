@@ -930,6 +930,10 @@
     "systemTheme": "System Theme",
     "uiLanguage": "UI Language",
     "uiLanguageHelp": "Language of the application interface",
+    "uiLanguageAuto": "UI Language automatically",
+    "uiLanguageAutoWithLabel": "UI Language automatically ({lang})",
+    "uiLanguageReturnAuto": "Return to automatic mode",
+    "uiLanguageSelect": "Select Interface Language",
     "changePassword": "Change Password",
     "staleChannelsDaysHelpChannel": "Override stale channel warning threshold for this channel"
   },

@@ -104,8 +104,16 @@ async function initQueries() {
       if (queries && queries.length > 0) {
         newsQueries.value = queries
         
-        // Select first query by default if none selected
-        if (!selectedQueryId.value && queries.length > 0) {
+        // Select query by ID from URL if provided, otherwise first one
+        const queryIdParam = route.query.id as string
+        if (queryIdParam) {
+          const found = queries.find(q => q.id === queryIdParam)
+          if (found) {
+            selectedQueryId.value = found.id
+          } else {
+            selectedQueryId.value = queries[0].id
+          }
+        } else if (!selectedQueryId.value) {
           selectedQueryId.value = queries[0].id
         }
       } else {

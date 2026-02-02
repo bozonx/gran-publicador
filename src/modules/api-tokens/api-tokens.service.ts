@@ -102,15 +102,18 @@ export class ApiTokensService {
 
     // Validate project scope - ensure user is a member of all projects in scope
     if (!allProjects && projectIds.length > 0) {
-      const memberRecords = await this.prisma.projectMember.findMany({
+      const projects = await this.prisma.project.findMany({
         where: {
-          userId,
-          projectId: { in: projectIds },
+          id: { in: projectIds },
+          OR: [
+            { ownerId: userId },
+            { members: { some: { userId } } },
+          ],
         },
       });
 
-      if (memberRecords.length !== projectIds.length) {
-        const foundIds = memberRecords.map(r => r.projectId);
+      if (projects.length !== projectIds.length) {
+        const foundIds = projects.map(p => p.id);
         const missingIds = projectIds.filter(id => !foundIds.includes(id));
         this.logger.warn(
           `User ${userId} attempted to create API token with unauthorized projects: ${missingIds.join(', ')}`,
@@ -250,15 +253,18 @@ export class ApiTokensService {
 
       // Validate project scope
       if (projectIds.length > 0) {
-        const memberRecords = await this.prisma.projectMember.findMany({
+        const projects = await this.prisma.project.findMany({
           where: {
-            userId,
-            projectId: { in: projectIds },
+            id: { in: projectIds },
+            OR: [
+              { ownerId: userId },
+              { members: { some: { userId } } },
+            ],
           },
         });
 
-        if (memberRecords.length !== projectIds.length) {
-          const foundIds = memberRecords.map(r => r.projectId);
+        if (projects.length !== projectIds.length) {
+          const foundIds = projects.map(p => p.id);
           const missingIds = projectIds.filter(id => !foundIds.includes(id));
           this.logger.warn(
             `User ${userId} attempted to update API token ${id} with unauthorized projects: ${missingIds.join(', ')}`,

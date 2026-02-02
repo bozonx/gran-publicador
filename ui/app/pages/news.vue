@@ -4,7 +4,6 @@ import { useProjects } from '~/composables/useProjects'
 import AppModal from '~/components/ui/AppModal.vue'
 import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
-import NewsSourceSelector from '~/components/news/SourceSelector.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -18,7 +17,6 @@ const activeTabIndex = ref(0)
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
-const selectedSources = ref<string[]>([])
 const trackedQueries = ref<any[]>([])
 const isInitialLoading = ref(true)
 const isLoadMoreLoading = ref(false)
@@ -44,44 +42,63 @@ const isLoading = computed(() => isInitialLoading.value || isNewsLoading.value)
 
 async function handleSearch() {
   if (!currentTrackedQuery.value) return
+  const query = currentTrackedQuery.value
+  
+  // Sanitize mode: map 'all' to 'hybrid', ensures it's one of the allowed values
+  const validModes = ['text', 'vector', 'hybrid']
+  let mode = query.mode
+  if (mode === 'all' || !validModes.includes(mode)) {
+    mode = 'hybrid'
+  }
+
+  // Sanitize sourceTags: ensure it's a string
+  const sourceTags = Array.isArray(query.sourceTags) 
+    ? query.sourceTags.join(',') 
+    : query.sourceTags
 
   await searchNews({
-    q: currentTrackedQuery.value.q,
-    mode: currentTrackedQuery.value.mode,
-    savedFrom: currentTrackedQuery.value.savedFrom || currentTrackedQuery.value.since, // Fallback
-    savedTo: currentTrackedQuery.value.savedTo,
-    lang: currentTrackedQuery.value.lang,
-    sourceTags: currentTrackedQuery.value.sourceTags,
-    orderBy: currentTrackedQuery.value.orderBy,
-    sources: selectedSources.value.join(',')
-  }, currentTrackedQuery.value.projectId)
+    q: query.q,
+    mode: mode,
+    savedFrom: query.savedFrom || query.since, // Fallback
+    savedTo: query.savedTo,
+    lang: query.lang,
+    sourceTags: sourceTags,
+    orderBy: query.orderBy
+  }, query.projectId)
 }
 
 async function loadMore() {
   if (isLoadMoreLoading.value || !hasMore.value || !currentTrackedQuery.value) return
   
+  const query = currentTrackedQuery.value
+  
+  // Sanitize params for load more too
+  const validModes = ['text', 'vector', 'hybrid']
+  let mode = query.mode
+  if (mode === 'all' || !validModes.includes(mode)) {
+    mode = 'hybrid'
+  }
+
+  const sourceTags = Array.isArray(query.sourceTags) 
+    ? query.sourceTags.join(',') 
+    : query.sourceTags
+
   isLoadMoreLoading.value = true
   try {
     await searchNews({
-      q: currentTrackedQuery.value.q,
-      mode: currentTrackedQuery.value.mode,
-      savedFrom: currentTrackedQuery.value.savedFrom || currentTrackedQuery.value.since,
-      savedTo: currentTrackedQuery.value.savedTo,
-      lang: currentTrackedQuery.value.lang,
-      sourceTags: currentTrackedQuery.value.sourceTags,
-      sources: selectedSources.value.join(',')
-    }, currentTrackedQuery.value.projectId, true)
+      q: query.q,
+      mode: mode,
+      savedFrom: query.savedFrom || query.since,
+      savedTo: query.savedTo,
+      lang: query.lang,
+      sourceTags: sourceTags
+    }, query.projectId, true)
   } finally {
     isLoadMoreLoading.value = false
   }
 }
 
 watch(activeTabIndex, () => {
-  selectedSources.value = []
-  handleSearch()
-})
-
-watch(selectedSources, () => {
   handleSearch()
 })
 
@@ -149,13 +166,8 @@ function formatScore(score: number) {
       </p>
     </div>
 
-    <!-- Source Filter -->
-    <div class="mb-6" v-if="trackedQueries.length > 0">
-      <NewsSourceSelector v-model="selectedSources" />
-    </div>
-
     <!-- Tabs System -->
-    <div v-else-if="trackedQueries.length > 0" class="space-y-6">
+    <div v-if="trackedQueries.length > 0" class="space-y-6">
       <AppTabs 
         v-model="activeTabIndex" 
         :items="tabs" 
@@ -164,20 +176,35 @@ function formatScore(score: number) {
 
       <div v-if="currentTrackedQuery" class="space-y-4">
         <!-- Query Information -->
-        <div class="flex items-start justify-between gap-4 py-2 px-1 text-sm text-gray-500 dark:text-gray-400">
-          <div class="flex items-start gap-2 flex-1 min-w-0">
-            <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4 mt-0.5 shrink-0" />
-            <span class="font-medium text-gray-700 dark:text-gray-300 break-all overflow-hidden">{{ currentTrackedQuery.q }}</span>
+        <div class="flex items-center justify-between gap-4 py-3 px-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 text-sm">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 shrink-0">
+              <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
+              <span class="font-medium">{{ t('news.query') || 'Запрос' }}:</span>
+            </div>
+            <span class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ currentTrackedQuery.q }}</span>
             
-            <div v-if="(currentTrackedQuery as any).savedFrom || (currentTrackedQuery as any).since" class="flex items-center gap-1 ml-2 shrink-0">
-              <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-              <span>{{ (currentTrackedQuery as any).savedFrom || (currentTrackedQuery as any).since }}</span>
+            <div v-if="currentTrackedQuery.lang" class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 shrink-0">
+              {{ currentTrackedQuery.lang }}
             </div>
           </div>
           
-          <div class="flex items-center gap-1 shrink-0">
-            <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
-            <span>Score: <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentTrackedQuery.minScore }}</span></span>
+          <div class="flex items-center gap-4 shrink-0">
+             <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+              <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
+              <span>Score: <span class="font-bold text-gray-900 dark:text-gray-100">{{ currentTrackedQuery.minScore }}</span></span>
+            </div>
+
+            <UButton
+              :to="`/projects/${currentTrackedQuery.projectId}/news?id=${currentTrackedQuery.id}`"
+              icon="i-heroicons-cog-6-tooth"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              class="rounded-lg"
+            >
+              {{ t('common.configure') || 'Настроить' }}
+            </UButton>
           </div>
         </div>
 

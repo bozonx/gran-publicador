@@ -62,7 +62,8 @@ async function handleCreateToken() {
   try {
     await createToken({
       name: newTokenName.value,
-      scopeProjectIds: limitToProjects.value ? newTokenScope.value : [],
+      allProjects: !limitToProjects.value,
+      projectIds: limitToProjects.value ? newTokenScope.value : [],
     })
     showCreateTokenModal.value = false
     newTokenName.value = ''
@@ -77,8 +78,8 @@ async function handleCreateToken() {
 function openEditModal(token: any) {
   editingToken.value = token
   newTokenName.value = token.name
-  newTokenScope.value = token.scopeProjectIds || []
-  limitToProjects.value = token.scopeProjectIds?.length > 0
+  newTokenScope.value = token.projectIds || []
+  limitToProjects.value = !token.allProjects
   showEditTokenModal.value = true
 }
 
@@ -88,7 +89,8 @@ async function handleUpdateToken() {
   try {
     await updateToken(editingToken.value.id, {
       name: newTokenName.value,
-      scopeProjectIds: limitToProjects.value ? newTokenScope.value : [],
+      allProjects: !limitToProjects.value,
+      projectIds: limitToProjects.value ? newTokenScope.value : [],
     })
     showEditTokenModal.value = false
     editingToken.value = null
@@ -118,12 +120,15 @@ async function confirmDeleteToken() {
 }
 
 // Format scope display
-function formatScope(scopeProjectIds: string[]) {
-  if (!scopeProjectIds || scopeProjectIds.length === 0) {
+function formatScope(token: any) {
+  if (token.allProjects) {
     return t('settings.allProjects', 'All projects')
   }
-  const projectNames = scopeProjectIds
-    .map((id) => projects.value?.find((p: any) => p.id === id)?.name)
+  if (!token.projectIds || token.projectIds.length === 0) {
+    return t('settings.noProjects', 'No projects')
+  }
+  const projectNames = token.projectIds
+    .map((id: string) => projects.value?.find((p: any) => p.id === id)?.name)
     .filter(Boolean)
   return projectNames.join(', ') || t('settings.selectedProjects', 'Selected projects')
 }
@@ -177,7 +182,7 @@ function formatDate(date: string | null | undefined): string {
               {{ token.name }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {{ t('settings.scope') }}: {{ formatScope(token.scopeProjectIds) }}
+              {{ t('settings.scope') }}: {{ formatScope(token) }}
             </p>
           </div>
           <div class="flex items-center gap-2">

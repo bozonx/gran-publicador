@@ -928,7 +928,11 @@
     "logout_desc": "Выйти из аккаунта",
     "systemTheme": "Системная тема",
     "uiLanguage": "Язык интерфейса",
-    "uiLanguageHelp": "Язык интерфейса приложения"
+    "uiLanguageHelp": "Язык интерфейса приложения",
+    "uiLanguageAuto": "Язык интерфейса автоматически",
+    "uiLanguageAutoWithLabel": "Язык интерфейса автоматически ({lang})",
+    "uiLanguageReturnAuto": "Вернуть автоматический режим",
+    "uiLanguageSelect": "Выбор языка интерфейса"
   },
   "form": {
     "unsavedChanges": "Несохраненные изменения",

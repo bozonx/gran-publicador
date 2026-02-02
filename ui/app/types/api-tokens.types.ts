@@ -5,7 +5,8 @@ export interface ApiToken {
     userId: string
     name: string
     plainToken: string // decrypted token
-    scopeProjectIds: string[] // parsed from JSON
+    allProjects: boolean
+    projectIds: string[] // parsed from JSON
     lastUsedAt: string | null
     createdAt: string
     updatedAt: string
@@ -13,10 +14,12 @@ export interface ApiToken {
 
 export interface CreateApiTokenDto {
     name: string
-    scopeProjectIds?: string[]
+    allProjects?: boolean
+    projectIds?: string[]
 }
 
 export interface UpdateApiTokenDto {
     name?: string
-    scopeProjectIds?: string[]
+    allProjects?: boolean
+    projectIds?: string[]
 }
