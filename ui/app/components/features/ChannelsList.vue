@@ -12,7 +12,8 @@ const props = defineProps<{
   projectId: string
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { user } = useAuth()
 const {
   channels,
   isLoading,
@@ -144,8 +145,12 @@ const {
 } = useChannels()
 const router = useRouter()
 
+const defaultChannelLanguage = computed(() => {
+  return user.value?.language || user.value?.uiLanguage || locale.value || 'en-US'
+})
+
 const createFormState = reactive({
-  language: 'ru-RU',
+  language: defaultChannelLanguage.value,
   socialMedia: 'TELEGRAM' as SocialMedia,
   name: '',
   description: '',
@@ -153,7 +158,7 @@ const createFormState = reactive({
 })
 
 function resetCreateForm() {
-  createFormState.language = 'ru-RU'
+  createFormState.language = defaultChannelLanguage.value
   createFormState.socialMedia = 'TELEGRAM'
   createFormState.name = ''
   createFormState.description = ''

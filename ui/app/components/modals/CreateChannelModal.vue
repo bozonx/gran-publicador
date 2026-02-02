@@ -25,7 +25,7 @@ const formState = reactive({
   projectId: '',
   name: '',
   socialMedia: '' as SocialMedia | '',
-  language: user.value!.language,
+  language: user.value?.language || 'en-US',
   channelIdentifier: '',
   description: ''
 })
@@ -33,6 +33,9 @@ const formState = reactive({
 // Load projects when modal opens
 watch(isOpen, async (open) => {
   if (open) {
+    if (user.value?.language) {
+      formState.language = user.value.language
+    }
     await fetchProjects()
     resetForm()
   }
@@ -42,10 +45,18 @@ function resetForm() {
   formState.projectId = props.initialProjectId || projects.value[0]?.id || ''
   formState.name = ''
   formState.socialMedia = '' as SocialMedia | ''
-  formState.language = user.value!.language
+  formState.language = user.value?.language || 'en-US'
   formState.channelIdentifier = ''
   formState.description = ''
 }
+
+// Watch for user language changes and sync if modal is closed or language is not set
+watch(() => user.value?.language, (newVal) => {
+    if (newVal) {
+        formState.language = newVal
+    }
+}, { immediate: true })
+
 
 // Social media options
 

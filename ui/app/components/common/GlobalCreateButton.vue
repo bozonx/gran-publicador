@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { PostType } from '~/types/posts'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+
+const { user } = useAuth()
 
 const props = withDefaults(defineProps<{
   mode?: 'header' | 'fab'
@@ -72,9 +74,13 @@ const { channels, fetchChannels } = useChannels()
 const { languageOptions } = useLanguages()
 const { typeOptions } = usePosts()
 
+const defaultContentLanguage = computed(() => {
+  return user.value?.language || user.value?.uiLanguage || locale.value || 'en-US'
+})
+
 const publicationForm = reactive({
   projectId: '',
-  language: 'ru-RU',
+  language: defaultContentLanguage.value,
   postType: 'POST' as PostType,
   channelIds: [] as string[]
 })
@@ -84,6 +90,7 @@ watch(isPublicationModalOpen, async (open) => {
   if (open) {
     await fetchProjects()
     publicationForm.projectId = projects.value[0]?.id || ''
+    publicationForm.language = defaultContentLanguage.value
     if (publicationForm.projectId) {
       await fetchChannels({ projectId: publicationForm.projectId })
     }
