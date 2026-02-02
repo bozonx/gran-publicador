@@ -17,9 +17,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { user } = useAuth()
 const { translateText, isLoading, error } = useTranslate()
 
-const targetLang = ref(props.defaultTargetLang || 'ru-RU')
+const targetLang = ref(props.defaultTargetLang || user.value?.language || 'en-US')
 const splitter = ref<'paragraph' | 'markdown' | 'sentence' | 'off'>('paragraph')
 const maxChunkLength = ref<number | undefined>(undefined)
 const action = ref<'insert' | 'add'>('add')

@@ -16,6 +16,8 @@ const route = useRoute()
 const router = useRouter()
 const { canGoBack, goBack: navigateBack } = useNavigation()
 
+const { user } = useAuth()
+
 const projectId = computed(() => channel.value?.projectId || '')
 const channelId = computed(() => route.params.id as string)
 
@@ -265,7 +267,7 @@ function mapPostToPublication(post: PostWithRelations): PublicationWithRelations
      title: t('post.untitled'),
      content: '',
      status: 'DRAFT',
-     language: 'ru-RU',
+     language: user.value?.language || channel.value?.language || 'en-US',
      postType: 'POST',
      mediaFiles: '[]',
      meta: '{}',
