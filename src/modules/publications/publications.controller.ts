@@ -143,7 +143,7 @@ export class PublicationsController {
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindPublicationsQueryDto,
   ): Promise<PaginatedResponse<any>> {
-    const { limit = 20, offset = 0, status, sortBy, sortOrder, search } = query;
+    const { limit = 20, offset = 0, status, sortBy, sortOrder, search, scope } = query;
     const validatedLimit = Math.min(limit, this.MAX_LIMIT);
 
     const result = await this.publicationsService.findUserDrafts(req.user.userId, {
@@ -153,6 +153,7 @@ export class PublicationsController {
       sortBy,
       sortOrder,
       search,
+      scope,
     });
 
     return {

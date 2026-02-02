@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ProjectWithRole } from '~/stores/projects'
 import { useSorting } from '~/composables/useSorting'
+import { VueDraggable } from 'vue-draggable-plus'
 import { FORM_STYLES } from '~/utils/design-tokens'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 
@@ -252,14 +253,13 @@ async function onDragEnd() {
 
     <!-- Projects list -->
     <div v-else-if="projects.length > 0" class="space-y-6">
-      <div 
+      <VueDraggable
+        v-model="displayProjects"
+        :animation="150"
+        handle=".drag-handle"
+        :disabled="sortBy !== 'custom'"
         class="space-y-4"
-        v-draggable="[displayProjects, { 
-          animation: 150, 
-          handle: '.drag-handle',
-          disabled: sortBy !== 'custom',
-          onEnd: onDragEnd
-        }]"
+        @end="onDragEnd"
       >
         <ProjectsProjectListItem
           v-for="project in displayProjects"
@@ -277,7 +277,7 @@ async function onDragEnd() {
             </div>
           </template>
         </ProjectsProjectListItem>
-      </div>
+      </VueDraggable>
       
       <!-- Show/Hide Archived Button -->
       <div v-if="hasArchivedProjects" class="flex justify-center pt-4">

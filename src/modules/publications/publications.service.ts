@@ -428,6 +428,8 @@ export class PublicationsService {
     });
     const userProjectIds = userProjects.map(p => p.id);
 
+    this.logger.log(`findUserDrafts called for user ${userId} with filters: ${JSON.stringify(filters)}`);
+
     const where: Prisma.PublicationWhereInput = {
       archivedAt: null,
     };
@@ -451,11 +453,27 @@ export class PublicationsService {
     }
 
     if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search } },
-        { content: { contains: filters.search } },
-      ];
+      const searchTerms: Prisma.PublicationWhereInput = {
+        OR: [
+          { title: { contains: filters.search } },
+          { content: { contains: filters.search } },
+        ],
+      };
+      
+      // If we already have an OR for scope (the default case), we need to wrap everything in an AND
+      if (where.OR) {
+        const scopeOr = where.OR;
+        delete where.OR;
+        where.AND = [
+          { OR: scopeOr },
+          searchTerms
+        ];
+      } else {
+        where.AND = [searchTerms];
+      }
     }
+
+    this.logger.log(`findUserDrafts final where clause: ${JSON.stringify(where)}`);
 
     const orderBy = this.prepareOrderBy(filters?.sortBy, filters?.sortOrder);
 
