@@ -246,7 +246,8 @@
       "alphabetical": "Alphabetical",
       "role": "By role",
       "publicationsCount": "By publications count",
-      "lastPublication": "By last created publication"
+      "lastPublication": "By last created publication",
+      "custom": "Custom order"
     },
     "preferences_desc": "Project preferences",
     "unarchiveProject": "Unarchive project",
@@ -985,7 +986,11 @@
     "noProblems": "All good! No problems detected.",
     "your_recent_drafts": "Your Recent Drafts",
     "published_last_24h": "Published last 24h",
-    "no_published_last_24h": "No posts published in the last 24h"
+    "no_published_last_24h": "No posts published in the last 24h",
+    "group_owner": "Owner",
+    "group_admin": "Admin",
+    "group_editor": "Editor",
+    "group_viewer": "Viewer"
   },
   "editor": {
     "characters": "characters",

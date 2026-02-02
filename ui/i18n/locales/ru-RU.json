@@ -244,7 +244,8 @@
       "alphabetical": "По алфавиту",
       "role": "По роли",
       "publicationsCount": "По количеству публикаций",
-      "lastPublication": "По последней созданной публикации"
+      "lastPublication": "По последней созданной публикации",
+      "custom": "Свой порядок"
     },
     "preferences_desc": "Настройки проекта",
     "unarchiveProject": "Разархивировать проект",
@@ -982,7 +983,11 @@
     "noProblems": "Все в порядке! Проблем не обнаружено.",
     "published_last_24h": "Опубликовано за прошедшие сутки",
     "no_published_last_24h": "За прошедшие сутки публикаций не было",
-    "your_recent_drafts": "Ваши последние черновики"
+    "your_recent_drafts": "Ваши последние черновики",
+    "group_owner": "Владелец",
+    "group_admin": "Администратор",
+    "group_editor": "Редактор",
+    "group_viewer": "Наблюдатель"
   },
   "editor": {
     "characters": "символов",
