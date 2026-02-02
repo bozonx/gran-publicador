@@ -73,8 +73,8 @@ export interface PublicationsFilter {
     sortOrder?: 'asc' | 'desc'
     search?: string
     language?: string
-    ownership?: 'own' | 'notOwn'
-    issueType?: 'failed' | 'partial' | 'expired'
+    ownership?: 'own' | 'notOwn' | 'all'
+    issueType?: 'failed' | 'partial' | 'expired' | 'all'
     socialMedia?: string
     publishedAfter?: string
 }
@@ -133,8 +133,8 @@ export function usePublications() {
             if (filters.sortOrder) params.sortOrder = filters.sortOrder
             if (filters.search) params.search = filters.search
             if (filters.language) params.language = filters.language
-            if (filters.ownership) params.ownership = filters.ownership
-            if (filters.issueType) params.issueType = filters.issueType
+            if (filters.ownership && filters.ownership !== 'all') params.ownership = filters.ownership
+            if (filters.issueType && filters.issueType !== 'all') params.issueType = filters.issueType
             if (filters.socialMedia) params.socialMedia = filters.socialMedia
             if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter
 
@@ -175,8 +175,8 @@ export function usePublications() {
             if (filters.sortOrder) params.sortOrder = filters.sortOrder
             if (filters.search) params.search = filters.search
             if (filters.language) params.language = filters.language
-            if (filters.ownership) params.ownership = filters.ownership
-            if (filters.issueType) params.issueType = filters.issueType
+            if (filters.ownership && filters.ownership !== 'all') params.ownership = filters.ownership
+            if (filters.issueType && filters.issueType !== 'all') params.issueType = filters.issueType
             if (filters.socialMedia) params.socialMedia = filters.socialMedia
             if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter
 

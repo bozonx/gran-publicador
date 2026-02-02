@@ -849,6 +849,8 @@
       "noCredentials": "{count} channel without credentials | {count} channels without credentials",
       "inactiveChannels": "{count} inactive channel (disabled) | {count} inactive channels (disabled)",
       "staleChannels": "{count} stale channel | {count} stale channels",
+      "failedPosts": "{count} publication with failed posts | {count} publications with failed posts",
+      "noRecentActivity": "No recent activity (more than 3 days)",
       "noChannels": "No channels in project"
     }
   },
