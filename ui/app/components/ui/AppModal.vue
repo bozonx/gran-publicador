@@ -100,7 +100,7 @@ function handleClose(close?: () => void) {
         </div>
 
         <!-- Body -->
-        <div class="px-6 py-6 w-full overflow-y-auto flex-1 min-h-0 custom-scrollbar" :class="bodyClass">
+        <div class="px-6 py-6 w-full overflow-y-auto flex-auto custom-scrollbar" :class="bodyClass">
           <slot />
         </div>
 
