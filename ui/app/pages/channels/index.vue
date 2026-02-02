@@ -47,7 +47,11 @@ const ownershipFilter = ref<OwnershipFilter>(
 )
 
 // Archive filter
-const showArchivedFilter = ref(route.query.archived === 'true')
+// Archive filter
+type ArchiveStatus = 'active' | 'archived'
+const archiveStatus = ref<ArchiveStatus>(
+  route.query.archived === 'true' ? 'archived' : 'active'
+)
 
 // Issue type filter
 type ChannelIssueFilter = 'all' | 'problematic'
@@ -86,7 +90,7 @@ async function loadChannels() {
     sortOrder: sortOrder.value,
     limit: limit.value,
     offset: (currentPage.value - 1) * limit.value,
-    archivedOnly: showArchivedFilter.value,
+    archivedOnly: archiveStatus.value === 'archived',
     includeArchived: false,
   })
 }
@@ -106,7 +110,7 @@ watch(
     selectedIssueType, 
     selectedProjectId, 
     debouncedSearch, 
-    showArchivedFilter,
+    archiveStatus,
     sortBy,
     sortOrder
   ], 
@@ -128,7 +132,7 @@ watch(
     updateQuery('ownership', ownershipFilter.value, 'all')
     updateQuery('issue', selectedIssueType.value, 'all')
     updateQuery('projectId', selectedProjectId.value)
-    updateQuery('archived', showArchivedFilter.value, false)
+    updateQuery('archived', archiveStatus.value === 'archived' ? 'true' : null, null)
     updateQuery('sortBy', sortBy.value, 'alphabetical')
     updateQuery('sortOrder', sortOrder.value, 'asc')
     
@@ -140,7 +144,7 @@ watch(
 )
 
 // Watch filters and sorting - reset to page 1 and re-fetch
-watch([ownershipFilter, selectedIssueType, selectedProjectId, debouncedSearch, showArchivedFilter, sortBy, sortOrder], () => {
+watch([ownershipFilter, selectedIssueType, selectedProjectId, debouncedSearch, archiveStatus, sortBy, sortOrder], () => {
     currentPage.value = 1
     loadChannels()
 })
@@ -229,7 +233,7 @@ const hasActiveFilters = computed(() => {
            selectedProjectId.value || 
            ownershipFilter.value !== 'all' || 
            selectedIssueType.value !== 'all' ||
-           showArchivedFilter.value
+           archiveStatus.value === 'archived'
 })
 
 function resetFilters() {
@@ -237,7 +241,7 @@ function resetFilters() {
     selectedProjectId.value = null
     ownershipFilter.value = 'all'
     selectedIssueType.value = 'all'
-    showArchivedFilter.value = false
+    archiveStatus.value = 'active'
 }
 
 const showPagination = computed(() => {
@@ -368,7 +372,7 @@ const showPagination = computed(() => {
             ]"
             variant="outline"
             active-variant="solid"
-            color="white"
+            color="neutral"
           />
         </div>
         

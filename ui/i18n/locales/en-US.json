@@ -362,7 +362,9 @@
         "tooltip": "Filter channels with problems"
       },
       "archiveStatus": {
-        "tooltip": "OFF: only active channels and projects. ON: only archived channels or channels of archived projects."
+        "active": "Actual",
+        "archived": "Archived",
+        "tooltip": "Actual: Show active channels and projects.\nArchived: Show only archived channels."
       },
       "activityStatus": {},
       "issuesStatus": {},
