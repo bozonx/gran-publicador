@@ -19,7 +19,6 @@ describe('PublicationsService (unit)', () => {
   let moduleRef: TestingModule;
 
   const mockPrismaService = {
-    $queryRaw: jest.fn() as any,
     publication: {
       create: jest.fn() as any,
       findMany: jest.fn() as any,
@@ -43,6 +42,7 @@ describe('PublicationsService (unit)', () => {
       create: jest.fn() as any,
       updateMany: jest.fn() as any,
       findMany: jest.fn() as any,
+      aggregate: jest.fn() as any,
     },
     authorSignature: {
       findFirst: jest.fn() as any,
@@ -89,6 +89,10 @@ describe('PublicationsService (unit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockPrismaService.post.aggregate.mockResolvedValue({
+      _max: { publishedAt: null },
+    });
   });
 
   describe('create', () => {
@@ -170,39 +174,18 @@ describe('PublicationsService (unit)', () => {
       );
     });
 
-    it('should sort by chronology using publishedAt/scheduledAt/createdAt and respect sortOrder', async () => {
+    it('should sort by chronology using effectiveAt and respect sortOrder', async () => {
       const userId = 'user-1';
       const projectId = 'project-1';
 
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.count.mockResolvedValue(3);
 
-      const pubA = {
-        id: 'a',
-        scheduledAt: null,
-        createdAt: new Date('2026-01-01T10:00:00.000Z'),
-        posts: [{ publishedAt: new Date('2026-01-05T10:00:00.000Z') }],
-      };
+      const pubA = { id: 'a' };
+      const pubB = { id: 'b' };
+      const pubC = { id: 'c' };
 
-      const pubB = {
-        id: 'b',
-        scheduledAt: new Date('2026-01-03T10:00:00.000Z'),
-        createdAt: new Date('2026-01-02T10:00:00.000Z'),
-        posts: [],
-      };
-
-      const pubC = {
-        id: 'c',
-        scheduledAt: null,
-        createdAt: new Date('2026-01-04T10:00:00.000Z'),
-        posts: [],
-      };
-
-      mockPrismaService.publication.findMany
-        .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
-        .mockResolvedValueOnce([pubA, pubB, pubC]);
-
-      mockPrismaService.$queryRaw.mockResolvedValueOnce([{ id: 'a' }, { id: 'c' }, { id: 'b' }]);
+      mockPrismaService.publication.findMany.mockResolvedValueOnce([pubA, pubC, pubB]);
 
       const desc = await service.findAll(projectId, userId, {
         sortBy: 'chronology',
@@ -213,14 +196,15 @@ describe('PublicationsService (unit)', () => {
 
       expect(desc.items.map((i: any) => i.id)).toEqual(['a', 'c', 'b']);
 
+      expect(mockPrismaService.publication.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ effectiveAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+
       mockPrismaService.publication.findMany.mockClear();
-      mockPrismaService.$queryRaw.mockClear();
 
-      mockPrismaService.publication.findMany
-        .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
-        .mockResolvedValueOnce([pubA, pubB, pubC]);
-
-      mockPrismaService.$queryRaw.mockResolvedValueOnce([{ id: 'b' }, { id: 'c' }, { id: 'a' }]);
+      mockPrismaService.publication.findMany.mockResolvedValueOnce([pubB, pubC, pubA]);
 
       const asc = await service.findAll(projectId, userId, {
         sortBy: 'chronology',
@@ -230,6 +214,12 @@ describe('PublicationsService (unit)', () => {
       });
 
       expect(asc.items.map((i: any) => i.id)).toEqual(['b', 'c', 'a']);
+
+      expect(mockPrismaService.publication.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ effectiveAt: 'asc' }, { id: 'asc' }],
+        }),
+      );
     });
 
     it('should apply complex filters (socialMedia, issueType, ownership)', async () => {
@@ -637,14 +627,11 @@ describe('PublicationsService (unit)', () => {
         createdAt: new Date('2026-01-01'),
       };
 
-      mockPrismaService.publication.findMany
-        .mockResolvedValueOnce([{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }])
-        .mockResolvedValueOnce([scheduledFar, publishedRecent, publishedOld, draft]);
-      mockPrismaService.$queryRaw.mockResolvedValueOnce([
-        { id: '1' },
-        { id: '2' },
-        { id: '3' },
-        { id: '4' },
+      mockPrismaService.publication.findMany.mockResolvedValueOnce([
+        scheduledFar,
+        publishedRecent,
+        publishedOld,
+        draft,
       ]);
       mockPrismaService.publication.count.mockResolvedValue(4);
 

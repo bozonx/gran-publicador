@@ -24,14 +24,9 @@ const mainNavItems = computed<NavItem[]>(() => [
     icon: 'i-heroicons-home',
   },
   {
-    label: t('navigation.projects'),
-    to: '/projects',
-    icon: 'i-heroicons-briefcase',
-  },
-  {
-    label: t('navigation.channels'),
-    to: '/channels',
-    icon: 'i-heroicons-hashtag',
+    label: t('navigation.drafts_and_templates', 'Drafts & Templates'),
+    to: '/drafts',
+    icon: 'i-heroicons-pencil-square',
   },
   {
     label: t('navigation.publications', 'Publications'),
@@ -39,14 +34,19 @@ const mainNavItems = computed<NavItem[]>(() => [
     icon: 'i-heroicons-document-text',
   },
   {
+    label: t('navigation.channels'),
+    to: '/channels',
+    icon: 'i-heroicons-hashtag',
+  },
+  {
+    label: t('navigation.projects'),
+    to: '/projects',
+    icon: 'i-heroicons-briefcase',
+  },
+  {
     label: t('navigation.media_library', 'Media Library'),
     to: '/media',
     icon: 'i-heroicons-photo',
-  },
-  {
-    label: t('navigation.drafts_and_templates', 'Drafts & Templates'),
-    to: '/drafts',
-    icon: 'i-heroicons-pencil-square',
   },
   {
     label: t('navigation.news', 'News'),

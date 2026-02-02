@@ -18,10 +18,12 @@ describe('PostsService (unit)', () => {
       findUnique: jest.fn() as any,
       update: jest.fn() as any,
       delete: jest.fn() as any,
+      aggregate: jest.fn() as any,
     },
     publication: {
       findFirst: jest.fn() as any,
       findUnique: jest.fn() as any,
+      update: jest.fn() as any,
     },
     channel: {
       findUnique: jest.fn() as any,
@@ -71,6 +73,10 @@ describe('PostsService (unit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockPrismaService.post.aggregate.mockResolvedValue({
+      _max: { publishedAt: null },
+    });
   });
 
   describe('update', () => {

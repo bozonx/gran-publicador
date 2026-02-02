@@ -59,6 +59,7 @@ describe('SocialPostingService', () => {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
+      aggregate: jest.fn(),
     },
   };
 
@@ -100,6 +101,10 @@ describe('SocialPostingService', () => {
 
     service = module.get<SocialPostingService>(SocialPostingService);
     jest.clearAllMocks();
+
+    (mockPrismaService.post.aggregate as any).mockResolvedValue({
+      _max: { publishedAt: null },
+    });
   });
 
   it('should be defined', () => {
@@ -114,19 +119,24 @@ describe('SocialPostingService', () => {
         socialMedia: 'TELEGRAM',
         channelIdentifier: '@test',
         isActive: true,
-        credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11', telegramChannelId: '@test' },
+        credentials: {
+          telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+          telegramChannelId: '@test',
+        },
       };
 
       (mockPrismaService.channel.findUnique as any).mockResolvedValue(mockChannel);
-      
+
       const client = mockAgent.get('http://test-service');
-      client.intercept({
-        path: '/api/v1/preview',
-        method: 'POST',
-      }).reply(200, {
-        success: true,
-        data: { valid: true },
-      });
+      client
+        .intercept({
+          path: '/api/v1/preview',
+          method: 'POST',
+        })
+        .reply(200, {
+          success: true,
+          data: { valid: true },
+        });
 
       const result = await service.testChannel(channelId);
       expect(result.success).toBe(true);
@@ -152,7 +162,10 @@ describe('SocialPostingService', () => {
           socialMedia: 'TELEGRAM',
           channelIdentifier: '@test',
           isActive: true,
-        credentials: { telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11', telegramChannelId: '@test' },
+          credentials: {
+            telegramBotToken: '123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+            telegramChannelId: '@test',
+          },
           project: {},
         },
       };
@@ -165,16 +178,18 @@ describe('SocialPostingService', () => {
       (mockPrismaService.publication.update as any).mockResolvedValue({});
 
       const client = mockAgent.get('http://test-service');
-      client.intercept({
-        path: '/api/v1/post',
-        method: 'POST',
-      }).reply(200, {
-        success: true,
-        data: {
-          url: 'http://t.me/post/1',
-          publishedAt: new Date().toISOString(),
-        },
-      });
+      client
+        .intercept({
+          path: '/api/v1/post',
+          method: 'POST',
+        })
+        .reply(200, {
+          success: true,
+          data: {
+            url: 'http://t.me/post/1',
+            publishedAt: new Date().toISOString(),
+          },
+        });
 
       const result = await service.publishPost(postId);
       expect(result.success).toBe(true);

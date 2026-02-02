@@ -1273,10 +1273,14 @@ export class PublicationsService {
             },
           });
 
-          return this.prisma.publication.updateMany({
+          const result = await this.prisma.publication.updateMany({
             where: { id: { in: authorizedIds } },
             data: { status, scheduledAt: null },
           });
+
+          await Promise.all(authorizedIds.map(id => this.refreshPublicationEffectiveAt(id)));
+
+          return result;
         }
 
         // For other statuses (e.g. SCHEDULED), we might need more validation
