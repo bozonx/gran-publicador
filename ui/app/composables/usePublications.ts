@@ -69,6 +69,7 @@ export interface PublicationsFilter {
     limit?: number
     offset?: number
     includeArchived?: boolean
+    archivedOnly?: boolean
     sortBy?: string
     sortOrder?: 'asc' | 'desc'
     search?: string
@@ -130,6 +131,7 @@ export function usePublications() {
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset
             if (filters.includeArchived) params.includeArchived = true
+            if (filters.archivedOnly) params.archivedOnly = true
             if (filters.sortBy) params.sortBy = filters.sortBy
             if (filters.sortOrder) params.sortOrder = filters.sortOrder
             if (filters.search) params.search = filters.search
@@ -172,6 +174,7 @@ export function usePublications() {
             if (filters.limit) params.limit = filters.limit
             if (filters.offset) params.offset = filters.offset
             if (filters.includeArchived) params.includeArchived = true
+            if (filters.archivedOnly) params.archivedOnly = true
             if (filters.sortBy) params.sortBy = filters.sortBy
             if (filters.sortOrder) params.sortOrder = filters.sortOrder
             if (filters.search) params.search = filters.search

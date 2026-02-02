@@ -46,7 +46,7 @@ const filters = useUrlFilters<{
   issue: 'all' | 'problematic'
   socialMedia: SocialMedia | null
   language: string | null
-  archived: boolean
+  archived: string
   sortBy: string
   sortOrder: string
 }>({
@@ -63,7 +63,7 @@ const filters = useUrlFilters<{
   issue: { defaultValue: 'all' },
   socialMedia: { defaultValue: null },
   language: { defaultValue: null },
-  archived: { defaultValue: false, deserialize: (v: string) => v === 'true' },
+  archived: { defaultValue: 'active' },
   sortBy: { defaultValue: 'chronology' },
   sortOrder: { defaultValue: 'desc' },
 })
@@ -115,7 +115,8 @@ async function fetchPublications() {
   await fetchUserPublications({
     limit: limit.value,
     offset: (currentPage.value - 1) * limit.value,
-    includeArchived: showArchivedFilter.value,
+    includeArchived: false,
+    archivedOnly: showArchivedFilter.value === 'archived',
     sortBy: sortBy.value as any,
     sortOrder: sortOrder.value as any,
     status: selectedStatus.value as any,
@@ -442,9 +443,9 @@ async function handleDelete() {
           <UiAppButtonGroup
             v-model="ownershipFilter"
             :options="[
-              { value: 'all', label: t('publication.filter.ownership.all') },
               { value: 'own', label: t('publication.filter.ownership.own') },
-              { value: 'notOwn', label: t('publication.filter.ownership.notOwn') }
+              { value: 'notOwn', label: t('publication.filter.ownership.notOwn') },
+              { value: 'all', label: t('publication.filter.ownership.all') }
             ]"
             variant="outline"
             active-variant="solid"
@@ -464,8 +465,8 @@ async function handleDelete() {
           <UiAppButtonGroup
             v-model="selectedIssueType"
             :options="[
-              { value: 'all', label: t('common.all') },
-              { value: 'problematic', label: t('publication.filter.problems.onlyProblems') }
+              { value: 'problematic', label: t('publication.filter.problems.onlyProblems') },
+              { value: 'all', label: t('common.all') }
             ]"
             variant="outline"
             active-variant="solid"
@@ -483,19 +484,16 @@ async function handleDelete() {
 
         <!-- Archive Filter (Checkbox) - moved to end -->
         <div class="flex items-center gap-1.5" :title="t('publication.filter.archiveStatus.tooltip')">
-          <UCheckbox 
-            v-model="showArchivedFilter" 
-            :label="t('publication.filter.showArchived')"
-            :ui="{ label: 'text-sm font-medium text-gray-700 dark:text-gray-300' }"
+          <UiAppButtonGroup
+            v-model="showArchivedFilter"
+            :options="[
+              { value: 'active', label: t('channel.filter.archiveStatus.active') },
+              { value: 'archived', label: t('channel.filter.archiveStatus.archived') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+            color="neutral"
           />
-          <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm">{{ t('publication.filter.archiveStatus.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
         </div>
 
         <!-- Social Media Filter (Select) -->
@@ -647,7 +645,7 @@ async function handleDelete() {
         <div class="flex items-center gap-2">
           <!-- Archive / Unarchive -->
           <UButton
-            v-if="!showArchivedFilter"
+            v-if="showArchivedFilter !== 'archived'"
             color="neutral"
             variant="ghost"
             icon="i-heroicons-archive-box"

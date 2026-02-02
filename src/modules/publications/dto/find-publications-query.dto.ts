@@ -130,6 +130,11 @@ export class FindPublicationsQueryDto {
   includeArchived?: boolean;
 
   @IsOptional()
+  @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
+  @IsBoolean()
+  archivedOnly?: boolean;
+
+  @IsOptional()
   @Type(() => Date)
   @IsDate()
   publishedAfter?: Date;

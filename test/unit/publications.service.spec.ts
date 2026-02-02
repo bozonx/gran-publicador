@@ -151,6 +151,8 @@ describe('PublicationsService (unit)', () => {
 
       const result = await service.findAll(projectId, userId, {
         status: PublicationStatus.DRAFT,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
         limit: 10,
         offset: 0,
       });
@@ -237,6 +239,8 @@ describe('PublicationsService (unit)', () => {
         ownership: OwnershipType.OWN,
         socialMedia: SocialMedia.TELEGRAM,
         issueType: IssueType.FAILED,
+        sortBy: 'createdAt',
+        sortOrder: 'desc' as const,
       };
 
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
@@ -587,7 +591,7 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.findMany.mockResolvedValue([]);
       mockPrismaService.publication.count.mockResolvedValue(0);
 
-      await service.findAllForUser(userId);
+      await service.findAllForUser(userId, { sortBy: 'createdAt', sortOrder: 'desc' });
 
       expect(mockPrismaService.project.findMany).toHaveBeenCalledWith({
         where: {
@@ -633,15 +637,21 @@ describe('PublicationsService (unit)', () => {
         createdAt: new Date('2026-01-01'),
       };
 
-      mockPrismaService.publication.findMany.mockResolvedValue([
-        scheduledFar,
-        publishedRecent,
-        publishedOld,
-        draft,
+      mockPrismaService.publication.findMany
+        .mockResolvedValueOnce([{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }])
+        .mockResolvedValueOnce([scheduledFar, publishedRecent, publishedOld, draft]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        { id: '1' },
+        { id: '2' },
+        { id: '3' },
+        { id: '4' },
       ]);
       mockPrismaService.publication.count.mockResolvedValue(4);
 
-      const result = await service.findAll(projectId, userId, { sortBy: 'chronology' });
+      const result = await service.findAll(projectId, userId, {
+        sortBy: 'chronology',
+        sortOrder: 'desc',
+      });
 
       // Expected:
       // 1. Scheduled (Far)

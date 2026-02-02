@@ -20,6 +20,7 @@ export class PublicationQueryBuilder {
     filters?: {
       status?: PublicationStatus | PublicationStatus[];
       includeArchived?: boolean;
+      archivedOnly?: boolean;
       channelId?: string;
       socialMedia?: SocialMedia;
       ownership?: OwnershipType;
@@ -47,7 +48,9 @@ export class PublicationQueryBuilder {
     }
 
     // Archive filter
-    if (!filters?.includeArchived) {
+    if (filters?.archivedOnly) {
+      where.archivedAt = { not: null };
+    } else if (!filters?.includeArchived) {
       where.archivedAt = null;
       if (where.project) {
         (where.project as any).archivedAt = null;

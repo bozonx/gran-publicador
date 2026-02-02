@@ -384,6 +384,7 @@ export class PublicationsService {
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
+      archivedOnly?: boolean;
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
       channelId?: string;
@@ -616,6 +617,7 @@ export class PublicationsService {
       limit?: number;
       offset?: number;
       includeArchived?: boolean;
+      archivedOnly?: boolean;
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
       channelId?: string;
