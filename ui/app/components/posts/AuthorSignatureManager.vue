@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import type { AuthorSignature, CreateAuthorSignatureInput, UpdateAuthorSignatureInput } from '~/types/author-signatures'
@@ -46,6 +46,16 @@ function openAdd() {
   form.isDefault = signatures.value.length === 0
   isModalOpen.value = true
 }
+
+const presetItems = computed(() => {
+  return [
+    PRESET_SIGNATURES.map(p => ({
+      label: t(p.contentKey),
+      icon: 'i-heroicons-sparkles',
+      onSelect: () => handlePresetSelect(p)
+    }))
+  ]
+})
 
 function handlePresetSelect(preset: typeof PRESET_SIGNATURES[0]) {
   const content = t(preset.contentKey)
@@ -277,7 +287,6 @@ async function handleDragEnd() {
     >
       <div class="space-y-4">
         <div class="flex justify-end">
-        <div class="flex justify-end">
           <UDropdownMenu
             :items="presetItems"
             :popper="{ placement: 'bottom-end' }"
@@ -292,7 +301,6 @@ async function handleDragEnd() {
               {{ t('authorSignature.presets.button', 'Preset') }}
             </UButton>
           </UDropdownMenu>
-        </div>
         </div>
 
         <UFormField :label="t('post.contentLabel')" required>
