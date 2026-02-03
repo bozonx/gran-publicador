@@ -7,9 +7,12 @@ interface Props {
   preselectedChannelId?: string
   preselectedPostType?: PostType
   preselectedChannelIds?: string[]
+  allowProjectSelection?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  allowProjectSelection: false
+})
 
 const emit = defineEmits<{
   (e: 'success', publicationId: string): void
@@ -26,7 +29,10 @@ const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
-const isProjectLocked = computed(() => Boolean(props.projectId) || Boolean(props.preselectedChannelId))
+const isProjectLocked = computed(() => {
+  if (props.allowProjectSelection) return false
+  return Boolean(props.projectId) || Boolean(props.preselectedChannelId)
+})
 const isChannelLocked = computed(() => Boolean(props.preselectedChannelId))
 const isLanguageLocked = computed(() => Boolean(props.preselectedChannelId) || Boolean(props.preselectedLanguage))
 

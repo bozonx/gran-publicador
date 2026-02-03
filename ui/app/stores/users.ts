@@ -15,6 +15,9 @@ export interface UserWithStats extends User {
   isAdmin?: boolean | null
   createdAt?: string | null
   avatarUrl?: string | null
+  language?: string | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  preferences?: any | null
 }
 
 export interface UsersFilter {

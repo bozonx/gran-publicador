@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UserWithStats } from '~/stores/users'
 import { FORM_STYLES } from '~/utils/design-tokens'
+import yaml from 'js-yaml'
 
 definePageMeta({
   middleware: ['auth', 'admin'],
@@ -10,11 +11,14 @@ const { t, d } = useI18n()
 const route = useRoute()
 const userId = route.params.id as string
 const toast = useToast()
+const router = useRouter()
 
 const {
   fetchUserById,
   toggleAdminStatus,
   toggleBan,
+  deleteUserPermanently,
+  logoutUser,
   getUserDisplayName,
 } = useUsers()
 
@@ -22,10 +26,14 @@ const user = ref<UserWithStats | null>(null)
 const isLoading = ref(true)
 const isTogglingAdmin = ref(false)
 const isTogglingBan = ref(false)
+const isDeleting = ref(false)
 
 // Ban modal local state
 const showBanModal = ref(false)
 const banReason = ref('')
+
+// Delete modal state
+const showDeleteConfirm = ref(false)
 
 async function loadUser() {
   isLoading.value = true
@@ -62,9 +70,44 @@ async function handleBan() {
   showBanModal.value = false
 }
 
+function confirmDelete() {
+    showDeleteConfirm.value = true
+}
+
+async function handleDelete() {
+    if (!user.value) return
+    isDeleting.value = true
+    const success = await deleteUserPermanently(user.value.id)
+    isDeleting.value = false
+    showDeleteConfirm.value = false
+    
+    if (success) {
+        router.push('/admin')
+    }
+}
+
+// TODO: Implement logout functionality when backend supports it
+async function handleLogout() {
+    if (!user.value) return
+    
+    // We don't have a specific loading state for logout in local ref, 
+    // but useUsers handles global loading/error if we wanted to show it.
+    // For now, just call it.
+    await logoutUser(user.value.id)
+}
+
 const authStore = useAuthStore()
 const { user: currentUser } = storeToRefs(authStore)
 const isSelf = computed(() => user.value?.id === currentUser.value?.id)
+
+const formattedPreferences = computed(() => {
+    if (!user.value?.preferences) return null
+    try {
+        return yaml.dump(user.value.preferences)
+    } catch {
+        return JSON.stringify(user.value.preferences, null, 2)
+    }
+})
 
 </script>
 
@@ -99,11 +142,15 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
       <!-- Main Info Card -->
       <div class="app-card p-6">
         <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
-          <div class="flex items-start gap-4">
-            <div class="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-xl">
-              <UIcon name="i-heroicons-user" class="w-12 h-12 text-primary-600 dark:text-primary-400" />
-            </div>
-            <div>
+          <div class="flex items-start gap-4 flex-1">
+             <UAvatar
+                :src="user.avatarUrl || undefined"
+                :alt="user.fullName || user.telegramUsername"
+                size="3xl"
+                class="ring-4 ring-white dark:ring-gray-900"
+            />
+            
+            <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">
                   {{ user.fullName || '-' }}
@@ -116,7 +163,8 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
               >
                 {{ user.telegramUsername ? `@${user.telegramUsername}` : `#${user.telegramId}` }}
               </p>
-              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2 text-sm">
                 <div class="flex items-center gap-2 text-gray-500">
                   <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
                   <span>{{ t('user.createdAt') }}: <b>{{ user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-' }}</b></span>
@@ -125,12 +173,16 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
                   <UIcon name="i-heroicons-identification" class="w-4 h-4" />
                   <span>ID: <b>{{ user.telegramId }}</b></span>
                 </div>
+                <div class="flex items-center gap-2 text-gray-500">
+                    <UIcon name="i-heroicons-language" class="w-4 h-4" />
+                    <span>Lang: <b>{{ user.language || '-' }}</b></span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Actions -->
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-wrap gap-2 justify-end">
              <UButton
               v-if="!isSelf"
               :color="user.isAdmin ? 'warning' : 'success'"
@@ -138,6 +190,7 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
               :icon="user.isAdmin ? 'i-heroicons-user-minus' : 'i-heroicons-shield-check'"
               :loading="isTogglingAdmin"
               @click="handleToggleAdmin"
+              size="sm"
             >
               {{ user.isAdmin ? t('admin.revokeAdmin') : t('admin.grantAdmin') }}
             </UButton>
@@ -149,9 +202,32 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
               :icon="user.isBanned ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'"
               :loading="isTogglingBan"
               @click="confirmBan"
+              size="sm"
             >
               {{ user.isBanned ? t('admin.unban') : t('admin.ban') }}
             </UButton>
+            
+            <UDropdownMenu
+             :items="[
+                 [{
+                     label: t('auth.logout', 'Logout user'),
+                     icon: 'i-heroicons-arrow-right-start-on-rectangle',
+                     click: handleLogout
+                 }],
+                 [{
+                     label: t('common.delete', 'Delete permanently'),
+                     icon: 'i-heroicons-trash',
+                     class: 'text-red-500 dark:text-red-400',
+                     click: confirmDelete
+                 }]
+             ]"
+            >
+                <UButton
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-heroicons-ellipsis-vertical"
+                />
+            </UDropdownMenu>
           </div>
         </div>
 
@@ -168,7 +244,7 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
             <UIcon name="i-heroicons-briefcase" class="w-6 h-6" />
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('project.titlePlural') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('project.personalProjects', 'Private projects') }}</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ user.projectsCount || 0 }}</p>
           </div>
         </div>
@@ -178,10 +254,21 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
             <UIcon name="i-heroicons-document-text" class="w-6 h-6" />
           </div>
           <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('post.titlePlural') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('publication.personalPublications', 'Private publications') }}</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ user.publicationsCount || 0 }}</p>
           </div>
         </div>
+      </div>
+      
+      <!-- Preferences -->
+      <div v-if="user.preferences" class="app-card p-6">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5 text-gray-500" />
+              {{ t('user.preferences', 'Preferences') }}
+          </h3>
+          <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+              <pre>{{ formattedPreferences }}</pre>
+          </div>
       </div>
     </div>
 
@@ -226,5 +313,18 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
         </UButton>
       </template>
     </UiAppModal>
+    
+    <!-- Delete Confirmation Modal -->
+    <UiConfirmModal
+        v-if="showDeleteConfirm"
+        v-model:open="showDeleteConfirm"
+        :title="t('admin.deleteUserTitle', 'Delete user permanently?')"
+        :description="t('admin.deleteUserConfirm', 'This action cannot be undone. Checks related to projects and content will be removed.')"
+        :confirm-text="t('common.delete')"
+        color="error"
+        icon="i-heroicons-exclamation-triangle"
+        :loading="isDeleting"
+        @confirm="handleDelete"
+    />
   </div>
 </template>

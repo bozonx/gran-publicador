@@ -64,6 +64,26 @@ export class UsersController {
   }
 
   /**
+   * Permanently delete a user.
+   * Admin only.
+   */
+  @Delete(':id/permanent')
+  @UseGuards(AdminGuard)
+  public async deletePermanent(@Param('id') id: string) {
+    return this.usersService.deletePermanently(id);
+  }
+
+  /**
+   * Force logout a user.
+   * Admin only.
+   */
+  @Post(':id/logout')
+  @UseGuards(AdminGuard)
+  public async logoutUser(@Param('id') id: string) {
+    return this.usersService.logoutUser(id);
+  }
+
+  /**
    * Toggle admin status for a user.
    * Admin only.
    */

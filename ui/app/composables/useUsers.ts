@@ -70,11 +70,11 @@ export function useUsers() {
 
     async function toggleAdminStatus(userId: string) {
         try {
-            // Find user locally to flip status optimistically or check current status
-            const user = users.value.find(u => u.id === userId)
+            // Fetch fresh user data to ensure we toggle the correct state
+            const user = await fetchUserById(userId)
             if (!user) return
 
-            const newStatus = !user.is_admin
+            const newStatus = !user.isAdmin // Use the property from the API response
 
             await api.patch(`/users/${userId}/admin`, { isAdmin: newStatus })
 
@@ -83,9 +83,12 @@ export function useUsers() {
                 description: t('admin.userUpdated'),
                 color: 'success',
             })
-
-            // Refresh list
-            await fetchUsers()
+            
+            // Refresh list if we have it
+            if (users.value.length > 0) {
+                 await fetchUsers()
+            }
+            return newStatus
 
         } catch (err: any) {
             const message = err.message || 'Failed to update user'
@@ -94,6 +97,7 @@ export function useUsers() {
                 description: message,
                 color: 'error',
             })
+            return null
         }
     }
 
@@ -145,6 +149,56 @@ export function useUsers() {
         return name.slice(0, 2).toUpperCase()
     }
 
+    async function deleteUserPermanently(userId: string) {
+        store.setLoading(true)
+        store.setError(null)
+        try {
+            await api.delete(`/users/${userId}/permanent`)
+            toast.add({
+                title: t('common.success'),
+                description: t('admin.userDeleted', 'User permanently deleted'),
+                color: 'success',
+            })
+            return true
+        } catch (err: any) {
+            const message = err.message || 'Failed to delete user'
+            store.setError(message)
+            toast.add({
+                title: t('common.error'),
+                description: message,
+                color: 'error',
+            })
+            return false
+        } finally {
+            store.setLoading(false)
+        }
+    }
+
+    async function logoutUser(userId: string) {
+        store.setLoading(true)
+        store.setError(null)
+        try {
+            await api.post(`/users/${userId}/logout`)
+            toast.add({
+                title: t('common.success'),
+                description: t('admin.userLoggedOut', 'User has been logged out'),
+                color: 'success',
+            })
+            return true
+        } catch (err: any) {
+            const message = err.message || 'Failed to logout user'
+            store.setError(message)
+            toast.add({
+                title: t('common.error'),
+                description: message,
+                color: 'error',
+            })
+            return false
+        } finally {
+            store.setLoading(false)
+        }
+    }
+
     return {
         users,
         currentUser,
@@ -162,5 +216,7 @@ export function useUsers() {
         getUserDisplayName,
         getUserInitials,
         fetchUserById,
+        deleteUserPermanently,
+        logoutUser,
     }
 }

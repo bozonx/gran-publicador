@@ -90,6 +90,7 @@ export class UsersService {
       updatedAt: user.updatedAt,
       projectsCount: user._count.ownedProjects,
       publicationsCount: user._count.publications,
+      preferences: user.preferences,
     };
   }
 
@@ -99,6 +100,14 @@ export class UsersService {
     });
   }
 
+  /**
+   * Permanently delete a user and all related data.
+   */
+  public async deletePermanently(id: string): Promise<void> {
+    await this.prisma.user.delete({
+      where: { id },
+    });
+  }
   /**
    * Find a user by their Telegram ID or create one if they don't exist.
    * Updates profile information (username, name, avatar) on every login.
@@ -154,6 +163,16 @@ export class UsersService {
           }),
         ),
       },
+    });
+  }
+
+  /**
+   * Force logout a user by clearing their refresh token.
+   */
+  public async logoutUser(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { hashedRefreshToken: null },
     });
   }
 

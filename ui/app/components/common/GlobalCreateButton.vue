@@ -180,6 +180,7 @@ function handleChannelCreated(channelId: string, projectId: string) {
       :preselected-language="initialLanguage"
       :preselected-post-type="initialPostType"
       :preselected-channel-ids="initialChannelIds"
+      allow-project-selection
     />
 
     <!-- Create Project Modal -->

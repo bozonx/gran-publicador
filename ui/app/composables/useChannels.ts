@@ -17,7 +17,7 @@ export function useChannels() {
     const { archiveEntity, restoreEntity } = useArchive()
 
     const channels = ref<ChannelWithProject[]>([])
-    const currentChannel = ref<ChannelWithProject | null>(null)
+    const currentChannel = useState<ChannelWithProject | null>('useChannels.currentChannel', () => null)
     const totalCount = ref(0)
     const isLoading = ref(false)
     const error = ref<string | null>(null)

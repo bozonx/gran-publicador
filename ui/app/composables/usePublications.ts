@@ -98,7 +98,7 @@ export function usePublications() {
     const { archiveEntity, restoreEntity } = useArchive()
 
     const publications = ref<PublicationWithRelations[]>([])
-    const currentPublication = ref<PublicationWithRelations | null>(null)
+    const currentPublication = useState<PublicationWithRelations | null>('usePublications.currentPublication', () => null)
     const isLoading = ref(false)
     const error = ref<string | null>(null)
     const totalCount = ref(0)
