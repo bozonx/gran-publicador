@@ -775,6 +775,44 @@
     "noContent": "Нет контента",
     "processed": "Обработано"
   },
+  "contentLibrary": {
+    "title": "Библиотека контента",
+    "subtitleProject": "Область проекта",
+    "searchPlaceholder": "Поиск по заголовку, заметке, тегам, тексту...",
+    "untitled": "Без названия",
+    "textsCount": "{count} текст | {count} текста | {count} текстов",
+    "mediaCount": "{count} медиа | {count} медиа | {count} медиа",
+    "empty": "Материалов пока нет",
+    "badgeCountTooltip": "Общее количество элементов",
+    "createTitle": "Создать элемент контента",
+    "editTitle": "Редактировать элемент контента",
+    "preview": {
+      "mediaOnly": "Только медиа"
+    },
+    "fields": {
+      "text": "Текст",
+      "textHelp": "Основное содержимое элемента",
+      "textPlaceholder": "Введите основной текст здесь...",
+      "title": "Заголовок",
+      "titleHelp": "Опциональный заголовок для удобства поиска",
+      "titlePlaceholder": "Анонс продукта, Еженедельное обновление...",
+      "tags": "Теги",
+      "tagsHelp": "Теги через запятую для поиска",
+      "tagsPlaceholder": "анонс, продукт, маркетинг",
+      "note": "Заметка",
+      "noteHelp": "Внутренние заметки или напоминания",
+      "notePlaceholder": "Внутренние заметки или напоминания..."
+    },
+    "sections": {
+      "metadata": "Метаданные"
+    },
+    "validation": {
+      "textRequired": "Текст обязателен"
+    },
+    "actions": {
+      "purgeArchived": "Очистить корзину"
+    }
+  },
   "media": {
     "type": {
       "audio": "Аудио",

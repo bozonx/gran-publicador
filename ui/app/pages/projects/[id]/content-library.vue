@@ -55,7 +55,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 const q = ref('')
-const showArchivedOnly = ref(false)
+const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
 const offset = ref(0)
 const total = ref(0)
@@ -127,7 +127,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         search: q.value || undefined,
         limit,
         offset: offset.value,
-        archivedOnly: showArchivedOnly.value ? true : undefined,
+        archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
         includeArchived: false,
       },
     })
@@ -162,7 +162,7 @@ watch(
 )
 
 watch(
-  () => showArchivedOnly.value,
+  () => archiveStatus.value,
   () => {
     fetchItems({ reset: true })
   },
@@ -373,8 +373,9 @@ const getItemPreview = (item: ContentItem) => {
   <div class="space-y-6">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white truncate">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
           {{ t('contentLibrary.title', 'Content library') }}
+          <CommonCountBadge :count="total" :title="t('contentLibrary.badgeCountTooltip')" />
         </h1>
         <p class="text-gray-500 dark:text-gray-400">
           {{ t('contentLibrary.subtitleProject', 'Project scope') }}
@@ -401,26 +402,20 @@ const getItemPreview = (item: ContentItem) => {
         />
 
         <div class="flex items-center gap-3 justify-between md:justify-end">
-          <UButton
-            size="sm"
-            variant="ghost"
-            color="neutral"
-            :icon="showArchivedOnly ? 'i-heroicons-archive-box' : 'i-heroicons-inbox'"
-            @click="showArchivedOnly = !showArchivedOnly"
-          >
-            {{
-              showArchivedOnly
-                ? t('contentLibrary.filters.archivedOnly', 'Archived')
-                : t('contentLibrary.filters.activeOnly', 'Active')
-            }}
-          </UButton>
-
-          <div class="text-sm text-gray-500 dark:text-gray-400">
-            {{ t('common.total', { count: total }, `Total: ${total}`) }}
+          <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">
+            <UiAppButtonGroup
+              v-model="archiveStatus"
+              :options="[
+                { value: 'archived', label: t('channel.filter.archiveStatus.archived') },
+                { value: 'active', label: t('channel.filter.archiveStatus.active') }
+              ]"
+              variant="outline"
+              active-variant="solid"
+              color="neutral"
+            />
           </div>
-
           <UButton
-            v-if="showArchivedOnly"
+            v-if="archiveStatus === 'archived'"
             size="sm"
             color="warning"
             variant="outline"

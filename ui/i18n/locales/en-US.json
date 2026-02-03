@@ -777,6 +777,44 @@
     "noContent": "No content",
     "processed": "Processed"
   },
+  "contentLibrary": {
+    "title": "Content library",
+    "subtitleProject": "Project scope",
+    "searchPlaceholder": "Search by title, note, tags, text...",
+    "untitled": "Untitled",
+    "textsCount": "{count} text | {count} texts",
+    "mediaCount": "{count} media | {count} media",
+    "empty": "No items yet",
+    "badgeCountTooltip": "Total number of items",
+    "createTitle": "Create content item",
+    "editTitle": "Edit content item",
+    "preview": {
+      "mediaOnly": "Media only"
+    },
+    "fields": {
+      "text": "Text",
+      "textHelp": "Main content of the item",
+      "textPlaceholder": "Enter the main content here...",
+      "title": "Title",
+      "titleHelp": "Optional title for easier identification",
+      "titlePlaceholder": "Product announcement, Weekly update...",
+      "tags": "Tags",
+      "tagsHelp": "Comma-separated tags for search",
+      "tagsPlaceholder": "announcement, product, marketing",
+      "note": "Note",
+      "noteHelp": "Internal notes or reminders",
+      "notePlaceholder": "Internal notes or reminders..."
+    },
+    "sections": {
+      "metadata": "Metadata"
+    },
+    "validation": {
+      "textRequired": "Text is required"
+    },
+    "actions": {
+      "purgeArchived": "Empty trash"
+    }
+  },
   "media": {
     "type": {
       "audio": "Audio",
