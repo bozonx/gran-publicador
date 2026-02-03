@@ -37,12 +37,12 @@ const footerOptions = computed(() => {
   const footers = channel.preferences?.footers || []
   const defaultFooter = footers.find(f => f.isDefault)
   const defaultLabel = defaultFooter 
-    ? `${t('channel.footerDefault')} (${defaultFooter.name})`
+    ? `${t('channel.footerDefault')} (${defaultFooter.content.split('\n')[0].slice(0, 50)})`
     : t('channel.footerDefault')
     
   return [
     { value: null, label: defaultLabel },
-    ...footers.map(f => ({ value: f.id, label: f.name }))
+    ...footers.map(f => ({ value: f.id, label: f.content.split('\n')[0].slice(0, 50) }))
   ]
 })
 

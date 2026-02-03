@@ -86,7 +86,10 @@ function openEditFooter(footer: ChannelFooter) {
 }
 
 function saveFooter() {
-  if (!footerForm.name || !footerForm.content) return
+  if (!footerForm.content) return
+
+  // Automatically set name from content for backend compatibility
+  footerForm.name = footerForm.content.split('\n')[0].slice(0, 50) || 'Footer'
 
   if (footerForm.isDefault) {
     footers.value.forEach(f => f.isDefault = false)
@@ -218,7 +221,7 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
           </div>
           <div>
             <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-              {{ footer.name }}
+              {{ footer.content }}
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-md">
               {{ footer.content }}
@@ -265,7 +268,7 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
           <div class="flex items-center gap-2">
             <UIcon name="i-heroicons-trash" class="w-3.5 h-3.5 text-gray-400" />
             <div class="text-xs truncate max-w-[200px]">
-              <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ footer.name }}</span>
+              <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ footer.content }}</span>
             </div>
           </div>
           <UButton
@@ -288,13 +291,6 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
       :title="editingFooter ? t('channel.editFooter') : t('channel.addFooter')"
     >
       <div class="space-y-4">
-        <UFormField :label="t('channel.footerName')" required>
-          <UInput
-            v-model="footerForm.name"
-            :placeholder="t('channel.footerNamePlaceholder')"
-            class="w-full"
-          />
-        </UFormField>
 
         <UFormField :label="t('channel.footerContent')" required>
           <UTextarea

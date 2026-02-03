@@ -1,6 +1,6 @@
 {
   "name": "gran-publicador",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Gran Publicador",
   "type": "module",
   "main": "dist/src/main.js",

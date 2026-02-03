@@ -56,7 +56,7 @@ const options = computed(() => {
     userSignatures.value.forEach(s => {
       list.push({
         value: s.id,
-        label: s.name + (s.isDefault ? ` (${t('authorSignature.is_default', 'Default')})` : ''),
+        label: s.content.split('\n')[0].slice(0, 50) + (s.isDefault ? ` (${t('authorSignature.is_default', 'Default')})` : ''),
         icon: 'i-heroicons-pencil-square',
         content: s.content,
         isDefault: s.isDefault
@@ -84,7 +84,7 @@ const selectedLabel = computed(() => {
   if (!selectedValue.value) return t('authorSignature.select', 'Select signature...')
   
   const userOpt = userSignatures.value.find(s => s.id === selectedValue.value)
-  if (userOpt) return userOpt.name
+  if (userOpt) return userOpt.content.split('\n')[0].slice(0, 50)
   
   const presetOpt = presetSignatures.value.find(p => p.id === selectedValue.value)
   if (presetOpt) return t(presetOpt.nameKey)

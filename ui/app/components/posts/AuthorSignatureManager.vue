@@ -67,7 +67,10 @@ function openEdit(signature: AuthorSignature) {
 }
 
 async function handleSave() {
-  if (!form.name || !form.content) return
+  if (!form.content) return
+
+  // Automatically set name from content for backend compatibility
+  form.name = form.content.split('\n')[0].slice(0, 50) || 'Signature'
 
   try {
     if (editingSignature.value) {
@@ -227,7 +230,7 @@ async function handleDrop(event: DragEvent, targetIndex: number) {
           <div class="flex flex-col min-w-0">
             <div class="flex items-center gap-2">
               <UIcon name="i-heroicons-bars-3" class="w-4 h-4 text-gray-400 shrink-0" />
-              <span class="font-semibold text-gray-900 dark:text-white truncate" :title="sig.name">{{ sig.name }}</span>
+              <span class="font-semibold text-gray-900 dark:text-white truncate" :title="sig.content">{{ sig.content }}</span>
               <UBadge v-if="sig.isDefault" size="xs" color="primary" variant="subtle">
                 {{ t('authorSignature.is_default') }}
               </UBadge>
@@ -279,13 +282,6 @@ async function handleDrop(event: DragEvent, targetIndex: number) {
       :title="editingSignature ? t('common.edit') : t('common.add')"
     >
       <div class="space-y-4">
-        <UFormField :label="t('common.name')" required>
-          <UInput
-            v-model="form.name"
-            placeholder="e.g. My Website Link"
-            class="w-full"
-          />
-        </UFormField>
 
         <UFormField :label="t('post.contentLabel')" required>
           <UTextarea
