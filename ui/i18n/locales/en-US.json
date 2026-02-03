@@ -806,13 +806,18 @@
       "notePlaceholder": "Internal notes or reminders..."
     },
     "sections": {
-      "metadata": "Metadata"
+      "metadata": "Metadata",
+      "blocks": "Content Blocks"
     },
+    "block": "Block {index}",
     "validation": {
       "textRequired": "Text is required"
     },
     "actions": {
-      "purgeArchived": "Empty trash"
+      "purgeArchived": "Empty trash",
+      "addBlock": "Add block",
+      "collapseAll": "Collapse all",
+      "expandAll": "Expand all"
     }
   },
   "media": {

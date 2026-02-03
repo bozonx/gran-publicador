@@ -804,13 +804,18 @@
       "notePlaceholder": "Внутренние заметки или напоминания..."
     },
     "sections": {
-      "metadata": "Метаданные"
+      "metadata": "Метаданные",
+      "blocks": "Блоки контента"
     },
+    "block": "Блок {index}",
     "validation": {
       "textRequired": "Текст обязателен"
     },
     "actions": {
-      "purgeArchived": "Очистить корзину"
+      "purgeArchived": "Очистить корзину",
+      "addBlock": "Добавить блок",
+      "collapseAll": "Свернуть все",
+      "expandAll": "Развернуть все"
     }
   },
   "media": {

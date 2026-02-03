@@ -66,6 +66,7 @@ async function handleSearch() {
     savedTo: query.savedTo,
     lang: query.lang,
     sourceTags: sourceTags,
+    sources: query.sources,
     orderBy: query.orderBy
   }, query.projectId)
 }
@@ -94,7 +95,8 @@ async function loadMore() {
       savedFrom: query.savedFrom || query.since,
       savedTo: query.savedTo,
       lang: query.lang,
-      sourceTags: sourceTags
+      sourceTags: sourceTags,
+      sources: query.sources
     }, query.projectId, true)
   } finally {
     isLoadMoreLoading.value = false
@@ -247,6 +249,18 @@ function formatScore(score: number) {
              <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
               <UIcon name="i-heroicons-chart-bar" class="w-4 h-4" />
               <span>Score: <span class="font-bold text-gray-900 dark:text-gray-100">{{ currentTrackedQuery.minScore }}</span></span>
+            </div>
+
+            <div v-if="currentTrackedQuery.sources" class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+              <UIcon name="i-heroicons-globe-alt" class="w-4 h-4" />
+              <span class="truncate max-w-[120px]" :title="currentTrackedQuery.sources">{{ currentTrackedQuery.sources }}</span>
+            </div>
+
+            <div v-if="currentTrackedQuery.sourceTags" class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+              <UIcon name="i-heroicons-tag" class="w-4 h-4" />
+              <span class="truncate max-w-[120px]" :title="Array.isArray(currentTrackedQuery.sourceTags) ? currentTrackedQuery.sourceTags.join(', ') : currentTrackedQuery.sourceTags">
+                {{ Array.isArray(currentTrackedQuery.sourceTags) ? currentTrackedQuery.sourceTags.join(', ') : currentTrackedQuery.sourceTags }}
+              </span>
             </div>
 
             <UButton
