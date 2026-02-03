@@ -42,7 +42,7 @@ function handleClose() {
       ref="createFormRef"
       id="create-channel-form"
       :initial-project-id="props.initialProjectId"
-      :show-project-select="!props.initialProjectId"
+      :show-project-select="true"
       @submit="handleCreate"
     />
 

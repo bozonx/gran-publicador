@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import AppModal from '~/components/ui/AppModal.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -9,7 +10,7 @@ definePageMeta({
 interface ContentText {
   id: string
   content: string
-  type: string
+  type?: string
   order: number
 }
 
@@ -46,6 +47,7 @@ interface FindContentItemsResponse {
 const { t, d } = useI18n()
 const route = useRoute()
 const api = useApi()
+const toast = useToast()
 
 const projectId = computed(() => route.params.id as string)
 
@@ -57,6 +59,27 @@ const limit = 20
 const offset = ref(0)
 const total = ref(0)
 const items = ref<ContentItem[]>([])
+
+const isCreateModalOpen = ref(false)
+const isEditModalOpen = ref(false)
+const activeItem = ref<ContentItem | null>(null)
+
+const createForm = ref({
+  title: '',
+  tags: '',
+  note: '',
+  text: '',
+})
+
+const editForm = ref({
+  title: '',
+  tags: '',
+  note: '',
+  text: '',
+})
+
+const isSaving = ref(false)
+const isArchivingId = ref<string | null>(null)
 
 const hasMore = computed(() => items.value.length < total.value)
 
@@ -116,6 +139,144 @@ onMounted(() => {
   fetchItems({ reset: true })
 })
 
+const resetCreateForm = () => {
+  createForm.value = {
+    title: '',
+    tags: '',
+    note: '',
+    text: '',
+  }
+}
+
+const openCreateModal = () => {
+  resetCreateForm()
+  isCreateModalOpen.value = true
+}
+
+const openEditModal = (item: ContentItem) => {
+  activeItem.value = item
+
+  const firstText = item.texts?.[0]?.content || ''
+
+  editForm.value = {
+    title: item.title || '',
+    tags: item.tags || '',
+    note: item.note || '',
+    text: firstText,
+  }
+
+  isEditModalOpen.value = true
+}
+
+const createItem = async () => {
+  if (!projectId.value) return
+
+  const text = createForm.value.text.trim()
+  if (!text) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: t('contentLibrary.validation.textRequired', 'Text is required'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+    return
+  }
+
+  isSaving.value = true
+  try {
+    await api.post('/content-library/items', {
+      scope: 'project',
+      projectId: projectId.value,
+      title: createForm.value.title || undefined,
+      tags: createForm.value.tags || undefined,
+      note: createForm.value.note || undefined,
+      texts: [
+        {
+          content: text,
+          type: 'plain',
+        },
+      ],
+      media: [],
+    })
+
+    isCreateModalOpen.value = false
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: e?.data?.message || e?.message || 'Failed to create content item',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const updateItem = async () => {
+  if (!activeItem.value) return
+
+  const item = activeItem.value
+  const firstText = item.texts?.[0]
+  const nextTextValue = editForm.value.text.trim()
+
+  if (!nextTextValue) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: t('contentLibrary.validation.textRequired', 'Text is required'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+    return
+  }
+
+  isSaving.value = true
+  try {
+    await api.patch(`/content-library/items/${item.id}`, {
+      title: editForm.value.title || null,
+      tags: editForm.value.tags || null,
+      note: editForm.value.note || null,
+    })
+
+    if (firstText) {
+      await api.patch(`/content-library/items/${item.id}/texts/${firstText.id}`, {
+        content: nextTextValue,
+        type: firstText.type || 'plain',
+      })
+    }
+
+    isEditModalOpen.value = false
+    activeItem.value = null
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: e?.data?.message || e?.message || 'Failed to update content item',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const archiveItem = async (itemId: string) => {
+  isArchivingId.value = itemId
+  try {
+    await api.delete(`/content-library/items/${itemId}`)
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: e?.data?.message || e?.message || 'Failed to archive content item',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  } finally {
+    isArchivingId.value = null
+  }
+}
+
 const getItemPreview = (item: ContentItem) => {
   const firstText = item.texts?.[0]?.content
   if (firstText) {
@@ -165,8 +326,19 @@ const getItemPreview = (item: ContentItem) => {
           class="w-full md:max-w-xl"
         />
 
-        <div class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('common.total', { count: total }, `Total: ${total}`) }}
+        <div class="flex items-center gap-3 justify-between md:justify-end">
+          <div class="text-sm text-gray-500 dark:text-gray-400">
+            {{ t('common.total', { count: total }, `Total: ${total}`) }}
+          </div>
+
+          <UButton
+            color="primary"
+            size="sm"
+            icon="i-heroicons-plus"
+            @click="openCreateModal"
+          >
+            {{ t('common.create', 'Create') }}
+          </UButton>
         </div>
       </div>
 
@@ -223,10 +395,21 @@ const getItemPreview = (item: ContentItem) => {
                 size="xs"
                 color="neutral"
                 variant="ghost"
-                icon="i-heroicons-eye"
-                disabled
+                icon="i-heroicons-pencil-square"
+                @click="openEditModal(item)"
               >
-                {{ t('common.open', 'Open') }}
+                {{ t('common.edit', 'Edit') }}
+              </UButton>
+
+              <UButton
+                size="xs"
+                color="warning"
+                variant="ghost"
+                icon="i-heroicons-archive-box"
+                :loading="isArchivingId === item.id"
+                @click="archiveItem(item.id)"
+              >
+                {{ t('common.archive', 'Archive') }}
               </UButton>
             </div>
           </div>
@@ -249,5 +432,87 @@ const getItemPreview = (item: ContentItem) => {
         </div>
       </div>
     </div>
+
+    <AppModal
+      v-model:open="isCreateModalOpen"
+      :title="t('contentLibrary.createTitle', 'Create content item')"
+    >
+      <div class="space-y-4">
+        <UFormGroup :label="t('contentLibrary.fields.title', 'Title')">
+          <UInput v-model="createForm.title" />
+        </UFormGroup>
+
+        <UFormGroup :label="t('contentLibrary.fields.tags', 'Tags')">
+          <UInput v-model="createForm.tags" :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'comma separated')" />
+        </UFormGroup>
+
+        <UFormGroup :label="t('contentLibrary.fields.note', 'Note')">
+          <UTextarea v-model="createForm.note" :rows="3" />
+        </UFormGroup>
+
+        <UFormGroup :label="t('contentLibrary.fields.text', 'Text')" required>
+          <UTextarea v-model="createForm.text" :rows="8" />
+        </UFormGroup>
+      </div>
+
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :disabled="isSaving"
+          @click="isCreateModalOpen = false"
+        >
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isSaving"
+          @click="createItem"
+        >
+          {{ t('common.create', 'Create') }}
+        </UButton>
+      </template>
+    </AppModal>
+
+    <AppModal
+      v-model:open="isEditModalOpen"
+      :title="t('contentLibrary.editTitle', 'Edit content item')"
+    >
+      <div class="space-y-4">
+        <UFormGroup :label="t('contentLibrary.fields.title', 'Title')">
+          <UInput v-model="editForm.title" />
+        </UFormGroup>
+
+        <UFormGroup :label="t('contentLibrary.fields.tags', 'Tags')">
+          <UInput v-model="editForm.tags" :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'comma separated')" />
+        </UFormGroup>
+
+        <UFormGroup :label="t('contentLibrary.fields.note', 'Note')">
+          <UTextarea v-model="editForm.note" :rows="3" />
+        </UFormGroup>
+
+        <UFormGroup :label="t('contentLibrary.fields.text', 'Text')" required>
+          <UTextarea v-model="editForm.text" :rows="8" />
+        </UFormGroup>
+      </div>
+
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :disabled="isSaving"
+          @click="isEditModalOpen = false"
+        >
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isSaving"
+          @click="updateItem"
+        >
+          {{ t('common.save', 'Save') }}
+        </UButton>
+      </template>
+    </AppModal>
   </div>
 </template>

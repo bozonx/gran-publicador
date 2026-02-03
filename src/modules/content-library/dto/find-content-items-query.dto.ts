@@ -1,5 +1,15 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class FindContentItemsQueryDto {
@@ -30,5 +40,11 @@ export class FindContentItemsQueryDto {
 
   @IsBoolean()
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.toLowerCase() === 'true';
+    return Boolean(value);
+  })
   public includeArchived?: boolean;
 }
