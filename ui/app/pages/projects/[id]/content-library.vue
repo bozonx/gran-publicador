@@ -555,10 +555,10 @@ const getItemPreview = (item: ContentItem) => {
           class="w-full"
         >
           <template #label>
-            <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
               <span class="font-semibold">{{ t('contentLibrary.fields.text', 'Text') }}</span>
-            </div>
+            </span>
           </template>
           <UTextarea 
             v-model="createForm.text" 
@@ -576,10 +576,10 @@ const getItemPreview = (item: ContentItem) => {
           class="w-full"
         >
           <template #label>
-            <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2">
               <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
-            </div>
+            </span>
           </template>
           <UInput 
             v-model="createForm.title"
@@ -602,10 +602,10 @@ const getItemPreview = (item: ContentItem) => {
             class="w-full"
           >
             <template #label>
-              <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-2">
                 <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.tags', 'Tags') }}</span>
-              </div>
+              </span>
             </template>
             <UInput 
               v-model="createForm.tags" 
@@ -621,10 +621,10 @@ const getItemPreview = (item: ContentItem) => {
             class="w-full"
           >
             <template #label>
-              <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-2">
                 <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.note', 'Note') }}</span>
-              </div>
+              </span>
             </template>
             <UTextarea 
               v-model="createForm.note" 
@@ -669,10 +669,10 @@ const getItemPreview = (item: ContentItem) => {
           class="w-full"
         >
           <template #label>
-            <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
               <span class="font-semibold">{{ t('contentLibrary.fields.text', 'Text') }}</span>
-            </div>
+            </span>
           </template>
           <UTextarea 
             v-model="editForm.text" 
@@ -690,10 +690,10 @@ const getItemPreview = (item: ContentItem) => {
           class="w-full"
         >
           <template #label>
-            <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2">
               <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
-            </div>
+            </span>
           </template>
           <UInput 
             v-model="editForm.title"
@@ -716,10 +716,10 @@ const getItemPreview = (item: ContentItem) => {
             class="w-full"
           >
             <template #label>
-              <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-2">
                 <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.tags', 'Tags') }}</span>
-              </div>
+              </span>
             </template>
             <UInput 
               v-model="editForm.tags" 
@@ -735,10 +735,10 @@ const getItemPreview = (item: ContentItem) => {
             class="w-full"
           >
             <template #label>
-              <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-2">
                 <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.note', 'Note') }}</span>
-              </div>
+              </span>
             </template>
             <UTextarea 
               v-model="editForm.note" 

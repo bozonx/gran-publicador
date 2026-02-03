@@ -277,12 +277,10 @@ async function handleDragEnd() {
     >
       <div class="space-y-4">
         <div class="flex justify-end">
-          <UDropdown
-            :items="[PRESET_SIGNATURES.map(p => ({ 
-              label: t(p.contentKey), 
-              icon: 'i-heroicons-sparkles',
-              click: () => handlePresetSelect(p)
-            }))]"
+        <div class="flex justify-end">
+          <UDropdownMenu
+            :items="presetItems"
+            :popper="{ placement: 'bottom-end' }"
           >
             <UButton
               color="neutral"
@@ -293,7 +291,8 @@ async function handleDragEnd() {
             >
               {{ t('authorSignature.presets.button', 'Preset') }}
             </UButton>
-          </UDropdown>
+          </UDropdownMenu>
+        </div>
         </div>
 
         <UFormField :label="t('post.contentLabel')" required>
