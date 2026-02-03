@@ -462,7 +462,7 @@ function formatScore(score: number) {
               />
             </div>
 
-            <!-- Additional Filters Grid -->
+            <!-- Language & Score -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -474,7 +474,42 @@ function formatScore(score: number) {
                   searchable
                 />
               </div>
+
               <div v-if="currentQuery">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Min Score
+                </label>
+                <div class="flex flex-col gap-2 pt-2">
+                  <input
+                    v-model.number="currentQuery.minScore"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500 mt-2"
+                  />
+                  <div class="flex justify-between text-xs text-gray-500 font-medium">
+                    <span>0.0</span>
+                    <span class="text-primary-500 font-bold text-sm bg-primary-50 dark:bg-primary-950/30 px-2 py-0.5 rounded border border-primary-100 dark:border-primary-800">{{ currentQuery.minScore }}</span>
+                    <span>1.0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sources & Source Tags -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="w-full" v-if="currentQuery">
+                <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ t('news.sources') || 'Sources' }}
+                  <UTooltip :text="t('news.sourcesDescription') || 'Источник обычно это доменное имя сайта, поэтому если вы точно знаете новостной сайт то вводите его доменное имя и найдете его в списке'">
+                    <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
+                  </UTooltip>
+                </label>
+                <NewsSourceSelector v-model="selectedSources" />
+              </div>
+
+               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.sourceTags') || 'Source Tags' }}
                 </label>
@@ -485,19 +520,8 @@ function formatScore(score: number) {
               </div>
             </div>
 
-            <!-- Source Selection -->
-            <div class="w-full" v-if="currentQuery">
-               <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ t('news.sources') || 'Sources' }}
-                <UTooltip :text="t('news.sourcesDescription') || 'Источник обычно это доменное имя сайта, поэтому если вы точно знаете новостной сайт то вводите его доменное имя и найдете его в списке'">
-                  <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
-                </UTooltip>
-              </label>
-              <NewsSourceSelector v-model="selectedSources" />
-            </div>
-
-            <!-- Saved From/To & Order By -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Saved From & To -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.savedFrom') || 'Saved after' }}
@@ -521,6 +545,10 @@ function formatScore(score: number) {
                   icon="i-heroicons-calendar"
                 />
               </div>
+            </div>
+
+            <!-- Order By -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.orderBy') || 'Sort by' }}
@@ -536,30 +564,6 @@ function formatScore(score: number) {
                   fluid
                   size="lg"
                 />
-              </div>
-            </div>
-
-            <!-- Score -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div v-if="currentQuery">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Min Score
-                </label>
-                <div class="flex flex-col gap-2 pt-2">
-                  <input
-                    v-model.number="currentQuery.minScore"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500 mt-2"
-                  />
-                  <div class="flex justify-between text-xs text-gray-500 font-medium">
-                    <span>0.0</span>
-                    <span class="text-primary-500 font-bold text-sm bg-primary-50 dark:bg-primary-950/30 px-2 py-0.5 rounded border border-primary-100 dark:border-primary-800">{{ currentQuery.minScore }}</span>
-                    <span>1.0</span>
-                  </div>
-                </div>
               </div>
             </div>
 
