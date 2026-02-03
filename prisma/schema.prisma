@@ -268,6 +268,7 @@ model Publication {
   creator User?    @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   posts   Post[]
   media   PublicationMedia[]
+  contentItems PublicationContentItem[]
 
   @@index([translationGroupId])
   @@index([projectId, status])
@@ -278,6 +279,83 @@ model Publication {
   @@index([createdBy, projectId, archivedAt])
   @@index([newsItemId])
   @@map("publications")
+}
+
+model ContentItem {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  projectId String?  @map("project_id")
+
+  title     String?
+  tags      String?
+  note      String?
+  meta      Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+  archivedBy String?   @map("archived_by")
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  texts ContentText[]
+  media ContentItemMedia[]
+  publications PublicationContentItem[]
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([archivedAt])
+  @@map("content_items")
+}
+
+model ContentText {
+  id            String   @id @default(uuid())
+  contentItemId String   @map("content_item_id")
+  type          String?
+  content       String   @db.Text
+  order         Int      @default(0)
+  meta          Json
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([contentItemId])
+  @@index([type])
+  @@map("content_texts")
+}
+
+model ContentItemMedia {
+  id            String   @id @default(uuid())
+  contentItemId String   @map("content_item_id")
+  mediaId       String   @map("media_id")
+  order         Int      @default(0)
+  hasSpoiler    Boolean  @default(false) @map("has_spoiler")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  media       Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([contentItemId])
+  @@index([mediaId])
+  @@map("content_item_media")
+}
+
+model PublicationContentItem {
+  id            String   @id @default(uuid())
+  publicationId String   @map("publication_id")
+  contentItemId String   @map("content_item_id")
+  order         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, contentItemId])
+  @@index([publicationId])
+  @@index([contentItemId])
+  @@map("publication_content_items")
 }
 
 model Post {
@@ -363,6 +441,7 @@ model Media {
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   publicationMedia PublicationMedia[]
+  contentItemMedia ContentItemMedia[]
 
   @@index([type])
   @@index([storageType])
