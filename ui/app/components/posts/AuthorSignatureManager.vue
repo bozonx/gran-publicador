@@ -24,6 +24,8 @@ const isModalOpen = ref(false)
 const isPresetModalOpen = ref(false)
 const isDeleting = ref(false)
 const editingSignature = ref<AuthorSignature | null>(null)
+const deletedSignatures = ref<AuthorSignature[]>([])
+const showDeleted = ref(false)
 
 const form = reactive({
   name: '',
@@ -97,14 +99,40 @@ async function handleSave() {
 }
 
 async function handleDelete(id: string) {
-  if (!confirm(t('authorSignature.delete_confirmation'))) return
-  
-  isDeleting.value = true
+  const index = signatures.value.findIndex(sig => sig.id === id)
+  if (index !== -1) {
+    const signature = signatures.value[index]
+    
+    // Add to session-only deleted list
+    if (signature) {
+      deletedSignatures.value.push(signature)
+    }
+    
+    // Optimistically remove from main list
+    signatures.value.splice(index, 1)
+    
+    try {
+      await remove(id)
+    } catch (error) {
+      console.error('Failed to delete signature', error)
+      await loadSignatures()
+    }
+  }
+}
+
+async function restoreSignature(signature: AuthorSignature) {
   try {
-    await remove(id)
+    const input: CreateAuthorSignatureInput = {
+      channelId: props.channelId,
+      name: signature.name,
+      content: signature.content,
+      isDefault: false // Don't force default on restore
+    }
+    await create(input)
+    deletedSignatures.value = deletedSignatures.value.filter(sig => sig.id !== signature.id)
     await loadSignatures()
-  } finally {
-    isDeleting.value = false
+  } catch (error) {
+    console.error('Failed to restore signature', error)
   }
 }
 
@@ -116,8 +144,9 @@ async function handleSetDefault(id: string) {
 async function handleDragEnd() {
   // Update order for all signatures
   try {
-    for (let i = 0; i < signatures.value.length; i++) {
-      await update(signatures.value[i].id, { order: i })
+    let order = 0
+    for (const sig of signatures.value) {
+      await update(sig.id, { order: order++ })
     }
   } catch (error) {
     console.error('Failed to update order', error)
@@ -217,6 +246,44 @@ async function handleDragEnd() {
         </div>
       </div>
     </VueDraggable>
+
+    <!-- Deleted Signatures (Session only) -->
+    <div v-if="deletedSignatures.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+      <UButton
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        :icon="showDeleted ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
+        @click="showDeleted = !showDeleted"
+      >
+        {{ t('channel.deletedTemplates', { count: deletedSignatures.length }) }}
+      </UButton>
+      
+      <div v-if="showDeleted" class="mt-2 space-y-2">
+        <div
+          v-for="sig in deletedSignatures"
+          :key="sig.id"
+          class="flex items-center justify-between py-1.5 px-3 bg-gray-50/30 dark:bg-gray-800/20 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50 hover:opacity-80 transition-opacity"
+        >
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-trash" class="w-3.5 h-3.5 text-gray-400" />
+            <div class="text-xs truncate max-w-[200px]">
+              <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ sig.content }}</span>
+            </div>
+          </div>
+          <UButton
+            icon="i-heroicons-arrow-path"
+            size="xs"
+            variant="ghost"
+            color="primary"
+            class="scale-90"
+            @click="restoreSignature(sig)"
+          >
+            {{ t('common.restore', 'Restore') }}
+          </UButton>
+        </div>
+      </div>
+    </div>
 
     <!-- Edit Modal -->
     <UiAppModal
