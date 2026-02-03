@@ -187,6 +187,7 @@ async function handleDeletePublication() {
         view-all-to="/drafts?scope=all&status=DRAFT"
         :title="t('dashboard.your_recent_drafts')"
         show-project-info
+        :show-toggle="false"
         @delete="confirmDeletePublication"
       />
 

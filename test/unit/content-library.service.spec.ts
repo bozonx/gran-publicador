@@ -42,6 +42,7 @@ describe('ContentLibraryService (unit)', () => {
 
   const mockPermissionsService = {
     checkProjectAccess: jest.fn() as any,
+    checkProjectPermission: jest.fn() as any,
   };
 
   beforeAll(async () => {
@@ -110,6 +111,25 @@ describe('ContentLibraryService (unit)', () => {
         ),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('should require project mutation permission for project scope', async () => {
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1' });
+
+      await service.create(
+        {
+          scope: 'project',
+          projectId: 'p1',
+          texts: [{ content: 'hello' }],
+        } as any,
+        'user-1',
+      );
+
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
+        'ADMIN',
+        'EDITOR',
+      ]);
+    });
   });
 
   describe('findAll', () => {
@@ -128,6 +148,21 @@ describe('ContentLibraryService (unit)', () => {
 
       expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith('p1', 'user-1', true);
     });
+
+    it('should apply archivedOnly filter', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.findMany.mockResolvedValue([]);
+      mockPrismaService.contentItem.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { scope: 'project', projectId: 'p1', archivedOnly: true, includeArchived: true } as any,
+        'user-1',
+      );
+
+      expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ archivedAt: { not: null } }) }),
+      );
+    });
   });
 
   describe('findOne', () => {
@@ -137,6 +172,56 @@ describe('ContentLibraryService (unit)', () => {
         .mockResolvedValueOnce({ id: 'ci-1' });
 
       await expect(service.findOne('ci-1', 'user-1')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('archive/restore/purge', () => {
+    it('should archive with mutation permission', async () => {
+      mockPrismaService.contentItem.findUnique.mockResolvedValue({
+        id: 'ci-1',
+        userId: 'user-1',
+        projectId: 'p1',
+        archivedAt: null,
+      });
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
+
+      await service.archive('ci-1', 'user-1');
+
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
+        'ADMIN',
+        'EDITOR',
+      ]);
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalled();
+    });
+
+    it('should restore with mutation permission', async () => {
+      mockPrismaService.contentItem.findUnique.mockResolvedValue({
+        id: 'ci-1',
+        userId: 'user-1',
+        projectId: 'p1',
+        archivedAt: new Date(),
+      });
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
+
+      await service.restore('ci-1', 'user-1');
+
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalled();
+    });
+
+    it('should purge archived by project only for owner', async () => {
+      mockPrismaService.project = {
+        findUnique: jest.fn() as any,
+      } as any;
+      mockPrismaService.project.findUnique.mockResolvedValue({ ownerId: 'user-1' });
+      mockPrismaService.contentItem.deleteMany = jest.fn() as any;
+      mockPrismaService.contentItem.deleteMany.mockResolvedValue({ count: 2 });
+
+      const res = await service.purgeArchivedByProject('p1', 'user-1');
+      expect(res).toEqual({ deletedCount: 2 });
     });
   });
 });

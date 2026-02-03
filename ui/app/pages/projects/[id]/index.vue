@@ -39,6 +39,13 @@ const {
 } = usePublications()
 
 const {
+  publications: readyPublications,
+  isLoading: isReadyLoading,
+  totalCount: readyTotal,
+  fetchPublicationsByProject: fetchReady,
+} = usePublications()
+
+const {
   publications: scheduledPublications,
   isLoading: isScheduledLoading,
   totalCount: scheduledTotal,
@@ -89,6 +96,7 @@ async function initialFetch() {
   await Promise.all([
     fetchProject(projectId.value),
     fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
+    fetchReady(projectId.value, { status: 'READY', limit: 5 }),
     fetchRecentPublished(projectId.value, { 
       status: 'PUBLISHED', 
       publishedAfter: yesterday,
@@ -101,6 +109,12 @@ async function initialFetch() {
     fetchChannels({ projectId: projectId.value, limit: 100 })
   ])
 }
+
+const activeDraftsTab = ref('DRAFT')
+const currentDraftsPublications = computed(() => activeDraftsTab.value === 'DRAFT' ? draftPublications.value : readyPublications.value)
+const currentDraftsTotal = computed(() => activeDraftsTab.value === 'DRAFT' ? draftTotal.value : readyTotal.value)
+const isCurrentDraftsLoading = computed(() => activeDraftsTab.value === 'DRAFT' ? isDraftsLoading.value : isReadyLoading.value)
+const currentDraftsViewAllLink = computed(() => `/publications?projectId=${projectId.value}&status=${activeDraftsTab.value}`)
 
 function handleChannelCreatedEvent(channel: any) {
   if (channel && channel.projectId === projectId.value) {
@@ -208,7 +222,11 @@ async function handleDelete() {
   if (success) {
     showDeleteModal.value = false
     publicationToDelete.value = null
-    fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 })
+    if (activeDraftsTab.value === 'DRAFT') {
+      fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 })
+    } else {
+      fetchReady(projectId.value, { status: 'READY', limit: 5 })
+    }
   }
 }
 </script>
@@ -427,10 +445,12 @@ async function handleDelete() {
       <!-- Publications Section -->
       <div class="space-y-6 mt-6">
         <PublicationsDraftsSection
-          :publications="draftPublications"
-          :total-count="draftTotal"
-          :loading="isDraftsLoading"
-          :view-all-to="`/publications?projectId=${projectId}&status=DRAFT`"
+          
+          v-model:active-tab="activeDraftsTab"
+          :publications="currentDraftsPublications"
+          :total-count="currentDraftsTotal"
+          :loading="isCurrentDraftsLoading"
+          :view-all-to="currentDraftsViewAllLink"
           @delete="confirmDelete"
         />
 

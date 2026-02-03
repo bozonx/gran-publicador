@@ -1,5 +1,6 @@
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsIn,
   IsObject,
@@ -34,10 +35,13 @@ export class CreateContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_TITLE_LENGTH)
   public title?: string;
 
-  @IsString()
+  @IsArray()
   @IsOptional()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  public tags?: string;
+  @IsString({ each: true })
+  @ArrayMinSize(0)
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
+  @MaxLength(VALIDATION_LIMITS.MAX_TAG_LENGTH, { each: true })
+  public tags?: string[];
 
   @IsString()
   @IsOptional()

@@ -289,7 +289,7 @@ model ContentItem {
   projectId String?  @map("project_id")
 
   title     String?
-  tags      String?
+  tags      String[] @default([])
   note      String?
   meta      Json
 

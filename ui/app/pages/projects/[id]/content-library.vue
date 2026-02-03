@@ -30,7 +30,7 @@ interface ContentItem {
   id: string
   title: string | null
   note: string | null
-  tags: string | null
+  tags: string[]
   createdAt: string
   archivedAt: string | null
   texts: ContentText[]
@@ -55,6 +55,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 const q = ref('')
+const showArchivedOnly = ref(false)
 const limit = 20
 const offset = ref(0)
 const total = ref(0)
@@ -63,6 +64,8 @@ const items = ref<ContentItem[]>([])
 const isCreateModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const activeItem = ref<ContentItem | null>(null)
+
+const isPurging = ref(false)
 
 const createForm = ref({
   title: '',
@@ -80,8 +83,30 @@ const editForm = ref({
 
 const isSaving = ref(false)
 const isArchivingId = ref<string | null>(null)
+const isRestoringId = ref<string | null>(null)
 
 const hasMore = computed(() => items.value.length < total.value)
+
+const parseTags = (raw: string): string[] => {
+  return raw
+    .split(/[,\s]+/)
+    .map(t => t.trim())
+    .filter(Boolean)
+}
+
+const formatTags = (tags: string[]): string => {
+  return (tags ?? []).join(', ')
+}
+
+const getApiErrorMessage = (e: any, fallback: string) => {
+  return (
+    e?.data?.message ||
+    e?.data?.error?.message ||
+    e?.response?._data?.message ||
+    e?.message ||
+    fallback
+  )
+}
 
 const fetchItems = async (opts?: { reset?: boolean }) => {
   if (!projectId.value) return
@@ -102,6 +127,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         search: q.value || undefined,
         limit,
         offset: offset.value,
+        archivedOnly: showArchivedOnly.value ? true : undefined,
         includeArchived: false,
       },
     })
@@ -114,7 +140,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       items.value = [...items.value, ...res.items]
     }
   } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Failed to load content library'
+    error.value = getApiErrorMessage(e, 'Failed to load content library')
   } finally {
     isLoading.value = false
   }
@@ -132,6 +158,13 @@ watch(
   () => q.value,
   () => {
     debouncedFetch()
+  },
+)
+
+watch(
+  () => showArchivedOnly.value,
+  () => {
+    fetchItems({ reset: true })
   },
 )
 
@@ -160,7 +193,7 @@ const openEditModal = (item: ContentItem) => {
 
   editForm.value = {
     title: item.title || '',
-    tags: item.tags || '',
+    tags: formatTags(item.tags || []),
     note: item.note || '',
     text: firstText,
   }
@@ -188,7 +221,7 @@ const createItem = async () => {
       scope: 'project',
       projectId: projectId.value,
       title: createForm.value.title || undefined,
-      tags: createForm.value.tags || undefined,
+      tags: parseTags(createForm.value.tags),
       note: createForm.value.note || undefined,
       texts: [
         {
@@ -204,7 +237,7 @@ const createItem = async () => {
   } catch (e: any) {
     toast.add({
       title: t('common.error', 'Error'),
-      description: e?.data?.message || e?.message || 'Failed to create content item',
+      description: getApiErrorMessage(e, 'Failed to create content item'),
       color: 'error',
       icon: 'i-heroicons-exclamation-triangle',
     })
@@ -234,7 +267,7 @@ const updateItem = async () => {
   try {
     await api.patch(`/content-library/items/${item.id}`, {
       title: editForm.value.title || null,
-      tags: editForm.value.tags || null,
+      tags: parseTags(editForm.value.tags),
       note: editForm.value.note || null,
     })
 
@@ -242,6 +275,11 @@ const updateItem = async () => {
       await api.patch(`/content-library/items/${item.id}/texts/${firstText.id}`, {
         content: nextTextValue,
         type: firstText.type || 'plain',
+      })
+    } else {
+      await api.post(`/content-library/items/${item.id}/texts`, {
+        content: nextTextValue,
+        type: 'plain',
       })
     }
 
@@ -251,7 +289,7 @@ const updateItem = async () => {
   } catch (e: any) {
     toast.add({
       title: t('common.error', 'Error'),
-      description: e?.data?.message || e?.message || 'Failed to update content item',
+      description: getApiErrorMessage(e, 'Failed to update content item'),
       color: 'error',
       icon: 'i-heroicons-exclamation-triangle',
     })
@@ -263,17 +301,53 @@ const updateItem = async () => {
 const archiveItem = async (itemId: string) => {
   isArchivingId.value = itemId
   try {
-    await api.delete(`/content-library/items/${itemId}`)
+    await api.post(`/content-library/items/${itemId}/archive`)
     await fetchItems({ reset: true })
   } catch (e: any) {
     toast.add({
       title: t('common.error', 'Error'),
-      description: e?.data?.message || e?.message || 'Failed to archive content item',
+      description: getApiErrorMessage(e, 'Failed to archive content item'),
       color: 'error',
       icon: 'i-heroicons-exclamation-triangle',
     })
   } finally {
     isArchivingId.value = null
+  }
+}
+
+const restoreItem = async (itemId: string) => {
+  isRestoringId.value = itemId
+  try {
+    await api.post(`/content-library/items/${itemId}/restore`)
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to restore content item'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  } finally {
+    isRestoringId.value = null
+  }
+}
+
+const purgeArchived = async () => {
+  if (!projectId.value) return
+
+  isPurging.value = true
+  try {
+    await api.post(`/content-library/projects/${projectId.value}/purge-archived`)
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to purge archived items'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  } finally {
+    isPurging.value = false
   }
 }
 
@@ -327,9 +401,35 @@ const getItemPreview = (item: ContentItem) => {
         />
 
         <div class="flex items-center gap-3 justify-between md:justify-end">
+          <UButton
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            :icon="showArchivedOnly ? 'i-heroicons-archive-box' : 'i-heroicons-inbox'"
+            @click="showArchivedOnly = !showArchivedOnly"
+          >
+            {{
+              showArchivedOnly
+                ? t('contentLibrary.filters.archivedOnly', 'Archived')
+                : t('contentLibrary.filters.activeOnly', 'Active')
+            }}
+          </UButton>
+
           <div class="text-sm text-gray-500 dark:text-gray-400">
             {{ t('common.total', { count: total }, `Total: ${total}`) }}
           </div>
+
+          <UButton
+            v-if="showArchivedOnly"
+            size="sm"
+            color="warning"
+            variant="outline"
+            icon="i-heroicons-trash"
+            :loading="isPurging"
+            @click="purgeArchived"
+          >
+            {{ t('contentLibrary.actions.purgeArchived', 'Empty trash') }}
+          </UButton>
 
           <UButton
             color="primary"
@@ -396,12 +496,14 @@ const getItemPreview = (item: ContentItem) => {
                 color="neutral"
                 variant="ghost"
                 icon="i-heroicons-pencil-square"
+                :disabled="!!item.archivedAt"
                 @click="openEditModal(item)"
               >
                 {{ t('common.edit', 'Edit') }}
               </UButton>
 
               <UButton
+                v-if="!item.archivedAt"
                 size="xs"
                 color="warning"
                 variant="ghost"
@@ -410,6 +512,18 @@ const getItemPreview = (item: ContentItem) => {
                 @click="archiveItem(item.id)"
               >
                 {{ t('common.archive', 'Archive') }}
+              </UButton>
+
+              <UButton
+                v-else
+                size="xs"
+                color="primary"
+                variant="ghost"
+                icon="i-heroicons-arrow-uturn-left"
+                :loading="isRestoringId === item.id"
+                @click="restoreItem(item.id)"
+              >
+                {{ t('common.restore', 'Restore') }}
               </UButton>
             </div>
           </div>

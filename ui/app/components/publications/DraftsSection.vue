@@ -7,16 +7,23 @@ interface Props {
   loading: boolean
   viewAllTo: string
   showProjectInfo?: boolean
-  title?: string
+  // If provided, controls the title. If not, dynamic title based on activeTab is used.
+  title?: string 
+  // 'DRAFT' or 'READY'
+  activeTab?: string 
+  showToggle?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showProjectInfo: false,
   title: '',
+  activeTab: 'DRAFT',
+  showToggle: true
 })
 
 const emit = defineEmits<{
   (e: 'delete', publication: PublicationWithRelations): void
+  (e: 'update:activeTab', tab: string): void
 }>()
 
 const { t } = useI18n()
@@ -25,16 +32,35 @@ const router = useRouter()
 function goToPublication(pub: PublicationWithRelations) {
   router.push(`/publications/${pub.id}`)
 }
+
+const isDraft = computed(() => props.activeTab === 'DRAFT')
+
+const displayTitle = computed(() => {
+  if (props.title) return props.title
+  return isDraft.value ? t('publicationStatus.draft') : t('publicationStatus.ready')
+})
 </script>
 
 <template>
-  <div v-if="totalCount > 0 || loading" class="app-card p-6">
+  <div class="app-card p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-        <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-400" />
-        {{ title || t('publicationStatus.draft') }}
-        <CommonCountBadge :count="totalCount" :title="title || t('publicationStatus.draft')" />
-      </h2>
+      <div class="flex items-center gap-4">
+        <!-- Toggle for Drafts/Ready -->
+        <CommonViewToggle
+            v-if="showToggle"
+            :model-value="activeTab"
+            :options="[
+                { value: 'DRAFT', label: t('publicationStatus.draft') },
+                { value: 'READY', label: t('publicationStatus.ready') }
+            ]"
+            @update:model-value="emit('update:activeTab', $event)"
+        />
+
+        <div class="flex items-center gap-2">
+            <CommonCountBadge :count="totalCount" :title="displayTitle" />
+        </div>
+      </div>
+
       <UButton
         v-if="totalCount > 0"
         variant="ghost"
@@ -58,6 +84,8 @@ function goToPublication(pub: PublicationWithRelations) {
         :key="draft.id"
         :publication="draft"
         :show-project-info="showProjectInfo"
+        :show-status="!isDraft"
+        :show-date="!isDraft"
         class="w-64 shrink-0 transition-transform duration-200 hover:scale-[1.02]"
         @click="goToPublication"
         @delete="(p) => emit('delete', p)"
@@ -69,7 +97,7 @@ function goToPublication(pub: PublicationWithRelations) {
     </CommonHorizontalScroll>
     
     <div v-else class="text-center py-8 text-sm text-gray-500">
-      {{ t('publication.noPublicationsDescription') }}
+      {{ isDraft ? t('publication.noPublicationsDescription') : t('publication.noReadyPublicationsDescription', 'No ready publications found') }}
     </div>
   </div>
 </template>

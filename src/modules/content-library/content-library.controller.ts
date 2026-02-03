@@ -116,10 +116,37 @@ export class ContentLibraryController {
     return this.contentLibraryService.update(id, dto, req.user.userId);
   }
 
-  @Delete('items/:id')
+  @Post('items/:id/archive')
   public async archive(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
     return this.contentLibraryService.archive(id, req.user.userId);
+  }
+
+  @Post('items/:id/restore')
+  public async restore(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    await this.validateContentItemProjectScopeOrThrow(req, id);
+    return this.contentLibraryService.restore(id, req.user.userId);
+  }
+
+  @Post('projects/:projectId/purge-archived')
+  public async purgeArchivedByProject(
+    @Request() req: UnifiedAuthRequest,
+    @Param('projectId') projectId: string,
+  ) {
+    if (req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.contentLibraryService.purgeArchivedByProject(projectId, req.user.userId);
+  }
+
+  @Delete('items/:id')
+  public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    await this.validateContentItemProjectScopeOrThrow(req, id);
+    return this.contentLibraryService.remove(id, req.user.userId);
   }
 
   @Post('items/:id/texts')

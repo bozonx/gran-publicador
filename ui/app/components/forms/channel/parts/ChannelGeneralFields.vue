@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   showProject: true
 })
 
-const { t } = useI18n()
+const { t, d } = useI18n()
 const { languageOptions } = useLanguages()
 const {
   socialMediaOptions,
@@ -59,25 +59,76 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
 
 <template>
   <div class="space-y-4">
-    <!-- Created date (read-only, edit mode only) -->
-    <CommonFormReadOnlyField
-      v-if="isEditMode && channel?.createdAt"
-      :label="t('channel.createdAt', 'Created At')"
-      :value="channel.createdAt"
-      :help="t('channel.createdAtHelp', 'The date when this channel was created')"
-      format-as-date
-    />
+    <!-- Immutable Details (Edit Mode) -->
+    <div v-if="isEditMode" class="mb-6">
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+        <!-- Social Media -->
+        <div>
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+            {{ t('channel.socialMedia') }}
+          </dt>
+          <dd class="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+            <div 
+              class="p-1.5 rounded"
+              :style="{ backgroundColor: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') + '20' }"
+            >
+              <UIcon 
+                :name="getSocialMediaIcon(channel?.socialMedia || 'TELEGRAM')" 
+                class="w-5 h-5"
+                :style="{ color: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') }"
+              />
+            </div>
+            <span class="font-medium">{{ socialMediaOptions.find((o) => o.value === channel?.socialMedia)?.label }}</span>
+          </dd>
+        </div>
 
-    <!-- Project (read-only) -->
-    <CommonFormReadOnlyField
-      v-if="showProject"
-      :label="t('channel.project', 'Project')"
-      :value="currentProjectName || '-'"
-      icon="i-heroicons-briefcase"
-    />
+        <!-- Project -->
+        <div v-if="showProject">
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+            {{ t('channel.project') }}
+          </dt>
+          <dd class="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+            <UIcon name="i-heroicons-briefcase" class="w-5 h-5 text-gray-400" />
+            <span>{{ currentProjectName || '-' }}</span>
+          </dd>
+        </div>
 
-    <!-- Channel language -->
-    <div v-if="!isEditMode">
+        <!-- Language -->
+        <div>
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+            {{ t('channel.language') }}
+          </dt>
+          <dd class="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+            <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
+            <span>{{ languageOptions.find(o => o.value === channel?.language)?.label || channel?.language }}</span>
+          </dd>
+        </div>
+
+        <!-- Created At -->
+        <div v-if="channel?.createdAt">
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+            {{ t('channel.createdAt') }}
+          </dt>
+          <dd class="text-sm text-gray-900 dark:text-white min-h-[28px] flex items-center">
+            {{ d(new Date(channel.createdAt), { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+          </dd>
+        </div>
+      </dl>
+      
+      <UDivider class="my-6" />
+    </div>
+
+    <!-- Create Mode Fields -->
+    <template v-if="!isEditMode">
+      <!-- Project (read-only) -->
+      <CommonFormReadOnlyField
+        v-if="showProject"
+        :label="t('channel.project')"
+        :value="currentProjectName || '-'"
+        icon="i-heroicons-briefcase"
+      />
+
+      <!-- Channel language -->
       <UFormField
         name="language"
         :label="t('channel.language')"
@@ -91,18 +142,8 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
           class="w-full"
         />
       </UFormField>
-    </div>
-    <!-- Display current language for edit mode (read-only) -->
-    <CommonFormReadOnlyField
-      v-else
-      :label="t('channel.language')"
-      :value="languageOptions.find(o => o.value === channel?.language)?.label || channel?.language"
-      :help="t('channel.languageCannotChange', 'Language cannot be changed after channel creation')"
-      icon="i-heroicons-language"
-    />
 
-    <!-- Social media type (only for create mode) -->
-    <div v-if="!isEditMode">
+      <!-- Social media type -->
       <UFormField 
         name="socialMedia"
         :label="t('channel.socialMedia')" 
@@ -145,36 +186,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
           {{ socialMediaOptions.find((o) => o.value === state.socialMedia)?.label }}
         </span>
       </div>
-    </div>
-
-    <!-- Display current social media for edit mode -->
-    <div v-else class="space-y-2">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {{ t('channel.socialMedia') }}
-      </label>
-      <div
-        class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
-      >
-        <div
-          class="p-2 rounded"
-          :style="{
-            backgroundColor: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') + '20',
-          }"
-        >
-          <UIcon
-            :name="getSocialMediaIcon(channel?.socialMedia || 'TELEGRAM')"
-            class="w-5 h-5"
-            :style="{ color: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') }"
-          />
-        </div>
-        <span class="font-medium text-gray-900 dark:text-white">
-          {{ socialMediaOptions.find((o) => o.value === channel?.socialMedia)?.label }}
-        </span>
-      </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400">
-        {{ t('channel.socialMediaCannotChange') }}
-      </p>
-    </div>
+    </template>
 
     <!-- Channel name -->
     <UFormField name="name" :label="t('channel.name')" required>

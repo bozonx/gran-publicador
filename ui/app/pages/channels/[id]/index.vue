@@ -70,6 +70,13 @@ const {
   createPublication
 } = usePublications()
 
+const {
+  publications: readyPublications,
+  fetchPublicationsByProject: fetchReady,
+  totalCount: readyCount,
+  isLoading: isReadyLoading,
+} = usePublications()
+
 // Import utility function for getting post title
 const { getPostTitle, getPostScheduledAt } = await import('~/composables/usePosts')
 
@@ -209,8 +216,19 @@ onMounted(async () => {
             status: 'DRAFT', 
             limit: 5 
         })
+        await fetchReady(projectId.value, { 
+            channelId: channelId.value, 
+            status: 'READY', 
+            limit: 5 
+        })
     }
 })
+
+const activeDraftsTab = ref('DRAFT')
+const currentDraftsPublications = computed(() => activeDraftsTab.value === 'DRAFT' ? draftPublications.value : readyPublications.value)
+const currentDraftsTotal = computed(() => activeDraftsTab.value === 'DRAFT' ? draftsCount.value : readyCount.value)
+const currentDraftsLoading = computed(() => activeDraftsTab.value === 'DRAFT' ? draftsLoading.value : isReadyLoading.value)
+const currentDraftsViewAllLink = computed(() => `/publications?channelId=${channelId.value}&status=${activeDraftsTab.value}`)
 
 function goToPost(postId: string) {
   // Find the post to get its publicationId
@@ -276,11 +294,19 @@ async function handleDeletePublication() {
   if (success) {
     showDeletePublicationModal.value = false
     publicationToDelete.value = null
-    fetchDrafts(projectId.value, { 
-        channelId: channelId.value, 
-        status: 'DRAFT', 
-        limit: 5 
-    })
+    if (activeDraftsTab.value === 'DRAFT') {
+        fetchDrafts(projectId.value, { 
+            channelId: channelId.value, 
+            status: 'DRAFT', 
+            limit: 5 
+        })
+    } else {
+        fetchReady(projectId.value, { 
+            channelId: channelId.value, 
+            status: 'READY', 
+            limit: 5 
+        })
+    }
   }
 }
 
@@ -588,10 +614,11 @@ const channelProblems = computed(() => {
             </div>
 
             <PublicationsDraftsSection
-                :publications="draftPublications"
-                :total-count="draftsCount"
-                :loading="draftsLoading"
-                :view-all-to="`/publications?channelId=${channelId}&status=DRAFT`"
+                v-model:active-tab="activeDraftsTab"
+                :publications="currentDraftsPublications"
+                :total-count="currentDraftsTotal"
+                :loading="currentDraftsLoading"
+                :view-all-to="currentDraftsViewAllLink"
                 class="mb-8"
                 @delete="confirmDeletePublication"
             />

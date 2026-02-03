@@ -12,6 +12,7 @@
 - [Projects API](#projects-api)
 - [Channels API](#channels-api)
 - [Publications API](#publications-api)
+- [Content Library API](#content-library-api)
 - [News Queries API](#news-queries-api)
 - [System API (Schedulers)](#system-api-schedulers)
 - [Health Check](#health-check)
@@ -159,6 +160,71 @@ x-api-key: gp_<TOKEN_VALUE>
 | `media` | array | Нет | Массив объектов новых медиафайлов |
 | `existingMediaIds` | array | Нет | Массив ID уже загруженных медиа |
 | `sourceTexts` | array | Нет | Массив исходных текстов для контекста AI |
+
+---
+
+## Content Library API
+
+Библиотека контента поддерживает два скоупа:
+
+- `personal` — личная библиотека пользователя
+- `project` — библиотека проекта (доступна участникам проекта)
+
+### GET `/content-library/items`
+
+Получить список элементов библиотеки.
+
+**Query параметры:**
+
+| Параметр | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `scope` | string | Да | `personal` или `project` |
+| `projectId` | UUID | Нет* | Обязателен при `scope=project` |
+| `search` | string | Нет | Поиск по `title`, `note`, `tags`, `texts.content` |
+| `limit` | number | Нет | Лимит (см. [Пагинация](#пагинация-query-параметры)) |
+| `offset` | number | Нет | Смещение (см. [Пагинация](#пагинация-query-параметры)) |
+| `includeArchived` | boolean | Нет | Включить архивные вместе с активными |
+| `archivedOnly` | boolean | Нет | Вернуть только архивные |
+
+### POST `/content-library/items`
+
+Создать новый элемент библиотеки.
+
+**Body:**
+
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `scope` | string | Да | `personal` или `project` |
+| `projectId` | UUID | Нет* | Обязателен при `scope=project` |
+| `title` | string | Нет | Заголовок |
+| `tags` | string[] | Нет | Массив тегов |
+| `note` | string | Нет | Заметка |
+| `texts` | array | Нет* | Список текстовых блоков |
+| `media` | array | Нет* | Список ссылок на медиа |
+
+Примечание: требуется хотя бы один `texts` или хотя бы один `media`.
+
+### PATCH `/content-library/items/:id`
+
+Обновить `title/tags/note/meta` элемента.
+
+### POST `/content-library/items/:id/archive`
+
+Архивировать элемент (поместить в корзину).
+
+### POST `/content-library/items/:id/restore`
+
+Восстановить элемент из корзины.
+
+### POST `/content-library/projects/:projectId/purge-archived`
+
+Очистить корзину проекта: удалить **все** архивные элементы проекта.
+
+**Ограничение:** только владелец проекта.
+
+### DELETE `/content-library/items/:id`
+
+Удалить элемент навсегда.
 
 ---
 
