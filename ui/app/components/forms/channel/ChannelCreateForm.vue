@@ -32,6 +32,8 @@ const formState = reactive({
   },
 })
 
+const isProjectLocked = computed(() => !props.showProjectSelect)
+
 // Options for project selection
 const projectOptions = computed(() => 
   projects.value.map(p => ({
@@ -54,7 +56,9 @@ onMounted(async () => {
 // Watch for initialProjectId changes
 watch(() => props.initialProjectId, (newId) => {
   if (newId) {
-    formState.projectId = newId
+    if (isProjectLocked.value || !formState.projectId) {
+      formState.projectId = newId
+    }
   }
 }, { immediate: true })
 

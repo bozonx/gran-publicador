@@ -27,6 +27,7 @@ const isLoading = ref(true)
 const isTogglingAdmin = ref(false)
 const isTogglingBan = ref(false)
 const isDeleting = ref(false)
+const isLoggingOut = ref(false)
 
 // Ban modal local state
 const showBanModal = ref(false)
@@ -34,6 +35,9 @@ const banReason = ref('')
 
 // Delete modal state
 const showDeleteConfirm = ref(false)
+
+// Logout modal state
+const showLogoutConfirm = ref(false)
 
 async function loadUser() {
   isLoading.value = true
@@ -71,29 +75,32 @@ async function handleBan() {
 }
 
 function confirmDelete() {
-    showDeleteConfirm.value = true
+  showDeleteConfirm.value = true
 }
 
 async function handleDelete() {
-    if (!user.value) return
-    isDeleting.value = true
-    const success = await deleteUserPermanently(user.value.id)
-    isDeleting.value = false
-    showDeleteConfirm.value = false
-    
-    if (success) {
-        router.push('/admin')
-    }
+  if (!user.value) return
+  isDeleting.value = true
+  const success = await deleteUserPermanently(user.value.id)
+  isDeleting.value = false
+  showDeleteConfirm.value = false
+  
+  if (success) {
+    router.push('/admin')
+  }
 }
 
-// TODO: Implement logout functionality when backend supports it
+function confirmLogout() {
+  showLogoutConfirm.value = true
+}
+
 async function handleLogout() {
-    if (!user.value) return
-    
-    // We don't have a specific loading state for logout in local ref, 
-    // but useUsers handles global loading/error if we wanted to show it.
-    // For now, just call it.
-    await logoutUser(user.value.id)
+  if (!user.value) return
+
+  isLoggingOut.value = true
+  await logoutUser(user.value.id)
+  isLoggingOut.value = false
+  showLogoutConfirm.value = false
 }
 
 const authStore = useAuthStore()
@@ -145,7 +152,7 @@ const formattedPreferences = computed(() => {
           <div class="flex items-start gap-4 flex-1">
              <UAvatar
                 :src="user.avatarUrl || undefined"
-                :alt="user.fullName || user.telegramUsername"
+                :alt="user.fullName || user.telegramUsername || undefined"
                 size="3xl"
                 class="ring-4 ring-white dark:ring-gray-900"
             />
@@ -212,13 +219,13 @@ const formattedPreferences = computed(() => {
                  [{
                      label: t('auth.logout', 'Logout user'),
                      icon: 'i-heroicons-arrow-right-start-on-rectangle',
-                     click: handleLogout
+                     onSelect: confirmLogout
                  }],
                  [{
                      label: t('common.delete', 'Delete permanently'),
                      icon: 'i-heroicons-trash',
                      class: 'text-red-500 dark:text-red-400',
-                     click: confirmDelete
+                     onSelect: confirmDelete
                  }]
              ]"
             >
@@ -325,6 +332,18 @@ const formattedPreferences = computed(() => {
         icon="i-heroicons-exclamation-triangle"
         :loading="isDeleting"
         @confirm="handleDelete"
+    />
+
+    <UiConfirmModal
+        v-if="showLogoutConfirm"
+        v-model:open="showLogoutConfirm"
+        :title="t('admin.logoutUserTitle', 'Logout user?')"
+        :description="t('admin.logoutUserConfirm', 'User will be logged out from all active sessions.')"
+        :confirm-text="t('auth.logout', 'Logout')"
+        color="warning"
+        icon="i-heroicons-arrow-right-start-on-rectangle"
+        :loading="isLoggingOut"
+        @confirm="handleLogout"
     />
   </div>
 </template>
