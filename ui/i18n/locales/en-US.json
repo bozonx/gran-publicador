@@ -818,7 +818,9 @@
       "addBlock": "Add block",
       "collapseAll": "Collapse all",
       "expandAll": "Expand all",
-      "moveToTrash": "Move to trash"
+      "moveToTrash": "Move to trash",
+      "deleteConfirmTitle": "Move to trash?",
+      "deleteConfirmDescription": "Are you sure you want to move this item to trash? You can restore it later."
     },
     "filter": {
       "active": "Active",

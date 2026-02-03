@@ -816,7 +816,9 @@
       "addBlock": "Добавить блок",
       "collapseAll": "Свернуть все",
       "expandAll": "Развернуть все",
-      "moveToTrash": "В корзину"
+      "moveToTrash": "В корзину",
+      "deleteConfirmTitle": "Переместить в корзину?",
+      "deleteConfirmDescription": "Вы уверены, что хотите переместить этот элемент в корзину? Вы сможете восстановить его позже."
     },
     "filter": {
       "active": "Актуальные",

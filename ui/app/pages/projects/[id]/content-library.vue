@@ -4,6 +4,7 @@ import yaml from 'js-yaml'
 import { VueDraggable } from 'vue-draggable-plus'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import AppModal from '~/components/ui/AppModal.vue'
+import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
 
 definePageMeta({
@@ -72,6 +73,9 @@ const isEditModalOpen = ref(false)
 const activeItem = ref<ContentItem | null>(null)
 
 const isPurging = ref(false)
+
+const isArchiveModalOpen = ref(false)
+const itemToArchive = ref<ContentItem | null>(null)
 
 const createForm = ref({
   title: '',
@@ -410,11 +414,22 @@ const updateItem = async () => {
   }
 }
 
-const archiveItem = async (itemId: string) => {
+const openArchiveModal = (item: ContentItem) => {
+  itemToArchive.value = item
+  isArchiveModalOpen.value = true
+}
+
+const confirmArchive = async () => {
+  if (!itemToArchive.value) return
+  
+  const itemId = itemToArchive.value.id
   isArchivingId.value = itemId
+  
   try {
     await api.post(`/content-library/items/${itemId}/archive`)
     await fetchItems({ reset: true })
+    isArchiveModalOpen.value = false
+    itemToArchive.value = null
   } catch (e: any) {
     toast.add({
       title: t('common.error', 'Error'),
@@ -627,7 +642,7 @@ const getItemPreview = (item: ContentItem) => {
                 :loading="isArchivingId === item.id"
                 :title="t('contentLibrary.actions.moveToTrash')"
                 class="cursor-pointer"
-                @click="archiveItem(item.id)"
+                @click="openArchiveModal(item)"
               />
 
               <UButton
@@ -799,6 +814,18 @@ const getItemPreview = (item: ContentItem) => {
         </UButton>
       </template>
     </AppModal>
+
+    <UiConfirmModal
+      v-if="isArchiveModalOpen"
+      v-model:open="isArchiveModalOpen"
+      :title="t('contentLibrary.actions.deleteConfirmTitle')"
+      :description="t('contentLibrary.actions.deleteConfirmDescription')"
+      :confirm-text="t('contentLibrary.actions.moveToTrash')"
+      color="warning"
+      icon="i-heroicons-trash"
+      :loading="!!isArchivingId"
+      @confirm="confirmArchive"
+    />
 
     <AppModal
       v-model:open="isEditModalOpen"
