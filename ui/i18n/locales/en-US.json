@@ -817,7 +817,7 @@
     "actions": {
       "purgeArchived": "Empty trash",
       "addBlock": "Add block",
-      "createEmpty": "Create & Edit",
+      "createEmpty": "Create",
       "collapseAll": "Collapse all",
       "expandAll": "Expand all",
       "moveToTrash": "Move to trash",

@@ -815,7 +815,7 @@
     "actions": {
       "purgeArchived": "Очистить корзину",
       "addBlock": "Добавить блок",
-      "createEmpty": "Создать и редактировать",
+      "createEmpty": "Создать",
       "collapseAll": "Свернуть все",
       "expandAll": "Развернуть все",
       "moveToTrash": "В корзину",

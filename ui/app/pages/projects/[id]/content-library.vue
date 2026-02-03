@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import yaml from 'js-yaml'
 import { VueDraggable } from 'vue-draggable-plus'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import AppModal from '~/components/ui/AppModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
@@ -68,10 +69,6 @@ const offset = ref(0)
 const total = ref(0)
 const items = ref<ContentItem[]>([])
 
-const isCreateModalOpen = ref(false) // Keeping it for now to avoid breaking if referenced elsewhere, but unused. Actually better remove it?
-// The user removed logic uses isCreateModalOpen.
-// I will remove createForm and isCreateModalOpen.
-
 const isStartCreating = ref(false)
 
 const isEditModalOpen = ref(false)
@@ -92,11 +89,22 @@ const editForm = ref({
   metaError: null as string | null
 })
 
-const isSaving = ref(false)
 const isArchivingId = ref<string | null>(null)
 const isRestoringId = ref<string | null>(null)
 
 const hasMore = computed(() => items.value.length < total.value)
+
+// Auto-save setup
+const { saveStatus, saveError } = useAutosave({
+  data: toRef(() => editForm.value),
+  saveFn: async (data: any) => {
+    if (!isEditModalOpen.value || !activeItem.value) return
+    if (editForm.value.metaError) return
+    await saveItem(data)
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
+})
 
 const parseTags = (raw: string): string[] => {
   return raw
@@ -367,71 +375,41 @@ const handleMetaUpdate = (newYaml: string) => {
 // Created createItem removed
 
 
-const updateItem = async () => {
+const saveItem = async (formData: typeof editForm.value) => {
   if (!activeItem.value) return
 
-  const item = activeItem.value
-  
-  if (editForm.value.metaError) {
-    toast.add({
-      title: t('common.error', 'Error'),
-      description: t('validation.invalidYaml'),
-      color: 'error',
-      icon: 'i-heroicons-exclamation-triangle',
-    })
-    return
-  }
+  const itemMeta = formData.metaYaml.trim() ? yaml.load(formData.metaYaml) : {}
 
-  isSaving.value = true
-  try {
-    const itemMeta = editForm.value.metaYaml.trim() ? yaml.load(editForm.value.metaYaml) : {}
+  await api.patch(`/content-library/items/${formData.id}`, {
+    title: formData.title || null,
+    tags: parseTags(formData.tags),
+    note: formData.note || null,
+    meta: itemMeta
+  })
 
-    await api.patch(`/content-library/items/${item.id}`, {
-      title: editForm.value.title || null,
-      tags: parseTags(editForm.value.tags),
-      note: editForm.value.note || null,
-      meta: itemMeta
-    })
+  // Update blocks
+  const nextBlocks = formData.blocks.map((b, i) => ({
+    ...b,
+    order: i,
+    text: b.text?.trim() || ''
+  }))
 
-    // To simplify, we'll replace all blocks
-    // Note: This depends on backend implementation. 
-    // Usually it's better to sync them, but for now we'll send the whole list
-    // if the backend supports PATCH /items/:id with blocks
-    
-    // Based on the previous implementation, the backend had separate endpoints for blocks.
-    // Let's check if the backend supports bulk update or we need to call individual endpoints.
-    
-    const nextBlocks = editForm.value.blocks.map((b, i) => ({
-      ...b,
-      order: i,
-      text: b.text?.trim() || ''
-    }))
-
-    // Update blocks (now only updates, as creation/deletion is immediate)
-    for (const b of nextBlocks) {
-      if (b.id) {
-        await api.patch(`/content-library/items/${item.id}/blocks/${b.id}`, {
-          text: b.text,
-          type: b.type || 'plain',
-          order: b.order,
-          meta: b.meta || {}
-        })
-      }
+  for (const b of nextBlocks) {
+    if (b.id) {
+      await api.patch(`/content-library/items/${formData.id}/blocks/${b.id}`, {
+        text: b.text,
+        type: b.type || 'plain',
+        order: b.order,
+        meta: b.meta || {}
+      })
     }
-
-    isEditModalOpen.value = false
-    activeItem.value = null
-    await fetchItems({ reset: true })
-  } catch (e: any) {
-    toast.add({
-      title: t('common.error', 'Error'),
-      description: getApiErrorMessage(e, 'Failed to update content item'),
-      color: 'error',
-      icon: 'i-heroicons-exclamation-triangle',
-    })
-  } finally {
-    isSaving.value = false
   }
+}
+
+const handleCloseModal = async () => {
+  isEditModalOpen.value = false
+  activeItem.value = null
+  await fetchItems({ reset: true })
 }
 
 const openArchiveModal = (item: ContentItem) => {
@@ -589,7 +567,7 @@ const getItemPreview = (item: ContentItem) => {
             :loading="isStartCreating"
             @click="createAndEdit"
           >
-            {{ t('contentLibrary.actions.createEmpty', 'Create & Edit') }}
+            {{ t('contentLibrary.actions.createEmpty', 'Create') }}
           </UButton>
         </div>
       </div>
@@ -717,8 +695,9 @@ const getItemPreview = (item: ContentItem) => {
       v-model:open="isEditModalOpen"
       :title="t('contentLibrary.editTitle', 'Edit content item')"
       :ui="{ content: 'w-[90vw] max-w-5xl' }"
+      @close="handleCloseModal"
     >
-      <form @submit.prevent="updateItem" class="space-y-6">
+      <div class="space-y-6">
         <!-- Blocks Section -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -832,25 +811,20 @@ const getItemPreview = (item: ContentItem) => {
             </div>
           </div>
         </div>
-      </form>
-
+      </div>
       <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :disabled="isSaving"
-          @click="isEditModalOpen = false"
-        >
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="primary"
-          :loading="isSaving"
-          :disabled="!!editForm.metaError"
-          @click="updateItem"
-        >
-          {{ t('common.save', 'Save') }}
-        </UButton>
+        <div class="flex justify-between items-center w-full">
+          <UiAutosaveStatus 
+            :status="saveStatus" 
+            :error="saveError" 
+          />
+          <UButton
+            color="primary"
+            @click="handleCloseModal"
+          >
+            {{ t('common.done') }}
+          </UButton>
+        </div>
       </template>
     </AppModal>
   </div>
