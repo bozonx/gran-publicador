@@ -53,6 +53,7 @@ const { t, d } = useI18n()
 const route = useRoute()
 const api = useApi()
 const toast = useToast()
+const { currentProject, fetchProject } = useProjects()
 
 const projectId = computed(() => route.params.id as string)
 
@@ -180,6 +181,9 @@ watch(
 
 onMounted(() => {
   fetchItems({ reset: true })
+  if (projectId.value) {
+    fetchProject(projectId.value)
+  }
 })
 
 const resetCreateForm = () => {
@@ -486,7 +490,15 @@ const getItemPreview = (item: ContentItem) => {
           {{ t('contentLibrary.title', 'Content library') }}
           <CommonCountBadge :count="total" :title="t('contentLibrary.badgeCountTooltip')" />
         </h1>
-        <p class="text-gray-500 dark:text-gray-400">
+        <NuxtLink
+          v-if="currentProject"
+          :to="`/projects/${projectId}`"
+          class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium flex items-center gap-1"
+        >
+          <UIcon name="i-heroicons-folder" class="w-4 h-4" />
+          {{ currentProject.name }}
+        </NuxtLink>
+        <p v-else class="text-sm text-gray-500 dark:text-gray-400">
           {{ t('contentLibrary.subtitleProject', 'Project scope') }}
         </p>
       </div>
@@ -515,8 +527,8 @@ const getItemPreview = (item: ContentItem) => {
             <UiAppButtonGroup
               v-model="archiveStatus"
               :options="[
-                { value: 'archived', label: t('channel.filter.archiveStatus.archived') },
-                { value: 'active', label: t('channel.filter.archiveStatus.active') }
+                { value: 'archived', label: t('contentLibrary.filter.archived') },
+                { value: 'active', label: t('contentLibrary.filter.active') }
               ]"
               variant="outline"
               active-variant="solid"
@@ -594,41 +606,41 @@ const getItemPreview = (item: ContentItem) => {
               </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1">
               <UButton
-                size="xs"
+                size="sm"
                 color="neutral"
                 variant="ghost"
                 icon="i-heroicons-pencil-square"
                 :disabled="!!item.archivedAt"
+                :title="t('common.edit')"
+                class="cursor-pointer"
                 @click="openEditModal(item)"
-              >
-                {{ t('common.edit', 'Edit') }}
-              </UButton>
+              />
 
               <UButton
                 v-if="!item.archivedAt"
-                size="xs"
+                size="sm"
                 color="warning"
                 variant="ghost"
-                icon="i-heroicons-archive-box"
+                icon="i-heroicons-trash"
                 :loading="isArchivingId === item.id"
+                :title="t('contentLibrary.actions.moveToTrash')"
+                class="cursor-pointer"
                 @click="archiveItem(item.id)"
-              >
-                {{ t('common.archive', 'Archive') }}
-              </UButton>
+              />
 
               <UButton
                 v-else
-                size="xs"
+                size="sm"
                 color="primary"
                 variant="ghost"
                 icon="i-heroicons-arrow-uturn-left"
                 :loading="isRestoringId === item.id"
+                :title="t('common.restore')"
+                class="cursor-pointer"
                 @click="restoreItem(item.id)"
-              >
-                {{ t('common.restore', 'Restore') }}
-              </UButton>
+              />
             </div>
           </div>
         </div>

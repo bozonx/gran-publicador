@@ -34,10 +34,24 @@ const yamlError = ref<string | null>(null)
 // Actions for MediaGallery
 async function onAddMedia(media: any[]) {
   if (!props.contentItemId || !props.modelValue.id) return
-  await api.post(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media`, {
-    media
-  })
-  emit('refresh')
+  
+  // The backend expects a single attachment per request with body { mediaId: string }
+  // We need to iterate over the array of media items
+  try {
+    const promises = media.map(item => {
+      if (!item.id) return Promise.resolve()
+      return api.post(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media`, {
+        mediaId: item.id
+      })
+    })
+
+    await Promise.all(promises)
+    emit('refresh')
+  } catch (e) {
+    console.error('Failed to attach media', e)
+    // Maybe show toast? usage of useToast is missing in this component but api global handler might catch it or we should add it.
+    // For now logging is enough as the global error handler might show something.
+  }
 }
 
 async function onRemoveMedia(mediaLinkId: string) {

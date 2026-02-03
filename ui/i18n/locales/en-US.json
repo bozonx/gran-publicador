@@ -817,7 +817,12 @@
       "purgeArchived": "Empty trash",
       "addBlock": "Add block",
       "collapseAll": "Collapse all",
-      "expandAll": "Expand all"
+      "expandAll": "Expand all",
+      "moveToTrash": "Move to trash"
+    },
+    "filter": {
+      "active": "Active",
+      "archived": "Trash"
     }
   },
   "media": {

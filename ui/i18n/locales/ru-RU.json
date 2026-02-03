@@ -815,7 +815,12 @@
       "purgeArchived": "Очистить корзину",
       "addBlock": "Добавить блок",
       "collapseAll": "Свернуть все",
-      "expandAll": "Развернуть все"
+      "expandAll": "Развернуть все",
+      "moveToTrash": "В корзину"
+    },
+    "filter": {
+      "active": "Актуальные",
+      "archived": "Корзина"
     }
   },
   "media": {
