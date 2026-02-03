@@ -49,6 +49,25 @@ export function useUsers() {
         }
     }
 
+    async function fetchUserById(id: string) {
+        store.setLoading(true)
+        store.setError(null)
+        try {
+            return await api.get<UserWithStats>(`/users/${id}`)
+        } catch (err: any) {
+            const message = err.message || 'Failed to fetch user'
+            store.setError(message)
+            toast.add({
+                title: t('common.error'),
+                description: message,
+                color: 'error',
+            })
+            return null
+        } finally {
+            store.setLoading(false)
+        }
+    }
+
     async function toggleAdminStatus(userId: string) {
         try {
             // Find user locally to flip status optimistically or check current status
@@ -142,5 +161,6 @@ export function useUsers() {
         setPage,
         getUserDisplayName,
         getUserInitials,
+        fetchUserById,
     }
 }

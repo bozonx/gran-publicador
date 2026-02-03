@@ -54,6 +54,16 @@ export class UsersController {
   }
 
   /**
+   * Get a single user by ID.
+   * Admin only.
+   */
+  @Get(':id')
+  @UseGuards(AdminGuard)
+  public async findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
+  }
+
+  /**
    * Toggle admin status for a user.
    * Admin only.
    */

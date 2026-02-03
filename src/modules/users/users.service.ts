@@ -57,6 +57,42 @@ export class UsersService {
     });
   }
 
+  /**
+   * Find a single user by ID with statistics.
+   */
+  public async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id, deletedAt: null },
+      include: {
+        _count: {
+          select: {
+            ownedProjects: true,
+            publications: true,
+          },
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      telegramUsername: user.telegramUsername,
+      avatarUrl: user.avatarUrl,
+      telegramId: user.telegramId?.toString(),
+      isAdmin: user.isAdmin,
+      isBanned: user.isBanned,
+      banReason: user.banReason,
+      language: user.language,
+      uiLanguage: user.uiLanguage,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      projectsCount: user._count.ownedProjects,
+      publicationsCount: user._count.publications,
+    };
+  }
+
   public async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },

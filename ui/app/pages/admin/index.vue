@@ -164,6 +164,10 @@ async function handleToggleAdmin() {
   userToToggle.value = null
 }
 
+function handleRowClick(row: any) {
+    navigateTo(`/admin/users/${row.original.id}`)
+}
+
 /**
  * Cancel admin toggle
  */
@@ -360,13 +364,16 @@ const hasActiveFilters = computed(() => {
           :data="users"
           :columns="columns"
           :loading="isLoading"
+          :ui="{ tr: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' }"
+          @select="handleRowClick"
         >
           <!-- User info column -->
           <template #user-cell="{ row }">
             <div class="flex items-center gap-3">
               <!-- Avatar removed as requested -->
               <div>
-                <div class="font-bold text-gray-900 dark:text-white">
+                <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <UIcon v-if="row.original.isAdmin" name="i-heroicons-shield-check" class="w-4 h-4 text-primary" />
                     {{ row.original.fullName || '-' }}
                 </div>
                 <div 
@@ -397,32 +404,12 @@ const hasActiveFilters = computed(() => {
 
           <!-- Created at column -->
           <template #created_at-cell="{ row }">
-            {{ row.original.createdAt ? d(new Date(row.original.createdAt!), 'long') : '-' }}
+            {{ row.original.createdAt ? d(new Date(row.original.createdAt!), 'short') : '-' }}
           </template>
 
           <!-- Actions column -->
           <template #actions-cell="{ row }">
-              <div class="flex items-center justify-end gap-2">
-                <!-- Admin toggle button -->
-                <UButton
-                   v-if="row.original.isAdmin"
-                  color="warning"
-                  variant="ghost"
-                  size="sm"
-                  icon="i-heroicons-user-minus"
-                  :title="t('admin.revokeAdmin')"
-                  @click="confirmToggleAdmin(row.original)"
-                />
-                 <UButton
-                   v-else
-                  color="success"
-                  variant="ghost"
-                  size="sm"
-                  icon="i-heroicons-shield-check"
-                  :title="t('admin.grantAdmin')"
-                  @click="confirmToggleAdmin(row.original)"
-                />
-                
+              <div class="flex items-center justify-end gap-2" @click.stop>
                 <!-- Ban toggle button -->
                 <UButton
                   :color="row.original.isBanned ? 'error' : 'success'"
