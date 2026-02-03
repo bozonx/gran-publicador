@@ -1271,6 +1271,7 @@
     "createFromPreset": "From Preset",
     "delete_confirmation": "Are you sure you want to delete this signature? This action is irreversible.",
     "presets": {
+      "button": "Preset",
       "title": "Preset Signatures",
       "subscriber": "Subscriber",
       "subscriberContent": "Shared with subscribers",

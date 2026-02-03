@@ -47,22 +47,16 @@ function openAdd() {
   isModalOpen.value = true
 }
 
-function openPresetModal() {
-  isPresetModalOpen.value = true
-}
-
 function handlePresetSelect(preset: typeof PRESET_SIGNATURES[0]) {
-  editingSignature.value = null
-  form.name = t(preset.nameKey)
-  form.content = t(preset.contentKey)
-  form.isDefault = signatures.value.length === 0
-  isPresetModalOpen.value = false
-  isModalOpen.value = true
+  const content = t(preset.contentKey)
+  if (form.content && !form.content.endsWith('\n')) {
+    form.content += '\n'
+  }
+  form.content += content
 }
 
 function openEdit(signature: AuthorSignature) {
   editingSignature.value = signature
-  form.name = signature.name
   form.content = signature.content
   form.isDefault = signature.isDefault
   isModalOpen.value = true
@@ -161,15 +155,6 @@ async function handleDragEnd() {
     <Teleport defer v-if="channelId" to="#channel-signatures-actions">
       <div class="flex gap-2">
         <UButton
-          icon="i-heroicons-sparkles"
-          size="xs"
-          color="primary"
-          variant="outline"
-          @click="openPresetModal"
-        >
-          {{ t('authorSignature.createFromPreset', 'From Preset') }}
-        </UButton>
-        <UButton
           icon="i-heroicons-plus"
           size="xs"
           color="primary"
@@ -191,13 +176,13 @@ async function handleDragEnd() {
         {{ t('authorSignature.none') }}
       </p>
       <UButton
-        icon="i-heroicons-sparkles"
+        icon="i-heroicons-plus"
         size="sm"
         color="primary"
-        variant="outline"
-        @click="openPresetModal"
+        variant="soft"
+        @click="openAdd"
       >
-        {{ t('authorSignature.createFromPreset', 'Create from Preset') }}
+        {{ t('common.add') }}
       </UButton>
     </div>
 
@@ -291,6 +276,25 @@ async function handleDragEnd() {
       :title="editingSignature ? t('common.edit') : t('common.add')"
     >
       <div class="space-y-4">
+        <div class="flex justify-end">
+          <UDropdown
+            :items="[PRESET_SIGNATURES.map(p => ({ 
+              label: t(p.contentKey), 
+              icon: 'i-heroicons-sparkles',
+              click: () => handlePresetSelect(p)
+            }))]"
+          >
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="xs"
+              icon="i-heroicons-sparkles"
+              trailing-icon="i-heroicons-chevron-down-20-solid"
+            >
+              {{ t('authorSignature.presets.button', 'Preset') }}
+            </UButton>
+          </UDropdown>
+        </div>
 
         <UFormField :label="t('post.contentLabel')" required>
           <UTextarea
@@ -311,39 +315,11 @@ async function handleDragEnd() {
         <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton color="primary" :loading="isLoading" @click="handleSave">
+        <UButton color="primary" :loading="isLoading" @click="handleSave" :disabled="!form.content">
           {{ t('common.save') }}
         </UButton>
       </template>
     </UiAppModal>
 
-    <!-- Preset Selection Modal -->
-    <UiAppModal
-      v-model:open="isPresetModalOpen"
-      :title="t('authorSignature.presets.title', 'Preset Signatures')"
-    >
-      <div class="grid grid-cols-1 gap-3">
-        <button
-          v-for="preset in PRESET_SIGNATURES"
-          :key="preset.id"
-          @click="handlePresetSelect(preset)"
-          class="flex flex-col p-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-400 transition-all text-left group"
-        >
-          <div class="flex items-center gap-2 mb-2">
-            <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
-            <span class="font-semibold text-gray-900 dark:text-white">{{ t(preset.nameKey) }}</span>
-          </div>
-          <p class="text-sm text-gray-600 dark:text-gray-400 font-mono italic">
-            {{ t(preset.contentKey) }}
-          </p>
-        </button>
-      </div>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isPresetModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-      </template>
-    </UiAppModal>
   </div>
 </template>
