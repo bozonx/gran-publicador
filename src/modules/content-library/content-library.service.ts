@@ -45,6 +45,8 @@ export class ContentLibraryService {
   }
 
   private ensureHasAnyContent(input: { blocks?: Array<{ text?: unknown; media?: unknown[] }> }) {
+    // Validation disabled to allow creating empty items
+    /*
     const blocks = input.blocks ?? [];
     if (blocks.length === 0) {
       throw new BadRequestException('At least one content block is required');
@@ -59,6 +61,7 @@ export class ContentLibraryService {
     if (!hasAnyNonEmptyBlock) {
       throw new BadRequestException('At least one content block must contain text or media');
     }
+    */
   }
 
   private async assertContentItemAccess(

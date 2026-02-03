@@ -68,7 +68,12 @@ const offset = ref(0)
 const total = ref(0)
 const items = ref<ContentItem[]>([])
 
-const isCreateModalOpen = ref(false)
+const isCreateModalOpen = ref(false) // Keeping it for now to avoid breaking if referenced elsewhere, but unused. Actually better remove it?
+// The user removed logic uses isCreateModalOpen.
+// I will remove createForm and isCreateModalOpen.
+
+const isStartCreating = ref(false)
+
 const isEditModalOpen = ref(false)
 const activeItem = ref<ContentItem | null>(null)
 
@@ -76,15 +81,6 @@ const isPurging = ref(false)
 
 const isArchiveModalOpen = ref(false)
 const itemToArchive = ref<ContentItem | null>(null)
-
-const createForm = ref({
-  title: '',
-  tags: '',
-  note: '',
-  blocks: [] as ContentBlock[],
-  metaYaml: '',
-  metaError: null as string | null
-})
 
 const editForm = ref({
   id: '',
@@ -190,22 +186,40 @@ onMounted(() => {
   }
 })
 
-const resetCreateForm = () => {
-  createForm.value = {
-    title: '',
-    tags: '',
-    note: '',
-    blocks: [
-      { text: '', type: 'plain', order: 0, meta: {}, media: [] }
-    ],
-    metaYaml: '',
-    metaError: null
-  }
-}
+const createAndEdit = async () => {
+  if (!projectId.value) return
 
-const openCreateModal = () => {
-  resetCreateForm()
-  isCreateModalOpen.value = true
+  isStartCreating.value = true
+  try {
+    const res = await api.post<ContentItem>('/content-library/items', {
+      scope: 'project',
+      projectId: projectId.value,
+      blocks: [
+        { text: '', type: 'plain', order: 0, meta: {}, media: [] }
+      ]
+    })
+
+    await fetchItems({ reset: true })
+    
+    // Open edit modal with the new item
+    // We need to fetch the item again? The response might be enough if it includes blocks.
+    // The previous createItem usage called fetchItems then closed modal.
+    // Here we want to open edit modal immediately.
+    // The response from create usually includes the created object.
+    
+    // Assuming res is the item.
+    openEditModal(res)
+    
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to create content item'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  } finally {
+    isStartCreating.value = false
+  }
 }
 
 const openEditModal = (item: ContentItem) => {
@@ -228,8 +242,8 @@ const openEditModal = (item: ContentItem) => {
   isEditModalOpen.value = true
 }
 
-const addBlock = (form: 'create' | 'edit') => {
-  const target = form === 'create' ? createForm.value : editForm.value
+const addBlock = () => {
+  const target = editForm.value
   const maxOrder = target.blocks.reduce((max, b) => Math.max(max, b.order), -1)
   target.blocks.push({
     text: '',
@@ -240,13 +254,13 @@ const addBlock = (form: 'create' | 'edit') => {
   })
 }
 
-const removeBlock = (form: 'create' | 'edit', index: number) => {
-  const target = form === 'create' ? createForm.value : editForm.value
+const removeBlock = (index: number) => {
+  const target = editForm.value
   target.blocks.splice(index, 1)
 }
 
-const handleMetaUpdate = (form: 'create' | 'edit', newYaml: string) => {
-  const target = form === 'create' ? createForm.value : editForm.value
+const handleMetaUpdate = (newYaml: string) => {
+  const target = editForm.value
   target.metaYaml = newYaml
   if (!newYaml.trim()) {
     target.metaError = null
@@ -265,76 +279,14 @@ const handleMetaUpdate = (form: 'create' | 'edit', newYaml: string) => {
   }
 }
 
-const createItem = async () => {
-  if (!projectId.value) return
+// Created createItem removed
 
-  if (createForm.value.blocks.length === 0 || !createForm.value.blocks.some(b => (b.text ?? '').trim())) {
-    toast.add({
-      title: t('common.error', 'Error'),
-      description: t('contentLibrary.validation.textRequired', 'Text is required'),
-      color: 'error',
-      icon: 'i-heroicons-exclamation-triangle',
-    })
-    return
-  }
-
-  if (createForm.value.metaError) {
-    toast.add({
-      title: t('common.error', 'Error'),
-      description: t('validation.invalidYaml'),
-      color: 'error',
-      icon: 'i-heroicons-exclamation-triangle',
-    })
-    return
-  }
-
-  isSaving.value = true
-  try {
-    const itemMeta = createForm.value.metaYaml.trim() ? yaml.load(createForm.value.metaYaml) : {}
-    
-    await api.post('/content-library/items', {
-      scope: 'project',
-      projectId: projectId.value,
-      title: createForm.value.title || undefined,
-      tags: parseTags(createForm.value.tags),
-      note: createForm.value.note || undefined,
-      meta: itemMeta,
-      blocks: createForm.value.blocks.map((b, i) => ({
-        ...b,
-        order: i,
-        text: b.text?.trim() || ''
-      })).filter(b => b.text),
-    })
-
-    isCreateModalOpen.value = false
-    await fetchItems({ reset: true })
-  } catch (e: any) {
-    toast.add({
-      title: t('common.error', 'Error'),
-      description: getApiErrorMessage(e, 'Failed to create content item'),
-      color: 'error',
-      icon: 'i-heroicons-exclamation-triangle',
-    })
-  } finally {
-    isSaving.value = false
-  }
-}
 
 const updateItem = async () => {
   if (!activeItem.value) return
 
   const item = activeItem.value
   
-  if (editForm.value.blocks.length === 0 || !editForm.value.blocks.some(b => (b.text ?? '').trim())) {
-    toast.add({
-      title: t('common.error', 'Error'),
-      description: t('contentLibrary.validation.textRequired', 'Text is required'),
-      color: 'error',
-      icon: 'i-heroicons-exclamation-triangle',
-    })
-    return
-  }
-
   if (editForm.value.metaError) {
     toast.add({
       title: t('common.error', 'Error'),
@@ -566,9 +518,10 @@ const getItemPreview = (item: ContentItem) => {
             color="primary"
             size="sm"
             icon="i-heroicons-plus"
-            @click="openCreateModal"
+            :loading="isStartCreating"
+            @click="createAndEdit"
           >
-            {{ t('common.create', 'Create') }}
+            {{ t('contentLibrary.actions.createEmpty', 'Create & Edit') }}
           </UButton>
         </div>
       </div>
@@ -678,142 +631,7 @@ const getItemPreview = (item: ContentItem) => {
       </div>
     </div>
 
-    <AppModal
-      v-model:open="isCreateModalOpen"
-      :title="t('contentLibrary.createTitle', 'Create content item')"
-    >
-      <form @submit.prevent="createItem" class="space-y-6">
-        <!-- Blocks Section -->
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <UIcon name="i-heroicons-paper-clip" class="w-4 h-4" />
-              {{ t('contentLibrary.sections.blocks') }}
-            </h3>
-            <UButton
-              size="xs"
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-plus"
-              @click="addBlock('create')"
-            >
-              {{ t('contentLibrary.actions.addBlock') }}
-            </UButton>
-          </div>
 
-          <VueDraggable
-            v-model="createForm.blocks"
-            handle=".drag-handle"
-            class="space-y-3"
-          >
-            <div v-for="(block, index) in createForm.blocks" :key="index">
-              <ContentBlockEditor
-                :model-value="createForm.blocks[index]!"
-                @update:model-value="createForm.blocks[index] = $event"
-                :index="index"
-                @remove="removeBlock('create', index)"
-              />
-            </div>
-          </VueDraggable>
-        </div>
-
-        <!-- Title Field -->
-        <UFormField 
-          :label="t('contentLibrary.fields.title', 'Title')"
-          :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification')"
-          class="w-full"
-        >
-          <template #label>
-            <span class="inline-flex items-center gap-2">
-              <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
-            </span>
-          </template>
-          <UInput 
-            v-model="createForm.title"
-            :placeholder="t('contentLibrary.fields.titlePlaceholder', 'Product announcement, Weekly update...')"
-            class="w-full"
-          />
-        </UFormField>
-
-        <!-- Metadata Section -->
-        <div class="pt-4 border-t-2 border-gray-200 dark:border-gray-700 space-y-5">
-          <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-            <span>{{ t('contentLibrary.sections.metadata', 'Metadata') }}</span>
-          </div>
-
-          <!-- Tags Field -->
-          <UFormField 
-            :label="t('contentLibrary.fields.tags', 'Tags')"
-            :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for search')"
-            class="w-full"
-          >
-            <template #label>
-              <span class="inline-flex items-center gap-2">
-                <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span>{{ t('contentLibrary.fields.tags', 'Tags') }}</span>
-              </span>
-            </template>
-            <UInput 
-              v-model="createForm.tags" 
-              :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'announcement, product, marketing')"
-              class="w-full"
-            />
-          </UFormField>
-
-          <!-- Note Field -->
-          <UFormField 
-            :label="t('contentLibrary.fields.note', 'Note')"
-            :help="t('contentLibrary.fields.noteHelp', 'Internal notes or reminders')"
-            class="w-full"
-          >
-            <template #label>
-              <span class="inline-flex items-center gap-2">
-                <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span>{{ t('contentLibrary.fields.note', 'Note') }}</span>
-              </span>
-            </template>
-            <UTextarea 
-              v-model="createForm.note" 
-              :rows="3"
-              :placeholder="t('contentLibrary.fields.notePlaceholder', 'Internal notes or reminders...')"
-              class="w-full"
-            />
-          </UFormField>
-
-          <!-- YAML Meta (Read-only) -->
-          <div v-if="createForm.metaYaml" class="space-y-1">
-            <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              <UIcon name="i-heroicons-code-bracket" class="w-4 h-4" />
-              <span>{{ t('common.meta') }}</span>
-            </div>
-            <div class="p-3 rounded bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 text-xs font-mono whitespace-pre-wrap overflow-x-auto text-gray-600 dark:text-gray-400">
-              {{ createForm.metaYaml }}
-            </div>
-          </div>
-        </div>
-      </form>
-
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :disabled="isSaving"
-          @click="isCreateModalOpen = false"
-        >
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="primary"
-          :loading="isSaving"
-          :disabled="createForm.blocks.length === 0 || createForm.blocks.every(b => !b.text?.trim()) || !!createForm.metaError"
-          @click="createItem"
-        >
-          {{ t('common.create', 'Create') }}
-        </UButton>
-      </template>
-    </AppModal>
 
     <UiConfirmModal
       v-if="isArchiveModalOpen"
@@ -844,7 +662,7 @@ const getItemPreview = (item: ContentItem) => {
               color="neutral"
               variant="outline"
               icon="i-heroicons-plus"
-              @click="addBlock('edit')"
+              @click="addBlock()"
             >
               {{ t('contentLibrary.actions.addBlock') }}
             </UButton>
@@ -861,7 +679,7 @@ const getItemPreview = (item: ContentItem) => {
                 @update:model-value="editForm.blocks[index] = $event"
                 :index="index"
                 :content-item-id="editForm.id"
-                @remove="removeBlock('edit', index)"
+                @remove="removeBlock(index)"
                 @refresh="fetchItems({ reset: true })"
               />
             </div>
@@ -958,7 +776,7 @@ const getItemPreview = (item: ContentItem) => {
         <UButton
           color="primary"
           :loading="isSaving"
-          :disabled="editForm.blocks.length === 0 || editForm.blocks.every(b => !b.text?.trim()) || !!editForm.metaError"
+          :disabled="!!editForm.metaError"
           @click="updateItem"
         >
           {{ t('common.save', 'Save') }}

@@ -780,6 +780,7 @@
   "contentLibrary": {
     "title": "Content library",
     "subtitleProject": "Project scope",
+    "blocksCount": "{count} block | {count} blocks",
     "searchPlaceholder": "Search by title, note, tags, text...",
     "untitled": "Untitled",
     "textsCount": "{count} text | {count} texts",
@@ -816,6 +817,7 @@
     "actions": {
       "purgeArchived": "Empty trash",
       "addBlock": "Add block",
+      "createEmpty": "Create & Edit",
       "collapseAll": "Collapse all",
       "expandAll": "Expand all",
       "moveToTrash": "Move to trash",

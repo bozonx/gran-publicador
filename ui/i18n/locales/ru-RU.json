@@ -778,6 +778,7 @@
   "contentLibrary": {
     "title": "Библиотека контента",
     "subtitleProject": "Область проекта",
+    "blocksCount": "{count} блок | {count} блока | {count} блоков",
     "searchPlaceholder": "Поиск по заголовку, заметке, тегам, тексту...",
     "untitled": "Без названия",
     "textsCount": "{count} текст | {count} текста | {count} текстов",
@@ -814,6 +815,7 @@
     "actions": {
       "purgeArchived": "Очистить корзину",
       "addBlock": "Добавить блок",
+      "createEmpty": "Создать и редактировать",
       "collapseAll": "Свернуть все",
       "expandAll": "Развернуть все",
       "moveToTrash": "В корзину",
