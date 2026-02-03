@@ -365,11 +365,13 @@ const hasActiveFilters = computed(() => {
           :columns="columns"
           :loading="isLoading"
           :ui="{ tr: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' }"
-          @select="handleRowClick"
         >
           <!-- User info column -->
           <template #user-cell="{ row }">
-            <div class="flex items-center gap-3">
+            <div 
+              class="flex items-center gap-3 w-full h-full py-2" 
+              @click="handleRowClick(row)"
+            >
               <!-- Avatar removed as requested -->
               <div>
                 <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
@@ -394,7 +396,10 @@ const hasActiveFilters = computed(() => {
 
           <!-- Statistics column (Posts count only) -->
           <template #stats-cell="{ row }">
-            <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <div 
+              class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 w-full h-full py-2"
+              @click="handleRowClick(row)"
+            >
               <span class="flex items-center gap-1">
                 <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
                 {{ row.original.publicationsCount || 0 }} {{ t('post.titlePlural').toLowerCase() }}
@@ -404,7 +409,12 @@ const hasActiveFilters = computed(() => {
 
           <!-- Created at column -->
           <template #created_at-cell="{ row }">
-            {{ row.original.createdAt ? d(new Date(row.original.createdAt!), 'short') : '-' }}
+            <div 
+              class="w-full h-full py-2"
+              @click="handleRowClick(row)"
+            >
+              {{ row.original.createdAt ? new Date(row.original.createdAt!).toLocaleDateString() : '-' }}
+            </div>
           </template>
 
           <!-- Actions column -->

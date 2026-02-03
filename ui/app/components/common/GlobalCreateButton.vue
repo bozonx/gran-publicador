@@ -2,6 +2,8 @@
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+const { currentPublication } = usePublications()
+const { currentChannel } = useChannels()
 
 const props = withDefaults(defineProps<{
   mode?: 'header' | 'fab'
@@ -16,9 +18,51 @@ const initialProjectId = computed(() => {
 })
 
 const initialChannelId = computed(() => {
-  if (!route.path.startsWith('/channels/')) return undefined
-  const id = route.params.id
-  return typeof id === 'string' ? id : undefined
+  if (route.path.startsWith('/channels/')) {
+    const id = route.params.id
+    return typeof id === 'string' ? id : undefined
+  }
+  return undefined
+})
+
+const initialLanguage = computed(() => {
+  if (route.path.startsWith('/publications/')) {
+    return currentPublication.value?.language
+  }
+  if (route.path.startsWith('/channels/')) {
+    return currentChannel.value?.language
+  }
+  return undefined
+})
+
+const initialPostType = computed(() => {
+  if (route.path.startsWith('/publications/')) {
+    return currentPublication.value?.postType as any
+  }
+  return undefined
+})
+
+const initialChannelIds = computed(() => {
+  if (route.path.startsWith('/publications/')) {
+    return currentPublication.value?.posts?.map((p: any) => p.channelId).filter(Boolean)
+  }
+  if (route.path.startsWith('/channels/')) {
+    const id = route.params.id
+    return typeof id === 'string' ? [id] : undefined
+  }
+  return undefined
+})
+
+const initialProjectIdFromContext = computed(() => {
+  if (initialProjectId.value) return initialProjectId.value
+  
+  if (route.path.startsWith('/publications/')) {
+    return currentPublication.value?.projectId || undefined
+  }
+  if (route.path.startsWith('/channels/')) {
+    return currentChannel.value?.projectId || undefined
+  }
+  return undefined
 })
 
 // Modals state
@@ -131,8 +175,11 @@ function handleChannelCreated(channelId: string, projectId: string) {
     <ModalsCreatePublicationModal
       v-if="isPublicationModalOpen"
       v-model:open="isPublicationModalOpen"
-      :project-id="initialProjectId"
+      :project-id="initialProjectIdFromContext"
       :preselected-channel-id="initialChannelId"
+      :preselected-language="initialLanguage"
+      :preselected-post-type="initialPostType"
+      :preselected-channel-ids="initialChannelIds"
     />
 
     <!-- Create Project Modal -->
@@ -144,7 +191,7 @@ function handleChannelCreated(channelId: string, projectId: string) {
     <!-- Create Channel Modal -->
     <ModalsCreateChannelModal
       v-model:open="isChannelModalOpen"
-      :initial-project-id="initialProjectId"
+      :initial-project-id="initialProjectIdFromContext"
       :show-project-select="true"
       @created="handleChannelCreated"
     />

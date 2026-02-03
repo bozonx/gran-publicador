@@ -5,6 +5,8 @@ interface Props {
   projectId?: string
   preselectedLanguage?: string
   preselectedChannelId?: string
+  preselectedPostType?: PostType
+  preselectedChannelIds?: string[]
 }
 
 const props = defineProps<Props>()
@@ -33,8 +35,8 @@ const formData = reactive({
   type: (props.projectId || props.preselectedChannelId) ? 'project' : ('personal' as 'personal' | 'project'),
   projectId: props.projectId || '',
   language: props.preselectedLanguage || user.value?.language || locale.value,
-  postType: 'POST' as PostType,
-  channelIds: [] as string[],
+  postType: props.preselectedPostType || 'POST' as PostType,
+  channelIds: props.preselectedChannelIds || [] as string[],
 })
 
 const isInitializedForOpen = ref(false)

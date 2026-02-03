@@ -119,7 +119,7 @@ const isSelf = computed(() => user.value?.id === currentUser.value?.id)
               <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <div class="flex items-center gap-2 text-gray-500">
                   <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
-                  <span>{{ t('user.createdAt') }}: <b>{{ user.createdAt ? d(new Date(user.createdAt), 'short') : '-' }}</b></span>
+                  <span>{{ t('user.createdAt') }}: <b>{{ user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-' }}</b></span>
                 </div>
                 <div class="flex items-center gap-2 text-gray-500">
                   <UIcon name="i-heroicons-identification" class="w-4 h-4" />
