@@ -17,6 +17,7 @@ describe('ContentLibraryService (unit)', () => {
       count: jest.fn() as any,
       findUnique: jest.fn() as any,
       update: jest.fn() as any,
+      deleteMany: jest.fn() as any,
     },
     contentText: {
       aggregate: jest.fn() as any,
@@ -37,6 +38,9 @@ describe('ContentLibraryService (unit)', () => {
     media: {
       findUnique: jest.fn() as any,
     },
+    project: {
+        findUnique: jest.fn() as any,
+    } as any,
     $transaction: jest.fn() as any,
   };
 
@@ -168,8 +172,7 @@ describe('ContentLibraryService (unit)', () => {
   describe('findOne', () => {
     it('should forbid access to other user personal item', async () => {
       mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({ id: 'ci-1', userId: 'other', projectId: null, archivedAt: null })
-        .mockResolvedValueOnce({ id: 'ci-1' });
+        .mockResolvedValueOnce({ id: 'ci-1', userId: 'other', projectId: null, archivedAt: null });
 
       await expect(service.findOne('ci-1', 'user-1')).rejects.toThrow(ForbiddenException);
     });
@@ -213,11 +216,7 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('should purge archived by project only for owner', async () => {
-      mockPrismaService.project = {
-        findUnique: jest.fn() as any,
-      } as any;
       mockPrismaService.project.findUnique.mockResolvedValue({ ownerId: 'user-1' });
-      mockPrismaService.contentItem.deleteMany = jest.fn() as any;
       mockPrismaService.contentItem.deleteMany.mockResolvedValue({ count: 2 });
 
       const res = await service.purgeArchivedByProject('p1', 'user-1');
