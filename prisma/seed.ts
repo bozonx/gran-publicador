@@ -37,6 +37,13 @@ async function main() {
   await prisma.notification.deleteMany({});
   await prisma.post.deleteMany({});
   await prisma.publicationMedia.deleteMany({});
+  
+  // Content Library cleanup
+  await prisma.publicationContentItem.deleteMany({});
+  await prisma.contentItemMedia.deleteMany({});
+  await prisma.contentText.deleteMany({});
+  await prisma.contentItem.deleteMany({});
+
   await prisma.media.deleteMany({});
   await prisma.publication.deleteMany({});
   await prisma.authorSignature.deleteMany({});
@@ -799,43 +806,30 @@ async function main() {
     {
       id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       userId: devUser.id,
-      name: 'Summarization (RU)',
-      description: 'Create a brief summary of the text',
+      projectId: null,
+      name: 'Summarize for Telegram',
+      description: 'Creates a short summary for Telegram posts',
+      category: 'CONTENT',
       prompt:
-        'Your task is to make a brief summary of the following text. Highlight main ideas and key facts. Use bullet points.',
+        'Summarize the following text for a Telegram post. Keep it under 500 characters. Use emojis.',
       order: 0,
     },
+    // Project templates
     {
-      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab',
-      userId: devUser.id,
-      name: 'Translate to English (Simple)',
-      description: 'Simple translation to English',
-      prompt:
-        'Translate the provided text to English. Keep the language simple and accessible. Maintain the original formatting.',
-      order: 1,
-    },
-    // Project templates for the first project
-    {
-      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-baaaaaaaaaaa',
+      userId: null,
       projectId: projectData[0].id,
-      name: 'Tech Post Style',
-      description: 'Technical style for our channel',
+      name: 'Technical Tone Rewriter',
+      description: 'Rewrites text in a technical tone',
+      category: 'EDITING',
       prompt:
-        'Write a post based on the provided information in technical style. Use professional terminology, but try to explain complex concepts. Add a call to discussion at the end.',
+        'Rewrite the following text to sound more technical and professional. Use appropriate terminology.',
       order: 0,
-    },
-    {
-      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbc',
-      projectId: projectData[0].id,
-      name: 'News Announcement',
-      description: 'News announcement format',
-      prompt:
-        'Form a short news announcement (up to 500 characters). Start with a catchy headline. Add relevant emojis. Express the main idea in the first sentence.',
-      order: 1,
     },
   ];
 
   for (const pt of promptTemplates) {
+    // @ts-ignore
     await prisma.llmPromptTemplate.upsert({
       where: { id: pt.id },
       update: pt,
@@ -843,14 +837,130 @@ async function main() {
     });
   }
 
-  console.log('✅ Seeding complete!');
+  // 13. CONTENT LIBRARY
+  console.log('  Generating content library...');
+  const contentItems = [
+    {
+      id: 'cccc1111-1111-4111-8111-111111111111',
+      userId: devUser.id,
+      projectId: projectData[0].id,
+      title: 'Draft Idea: Nuxt 5 Predictions',
+      tags: 'nuxt,future,speculation',
+      note: 'Just some random thoughts',
+      meta: {},
+      texts: [
+        {
+          id: 'ctxt1111-1111-4111-8111-111111111111',
+          type: 'text',
+          content: 'Nuxt 5 might introduce native AI integration...',
+          order: 0,
+          meta: {},
+        },
+      ],
+      media: [],
+    },
+    {
+      id: 'cccc1111-1111-4111-8111-111111111112',
+      userId: devUser.id,
+      projectId: projectData[0].id,
+      title: 'Cool Image for Post',
+      tags: 'image,asset',
+      note: 'To be used in upcoming posts',
+      meta: {},
+      texts: [],
+      media: [
+        {
+          id: 'cm111111-1111-4111-8111-111111111111',
+          mediaId: mediaSamples[0].id,
+          order: 0,
+          hasSpoiler: false,
+        },
+      ],
+    },
+    {
+      id: 'cccc1111-1111-4111-8111-111111111113',
+      userId: editorUser.id,
+      projectId: projectData[1].id,
+      title: 'Travel Log Segment',
+      tags: 'travel,raw',
+      note: null,
+      meta: {},
+      texts: [
+        {
+          id: 'ctxt1111-1111-4111-8111-111111111112',
+          type: 'text',
+          content: 'Arrived in Tokyo at 5 AM. The city was already awake.',
+          order: 0,
+          meta: {},
+        },
+      ],
+      media: [
+        {
+          id: 'cm111111-1111-4111-8111-111111111112',
+          mediaId: mediaSamples[1].id,
+          order: 1,
+          hasSpoiler: false,
+        },
+      ],
+    },
+  ];
+
+  for (const item of contentItems) {
+    const { texts, media, ...itemData } = item;
+    await prisma.contentItem.upsert({
+      where: { id: item.id },
+      update: itemData,
+      create: itemData,
+    });
+
+    for (const text of texts) {
+      // @ts-ignore
+      await prisma.contentText.upsert({
+        where: { id: text.id },
+        update: text,
+        create: {
+            ...text,
+            contentItemId: item.id
+        },
+      });
+    }
+
+    for (const m of media) {
+      // @ts-ignore
+      await prisma.contentItemMedia.upsert({
+        where: { id: m.id },
+        update: m,
+        create: {
+            ...m,
+            contentItemId: item.id,
+        },
+      });
+    }
+  }
+
+  // Link content item to publication
+  await prisma.publicationContentItem.upsert({
+    where: { publicationId_contentItemId: { 
+        publicationId: publications[0].id, 
+        contentItemId: contentItems[0].id 
+    }},
+    update: {},
+    create: {
+        publicationId: publications[0].id,
+        contentItemId: contentItems[0].id,
+        order: 0
+    }
+  });
+
+  console.log('✅ Seeding finished.');
 }
 
 main()
   .catch(e => {
-    console.error('❌ Seeding failed:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
+

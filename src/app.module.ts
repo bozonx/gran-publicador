@@ -47,12 +47,22 @@ import { RolesModule } from './modules/roles/roles.module.js';
 import { NewsQueriesModule } from './modules/news-queries/news-queries.module.js';
 import { SourcesModule } from './modules/sources/sources.module.js';
 import { SystemModule } from './modules/system/system.module.js';
+import { ContentLibraryModule } from './modules/content-library/content-library.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, socialPostingConfig, llmConfig, sttConfig, translateConfig, newsConfig, redisConfig, mediaConfig],
+      load: [
+        appConfig,
+        socialPostingConfig,
+        llmConfig,
+        sttConfig,
+        translateConfig,
+        newsConfig,
+        redisConfig,
+        mediaConfig,
+      ],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
     }),
@@ -215,6 +225,7 @@ import { SystemModule } from './modules/system/system.module.js';
     NewsQueriesModule,
     SourcesModule,
     SystemModule,
+    ContentLibraryModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],
