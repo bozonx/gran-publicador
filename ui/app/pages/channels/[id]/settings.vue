@@ -197,6 +197,19 @@ async function handleDelete() {
           />
         </UiAppCard>
 
+        <!-- Author Signatures -->
+        <UiAppCard 
+          v-if="canEdit(channel)"
+          id="author-signatures"
+          :title="t('authorSignature.user_defined')"
+          :description="t('channel.footers_desc', 'Manage author signatures that can be automatically added to your posts')"
+        >
+          <template #actions>
+            <div id="channel-signatures-actions"></div>
+          </template>
+          <PostsAuthorSignatureManager :channel-id="channelId" />
+        </UiAppCard>
+
         <!-- Footers -->
         <UiAppCard
           v-if="canEdit(channel)"
@@ -216,19 +229,6 @@ async function handleDelete() {
         <!-- Post Templates -->
         <UiAppCard v-if="canEdit(channel)">
           <FormsChannelTemplatesEditor :channel="channel" />
-        </UiAppCard>
-
-        <!-- Author Signatures -->
-        <UiAppCard 
-          v-if="canEdit(channel)"
-          id="author-signatures"
-          :title="t('authorSignature.user_defined')"
-          :description="t('channel.footers_desc')"
-        >
-          <template #actions>
-            <div id="channel-signatures-actions"></div>
-          </template>
-          <PostsAuthorSignatureManager :channel-id="channelId" />
         </UiAppCard>
  
         <!-- Channel Control -->
