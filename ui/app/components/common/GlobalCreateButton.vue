@@ -92,13 +92,13 @@ const items = computed(() => [
     click: openPublicationModal
   }],
   [{
-    label: t('project.createProject'),
-    icon: 'i-heroicons-briefcase',
-    click: openProjectModal
-  }, {
     label: t('channel.createChannel'),
     icon: 'i-heroicons-hashtag',
     click: openChannelModal
+  }, {
+    label: t('project.createProject'),
+    icon: 'i-heroicons-briefcase',
+    click: openProjectModal
   }]
 ])
 
@@ -176,7 +176,6 @@ function handleChannelCreated(channelId: string, projectId: string) {
       v-if="isPublicationModalOpen"
       v-model:open="isPublicationModalOpen"
       :project-id="initialProjectIdFromContext"
-      :preselected-channel-id="initialChannelId"
       :preselected-language="initialLanguage"
       :preselected-post-type="initialPostType"
       :preselected-channel-ids="initialChannelIds"

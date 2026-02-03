@@ -34,7 +34,10 @@ const isProjectLocked = computed(() => {
   return Boolean(props.projectId) || Boolean(props.preselectedChannelId)
 })
 const isChannelLocked = computed(() => Boolean(props.preselectedChannelId))
-const isLanguageLocked = computed(() => Boolean(props.preselectedChannelId) || Boolean(props.preselectedLanguage))
+const isLanguageLocked = computed(() => {
+  if (props.allowProjectSelection) return false
+  return Boolean(props.preselectedChannelId) || Boolean(props.preselectedLanguage)
+})
 
 // Form data
 const formData = reactive({
@@ -44,6 +47,8 @@ const formData = reactive({
   postType: props.preselectedPostType || 'POST' as PostType,
   channelIds: props.preselectedChannelIds || [] as string[],
 })
+
+const lastAppliedProjectId = ref<string | null>(props.projectId || null)
 
 const isInitializedForOpen = ref(false)
 
@@ -58,12 +63,32 @@ watch(isOpen, (open) => {
   if (open) {
     isInitializedForOpen.value = false
 
+    lastAppliedProjectId.value = props.projectId || null
+
     if (props.projectId) {
       formData.type = 'project'
       formData.projectId = props.projectId
     }
   }
 })
+
+watch(() => props.projectId, (newProjectId) => {
+  if (!isOpen.value) return
+  if (!newProjectId) return
+
+  if (isProjectLocked.value) {
+    formData.type = 'project'
+    formData.projectId = newProjectId
+    lastAppliedProjectId.value = newProjectId
+    return
+  }
+
+  if (!formData.projectId || formData.projectId === lastAppliedProjectId.value) {
+    formData.type = 'project'
+    formData.projectId = newProjectId
+    lastAppliedProjectId.value = newProjectId
+  }
+}, { immediate: true })
 
 const activeProjects = computed(() => {
     return projects.value
@@ -80,9 +105,11 @@ watch(() => formData.projectId, async (newProjectId) => {
     await fetchChannels({ projectId: newProjectId })
 
     if (!props.preselectedChannelId) {
-      formData.channelIds = channels.value
-        .filter(ch => ch.language === formData.language)
-        .map(ch => ch.id)
+      if (!props.preselectedChannelIds?.length && formData.channelIds.length === 0) {
+        formData.channelIds = channels.value
+          .filter(ch => ch.language === formData.language)
+          .map(ch => ch.id)
+      }
     }
   } else {
     channels.value = []
@@ -170,6 +197,8 @@ watch(() => formData.language, (newLang) => {
         const channel = channels.value.find(ch => ch.id === props.preselectedChannelId)
         if (channel && channel.language === newLang) return
     }
+
+    if (formData.channelIds.length > 0) return
 
     const matchingChannels = channels.value
       .filter(ch => ch.language === newLang)

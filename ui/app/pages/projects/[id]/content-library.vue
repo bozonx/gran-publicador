@@ -437,62 +437,61 @@ const getItemPreview = (item: ContentItem) => {
       v-model:open="isCreateModalOpen"
       :title="t('contentLibrary.createTitle', 'Create content item')"
     >
-      <form @submit.prevent="createItem" class="space-y-5">
-        <!-- Main Content Section -->
-        <div class="space-y-4">
-          <!-- Text Field (Most Important - First) -->
-          <UFormGroup 
-            :label="t('contentLibrary.fields.text', 'Text')" 
-            required
-            :help="t('contentLibrary.fields.textHelp', 'Main content of the item. This field is required.')"
-          >
-            <template #label>
-              <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
-                <span>{{ t('contentLibrary.fields.text', 'Text') }}</span>
-                <span class="text-red-500">*</span>
-              </div>
-            </template>
-            <UTextarea 
-              v-model="createForm.text" 
-              :rows="8"
-              :placeholder="t('contentLibrary.fields.textPlaceholder', 'Enter the main content here...')"
-              autofocus
-            />
-          </UFormGroup>
+      <form @submit.prevent="createItem" class="space-y-6">
+        <!-- Text Field (Primary - Required) -->
+        <UFormField 
+          :label="t('contentLibrary.fields.text', 'Text')" 
+          required
+          :help="t('contentLibrary.fields.textHelp', 'Main content of the item')"
+        >
+          <template #label>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
+              <span class="font-semibold">{{ t('contentLibrary.fields.text', 'Text') }}</span>
+              <span class="text-red-500 text-base">*</span>
+            </div>
+          </template>
+          <UTextarea 
+            v-model="createForm.text" 
+            :rows="10"
+            :placeholder="t('contentLibrary.fields.textPlaceholder', 'Enter the main content here...')"
+            autofocus
+            class="font-mono"
+          />
+        </UFormField>
 
-          <!-- Title Field -->
-          <UFormGroup 
-            :label="t('contentLibrary.fields.title', 'Title')"
-            :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification in the library.')"
-          >
-            <template #label>
-              <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500" />
-                <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
-              </div>
-            </template>
-            <UInput 
-              v-model="createForm.title"
-              :placeholder="t('contentLibrary.fields.titlePlaceholder', 'e.g., Product announcement, Weekly update...')"
-            />
-          </UFormGroup>
-        </div>
+        <!-- Title Field -->
+        <UFormField 
+          :label="t('contentLibrary.fields.title', 'Title')"
+          :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification')"
+        >
+          <template #label>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
+            </div>
+          </template>
+          <UInput 
+            v-model="createForm.title"
+            :placeholder="t('contentLibrary.fields.titlePlaceholder', 'Product announcement, Weekly update...')"
+          />
+        </UFormField>
 
         <!-- Metadata Section -->
-        <div class="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-4">
-          <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            {{ t('contentLibrary.sections.metadata', 'Metadata') }}
+        <div class="pt-4 border-t-2 border-gray-200 dark:border-gray-700 space-y-5">
+          <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
+            <span>{{ t('contentLibrary.sections.metadata', 'Metadata') }}</span>
           </div>
 
           <!-- Tags Field -->
-          <UFormGroup 
+          <UFormField 
             :label="t('contentLibrary.fields.tags', 'Tags')"
-            :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for categorization and search.')"
+            :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for search')"
           >
             <template #label>
               <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500" />
+                <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.tags', 'Tags') }}</span>
               </div>
             </template>
@@ -500,25 +499,25 @@ const getItemPreview = (item: ContentItem) => {
               v-model="createForm.tags" 
               :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'announcement, product, marketing')"
             />
-          </UFormGroup>
+          </UFormField>
 
           <!-- Note Field -->
-          <UFormGroup 
+          <UFormField 
             :label="t('contentLibrary.fields.note', 'Note')"
-            :help="t('contentLibrary.fields.noteHelp', 'Internal notes or comments about this content item.')"
+            :help="t('contentLibrary.fields.noteHelp', 'Internal notes or reminders')"
           >
             <template #label>
               <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500" />
+                <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.note', 'Note') }}</span>
               </div>
             </template>
             <UTextarea 
               v-model="createForm.note" 
               :rows="3"
-              :placeholder="t('contentLibrary.fields.notePlaceholder', 'Add any internal notes or reminders...')"
+              :placeholder="t('contentLibrary.fields.notePlaceholder', 'Internal notes or reminders...')"
             />
-          </UFormGroup>
+          </UFormField>
         </div>
       </form>
 
@@ -546,62 +545,61 @@ const getItemPreview = (item: ContentItem) => {
       v-model:open="isEditModalOpen"
       :title="t('contentLibrary.editTitle', 'Edit content item')"
     >
-      <form @submit.prevent="updateItem" class="space-y-5">
-        <!-- Main Content Section -->
-        <div class="space-y-4">
-          <!-- Text Field (Most Important - First) -->
-          <UFormGroup 
-            :label="t('contentLibrary.fields.text', 'Text')" 
-            required
-            :help="t('contentLibrary.fields.textHelp', 'Main content of the item. This field is required.')"
-          >
-            <template #label>
-              <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
-                <span>{{ t('contentLibrary.fields.text', 'Text') }}</span>
-                <span class="text-red-500">*</span>
-              </div>
-            </template>
-            <UTextarea 
-              v-model="editForm.text" 
-              :rows="8"
-              :placeholder="t('contentLibrary.fields.textPlaceholder', 'Enter the main content here...')"
-              autofocus
-            />
-          </UFormGroup>
+      <form @submit.prevent="updateItem" class="space-y-6">
+        <!-- Text Field (Primary - Required) -->
+        <UFormField 
+          :label="t('contentLibrary.fields.text', 'Text')" 
+          required
+          :help="t('contentLibrary.fields.textHelp', 'Main content of the item')"
+        >
+          <template #label>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
+              <span class="font-semibold">{{ t('contentLibrary.fields.text', 'Text') }}</span>
+              <span class="text-red-500 text-base">*</span>
+            </div>
+          </template>
+          <UTextarea 
+            v-model="editForm.text" 
+            :rows="10"
+            :placeholder="t('contentLibrary.fields.textPlaceholder', 'Enter the main content here...')"
+            autofocus
+            class="font-mono"
+          />
+        </UFormField>
 
-          <!-- Title Field -->
-          <UFormGroup 
-            :label="t('contentLibrary.fields.title', 'Title')"
-            :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification in the library.')"
-          >
-            <template #label>
-              <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500" />
-                <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
-              </div>
-            </template>
-            <UInput 
-              v-model="editForm.title"
-              :placeholder="t('contentLibrary.fields.titlePlaceholder', 'e.g., Product announcement, Weekly update...')"
-            />
-          </UFormGroup>
-        </div>
+        <!-- Title Field -->
+        <UFormField 
+          :label="t('contentLibrary.fields.title', 'Title')"
+          :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification')"
+        >
+          <template #label>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
+            </div>
+          </template>
+          <UInput 
+            v-model="editForm.title"
+            :placeholder="t('contentLibrary.fields.titlePlaceholder', 'Product announcement, Weekly update...')"
+          />
+        </UFormField>
 
         <!-- Metadata Section -->
-        <div class="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-4">
-          <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            {{ t('contentLibrary.sections.metadata', 'Metadata') }}
+        <div class="pt-4 border-t-2 border-gray-200 dark:border-gray-700 space-y-5">
+          <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
+            <span>{{ t('contentLibrary.sections.metadata', 'Metadata') }}</span>
           </div>
 
           <!-- Tags Field -->
-          <UFormGroup 
+          <UFormField 
             :label="t('contentLibrary.fields.tags', 'Tags')"
-            :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for categorization and search.')"
+            :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for search')"
           >
             <template #label>
               <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500" />
+                <UIcon name="i-heroicons-hashtag" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.tags', 'Tags') }}</span>
               </div>
             </template>
@@ -609,25 +607,25 @@ const getItemPreview = (item: ContentItem) => {
               v-model="editForm.tags" 
               :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'announcement, product, marketing')"
             />
-          </UFormGroup>
+          </UFormField>
 
           <!-- Note Field -->
-          <UFormGroup 
+          <UFormField 
             :label="t('contentLibrary.fields.note', 'Note')"
-            :help="t('contentLibrary.fields.noteHelp', 'Internal notes or comments about this content item.')"
+            :help="t('contentLibrary.fields.noteHelp', 'Internal notes or reminders')"
           >
             <template #label>
               <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500" />
+                <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{{ t('contentLibrary.fields.note', 'Note') }}</span>
               </div>
             </template>
             <UTextarea 
               v-model="editForm.note" 
               :rows="3"
-              :placeholder="t('contentLibrary.fields.notePlaceholder', 'Add any internal notes or reminders...')"
+              :placeholder="t('contentLibrary.fields.notePlaceholder', 'Internal notes or reminders...')"
             />
-          </UFormGroup>
+          </UFormField>
         </div>
       </form>
 
