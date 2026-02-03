@@ -188,15 +188,41 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
       </div>
     </template>
 
-    <!-- Channel name -->
-    <UFormField name="name" :label="t('channel.name')" required>
-      <UInput
-        v-model="state.name"
-        :placeholder="t('channel.namePlaceholder')"
-        class="w-full"
-        size="lg"
-      />
-    </UFormField>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <!-- Channel name -->
+      <UFormField 
+        name="name" 
+        :label="t('channel.name')" 
+        required
+      >
+        <UInput
+          v-model="state.name"
+          :placeholder="t('channel.namePlaceholder')"
+          class="w-full"
+          size="lg"
+        />
+      </UFormField>
+
+      <!-- Channel identifier -->
+      <UFormField
+        name="channelIdentifier"
+        required
+        :help="getIdentifierHelp(currentSocialMedia || state.socialMedia)"
+      >
+        <template #label>
+          <span class="inline-flex items-center gap-1.5">
+            <span>{{ t('channel.identifier') }}</span>
+            <CommonInfoTooltip :text="t('channel.identifierTooltip')" />
+          </span>
+        </template>
+        <UInput
+          v-model="state.channelIdentifier"
+          :placeholder="getIdentifierPlaceholder(currentSocialMedia || state.socialMedia)"
+          class="w-full"
+          size="lg"
+        />
+      </UFormField>
+    </div>
 
     <!-- Description -->
     <UFormField name="description" :label="t('channel.description', 'Description')">
@@ -206,25 +232,6 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
         class="w-full"
         :rows="3"
         autoresize
-      />
-    </UFormField>
-
-    <!-- Channel identifier -->
-    <UFormField
-      name="channelIdentifier"
-      required
-      :help="getIdentifierHelp(currentSocialMedia || state.socialMedia)"
-    >
-      <template #label>
-        <div class="flex items-center gap-1.5">
-          <span>{{ t('channel.identifier') }}</span>
-          <CommonInfoTooltip :text="t('channel.identifierTooltip')" />
-        </div>
-      </template>
-      <UInput
-        v-model="state.channelIdentifier"
-        :placeholder="getIdentifierPlaceholder(currentSocialMedia || state.socialMedia)"
-        class="w-full"
       />
     </UFormField>
 
