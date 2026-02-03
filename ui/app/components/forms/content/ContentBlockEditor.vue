@@ -186,11 +186,6 @@ const toggleCollapse = () => {
           :on-update-link="onUpdateLinkMedia"
         />
       </div>
-      <div v-else-if="!props.modelValue.id" class="p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-400 italic">
-          {{ t('contentLibrary.mediaHint', 'Save the item first to add media to this block') }}
-        </p>
-      </div>
 
       <div v-if="yamlMeta" class="space-y-1">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('common.meta') }}</span>

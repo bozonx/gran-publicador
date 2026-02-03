@@ -330,11 +330,14 @@ export class ContentLibraryService {
     await this.assertContentItemAccess(contentItemId, userId, false);
     await this.assertContentItemMutationAllowed(contentItemId, userId);
 
+    // Validation disabled to allow creating empty blocks from UI
+    /*
     const hasText = (dto.text ?? '').trim().length > 0;
     const hasMedia = (dto.media?.length ?? 0) > 0;
     if (!hasText && !hasMedia) {
       throw new BadRequestException('Block must contain text or media');
     }
+    */
 
     const maxOrderAgg = await (this.prisma as any).contentBlock.aggregate({
       where: { contentItemId },

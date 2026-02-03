@@ -266,21 +266,82 @@ const refreshActiveItem = async () => {
   }
 }
 
-const addBlock = () => {
+const addBlock = async () => {
+  if (!editForm.value.id) return
+  
   const target = editForm.value
-  const maxOrder = target.blocks.reduce((max, b) => Math.max(max, b.order), -1)
-  target.blocks.push({
-    text: '',
-    type: 'plain',
-    order: maxOrder + 1,
-    meta: {},
-    media: []
-  })
+  const maxOrder = target.blocks.reduce((max, b) => Math.max(max, (b.order ?? -1)), -1)
+  
+  try {
+    const res = await api.post<ContentBlock>(`/content-library/items/${editForm.value.id}/blocks`, {
+      text: '',
+      type: 'plain',
+      order: maxOrder + 1,
+      meta: {},
+      media: []
+    })
+    target.blocks.push(res)
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to add block'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  }
 }
 
-const removeBlock = (index: number) => {
+const removeBlock = async (index: number) => {
   const target = editForm.value
-  target.blocks.splice(index, 1)
+  const block = target.blocks[index]
+  
+  if (!block) return
+
+  if (!block.id) {
+    target.blocks.splice(index, 1)
+    return
+  }
+
+  try {
+    await api.delete(`/content-library/items/${editForm.value.id}/blocks/${block.id}`)
+    target.blocks.splice(index, 1)
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to remove block'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  }
+}
+
+const handleReorder = async () => {
+  if (!editForm.value.id) return
+  
+  try {
+    const reorderData = editForm.value.blocks.map((b, i) => ({
+      id: b.id!,
+      order: i
+    }))
+    
+    await api.post(`/content-library/items/${editForm.value.id}/blocks/reorder`, {
+      blocks: reorderData
+    })
+    
+    // Update local order numbers to match
+    editForm.value.blocks.forEach((b, i) => {
+      b.order = i
+    })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to reorder blocks'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+    // Optional: reload blocks if reorder fails to sync UI with DB
+    await refreshActiveItem()
+  }
 }
 
 const handleMetaUpdate = (newYaml: string) => {
@@ -340,22 +401,13 @@ const updateItem = async () => {
     // Based on the previous implementation, the backend had separate endpoints for blocks.
     // Let's check if the backend supports bulk update or we need to call individual endpoints.
     
-    // Existing code called PATCH /items/:id/blocks/:blockId
-    
-    const currentBlocks = item.blocks || []
     const nextBlocks = editForm.value.blocks.map((b, i) => ({
       ...b,
       order: i,
       text: b.text?.trim() || ''
-    })).filter(b => b.text)
+    }))
 
-    // Delete blocks that are no longer present
-    const blocksToDelete = currentBlocks.filter(cb => !nextBlocks.some(nb => nb.id === cb.id))
-    for (const b of blocksToDelete) {
-      await api.delete(`/content-library/items/${item.id}/blocks/${b.id}`)
-    }
-
-    // Update or create blocks
+    // Update blocks (now only updates, as creation/deletion is immediate)
     for (const b of nextBlocks) {
       if (b.id) {
         await api.patch(`/content-library/items/${item.id}/blocks/${b.id}`, {
@@ -363,14 +415,6 @@ const updateItem = async () => {
           type: b.type || 'plain',
           order: b.order,
           meta: b.meta || {}
-        })
-      } else {
-        await api.post(`/content-library/items/${item.id}/blocks`, {
-          text: b.text,
-          type: b.type || 'plain',
-          order: b.order,
-          meta: b.meta || {},
-          media: []
         })
       }
     }
@@ -696,8 +740,9 @@ const getItemPreview = (item: ContentItem) => {
             v-model="editForm.blocks"
             handle=".drag-handle"
             class="space-y-3"
+            @end="handleReorder"
           >
-            <div v-for="(block, index) in editForm.blocks" :key="index">
+            <div v-for="(block, index) in editForm.blocks" :key="block.id || index">
               <ContentBlockEditor
                 :model-value="editForm.blocks[index]!"
                 @update:model-value="editForm.blocks[index] = $event"
