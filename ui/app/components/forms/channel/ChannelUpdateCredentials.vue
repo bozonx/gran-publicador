@@ -106,6 +106,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       <FormsChannelPartsChannelCredentialsFields
         :state="state"
         :current-social-media="props.channel.socialMedia"
+        hide-header
       />
     </div>
 

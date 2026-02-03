@@ -92,7 +92,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
 <template>
   <UForm :schema="schema" :state="state" @submit="handleSubmit">
     <div :class="FORM_SPACING.fields">
-      <FormsChannelPartsChannelPreferencesFields :state="state" />
+      <FormsChannelPartsChannelPreferencesFields :state="state" hide-header />
     </div>
 
     <div class="mt-6 flex justify-end">

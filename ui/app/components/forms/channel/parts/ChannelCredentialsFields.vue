@@ -5,9 +5,12 @@ import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 interface Props {
   state: any
   currentSocialMedia: SocialMedia | undefined
+  hideHeader?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  hideHeader: false
+})
 const { t } = useI18n()
 </script>
 
@@ -15,7 +18,7 @@ const { t } = useI18n()
   <div class="space-y-4">
     <!-- Telegram credentials -->
     <div v-if="props.currentSocialMedia === 'TELEGRAM'" class="space-y-4">
-      <div class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+      <div v-if="!props.hideHeader" class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
         <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <span>{{ t('channel.telegramCredentials', 'Telegram Credentials') }}</span>
           <CommonInfoTooltip :text="t('channel.telegramCredentialsTooltip')" />
@@ -52,7 +55,7 @@ const { t } = useI18n()
 
     <!-- VK credentials -->
     <div v-if="props.currentSocialMedia === 'VK'" class="space-y-4">
-        <div class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+        <div v-if="!props.hideHeader" class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
         <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
           {{ t('channel.vkCredentials', 'VK Credentials') }}
         </h3>

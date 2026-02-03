@@ -3,15 +3,18 @@ import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 
 interface Props {
   state: any
+  hideHeader?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  hideHeader: false
+})
 const { t } = useI18n()
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
+    <div v-if="!props.hideHeader" class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">
       <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
         {{ t('settings.preferences', 'Preferences') }}
       </h3>
