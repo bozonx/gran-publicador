@@ -12,15 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
-import { ContentTextDto } from './content-text.dto.js';
-
-class ContentItemMediaInputDto {
-  @IsUUID()
-  public mediaId!: string;
-
-  @IsOptional()
-  public hasSpoiler?: boolean;
-}
+import { ContentBlockDto } from './content-block.dto.js';
 
 export class CreateContentItemDto {
   @IsIn(['personal', 'project'])
@@ -54,15 +46,8 @@ export class CreateContentItemDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => ContentTextDto)
+  @Type(() => ContentBlockDto)
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
-  public texts?: ContentTextDto[];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ContentItemMediaInputDto)
-  @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
-  public media?: ContentItemMediaInputDto[];
+  public blocks?: ContentBlockDto[];
 }

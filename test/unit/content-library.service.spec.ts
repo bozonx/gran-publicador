@@ -19,27 +19,11 @@ describe('ContentLibraryService (unit)', () => {
       update: jest.fn() as any,
       deleteMany: jest.fn() as any,
     },
-    contentText: {
-      aggregate: jest.fn() as any,
-      create: jest.fn() as any,
-      findUnique: jest.fn() as any,
-      update: jest.fn() as any,
-      delete: jest.fn() as any,
-      findMany: jest.fn() as any,
-    },
-    contentItemMedia: {
-      aggregate: jest.fn() as any,
-      create: jest.fn() as any,
-      findUnique: jest.fn() as any,
-      delete: jest.fn() as any,
-      findMany: jest.fn() as any,
-      update: jest.fn() as any,
-    },
     media: {
       findUnique: jest.fn() as any,
     },
     project: {
-        findUnique: jest.fn() as any,
+      findUnique: jest.fn() as any,
     } as any,
     $transaction: jest.fn() as any,
   };
@@ -76,7 +60,7 @@ describe('ContentLibraryService (unit)', () => {
   });
 
   describe('create', () => {
-    it('should throw when neither texts nor media provided', async () => {
+    it('should throw when blocks are not provided', async () => {
       await expect(
         service.create(
           {
@@ -95,7 +79,7 @@ describe('ContentLibraryService (unit)', () => {
         {
           scope: 'personal',
           title: 't',
-          texts: [{ content: 'hello' }],
+          blocks: [{ text: 'hello' }],
         } as any,
         'user-1',
       );
@@ -109,7 +93,7 @@ describe('ContentLibraryService (unit)', () => {
         service.create(
           {
             scope: 'project',
-            texts: [{ content: 'hello' }],
+            blocks: [{ text: 'hello' }],
           } as any,
           'user-1',
         ),
@@ -124,7 +108,7 @@ describe('ContentLibraryService (unit)', () => {
         {
           scope: 'project',
           projectId: 'p1',
-          texts: [{ content: 'hello' }],
+          blocks: [{ text: 'hello' }],
         } as any,
         'user-1',
       );
@@ -171,8 +155,12 @@ describe('ContentLibraryService (unit)', () => {
 
   describe('findOne', () => {
     it('should forbid access to other user personal item', async () => {
-      mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({ id: 'ci-1', userId: 'other', projectId: null, archivedAt: null });
+      mockPrismaService.contentItem.findUnique.mockResolvedValueOnce({
+        id: 'ci-1',
+        userId: 'other',
+        projectId: null,
+        archivedAt: null,
+      });
 
       await expect(service.findOne('ci-1', 'user-1')).rejects.toThrow(ForbiddenException);
     });

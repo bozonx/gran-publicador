@@ -16,14 +16,14 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
-  AttachContentItemMediaDto,
+  AttachContentBlockMediaDto,
   CreateContentItemDto,
-  CreateContentTextDto,
+  CreateContentBlockDto,
   FindContentItemsQueryDto,
-  ReorderContentItemMediaDto,
-  ReorderContentTextsDto,
+  ReorderContentBlockMediaDto,
+  ReorderContentBlocksDto,
   UpdateContentItemDto,
-  UpdateContentTextDto,
+  UpdateContentBlockDto,
 } from './dto/index.js';
 import { ContentLibraryService } from './content-library.service.js';
 
@@ -149,74 +149,92 @@ export class ContentLibraryController {
     return this.contentLibraryService.remove(id, req.user.userId);
   }
 
-  @Post('items/:id/texts')
-  public async createText(
+  @Post('items/:id/blocks')
+  public async createBlock(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
-    @Body() dto: CreateContentTextDto,
+    @Body() dto: CreateContentBlockDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.createText(contentItemId, dto, req.user.userId);
+    return this.contentLibraryService.createBlock(contentItemId, dto, req.user.userId);
   }
 
-  @Patch('items/:id/texts/:textId')
-  public async updateText(
+  @Patch('items/:id/blocks/:blockId')
+  public async updateBlock(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
-    @Param('textId') textId: string,
-    @Body() dto: UpdateContentTextDto,
+    @Param('blockId') blockId: string,
+    @Body() dto: UpdateContentBlockDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.updateText(contentItemId, textId, dto, req.user.userId);
+    return this.contentLibraryService.updateBlock(contentItemId, blockId, dto, req.user.userId);
   }
 
-  @Delete('items/:id/texts/:textId')
-  public async removeText(
+  @Delete('items/:id/blocks/:blockId')
+  public async removeBlock(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
-    @Param('textId') textId: string,
+    @Param('blockId') blockId: string,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.removeText(contentItemId, textId, req.user.userId);
+    return this.contentLibraryService.removeBlock(contentItemId, blockId, req.user.userId);
   }
 
-  @Patch('items/:id/texts/reorder')
-  public async reorderTexts(
+  @Patch('items/:id/blocks/reorder')
+  public async reorderBlocks(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
-    @Body() dto: ReorderContentTextsDto,
+    @Body() dto: ReorderContentBlocksDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.reorderTexts(contentItemId, dto, req.user.userId);
+    return this.contentLibraryService.reorderBlocks(contentItemId, dto, req.user.userId);
   }
 
-  @Post('items/:id/media')
-  public async attachMedia(
+  @Post('items/:id/blocks/:blockId/media')
+  public async attachBlockMedia(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
-    @Body() dto: AttachContentItemMediaDto,
+    @Param('blockId') blockId: string,
+    @Body() dto: AttachContentBlockMediaDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.attachMedia(contentItemId, dto, req.user.userId);
+    return this.contentLibraryService.attachBlockMedia(
+      contentItemId,
+      blockId,
+      dto,
+      req.user.userId,
+    );
   }
 
-  @Delete('items/:id/media/:mediaLinkId')
-  public async detachMedia(
+  @Delete('items/:id/blocks/:blockId/media/:mediaLinkId')
+  public async detachBlockMedia(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
+    @Param('blockId') blockId: string,
     @Param('mediaLinkId') mediaLinkId: string,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.detachMedia(contentItemId, mediaLinkId, req.user.userId);
+    return this.contentLibraryService.detachBlockMedia(
+      contentItemId,
+      blockId,
+      mediaLinkId,
+      req.user.userId,
+    );
   }
 
-  @Patch('items/:id/media/reorder')
-  public async reorderMedia(
+  @Patch('items/:id/blocks/:blockId/media/reorder')
+  public async reorderBlockMedia(
     @Request() req: UnifiedAuthRequest,
     @Param('id') contentItemId: string,
-    @Body() dto: ReorderContentItemMediaDto,
+    @Param('blockId') blockId: string,
+    @Body() dto: ReorderContentBlockMediaDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.reorderMedia(contentItemId, dto, req.user.userId);
+    return this.contentLibraryService.reorderBlockMedia(
+      contentItemId,
+      blockId,
+      dto,
+      req.user.userId,
+    );
   }
 }
