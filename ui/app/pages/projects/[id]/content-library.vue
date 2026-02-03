@@ -242,6 +242,30 @@ const openEditModal = (item: ContentItem) => {
   isEditModalOpen.value = true
 }
 
+const refreshActiveItem = async () => {
+  if (!editForm.value.id) return
+  try {
+    const item = await api.get<ContentItem>(`/content-library/items/${editForm.value.id}`)
+    
+    // Smart sync: update only media in existing blocks to preserve unsaved text changes
+    editForm.value.blocks.forEach(localBlock => {
+      if (!localBlock.id) return
+      const freshBlock = item.blocks?.find(b => b.id === localBlock.id)
+      if (freshBlock) {
+        localBlock.media = freshBlock.media
+      }
+    })
+    
+    // Update activeItem as well
+    activeItem.value = item
+    
+    // Also refresh the background list
+    fetchItems()
+  } catch (e) {
+    console.error('Failed to refresh item', e)
+  }
+}
+
 const addBlock = () => {
   const target = editForm.value
   const maxOrder = target.blocks.reduce((max, b) => Math.max(max, b.order), -1)
@@ -680,7 +704,7 @@ const getItemPreview = (item: ContentItem) => {
                 :index="index"
                 :content-item-id="editForm.id"
                 @remove="removeBlock(index)"
-                @refresh="fetchItems({ reset: true })"
+                @refresh="refreshActiveItem"
               />
             </div>
           </VueDraggable>
