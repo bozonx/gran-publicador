@@ -821,7 +821,9 @@ const getItemPreview = (item: ContentItem) => {
                 :model-value="editForm.blocks[index]!"
                 @update:model-value="editForm.blocks[index] = $event"
                 :index="index"
+                :content-item-id="editForm.id"
                 @remove="removeBlock('edit', index)"
+                @refresh="fetchItems({ reset: true })"
               />
             </div>
           </VueDraggable>

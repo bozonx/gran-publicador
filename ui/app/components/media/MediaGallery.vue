@@ -29,11 +29,16 @@ interface Props {
     order: number
     hasSpoiler?: boolean
   }>
-  publicationId: string
+  publicationId?: string
   editable?: boolean
   socialMedia?: string | string[]
   showValidation?: boolean
   postType?: string
+  // Generic callbacks for when not used in a publication context
+  onAdd?: (media: CreateMediaInput[]) => Promise<void>
+  onRemove?: (mediaId: string) => Promise<void>
+  onReorder?: (reorderData: Array<{ id: string; order: number }>) => Promise<void>
+  onUpdateLink?: (mediaLinkId: string, data: { hasSpoiler?: boolean; order?: number }) => Promise<void>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -200,21 +205,12 @@ async function uploadFiles(files: FileList | File[], options?: any) {
   
   const progresses = new Array(fileArray.length).fill(0)
   
-  // Logic: 
-  // 1. If skipOptimization is true, send { enabled: false } to skip everything
-  // 2. If enabled is true, use the options
-  // 3. Otherwise, use undefined which will trigger backend/env defaults (or should we pass standard explicitly?)
-  // Given point 1 and 2 of requirements, we should be explicit.
-  
   let optimizeParams: any = undefined
   if (options?.skipOptimization) {
     optimizeParams = { enabled: false }
   } else if (options?.enabled) {
     optimizeParams = options
   }
-
-  // Debug logging to track optimization parameters
-
 
   try {
     const uploadedMediaItems = await Promise.all(
@@ -227,10 +223,14 @@ async function uploadFiles(files: FileList | File[], options?: any) {
       })
     )
     
-    await addMediaToPublication(
-      props.publicationId, 
-      uploadedMediaItems.map(m => ({ id: m.id }))
-    )
+    if (props.publicationId) {
+      await addMediaToPublication(
+        props.publicationId, 
+        uploadedMediaItems.map(m => ({ id: m.id }))
+      )
+    } else if (props.onAdd) {
+      await props.onAdd(uploadedMediaItems.map(m => ({ id: m.id })))
+    }
     
     toast.add({
       title: t('common.success'),
@@ -262,8 +262,6 @@ async function saveMediaMeta() {
 
   isSavingMeta.value = true
   try {
-    // meta is now read-only
-
     const updated = await updateMedia(selectedMedia.value.id, {
       alt: editableAlt.value || undefined,
       description: editableDescription.value || undefined
@@ -294,13 +292,15 @@ async function saveMediaMeta() {
   // Handle PublicationMedia.hasSpoiler update
   if (selectedMediaLinkId.value) {
     try {
-      await updateMediaLinkInPublication(
-        props.publicationId,
-        selectedMediaLinkId.value,
-        { hasSpoiler: editableHasSpoiler.value }
-      )
-      
-      // Update local state is handled by refreshed props/emit refresh
+      if (props.publicationId) {
+        await updateMediaLinkInPublication(
+          props.publicationId,
+          selectedMediaLinkId.value,
+          { hasSpoiler: editableHasSpoiler.value }
+        )
+      } else if (props.onUpdateLink) {
+        await props.onUpdateLink(selectedMediaLinkId.value, { hasSpoiler: editableHasSpoiler.value })
+      }
     } catch (error: any) {
       console.error('Failed to update media spoiler', error)
     }
@@ -329,7 +329,6 @@ async function addMedia() {
         if (defaults.skipOptimization) {
           optimizeParams = { enabled: false }
         } else {
-          // defaults always returned either project enabled or standard
           optimizeParams = defaults 
         }
       }
@@ -348,7 +347,11 @@ async function addMedia() {
         filename: filenameInput.value.trim() || undefined,
       }
       
-      await addMediaToPublication(props.publicationId, [newMedia])
+      if (props.publicationId) {
+        await addMediaToPublication(props.publicationId, [newMedia])
+      } else if (props.onAdd) {
+        await props.onAdd([newMedia])
+      }
       
       toast.add({
         title: t('common.success'),
@@ -364,7 +367,11 @@ async function addMedia() {
     }
 
     // For URL: add the downloaded media to publication
-    await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
+    if (props.publicationId) {
+      await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
+    } else if (props.onAdd) {
+      await props.onAdd([{ id: uploadedMedia.id }])
+    }
     
     toast.add({
       title: t('common.success'),
@@ -387,6 +394,7 @@ async function addMedia() {
     uploadProgress.value = false
   }
 }
+
 
 async function confirmAndUploadExtended() {
   if (stagedFiles.value.length === 0 && !sourceInput.value.trim()) return
@@ -432,7 +440,11 @@ async function confirmRemoveMedia() {
 
   isDeleting.value = true
   try {
-    await removeMediaFromPublication(props.publicationId, mediaToDeleteId.value)
+    if (props.publicationId) {
+      await removeMediaFromPublication(props.publicationId, mediaToDeleteId.value)
+    } else if (props.onRemove) {
+      await props.onRemove(mediaToDeleteId.value)
+    }
     
     toast.add({
       title: t('common.success'),
@@ -469,7 +481,11 @@ async function handleDragEnd() {
     }))
 
   try {
-    await reorderMediaInPublication(props.publicationId, reorderData)
+    if (props.publicationId) {
+      await reorderMediaInPublication(props.publicationId, reorderData)
+    } else if (props.onReorder) {
+      await props.onReorder(reorderData)
+    }
     
     toast.add({
       title: t('common.success'),
@@ -596,10 +612,18 @@ async function handleEditorSave(file: File) {
         const oldIndex = currentMediaIndex.value
         
         // Remove old media link
-        await removeMediaFromPublication(props.publicationId, selectedMediaLinkId.value)
+        if (props.publicationId) {
+          await removeMediaFromPublication(props.publicationId, selectedMediaLinkId.value)
+        } else if (props.onRemove) {
+          await props.onRemove(selectedMediaLinkId.value)
+        }
         
         // Add new media link
-        await addMediaToPublication(props.publicationId, [{ id: newMedia.id }])
+        if (props.publicationId) {
+          await addMediaToPublication(props.publicationId, [{ id: newMedia.id }])
+        } else if (props.onAdd) {
+          await props.onAdd([{ id: newMedia.id }])
+        }
         
         // After adding, it will be at the end. If we want to preserve order, we should reorder.
         // But the refresh will happen and user can move it.

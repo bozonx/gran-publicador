@@ -14,18 +14,56 @@ interface ContentBlock {
 const props = defineProps<{
   modelValue: ContentBlock
   index: number
+  contentItemId?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: ContentBlock): void
   (e: 'remove'): void
+  (e: 'refresh'): void
 }>()
 
 const { t } = useI18n()
+const api = useApi()
+const { uploadMedia } = useMedia()
 
 const isCollapsed = ref(false)
 const yamlMeta = ref('')
 const yamlError = ref<string | null>(null)
+
+// Actions for MediaGallery
+async function onAddMedia(media: any[]) {
+  if (!props.contentItemId || !props.modelValue.id) return
+  await api.post(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media`, {
+    media
+  })
+  emit('refresh')
+}
+
+async function onRemoveMedia(mediaLinkId: string) {
+  if (!props.contentItemId || !props.modelValue.id) return
+  await api.delete(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media/${mediaLinkId}`)
+  emit('refresh')
+}
+
+async function onReorderMedia(reorderData: any[]) {
+  if (!props.contentItemId || !props.modelValue.id) return
+  await api.patch(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media/reorder`, {
+    media: reorderData
+  })
+  emit('refresh')
+}
+
+async function onUpdateLinkMedia(mediaLinkId: string, data: any) {
+  // Note: Backend might not have a direct endpoint for updating link metadata like hasSpoiler for blocks yet.
+  // If needed, it should be implemented in content-library.service.ts
+  // For now, we'll skip or use reorder/bulk update if available.
+  console.log('Update link media not implemented for blocks yet', mediaLinkId, data)
+}
+
+function handleRefresh() {
+  emit('refresh')
+}
 
 // Initialize YAML from meta
 watch(() => props.modelValue.meta, (newMeta) => {
@@ -122,6 +160,24 @@ const toggleCollapse = () => {
         />
       </UFormField>
 
+      <!-- Media Gallery Integration -->
+      <div v-if="props.modelValue.id && props.contentItemId" class="pt-2">
+        <MediaGallery
+          :media="props.modelValue.media || []"
+          :editable="true"
+          @refresh="handleRefresh"
+          :on-add="onAddMedia"
+          :on-remove="onRemoveMedia"
+          :on-reorder="onReorderMedia"
+          :on-update-link="onUpdateLinkMedia"
+        />
+      </div>
+      <div v-else-if="!props.modelValue.id" class="p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-center">
+        <p class="text-xs text-gray-400 italic">
+          {{ t('contentLibrary.mediaHint', 'Save the item first to add media to this block') }}
+        </p>
+      </div>
+
       <div v-if="yamlMeta" class="space-y-1">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('common.meta') }}</span>
         <div class="p-2 rounded bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 text-[10px] font-mono whitespace-pre-wrap overflow-x-auto text-gray-600 dark:text-gray-400">
@@ -131,6 +187,7 @@ const toggleCollapse = () => {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .drag-handle {
