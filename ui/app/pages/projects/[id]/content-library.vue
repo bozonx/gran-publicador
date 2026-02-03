@@ -716,6 +716,7 @@ const getItemPreview = (item: ContentItem) => {
     <AppModal
       v-model:open="isEditModalOpen"
       :title="t('contentLibrary.editTitle', 'Edit content item')"
+      :ui="{ content: 'w-[90vw] max-w-5xl' }"
     >
       <form @submit.prevent="updateItem" class="space-y-6">
         <!-- Blocks Section -->

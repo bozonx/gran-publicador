@@ -73,6 +73,7 @@ function handleClose(close?: () => void) {
     <template #content="{ close }">
       <div 
         class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full"
+        :class="modalUi.content"
       >
         <!-- Header -->
         <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0" :class="headerClass">
