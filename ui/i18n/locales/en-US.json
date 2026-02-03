@@ -822,11 +822,26 @@
       "expandAll": "Expand all",
       "moveToTrash": "Move to trash",
       "deleteConfirmTitle": "Move to trash?",
-      "deleteConfirmDescription": "Are you sure you want to move this item to trash? You can restore it later."
+      "deleteConfirmDescription": "Are you sure you want to move this item to trash? You can restore it later.",
+      "bulkUpload": "Bulk Upload"
     },
     "filter": {
       "active": "Active",
       "archived": "Trash"
+    },
+    "bulkUploadModal": {
+      "title": "Bulk Upload",
+      "dropHelp": "Drop files here or click to select",
+      "fileProcessing": "Processing files...",
+      "uploading": "Uploading: {current} of {total}",
+      "done": "Done",
+      "status": {
+        "pending": "Pending",
+        "uploading": "Uploading",
+        "creating": "Creating",
+        "success": "Success",
+        "error": "Error"
+      }
     }
   },
   "media": {

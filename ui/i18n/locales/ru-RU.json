@@ -820,11 +820,26 @@
       "expandAll": "Развернуть все",
       "moveToTrash": "В корзину",
       "deleteConfirmTitle": "Переместить в корзину?",
-      "deleteConfirmDescription": "Вы уверены, что хотите переместить этот элемент в корзину? Вы сможете восстановить его позже."
+      "deleteConfirmDescription": "Вы уверены, что хотите переместить этот элемент в корзину? Вы сможете восстановить его позже.",
+      "bulkUpload": "Загрузить пачкой"
     },
     "filter": {
       "active": "Актуальные",
       "archived": "Корзина"
+    },
+    "bulkUploadModal": {
+      "title": "Массовая загрузка",
+      "dropHelp": "Перенесите файлы сюда или нажмите для выбора",
+      "fileProcessing": "Обработка файлов...",
+      "uploading": "Загрузка: {current} из {total}",
+      "done": "Готово",
+      "status": {
+        "pending": "Ожидание",
+        "uploading": "Загрузка",
+        "creating": "Создание",
+        "success": "Успешно",
+        "error": "Ошибка"
+      }
     }
   },
   "media": {

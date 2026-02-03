@@ -7,6 +7,7 @@ import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import AppModal from '~/components/ui/AppModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
+import BulkUploadModal from '~/components/forms/content/BulkUploadModal.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -74,6 +75,8 @@ const isStartCreating = ref(false)
 
 const isEditModalOpen = ref(false)
 const activeItem = ref<ContentItem | null>(null)
+
+const isBulkUploadModalOpen = ref(false)
 
 const isPurging = ref(false)
 
@@ -573,6 +576,16 @@ const getItemTextBlocks = (item: ContentItem) => {
           </UButton>
 
           <UButton
+            color="neutral"
+            size="sm"
+            variant="outline"
+            icon="i-heroicons-cloud-arrow-up"
+            @click="isBulkUploadModalOpen = true"
+          >
+            {{ t('contentLibrary.actions.bulkUpload') }}
+          </UButton>
+
+          <UButton
             color="primary"
             size="sm"
             icon="i-heroicons-plus"
@@ -860,5 +873,11 @@ const getItemTextBlocks = (item: ContentItem) => {
         </div>
       </template>
     </AppModal>
+
+    <BulkUploadModal
+      v-model:open="isBulkUploadModalOpen"
+      :project-id="projectId"
+      @done="fetchItems({ reset: true })"
+    />
   </div>
 </template>
