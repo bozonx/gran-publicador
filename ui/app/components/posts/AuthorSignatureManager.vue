@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import type { AuthorSignature, CreateAuthorSignatureInput, UpdateAuthorSignatureInput } from '~/types/author-signatures'
 import { PRESET_SIGNATURES } from '~/constants/preset-signatures'
@@ -23,7 +24,6 @@ const isModalOpen = ref(false)
 const isPresetModalOpen = ref(false)
 const isDeleting = ref(false)
 const editingSignature = ref<AuthorSignature | null>(null)
-const isDragging = ref(false)
 
 const form = reactive({
   name: '',
@@ -70,7 +70,7 @@ async function handleSave() {
   if (!form.content) return
 
   // Automatically set name from content for backend compatibility
-  form.name = form.content.split('\n')[0].slice(0, 50) || 'Signature'
+  form.name = form.content.split('\n')[0]?.slice(0, 50) || 'Signature'
 
   try {
     if (editingSignature.value) {
@@ -113,58 +113,16 @@ async function handleSetDefault(id: string) {
   await loadSignatures()
 }
 
-// Drag and drop handlers
-function handleDragStart(event: DragEvent, index: number) {
-  if (!event.dataTransfer) return
-  event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('text/plain', index.toString())
-  isDragging.value = true
-}
-
-function handleDragEnd() {
-  isDragging.value = false
-}
-
-function handleDragOver(event: DragEvent) {
-  event.preventDefault()
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'move'
-  }
-}
-
-async function handleDrop(event: DragEvent, targetIndex: number) {
-  event.preventDefault()
-  if (!event.dataTransfer) return
-  
-  const sourceIndex = parseInt(event.dataTransfer.getData('text/plain'))
-  if (sourceIndex === targetIndex) return
-  
-  // Reorder locally
-  const items = [...signatures.value]
-  const [movedItem] = items.splice(sourceIndex, 1)
-  items.splice(targetIndex, 0, movedItem)
-  
-  // Update order field for all items
-  const updates = items.map((item, index) => ({
-    id: item.id,
-    order: index
-  }))
-  
-  // Optimistically update UI
-  signatures.value = items
-  
-  // Update on server
+async function handleDragEnd() {
+  // Update order for all signatures
   try {
-    for (const { id, order } of updates) {
-      await update(id, { order })
+    for (let i = 0; i < signatures.value.length; i++) {
+      await update(signatures.value[i].id, { order: i })
     }
   } catch (error) {
     console.error('Failed to update order', error)
-    // Reload on error
     await loadSignatures()
   }
-  
-  isDragging.value = false
 }
 
 </script>
@@ -198,7 +156,7 @@ async function handleDrop(event: DragEvent, targetIndex: number) {
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
     </div>
 
-    <div v-else-if="signatures.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+    <div v-else-if="signatures.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
       <UIcon name="i-heroicons-pencil-square" class="w-8 h-8 mx-auto text-gray-400 mb-2" />
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
         {{ t('authorSignature.none') }}
@@ -214,67 +172,51 @@ async function handleDrop(event: DragEvent, targetIndex: number) {
       </UButton>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <VueDraggable
+      v-else
+      v-model="signatures"
+      :animation="150"
+      handle=".drag-handle"
+      class="space-y-3"
+      @end="handleDragEnd"
+    >
       <div
-        v-for="(sig, index) in signatures"
+        v-for="sig in signatures"
         :key="sig.id"
-        draggable="true"
-        @dragstart="handleDragStart($event, index)"
-        @dragend="handleDragEnd"
-        @dragover="handleDragOver"
-        @drop="handleDrop($event, index)"
-        class="flex flex-col p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-all group relative h-full cursor-move"
-        :class="{ 'opacity-50': isDragging }"
+        class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
+        @click="openEdit(sig)"
       >
-        <div class="flex items-start justify-between mb-3">
-          <div class="flex flex-col min-w-0">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-bars-3" class="w-4 h-4 text-gray-400 shrink-0" />
-              <span class="font-semibold text-gray-900 dark:text-white truncate" :title="sig.content">{{ sig.content }}</span>
-              <UBadge v-if="sig.isDefault" size="xs" color="primary" variant="subtle">
-                {{ t('authorSignature.is_default') }}
-              </UBadge>
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div 
+            class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 -ml-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            @click.stop
+          >
+            <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
+              {{ sig.content }}
             </div>
           </div>
-          
-          <div class="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <UTooltip v-if="!sig.isDefault" :text="t('authorSignature.is_default')">
-              <UButton
-                icon="i-heroicons-star"
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                @click="handleSetDefault(sig.id)"
-              />
-            </UTooltip>
-            <UTooltip :text="t('common.edit')">
-              <UButton
-                icon="i-heroicons-pencil"
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                @click="openEdit(sig)"
-              />
-            </UTooltip>
-            <UTooltip :text="t('common.delete')">
-              <UButton
-                icon="i-heroicons-trash"
-                size="xs"
-                variant="ghost"
-                color="error"
-                @click="handleDelete(sig.id)"
-              />
-            </UTooltip>
-          </div>
         </div>
-        
-        <div class="mt-auto">
-          <div class="text-xs text-gray-600 dark:text-gray-400 line-clamp-3 bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-800 font-mono italic">
-            {{ sig.content }}
-          </div>
+        <div class="flex items-center gap-1">
+          <UIcon 
+            v-if="sig.isDefault" 
+            name="i-heroicons-star-20-solid" 
+            class="w-4 h-4 text-primary-500 mr-2" 
+          />
+          <div class="w-4 h-4 mr-2" v-else></div>
+          
+          <UButton
+            icon="i-heroicons-trash"
+            size="xs"
+            variant="ghost"
+            color="error"
+            @click.stop="handleDelete(sig.id)"
+          />
         </div>
       </div>
-    </div>
+    </VueDraggable>
 
     <!-- Edit Modal -->
     <UiAppModal

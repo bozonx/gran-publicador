@@ -212,18 +212,15 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
         class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
         @click="openEditFooter(footer)"
       >
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 overflow-hidden">
           <div 
             class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 -ml-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
             @click.stop
           >
             <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
           </div>
-          <div>
-            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-              {{ footer.content }}
-            </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 max-w-md">
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
               {{ footer.content }}
             </div>
           </div>

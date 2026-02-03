@@ -552,12 +552,12 @@ const getItemPreview = (item: ContentItem) => {
           :label="t('contentLibrary.fields.text', 'Text')" 
           required
           :help="t('contentLibrary.fields.textHelp', 'Main content of the item')"
+          class="w-full"
         >
           <template #label>
             <div class="flex items-center gap-2">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
               <span class="font-semibold">{{ t('contentLibrary.fields.text', 'Text') }}</span>
-              <span class="text-red-500 text-base">*</span>
             </div>
           </template>
           <UTextarea 
@@ -565,7 +565,7 @@ const getItemPreview = (item: ContentItem) => {
             :rows="10"
             :placeholder="t('contentLibrary.fields.textPlaceholder', 'Enter the main content here...')"
             autofocus
-            class="font-mono"
+            class="w-full font-mono"
           />
         </UFormField>
 
@@ -573,6 +573,7 @@ const getItemPreview = (item: ContentItem) => {
         <UFormField 
           :label="t('contentLibrary.fields.title', 'Title')"
           :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification')"
+          class="w-full"
         >
           <template #label>
             <div class="flex items-center gap-2">
@@ -583,6 +584,7 @@ const getItemPreview = (item: ContentItem) => {
           <UInput 
             v-model="createForm.title"
             :placeholder="t('contentLibrary.fields.titlePlaceholder', 'Product announcement, Weekly update...')"
+            class="w-full"
           />
         </UFormField>
 
@@ -597,6 +599,7 @@ const getItemPreview = (item: ContentItem) => {
           <UFormField 
             :label="t('contentLibrary.fields.tags', 'Tags')"
             :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for search')"
+            class="w-full"
           >
             <template #label>
               <div class="flex items-center gap-2">
@@ -607,6 +610,7 @@ const getItemPreview = (item: ContentItem) => {
             <UInput 
               v-model="createForm.tags" 
               :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'announcement, product, marketing')"
+              class="w-full"
             />
           </UFormField>
 
@@ -614,6 +618,7 @@ const getItemPreview = (item: ContentItem) => {
           <UFormField 
             :label="t('contentLibrary.fields.note', 'Note')"
             :help="t('contentLibrary.fields.noteHelp', 'Internal notes or reminders')"
+            class="w-full"
           >
             <template #label>
               <div class="flex items-center gap-2">
@@ -625,6 +630,7 @@ const getItemPreview = (item: ContentItem) => {
               v-model="createForm.note" 
               :rows="3"
               :placeholder="t('contentLibrary.fields.notePlaceholder', 'Internal notes or reminders...')"
+              class="w-full"
             />
           </UFormField>
         </div>
@@ -660,12 +666,12 @@ const getItemPreview = (item: ContentItem) => {
           :label="t('contentLibrary.fields.text', 'Text')" 
           required
           :help="t('contentLibrary.fields.textHelp', 'Main content of the item')"
+          class="w-full"
         >
           <template #label>
             <div class="flex items-center gap-2">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary-500" />
               <span class="font-semibold">{{ t('contentLibrary.fields.text', 'Text') }}</span>
-              <span class="text-red-500 text-base">*</span>
             </div>
           </template>
           <UTextarea 
@@ -673,7 +679,7 @@ const getItemPreview = (item: ContentItem) => {
             :rows="10"
             :placeholder="t('contentLibrary.fields.textPlaceholder', 'Enter the main content here...')"
             autofocus
-            class="font-mono"
+            class="w-full font-mono"
           />
         </UFormField>
 
@@ -681,6 +687,7 @@ const getItemPreview = (item: ContentItem) => {
         <UFormField 
           :label="t('contentLibrary.fields.title', 'Title')"
           :help="t('contentLibrary.fields.titleHelp', 'Optional title for easier identification')"
+          class="w-full"
         >
           <template #label>
             <div class="flex items-center gap-2">
@@ -691,6 +698,7 @@ const getItemPreview = (item: ContentItem) => {
           <UInput 
             v-model="editForm.title"
             :placeholder="t('contentLibrary.fields.titlePlaceholder', 'Product announcement, Weekly update...')"
+            class="w-full"
           />
         </UFormField>
 
@@ -705,6 +713,7 @@ const getItemPreview = (item: ContentItem) => {
           <UFormField 
             :label="t('contentLibrary.fields.tags', 'Tags')"
             :help="t('contentLibrary.fields.tagsHelp', 'Comma-separated tags for search')"
+            class="w-full"
           >
             <template #label>
               <div class="flex items-center gap-2">
@@ -715,6 +724,7 @@ const getItemPreview = (item: ContentItem) => {
             <UInput 
               v-model="editForm.tags" 
               :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'announcement, product, marketing')"
+              class="w-full"
             />
           </UFormField>
 
@@ -722,6 +732,7 @@ const getItemPreview = (item: ContentItem) => {
           <UFormField 
             :label="t('contentLibrary.fields.note', 'Note')"
             :help="t('contentLibrary.fields.noteHelp', 'Internal notes or reminders')"
+            class="w-full"
           >
             <template #label>
               <div class="flex items-center gap-2">
@@ -733,6 +744,7 @@ const getItemPreview = (item: ContentItem) => {
               v-model="editForm.note" 
               :rows="3"
               :placeholder="t('contentLibrary.fields.notePlaceholder', 'Internal notes or reminders...')"
+              class="w-full"
             />
           </UFormField>
         </div>
