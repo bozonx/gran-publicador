@@ -61,7 +61,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
   <div class="space-y-4">
     <!-- Immutable Details (Edit Mode) -->
     <div v-if="isEditMode" class="mb-6">
-      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+      <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
         <!-- Social Media -->
         <div>
           <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">

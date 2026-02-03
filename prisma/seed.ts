@@ -37,7 +37,7 @@ async function main() {
   await prisma.notification.deleteMany({});
   await prisma.post.deleteMany({});
   await prisma.publicationMedia.deleteMany({});
-  
+
   // Content Library cleanup
   await prisma.publicationContentItem.deleteMany({});
   await prisma.contentItemMedia.deleteMany({});
@@ -842,16 +842,16 @@ async function main() {
   const contentItems = [
     {
       id: 'cccc1111-1111-4111-8111-111111111111',
-      userId: devUser.id,
+      userId: null,
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
-      tags: 'nuxt,future,speculation',
+      tags: ['nuxt', 'future', 'speculation'],
       note: 'Just some random thoughts',
       meta: {},
       texts: [
         {
           id: 'ctxt1111-1111-4111-8111-111111111111',
-          type: 'text',
+          type: 'plain',
           content: 'Nuxt 5 might introduce native AI integration...',
           order: 0,
           meta: {},
@@ -861,10 +861,10 @@ async function main() {
     },
     {
       id: 'cccc1111-1111-4111-8111-111111111112',
-      userId: devUser.id,
+      userId: null,
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
-      tags: 'image,asset',
+      tags: ['image', 'asset'],
       note: 'To be used in upcoming posts',
       meta: {},
       texts: [],
@@ -879,16 +879,16 @@ async function main() {
     },
     {
       id: 'cccc1111-1111-4111-8111-111111111113',
-      userId: editorUser.id,
+      userId: null,
       projectId: projectData[1].id,
       title: 'Travel Log Segment',
-      tags: 'travel,raw',
+      tags: ['travel', 'raw'],
       note: null,
       meta: {},
       texts: [
         {
           id: 'ctxt1111-1111-4111-8111-111111111112',
-          type: 'text',
+          type: 'plain',
           content: 'Arrived in Tokyo at 5 AM. The city was already awake.',
           order: 0,
           meta: {},
@@ -902,6 +902,46 @@ async function main() {
           hasSpoiler: false,
         },
       ],
+    },
+    {
+      id: 'cccc1111-1111-4111-8111-111111111114',
+      userId: null,
+      projectId: projectData[0].id,
+      title: 'Archived: Old snippet',
+      tags: ['archived', 'example'],
+      note: 'This item is archived to test trash flow',
+      meta: {},
+      archivedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      archivedBy: devUser.id,
+      texts: [
+        {
+          id: 'ctxt1111-1111-4111-8111-111111111113',
+          type: 'plain',
+          content: 'This content item is in archive.',
+          order: 0,
+          meta: {},
+        },
+      ],
+      media: [],
+    },
+    {
+      id: 'cccc1111-1111-4111-8111-111111111115',
+      userId: devUser.id,
+      projectId: null,
+      title: 'Personal: Quick snippet',
+      tags: ['personal', 'snippet'],
+      note: null,
+      meta: {},
+      texts: [
+        {
+          id: 'ctxt1111-1111-4111-8111-111111111114',
+          type: 'plain',
+          content: 'Personal library item example.',
+          order: 0,
+          meta: {},
+        },
+      ],
+      media: [],
     },
   ];
 
@@ -919,8 +959,8 @@ async function main() {
         where: { id: text.id },
         update: text,
         create: {
-            ...text,
-            contentItemId: item.id
+          ...text,
+          contentItemId: item.id,
         },
       });
     }
@@ -931,8 +971,8 @@ async function main() {
         where: { id: m.id },
         update: m,
         create: {
-            ...m,
-            contentItemId: item.id,
+          ...m,
+          contentItemId: item.id,
         },
       });
     }
@@ -940,16 +980,18 @@ async function main() {
 
   // Link content item to publication
   await prisma.publicationContentItem.upsert({
-    where: { publicationId_contentItemId: { 
-        publicationId: publications[0].id, 
-        contentItemId: contentItems[0].id 
-    }},
-    update: {},
-    create: {
+    where: {
+      publicationId_contentItemId: {
         publicationId: publications[0].id,
         contentItemId: contentItems[0].id,
-        order: 0
-    }
+      },
+    },
+    update: {},
+    create: {
+      publicationId: publications[0].id,
+      contentItemId: contentItems[0].id,
+      order: 0,
+    },
   });
 
   console.log('✅ Seeding finished.');
@@ -963,4 +1005,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
