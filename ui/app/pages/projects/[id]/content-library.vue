@@ -494,9 +494,16 @@ const getAllItemMedia = (item: ContentItem) => {
 }
 
 const getItemTextBlocks = (item: ContentItem) => {
-  return (item.blocks || [])
-    .map(b => (b.text || '').trim())
+  const texts = (item.blocks || [])
+    .map(b => stripHtmlAndSpecialChars(b.text).trim())
     .filter(Boolean)
+    
+  if (texts.length === 0 && item.note) {
+    const noteClean = stripHtmlAndSpecialChars(item.note).trim()
+    if (noteClean) texts.push(noteClean)
+  }
+  
+  return texts
 }
 </script>
 
@@ -646,14 +653,14 @@ const getItemTextBlocks = (item: ContentItem) => {
             </div>
 
             <!-- Content preview -->
-            <div class="space-y-1 mb-3 grow overflow-hidden">
-              <CardDescription 
+            <div v-if="getItemTextBlocks(item).length > 0" class="mb-3 space-y-2">
+              <p 
                 v-for="(text, idx) in getItemTextBlocks(item)"
                 :key="idx"
-                :text="truncateContent(text, 100)"
-                :lines="2"
-                class="mb-0 last:mb-0"
-              />
+                class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed"
+              >
+                {{ truncateContent(text, 150) }}
+              </p>
             </div>
 
             <!-- Footer: Date, Stats, Tags -->
