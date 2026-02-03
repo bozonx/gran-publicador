@@ -23,6 +23,8 @@ All notable changes to this project will be documented in this file.
 
 
 ### Changed
+- Content Library schema refactor: replaced `ContentText` and `ContentItemMedia` with `ContentBlock` (optional `text`) and `ContentBlockMedia`.
+- Content Library API updated to manage blocks and block media via `/content-library/items/:id/blocks` and `/content-library/items/:id/blocks/:blockId/media`.
 - Required `publicationId` for all posts in the database.
 - Standalone posts now automatically create a parent "container" publication on the backend.
 - Updated `PostForm` and `usePosts` composable to support `publicationId`.

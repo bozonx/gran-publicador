@@ -40,8 +40,8 @@ async function main() {
 
   // Content Library cleanup
   await prisma.publicationContentItem.deleteMany({});
-  await prisma.contentItemMedia.deleteMany({});
-  await prisma.contentText.deleteMany({});
+  await prisma.contentBlockMedia.deleteMany({});
+  await prisma.contentBlock.deleteMany({});
   await prisma.contentItem.deleteMany({});
 
   await prisma.media.deleteMany({});
@@ -848,16 +848,16 @@ async function main() {
       tags: ['nuxt', 'future', 'speculation'],
       note: 'Just some random thoughts',
       meta: {},
-      texts: [
+      blocks: [
         {
-          id: 'ctxt1111-1111-4111-8111-111111111111',
+          id: 'cblk1111-1111-4111-8111-111111111111',
           type: 'plain',
-          content: 'Nuxt 5 might introduce native AI integration...',
+          text: 'Nuxt 5 might introduce native AI integration...',
           order: 0,
           meta: {},
+          media: [],
         },
       ],
-      media: [],
     },
     {
       id: 'cccc1111-1111-4111-8111-111111111112',
@@ -867,13 +867,21 @@ async function main() {
       tags: ['image', 'asset'],
       note: 'To be used in upcoming posts',
       meta: {},
-      texts: [],
-      media: [
+      blocks: [
         {
-          id: 'cm111111-1111-4111-8111-111111111111',
-          mediaId: mediaSamples[0].id,
+          id: 'cblk1111-1111-4111-8111-111111111112',
+          type: 'plain',
+          text: null,
           order: 0,
-          hasSpoiler: false,
+          meta: {},
+          media: [
+            {
+              id: 'cbm11111-1111-4111-8111-111111111111',
+              mediaId: mediaSamples[0].id,
+              order: 0,
+              hasSpoiler: false,
+            },
+          ],
         },
       ],
     },
@@ -885,21 +893,21 @@ async function main() {
       tags: ['travel', 'raw'],
       note: null,
       meta: {},
-      texts: [
+      blocks: [
         {
-          id: 'ctxt1111-1111-4111-8111-111111111112',
+          id: 'cblk1111-1111-4111-8111-111111111113',
           type: 'plain',
-          content: 'Arrived in Tokyo at 5 AM. The city was already awake.',
+          text: 'Arrived in Tokyo at 5 AM. The city was already awake.',
           order: 0,
           meta: {},
-        },
-      ],
-      media: [
-        {
-          id: 'cm111111-1111-4111-8111-111111111112',
-          mediaId: mediaSamples[1].id,
-          order: 1,
-          hasSpoiler: false,
+          media: [
+            {
+              id: 'cbm11111-1111-4111-8111-111111111112',
+              mediaId: mediaSamples[1].id,
+              order: 1,
+              hasSpoiler: false,
+            },
+          ],
         },
       ],
     },
@@ -913,16 +921,16 @@ async function main() {
       meta: {},
       archivedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       archivedBy: devUser.id,
-      texts: [
+      blocks: [
         {
-          id: 'ctxt1111-1111-4111-8111-111111111113',
+          id: 'cblk1111-1111-4111-8111-111111111114',
           type: 'plain',
-          content: 'This content item is in archive.',
+          text: 'This content item is in archive.',
           order: 0,
           meta: {},
+          media: [],
         },
       ],
-      media: [],
     },
     {
       id: 'cccc1111-1111-4111-8111-111111111115',
@@ -932,49 +940,48 @@ async function main() {
       tags: ['personal', 'snippet'],
       note: null,
       meta: {},
-      texts: [
+      blocks: [
         {
-          id: 'ctxt1111-1111-4111-8111-111111111114',
+          id: 'cblk1111-1111-4111-8111-111111111115',
           type: 'plain',
-          content: 'Personal library item example.',
+          text: 'Personal library item example.',
           order: 0,
           meta: {},
+          media: [],
         },
       ],
-      media: [],
     },
   ];
 
   for (const item of contentItems) {
-    const { texts, media, ...itemData } = item;
+    const { blocks, ...itemData } = item;
     await prisma.contentItem.upsert({
       where: { id: item.id },
       update: itemData,
       create: itemData,
     });
 
-    for (const text of texts) {
-      // @ts-ignore
-      await prisma.contentText.upsert({
-        where: { id: text.id },
-        update: text,
+    for (const block of blocks) {
+      const { media, ...blockData } = block;
+      await prisma.contentBlock.upsert({
+        where: { id: block.id },
+        update: blockData,
         create: {
-          ...text,
+          ...blockData,
           contentItemId: item.id,
         },
       });
-    }
 
-    for (const m of media) {
-      // @ts-ignore
-      await prisma.contentItemMedia.upsert({
-        where: { id: m.id },
-        update: m,
-        create: {
-          ...m,
-          contentItemId: item.id,
-        },
-      });
+      for (const m of media) {
+        await prisma.contentBlockMedia.upsert({
+          where: { id: m.id },
+          update: m,
+          create: {
+            ...m,
+            contentBlockId: block.id,
+          },
+        });
+      }
     }
   }
 

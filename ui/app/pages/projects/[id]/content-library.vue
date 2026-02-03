@@ -7,14 +7,7 @@ definePageMeta({
   middleware: 'auth',
 })
 
-interface ContentText {
-  id: string
-  content: string
-  type?: string
-  order: number
-}
-
-interface ContentItemMedia {
+interface ContentBlockMedia {
   id: string
   order: number
   hasSpoiler: boolean
@@ -26,6 +19,14 @@ interface ContentItemMedia {
   }
 }
 
+interface ContentBlock {
+  id: string
+  type?: string | null
+  text?: string | null
+  order: number
+  media: ContentBlockMedia[]
+}
+
 interface ContentItem {
   id: string
   title: string | null
@@ -33,8 +34,7 @@ interface ContentItem {
   tags: string[]
   createdAt: string
   archivedAt: string | null
-  texts: ContentText[]
-  media: ContentItemMedia[]
+  blocks: ContentBlock[]
 }
 
 interface FindContentItemsResponse {
@@ -189,13 +189,13 @@ const openCreateModal = () => {
 const openEditModal = (item: ContentItem) => {
   activeItem.value = item
 
-  const firstText = item.texts?.[0]?.content || ''
+  const firstBlockText = item.blocks?.find(b => (b.text ?? '').trim().length > 0)?.text || ''
 
   editForm.value = {
     title: item.title || '',
     tags: formatTags(item.tags || []),
     note: item.note || '',
-    text: firstText,
+    text: firstBlockText,
   }
 
   isEditModalOpen.value = true
@@ -223,13 +223,13 @@ const createItem = async () => {
       title: createForm.value.title || undefined,
       tags: parseTags(createForm.value.tags),
       note: createForm.value.note || undefined,
-      texts: [
+      blocks: [
         {
-          content: text,
+          text,
           type: 'plain',
+          media: [],
         },
       ],
-      media: [],
     })
 
     isCreateModalOpen.value = false
@@ -250,7 +250,7 @@ const updateItem = async () => {
   if (!activeItem.value) return
 
   const item = activeItem.value
-  const firstText = item.texts?.[0]
+  const firstTextBlock = item.blocks?.find(b => (b.text ?? '').trim().length > 0) || item.blocks?.[0]
   const nextTextValue = editForm.value.text.trim()
 
   if (!nextTextValue) {
@@ -271,15 +271,16 @@ const updateItem = async () => {
       note: editForm.value.note || null,
     })
 
-    if (firstText) {
-      await api.patch(`/content-library/items/${item.id}/texts/${firstText.id}`, {
-        content: nextTextValue,
-        type: firstText.type || 'plain',
+    if (firstTextBlock) {
+      await api.patch(`/content-library/items/${item.id}/blocks/${firstTextBlock.id}`, {
+        text: nextTextValue,
+        type: firstTextBlock.type || 'plain',
       })
     } else {
-      await api.post(`/content-library/items/${item.id}/texts`, {
-        content: nextTextValue,
+      await api.post(`/content-library/items/${item.id}/blocks`, {
+        text: nextTextValue,
         type: 'plain',
+        media: [],
       })
     }
 
@@ -352,7 +353,7 @@ const purgeArchived = async () => {
 }
 
 const getItemPreview = (item: ContentItem) => {
-  const firstText = item.texts?.[0]?.content
+  const firstText = item.blocks?.find(b => (b.text ?? '').trim().length > 0)?.text
   if (firstText) {
     return stripHtmlAndSpecialChars(firstText).slice(0, 220)
   }
@@ -361,7 +362,8 @@ const getItemPreview = (item: ContentItem) => {
     return stripHtmlAndSpecialChars(item.note).slice(0, 220)
   }
 
-  if ((item.media?.length ?? 0) > 0) {
+  const mediaCount = (item.blocks ?? []).reduce((acc, b) => acc + (b.media?.length ?? 0), 0)
+  if (mediaCount > 0) {
     return t('contentLibrary.preview.mediaOnly', 'Media only')
   }
 
@@ -475,12 +477,12 @@ const getItemPreview = (item: ContentItem) => {
 
                 <span class="flex items-center gap-1">
                   <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
-                  {{ t('contentLibrary.textsCount', { count: item.texts?.length || 0 }, `${item.texts?.length || 0} texts`) }}
+                  {{ t('contentLibrary.blocksCount', { count: item.blocks?.length || 0 }, `${item.blocks?.length || 0} blocks`) }}
                 </span>
 
                 <span class="flex items-center gap-1">
                   <UIcon name="i-heroicons-photo" class="w-4 h-4" />
-                  {{ t('contentLibrary.mediaCount', { count: item.media?.length || 0 }, `${item.media?.length || 0} media`) }}
+                  {{ t('contentLibrary.mediaCount', { count: (item.blocks ?? []).reduce((acc, b) => acc + (b.media?.length ?? 0), 0) || 0 }, `${(item.blocks ?? []).reduce((acc, b) => acc + (b.media?.length ?? 0), 0) || 0} media`) }}
                 </span>
               </div>
             </div>

@@ -25,7 +25,8 @@ const { user } = useAuth()
 
 const ALLOWED_SORT_BY = ['chronology', 'byScheduled', 'byPublished', 'createdAt', 'postDate'] as const
 const ALLOWED_SORT_ORDER = ['asc', 'desc'] as const
-const ALLOWED_STATUS_GROUP = ['active', 'draft', 'ready', 'problematic'] as const
+const ALLOWED_SPECIFIC_STATUSES = ['SCHEDULED', 'PROCESSING', 'PUBLISHED', 'PARTIAL', 'FAILED', 'EXPIRED'] as const
+const ALLOWED_STATUS_GROUP = ['active', 'draft', 'ready', 'problematic', 'DRAFT', 'READY', ...ALLOWED_SPECIFIC_STATUSES] as const
 
 const {
   publications,
@@ -43,7 +44,7 @@ const { channels, fetchChannels } = useChannels()
 // Filters synced with URL
 const filters = useUrlFilters<{
   page: number
-  statusGroup: PublicationsStatusGroupFilter
+  status: PublicationsStatusGroupFilter
   channelId: string | null
   projectId: string | null
   search: string
@@ -55,9 +56,12 @@ const filters = useUrlFilters<{
   sortOrder: string
 }>({
   page: { defaultValue: 1, deserialize: (v: string) => Math.max(1, parseInt(v) || 1) },
-  statusGroup: {
+  status: {
     defaultValue: 'active',
-    deserialize: (v: string) => (ALLOWED_STATUS_GROUP as readonly string[]).includes(v) ? (v as PublicationsStatusGroupFilter) : 'active',
+    deserialize: (v: string) => {
+      const normalized = v === 'DRAFT' ? 'draft' : v === 'READY' ? 'ready' : v
+      return (ALLOWED_STATUS_GROUP as readonly string[]).includes(normalized) ? (normalized as PublicationsStatusGroupFilter) : 'active'
+    },
   },
   channelId: { defaultValue: null },
   projectId: { defaultValue: null },
@@ -77,7 +81,7 @@ const filters = useUrlFilters<{
 })
 
 const currentPage = filters.page
-const selectedStatusGroup = filters.statusGroup
+const selectedStatusGroup = filters.status
 const selectedChannelId = filters.channelId
 const selectedProjectId = filters.projectId
 const searchQuery = filters.search
@@ -93,6 +97,44 @@ const SORT_ORDER_STORAGE_KEY = 'publications-sort-order'
 
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const limit = ref(DEFAULT_PAGE_SIZE)
+
+const specificStatusOptions = computed(() => [
+  { value: 'SCHEDULED', label: t('publicationStatus.scheduled'), icon: 'i-heroicons-clock' },
+  { value: 'PROCESSING', label: t('publicationStatus.processing'), icon: 'i-heroicons-arrow-path' },
+  { value: 'PUBLISHED', label: t('publicationStatus.published'), icon: 'i-heroicons-check-circle' },
+  { value: 'PARTIAL', label: t('publicationStatus.partial'), icon: 'i-heroicons-exclamation-circle' },
+  { value: 'FAILED', label: t('publicationStatus.failed'), icon: 'i-heroicons-exclamation-triangle' },
+  { value: 'EXPIRED', label: t('publicationStatus.expired'), icon: 'i-heroicons-calendar-days' },
+])
+
+const statusGroupOptions = computed(() => {
+  const options = [
+    { value: 'active', label: t('publication.filter.statusGroup.active') },
+    { value: 'draft', label: t('publication.filter.statusGroup.draft') },
+    { value: 'ready', label: t('publication.filter.statusGroup.ready') },
+    { value: 'problematic', label: t('publication.filter.statusGroup.problematic') }
+  ]
+  
+  const current = selectedStatusGroup.value
+  if (ALLOWED_SPECIFIC_STATUSES.includes(current as any)) {
+    const specific = specificStatusOptions.value.find(opt => opt.value === current)
+    if (specific) {
+      options.push({ value: specific.value, label: specific.label })
+    }
+  }
+  
+  return options
+})
+
+const specificStatusDropdownItems = computed(() => [
+  specificStatusOptions.value.map(opt => ({
+    label: opt.label,
+    icon: opt.icon,
+    onSelect: () => {
+      selectedStatusGroup.value = opt.value as any
+    }
+  }))
+])
 
 const selectedStatusForApi = computed<PublicationStatus | PublicationStatus[] | null>(() => {
   return mapStatusGroupToApiStatus(selectedStatusGroup.value)
@@ -465,18 +507,27 @@ async function handleDelete() {
       <div class="flex flex-wrap items-center gap-4">
         <!-- Status Group Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('publication.filter.statusGroup.title')">
-          <UiAppButtonGroup
-            v-model="selectedStatusGroup"
-            :options="[
-              { value: 'active', label: t('publication.filter.statusGroup.active') },
-              { value: 'draft', label: t('publication.filter.statusGroup.draft') },
-              { value: 'ready', label: t('publication.filter.statusGroup.ready') },
-              { value: 'problematic', label: t('publication.filter.statusGroup.problematic') }
-            ]"
-            variant="outline"
-            active-variant="solid"
-            color="neutral"
-          />
+          <div class="flex items-center gap-1">
+            <UiAppButtonGroup
+              v-model="selectedStatusGroup"
+              :options="statusGroupOptions"
+              variant="outline"
+              active-variant="solid"
+              color="neutral"
+            />
+            <UDropdownMenu
+              :items="specificStatusDropdownItems"
+              :popper="{ placement: 'bottom-end' }"
+            >
+              <UButton
+                color="neutral"
+                variant="outline"
+                icon="i-heroicons-chevron-down"
+                class="px-2"
+                :title="t('common.more')"
+              />
+            </UDropdownMenu>
+          </div>
           <UPopover :popper="{ placement: 'top' }">
             <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
             <template #content>
