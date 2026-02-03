@@ -145,6 +145,7 @@ function handleChannelCreated(channelId: string, projectId: string) {
     <ModalsCreateChannelModal
       v-model:open="isChannelModalOpen"
       :initial-project-id="initialProjectId"
+      :show-project-select="true"
       @created="handleChannelCreated"
     />
   </div>

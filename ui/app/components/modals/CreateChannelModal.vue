@@ -12,6 +12,7 @@ const isOpen = defineModel<boolean>('open', { required: true })
 
 const props = defineProps<{
   initialProjectId?: string
+  showProjectSelect?: boolean
 }>()
 
 const { createChannel, isLoading } = useChannels()
@@ -42,7 +43,7 @@ function handleClose() {
       ref="createFormRef"
       id="create-channel-form"
       :initial-project-id="props.initialProjectId"
-      :show-project-select="true"
+      :show-project-select="props.showProjectSelect ?? !props.initialProjectId"
       @submit="handleCreate"
     />
 

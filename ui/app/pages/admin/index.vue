@@ -14,6 +14,9 @@ const toast = useToast()
 // Tab management
 const selectedTab = ref('users')
 
+const authStore = useAuthStore()
+const { user: currentUser } = storeToRefs(authStore)
+
 interface AdminTab {
   key: string
   label: string
@@ -70,9 +73,7 @@ watch(selectedTab, (newTab) => {
 // Users management
 const columns = computed<TableColumn<UserWithStats>[]>(() => [
   { accessorKey: 'user', header: t('user.username') },
-
-  { accessorKey: 'role', header: t('user.role') },
-  { accessorKey: 'stats', header: t('admin.statistics') },
+  { accessorKey: 'stats', header: t('post.titlePlural') }, // Renamed to Posts
   { accessorKey: 'created_at', header: t('user.createdAt') },
   { accessorKey: 'actions', header: t('common.actions') }
 ])
@@ -363,80 +364,71 @@ const hasActiveFilters = computed(() => {
           <!-- User info column -->
           <template #user-cell="{ row }">
             <div class="flex items-center gap-3">
-              <UAvatar
-                :src="row.original.avatar_url ?? undefined"
-                :alt="getUserDisplayName(row.original)"
-                size="sm"
-              >
-                <template #fallback>
-                  <span class="text-xs">{{ getUserInitials(row.original) }}</span>
-                </template>
-              </UAvatar>
+              <!-- Avatar removed as requested -->
               <div>
-                <div class="font-medium text-gray-900 dark:text-white">
-                  {{ row.original.full_name || '-' }}
+                <div class="font-bold text-gray-900 dark:text-white">
+                    {{ row.original.fullName || '-' }}
                 </div>
-                <div class="text-sm text-gray-500">@{{ row.original.telegram_username || 'no-username' }}</div>
+                <div 
+                  class="text-sm"
+                  :class="[
+                      (row.original.id === currentUser?.id) 
+                        ? 'text-green-500 font-medium' 
+                        : 'text-gray-500'
+                  ]"
+                >
+                  {{ row.original.telegramUsername ? `@${row.original.telegramUsername}` : `#${row.original.telegramId || row.original.telegram_id}` }}
+                </div>
               </div>
             </div>
           </template>
 
-          <!-- Role column -->
-          <template #role-cell="{ row }">
-            <div class="flex flex-wrap gap-1">
-              <UBadge
-                :color="row.original.is_admin ? 'primary' : 'neutral'"
-                :variant="row.original.is_admin ? 'solid' : 'outline'"
-                size="sm"
-              >
-                {{ row.original.is_admin ? t('user.isAdmin') : t('admin.regularUser') }}
-              </UBadge>
-              <UBadge
-                v-if="row.original.isBanned"
-                color="error"
-                variant="solid"
-                size="sm"
-              >
-                {{ t('admin.banned', 'BANNED') }}
-              </UBadge>
-            </div>
-          </template>
+          <!-- Role column removed -->
 
-          <!-- Statistics column -->
+          <!-- Statistics column (Posts count only) -->
           <template #stats-cell="{ row }">
             <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               <span class="flex items-center gap-1">
-                <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
-                {{ row.original.projectsCount || 0 }} {{ t('project.titlePlural').toLowerCase() }}
-              </span>
-              <span class="flex items-center gap-1">
                 <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
-                {{ row.original.postsCount || 0 }} {{ t('post.titlePlural').toLowerCase() }}
+                {{ row.original.publicationsCount || 0 }} {{ t('post.titlePlural').toLowerCase() }}
               </span>
             </div>
           </template>
 
           <!-- Created at column -->
           <template #created_at-cell="{ row }">
-            {{ row.original.created_at ? d(new Date(row.original.created_at!), 'long') : '-' }}
+            {{ row.original.createdAt ? d(new Date(row.original.createdAt!), 'long') : '-' }}
           </template>
 
           <!-- Actions column -->
           <template #actions-cell="{ row }">
               <div class="flex items-center justify-end gap-2">
+                <!-- Admin toggle button -->
                 <UButton
-                  :color="row.original.is_admin ? 'warning' : 'success'"
+                   v-if="row.original.isAdmin"
+                  color="warning"
                   variant="ghost"
                   size="sm"
-                  :icon="row.original.is_admin ? 'i-heroicons-shield-exclamation' : 'i-heroicons-shield-check'"
-                  :title="row.original.is_admin ? t('admin.revokeAdmin') : t('admin.grantAdmin')"
+                  icon="i-heroicons-user-minus"
+                  :title="t('admin.revokeAdmin')"
                   @click="confirmToggleAdmin(row.original)"
                 />
-                <UButton
-                  :color="row.original.isBanned ? 'primary' : 'error'"
+                 <UButton
+                   v-else
+                  color="success"
                   variant="ghost"
                   size="sm"
-                  :icon="row.original.isBanned ? 'i-heroicons-lock-open' : 'i-heroicons-lock-closed'"
+                  icon="i-heroicons-shield-check"
+                  :title="t('admin.grantAdmin')"
+                  @click="confirmToggleAdmin(row.original)"
+                />
+                
+                <!-- Ban toggle button -->
+                <UButton
+                  :color="row.original.isBanned ? 'error' : 'success'"
+                  variant="ghost"
+                  size="sm"
+                  :icon="row.original.isBanned ? 'i-heroicons-x-circle' : 'i-heroicons-check-circle'"
                   :title="row.original.isBanned ? t('admin.unban') : t('admin.ban')"
                   @click="confirmBan(row.original)"
                 />
@@ -520,11 +512,11 @@ const hasActiveFilters = computed(() => {
     <UiConfirmModal
       v-if="showConfirmModal"
       v-model:open="showConfirmModal"
-      :title="userToToggle?.is_admin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
-      :description="userToToggle?.is_admin ? t('admin.revokeAdminConfirm', 'Are you sure you want to revoke admin rights from this user?') : t('admin.grantAdminConfirm', 'Are you sure you want to grant admin rights to this user?')"
-      :confirm-text="userToToggle?.is_admin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
-      :color="userToToggle?.is_admin ? 'warning' : 'success'"
-      :icon="userToToggle?.is_admin ? 'i-heroicons-shield-exclamation' : 'i-heroicons-shield-check'"
+      :title="userToToggle?.isAdmin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
+      :description="userToToggle?.isAdmin ? t('admin.revokeAdminConfirm', 'Are you sure you want to revoke admin rights from this user?') : t('admin.grantAdminConfirm', 'Are you sure you want to grant admin rights to this user?')"
+      :confirm-text="userToToggle?.isAdmin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
+      :color="userToToggle?.isAdmin ? 'warning' : 'success'"
+      :icon="userToToggle?.isAdmin ? 'i-heroicons-shield-exclamation' : 'i-heroicons-shield-check'"
       :loading="isToggling"
       @confirm="handleToggleAdmin"
     >
@@ -533,7 +525,7 @@ const hasActiveFilters = computed(() => {
         class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
       >
         <UAvatar
-          :src="userToToggle.avatar_url ?? undefined"
+          :src="userToToggle.avatarUrl ?? undefined"
           :alt="getUserDisplayName(userToToggle)"
           size="sm"
         />
@@ -542,7 +534,7 @@ const hasActiveFilters = computed(() => {
             {{ getUserDisplayName(userToToggle) }}
           </div>
           <div class="text-sm text-gray-500">
-            {{ userToToggle.telegram_username }}
+            {{ userToToggle.telegramUsername }}
           </div>
         </div>
       </div>
