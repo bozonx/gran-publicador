@@ -60,7 +60,7 @@ watch(() => props.initialProjectId, (newId) => {
 
 // Sync user language if available
 watch(() => user.value?.language, (newLang) => {
-  if (newLang && !formState.name) { // Only sync if form hasn't been edited much
+  if (newLang && !formState.name && !formState.channelIdentifier) {
     formState.language = newLang
   }
 }, { immediate: true })
@@ -113,19 +113,12 @@ function handleSubmit() {
 }
 
 const isFormValid = computed(() => {
-  if (!(formState.projectId && formState.name && formState.socialMedia && formState.channelIdentifier)) {
-    return false
-  }
-
-  if (formState.socialMedia === 'TELEGRAM') {
-    return !!(formState.credentials.telegramChannelId && formState.credentials.telegramBotToken)
-  }
-
-  if (formState.socialMedia === 'VK') {
-    return !!formState.credentials.vkAccessToken
-  }
-
-  return true
+  return !!(
+    formState.projectId && 
+    formState.name && 
+    formState.socialMedia && 
+    formState.channelIdentifier
+  )
 })
 
 const currentSocialMedia = computed(() => {

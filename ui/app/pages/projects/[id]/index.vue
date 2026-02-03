@@ -365,6 +365,16 @@ async function handleDelete() {
             >
               {{ t('news.news_selections') }}
             </UButton>
+
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-heroicons-archive-box"
+              :to="`/projects/${currentProject.id}/content-library`"
+            >
+              {{ t('contentLibrary.title', 'Content library') }}
+            </UButton>
             
             <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 self-center mx-1" />
 
