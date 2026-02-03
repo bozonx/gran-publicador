@@ -56,6 +56,7 @@ const route = useRoute()
 const api = useApi()
 const toast = useToast()
 const { currentProject, fetchProject } = useProjects()
+const { formatDateShort, truncateContent } = useFormatters()
 
 const projectId = computed(() => route.params.id as string)
 
@@ -476,22 +477,26 @@ const purgeArchived = async () => {
   }
 }
 
-const getItemPreview = (item: ContentItem) => {
-  const firstText = item.blocks?.find(b => (b.text ?? '').trim().length > 0)?.text
-  if (firstText) {
-    return stripHtmlAndSpecialChars(firstText).slice(0, 220)
+const getAllItemMedia = (item: ContentItem) => {
+  const mediaLinks: Array<{ media?: any; order: number }> = []
+  let order = 0
+  
+  for (const block of (item.blocks || [])) {
+    for (const m of (block.media || [])) {
+      mediaLinks.push({
+        media: m.media,
+        order: order++
+      })
+    }
   }
+  
+  return mediaLinks
+}
 
-  if (item.note) {
-    return stripHtmlAndSpecialChars(item.note).slice(0, 220)
-  }
-
-  const mediaCount = (item.blocks ?? []).reduce((acc, b) => acc + (b.media?.length ?? 0), 0)
-  if (mediaCount > 0) {
-    return t('contentLibrary.preview.mediaOnly', 'Media only')
-  }
-
-  return ''
+const getItemTextBlocks = (item: ContentItem) => {
+  return (item.blocks || [])
+    .map(b => (b.text || '').trim())
+    .filter(Boolean)
 }
 </script>
 
@@ -580,81 +585,102 @@ const getItemPreview = (item: ContentItem) => {
         <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
       </div>
 
-      <div v-else class="mt-6 space-y-3">
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <h3 class="font-semibold text-gray-900 dark:text-white truncate">
+      <div v-else class="mt-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            v-for="item in items"
+            :key="item.id"
+            class="app-card app-card-hover p-4 cursor-pointer group flex flex-col h-full relative"
+            @click="openEditModal(item)"
+          >
+            <!-- Header: Title, Tags, Delete -->
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="flex-1 min-w-0">
+                <h3 
+                  class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1"
+                  :class="{ 'italic text-gray-500 font-medium': !item.title }"
+                >
                   {{ item.title || t('contentLibrary.untitled', 'Untitled') }}
                 </h3>
-
-                <UBadge v-if="item.archivedAt" color="warning" variant="subtle">
-                  {{ t('common.archived', 'Archived') }}
-                </UBadge>
+                
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <UBadge v-if="item.archivedAt" color="warning" size="xs" variant="subtle">
+                    {{ t('common.archived', 'Archived') }}
+                  </UBadge>
+                </div>
               </div>
 
-              <p v-if="getItemPreview(item)" class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                {{ getItemPreview(item) }}
-              </p>
-
-              <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                <span class="flex items-center gap-1">
-                  <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-                  {{ d(new Date(item.createdAt), 'short') }}
-                </span>
-
-                <span class="flex items-center gap-1">
-                  <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
-                  {{ t('contentLibrary.blocksCount', { count: item.blocks?.length || 0 }, `${item.blocks?.length || 0} blocks`) }}
-                </span>
-
-                <span class="flex items-center gap-1">
-                  <UIcon name="i-heroicons-photo" class="w-4 h-4" />
-                  {{ t('contentLibrary.mediaCount', { count: (item.blocks ?? []).reduce((acc, b) => acc + (b.media?.length ?? 0), 0) || 0 }, `${(item.blocks ?? []).reduce((acc, b) => acc + (b.media?.length ?? 0), 0) || 0} media`) }}
-                </span>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <UButton
+                  v-if="!item.archivedAt"
+                  size="xs"
+                  color="warning"
+                  variant="ghost"
+                  icon="i-heroicons-trash"
+                  :loading="isArchivingId === item.id"
+                  :title="t('contentLibrary.actions.moveToTrash')"
+                  class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  @click.stop="openArchiveModal(item)"
+                />
+                <UButton
+                  v-else
+                  size="xs"
+                  color="primary"
+                  variant="ghost"
+                  icon="i-heroicons-arrow-uturn-left"
+                  :loading="isRestoringId === item.id"
+                  :title="t('common.restore')"
+                  class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  @click.stop="restoreItem(item.id)"
+                />
               </div>
             </div>
 
-            <div class="flex items-center gap-1">
-              <UButton
-                size="sm"
-                color="neutral"
-                variant="ghost"
-                icon="i-heroicons-pencil-square"
-                :disabled="!!item.archivedAt"
-                :title="t('common.edit')"
-                class="cursor-pointer"
-                @click="openEditModal(item)"
+            <!-- Media preview -->
+            <div v-if="getAllItemMedia(item).length > 0" class="mb-3 flex justify-center h-48">
+              <MediaStack
+                :media="getAllItemMedia(item)"
+                size="md"
+                :clickable="false"
               />
+            </div>
 
-              <UButton
-                v-if="!item.archivedAt"
-                size="sm"
-                color="warning"
-                variant="ghost"
-                icon="i-heroicons-trash"
-                :loading="isArchivingId === item.id"
-                :title="t('contentLibrary.actions.moveToTrash')"
-                class="cursor-pointer"
-                @click="openArchiveModal(item)"
+            <!-- Content preview -->
+            <div class="space-y-1 mb-3 grow overflow-hidden">
+              <CardDescription 
+                v-for="(text, idx) in getItemTextBlocks(item)"
+                :key="idx"
+                :text="truncateContent(text, 100)"
+                :lines="2"
+                class="mb-0 last:mb-0"
               />
+            </div>
 
-              <UButton
-                v-else
-                size="sm"
-                color="primary"
-                variant="ghost"
-                icon="i-heroicons-arrow-uturn-left"
-                :loading="isRestoringId === item.id"
-                :title="t('common.restore')"
-                class="cursor-pointer"
-                @click="restoreItem(item.id)"
-              />
+            <!-- Footer: Date, Stats, Tags -->
+            <div class="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+              <div class="flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <div class="flex items-center gap-1 shrink-0">
+                  <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
+                  <span>{{ formatDateShort(item.createdAt) }}</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-1" :title="t('contentLibrary.blocksCount', { count: item.blocks?.length || 0 })">
+                    <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
+                    <span>{{ item.blocks?.length || 0 }}</span>
+                  </div>
+                  <div class="flex items-center gap-1" :title="t('contentLibrary.mediaCount', { count: getAllItemMedia(item).length })">
+                    <UIcon name="i-heroicons-photo" class="w-3.5 h-3.5" />
+                    <span>{{ getAllItemMedia(item).length }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tags if present -->
+              <div v-if="item.tags && item.tags.length > 0" class="flex items-center gap-1 text-xs text-gray-400 italic">
+                <UIcon name="i-heroicons-tag" class="w-3.5 h-3.5 shrink-0" />
+                <span class="truncate">{{ formatTags(item.tags) }}</span>
+              </div>
             </div>
           </div>
         </div>
