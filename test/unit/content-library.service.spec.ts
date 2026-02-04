@@ -78,7 +78,9 @@ describe('ContentLibraryService (unit)', () => {
   });
 
   describe('create', () => {
-    it('should throw when blocks are not provided', async () => {
+    it('should create even when blocks are not provided', async () => {
+      mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1' });
+
       await expect(
         service.create(
           {
@@ -87,7 +89,7 @@ describe('ContentLibraryService (unit)', () => {
           } as any,
           'user-1',
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).resolves.toEqual({ id: 'ci-1' });
     });
 
     it('should create personal item', async () => {
@@ -238,8 +240,10 @@ describe('ContentLibraryService (unit)', () => {
       archivedAt: null,
     };
 
-    it('createBlock should throw when neither text nor media provided', async () => {
+    it('createBlock should create empty block', async () => {
       mockPrismaService.contentItem.findUnique.mockResolvedValue(mockPersonalItem);
+      mockPrismaService.contentBlock.aggregate.mockResolvedValue({ _max: { order: 1 } });
+      mockPrismaService.contentBlock.create.mockResolvedValue({ id: 'b-1' });
 
       await expect(
         service.createBlock(
@@ -251,7 +255,7 @@ describe('ContentLibraryService (unit)', () => {
           } as any,
           'user-1',
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).resolves.toEqual({ id: 'b-1' });
     });
 
     it('createBlock should create block with next order', async () => {
