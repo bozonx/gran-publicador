@@ -203,16 +203,10 @@ export class LlmService {
   }
 
   private buildFullPrompt(dto: GenerateContentDto): string {
-    // Filter source texts if specific indexes are selected
-    let sourceTexts = dto.sourceTexts;
-    if (dto.selectedSourceIndexes && dto.selectedSourceIndexes.length > 0 && sourceTexts) {
-      sourceTexts = dto.selectedSourceIndexes.map(index => sourceTexts![index]).filter(Boolean);
-    }
-
     // Determine content to include
     const content = dto.useContent ? dto.content : undefined;
 
-    return buildPromptWithContext(dto.prompt, content, sourceTexts, { includeMetadata: true });
+    return buildPromptWithContext(dto.prompt, content, { includeMetadata: true });
   }
 
   /**

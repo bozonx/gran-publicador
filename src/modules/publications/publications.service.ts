@@ -234,7 +234,6 @@ export class PublicationsService {
         authorComment: data.authorComment,
         content: data.content,
         meta: (data.meta ?? {}) as any,
-        sourceTexts: [] as any, // Satisfy legacy types if needed, but will be removed once generated
         media: {
           create: [
             // New Image from URL
@@ -303,7 +302,6 @@ export class PublicationsService {
         postType: data.postType ?? PostType.POST,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        meta: (data.meta ?? {}) as any,
         contentItems: data.contentItemIds?.length
           ? {
               create: data.contentItemIds.map((id, i) => ({
@@ -632,14 +630,6 @@ export class PublicationsService {
       );
     }
 
-    // Permission check for moving to another project
-    if (data.projectId !== undefined && data.projectId !== publication.projectId) {
-      if (data.projectId) {
-        await this.permissions.checkProjectAccess(data.projectId, userId);
-      }
-    }
-
-
     let translationGroupId = data.translationGroupId;
 
     // Handle Unlinking: if explicit null is passed, we accept it.
@@ -934,7 +924,6 @@ export class PublicationsService {
     const updated = await this.prisma.publication.update({
       where: { id },
       data: {
-        projectId: data.projectId,
         title: data.title,
         description: data.description,
         content: data.content,
@@ -1437,7 +1426,6 @@ export class PublicationsService {
         postType: source.postType,
         language: source.language,
         meta: (source.meta as any) || {},
-        sourceTexts: [] as any,
         note: source.note,
         postDate: source.postDate,
         status: PublicationStatus.DRAFT,

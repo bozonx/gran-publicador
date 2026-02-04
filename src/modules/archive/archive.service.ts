@@ -47,9 +47,6 @@ export class ArchiveService {
         if (!publication) throw new NotFoundException('Publication not found');
         // Author or Admin/Owner
         if (publication.createdBy !== userId) {
-          if (!publication.projectId) {
-            throw new ForbiddenException('Forbidden access to personal draft');
-          }
           await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
         return this.prisma.publication.update({ where: { id }, data });
@@ -88,9 +85,6 @@ export class ArchiveService {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          if (!publication.projectId) {
-            throw new ForbiddenException('Forbidden access to personal draft');
-          }
           await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
         return this.prisma.publication.update({ where: { id }, data });
@@ -122,9 +116,6 @@ export class ArchiveService {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          if (!publication.projectId) {
-            throw new ForbiddenException('Forbidden access to personal draft');
-          }
           await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
         return this.prisma.publication.delete({ where: { id } });
@@ -162,9 +153,6 @@ export class ArchiveService {
 
         // Check source project permissions (or author)
         if (publication.createdBy !== userId) {
-          if (!publication.projectId) {
-            throw new ForbiddenException('Forbidden access to personal draft');
-          }
           await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
         }
 
@@ -212,8 +200,6 @@ export class ArchiveService {
 
         if (publication.projectId) {
           await this.permissions.checkProjectPermission(publication.projectId, userId, []);
-        } else if (publication.createdBy !== userId) {
-          throw new ForbiddenException('Forbidden access to personal draft');
         }
 
         return !!(publication.archivedAt ?? publication.project?.archivedAt);
@@ -255,7 +241,7 @@ export class ArchiveService {
       this.prisma.publication.count({
         where: {
           archivedAt: { not: null },
-          OR: [{ projectId: { in: projectIds } }, { projectId: null, createdBy: userId }],
+          projectId: { in: projectIds },
         },
       }),
     ]);
@@ -294,7 +280,7 @@ export class ArchiveService {
         return this.prisma.publication.findMany({
           where: {
             archivedAt: { not: null },
-            OR: [{ projectId: { in: projectIds } }, { projectId: null, createdBy: userId }],
+            projectId: { in: projectIds },
           },
         });
       }
