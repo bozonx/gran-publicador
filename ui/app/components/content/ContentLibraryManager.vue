@@ -66,7 +66,7 @@ const { t, d } = useI18n()
 const api = useApi()
 const toast = useToast()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
-const { updateTab } = useContentLibraryTabs()
+const { updateTab, deleteTab } = useContentLibraryTabs()
 const { formatDateShort, truncateContent } = useFormatters()
 
 // const projectId = computed(() => route.params.id as string) // Replaced by props.projectId
@@ -227,6 +227,89 @@ const publicationData = ref({
   tags: '',
   note: ''
 })
+
+// Tab Management
+const contentLibraryTabsRef = ref<any>(null)
+const isRenameTabModalOpen = ref(false)
+const tabToRename = ref<ContentLibraryTab | null>(null)
+const newTabTitle = ref('')
+const isDeleteTabConfirmModalOpen = ref(false)
+const tabToDelete = ref<ContentLibraryTab | null>(null)
+const isRenamingTab = ref(false)
+const isDeletingTab = ref(false)
+
+const openRenameTabModal = () => {
+    if (!activeTab.value) return
+    tabToRename.value = activeTab.value
+    newTabTitle.value = activeTab.value.title
+    isRenameTabModalOpen.value = true
+}
+
+const handleRenameTab = async () => {
+    if (!tabToRename.value || !newTabTitle.value.trim()) return
+    
+    isRenamingTab.value = true
+    try {
+        await updateTab(tabToRename.value.id, {
+            scope: props.scope,
+            projectId: props.projectId,
+            title: newTabTitle.value
+        })
+        
+        // Update local state if needed, but fetchTabs in child should handle it if we trigger it
+        if (activeTab.value && activeTab.value.id === tabToRename.value.id) {
+            activeTab.value.title = newTabTitle.value
+        }
+        
+        contentLibraryTabsRef.value?.fetchTabs()
+        isRenameTabModalOpen.value = false
+        tabToRename.value = null
+    } catch (e: any) {
+        toast.add({
+            title: t('common.error'),
+            description: getApiErrorMessage(e, 'Failed to rename tab'),
+            color: 'error'
+        })
+    } finally {
+        isRenamingTab.value = false
+    }
+}
+
+const openDeleteTabModal = () => {
+    if (!activeTab.value) return
+    tabToDelete.value = activeTab.value
+    isDeleteTabConfirmModalOpen.value = true
+}
+
+const handleDeleteTab = async () => {
+    if (!tabToDelete.value) return
+    
+    isDeletingTab.value = true
+    try {
+        await deleteTab(tabToDelete.value.id, props.scope, props.projectId)
+        
+        contentLibraryTabsRef.value?.fetchTabs()
+        activeTab.value = null // clear active tab
+        activeTabId.value = null
+        
+        isDeleteTabConfirmModalOpen.value = false
+        tabToDelete.value = null
+        
+        toast.add({
+            title: t('common.success'),
+            description: t('contentLibrary.tabs.deleteSuccess', 'Tab deleted'),
+            color: 'success'
+        })
+    } catch (e: any) {
+         toast.add({
+            title: t('common.error'),
+            description: getApiErrorMessage(e, 'Failed to delete tab'),
+            color: 'error'
+        })
+    } finally {
+        isDeletingTab.value = false
+    }
+}
 
 const isAllSelected = computed(() => {
   return items.value.length > 0 && items.value.every(item => selectedIds.value.includes(item.id))
@@ -900,6 +983,7 @@ const executeMoveToProject = async () => {
 
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
       <ContentLibraryTabs
+        ref="contentLibraryTabsRef"
         v-model="activeTabId"
         @update:active-tab="activeTab = $event"
         :scope="scope"
@@ -933,73 +1017,107 @@ const executeMoveToProject = async () => {
     </div>
 
     <div class="app-card p-6 space-y-4">
-      <div class="flex flex-col md:flex-row gap-3 md:items-center justify-between">
-        <div class="flex items-center gap-2">
-          <USelectMenu
-            v-model="sortBy"
-            :items="sortOptions"
-            value-key="id"
-            label-key="label"
-            class="w-48"
-            :searchable="false"
-          >
-            <template #leading>
-              <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
-            </template>
-          </USelectMenu>
+      <!-- Toolbar -->
+      <div class="flex flex-col gap-4">
+        <!-- Top Row: Actions -->
+        <div class="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center pb-2 border-b border-gray-100 dark:border-gray-800">
+            <!-- Left: Creation -->
+            <div class="flex items-center gap-2">
+                <template v-if="archiveStatus === 'active'">
+                    <UButton
+                    color="primary"
+                    size="sm"
+                    icon="i-heroicons-plus"
+                    :loading="isStartCreating"
+                    @click="createAndEdit"
+                    >
+                    {{ t('contentLibrary.actions.createEmpty', 'Create') }}
+                    </UButton>
 
-          <UButton
-            :key="sortOrder"
-            :icon="sortOrderIcon"
-            color="neutral"
-            variant="ghost"
-            @click="toggleSortOrder"
-            :title="sortOrderLabel"
-          />
+                    <UButton
+                    color="neutral"
+                    size="sm"
+                    variant="outline"
+                    icon="i-heroicons-cloud-arrow-up"
+                    @click="isBulkUploadModalOpen = true"
+                    >
+                    {{ t('contentLibrary.actions.bulkUpload') }}
+                    </UButton>
+                </template>
+            </div>
+
+            <!-- Right: Tab Actions -->
+            <div class="flex items-center gap-2" v-if="activeTab">
+                 <!-- Rename -->
+                <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    icon="i-heroicons-pencil-square"
+                    @click="openRenameTabModal"
+                >
+                    {{ t('common.rename') }}
+                </UButton>
+                
+                 <!-- Delete -->
+                 <UButton
+                    color="error"
+                    variant="ghost"
+                    size="sm"
+                    icon="i-heroicons-trash"
+                    @click="openDeleteTabModal"
+                >
+                     {{ t('common.delete') }}
+                </UButton>
+            </div>
         </div>
 
-        <div class="flex items-center gap-3 justify-between md:justify-end">
-          <template v-if="archiveStatus === 'active'">
-            <UButton
-              color="neutral"
-              size="sm"
-              variant="outline"
-              icon="i-heroicons-cloud-arrow-up"
-              @click="isBulkUploadModalOpen = true"
-            >
-              {{ t('contentLibrary.actions.bulkUpload') }}
-            </UButton>
+        <!-- Bottom Row: Filters (3 Columns) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Col 1: Search -->
+            <UInput
+            v-model="q"
+            :placeholder="t('contentLibrary.searchPlaceholder', 'Search...')"
+            icon="i-heroicons-magnifying-glass"
+            class="w-full"
+            />
 
-            <UButton
-              color="primary"
-              size="sm"
-              icon="i-heroicons-plus"
-              :loading="isStartCreating"
-              @click="createAndEdit"
-            >
-              {{ t('contentLibrary.actions.createEmpty', 'Create') }}
-            </UButton>
-          </template>
+            <!-- Col 2: Tags -->
+            <USelectMenu
+            v-model="selectedTags"
+            :items="availableTags"
+            multiple
+            :placeholder="t('contentLibrary.filter.filterByTags')"
+            class="w-full"
+            icon="i-heroicons-tag"
+            searchable
+            />
+
+            <!-- Col 3: Sorting -->
+            <div class="flex items-center gap-2">
+                <USelectMenu
+                    v-model="sortBy"
+                    :items="sortOptions"
+                    value-key="id"
+                    label-key="label"
+                    class="flex-1"
+                    :searchable="false"
+                >
+                    <template #leading>
+                    <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
+                    </template>
+                </USelectMenu>
+
+                <UButton
+                    :key="sortOrder"
+                    :icon="sortOrderIcon"
+                    color="neutral"
+                    variant="ghost"
+                    @click="toggleSortOrder"
+                    :title="sortOrderLabel"
+                />
+            </div>
         </div>
-      </div>
-
-      <div class="flex flex-col sm:flex-row gap-3">
-        <UInput
-          v-model="q"
-          :placeholder="t('contentLibrary.searchPlaceholder', 'Search by title, note, tags, text...')"
-          icon="i-heroicons-magnifying-glass"
-          class="flex-1"
-        />
-
-        <USelectMenu
-          v-model="selectedTags"
-          :items="availableTags"
-          multiple
-          :placeholder="t('contentLibrary.filter.filterByTags')"
-          class="w-full sm:w-64"
-          icon="i-heroicons-tag"
-          searchable
-        />
       </div>
 
       <div v-if="error" class="mt-4 text-red-600 dark:text-red-400">
@@ -1339,6 +1457,40 @@ const executeMoveToProject = async () => {
       :prefilled-media-ids="publicationData.mediaIds"
       :prefilled-tags="publicationData.tags"
       :prefilled-note="publicationData.note"
+    />
+
+    <!-- Rename Tab Modal -->
+    <AppModal
+      v-model:open="isRenameTabModalOpen"
+      :title="t('contentLibrary.tabs.renameTitle', 'Rename tab')"
+      :ui="{ content: 'w-full max-w-md' }"
+      @close="isRenameTabModalOpen = false"
+    >
+        <UFormField :label="t('common.title', 'Title')">
+            <UInput v-model="newTabTitle" @keydown.enter="handleRenameTab" autofocus />
+        </UFormField>
+
+        <template #footer>
+             <UButton color="neutral" variant="ghost" @click="isRenameTabModalOpen = false">
+                {{ t('common.cancel') }}
+             </UButton>
+             <UButton color="primary" :loading="isRenamingTab" @click="handleRenameTab">
+                {{ t('common.save') }}
+             </UButton>
+        </template>
+    </AppModal>
+
+    <!-- Delete Tab Modal -->
+    <UiConfirmModal
+      v-if="isDeleteTabConfirmModalOpen"
+      v-model:open="isDeleteTabConfirmModalOpen"
+      :title="t('contentLibrary.tabs.deleteTitle', 'Delete tab')"
+      :description="t('contentLibrary.tabs.deleteDescription', 'Are you sure you want to delete this tab? This action cannot be undone.')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-trash"
+      :loading="isDeletingTab"
+      @confirm="handleDeleteTab"
     />
   </div>
 </template>

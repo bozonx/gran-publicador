@@ -29,6 +29,10 @@ const activeTabId = computed({
   set: (value) => emit('update:modelValue', value),
 })
 
+const getStorageKey = () => {
+  return `content-library-tab-${props.scope}-${props.projectId || 'global'}`
+}
+
 const fetchTabs = async () => {
   if (props.scope === 'project' && !props.projectId) return
 
@@ -36,10 +40,19 @@ const fetchTabs = async () => {
   try {
     tabs.value = await listTabs(props.scope, props.scope === 'project' ? props.projectId : undefined)
     
-    // Auto-select first tab if none selected
-    if (!activeTabId.value && tabs.value.length > 0 && tabs.value[0]) {
-      activeTabId.value = tabs.value[0].id
-      emit('update:activeTab', tabs.value[0])
+    // Restore from localStorage
+    const savedTabId = localStorage.getItem(getStorageKey())
+    const tabToRestore = savedTabId ? tabs.value.find(t => t.id === savedTabId) : null
+
+    if (tabToRestore) {
+      activeTabId.value = tabToRestore.id
+      emit('update:activeTab', tabToRestore)
+    } else {
+      // Auto-select first tab if none selected or restored
+      if (!activeTabId.value && tabs.value.length > 0 && tabs.value[0]) {
+        activeTabId.value = tabs.value[0].id
+        emit('update:activeTab', tabs.value[0])
+      }
     }
   } catch (e: any) {
     console.error('Failed to fetch tabs', e)
@@ -136,6 +149,12 @@ watch(() => props.projectId, () => {
   }
 })
 
+watch(activeTabId, (newId) => {
+  if (newId) {
+    localStorage.setItem(getStorageKey(), newId)
+  }
+})
+
 watch(() => props.scope, () => {
   activeTabId.value = null
   emit('update:activeTab', null)
@@ -144,6 +163,11 @@ watch(() => props.scope, () => {
 
 onMounted(() => {
   fetchTabs()
+})
+
+defineExpose({
+    fetchTabs,
+    tabs
 })
 </script>
 
@@ -172,16 +196,6 @@ onMounted(() => {
           >
             {{ tab.title }}
           </UButton>
-          
-          <UButton
-            v-if="tabs.length > 1"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            icon="i-heroicons-x-mark"
-            @click.stop="handleDeleteTab(tab.id)"
-            class="w-6 h-6 p-0"
-          />
         </div>
       </VueDraggable>
 
