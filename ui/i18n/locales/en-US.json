@@ -41,6 +41,8 @@
   "common": {
     "loading": "Loading...",
     "save": "Save",
+    "title": "Title",
+    "createdAt": "Created date",
     "select": "Select",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -825,7 +827,9 @@
       "moveToTrash": "Move to trash",
       "deleteConfirmTitle": "Move to trash?",
       "deleteConfirmDescription": "Are you sure you want to move this item to trash? You can restore it later.",
-      "bulkUpload": "Bulk Upload"
+      "bulkUpload": "Bulk Upload",
+      "copyToItem": "Copy to new item",
+      "copyToItemSuccess": "Media copied to a new item"
     },
     "filter": {
       "active": "Active",

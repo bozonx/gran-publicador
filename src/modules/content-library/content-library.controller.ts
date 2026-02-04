@@ -256,4 +256,20 @@ export class ContentLibraryController {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
     return this.contentLibraryService.detachBlock(contentItemId, blockId, req.user.userId);
   }
+
+  @Post('items/:id/blocks/:blockId/media/:mediaLinkId/copy-to-item')
+  public async copyMediaToItem(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Param('blockId') blockId: string,
+    @Param('mediaLinkId') mediaLinkId: string,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.contentLibraryService.copyMediaToItem(
+      contentItemId,
+      blockId,
+      mediaLinkId,
+      req.user.userId,
+    );
+  }
 }

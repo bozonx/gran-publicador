@@ -39,6 +39,7 @@ interface Props {
   onRemove?: (mediaId: string) => Promise<void>
   onReorder?: (reorderData: Array<{ id: string; order: number }>) => Promise<void>
   onUpdateLink?: (mediaLinkId: string, data: { hasSpoiler?: boolean; order?: number }) => Promise<void>
+  onCopy?: (mediaLinkId: string) => Promise<void>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -994,6 +995,15 @@ const emit = defineEmits<Emits>()
                       variant="solid"
                       size="xs"
                       @click.stop="handleDeleteClick(item.media.id)"
+                    />
+                    <UButton
+                      v-if="props.onCopy"
+                      icon="i-heroicons-document-duplicate"
+                      color="neutral"
+                      variant="solid"
+                      size="xs"
+                      :title="t('contentLibrary.actions.copyToItem')"
+                      @click.stop="props.onCopy(item.id!)"
                     />
                   </div>
 

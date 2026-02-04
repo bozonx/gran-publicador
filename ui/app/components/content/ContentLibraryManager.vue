@@ -71,6 +71,47 @@ const offset = ref(0)
 const total = ref(0)
 const items = ref<ContentItem[]>([])
 
+const SORT_BY_STORAGE_KEY = 'content-library-sort-by'
+const SORT_ORDER_STORAGE_KEY = 'content-library-sort-order'
+
+const sortBy = ref<'createdAt' | 'title'>('createdAt')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+const sortOptions = computed(() => [
+  { id: 'createdAt', label: t('common.createdAt'), icon: 'i-heroicons-calendar-days' },
+  { id: 'title', label: t('common.title'), icon: 'i-heroicons-document-text' }
+])
+
+const currentSortOption = computed(() => 
+  sortOptions.value.find(opt => opt.id === sortBy.value)
+)
+
+const sortOrderIcon = computed(() => 
+  sortOrder.value === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down'
+)
+
+const sortOrderLabel = computed(() => 
+  sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')
+)
+
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
+
+watch(sortBy, (val) => {
+  if (import.meta.client) {
+    localStorage.setItem(SORT_BY_STORAGE_KEY, val)
+  }
+  fetchItems({ reset: true })
+})
+
+watch(sortOrder, (val) => {
+  if (import.meta.client) {
+    localStorage.setItem(SORT_ORDER_STORAGE_KEY, val)
+  }
+  fetchItems({ reset: true })
+})
+
 const isStartCreating = ref(false)
 
 const isEditModalOpen = ref(false)
@@ -183,6 +224,8 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         offset: offset.value,
         archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
         includeArchived: false,
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       },
     })
 
@@ -238,6 +281,18 @@ watch(() => props.projectId, (newVal) => {
 })
 
 onMounted(() => {
+  if (import.meta.client) {
+    const storedSortBy = localStorage.getItem(SORT_BY_STORAGE_KEY)
+    if (storedSortBy === 'createdAt' || storedSortBy === 'title') {
+      sortBy.value = storedSortBy
+    }
+
+    const storedSortOrder = localStorage.getItem(SORT_ORDER_STORAGE_KEY)
+    if (storedSortOrder === 'asc' || storedSortOrder === 'desc') {
+      sortOrder.value = storedSortOrder
+    }
+  }
+
   fetchItems({ reset: true })
   if (props.scope === 'project' && props.projectId) {
     fetchProject(props.projectId)
@@ -713,12 +768,38 @@ const executeMoveToProject = async () => {
 
     <div class="app-card p-6">
       <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-        <UInput
-          v-model="q"
-          :placeholder="t('contentLibrary.searchPlaceholder', 'Search by title, note, tags, text...')"
-          icon="i-heroicons-magnifying-glass"
-          class="w-full md:max-w-xl"
-        />
+        <div class="flex-1 flex flex-col sm:flex-row gap-3">
+          <UInput
+            v-model="q"
+            :placeholder="t('contentLibrary.searchPlaceholder', 'Search by title, note, tags, text...')"
+            icon="i-heroicons-magnifying-glass"
+            class="flex-1"
+          />
+
+          <div class="flex items-center gap-2">
+            <USelectMenu
+              v-model="sortBy"
+              :items="sortOptions"
+              value-key="id"
+              label-key="label"
+              class="w-48"
+              :searchable="false"
+            >
+              <template #leading>
+                <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
+              </template>
+            </USelectMenu>
+
+            <UButton
+              :key="sortOrder"
+              :icon="sortOrderIcon"
+              color="neutral"
+              variant="ghost"
+              @click="toggleSortOrder"
+              :title="sortOrderLabel"
+            />
+          </div>
+        </div>
 
         <div class="flex items-center gap-3 justify-between md:justify-end">
           <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">

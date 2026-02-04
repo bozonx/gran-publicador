@@ -27,6 +27,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const api = useApi()
 const { uploadMedia } = useMedia()
+const toast = useToast()
 
 const isCollapsed = ref(false)
 const yamlMeta = ref('')
@@ -78,6 +79,29 @@ async function onUpdateLinkMedia(mediaLinkId: string, data: any) {
 
 function handleRefresh() {
   emit('refresh')
+}
+
+const onCopyMedia = async (mediaLinkId: string) => {
+  if (!props.contentItemId || !props.modelValue.id) return
+  
+  try {
+    await api.post(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media/${mediaLinkId}/copy-to-item`)
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.actions.copyToItemSuccess'),
+      color: 'success'
+    })
+    
+    emit('refresh')
+  } catch (e: any) {
+    console.error('Failed to copy media to item', e)
+    toast.add({
+      title: t('common.error'),
+      description: e.data?.message || 'Failed to copy media',
+      color: 'error'
+    })
+  }
 }
 
 // Initialize YAML from meta
@@ -194,6 +218,7 @@ const toggleCollapse = () => {
           :on-remove="onRemoveMedia"
           :on-reorder="onReorderMedia"
           :on-update-link="onUpdateLinkMedia"
+          :on-copy="onCopyMedia"
         />
       </div>
 

@@ -76,7 +76,7 @@ export class ContentLibraryService {
   ) {
     const item = await this.prisma.contentItem.findUnique({
       where: { id: contentItemId },
-      select: { id: true, userId: true, projectId: true, archivedAt: true },
+      select: { id: true, userId: true, projectId: true, archivedAt: true, title: true },
     });
 
     if (!item) {
@@ -165,7 +165,7 @@ export class ContentLibraryService {
     const [items, total] = await Promise.all([
       this.prisma.contentItem.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc' },
         take: limit,
         skip: offset,
         include: {
@@ -721,6 +721,64 @@ export class ContentLibraryService {
       data: {
         contentItemId: newItem.id,
         order: 0,
+      },
+    });
+
+    return newItem;
+  }
+
+  public async copyMediaToItem(
+    contentItemId: string,
+    blockId: string,
+    mediaLinkId: string,
+    userId: string,
+  ) {
+    const sourceItem = await this.assertContentItemAccess(contentItemId, userId, false);
+    await this.assertContentItemMutationAllowed(contentItemId, userId);
+
+    const block = await (this.prisma as any).contentBlock.findUnique({
+      where: { id: blockId },
+      select: { id: true, contentItemId: true },
+    });
+    if (!block || block.contentItemId !== contentItemId) {
+      throw new NotFoundException('Content block not found');
+    }
+
+    const link = await (this.prisma as any).contentBlockMedia.findUnique({
+      where: { id: mediaLinkId },
+      select: { id: true, contentBlockId: true, mediaId: true, order: true, hasSpoiler: true },
+    });
+
+    if (!link || link.contentBlockId !== blockId) {
+      throw new NotFoundException('Content block media not found');
+    }
+
+    // Create new content item
+    const newItem = await (this.prisma as any).contentItem.create({
+      data: {
+        userId: sourceItem.userId,
+        projectId: sourceItem.projectId,
+        title: `Copy of media from ${sourceItem.title || 'unnamed item'}`,
+        tags: [],
+        note: null,
+        blocks: {
+          create: [
+            {
+              text: '',
+              order: 0,
+              meta: {},
+              media: {
+                create: [
+                  {
+                    mediaId: link.mediaId,
+                    order: 0,
+                    hasSpoiler: link.hasSpoiler,
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
     });
 

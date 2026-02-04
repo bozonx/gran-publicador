@@ -57,4 +57,14 @@ export class FindContentItemsQueryDto {
     return Boolean(value);
   })
   public archivedOnly?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['createdAt', 'title'])
+  public sortBy?: 'createdAt' | 'title';
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  public sortOrder?: 'asc' | 'desc';
 }
