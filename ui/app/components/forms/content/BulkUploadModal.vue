@@ -22,12 +22,10 @@ interface UploadFile {
   error?: string
 }
 
+const isDragging = ref(false)
 const files = ref<UploadFile[]>([])
 const isProcessing = ref(false)
-const currentUploadIndex = ref(0)
 const fileInputRef = ref<HTMLInputElement | null>(null)
-
-const canStart = computed(() => files.value.length > 0 && !isProcessing.value && files.value.some(f => f.status !== 'success'))
 const isDone = computed(() => files.value.length > 0 && files.value.every(f => f.status === 'success' || f.status === 'error'))
 
 const onFilesSelected = (event: Event) => {
@@ -37,21 +35,38 @@ const onFilesSelected = (event: Event) => {
   input.value = ''
 }
 
+const onDragEnter = () => {
+  isDragging.value = true
+}
+
+const onDragLeave = () => {
+  isDragging.value = false
+}
+
 const onDrop = (event: DragEvent) => {
+  isDragging.value = false
   if (!event.dataTransfer?.files.length) return
   addFiles(Array.from(event.dataTransfer.files))
 }
 
 const addFiles = (newFiles: File[]) => {
-  files.value.push(...newFiles.map(file => ({
+  const startIndex = files.value.length
+  const items = newFiles.map(file => ({
     file,
     status: 'pending' as const,
     progress: 0
-  })))
+  }))
+  files.value.push(...items)
+  
+  // Start processing if not already running
+  if (!isProcessing.value) {
+    processQueue()
+  }
 }
 
 const removeFile = (index: number) => {
-  if (isProcessing.value) return
+  const file = files.value[index]
+  if (file?.status === 'uploading' || file?.status === 'creating') return
   files.value.splice(index, 1)
 }
 
@@ -59,15 +74,16 @@ const triggerFileInput = () => {
   fileInputRef.value?.click()
 }
 
-const startUpload = async () => {
-  if (!canStart.value) return
+const processQueue = async () => {
+  if (isProcessing.value) return
   isProcessing.value = true
 
-  for (let i = 0; i < files.value.length; i++) {
-    const fileItem = files.value[i]!
-    if (fileItem.status === 'success') continue
+  // Loop through all files that are still pending
+  while (true) {
+    const nextIndex = files.value.findIndex(f => f.status === 'pending')
+    if (nextIndex === -1) break
     
-    currentUploadIndex.value = i
+    const fileItem = files.value[nextIndex]!
     
     try {
       const ext = fileItem.file.name.split('.').pop()?.toLowerCase()
@@ -167,10 +183,14 @@ const handleDone = () => {
     <div class="space-y-6">
       <!-- Drop Area -->
       <div
-        class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-10 text-center transition-all cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 group bg-gray-50/50 dark:bg-gray-800/20 hover:bg-primary-50/30 dark:hover:bg-primary-900/10"
-        :class="{ 'opacity-50 pointer-events-none': isProcessing }"
+        class="border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer group"
+        :class="[
+          isDragging ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 scale-[1.02]' : 'border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/20 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50/30'
+        ]"
         @click="triggerFileInput"
+        @dragenter.prevent="onDragEnter"
         @dragover.prevent
+        @dragleave.prevent="onDragLeave"
         @drop.prevent="onDrop"
       >
         <input
@@ -268,27 +288,6 @@ const handleDone = () => {
 
     <template #footer>
       <UButton
-        v-if="!isDone"
-        color="neutral"
-        variant="ghost"
-        :disabled="isProcessing"
-        @click="handleClose"
-      >
-        {{ t('common.cancel') }}
-      </UButton>
-      
-      <UButton
-        v-if="!isDone"
-        color="primary"
-        :loading="isProcessing"
-        :disabled="!canStart"
-        @click="startUpload"
-      >
-        {{ isProcessing ? t('contentLibrary.bulkUploadModal.uploading', { current: currentUploadIndex + 1, total: files.length }) : t('common.add') }}
-      </UButton>
-
-      <UButton
-        v-if="isDone"
         color="primary"
         @click="handleDone"
       >
