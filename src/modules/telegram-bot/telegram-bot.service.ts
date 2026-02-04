@@ -33,7 +33,6 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     // Register handlers
     this.bot.command('start', ctx => this.telegramBotUpdate.onStart(ctx));
     this.bot.on('message', ctx => this.telegramBotUpdate.onMessage(ctx));
-    this.bot.on('callback_query:data', ctx => this.telegramBotUpdate.onCallbackQuery(ctx));
 
     // Global error handler
     this.bot.catch(err => {
@@ -75,7 +74,9 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('Telegram Bot stopped.');
       } catch (err) {
         // Warning level because we are shutting down anyway
-        this.logger.warn(`Error stopping Telegram Bot: ${err instanceof Error ? err.message : err}`);
+        this.logger.warn(
+          `Error stopping Telegram Bot: ${err instanceof Error ? err.message : err}`,
+        );
       }
     }
   }
