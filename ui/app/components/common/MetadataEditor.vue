@@ -76,9 +76,16 @@ function yamlToJson(yamlStr: string): { success: boolean; data?: Record<string, 
 
 // Initialize YAML string from modelValue
 watch(() => props.modelValue, (newValue) => {
-  if (!isEditing.value) {
-    yamlString.value = jsonToYaml(newValue)
+  if (isEditing.value) return
+
+  // Check if new value is effectively the same as current string representation
+  // This prevents reformatting YAML (losing comments/spacing) when data hasn't changed
+  const currentParsed = yamlToJson(yamlString.value)
+  if (currentParsed.success && JSON.stringify(currentParsed.data) === JSON.stringify(newValue || {})) {
+    return
   }
+
+  yamlString.value = jsonToYaml(newValue)
 }, { immediate: true, deep: true })
 
 // Debounced update function
@@ -103,15 +110,14 @@ function handleYamlChange(newYaml: string) {
 // Toggle edit mode
 function startEditing() {
   isEditing.value = true
-  yamlString.value = jsonToYaml(props.modelValue)
+  if (!yamlString.value && props.modelValue) {
+      yamlString.value = jsonToYaml(props.modelValue)
+  }
   validationError.value = undefined
 }
 
 function stopEditing() {
-  // Only stop editing if there's no validation error
-  if (!validationError.value) {
-    isEditing.value = false
-  }
+  isEditing.value = false
 }
 
 const displayValue = computed({
