@@ -627,7 +627,7 @@ async function handleDelete() {
 
     <!-- Publications list -->
     <div v-if="isLoading && publications.length === 0" class="flex items-center justify-center py-12">
-        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+        <UiLoadingSpinner size="md" />
     </div>
 
     <div v-else-if="filteredPublications.length === 0" class="app-card p-6 sm:p-12 text-center">

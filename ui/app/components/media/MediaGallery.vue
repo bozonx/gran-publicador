@@ -1049,7 +1049,7 @@ const emit = defineEmits<Emits>()
           </div>
 
           <div class="flex items-end gap-3 w-full">
-            <UFormField :label="t('media.sourceType', 'Source')" required class="flex-none w-48">
+            <UFormField :label="t('media.sourceTypeLabel', 'Source')" required class="flex-none w-48">
               <USelectMenu
                 v-model="sourceType"
                 :items="sourceTypeOptions"

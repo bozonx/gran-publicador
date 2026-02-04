@@ -75,7 +75,7 @@ const displayTitle = computed(() => {
     </div>
 
     <div v-if="loading && !publications.length" class="flex justify-center py-8">
-      <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
+      <UiLoadingSpinner />
     </div>
     
     <CommonHorizontalScroll v-else-if="publications.length > 0">

@@ -106,7 +106,7 @@ function triggerFileInput() {
     <UiAppCard>
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-3">
-          <UFormField :label="t('media.sourceType', 'Source Type')">
+          <UFormField :label="t('media.sourceTypeLabel', 'Source Type')">
             <USelectMenu
               v-model="sourceType"
               :items="sourceTypeOptions"

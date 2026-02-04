@@ -5,14 +5,12 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Request,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { JWT_STRATEGY } from '../../common/constants/auth.constants.js';
-import type { AuthenticatedRequest } from '../../common/types/authenticated-request.interface.js';
 import { AuthService } from './auth.service.js';
 import { RefreshTokenDto, TelegramLoginDto, TelegramWidgetLoginDto } from './dto/index.js';
 
@@ -47,10 +45,9 @@ export class AuthController {
    * Refresh authentication tokens.
    */
   @Post('refresh')
-  @UseGuards(AuthGuard(JWT_STRATEGY))
   @HttpCode(HttpStatus.OK)
-  public async refresh(@Request() req: AuthenticatedRequest, @Body() dto: RefreshTokenDto) {
-    return this.authService.refreshTokens(req.user.sub, dto.refreshToken);
+  public async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto.refreshToken);
   }
 
   /**

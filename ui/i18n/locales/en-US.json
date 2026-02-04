@@ -102,7 +102,11 @@
     "clear": "Clear",
     "copied": "Copied!",
     "done": "Done",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "more": "More"
+  },
+  "actions": {
+    "translate": "Translate"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -188,12 +192,14 @@
     "adminStatus": "Admin Status",
     "isAdmin": "Administrator",
     "createdAt": "Registration date",
-    "internalId": "Internal ID"
+    "internalId": "Internal ID",
+    "preferences": "Preferences"
   },
   "project": {
     "title": "Project",
     "titlePlural": "Projects",
     "allProjects": "All projects",
+    "personalProjects": "Private projects",
     "name": "Project Name",
     "namePlaceholder": "Enter project name",
     "description": "Description",
@@ -754,6 +760,7 @@
   "contentLibrary": {
     "title": "Content library",
     "subtitleProject": "Project scope",
+    "subtitlePersonal": "Personal scope",
     "blocksCount": "{count} block | {count} blocks",
     "searchPlaceholder": "Search by title, note, tags, text...",
     "untitled": "Untitled",
@@ -885,6 +892,7 @@
     "description": "Description",
     "descriptionTooltip": "Description is used for captions in some platforms or as meta info.",
     "descriptionPlaceholder": "Description of the media",
+    "sourceTypeLabel": "Source",
     "sourceType": {
       "upload": "Upload"
     },
@@ -1030,6 +1038,7 @@
     "neverUsed": "Never used",
     "noTokens": "You don't have any API tokens yet",
     "preferences": "Preferences",
+    "noProjects": "No projects",
     "staleChannelsDays": "Stale Channels Warning (Days)",
     "staleChannelsDaysHelp": "Show warning if channel has no published posts for this many days (Default: 3)",
     "defaultFromProject": "Default from Project",

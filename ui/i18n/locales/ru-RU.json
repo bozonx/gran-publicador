@@ -102,7 +102,9 @@
     "clear": "Очистить",
     "copied": "Скопировано!",
     "done": "Готово",
-    "noResults": "Результатов нет"
+    "noResults": "Результатов нет",
+    "more": "Ещё",
+    "rename": "Переименовать"
   },
   "navigation": {
     "dashboard": "Панель управления",
@@ -141,6 +143,7 @@
     "language": "Язык",
     "sourceTags": "Теги источников",
     "sourceTagsPlaceholder": "Теги источников через запятую",
+    "notifications": "Уведомления",
     "savedFrom": "Дата (от)",
     "savedTo": "Дата (до)",
     "orderBy": "Сортировка",
@@ -187,12 +190,14 @@
     "adminStatus": "Статус администратора",
     "isAdmin": "Администратор",
     "createdAt": "Дата регистрации",
-    "internalId": "Внутренний ID"
+    "internalId": "Внутренний ID",
+    "preferences": "Настройки"
   },
   "project": {
     "title": "Проект",
     "titlePlural": "Проекты",
     "allProjects": "Все проекты",
+    "personalProjects": "Личные проекты",
     "name": "Название проекта",
     "namePlaceholder": "Введите название проекта",
     "description": "Описание",
@@ -570,6 +575,8 @@
     "languageMismatch": "Язык канала отличается от публикации",
     "languageMismatchWarning": "Внимание: Язык канала отличается от языка публикации",
     "metadata": "Метаданные",
+    "metadataHelp": "Дополнительные метаданные в формате YAML",
+    "metadataPlaceholder": "Введите метаданные в YAML...",
     "template": "Шаблон",
     "selectTemplate": "Выберите шаблон...",
     "authorSignature": "Подпись автора",
@@ -752,7 +759,8 @@
   },
   "contentLibrary": {
     "title": "Библиотека контента",
-    "subtitleProject": "Область проекта",
+    "subtitleProject": "Проект",
+    "subtitlePersonal": "Личное",
     "blocksCount": "{count} блок | {count} блока | {count} блоков",
     "searchPlaceholder": "Поиск по заголовку, заметке, тегам, тексту...",
     "untitled": "Без названия",
@@ -828,6 +836,8 @@
     "bulk": {
       "moveToTrash": "Переместить в корзину",
       "moveToTrashConfirm": "Переместить {count} элементов в корзину?",
+      "deleteTitle": "Удалить несколько элементов",
+      "deleteDescription": "Вы уверены, что хотите удалить {count} элементов? Это действие необратимо.",
       "success": "Операция выполнена для {count} элементов",
       "move": "Переместить",
       "moveToProject": "Сменить проект",
@@ -884,6 +894,7 @@
     "description": "Описание",
     "descriptionTooltip": "Описание используется для подписей в некоторых платформах или как мета-информация.",
     "descriptionPlaceholder": "Описание медиа-файла",
+    "sourceTypeLabel": "Источник",
     "sourceType": {
       "upload": "Загрузка"
     },
@@ -937,7 +948,7 @@
     "article": "Статья",
     "news": "Новость",
     "video": "Видео",
-    "short": "Короткое видео",
+    "short": "Shorts/Reels",
     "story": "История"
   },
   "postStatus": {
@@ -989,6 +1000,7 @@
     "syncedSuccess": "Профиль синхронизирован с Telegram",
     "syncError": "Не удалось синхронизировать имя",
     "idCopied": "Внутренний ID скопирован в буфер обмена",
+    "changePassword": "Сменить пароль",
     "apiTokensDescription": "Управление API токенами для внешних интеграций",
     "createToken": "Создать токен",
     "editToken": "Редактировать токен",
@@ -1003,6 +1015,7 @@
     "neverUsed": "Не использовался",
     "noTokens": "У вас пока нет API токенов",
     "preferences": "Настройки",
+    "noProjects": "Нет проектов",
     "staleChannelsDays": "Предупреждение о неактивности (дней)",
     "staleChannelsDaysHelp": "Показывать предупреждение, если в канале нет публикаций указанное количество дней (По умолчанию: 3)",
     "staleChannelsDaysHelpChannel": "Переопределить порог предупреждения о неактивности для этого канала",
@@ -1071,6 +1084,7 @@
     "min": "Минимальное значение: {min}",
     "jsonInvalid": "Некорректный формат JSON",
     "invalidYaml": "Должен быть YAML объект (ключ-значение), а не список или значение",
+    "yamlError": "Ошибка синтаксиса YAML",
     "checkFormErrors": "Пожалуйста, проверьте форму на наличие ошибок",
     "invalidContent": "Невалидный контент",
     "validationWarningTitle": "Внимание: обнаружены ошибки валидации",

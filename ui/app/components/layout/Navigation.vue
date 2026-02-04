@@ -214,8 +214,7 @@ function getProjectTooltip(project: ProjectWithRole) {
     <!-- Projects List -->
     <div class="flex-1 overflow-y-auto space-y-1 min-h-0">
       <div v-if="isProjectsLoading" class="px-3 py-2 text-sm text-gray-500">
-        <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 animate-spin inline mr-2" />
-        {{ t('common.loading') }}
+        <UiLoadingSpinner size="xs" :label="t('common.loading')" />
       </div>
       
       <template v-else>

@@ -1315,7 +1315,7 @@ const executeMoveToProject = async () => {
       </div>
 
       <div v-if="isLoading && items.length === 0" class="mt-6 flex justify-center py-8">
-        <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+        <UiLoadingSpinner />
       </div>
 
       <div v-else class="mt-6 space-y-4">

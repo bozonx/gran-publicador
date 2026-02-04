@@ -219,7 +219,7 @@ async function handleDeletePublication() {
           </div>
 
           <div v-if="scheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
-            <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+            <UiLoadingSpinner size="sm" />
           </div>
           
           <div v-else-if="scheduledByProject.length > 0" class="space-y-6">
@@ -260,7 +260,7 @@ async function handleDeletePublication() {
           </div>
 
           <div v-if="problemsLoading && !problemPublications.length" class="flex justify-center py-4">
-            <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+            <UiLoadingSpinner size="sm" />
           </div>
           
           <div v-else-if="problemsByProject.length > 0" class="space-y-6">
@@ -315,7 +315,7 @@ async function handleDeletePublication() {
         </div>
 
         <div v-if="publishedLoading && !publishedPublications.length" class="flex justify-center py-4">
-          <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+          <UiLoadingSpinner size="sm" />
         </div>
 
         <div v-else-if="publishedPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -345,7 +345,7 @@ async function handleDeletePublication() {
               </div>
               <div class="p-4 sm:p-5">
                 <div v-if="projectsLoading && projects.length === 0" class="flex items-center justify-center py-4">
-                  <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
+                  <UiLoadingSpinner />
                 </div>
                 <div v-else-if="projects.length === 0" class="text-center py-8">
                   <UIcon name="i-heroicons-briefcase" class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500 mb-3" />

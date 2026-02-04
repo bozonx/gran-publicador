@@ -423,7 +423,7 @@ const showPagination = computed(() => {
     <!-- Channels list view -->
     <div v-if="isListView" class="space-y-4">
        <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-12">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+          <UiLoadingSpinner size="md" />
        </div>
 
        <div v-else-if="channels.length === 0" class="app-card text-center py-12">
@@ -450,7 +450,7 @@ const showPagination = computed(() => {
     <!-- Channels cards view -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
        <div v-if="isLoading && channels.length === 0" class="col-span-full flex items-center justify-center py-12">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+          <UiLoadingSpinner size="md" />
        </div>
 
        <div v-else-if="channels.length === 0" class="col-span-full app-card text-center py-12">

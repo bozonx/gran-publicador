@@ -124,8 +124,7 @@ onMounted(async () => {
 
         <!-- Loading State -->
         <div v-if="isLoading" class="flex flex-col items-center space-y-4">
-          <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 animate-spin text-primary-500" />
-          <p class="text-gray-600 dark:text-gray-400">{{ t('auth.loggingIn') || 'Authenticating...' }}</p>
+          <UiLoadingSpinner size="lg" color="primary" :label="t('auth.loggingIn') || 'Authenticating...'" centered />
         </div>
 
         <!-- Error Message -->

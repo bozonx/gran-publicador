@@ -334,8 +334,7 @@ function handleUseNewsData(clearError = true) {
   >
     <div class="space-y-6 min-h-[300px]">
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-12 h-full">
-         <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin mb-4" />
-         <p class="text-gray-500">{{ t('common.loading') }}</p>
+         <UiLoadingSpinner size="xl" color="primary" :label="t('common.loading')" centered />
       </div>
       
       <div v-else class="space-y-6">
