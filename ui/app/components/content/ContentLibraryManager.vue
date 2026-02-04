@@ -615,7 +615,8 @@ const { data: projectsData, refresh: refreshProjects } = useFetch('/api/projects
 })
 
 const myProjects = computed(() => {
-  return (projectsData.value?.items || []).map((p: any) => ({
+  const data = projectsData.value as any
+  return (data?.items || []).map((p: any) => ({
     id: p.id,
     label: p.name,
     isPersonal: false
@@ -965,7 +966,7 @@ const executeMoveToProject = async () => {
           </UButton>
 
           <UButton
-            color="gray"
+            color="neutral"
             variant="ghost"
             icon="i-heroicons-folder-open"
             size="sm"
@@ -1117,13 +1118,13 @@ const executeMoveToProject = async () => {
 
     <!-- Move to Project Modal -->
     <UModal v-model="isMoveToProjectModalOpen">
-      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+      <UCard>
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
               {{ t('contentLibrary.bulk.moveToProjectTitle') }}
             </h3>
-            <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMoveToProjectModalOpen = false" />
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMoveToProjectModalOpen = false" />
           </div>
         </template>
 
@@ -1139,17 +1140,13 @@ const executeMoveToProject = async () => {
             option-attribute="label"
             searchable
             :search-attributes="['label']"
-            :placeholder="t('contentLibrary.bulk.moveToProject')"
-          >
-            <template #option="{ option }">
-              <span :class="{ 'text-primary-500 font-medium': option.isPersonal }">{{ option.label }}</span>
-            </template>
-          </USelectMenu>
+            :placeholder="t('contentLibrary.bulk.selectProject')"
+          />
         </div>
 
         <template #footer>
           <div class="flex justify-end gap-3">
-            <UButton color="gray" variant="ghost" @click="isMoveToProjectModalOpen = false">
+            <UButton color="neutral" variant="ghost" @click="isMoveToProjectModalOpen = false">
               {{ t('common.cancel') }}
             </UButton>
             <UButton 

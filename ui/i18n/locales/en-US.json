@@ -841,17 +841,18 @@
         "creating": "Creating",
         "success": "Success",
         "error": "Error"
-      },
-      "bulk": {
-        "moveToTrash": "Move to Trash",
-        "moveToTrashConfirm": "Move {count} items to trash?",
-        "success": "Operation completed for {count} items",
-        "move": "Move",
-        "moveToProject": "Move to Project",
-        "moveToProjectTitle": "Move items to project",
-        "moveToProjectDescription": "Select a project to move {count} items to. Select 'Personal Scope' to remove from any project.",
-        "personalScope": "Personal Scope (No Project)"
       }
+    },
+    "bulk": {
+      "moveToTrash": "Move to Trash",
+      "moveToTrashConfirm": "Move {count} items to trash?",
+      "success": "Operation completed for {count} items",
+      "move": "Move",
+      "moveToProject": "Move to Project",
+      "selectProject": "Select project...",
+      "moveToProjectTitle": "Move items to project",
+      "moveToProjectDescription": "Select a project to move {count} items to. Select 'Personal Scope' to remove from any project.",
+      "personalScope": "Personal Scope (No Project)"
     }
   },
   "media": {
