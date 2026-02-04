@@ -875,6 +875,9 @@
       "deleteSuccess": "Tab deleted successfully",
       "deleteError": "Failed to delete tab",
       "reorderError": "Failed to reorder tabs",
+      "renameTitle": "Rename tab",
+      "deleteTitle": "Delete tab",
+      "deleteDescription": "Are you sure you want to delete this tab? This action cannot be undone.",
       "selectTypePrompt": "Select tab type:",
       "titlePlaceholder": "Enter tab name...",
       "types": {

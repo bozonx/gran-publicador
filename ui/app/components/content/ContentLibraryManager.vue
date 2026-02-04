@@ -1005,7 +1005,7 @@ const executeMoveToProject = async () => {
           <UButton
             v-if="archiveStatus === 'archived'"
             size="sm"
-            color="red"
+            color="error"
             variant="ghost"
             icon="i-heroicons-trash"
             :loading="isPurging"
