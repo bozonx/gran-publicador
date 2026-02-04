@@ -126,7 +126,11 @@ describe('ContentLibraryService (unit)', () => {
         operation: BulkOperationType.SET_PROJECT,
       } as any);
 
-      expect(mockPermissionsService.checkProjectPermission).not.toHaveBeenCalled();
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledTimes(2);
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
+        'ADMIN',
+        'EDITOR',
+      ]);
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
