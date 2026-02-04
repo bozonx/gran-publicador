@@ -41,22 +41,22 @@ services:
       - gran_p_redis_data:/data
 
   postgres:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18-bookworm
     container_name: gran-publicador-postgres
     hostname: gran-publicador-postgres
     restart: unless-stopped
+    expose:
+      - 5432
+    #ports:
+    #  - '5432:5432'
+    volumes:
+      - gran_p_postgres_data:/var/lib/postgresql
     environment:
       POSTGRES_USER: gran
       POSTGRES_PASSWORD: gran_password
       POSTGRES_DB: gran_db
-    expose:
-      - 5432
-    ports:
-      - '5432:5432'
-    volumes:
-      - gran_p_postgres_data:/var/lib/postgresql
     healthcheck:
-      test: [ 'CMD-SHELL', 'pg_isready -U gran -d gran_db' ]
+      test: [ 'CMD-SHELL', 'pg_isready -U gran -d gran_db || exit 1' ]
       interval: 10s
       timeout: 5s
       retries: 5

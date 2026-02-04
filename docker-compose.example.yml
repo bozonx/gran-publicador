@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18-bookworm
     container_name: gran_publicador_postgres
     restart: unless-stopped
     environment:
@@ -10,13 +10,13 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - gran_p_postgres_data:/var/lib/postgresql/data
     user: '1000:1000'
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      # redis:
+      #   condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U gran -d gran_db" ]
       interval: 10s
@@ -34,4 +34,4 @@ services:
   #   command: redis-server --save "" --appendonly no
 
 volumes:
-  postgres_data:
+  gran_p_postgres_data:
