@@ -176,10 +176,12 @@ watch([q, selectedTags, sortBy, sortOrder], () => {
 }, { deep: true })
 
 watch(sortBy, (val) => {
+  saveTabSettings()
   fetchItems({ reset: true })
 })
 
 watch(sortOrder, (val) => {
+  saveTabSettings()
   fetchItems({ reset: true })
 })
 
@@ -410,6 +412,7 @@ const createAndEdit = async () => {
   try {
     const payload: any = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
+      folderId: activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined,
       blocks: [
         { text: '', order: 0, media: [] }
       ]
@@ -1263,6 +1266,7 @@ const executeMoveToProject = async () => {
       v-model:open="isBulkUploadModalOpen"
       :scope="scope"
       :project-id="projectId"
+      :folder-id="activeTab?.type === 'FOLDER' ? activeTab.id : undefined"
       @uploaded="fetchItems({ reset: true })"
     />
 

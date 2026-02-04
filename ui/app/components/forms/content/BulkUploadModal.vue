@@ -5,9 +5,11 @@ import AppModal from '~/components/ui/AppModal.vue'
 const props = withDefaults(defineProps<{
   scope?: 'project' | 'personal'
   projectId?: string
+  folderId?: string
 }>(), {
   scope: 'project',
-  projectId: undefined
+  projectId: undefined,
+  folderId: undefined
 })
 
 const isOpen = defineModel<boolean>('open', { default: false })
@@ -99,6 +101,7 @@ const processQueue = async () => {
         await api.post('/content-library/items', {
           scope: props.scope,
           projectId: props.scope === 'project' ? props.projectId : undefined,
+          folderId: props.folderId,
           title: fileItem.file.name,
           blocks: [
             { text, order: 0, meta: {}, media: [] }
@@ -114,6 +117,7 @@ const processQueue = async () => {
         await api.post('/content-library/items', {
           scope: props.scope,
           projectId: props.scope === 'project' ? props.projectId : undefined,
+          folderId: props.folderId,
           title: fileItem.file.name,
           blocks: [
             { 

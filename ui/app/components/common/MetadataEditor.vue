@@ -140,14 +140,14 @@ const hasContent = computed(() => {
       </div>
       
       <UButton
-        v-if="!disabled"
+        v-if="!disabled && !isEditing"
         size="xs"
         variant="ghost"
         color="neutral"
-        :icon="isEditing ? 'i-heroicons-check' : 'i-heroicons-pencil'"
-        @click="isEditing ? stopEditing() : startEditing()"
+        icon="i-heroicons-pencil"
+        @click="startEditing"
       >
-        {{ isEditing ? t('common.done', 'Done') : t('common.edit', 'Edit') }}
+        {{ t('common.edit', 'Edit') }}
       </UButton>
     </div>
 
@@ -174,7 +174,9 @@ const hasContent = computed(() => {
         :rows="8"
         class="font-mono text-xs w-full"
         autoresize
+        autofocus
         :placeholder="t('post.metadataPlaceholder', 'Enter YAML metadata...')"
+        @blur="stopEditing"
       />
       
       <!-- Validation Error -->
