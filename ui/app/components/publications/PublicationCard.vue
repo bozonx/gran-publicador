@@ -49,7 +49,7 @@ function handleDelete(e: Event) {
 
 <template>
   <div
-    class="app-card app-card-hover p-4 cursor-pointer group flex flex-col h-full relative"
+    class="app-card app-card-hover cursor-pointer group flex flex-col h-full relative"
     @click="handleClick"
   >
     <!-- Checkbox for bulk operations -->

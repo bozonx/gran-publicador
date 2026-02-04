@@ -1206,7 +1206,7 @@ const executeMoveToProject = async () => {
       </div>
     </div>
 
-    <div class="app-card p-6 space-y-4">
+    <div class="app-card-lg space-y-4">
       <!-- Toolbar -->
       <div class="flex flex-col gap-4">
         <!-- Top Row: Actions -->

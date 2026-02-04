@@ -188,7 +188,7 @@ const problemItems = computed(() => {
 </script>
 
 <template>
-  <div class="app-card p-5">
+  <div class="app-card">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
         <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-orange-500" />

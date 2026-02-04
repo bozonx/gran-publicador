@@ -158,9 +158,9 @@ async function onDragEnd() {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="page-spacing">
     <!-- Page header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           {{ t('project.titlePlural') }}
@@ -200,7 +200,7 @@ async function onDragEnd() {
     </div>
 
     <!-- Search and filters -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6 space-y-4">
+    <div class="app-card section-spacing">
       <div class="flex items-center gap-4">
         <div class="flex-1">
           <UInput

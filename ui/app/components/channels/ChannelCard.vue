@@ -22,7 +22,7 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
 
 <template>
   <div
-    class="app-card app-card-hover p-4 cursor-pointer relative flex flex-col h-full"
+    class="app-card app-card-hover cursor-pointer relative flex flex-col h-full"
     :class="{ 'opacity-60 grayscale': isChannelArchived }"
     @click="navigateTo(`/channels/${channel.id}`)"
   >

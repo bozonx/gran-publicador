@@ -439,7 +439,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="page-spacing">
     <!-- Page header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
@@ -478,7 +478,7 @@ async function handleDelete() {
     </div>
 
     <!-- Search and filters -->
-    <div class="app-card p-4 space-y-4">
+    <div class="app-card section-spacing">
       <!-- Search -->
       <div class="flex items-center gap-4">
         <div class="flex-1">

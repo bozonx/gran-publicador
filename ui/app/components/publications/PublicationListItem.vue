@@ -48,7 +48,7 @@ function handleDelete(e: Event) {
 
 <template>
   <div
-    class="app-card app-card-hover p-5 cursor-pointer group"
+    class="app-card app-card-hover cursor-pointer group"
     @click="handleClick"
   >
     <div class="flex flex-col h-full">

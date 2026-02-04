@@ -63,12 +63,35 @@ body {
 
 /* Utilities */
 @layer utilities {
+
+  /* Base card - standard padding for most use cases */
   .app-card {
     @apply bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-5;
   }
 
+  /* Small card - compact padding for dense layouts */
+  .app-card-sm {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-3 sm:p-4;
+  }
+
+  /* Large card - generous padding for feature sections */
+  .app-card-lg {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 sm:p-8;
+  }
+
+  /* Card hover effect */
   .app-card-hover {
     @apply hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200;
+  }
+
+  /* Standard page spacing - consistent gaps between major sections */
+  .page-spacing {
+    @apply space-y-6;
+  }
+
+  /* Section spacing - consistent gaps within sections */
+  .section-spacing {
+    @apply space-y-4;
   }
 
   .text-xxs {

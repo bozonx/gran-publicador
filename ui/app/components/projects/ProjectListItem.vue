@@ -60,7 +60,7 @@ const warningsTooltip = computed(() => {
     class="block app-card app-card-hover transition-all cursor-pointer"
     :class="{ 'opacity-75 grayscale': project.archivedAt }"
   >
-    <div class="p-4 sm:p-5 flex items-start gap-4">
+    <div class="flex items-start gap-4">
       <slot name="leading" />
       <div class="flex-1 min-w-0">
           <!-- Header: Name + Role + Problem Badges -->
