@@ -149,12 +149,12 @@ onMounted(() => {
 
 <template>
   <div class="space-y-3">
-    <div class="flex items-center gap-2 overflow-x-auto pb-2">
+    <div class="flex flex-wrap items-center gap-2 pb-2">
       <VueDraggable
         v-model="tabs"
         :animation="200"
         handle=".drag-handle"
-        class="flex items-center gap-2 flex-1"
+        class="flex flex-wrap items-center gap-2"
         @end="handleReorder"
       >
         <div

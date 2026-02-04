@@ -898,12 +898,39 @@ const executeMoveToProject = async () => {
       </UButton>
     </div>
 
-    <ContentLibraryTabs
-      v-model="activeTabId"
-      @update:active-tab="activeTab = $event"
-      :scope="scope"
-      :project-id="props.projectId"
-    />
+    <div class="flex flex-col md:flex-row items-start justify-between gap-4">
+      <ContentLibraryTabs
+        v-model="activeTabId"
+        @update:active-tab="activeTab = $event"
+        :scope="scope"
+        :project-id="props.projectId"
+        class="flex-1 min-w-0"
+      />
+
+      <div class="flex items-center gap-2 shrink-0 pt-1">
+         <UButton
+            :color="archiveStatus === 'archived' ? 'neutral' : 'neutral'"
+            variant="ghost" 
+            :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
+            @click="archiveStatus = archiveStatus === 'active' ? 'archived' : 'active'"
+            size="sm"
+          >
+            {{ archiveStatus === 'archived' ? t('contentLibrary.filter.active') : t('contentLibrary.filter.archived') }}
+          </UButton>
+          
+          <UButton
+            v-if="archiveStatus === 'archived'"
+            size="sm"
+            color="red"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            :loading="isPurging"
+            @click="isPurgeConfirmModalOpen = true"
+          >
+            {{ t('contentLibrary.actions.purgeArchived', 'Empty trash') }}
+          </UButton>
+      </div>
+    </div>
 
     <div class="app-card p-6 space-y-4">
       <div class="flex flex-col md:flex-row gap-3 md:items-center justify-between">
@@ -932,29 +959,6 @@ const executeMoveToProject = async () => {
         </div>
 
         <div class="flex items-center gap-3 justify-between md:justify-end">
-          <div class="flex items-center gap-2">
-            <UButton
-              :color="archiveStatus === 'archived' ? 'neutral' : 'neutral'"
-              variant="outline"
-              :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
-              @click="archiveStatus = archiveStatus === 'active' ? 'archived' : 'active'"
-              size="sm"
-            >
-              {{ archiveStatus === 'archived' ? t('contentLibrary.filter.active') : t('contentLibrary.filter.archived') }}
-            </UButton>
-          </div>
-          <UButton
-            v-if="archiveStatus === 'archived'"
-            size="sm"
-            color="neutral"
-            variant="outline"
-            icon="i-heroicons-trash"
-            :loading="isPurging"
-            @click="isPurgeConfirmModalOpen = true"
-          >
-            {{ t('contentLibrary.actions.purgeArchived', 'Empty trash') }}
-          </UButton>
-
           <template v-if="archiveStatus === 'active'">
             <UButton
               color="neutral"

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import yaml from 'js-yaml'
 
 interface ContentBlock {
   id?: string
@@ -30,8 +29,6 @@ const { uploadMedia } = useMedia()
 const toast = useToast()
 
 const isCollapsed = ref(false)
-const yamlMeta = ref('')
-const yamlError = ref<string | null>(null)
 
 // Actions for MediaGallery
 async function onAddMedia(media: any[]) {
@@ -104,44 +101,7 @@ const onCopyMedia = async (mediaLinkId: string) => {
   }
 }
 
-// Initialize YAML from meta
-watch(() => props.modelValue.meta, (newMeta) => {
-  try {
-    if (newMeta && Object.keys(newMeta).length > 0) {
-      const currentYaml = yaml.dump(newMeta)
-      if (currentYaml.trim() !== yamlMeta.value.trim()) {
-        yamlMeta.value = currentYaml
-      }
-    } else {
-      yamlMeta.value = ''
-    }
-  } catch (e) {
-    console.error('Failed to dump YAML', e)
-  }
-}, { immediate: true, deep: true })
 
-// Update meta from YAML
-watch(yamlMeta, (newYaml) => {
-  if (!newYaml.trim()) {
-    yamlError.value = null
-    if (props.modelValue.meta && Object.keys(props.modelValue.meta).length > 0) {
-      emit('update:modelValue', { ...props.modelValue, meta: {} })
-    }
-    return
-  }
-
-  try {
-    const parsed = yaml.load(newYaml)
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      yamlError.value = t('validation.invalidYaml')
-      return
-    }
-    yamlError.value = null
-    emit('update:modelValue', { ...props.modelValue, meta: parsed })
-  } catch (e: any) {
-    yamlError.value = e.message
-  }
-})
 
 const updateText = (text: string) => {
   emit('update:modelValue', { ...props.modelValue, text })
@@ -222,11 +182,12 @@ const toggleCollapse = () => {
         />
       </div>
 
-      <div v-if="yamlMeta" class="space-y-1">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('common.meta') }}</span>
-        <div class="p-2 rounded bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 text-[10px] font-mono whitespace-pre-wrap overflow-x-auto text-gray-600 dark:text-gray-400">
-          {{ yamlMeta }}
-        </div>
+      <div class="mt-2">
+        <CommonMetadataEditor
+          :model-value="props.modelValue.meta || {}"
+          @update:model-value="(newMeta) => emit('update:modelValue', { ...props.modelValue, meta: newMeta })"
+          :label="t('common.meta')"
+        />
       </div>
     </div>
   </div>

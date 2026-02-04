@@ -265,7 +265,8 @@ async function saveMediaMeta() {
   try {
     const updated = await updateMedia(selectedMedia.value.id, {
       alt: editableAlt.value || undefined,
-      description: editableDescription.value || undefined
+      description: editableDescription.value || undefined,
+      meta: editableMetadata.value || undefined
     })
 
     // Update local state
@@ -1448,9 +1449,8 @@ const emit = defineEmits<Emits>()
         </div>
 
         <div class="mt-4">
-           <CommonYamlEditor
-              :model-value="editableMetadata || {}"
-              disabled
+           <CommonMetadataEditor
+              v-model="editableMetadata"
               :rows="8"
            />
         </div>
