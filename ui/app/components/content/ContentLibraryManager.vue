@@ -779,7 +779,7 @@ const executeMoveToProject = async () => {
         <template v-if="scope === 'project'">
           <NuxtLink
             v-if="currentProject"
-            :to="`/projects/${projectId}`"
+            :to="`/projects/${props.projectId}`"
             class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium flex items-center gap-1"
           >
             <UIcon name="i-heroicons-folder" class="w-4 h-4" />
@@ -798,11 +798,11 @@ const executeMoveToProject = async () => {
       </div>
 
       <UButton
-        v-if="scope === 'project' && projectId"
+        v-if="scope === 'project' && props.projectId"
         variant="ghost"
         color="neutral"
         icon="i-heroicons-arrow-left"
-        :to="`/projects/${projectId}`"
+        :to="`/projects/${props.projectId}`"
       >
         {{ t('common.back') }}
       </UButton>
@@ -811,7 +811,7 @@ const executeMoveToProject = async () => {
     <ContentLibraryTabs
       v-model="activeTabId"
       :scope="scope"
-      :project-id="projectId"
+      :project-id="props.projectId"
     />
 
     <div class="app-card p-6 space-y-4">

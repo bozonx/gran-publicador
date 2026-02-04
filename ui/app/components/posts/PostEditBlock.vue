@@ -323,17 +323,33 @@ const remainingCharacters = computed(() => {
     )
 })
 
+const getChannelPreferences = (channel: any) => {
+    if (!channel || !channel.preferences) return {}
+    if (typeof channel.preferences === 'string') {
+        try {
+            return JSON.parse(channel.preferences)
+        } catch (e) {
+             // console.warn('Failed to parse channel preferences', e)
+             return {}
+        }
+    }
+    return channel.preferences
+}
+
 const availableTemplates = computed(() => {
     const channel = selectedChannel.value
     // Check if channel has preferences (type guard)
-    if (!channel || !('preferences' in channel) || !(channel as ChannelWithProject).preferences?.templates) return []
+    // We must handle cases where preferences is a string (backend raw response)
+    const preferences = getChannelPreferences(channel)
+    
+    if (!preferences?.templates) return []
     
     // Filter templates by post type (if specified in template)
     // If template has specific post type, it must match publication's post type
     // If template post type is null, it applies to all
     const publicationPostType = displayType.value
     
-    const list = ((channel as ChannelWithProject).preferences?.templates || []).filter(t => {
+    const list = (preferences.templates || []).filter((t: any) => {
         // Filter by Post Type
         if (t.postType && t.postType !== publicationPostType) return false
         
@@ -342,13 +358,13 @@ const availableTemplates = computed(() => {
         // For now, let's stick to post type filtering as primary
         
         return true
-    }).map(template => ({
+    }).map((template: any) => ({
         value: { id: template.id },
         label: template.name + (template.isDefault ? ` (${t('channel.templateIsDefault', 'Default')})` : '')
     }))
 
     // Find current default to show in label
-    const defaultTemplate = ((channel as ChannelWithProject).preferences?.templates || []).find(t => t.isDefault)
+    const defaultTemplate = (preferences.templates || []).find((t: any) => t.isDefault)
     const defaultLabel =  defaultTemplate ? `${t('channel.templateDefault', 'Default')} (currently '${defaultTemplate.name}')` : t('channel.templateDefault', 'Default (Auto)')
 
     // Add "Default" option at the top
@@ -358,21 +374,61 @@ const availableTemplates = computed(() => {
     ]
 })
 
-// Auto-select logic?
-watch(availableTemplates, (newTemplates) => {
-    // If current selection is explicit ({id:...}) but not in list (deleted?), fallback to Default (null)
+// Track previous template list to detect actual changes (not just recomputation)
+const previousTemplateIds = ref<Set<string>>(new Set())
+
+watch(availableTemplates, (newTemplates, oldTemplates) => {
+    // If list is empty (loading or no channel), don't reset anything
+    if (newTemplates.length === 0) return
+
+    // Build set of current template IDs (excluding null/default option)
+    const currentIds = new Set(
+        newTemplates
+            .filter(t => t.value && t.value.id)
+            .map(t => t.value!.id)
+    )
+
+    // If this is the first run or the template list hasn't actually changed, skip
+    // We update the tracking set but don't reset the form data
+    if (previousTemplateIds.value.size === 0) {
+        previousTemplateIds.value = currentIds
+        return
+    }
+
+    // Check if the list actually changed (not just recomputed)
+    const listsAreEqual = 
+        currentIds.size === previousTemplateIds.value.size &&
+        Array.from(currentIds).every(id => previousTemplateIds.value.has(id))
+
+    if (listsAreEqual) {
+        // List didn't change content-wise, just recomputed - don't reset
+        return
+    }
+
+    // Update previous list
+    previousTemplateIds.value = currentIds
+
+    // Now check if current selection is still valid in the NEW list
     const current = formData.template
     if (current && current.id) {
-        const exists = newTemplates.some(t => t.value && t.value.id === current.id)
+        const exists = currentIds.has(current.id)
         if (!exists) {
+            // Template was actually removed from the list
             formData.template = null // Reset to default
         }
     }
-}, { immediate: true })
+})
 
 // Watchers for external updates
-watch(() => props.post, (newPost) => {
+watch(() => props.post, (newPost, oldPost) => {
     if (!newPost) return
+
+    // Only update if post actually changed (not just duplicate object reference or same timestamp)
+    // Checking updatedAt is usually sufficient for backend updates
+    if (oldPost && newPost.id === oldPost.id && newPost.updatedAt === oldPost.updatedAt) {
+        return
+    }
+
     formData.tags = newPost.tags || ''
     formData.scheduledAt = toDatetimeLocal(newPost.scheduledAt)
     formData.status = newPost.status
