@@ -57,7 +57,7 @@ const { t, d } = useI18n()
 // const route = useRoute() // Removed route dependency for projectId
 const api = useApi()
 const toast = useToast()
-const { currentProject, fetchProject } = useProjects()
+const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
 const { formatDateShort, truncateContent } = useFormatters()
 
 // const projectId = computed(() => route.params.id as string) // Replaced by props.projectId
@@ -609,17 +609,11 @@ const executeBulkOperation = async () => {
 // Move to Project Logic
 const isMoveToProjectModalOpen = ref(false)
 const targetProjectId = ref<string | null>(null)
-const { data: projectsData, refresh: refreshProjects } = useFetch('/api/projects', {
-  headers: useRequestHeaders(['cookie']),
-  query: { page: 1, limit: 100 } // Fetch enough projects for the dropdown
-})
-
 const myProjects = computed(() => {
-  const data = projectsData.value as any
-  return (data?.items || []).map((p: any) => ({
+  return (projects.value || []).map((p) => ({
     id: p.id,
     label: p.name,
-    isPersonal: false
+    isPersonal: false,
   }))
 })
 
@@ -631,9 +625,12 @@ const projectOptions = computed(() => {
   ]
 })
 
-const handleMoveToProject = () => {
+const handleMoveToProject = async () => {
   // Reset target project
   targetProjectId.value = null
+  if (projects.value.length === 0) {
+    await fetchProjects(false)
+  }
   isMoveToProjectModalOpen.value = true
 }
 
@@ -1126,9 +1123,9 @@ const executeMoveToProject = async () => {
     >
       <USelectMenu
         v-model="targetProjectId"
-        :options="projectOptions"
-        value-attribute="id"
-        option-attribute="label"
+        :items="projectOptions"
+        value-key="id"
+        label-key="label"
         searchable
         :search-attributes="['label']"
         :placeholder="t('contentLibrary.bulk.selectProject')"
