@@ -31,6 +31,7 @@ describe('TelegramBotUpdate', () => {
       contentBlockMedia: {
         create: jest.fn(async () => ({})),
         aggregate: jest.fn(async () => ({ _max: { order: null } })),
+        findFirst: jest.fn(async () => null),
       },
     };
     prisma.$transaction = jest.fn(async (fn: any) => fn(prisma));
@@ -167,5 +168,34 @@ describe('TelegramBotUpdate', () => {
 
     expect(ctx.reply).toHaveBeenCalledWith('telegram.unsupported_message_type');
     expect(deps.prisma.contentItem.create).not.toHaveBeenCalled();
+  });
+
+  it('does not create duplicates for the same telegram message', async () => {
+    const deps = createDeps();
+
+    deps.prisma.contentBlock.findFirst.mockResolvedValueOnce({ id: 'cbExisting' });
+
+    const update = new TelegramBotUpdate(
+      deps.usersService as any,
+      deps.prisma as any,
+      deps.mediaService as any,
+      deps.sttService as any,
+      deps.i18n as any,
+      deps.configService as any,
+    );
+
+    const ctx = createCtx({
+      message: {
+        message_id: 1,
+        chat: { id: 200 },
+        text: 'Hello',
+      },
+    });
+
+    await update.onMessage(ctx as any);
+    await (update as any).userQueues.get(100)?.onIdle();
+
+    expect(deps.prisma.contentItem.create).not.toHaveBeenCalled();
+    expect(ctx.reply).not.toHaveBeenCalledWith('telegram.content_item_created');
   });
 });

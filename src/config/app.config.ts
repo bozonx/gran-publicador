@@ -1,5 +1,16 @@
 import { plainToClass } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  MinLength,
+  ValidateIf,
+  validateSync,
+} from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -56,18 +67,21 @@ export class AppConfig {
    * Users with this ID will automatically be granted administrative privileges.
    * Defined by TELEGRAM_ADMIN_ID environment variable.
    */
+  @IsOptional()
   @IsString()
-  public adminTelegramId!: string;
+  public adminTelegramId?: string;
 
   /**
    * Telegram Bot Token.
    */
+  @ValidateIf(o => o.telegramBotEnabled)
   @IsString()
-  public telegramBotToken!: string;
+  public telegramBotToken?: string;
 
   /**
    * Whether the Telegram bot for repost collection is enabled.
    */
+  @IsBoolean()
   public telegramBotEnabled!: boolean;
 
   /**
@@ -75,9 +89,10 @@ export class AppConfig {
    * Defined by TELEGRAM_SESSION_TTL_MINUTES environment variable.
    * Default: 10
    */
+  @IsOptional()
   @IsInt()
   @Min(1)
-  public telegramSessionTtlMinutes!: number;
+  public telegramSessionTtlMinutes: number = 10;
 
   /**
    * Frontend URL for publication links in bot messages.
@@ -90,8 +105,9 @@ export class AppConfig {
    * Base URL for the Telegram Mini App.
    * Defined by TELEGRAM_MINI_APP_URL environment variable.
    */
+  @IsOptional()
   @IsString()
-  public telegramMiniAppUrl!: string;
+  public telegramMiniAppUrl?: string;
 
   /**
    * JWT Secret for auth.
@@ -183,12 +199,12 @@ export default registerAs('app', (): AppConfig => {
     nodeEnv: process.env.NODE_ENV ?? 'production',
     logLevel: process.env.LOG_LEVEL ?? 'warn',
 
-    adminTelegramId: process.env.TELEGRAM_ADMIN_ID,
-    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+    adminTelegramId: process.env.TELEGRAM_ADMIN_ID || undefined,
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
     telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
     telegramSessionTtlMinutes: parseInt(process.env.TELEGRAM_SESSION_TTL_MINUTES ?? '10', 10),
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
-    telegramMiniAppUrl: process.env.TELEGRAM_MINI_APP_URL ?? 'https://t.me/your_bot/app',
+    telegramMiniAppUrl: process.env.TELEGRAM_MINI_APP_URL || undefined,
     jwtSecret: process.env.JWT_SECRET,
     systemApiSecret: process.env.SYSTEM_API_SECRET,
     systemApiIpRestrictionEnabled: process.env.SYSTEM_API_IP_RESTRICTION_ENABLED !== 'false',
@@ -204,7 +220,10 @@ export default registerAs('app', (): AppConfig => {
     // Scheduler Config
     schedulerIntervalSeconds: parseInt(process.env.SCHEDULER_INTERVAL_SECONDS ?? '60', 10),
     schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
-    microserviceRequestTimeoutSeconds: parseInt(process.env.MICROSERVICE_REQUEST_TIMEOUT_SECONDS ?? '30', 10),
+    microserviceRequestTimeoutSeconds: parseInt(
+      process.env.MICROSERVICE_REQUEST_TIMEOUT_SECONDS ?? '30',
+      10,
+    ),
     timezone: process.env.TZ ?? 'UTC',
   });
 
@@ -216,6 +235,16 @@ export default registerAs('app', (): AppConfig => {
   if (errors.length > 0) {
     const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
     throw new Error(`App config validation error: ${errorMessages.join('; ')}`);
+  }
+
+  if (config.telegramBotEnabled && !config.telegramBotToken) {
+    throw new Error(
+      'App config validation error: TELEGRAM_BOT_TOKEN is required when TELEGRAM_BOT_ENABLED is true',
+    );
+  }
+
+  if (!config.telegramMiniAppUrl) {
+    config.telegramMiniAppUrl = 'https://t.me/your_bot/app';
   }
 
   return config;

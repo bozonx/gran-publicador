@@ -91,7 +91,18 @@ export class TelegramBotUpdate {
     }
 
     const queue = this.getQueueForUser(from.id);
-    queue.add(() => this.processMessage(ctx, message));
+    await queue
+      .add(() => this.processMessage(ctx, message))
+      .catch(async error => {
+        this.logger.error(
+          `Failed to process message ${message.message_id} for user ${from.id}: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+
+        await ctx
+          .reply(String(this.i18n.t('telegram.error_internal', { lang })))
+          .catch(() => undefined);
+      });
   }
 
   /**
@@ -110,40 +121,68 @@ export class TelegramBotUpdate {
 
     const lang = from.language_code;
 
-    const user = await this.usersService.findByTelegramId(BigInt(from.id));
-    if (!user) {
-      await ctx.reply(String(this.i18n.t('telegram.user_not_found', { lang })));
-      return;
-    }
+    try {
+      const alreadyProcessed = await this.isMessageAlreadyProcessed({
+        telegramUserId: from.id,
+        chatId: message.chat.id,
+        messageId: message.message_id,
+      });
+      if (alreadyProcessed) {
+        return;
+      }
 
-    if (user.isBanned) {
-      await ctx.reply(
-        String(
-          this.i18n.t('telegram.user_banned', {
-            lang,
-            args: { reason: user.banReason || 'No reason provided' },
-          }),
-        ),
-      );
-      return;
-    }
+      const user = await this.usersService.findByTelegramId(BigInt(from.id));
+      if (!user) {
+        await ctx.reply(String(this.i18n.t('telegram.user_not_found', { lang })));
+        return;
+      }
 
-    const extracted = extractMessageContent(message);
-    const supportedText = (extracted.text ?? '').trim();
-    const supportedMedia = extracted.media.filter(m => !m.isVoice);
-    const voiceMedia = extracted.media.filter(m => m.isVoice);
+      if (user.isBanned) {
+        await ctx.reply(
+          String(
+            this.i18n.t('telegram.user_banned', {
+              lang,
+              args: { reason: user.banReason || 'No reason provided' },
+            }),
+          ),
+        );
+        return;
+      }
 
-    const hasAnySupported =
-      supportedText.length > 0 || supportedMedia.length > 0 || voiceMedia.length > 0;
+      const extracted = extractMessageContent(message);
+      const supportedText = (extracted.text ?? '').trim();
+      const supportedMedia = extracted.media.filter(m => !m.isVoice);
+      const voiceMedia = extracted.media.filter(m => m.isVoice);
 
-    if (!hasAnySupported) {
-      await ctx.reply(String(this.i18n.t('telegram.unsupported_message_type', { lang })));
-      return;
-    }
+      const hasAnySupported =
+        supportedText.length > 0 || supportedMedia.length > 0 || voiceMedia.length > 0;
 
-    const mgid = message.media_group_id;
-    if (mgid) {
-      const created = await this.addMediaGroupMessageToContentBlock({
+      if (!hasAnySupported) {
+        await ctx.reply(String(this.i18n.t('telegram.unsupported_message_type', { lang })));
+        return;
+      }
+
+      const mgid = message.media_group_id;
+      if (mgid) {
+        const created = await this.addMediaGroupMessageToContentBlock({
+          ctx,
+          userId: user.id,
+          telegramUserId: from.id,
+          message,
+          extractedText: supportedText,
+          supportedMedia,
+          voiceMedia,
+          mediaGroupId: mgid,
+        });
+
+        if (created.reportCreated) {
+          await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
+        }
+
+        return;
+      }
+
+      const contentItem = await this.createContentItemFromMessage({
         ctx,
         userId: user.id,
         telegramUserId: from.id,
@@ -151,29 +190,57 @@ export class TelegramBotUpdate {
         extractedText: supportedText,
         supportedMedia,
         voiceMedia,
-        mediaGroupId: mgid,
       });
 
-      if (created.reportCreated) {
+      if (contentItem) {
         await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
       }
-
-      return;
+    } catch (error) {
+      this.logger.error(
+        `Unhandled error while processing message ${message.message_id}: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      await ctx
+        .reply(String(this.i18n.t('telegram.error_internal', { lang })))
+        .catch(() => undefined);
     }
+  }
 
-    const contentItem = await this.createContentItemFromMessage({
-      ctx,
-      userId: user.id,
-      telegramUserId: from.id,
-      message,
-      extractedText: supportedText,
-      supportedMedia,
-      voiceMedia,
+  private async isMessageAlreadyProcessed(options: {
+    telegramUserId: number;
+    chatId: number;
+    messageId: number;
+  }): Promise<boolean> {
+    const { telegramUserId, chatId, messageId } = options;
+
+    const user = await this.usersService.findByTelegramId(BigInt(telegramUserId));
+    if (!user) return false;
+
+    const existing = await (this.prisma as any).contentBlock.findFirst({
+      where: {
+        contentItem: {
+          userId: user.id,
+          projectId: null,
+        },
+        AND: [
+          {
+            meta: {
+              path: ['telegram', 'chatId'],
+              equals: chatId,
+            },
+          },
+          {
+            meta: {
+              path: ['telegram', 'messageId'],
+              equals: messageId,
+            },
+          },
+        ],
+      },
+      select: { id: true },
     });
 
-    if (contentItem) {
-      await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
-    }
+    return Boolean(existing);
   }
 
   private getTitleForMessage(message: Message, extractedText: string): string | null {
@@ -355,6 +422,21 @@ export class TelegramBotUpdate {
     let nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
 
     for (const m of supportedMedia) {
+      const alreadyAttached = await (this.prisma as any).contentBlockMedia.findFirst({
+        where: {
+          contentBlockId: existingBlock.id,
+          media: {
+            storageType: StorageType.TELEGRAM,
+            storagePath: m.fileId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (alreadyAttached) {
+        continue;
+      }
+
       const createdMedia = await this.mediaService.create({
         type: m.type,
         storageType: StorageType.TELEGRAM,

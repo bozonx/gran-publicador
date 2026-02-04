@@ -145,7 +145,7 @@ cp .env.development.example .env
 cp .env.production.example .env
 ```
 
-Отредактируйте `.env` файл. Основные обязательные параметры: `DATABASE_URL`, `JWT_SECRET`, `TELEGRAM_BOT_TOKEN`, `SOCIAL_POSTING_SERVICE_URL`.
+Отредактируйте `.env` файл. Основные обязательные параметры: `DATABASE_URL`, `JWT_SECRET`, `SOCIAL_POSTING_SERVICE_URL`.
 
 ### 2. Инициализация базы данных
 
@@ -171,6 +171,8 @@ npx prisma db seed
    - Команда: `/newapp`
    - Укажите URL вашего приложения (для разработки: `http://localhost:3000`)
    - Загрузите иконку и описание
+
+Telegram бот (если включен через `TELEGRAM_BOT_ENABLED=true`) сохраняет сообщения из личного чата в **Content Library** как `ContentItem` с блоками (`ContentBlock`) и медиа.
 
 ## 💻 Запуск в режиме разработки
 
@@ -227,7 +229,11 @@ pnpm dev
 |------------|--------------|----------|
 | `DATABASE_URL` | Да | Строка подключения к PostgreSQL |
 | `JWT_SECRET` | Да | Секрет для JWT токенов (минимум 32 символа) |
-| `TELEGRAM_BOT_TOKEN` | Да | Токен Telegram бота от @BotFather |
+| `TELEGRAM_BOT_ENABLED` | Нет | Включить Telegram бота (по умолчанию `false`) |
+| `TELEGRAM_BOT_TOKEN` | Условно | Токен Telegram бота от @BotFather (обязателен если `TELEGRAM_BOT_ENABLED=true`) |
+| `TELEGRAM_ADMIN_ID` | Нет | Telegram ID супер-администратора (опционально) |
+| `TELEGRAM_SESSION_TTL_MINUTES` | Нет | TTL для внутренних ключей Telegram (мин), по умолчанию `10` |
+| `TELEGRAM_MINI_APP_URL` | Нет | Base URL для Telegram Mini App |
 | `SOCIAL_POSTING_SERVICE_URL` | Да | URL микросервиса постинга |
 | `NEWS_SERVICE_URL` | Да | URL микросервиса новостей |
 | `STT_SERVICE_URL` | Да | URL микросервиса Speech-To-Text |
