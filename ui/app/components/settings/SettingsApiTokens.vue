@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
+
 const { t, d } = useI18n()
 const toast = useToast()
 const api = useApi()
@@ -24,6 +26,24 @@ const limitToProjects = ref(false)
 const visibleTokens = ref<Set<string>>(new Set())
 const showDeleteTokenModal = ref(false)
 const tokenToDeleteId = ref<string | null>(null)
+
+const createModalRootRef = ref<HTMLElement | null>(null)
+const editModalRootRef = ref<HTMLElement | null>(null)
+
+const createTokenNameInputRef = ref()
+const editTokenNameInputRef = ref()
+
+useModalAutoFocus({
+  open: showCreateTokenModal,
+  root: createModalRootRef,
+  candidates: [{ target: createTokenNameInputRef }],
+})
+
+useModalAutoFocus({
+  open: showEditTokenModal,
+  root: editModalRootRef,
+  candidates: [{ target: editTokenNameInputRef }],
+})
 
 // Load tokens and projects on mount
 onMounted(() => {
@@ -238,9 +258,9 @@ function formatDate(date: string | null | undefined): string {
       v-model:open="showCreateTokenModal" 
       :title="t('settings.createToken', 'Create API Token')"
     >
-      <div class="space-y-4">
+      <div ref="createModalRootRef" class="space-y-4">
         <UFormField :label="t('settings.tokenName', 'Token Name')" required>
-          <UInput v-model="newTokenName" :placeholder="t('settings.tokenNamePlaceholder')" class="w-full" />
+          <UInput ref="createTokenNameInputRef" v-model="newTokenName" :placeholder="t('settings.tokenNamePlaceholder')" class="w-full" />
         </UFormField>
 
         <UFormField>
@@ -278,9 +298,9 @@ function formatDate(date: string | null | undefined): string {
       v-model:open="showEditTokenModal" 
       :title="t('settings.editToken', 'Edit API Token')"
     >
-      <div class="space-y-4">
+      <div ref="editModalRootRef" class="space-y-4">
         <UFormField :label="t('settings.tokenName', 'Token Name')" required>
-          <UInput v-model="newTokenName" class="w-full" />
+          <UInput ref="editTokenNameInputRef" v-model="newTokenName" class="w-full" />
         </UFormField>
 
         <UFormField>

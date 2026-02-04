@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTranslate } from '../../composables/useTranslate'
+import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 
 const props = defineProps<{
   open: boolean
@@ -23,6 +24,15 @@ const { translateText, isLoading, error } = useTranslate()
 const targetLang = ref(props.defaultTargetLang || user.value?.language || 'en-US')
 const splitter = ref<'paragraph' | 'markdown' | 'sentence' | 'off'>('paragraph')
 const maxChunkLength = ref<number | undefined>(undefined)
+
+const modalRootRef = ref<HTMLElement | null>(null)
+const targetLangSelectRef = ref()
+
+useModalAutoFocus({
+  open: isOpen,
+  root: modalRootRef,
+  candidates: [{ target: targetLangSelectRef }],
+})
 
 
 const splitterOptions = computed(() => [
@@ -59,11 +69,13 @@ watch(() => props.defaultTargetLang, (newVal) => {
 
 <template>
   <UiAppModal
+    v-model:open="isOpen"
     :title="t('translate.title')"
   >
-    <div class="space-y-4 py-2">
+    <div ref="modalRootRef" class="space-y-4 py-2">
       <UFormField :label="t('translate.targetLanguage')">
         <CommonLanguageSelect
+          ref="targetLangSelectRef"
           v-model="targetLang"
           mode="all"
           searchable

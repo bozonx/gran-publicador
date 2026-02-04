@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SocialMedia } from '~/types/socialMedia'
 import type { ChannelCreateInput } from '~/types/channels'
+import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 
 const { t } = useI18n()
 
@@ -18,6 +19,14 @@ const props = defineProps<{
 const { createChannel, isLoading } = useChannels()
 
 const createFormRef = ref()
+
+const modalRootRef = ref<HTMLElement | null>(null)
+
+useModalAutoFocus({
+  open: isOpen,
+  root: modalRootRef,
+  candidates: [{ target: createFormRef }],
+})
 
 async function handleCreate(data: ChannelCreateInput) {
   try {
@@ -39,13 +48,15 @@ function handleClose() {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
-    <FormsChannelCreateForm
-      ref="createFormRef"
-      id="create-channel-form"
-      :initial-project-id="props.initialProjectId"
-      :show-project-select="props.showProjectSelect ?? !props.initialProjectId"
-      @submit="handleCreate"
-    />
+    <div ref="modalRootRef">
+      <FormsChannelCreateForm
+        ref="createFormRef"
+        id="create-channel-form"
+        :initial-project-id="props.initialProjectId"
+        :show-project-select="props.showProjectSelect ?? !props.initialProjectId"
+        @submit="handleCreate"
+      />
+    </div>
 
     <template #footer>
       <UButton 

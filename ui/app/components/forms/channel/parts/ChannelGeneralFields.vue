@@ -11,6 +11,7 @@ interface Props {
   currentProjectName?: string
   currentSocialMedia?: SocialMedia
   showProject?: boolean
+  nameInputRef?: any
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -196,6 +197,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
         required
       >
         <UInput
+          :ref="props.nameInputRef"
           v-model="state.name"
           :placeholder="t('channel.namePlaceholder')"
           class="w-full"

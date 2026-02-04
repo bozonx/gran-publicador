@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
+import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 
 interface Emits {
   (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string }): void
@@ -55,6 +56,46 @@ const selectedFields = reactive({
 })
 const isExtracting = ref(false)
 const isApplying = ref(false)
+
+const modalRootRef = ref<HTMLElement | null>(null)
+
+const promptInputRef = ref()
+const step2TitleInputRef = ref()
+const step2DescriptionTextareaRef = ref()
+const step2ContentTextareaRef = ref()
+
+const isStep1Open = computed(() => isOpen.value && step.value === 1)
+const isStep2Open = computed(() => isOpen.value && step.value === 2)
+
+const step2FocusCandidates = computed(() => {
+  const candidates: Array<{ target: any }> = []
+
+  if (selectedFields.title) {
+    candidates.push({ target: step2TitleInputRef })
+  }
+
+  if (selectedFields.description) {
+    candidates.push({ target: step2DescriptionTextareaRef })
+  }
+
+  if (selectedFields.content) {
+    candidates.push({ target: step2ContentTextareaRef })
+  }
+
+  return candidates
+})
+
+useModalAutoFocus({
+  open: isStep1Open,
+  root: modalRootRef,
+  candidates: [{ target: promptInputRef }],
+})
+
+useModalAutoFocus({
+  open: isStep2Open,
+  root: modalRootRef,
+  candidates: step2FocusCandidates,
+})
 
 // Form common state
 const showAdvanced = ref(false)
@@ -434,7 +475,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
         </DialogDescription>
       </div>
     </template>
-    <div :class="FORM_SPACING.section">
+    <div ref="modalRootRef" :class="FORM_SPACING.section">
       <!-- STEP 1: CHAT -->
       <template v-if="step === 1">
 
@@ -529,6 +570,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
         <!-- Chat Input -->
         <div class="relative mb-4">
           <UTextarea
+            ref="promptInputRef"
             v-model="prompt"
             :placeholder="t('llm.promptPlaceholder')"
             :rows="3"
@@ -610,7 +652,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.title" :label="t('post.title')" />
               </div>
-              <UInput v-if="selectedFields.title" v-model="extractionResult.title" class="bg-white dark:bg-gray-800 w-full" />
+              <UInput ref="step2TitleInputRef" v-if="selectedFields.title" v-model="extractionResult.title" class="bg-white dark:bg-gray-800 w-full" />
            </div>
 
            <!-- Description -->
@@ -618,7 +660,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.description" :label="t('post.description')" />
               </div>
-              <UTextarea v-if="selectedFields.description" v-model="extractionResult.description" autoresize :rows="2" class="w-full" />
+              <UTextarea ref="step2DescriptionTextareaRef" v-if="selectedFields.description" v-model="extractionResult.description" autoresize :rows="2" class="w-full" />
            </div>
 
            <!-- Tags -->
@@ -650,7 +692,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.content" :label="t('post.contentLabel')" />
               </div>
-              <UTextarea v-if="selectedFields.content" v-model="extractionResult.content" autoresize :rows="5" class="font-mono text-xs w-full" />
+              <UTextarea ref="step2ContentTextareaRef" v-if="selectedFields.content" v-model="extractionResult.content" autoresize :rows="5" class="font-mono text-xs w-full" />
            </div>
            
            <!-- Regenerate Button for Step 2 -->

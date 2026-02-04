@@ -131,10 +131,40 @@ const currentSocialMedia = computed(() => {
 
 const formId = computed(() => props.id || 'channel-create-form')
 
+const projectSelectRef = ref()
+const nameInputRef = ref()
+
+function focusFirstField(): void {
+  const targets = [
+    props.showProjectSelect ? projectSelectRef.value : null,
+    nameInputRef.value,
+  ].filter(Boolean)
+
+  for (const target of targets) {
+    const el = (target?.$el instanceof HTMLElement ? target.$el : target) as HTMLElement | null
+    if (!el) continue
+
+    const focusable = el.matches('input,textarea,select,button,[tabindex]:not([tabindex="-1"])')
+      ? el
+      : el.querySelector<HTMLElement>('input,textarea,select,button,[tabindex]:not([tabindex="-1"])')
+
+    if (!focusable) continue
+
+    try {
+      focusable.focus({ preventScroll: true })
+    } catch {
+      focusable.focus()
+    }
+
+    return
+  }
+}
+
 defineExpose({
   formState,
   isFormValid,
-  submit: handleSubmit
+  submit: handleSubmit,
+  focusFirstField,
 })
 </script>
 
@@ -143,6 +173,7 @@ defineExpose({
     <!-- Project Selection (Optional) -->
     <UFormField v-if="props.showProjectSelect" :label="t('channel.project')" required>
       <USelectMenu
+        ref="projectSelectRef"
         v-model="formState.projectId"
         :items="projectOptions"
         value-key="value"
@@ -162,6 +193,7 @@ defineExpose({
       :is-edit-mode="false"
       :show-project="false"
       :current-social-media="currentSocialMedia || 'TELEGRAM'"
+      :name-input-ref="nameInputRef"
     />
 
     <FormsChannelPartsChannelCredentialsFields

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PostType } from '~/types/posts'
+import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 
 interface Props {
   projectId?: string
@@ -34,6 +35,32 @@ const { typeOptions } = usePosts()
 const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
+
+const modalRootRef = ref<HTMLElement | null>(null)
+const projectSelectRef = ref()
+const languageSelectRef = ref()
+const postTypeSelectRef = ref()
+
+const focusCandidates = computed(() => {
+  const candidates: Array<{ target: any }> = []
+
+  if (!isProjectLocked.value) {
+    candidates.push({ target: projectSelectRef })
+  }
+
+  if (!isLanguageLocked.value) {
+    candidates.push({ target: languageSelectRef })
+  }
+
+  candidates.push({ target: postTypeSelectRef })
+  return candidates
+})
+
+useModalAutoFocus({
+  open: isOpen,
+  root: modalRootRef,
+  candidates: focusCandidates,
+})
 
 const isProjectLocked = computed(() => {
   if (props.allowProjectSelection) return false
@@ -258,6 +285,7 @@ function handleClose() {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('publication.create')">
+    <div ref="modalRootRef">
     <!-- Form -->
     <form id="create-publication-form" class="space-y-6" @submit.prevent="handleCreate">
       <!-- Publication Type Toggle -->
@@ -270,6 +298,7 @@ function handleClose() {
         required
       >
         <USelectMenu
+          ref="projectSelectRef"
           v-model="formData.projectId"
           :items="activeProjects"
           value-key="value"
@@ -287,6 +316,7 @@ function handleClose() {
         required
       >
         <CommonLanguageSelect
+          ref="languageSelectRef"
           v-model="formData.language"
           mode="all"
           searchable
@@ -300,6 +330,7 @@ function handleClose() {
         required
       >
         <USelectMenu
+          ref="postTypeSelectRef"
           v-model="formData.postType"
           :items="typeOptions"
           value-key="value"
@@ -354,6 +385,7 @@ function handleClose() {
         </div>
       </UFormField>
     </form>
+    </div>
 
     <template #footer>
       <UButton

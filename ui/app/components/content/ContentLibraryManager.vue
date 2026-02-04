@@ -222,6 +222,15 @@ const isStartCreating = ref(false)
 const isEditModalOpen = ref(false)
 const activeItem = ref<ContentItem | null>(null)
 
+const editModalRootRef = ref<HTMLElement | null>(null)
+const editTitleInputRef = ref()
+
+useModalAutoFocus({
+  open: isEditModalOpen,
+  root: editModalRootRef,
+  candidates: [{ target: editTitleInputRef }],
+})
+
 const isBulkUploadModalOpen = ref(false)
 
 const isPurgeConfirmModalOpen = ref(false)
@@ -1069,6 +1078,15 @@ const executeBulkOperation = async () => {
 // Move to Project Logic
 const isMoveToProjectModalOpen = ref(false)
 const targetProjectId = ref<string | undefined>(undefined)
+
+const moveModalRootRef = ref<HTMLElement | null>(null)
+const moveProjectSelectRef = ref()
+
+useModalAutoFocus({
+  open: isMoveToProjectModalOpen,
+  root: moveModalRootRef,
+  candidates: [{ target: moveProjectSelectRef }],
+})
 const myProjects = computed(() => {
   return (projects.value || []).map((p) => ({
     id: p.id,
@@ -1490,7 +1508,7 @@ const executeMoveToProject = async () => {
       :ui="{ content: 'w-[90vw] max-w-5xl' }"
       @close="handleCloseModal"
     >
-      <div class="space-y-6">
+      <div ref="editModalRootRef" class="space-y-6">
         <!-- Blocks Section -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -1551,6 +1569,7 @@ const executeMoveToProject = async () => {
             </span>
           </template>
           <UInput 
+            ref="editTitleInputRef"
             v-model="editForm.title"
             :placeholder="t('contentLibrary.fields.titlePlaceholder', 'Product announcement, Weekly update...')"
             class="w-full"
@@ -1624,7 +1643,9 @@ const executeMoveToProject = async () => {
       :ui="{ content: 'w-full max-w-xl' }"
       @close="isMoveToProjectModalOpen = false"
     >
+      <div ref="moveModalRootRef">
       <USelectMenu
+        ref="moveProjectSelectRef"
         v-model="targetProjectId"
         :items="projectOptions"
         value-key="id"
@@ -1633,6 +1654,7 @@ const executeMoveToProject = async () => {
         :search-attributes="['label']"
         :placeholder="t('contentLibrary.bulk.selectProject')"
       />
+      </div>
 
       <template #footer>
         <UButton color="neutral" variant="ghost" @click="isMoveToProjectModalOpen = false">
