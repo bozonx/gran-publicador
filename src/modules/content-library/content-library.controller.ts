@@ -84,6 +84,22 @@ export class ContentLibraryController {
     return this.contentLibraryService.findAll(query, req.user.userId);
   }
 
+  @Get('tags')
+  public async getTags(
+    @Request() req: UnifiedAuthRequest,
+    @Query('scope') scope: 'personal' | 'project',
+    @Query('projectId') projectId?: string,
+  ) {
+    if (scope === 'project' && projectId && req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.contentLibraryService.getAvailableTags(scope, projectId, req.user.userId);
+  }
+
   @Post('items')
   public async create(@Request() req: UnifiedAuthRequest, @Body() dto: CreateContentItemDto) {
     if (

@@ -152,6 +152,10 @@ export class ContentLibraryService {
       where.projectId = query.projectId;
     }
 
+    if (query.tags && query.tags.length > 0) {
+      where.tags = { hasEvery: query.tags };
+    }
+
     if (query.search) {
       const tagTokens = this.normalizeSearchTokens(query.search);
       where.OR = [
@@ -795,5 +799,34 @@ export class ContentLibraryService {
     });
 
     return newItem;
+  }
+
+  public async getAvailableTags(
+    scope: 'project' | 'personal',
+    projectId: string | undefined,
+    userId: string,
+  ) {
+    if (scope === 'project') {
+      if (!projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectAccess(projectId, userId, true);
+    }
+
+    const where: any = {};
+    if (scope === 'personal') {
+      where.userId = userId;
+      where.projectId = null;
+    } else {
+      where.projectId = projectId;
+    }
+
+    const items = await this.prisma.contentItem.findMany({
+      where,
+      select: { tags: true },
+    });
+
+    const allTags = items.flatMap(item => item.tags);
+    return Array.from(new Set(allTags)).sort();
   }
 }

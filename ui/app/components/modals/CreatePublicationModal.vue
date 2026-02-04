@@ -9,7 +9,7 @@ interface Props {
   preselectedChannelIds?: string[]
   allowProjectSelection?: boolean
   prefilledContent?: string
-  prefilledMediaIds?: string[]
+  prefilledMediaIds?: any[]
   prefilledTags?: string
   prefilledNote?: string
 }

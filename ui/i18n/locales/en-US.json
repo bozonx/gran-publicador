@@ -836,7 +836,9 @@
     },
     "filter": {
       "active": "Active",
-      "archived": "Trash"
+      "archived": "Trash",
+      "allTags": "All tags",
+      "filterByTags": "Filter by tags"
     },
     "bulkUploadModal": {
       "title": "Bulk Upload",

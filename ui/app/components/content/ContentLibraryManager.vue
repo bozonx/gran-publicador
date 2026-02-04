@@ -70,6 +70,8 @@ const limit = 20
 const offset = ref(0)
 const total = ref(0)
 const items = ref<ContentItem[]>([])
+const availableTags = ref<string[]>([])
+const selectedTags = ref<string[]>([])
 
 const SORT_BY_STORAGE_KEY = 'content-library-sort-by'
 const SORT_ORDER_STORAGE_KEY = 'content-library-sort-order'
@@ -147,7 +149,7 @@ const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE' | 'MERGE'>('DEL
 const isCreatePublicationModalOpen = ref(false)
 const publicationData = ref({
   content: '',
-  mediaIds: [] as string[],
+  mediaIds: [] as any[],
   tags: '',
   note: ''
 })
@@ -235,6 +237,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         includeArchived: false,
         sortBy: sortBy.value,
         sortOrder: sortOrder.value,
+        tags: selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
       },
     })
 
@@ -252,6 +255,20 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   }
 }
 
+const fetchAvailableTags = async () => {
+  try {
+    const tags = await api.get<string[]>('/content-library/tags', {
+      params: {
+        scope: props.scope === 'personal' ? 'personal' : 'project',
+        projectId: props.scope === 'project' ? props.projectId : undefined,
+      }
+    })
+    availableTags.value = tags
+  } catch (e) {
+    console.error('Failed to fetch available tags', e)
+  }
+}
+
 const loadMore = async () => {
   if (isLoading.value || !hasMore.value) return
   offset.value += limit
@@ -263,9 +280,14 @@ const debouncedFetch = useDebounceFn(() => fetchItems({ reset: true }), 350)
 watch(
   () => q.value,
   () => {
+    selectedIds.value = []
     debouncedFetch()
   },
 )
+
+watch(selectedTags, () => {
+  fetchItems({ reset: true })
+})
 
 watch(
   () => archiveStatus.value,
@@ -275,18 +297,18 @@ watch(
   },
 )
 
-watch(
-  () => q.value,
-  () => {
-    selectedIds.value = []
-  }
-)
-
 watch(() => props.projectId, (newVal) => {
   if (props.scope === 'project' && newVal) {
     fetchItems({ reset: true })
+    fetchAvailableTags()
     fetchProject(newVal)
   }
+})
+
+watch(() => props.scope, () => {
+  selectedTags.value = []
+  fetchAvailableTags()
+  fetchItems({ reset: true })
 })
 
 onMounted(() => {
@@ -302,6 +324,7 @@ onMounted(() => {
     }
   }
 
+  fetchAvailableTags()
   fetchItems({ reset: true })
   if (props.scope === 'project' && props.projectId) {
     fetchProject(props.projectId)
@@ -623,7 +646,7 @@ const handleCreatePublication = (item: any) => {
 
   publicationData.value = {
     content: texts.join('\n\n'),
-    mediaIds: (item.blocks || []).flatMap((b: any) => (b.media || []).map((m: any) => m.mediaId)).filter(Boolean),
+    mediaIds: (item.blocks || []).flatMap((b: any) => (b.media || []).map((m: any) => ({ id: m.mediaId }))).filter((m: any) => !!m.id),
     tags: formatTags(item.tags || []),
     note: item.note || ''
   }
@@ -786,6 +809,18 @@ const executeMoveToProject = async () => {
             icon="i-heroicons-magnifying-glass"
             class="flex-1"
           />
+
+          <USelectMenu
+            v-model="selectedTags"
+            :items="availableTags"
+            multiple
+            :placeholder="t('contentLibrary.filter.filterByTags')"
+            class="w-64"
+            icon="i-heroicons-tag"
+            searchable
+          >
+          >
+          </USelectMenu>
 
           <div class="flex items-center gap-2">
             <USelectMenu

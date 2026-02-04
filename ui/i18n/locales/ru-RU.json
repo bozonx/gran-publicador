@@ -834,7 +834,9 @@
     },
     "filter": {
       "active": "Актуальные",
-      "archived": "Корзина"
+      "archived": "Корзина",
+      "allTags": "Все теги",
+      "filterByTags": "Фильтр по тегам"
     },
     "bulkUploadModal": {
       "title": "Массовая загрузка",

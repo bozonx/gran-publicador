@@ -58,6 +58,14 @@ export class FindContentItemsQueryDto {
   })
   public archivedOnly?: boolean;
 
+  @IsString({ each: true })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return value.split(',').filter(Boolean);
+    return value;
+  })
+  public tags?: string[];
+
   @IsString()
   @IsOptional()
   @IsIn(['createdAt', 'title'])
