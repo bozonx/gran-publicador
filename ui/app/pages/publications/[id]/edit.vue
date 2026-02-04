@@ -372,10 +372,6 @@ async function handleCopyPublication() {
     isCopying.value = true
     try {
         const result = await copyPublication(currentPublication.value.id, copyProjectId.value || null)
-        toast.add({
-            title: t('common.success'),
-            color: 'success'
-        })
         isCopyModalOpen.value = false
         // Redirect to new publication edit page
         router.push(`/publications/${result.id}/edit`)
@@ -383,7 +379,7 @@ async function handleCopyPublication() {
         console.error('Failed to copy publication:', err)
         toast.add({
             title: t('common.error'),
-            description: err.message || t('common.saveError'),
+            description: t('common.saveError'),
             color: 'error'
         })
     } finally {
@@ -442,14 +438,13 @@ async function handleUpdateProject() {
         await updatePublication(currentPublication.value.id, {
             projectId: newProjectId.value || null
         })
-        toast.add({ title: t('common.success'), color: 'success' })
         isProjectModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
     } catch (err: any) {
         console.error('Failed to update project:', err)
         toast.add({
             title: t('common.error'),
-            description: err.message || t('common.saveError'),
+            description: t('common.saveError'),
             color: 'error'
         })
     } finally {
@@ -464,9 +459,15 @@ async function handleUpdateLanguage() {
         await updatePublication(currentPublication.value.id, {
             language: newLanguage.value
         })
-        toast.add({ title: t('common.success'), color: 'success' })
         isLanguageModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update language:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
     } finally {
         isUpdatingLanguage.value = false
     }
@@ -484,9 +485,15 @@ async function handleUpdateTypeOption(type: PostType) {
         await updatePublication(currentPublication.value.id, {
             postType: type
         })
-        toast.add({ title: t('common.success'), color: 'success' })
         isTypeModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update type:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
     } finally {
         isUpdatingType.value = false
     }
@@ -517,8 +524,14 @@ async function handleUpdateStatusOption(status: PublicationStatus) {
         await updatePublication(currentPublication.value.id, {
             status: status
         })
-        toast.add({ title: t('common.success'), color: 'success' })
         await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update status:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
     } finally {
         isUpdatingStatus.value = false
     }

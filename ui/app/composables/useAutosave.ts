@@ -42,7 +42,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   } = options;
 
   const router = useRouter();
-  const toast = useToast();
+  const { t } = useI18n();
 
   const saveStatus = ref<SaveStatus>('saved');
   const saveError = ref<string | null>(null);
@@ -86,15 +86,9 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         lastSavedAt.value = new Date();
       } catch (err: any) {
         console.error('Auto-save failed:', err);
-        saveError.value = err.message || 'Failed to save';
+        saveStatus.value = 'error';
+        saveError.value = t('common.saveError');
         isDirty.value = true;
-
-        toast.add({
-          title: 'Auto-save Error',
-          description: saveError.value ?? 'Failed to save',
-          color: 'error',
-          icon: 'i-heroicons-exclamation-triangle',
-        });
       }
     });
 

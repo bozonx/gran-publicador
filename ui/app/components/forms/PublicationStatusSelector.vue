@@ -39,13 +39,6 @@ function selectStatus(status: string) {
       @update:model-value="selectStatus"
     />
     
-    <UPopover :popper="{ placement: 'top' }">
-      <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-      <template #content>
-        <div class="p-3 max-w-xs text-xs whitespace-pre-line">
-          {{ t('publication.changeStatusWarningReset') }}
-        </div>
-      </template>
-    </UPopover>
+    <CommonInfoTooltip :text="t('publication.changeStatusWarningReset')" />
   </div>
 </template>

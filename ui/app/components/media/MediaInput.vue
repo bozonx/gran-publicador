@@ -59,19 +59,13 @@ async function handleFileUpload(event: Event) {
 
     emit('update:modelValue', [...props.modelValue, newMedia])
     
-    toast.add({
-      title: t('common.success'),
-      description: t('media.uploadSuccess', 'File uploaded successfully'),
-      color: 'success',
-    })
-    
     if (fileInput.value) {
       fileInput.value.value = ''
     }
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('media.uploadError', 'Failed to upload file'),
+      description: t('media.uploadError', 'Failed to upload file'),
       color: 'error',
     })
   } finally {

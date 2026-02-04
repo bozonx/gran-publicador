@@ -74,16 +74,10 @@ const handleCreateTab = async (data: { type: 'FOLDER' | 'SAVED_VIEW'; title: str
     await fetchTabs()
     activeTabId.value = newTab.id
     emit('update:activeTab', newTab)
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('contentLibrary.tabs.createSuccess'),
-      color: 'success',
-    })
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
-      description: e?.data?.message || t('contentLibrary.tabs.createError'),
+      description: t('contentLibrary.tabs.createError'),
       color: 'error',
     })
   }
@@ -99,16 +93,10 @@ const handleDeleteTab = async (tabId: string) => {
     }
     
     await fetchTabs()
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('contentLibrary.tabs.deleteSuccess'),
-      color: 'success',
-    })
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
-      description: e?.data?.message || t('contentLibrary.tabs.deleteError'),
+      description: t('contentLibrary.tabs.deleteError'),
       color: 'error',
     })
   }
@@ -125,7 +113,7 @@ const handleReorder = async () => {
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
-      description: e?.data?.message || t('contentLibrary.tabs.reorderError'),
+      description: t('contentLibrary.tabs.reorderError'),
       color: 'error',
     })
     await fetchTabs()

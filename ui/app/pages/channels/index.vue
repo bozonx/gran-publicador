@@ -370,14 +370,7 @@ const showPagination = computed(() => {
             variant="outline"
             active-variant="solid"
           />
-          <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm whitespace-pre-line">{{ t('channel.filter.ownership.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
+          <CommonInfoTooltip :text="t('channel.filter.ownership.tooltip')" />
         </div>
 
         <!-- Issues Filter (Select) -->
@@ -393,14 +386,7 @@ const showPagination = computed(() => {
             active-variant="solid"
             color="warning"
           />
-           <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm whitespace-pre-line">{{ t('channel.filter.problems.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
+           <CommonInfoTooltip :text="t('channel.filter.problems.tooltip')" />
         </div>
 
         <!-- Archive Filter (Button group) -->

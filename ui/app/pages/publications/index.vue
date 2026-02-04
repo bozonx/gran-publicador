@@ -528,14 +528,7 @@ async function handleDelete() {
               />
             </UDropdownMenu>
           </div>
-          <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm whitespace-pre-line">{{ t('publication.filter.statusGroup.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
+          <CommonInfoTooltip :text="t('publication.filter.statusGroup.tooltip')" />
         </div>
 
         <!-- Ownership Filter (Button group) -->
@@ -550,14 +543,7 @@ async function handleDelete() {
             variant="outline"
             active-variant="solid"
           />
-          <UPopover :popper="{ placement: 'top' }">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-            <template #content>
-              <div class="p-4 max-w-xs">
-                <p class="text-sm whitespace-pre-line">{{ t('publication.filter.ownership.tooltip') }}</p>
-              </div>
-            </template>
-          </UPopover>
+          <CommonInfoTooltip :text="t('publication.filter.ownership.tooltip')" />
         </div>
 
         <!-- Archive Filter (Checkbox) - moved to end -->

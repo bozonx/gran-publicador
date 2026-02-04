@@ -233,21 +233,11 @@ async function uploadFiles(files: FileList | File[], options?: any) {
       await props.onAdd(uploadedMediaItems.map(m => ({ id: m.id })))
     }
     
-    toast.add({
-      title: t('common.success'),
-      description: t('media.uploadSuccess', 'Files uploaded successfully'),
-      color: 'success',
-    })
-    
-    if (fileInput.value) {
-      fileInput.value.value = ''
-    }
-    
     emit('refresh')
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('media.uploadError', 'Failed to upload files'),
+      description: t('media.uploadError', 'Failed to upload files'),
       color: 'error',
     })
   } finally {
@@ -273,18 +263,12 @@ async function saveMediaMeta() {
     selectedMedia.value.meta = updated.meta
     selectedMedia.value.alt = updated.alt
     selectedMedia.value.description = updated.description
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('common.saveSuccess', 'Saved successfully'),
-      color: 'success',
-    })
-    
+
     emit('refresh')
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('common.saveError', 'Failed to save'),
+      description: t('common.saveError', 'Failed to save'),
       color: 'error',
     })
   } finally {
@@ -355,12 +339,6 @@ async function addMedia() {
         await props.onAdd([newMedia])
       }
       
-      toast.add({
-        title: t('common.success'),
-        description: t('media.addSuccess', 'Media added successfully'),
-        color: 'success',
-      })
-      
       sourceInput.value = ''
       filenameInput.value = ''
       isAddingMedia.value = false
@@ -375,12 +353,6 @@ async function addMedia() {
       await props.onAdd([{ id: uploadedMedia.id }])
     }
     
-    toast.add({
-      title: t('common.success'),
-      description: t('media.addSuccess', 'Media added successfully'),
-      color: 'success',
-    })
-    
     sourceInput.value = ''
     filenameInput.value = ''
     isAddingMedia.value = false
@@ -389,7 +361,7 @@ async function addMedia() {
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('media.addError', 'Failed to add media'),
+      description: t('media.addError', 'Failed to add media'),
       color: 'error',
     })
   } finally {
@@ -447,19 +419,13 @@ async function confirmRemoveMedia() {
     } else if (props.onRemove) {
       await props.onRemove(mediaToDeleteId.value)
     }
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('media.removeSuccess', 'Media removed successfully'),
-      color: 'success',
-    })
-    
+
     // Emit event to refresh publication data
     emit('refresh')
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('media.removeError', 'Failed to remove media'),
+      description: t('media.removeError', 'Failed to remove media'),
       color: 'error',
     })
   } finally {
@@ -488,19 +454,13 @@ async function handleDragEnd() {
     } else if (props.onReorder) {
       await props.onReorder(reorderData)
     }
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('media.reorderSuccess', 'Media reordered successfully'),
-      color: 'success',
-    })
-    
+
     // Emit event to refresh publication data
     emit('refresh')
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('media.reorderError', 'Failed to reorder media'),
+      description: t('media.reorderError', 'Failed to reorder media'),
       color: 'error',
     })
     
@@ -643,7 +603,7 @@ async function handleEditorSave(file: File) {
     } catch (error: any) {
         toast.add({
             title: t('common.error'),
-            description: error.message || t('media.editError', 'Failed to save edited image'),
+            description: t('media.editError', 'Failed to save edited image'),
             color: 'error',
         })
     } finally {
@@ -791,11 +751,6 @@ const publicMediaUrl = computed(() => {
 function copyPublicLink() {
   if (publicMediaUrl.value) {
     navigator.clipboard.writeText(publicMediaUrl.value)
-    toast.add({
-      title: t('common.success'),
-      description: t('common.copied', 'Copied to clipboard'),
-      color: 'success',
-    })
   }
 }
 
