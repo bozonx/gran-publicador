@@ -863,7 +863,15 @@
       "moveToProjectDescription": "Выберите проект, в который нужно переместить {count} элементов. Выберите 'Личная область', чтобы убрать из проектов.",
       "personalScope": "Личная область (вне проектов)",
       "merge": "Объединить",
-      "mergeConfirm": "Объединить {count} элементов в один?"
+      "mergeConfirm": "Объединить {count} элементов в один?",
+      "createPublication": "Создать публикацию",
+      "createPublicationGenericError": "Не удалось создать публикацию из выбранных элементов",
+      "createPublicationEmptyError": "В выбранных элементах нет контента",
+      "createPublicationLimitTitleError": "Слишком длинный заголовок. Снимите часть элементов",
+      "createPublicationLimitContentError": "Слишком много текста. Снимите часть элементов",
+      "createPublicationLimitNoteError": "Слишком длинная заметка. Снимите часть элементов",
+      "createPublicationLimitTagsError": "Слишком много тегов. Снимите часть элементов",
+      "createPublicationLimitMediaError": "Слишком много медиа. Снимите часть элементов"
     },
     "tabs": {
       "create": "Создать вкладку",

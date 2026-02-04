@@ -865,7 +865,15 @@
       "moveToProjectDescription": "Select a project to move {count} items to. Select 'Personal Scope' to remove from any project.",
       "personalScope": "Personal Scope (No Project)",
       "merge": "Merge",
-      "mergeConfirm": "Merge {count} items into one?"
+      "mergeConfirm": "Merge {count} items into one?",
+      "createPublication": "Create publication",
+      "createPublicationGenericError": "Failed to create publication from selected items",
+      "createPublicationEmptyError": "Selected items contain no content",
+      "createPublicationLimitTitleError": "Title is too long. Deselect some items",
+      "createPublicationLimitContentError": "Content is too long. Deselect some items",
+      "createPublicationLimitNoteError": "Note is too long. Deselect some items",
+      "createPublicationLimitTagsError": "Too many tags. Deselect some items",
+      "createPublicationLimitMediaError": "Too many media files. Deselect some items"
     },
     "tabs": {
       "create": "Create tab",

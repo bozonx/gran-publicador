@@ -8,6 +8,7 @@ interface Props {
   preselectedPostType?: PostType
   preselectedChannelIds?: string[]
   allowProjectSelection?: boolean
+  prefilledTitle?: string
   prefilledContent?: string
   prefilledMediaIds?: any[]
   prefilledTags?: string
@@ -241,6 +242,7 @@ async function handleCreate() {
       language: formData.language,
       postType: formData.postType,
       channelIds: formData.channelIds,
+      title: props.prefilledTitle || '',
       content: props.prefilledContent || '',
       existingMediaIds: props.prefilledMediaIds || [],
       tags: props.prefilledTags || '',
