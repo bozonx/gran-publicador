@@ -1,75 +1,114 @@
-# Nuxt Minimal Starter
+# Gran Publicador - UI
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Веб-интерфейс для Gran Publicador - системы управления публикациями в социальных сетях.
 
-## Setup
+## 📱 Мобильная адаптация
 
-Make sure to install dependencies:
+Приложение полностью адаптировано для мобильных устройств:
+
+- ✅ Адаптивный дизайн для экранов от 320px до 4K
+- ✅ Touch-friendly элементы (минимум 44x44px)
+- ✅ Оптимизированные формы и модальные окна
+- ✅ Поддержка зума для доступности
+- ✅ Специальная оптимизация для iPhone SE, Android и iPad
+
+**Документация:**
+- [Отчет о мобильной адаптации](./MOBILE_ADAPTATION_REPORT.md)
+- [План адаптации](./MOBILE_ADAPTATION_PLAN.md)
+- [Чеклист тестирования](./MOBILE_TESTING_CHECKLIST.md)
+
+## 🚀 Быстрый старт
+
+### Установка зависимостей
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+### Запуск dev сервера
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+Приложение будет доступно на `http://localhost:3000`
 
-Build the application for production:
+### Тестирование на мобильных
+
+1. Открыть Chrome DevTools (F12)
+2. Включить Device Toolbar (Ctrl+Shift+M)
+3. Выбрать устройство (iPhone SE, iPhone 12 Pro, Pixel 5, iPad)
+4. Тестировать функционал
+
+## 🏗️ Сборка для продакшена
 
 ```bash
-# npm
-npm run build
-
-# pnpm
 pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+Предпросмотр production сборки:
 
 ```bash
-# npm
-npm run preview
-
-# pnpm
 pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## 🛠️ Технологии
+
+- **Framework:** Nuxt 3
+- **UI Library:** Nuxt UI (на базе Tailwind CSS)
+- **Иконки:** Nuxt Icon
+- **Интернационализация:** @nuxtjs/i18n
+- **State Management:** Pinia
+- **Утилиты:** VueUse
+
+## 📐 Design System
+
+Проект использует централизованные design tokens:
+
+- `utils/design-tokens.ts` - константы для spacing, colors, typography
+- `assets/css/main.css` - глобальные стили и адаптивные утилиты
+- Все компоненты следуют единому стилю
+
+## 📂 Структура проекта
+
+```
+ui/
+├── app/
+│   ├── assets/          # Стили и ресурсы
+│   ├── components/      # Vue компоненты
+│   ├── composables/     # Composables
+│   ├── layouts/         # Layouts
+│   ├── pages/           # Страницы (роутинг)
+│   ├── stores/          # Pinia stores
+│   ├── types/           # TypeScript типы
+│   └── utils/           # Утилиты
+├── i18n/                # Переводы
+├── public/              # Статические файлы
+└── nuxt.config.ts       # Конфигурация Nuxt
+```
+
+## 🧪 Тестирование
+
+Для тестирования мобильной адаптации используйте [чеклист](./MOBILE_TESTING_CHECKLIST.md).
+
+## 📚 Дополнительная документация
+
+- [Nuxt 3 Documentation](https://nuxt.com/docs)
+- [Nuxt UI Documentation](https://ui.nuxt.com)
+- [Tailwind CSS Documentation](https://tailwindcss.com)
+- [Deployment Documentation](https://nuxt.com/docs/getting-started/deployment)
+
+## 🤝 Разработка
+
+При разработке новых компонентов:
+
+1. Используйте design tokens из `utils/design-tokens.ts`
+2. Следуйте адаптивному подходу (mobile-first)
+3. Обеспечьте touch-friendly размеры (минимум 44x44px)
+4. Тестируйте на разных размерах экрана
+5. Используйте семантический HTML
+
+## 📄 Лицензия
+
+[Указать лицензию]
+

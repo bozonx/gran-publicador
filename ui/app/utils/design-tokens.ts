@@ -74,10 +74,10 @@ export const CARD_STYLES = {
   base: 'app-card',
   hover: 'app-card-hover',
   
-  // Padding variants
-  paddingCompact: 'p-3',
-  paddingNormal: 'p-4',
-  paddingSpacious: 'p-6',
+  // Padding variants (responsive)
+  paddingCompact: 'p-2 sm:p-3',
+  paddingNormal: 'p-3 sm:p-4',
+  paddingSpacious: 'p-4 sm:p-6',
   
   // Border variants
   borderPrimary: 'border-gray-200 dark:border-gray-700',
@@ -89,17 +89,18 @@ export const CARD_STYLES = {
 } as const
 
 export const SPACING = {
-  // Vertical spacing between elements
-  sectionGap: 'space-y-8',
-  cardGap: 'space-y-6',
-  fieldGap: 'space-y-4',
-  compactGap: 'space-y-3',
-  tightGap: 'space-y-2',
+  // Vertical spacing between elements (responsive)
+  sectionGap: 'space-y-6 sm:space-y-8',
+  cardGap: 'space-y-4 sm:space-y-6',
+  fieldGap: 'space-y-3 sm:space-y-4',
+  compactGap: 'space-y-2 sm:space-y-3',
+  tightGap: 'space-y-1 sm:space-y-2',
   
-  // Margins
-  sectionMargin: 'mb-8',
-  cardMargin: 'mb-6',
-  fieldMargin: 'mb-4',
-  compactMargin: 'mb-3',
-  tightMargin: 'mb-2',
+  // Margins (responsive)
+  sectionMargin: 'mb-6 sm:mb-8',
+  cardMargin: 'mb-4 sm:mb-6',
+  fieldMargin: 'mb-3 sm:mb-4',
+  compactMargin: 'mb-2 sm:mb-3',
+  tightMargin: 'mb-1 sm:mb-2',
 } as const
+

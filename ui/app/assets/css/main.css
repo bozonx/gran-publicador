@@ -34,7 +34,8 @@
   --ui-icon-size: 1.25rem;
 
   /* Custom text utilities */
-  --text-xxs: 0.625rem; /* 10px */
+  --text-xxs: 0.625rem;
+  /* 10px */
 }
 
 /* Global Styles */
@@ -65,7 +66,7 @@ body {
   .app-card {
     @apply bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6;
   }
-  
+
   .app-card-hover {
     @apply hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200;
   }
@@ -90,4 +91,148 @@ textarea:focus {
 .font-mono textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   @apply text-[13px] leading-relaxed;
+}
+
+/* Mobile-first responsive utilities */
+@layer utilities {
+
+  /* Touch-friendly targets - minimum 44x44px for accessibility */
+  .touch-target {
+    @apply min-w-[44px] min-h-[44px] flex items-center justify-center;
+  }
+
+  /* Mobile-optimized container padding */
+  .mobile-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Responsive text sizes */
+  .text-responsive-2xl {
+    @apply text-xl sm:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+
+  /* Mobile-friendly spacing */
+  .mobile-section-spacing {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  .mobile-card-padding {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+}
+
+/* Mobile-specific overrides */
+@media (max-width: 640px) {
+
+  /* Ensure modals fit on screen */
+  [role="dialog"],
+  .modal-content {
+    max-height: 90vh;
+    max-height: 90dvh;
+    /* Dynamic viewport height for mobile browsers */
+    overflow-y: auto;
+  }
+
+  /* Reduce padding in cards for more content space */
+  .app-card {
+    @apply p-3;
+  }
+
+  /* Optimize form layouts */
+  .form-grid-2col {
+    @apply grid-cols-1;
+  }
+
+  /* Ensure buttons are touch-friendly */
+  button,
+  a[role="button"],
+  [class*="Button"] {
+    min-height: 44px;
+  }
+
+  /* Optimize header spacing */
+  header {
+    @apply px-3;
+  }
+
+  /* Better spacing for form fields */
+  .space-y-6 {
+    @apply space-y-4;
+  }
+
+  /* Reduce gap in grids */
+  .gap-6 {
+    @apply gap-4;
+  }
+
+  /* Optimize text sizes for readability */
+  h1 {
+    @apply text-xl;
+  }
+
+  h2 {
+    @apply text-lg;
+  }
+
+  h3 {
+    @apply text-base;
+  }
+}
+
+/* Extra small devices (< 375px) */
+@media (max-width: 374px) {
+
+  /* Further reduce padding */
+  .app-card {
+    @apply p-2;
+  }
+
+  .mobile-container {
+    @apply px-3;
+  }
+
+  /* Smaller text for very small screens */
+  body {
+    font-size: 14px;
+  }
+}
+
+/* Tablet optimizations (641px - 1023px) */
+@media (min-width: 641px) and (max-width: 1023px) {
+
+  /* Optimize for tablet landscape */
+  .max-w-7xl {
+    @apply max-w-5xl;
+  }
+}
+
+/* Landscape phone optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+
+  /* Reduce vertical spacing in landscape mode */
+  .mobile-section-spacing {
+    @apply space-y-2;
+  }
+
+  /* Compact header */
+  header {
+    @apply h-12;
+  }
+
+  /* Reduce modal padding */
+  [role="dialog"] {
+    @apply py-2;
+  }
 }

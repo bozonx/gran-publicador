@@ -28,7 +28,7 @@ export default defineNuxtConfig({
     layoutTransition: false,
     head: {
       title: 'Gran Publicador',
-      viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+      viewport: 'width=device-width, initial-scale=1',
       meta: [{ name: 'theme-color', content: '#000000' }],
       script: [{ src: 'https://telegram.org/js/telegram-web-app.js' }],
     },

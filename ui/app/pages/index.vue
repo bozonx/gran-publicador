@@ -168,8 +168,8 @@ async function handleDeletePublication() {
 <template>
   <div>
     <!-- Page header -->
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+    <div class="mb-6 sm:mb-8">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
         {{ t('dashboard.welcome') }}, {{ displayName }}!
       </h1>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -177,7 +177,7 @@ async function handleDeletePublication() {
       </p>
     </div>
 
-    <div class="space-y-8">
+    <div class="space-y-6 sm:space-y-8">
       <!-- Recent Content Widget -->
       <DashboardRecentContentWidget />
 
