@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppModal from '~/components/ui/AppModal.vue'
 
 const props = defineProps<{

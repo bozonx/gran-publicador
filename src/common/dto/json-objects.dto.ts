@@ -231,6 +231,73 @@ export class ChannelFooterDto {
 /**
  * DTO for Channel preferences.
  */
+
+/**
+ * DTO for Template Block.
+ */
+export class TemplateBlockDto {
+  @IsBoolean()
+  enabled!: boolean;
+
+  @IsOptional()
+  @IsString()
+  before?: string;
+
+  @IsString()
+  @IsIn(['title', 'content', 'tags', 'authorComment', 'authorSignature', 'footer', 'custom'])
+  insert!: string;
+
+  @IsOptional()
+  @IsString()
+  after?: string;
+
+  @IsOptional()
+  @IsString()
+  tagCase?: string;
+
+  @IsOptional()
+  @IsString()
+  footerId?: string;
+
+  @IsOptional()
+  @IsString()
+  content?: string;
+}
+
+/**
+ * DTO for Channel Post Template.
+ */
+export class ChannelPostTemplateDto {
+  @IsString()
+  id!: string;
+
+  @IsString()
+  name!: string;
+
+  @IsNumber()
+  order!: number;
+
+  @IsOptional()
+  @IsString()
+  postType?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TemplateBlockDto)
+  template!: TemplateBlockDto[];
+}
+
+/**
+ * DTO for Channel preferences.
+ */
 export class ChannelPreferencesDto {
   @IsOptional()
   @IsBoolean()
@@ -249,6 +316,12 @@ export class ChannelPreferencesDto {
   @ValidateNested({ each: true })
   @Type(() => ChannelFooterDto)
   footers?: ChannelFooterDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChannelPostTemplateDto)
+  templates?: ChannelPostTemplateDto[];
 }
 
 /**
