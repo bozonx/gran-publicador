@@ -177,7 +177,7 @@ async function handleDragEnd() {
     </Teleport>
 
     <div v-if="isLoading && signatures.length === 0" class="flex justify-center py-8">
-      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+      <UiLoadingSpinner size="md" />
     </div>
 
     <div v-else-if="signatures.length === 0" class="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">

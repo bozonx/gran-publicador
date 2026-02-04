@@ -599,8 +599,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
       <template v-else-if="step === 2">
 
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
-           <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 text-primary animate-spin" />
-           <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ t('llm.processingParameters') }}</p>
+           <UiLoadingSpinner size="lg" color="primary" :label="t('llm.processingParameters')" centered />
         </div>
         
         <div v-else-if="extractionResult" class="space-y-6">

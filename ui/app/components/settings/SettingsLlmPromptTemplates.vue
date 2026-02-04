@@ -350,7 +350,7 @@ const displayTemplates = computed({
 
     <!-- Templates List -->
     <div v-if="isLoading && templates.length === 0 && systemTemplates.length === 0" class="py-4 text-center">
-      <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-gray-400 mx-auto" />
+      <UiLoadingSpinner />
     </div>
     
     <div v-else-if="templates.length === 0 && systemTemplates.length === 0" class="text-center py-12 px-4">
