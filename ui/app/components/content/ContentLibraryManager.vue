@@ -878,7 +878,7 @@ const executeBulkOperation = async () => {
     >
       <div v-if="selectedIds.length > 0" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-full shadow-2xl border border-gray-700 flex items-center gap-6 min-w-max">
         <span class="text-sm font-medium border-r border-gray-700 pr-6 mr-0">
-          {{ t('common.selectedCount', { count: selectedIds.length }) }}
+          {{ t('common.selected', { count: selectedIds.length }) }}
         </span>
 
         <div class="flex items-center gap-2">
