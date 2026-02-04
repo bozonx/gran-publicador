@@ -178,13 +178,13 @@ defineExpose({
         v-model="tabs"
         :animation="200"
         handle=".drag-handle"
-        class="flex flex-wrap items-center gap-2"
+        class="flex flex-wrap items-center gap-2 flex-1 min-w-0"
         @end="handleReorder"
       >
         <div
           v-for="tab in tabs"
           :key="tab.id"
-          class="flex items-center gap-1 shrink-0"
+          class="flex items-center gap-1 min-w-0"
         >
           <UButton
             :color="getTabColor(tab.type, activeTabId === tab.id)"
@@ -192,9 +192,11 @@ defineExpose({
             size="sm"
             :icon="getTabIcon(tab.type)"
             @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
-            class="drag-handle cursor-move"
+            class="drag-handle cursor-move max-w-full"
           >
-            {{ tab.title }}
+            <span class="truncate max-w-[12rem] sm:max-w-[16rem]">
+              {{ tab.title }}
+            </span>
           </UButton>
         </div>
       </VueDraggable>
