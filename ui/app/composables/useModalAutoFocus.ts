@@ -94,7 +94,7 @@ export function useModalAutoFocus(options: UseModalAutoFocusOptions) {
         return;
       }
 
-      if (enabled !== undefined && !unref(enabled)) return;
+      if (enabled !== undefined && !resolveMaybeRefOrGetter(enabled)) return;
 
       await waitForOpenRender();
 
