@@ -1,16 +1,6 @@
 import type { PostType, PublicationStatus } from './posts'
 
 /**
- * Source text item structure
- */
-export interface SourceTextItem {
-  content: string
-  source: 'manual' | 'translation' | string
-  order: number
-  meta?: Record<string, any>
-}
-
-/**
  * Publication form data structure
  */
 export interface PublicationFormData {
@@ -26,7 +16,6 @@ export interface PublicationFormData {
   meta: Record<string, any>
   postDate: string | null
   scheduledAt?: string
-  sourceTexts: SourceTextItem[]
   channelIds: string[]
   translationGroupId?: string | null
 }

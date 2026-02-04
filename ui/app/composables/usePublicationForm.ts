@@ -21,11 +21,6 @@ export function usePublicationFormValidation(t: any) {
     authorComment: z.string().optional(),
     note: z.string().optional(),
     postDate: z.string().optional(),
-    sourceTexts: z.array(z.object({
-      content: z.string(),
-      order: z.number().optional(),
-      source: z.string().optional(),
-    })).optional(),
   }).superRefine((val, ctx) => {
     if (val.status === 'SCHEDULED' && !val.scheduledAt) {
       ctx.addIssue({
@@ -82,10 +77,6 @@ export function usePublicationFormState(publication: PublicationWithRelations | 
     authorComment: publication?.authorComment || '',
     note: publication?.note || '',
     postDate: publication?.postDate ? new Date(publication.postDate).toISOString().slice(0, 16) : '',
-    sourceTexts: publication?.sourceTexts?.map((st: any, i: number) => ({
-      ...st,
-      order: typeof st.order === 'number' ? st.order : i
-    })) || [] as any[],
   })
 
   return state

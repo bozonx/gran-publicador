@@ -155,6 +155,6 @@ export class CreatePublicationDto {
   @IsString({ each: true })
   @IsUUID('all', { each: true })
   @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_CONTENT_ITEMS)
   public contentItemIds?: string[];
 }

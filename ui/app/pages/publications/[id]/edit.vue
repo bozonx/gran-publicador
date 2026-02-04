@@ -1269,7 +1269,6 @@ async function executePublish(force: boolean) {
       ref="llmModalRef"
       v-model:open="showLlmModal"
       :content="currentPublication.content || undefined"
-      :source-texts="currentPublication.sourceTexts || undefined"
       :project-id="projectId || undefined"
       @apply="handleApplyLlm"
     />

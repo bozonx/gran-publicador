@@ -9,11 +9,10 @@ interface Emits {
 
 interface Props {
   content?: string
-  sourceTexts?: Array<{ content: string }>
   projectId?: string
 }
 
-const { content, sourceTexts, projectId } = defineProps<Props>()
+const { content, projectId } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
@@ -71,15 +70,6 @@ const isLoadingTemplates = ref(false)
 
 // Context selection state
 const useContent = ref(false)
-const selectedSourceTexts = ref(new Set<number>())
-
-function toggleSourceText(index: number) {
-  if (selectedSourceTexts.value.has(index)) {
-    selectedSourceTexts.value.delete(index)
-  } else {
-    selectedSourceTexts.value.add(index)
-  }
-}
 
 function truncateText(text: string, length = 120) {
   if (!text) return ''
@@ -98,14 +88,6 @@ const estimatedTokens = computed(() => {
   
   if (useContent.value && content) {
     total += estimateTokens(content)
-  }
-  
-  if (sourceTexts && selectedSourceTexts.value.size > 0) {
-    sourceTexts.forEach((st, idx) => {
-      if (selectedSourceTexts.value.has(idx)) {
-        total += estimateTokens(st.content)
-      }
-    })
   }
   
   return total
@@ -132,10 +114,6 @@ watch(isOpen, async (open) => {
       isLoadingTemplates.value = false
     }
 
-    // Auto-select all source texts and use content by default
-    if (sourceTexts && sourceTexts.length > 0) {
-      sourceTexts.forEach((_, idx) => selectedSourceTexts.value.add(idx))
-    }
     if (content) {
       useContent.value = true
     }
@@ -148,7 +126,6 @@ watch(isOpen, async (open) => {
     metadata.value = null
     showAdvanced.value = false
     useContent.value = false
-    selectedSourceTexts.value.clear()
     selectedTemplateId.value = null
     selectedFields.content = false
     isApplying.value = false
@@ -228,18 +205,10 @@ async function handleGenerate() {
   const currentPrompt = prompt.value;
   prompt.value = ''; // clear input
 
-  // Prepare source texts for selected indexes
-  const selectedSourceTextsArray = sourceTexts && selectedSourceTexts.value.size > 0
-    ? Array.from(selectedSourceTexts.value)
-        .map(idx => sourceTexts![idx])
-        .filter((st): st is NonNullable<typeof st> => st !== undefined)
-    : undefined;
-
   const response = await generateContent(currentPrompt, {
     temperature: temperature.value,
     max_tokens: maxTokens.value,
     content: content,
-    sourceTexts: selectedSourceTextsArray,
     useContent: useContent.value,
   });
 
@@ -470,7 +439,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
       <template v-if="step === 1">
 
         <!-- Context Block (Compact) -->
-        <UCollapsible v-if="content || (sourceTexts && sourceTexts.length > 0)" class="mb-4">
+        <UCollapsible v-if="content" class="mb-4">
           <UButton
             variant="ghost"
             color="neutral"
@@ -480,8 +449,8 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
             <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
               {{ t('llm.context') }}
-              <span v-if="useContent || selectedSourceTexts.size > 0" class="text-xs font-normal text-primary">
-                ({{ (useContent ? 1 : 0) + selectedSourceTexts.size }} {{ t('common.selected') }})
+              <span v-if="useContent" class="text-xs font-normal text-primary">
+                ({{ useContent ? 1 : 0 }} {{ t('common.selected') }})
               </span>
             </div>
             <template #trailing>
@@ -498,23 +467,6 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
                   {{ truncateText(content) }}
                 </span>
               </div>
-              
-              <!-- Source texts context -->
-              <template v-if="sourceTexts">
-                <div v-for="(st, idx) in sourceTexts" :key="idx" class="flex items-center gap-2">
-                  <UCheckbox 
-                    :model-value="selectedSourceTexts.has(idx)" 
-                    @update:model-value="toggleSourceText(idx)"
-                  >
-                    <template #label>
-                      <span class="text-sm">{{ t('llm.sourceText') }} #{{ idx + 1 }}</span>
-                    </template>
-                  </UCheckbox>
-                  <span class="text-xs text-gray-500 truncate flex-1">
-                    {{ truncateText(st.content) }}
-                  </span>
-                </div>
-              </template>
             </div>
           </template>
         </UCollapsible>

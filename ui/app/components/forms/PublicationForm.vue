@@ -242,7 +242,6 @@ async function performSubmit(data: PublicationFormData) {
       meta: data.meta || {},
       postDate: data.postDate ? new Date(data.postDate).toISOString() : null,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : undefined,
-      sourceTexts: data.sourceTexts || [],
     }
 
     let publicationId = props.publication?.id

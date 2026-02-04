@@ -254,14 +254,7 @@ async function handleNext() {
       imageUrl: sd.image || undefined,
       meta: {
         newsData: otherData
-      },
-      sourceTexts: [
-        {
-          content: sourceTextContent,
-          order: 0,
-          source: sd.url
-        }
-      ]
+      }
     })
     
     if (publication) {
