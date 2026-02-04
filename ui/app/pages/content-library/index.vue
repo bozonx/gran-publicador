@@ -4,14 +4,10 @@ import ContentLibraryManager from '~/components/content/ContentLibraryManager.vu
 definePageMeta({
   middleware: 'auth',
 })
-
-const route = useRoute()
-const projectId = computed(() => route.params.id as string)
 </script>
 
 <template>
-  <ContentLibraryManager 
-    scope="project" 
-    :project-id="projectId" 
-  />
+  <div class="p-6">
+    <ContentLibraryManager scope="personal" />
+  </div>
 </template>

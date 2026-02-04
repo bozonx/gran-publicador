@@ -2,9 +2,13 @@
 import { ref, computed } from 'vue'
 import AppModal from '~/components/ui/AppModal.vue'
 
-const props = defineProps<{
-  projectId: string
-}>()
+const props = withDefaults(defineProps<{
+  scope?: 'project' | 'personal'
+  projectId?: string
+}>(), {
+  scope: 'project',
+  projectId: undefined
+})
 
 const isOpen = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{
@@ -93,8 +97,8 @@ const processQueue = async () => {
         fileItem.status = 'creating'
         const text = await readFileAsText(fileItem.file)
         await api.post('/content-library/items', {
-          scope: 'project',
-          projectId: props.projectId,
+          scope: props.scope,
+          projectId: props.scope === 'project' ? props.projectId : undefined,
           title: fileItem.file.name,
           blocks: [
             { text, type: 'plain', order: 0, meta: {}, media: [] }
@@ -108,8 +112,8 @@ const processQueue = async () => {
         
         fileItem.status = 'creating'
         await api.post('/content-library/items', {
-          scope: 'project',
-          projectId: props.projectId,
+          scope: props.scope,
+          projectId: props.scope === 'project' ? props.projectId : undefined,
           title: fileItem.file.name,
           blocks: [
             { 

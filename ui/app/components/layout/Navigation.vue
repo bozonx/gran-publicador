@@ -29,6 +29,11 @@ const mainNavItems = computed<NavItem[]>(() => [
     icon: 'i-heroicons-pencil-square',
   },
   {
+    label: t('contentLibrary.title', 'Content Library'),
+    to: '/content-library',
+    icon: 'i-heroicons-rectangle-stack',
+  },
+  {
     label: t('navigation.publications', 'Publications'),
     to: '/publications',
     icon: 'i-heroicons-document-text',
