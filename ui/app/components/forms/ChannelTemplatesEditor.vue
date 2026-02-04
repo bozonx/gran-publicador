@@ -74,8 +74,8 @@ const getDefaultBlocks = (): TemplateBlock[] => [
   { enabled: true, insert: 'authorComment', before: '', after: '' },
   { enabled: true, insert: 'authorSignature', before: '', after: '' },
   { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
-  { enabled: true, insert: 'custom', before: '', after: '', content: '' },
-  { enabled: true, insert: 'footer', before: '', after: '' },
+  { enabled: false, insert: 'custom', before: '', after: '', content: '' },
+  { enabled: true, insert: 'footer', before: '', after: '', footerId: null },
 ]
 
 const templates = ref<ChannelPostTemplate[]>(channel.preferences?.templates || [])
@@ -97,7 +97,7 @@ function openAddTemplate() {
   templateForm.name = ''
   templateForm.postType = null
   templateForm.language = null
-  templateForm.isDefault = false
+  templateForm.isDefault = templates.value.length === 0
   templateForm.template = getDefaultBlocks()
   isModalOpen.value = true
 }
