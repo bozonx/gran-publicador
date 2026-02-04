@@ -24,6 +24,7 @@ import {
   ReorderContentBlocksDto,
   UpdateContentItemDto,
   UpdateContentBlockDto,
+  BulkOperationDto,
 } from './dto/index.js';
 import { ContentLibraryService } from './content-library.service.js';
 
@@ -141,6 +142,14 @@ export class ContentLibraryController {
     }
 
     return this.contentLibraryService.purgeArchivedByProject(projectId, req.user.userId);
+  }
+
+  @Post('bulk')
+  public async bulkOperation(
+    @Request() req: UnifiedAuthRequest,
+    @Body() dto: BulkOperationDto,
+  ) {
+    return this.contentLibraryService.bulkOperation(req.user.userId, dto);
   }
 
   @Delete('items/:id')

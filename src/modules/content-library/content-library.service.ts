@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -16,10 +17,14 @@ import {
   ReorderContentBlocksDto,
   UpdateContentItemDto,
   UpdateContentBlockDto,
+  BulkOperationDto,
+  BulkOperationType,
 } from './dto/index.js';
 
 @Injectable()
 export class ContentLibraryService {
+  private readonly logger = new Logger(ContentLibraryService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
@@ -546,5 +551,58 @@ export class ContentLibraryService {
     );
 
     return { success: true };
+  }
+
+  public async bulkOperation(userId: string, dto: BulkOperationDto) {
+    const { ids, operation } = dto;
+
+    if (!ids || ids.length === 0) {
+      return { count: 0 };
+    }
+
+    const authorizedIds: string[] = [];
+
+    for (const id of ids) {
+      try {
+        await this.assertContentItemMutationAllowed(id, userId);
+        authorizedIds.push(id);
+      } catch (e) {
+        this.logger.warn(
+          `User ${userId} attempted bulk ${operation} on item ${id} without permission`,
+        );
+      }
+    }
+
+    if (authorizedIds.length === 0) {
+      return { count: 0 };
+    }
+
+    switch (operation) {
+      case BulkOperationType.DELETE:
+        return this.prisma.contentItem.deleteMany({
+          where: { id: { in: authorizedIds } },
+        });
+
+      case BulkOperationType.ARCHIVE:
+        return this.prisma.contentItem.updateMany({
+          where: { id: { in: authorizedIds } },
+          data: {
+            archivedAt: new Date(),
+            archivedBy: userId,
+          },
+        });
+
+      case BulkOperationType.UNARCHIVE:
+        return this.prisma.contentItem.updateMany({
+          where: { id: { in: authorizedIds } },
+          data: {
+            archivedAt: null,
+            archivedBy: null,
+          },
+        });
+
+      default:
+        throw new BadRequestException(`Unsupported operation: ${operation}`);
+    }
   }
 }

@@ -98,6 +98,37 @@ const editForm = ref({
 const isArchivingId = ref<string | null>(null)
 const isRestoringId = ref<string | null>(null)
 
+// Selection state
+const selectedIds = ref<string[]>([])
+const isBulkDeleting = ref(false)
+const isBulkOperationModalOpen = ref(false)
+const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE'>('DELETE')
+
+const isAllSelected = computed(() => {
+  return items.value.length > 0 && items.value.every(item => selectedIds.value.includes(item.id))
+})
+
+const isSomeSelected = computed(() => {
+  return selectedIds.value.length > 0 && !isAllSelected.value
+})
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = items.value.map(item => item.id)
+  }
+}
+
+function toggleSelection(itemId: string) {
+  const index = selectedIds.value.indexOf(itemId)
+  if (index === -1) {
+    selectedIds.value.push(itemId)
+  } else {
+    selectedIds.value.splice(index, 1)
+  }
+}
+
 const hasMore = computed(() => items.value.length < total.value)
 
 // Auto-save setup
@@ -190,8 +221,16 @@ watch(
 watch(
   () => archiveStatus.value,
   () => {
+    selectedIds.value = []
     fetchItems({ reset: true })
   },
+)
+
+watch(
+  () => q.value,
+  () => {
+    selectedIds.value = []
+  }
 )
 
 watch(() => props.projectId, (newVal) => {
@@ -518,6 +557,49 @@ const getItemTextBlocks = (item: ContentItem) => {
   
   return texts
 }
+
+const handleBulkAction = async (operation: 'DELETE' | 'ARCHIVE' | 'UNARCHIVE') => {
+  bulkOperationType.value = operation
+  
+  if (operation === 'DELETE') {
+    isBulkOperationModalOpen.value = true
+    return
+  }
+  
+  await executeBulkOperation()
+}
+
+const executeBulkOperation = async () => {
+  if (selectedIds.value.length === 0) return
+  
+  const operation = bulkOperationType.value
+  if (operation === 'DELETE') isBulkDeleting.value = true
+  
+  try {
+    await api.post('/content-library/bulk', {
+      ids: selectedIds.value,
+      operation
+    })
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.bulk.success', { count: selectedIds.value.length }),
+      color: 'success'
+    })
+    
+    selectedIds.value = []
+    isBulkOperationModalOpen.value = false
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, `Failed to perform bulk ${operation}`),
+      color: 'error'
+    })
+  } finally {
+    isBulkDeleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -625,14 +707,31 @@ const getItemTextBlocks = (item: ContentItem) => {
         <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
       </div>
 
-      <div v-else class="mt-6">
+      <div v-else class="mt-6 space-y-4">
+        <!-- Select All and Bulk Actions -->
+        <div v-if="items.length > 0" class="flex items-center gap-4 px-2">
+          <UCheckbox
+            :model-value="isAllSelected"
+            :indeterminate="isSomeSelected"
+            @update:model-value="toggleSelectAll"
+            :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
+          />
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
             v-for="item in items"
             :key="item.id"
             class="app-card app-card-hover p-4 cursor-pointer group flex flex-col h-full relative"
+            :class="{ 'ring-2 ring-primary-500 rounded-lg': selectedIds.includes(item.id) }"
             @click="openEditModal(item)"
           >
+            <!-- Checkbox for selection -->
+            <div class="absolute top-2 left-2 z-10 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity" :class="{ 'opacity-100': selectedIds.includes(item.id) }" @click.stop>
+              <UCheckbox
+                :model-value="selectedIds.includes(item.id)"
+                @update:model-value="toggleSelection(item.id)"
+              />
+            </div>
             <!-- Header: Title, Tags, Delete -->
             <div class="flex items-start justify-between gap-3 mb-2">
               <div class="flex-1 min-w-0">
@@ -755,6 +854,79 @@ const getItemTextBlocks = (item: ContentItem) => {
       :loading="!!isArchivingId"
       @confirm="confirmArchive"
     />
+
+    <UiConfirmModal
+      v-if="isBulkOperationModalOpen"
+      v-model:open="isBulkOperationModalOpen"
+      :title="t('contentLibrary.bulk.deleteTitle', 'Delete multiple items')"
+      :description="t('contentLibrary.bulk.deleteDescription', { count: selectedIds.length })"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-trash"
+      :loading="isBulkDeleting"
+      @confirm="executeBulkOperation"
+    />
+
+    <!-- Bulk Action Bar -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform translate-y-full opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform translate-y-full opacity-0"
+    >
+      <div v-if="selectedIds.length > 0" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-full shadow-2xl border border-gray-700 flex items-center gap-6 min-w-max">
+        <span class="text-sm font-medium border-r border-gray-700 pr-6 mr-0">
+          {{ t('common.selectedCount', { count: selectedIds.length }) }}
+        </span>
+
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="archiveStatus === 'active'"
+            color="warning"
+            variant="ghost"
+            icon="i-heroicons-archive-box"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="handleBulkAction('ARCHIVE')"
+          >
+            {{ t('common.archive') }}
+          </UButton>
+          <UButton
+            v-else
+            color="primary"
+            variant="ghost"
+            icon="i-heroicons-arrow-uturn-left"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="handleBulkAction('UNARCHIVE')"
+          >
+            {{ t('common.restore') }}
+          </UButton>
+
+          <UButton
+            color="error"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            size="sm"
+            class="text-white hover:bg-red-900/50"
+            @click="handleBulkAction('DELETE')"
+          >
+            {{ t('common.delete') }}
+          </UButton>
+        </div>
+
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-x-mark"
+          size="sm"
+          class="text-gray-400 hover:text-white"
+          @click="selectedIds = []"
+        />
+      </div>
+    </Transition>
 
     <AppModal
       v-model:open="isEditModalOpen"
