@@ -6,6 +6,7 @@ export enum BulkOperationType {
   ARCHIVE = 'ARCHIVE',
   UNARCHIVE = 'UNARCHIVE',
   SET_PROJECT = 'SET_PROJECT',
+  MERGE = 'MERGE',
 }
 
 export class BulkOperationDto {

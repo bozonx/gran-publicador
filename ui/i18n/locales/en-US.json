@@ -852,7 +852,9 @@
       "selectProject": "Select project...",
       "moveToProjectTitle": "Move items to project",
       "moveToProjectDescription": "Select a project to move {count} items to. Select 'Personal Scope' to remove from any project.",
-      "personalScope": "Personal Scope (No Project)"
+      "personalScope": "Personal Scope (No Project)",
+      "merge": "Merge",
+      "mergeConfirm": "Merge {count} items into one?"
     }
   },
   "media": {

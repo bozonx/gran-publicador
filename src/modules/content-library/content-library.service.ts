@@ -163,7 +163,7 @@ export class ContentLibraryService {
     }
 
     const [items, total] = await Promise.all([
-      (this.prisma.contentItem as any).findMany({
+      this.prisma.contentItem.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -601,26 +601,99 @@ export class ContentLibraryService {
       case BulkOperationType.SET_PROJECT:
         // Ensure user has access to target project if it's set
         if (dto.projectId) {
-          await this.permissions.checkProjectAccess(dto.projectId, userId, true); // Require at least editor/create rights? Or just read?
-          // If we are moving TO a project, we need CREATE rights probably, or ownership.
-          // Since checkProjectAccess with 'true' (if verifyActive) or roles...
-          // checkProjectAccess usually just checks if user is member.
-          // Let's assume being a member is enough to move content there, or we might need specific role check.
-          // For simplicity, basic membership check for now.
-        } else {
-          // If moving to personal (null/undefined projectId), user must be authenticated (already checked).
-          // And authorizedIds are items potentially from projects.
-          // Moving item from Project A to Project B or Personal:
-          // User needs 'edit' on item (checked by assertContentItemMutationAllowed)
-          // AND 'create' on target (checked here).
+          await this.permissions.checkProjectAccess(dto.projectId, userId, true);
         }
 
         return this.prisma.contentItem.updateMany({
           where: { id: { in: authorizedIds } },
           data: {
             projectId: dto.projectId || null,
-          }
+          },
         });
+
+      case BulkOperationType.MERGE: {
+        if (authorizedIds.length < 2) {
+          throw new BadRequestException('At least two items are required for merging');
+        }
+
+        // Use the first item as target (usually the most recent one by default order)
+        const targetId = authorizedIds[0];
+        const sourceIds = authorizedIds.slice(1);
+
+        const items = await (this.prisma.contentItem as any).findMany({
+          where: { id: { in: authorizedIds } },
+          include: { blocks: true },
+        });
+
+        const targetItem = items.find((i: any) => i.id === targetId);
+        const sourceItems = items.filter((i: any) => i.id !== targetId);
+
+        if (!targetItem) {
+          throw new NotFoundException('Target item not found');
+        }
+
+        // 1. Combine Titles
+        const allTitles = items
+          .map((i: any) => i.title?.trim())
+          .filter(Boolean);
+        const newTitle = Array.from(new Set(allTitles)).join(' | ') || null;
+
+        // 2. Combine Notes
+        const allNotes = items
+          .map((i: any) => i.note?.trim())
+          .filter(Boolean);
+        const newNote = allNotes.join('\n\n---\n\n') || null;
+
+        // 3. Combine Tags (Unique)
+        const allTags = items.flatMap((i: any) => i.tags || []);
+        const newTags = this.normalizeTags(allTags);
+
+        // 4. Merge Meta
+        let newMeta = { ...(targetItem.meta as any) || {} };
+        for (const source of sourceItems) {
+          newMeta = { ...newMeta, ...((source.meta as any) || {}) };
+        }
+
+        await this.prisma.$transaction(async (tx) => {
+          // Update target item
+          await (tx.contentItem as any).update({
+            where: { id: targetId },
+            data: {
+              title: newTitle,
+              note: newNote,
+              tags: newTags,
+              meta: newMeta,
+            },
+          });
+
+          // Re-order and move blocks
+          let currentMaxOrderAgg = await (tx as any).contentBlock.aggregate({
+            where: { contentItemId: targetId },
+            _max: { order: true },
+          });
+          let currentOrder = (currentMaxOrderAgg._max.order ?? -1) + 1;
+
+          for (const source of sourceItems) {
+            const sortedSourceBlocks = (source.blocks || []).sort((a: any, b: any) => a.order - b.order);
+            for (const block of sortedSourceBlocks) {
+              await (tx as any).contentBlock.update({
+                where: { id: block.id },
+                data: {
+                  contentItemId: targetId,
+                  order: currentOrder++,
+                },
+              });
+            }
+          }
+
+          // Delete source items
+          await tx.contentItem.deleteMany({
+            where: { id: { in: sourceIds } },
+          });
+        });
+
+        return { count: authorizedIds.length, targetId };
+      }
 
       default:
         throw new BadRequestException(`Unsupported operation: ${operation}`);

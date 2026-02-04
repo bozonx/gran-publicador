@@ -102,7 +102,8 @@ const isRestoringId = ref<string | null>(null)
 const selectedIds = ref<string[]>([])
 const isBulkDeleting = ref(false)
 const isBulkOperationModalOpen = ref(false)
-const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE'>('DELETE')
+const isMergeConfirmModalOpen = ref(false)
+const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE' | 'MERGE'>('DELETE')
 
 const isAllSelected = computed(() => {
   return items.value.length > 0 && items.value.every(item => selectedIds.value.includes(item.id))
@@ -573,26 +574,33 @@ const handleBulkAction = async (operation: 'ARCHIVE' | 'UNARCHIVE') => {
   await executeBulkOperation()
 }
 
+const handleMerge = () => {
+  bulkOperationType.value = 'MERGE'
+  isMergeConfirmModalOpen.value = true
+}
+
 const executeBulkOperation = async () => {
   if (selectedIds.value.length === 0) return
   
   const operation = bulkOperationType.value
   if (operation === 'DELETE') isBulkDeleting.value = true
   
-  try {
-    await api.post('/content-library/bulk', {
-      ids: selectedIds.value,
-      operation
-    })
-    
-    toast.add({
-      title: t('common.success'),
-      description: t('contentLibrary.bulk.success', { count: selectedIds.value.length }),
-      color: 'success'
-    })
+    const selectedCount = selectedIds.value.length
+    try {
+      await api.post('/content-library/bulk', {
+        ids: selectedIds.value,
+        operation
+      })
+      
+      toast.add({
+        title: t('common.success'),
+        description: t('contentLibrary.bulk.success', { count: selectedCount }),
+        color: 'success'
+      })
     
     selectedIds.value = []
     isBulkOperationModalOpen.value = false
+    isMergeConfirmModalOpen.value = false
     await fetchItems({ reset: true })
   } catch (e: any) {
     toast.add({
@@ -603,12 +611,13 @@ const executeBulkOperation = async () => {
   } finally {
     isBulkDeleting.value = false
     isBulkOperationModalOpen.value = false
+    isMergeConfirmModalOpen.value = false
   }
 }
 
 // Move to Project Logic
 const isMoveToProjectModalOpen = ref(false)
-const targetProjectId = ref<string | null>(null)
+const targetProjectId = ref<string | undefined>(undefined)
 const myProjects = computed(() => {
   return (projects.value || []).map((p) => ({
     id: p.id,
@@ -627,7 +636,7 @@ const projectOptions = computed(() => {
 
 const handleMoveToProject = async () => {
   // Reset target project
-  targetProjectId.value = null
+  targetProjectId.value = undefined
   if (projects.value.length === 0) {
     await fetchProjects(false)
   }
@@ -935,6 +944,18 @@ const executeMoveToProject = async () => {
       @confirm="executeBulkOperation"
     />
 
+    <UiConfirmModal
+      v-if="isMergeConfirmModalOpen"
+      v-model:open="isMergeConfirmModalOpen"
+      :title="t('contentLibrary.bulk.merge')"
+      :description="t('contentLibrary.bulk.mergeConfirm', { count: selectedIds.length })"
+      :confirm-text="t('contentLibrary.bulk.merge')"
+      color="primary"
+      icon="i-heroicons-square-3-stack-3d"
+      :loading="isBulkDeleting"
+      @confirm="executeBulkOperation"
+    />
+
     <!-- Bulk Action Bar -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
@@ -971,6 +992,18 @@ const executeMoveToProject = async () => {
             @click="handleMoveToProject"
           >
             {{ t('contentLibrary.bulk.move') }}
+          </UButton>
+
+          <UButton
+            v-if="selectedIds.length >= 2"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-square-3-stack-3d"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="handleMerge"
+          >
+            {{ t('contentLibrary.bulk.merge') }}
           </UButton>
         </div>
 
