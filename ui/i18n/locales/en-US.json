@@ -866,6 +866,27 @@
       "personalScope": "Personal Scope (No Project)",
       "merge": "Merge",
       "mergeConfirm": "Merge {count} items into one?"
+    },
+    "tabs": {
+      "create": "Create tab",
+      "createTitle": "Create new tab",
+      "createSuccess": "Tab created successfully",
+      "createError": "Failed to create tab",
+      "deleteSuccess": "Tab deleted successfully",
+      "deleteError": "Failed to delete tab",
+      "reorderError": "Failed to reorder tabs",
+      "selectTypePrompt": "Select tab type:",
+      "titlePlaceholder": "Enter tab name...",
+      "types": {
+        "folder": {
+          "title": "Folder",
+          "description": "Organize content items into a dedicated folder. Items can only belong to one folder."
+        },
+        "savedView": {
+          "title": "Saved View",
+          "description": "Create a filtered view with custom sorting and filters across your entire library."
+        }
+      }
     }
   },
   "media": {

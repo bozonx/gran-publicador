@@ -64,6 +64,8 @@ const { formatDateShort, truncateContent } = useFormatters()
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
+const activeTabId = ref<string | null>(null)
+
 const q = ref('')
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
@@ -230,6 +232,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
         projectId: props.scope === 'project' ? props.projectId : undefined,
+        folderId: activeTabId.value || undefined,
         search: q.value || undefined,
         limit,
         offset: offset.value,
@@ -286,6 +289,11 @@ watch(
 )
 
 watch(selectedTags, () => {
+  fetchItems({ reset: true })
+})
+
+watch(activeTabId, () => {
+  selectedIds.value = []
   fetchItems({ reset: true })
 })
 
@@ -799,6 +807,12 @@ const executeMoveToProject = async () => {
         {{ t('common.back') }}
       </UButton>
     </div>
+
+    <ContentLibraryTabs
+      v-model="activeTabId"
+      :scope="scope"
+      :project-id="projectId"
+    />
 
     <div class="app-card p-6 space-y-4">
       <div class="flex flex-col md:flex-row gap-3 md:items-center justify-between">
