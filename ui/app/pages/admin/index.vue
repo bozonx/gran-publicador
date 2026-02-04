@@ -31,7 +31,7 @@ const tabs = computed<AdminTab[]>(() => [
   },
   {
     key: 'config',
-    label: t('admin.tabs.config', 'Configuration'),
+    label: t('admin.tabs.config'),
     icon: 'i-heroicons-cog-6-tooth',
   },
 ])
@@ -54,7 +54,7 @@ async function handleSaveConfig() {
     await updateConfig(yamlContent.value)
     toast.add({
       title: t('common.success'),
-      description: t('admin.config.saved', 'Configuration saved and applied'),
+      description: t('admin.config.saved'),
       color: 'success',
     })
   } catch (e) {
@@ -119,8 +119,8 @@ onMounted(() => {
 // Admin filter options
 const adminFilterOptions = computed(() => [
   { value: null, label: t('common.all') },
-  { value: 'true', label: t('admin.adminsOnly', 'Admins only') },
-  { value: 'false', label: t('admin.regularUsers', 'Regular users') },
+  { value: 'true', label: t('admin.adminsOnly') },
+  { value: 'false', label: t('admin.regularUsers') },
 ])
 
 // Watch for filter changes
@@ -282,7 +282,7 @@ const hasActiveFilters = computed(() => {
           <!-- Search -->
           <UInput
             v-model="searchQuery"
-            :placeholder="t('admin.searchUsers', 'Search by name or username')"
+            :placeholder="t('admin.searchUsers')"
             icon="i-heroicons-magnifying-glass"
             class="sm:col-span-2"
             :loading="isLoading && searchQuery !== debouncedSearch"
@@ -294,7 +294,7 @@ const hasActiveFilters = computed(() => {
             :items="adminFilterOptions"
             value-key="value"
             label-key="label"
-            :placeholder="t('admin.filterByRole', 'Filter by role')"
+            :placeholder="t('admin.filterByRole')"
           />
         </div>
 
@@ -347,13 +347,13 @@ const hasActiveFilters = computed(() => {
           class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4"
         />
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          {{ t('admin.noUsersFound', 'No users found') }}
+          {{ t('admin.noUsersFound') }}
         </h3>
         <p class="text-gray-500 dark:text-gray-400">
           {{
             hasActiveFilters
-              ? t('admin.noUsersFiltered', 'No users match your filters')
-              : t('admin.noUsersDescription', 'There are no users in the system yet')
+              ? t('admin.noUsersFiltered')
+              : t('admin.noUsersDescription')
           }}
         </p>
       </div>
@@ -467,7 +467,7 @@ const hasActiveFilters = computed(() => {
           {{ t('admin.tabs.config') }}
         </h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('admin.config.description', 'Edit application configuration (app-config.yaml). Changes are applied immediately.') }}
+          {{ t('admin.config.description') }}
         </p>
       </div>
 
@@ -487,7 +487,7 @@ const hasActiveFilters = computed(() => {
               :rows="20"
               autoresize
               class="font-mono text-sm w-full"
-              :placeholder="t('admin.config.placeholder', 'Paste your YAML config here...')"
+              :placeholder="t('admin.config.placeholder')"
             />
           </div>
 
@@ -509,9 +509,9 @@ const hasActiveFilters = computed(() => {
     <UiConfirmModal
       v-if="showConfirmModal"
       v-model:open="showConfirmModal"
-      :title="userToToggle?.isAdmin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
-      :description="userToToggle?.isAdmin ? t('admin.revokeAdminConfirm', 'Are you sure you want to revoke admin rights from this user?') : t('admin.grantAdminConfirm', 'Are you sure you want to grant admin rights to this user?')"
-      :confirm-text="userToToggle?.isAdmin ? t('admin.revokeAdmin', 'Revoke admin') : t('admin.grantAdmin', 'Grant admin')"
+      :title="userToToggle?.isAdmin ? t('admin.revokeAdmin') : t('admin.grantAdmin')"
+      :description="userToToggle?.isAdmin ? t('admin.revokeAdminConfirm') : t('admin.grantAdminConfirm')"
+      :confirm-text="userToToggle?.isAdmin ? t('admin.revokeAdmin') : t('admin.grantAdmin')"
       :color="userToToggle?.isAdmin ? 'warning' : 'success'"
       :icon="userToToggle?.isAdmin ? 'i-heroicons-shield-exclamation' : 'i-heroicons-shield-check'"
       :loading="isToggling"
@@ -541,12 +541,12 @@ const hasActiveFilters = computed(() => {
     <UiAppModal
       v-if="showBanModal"
       v-model:open="showBanModal"
-      :title="userToBan?.isBanned ? t('admin.unbanUser', 'Unban User') : t('admin.banUser', 'Ban User')"
+      :title="userToBan?.isBanned ? t('admin.unbanUser') : t('admin.banUser')"
     >
       <div v-if="!userToBan?.isBanned" class="mb-4">
          <UTextarea
            v-model="banReason"
-           :placeholder="t('admin.banReason', 'Reason for blocking (optional)...')"
+           :placeholder="t('admin.banReason')"
            :rows="FORM_STYLES.textareaRows"
            autoresize
          />
@@ -582,8 +582,8 @@ const hasActiveFilters = computed(() => {
         >
           {{
             userToBan?.isBanned
-              ? t('admin.unban', 'Unban')
-              : t('admin.ban', 'Ban')
+              ? t('admin.unban')
+              : t('admin.ban')
           }}
         </UButton>
       </template>

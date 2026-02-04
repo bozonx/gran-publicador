@@ -1149,12 +1149,12 @@ const executeMoveToProject = async () => {
             {{ currentProject.name }}
           </NuxtLink>
            <p v-else class="text-sm text-gray-500 dark:text-gray-400">
-            {{ t('contentLibrary.subtitleProject', 'Project scope') }}
+            {{ t('contentLibrary.subtitleProject') }}
           </p>
         </template>
         <template v-else>
            <p class="text-sm text-gray-500 dark:text-gray-400">
-            {{ t('contentLibrary.subtitlePersonal', 'Personal scope') }}
+            {{ t('contentLibrary.subtitlePersonal') }}
           </p>
         </template>
        
@@ -1390,7 +1390,7 @@ const executeMoveToProject = async () => {
     <UiConfirmModal
       v-if="isBulkOperationModalOpen"
       v-model:open="isBulkOperationModalOpen"
-      :title="t('contentLibrary.bulk.deleteTitle', 'Delete multiple items')"
+      :title="t('contentLibrary.bulk.deleteTitle')"
       :description="t('contentLibrary.bulk.deleteDescription', { count: selectedIds.length })"
       :confirm-text="t('common.delete')"
       color="error"

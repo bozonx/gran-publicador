@@ -179,7 +179,7 @@ const hasContent = computed(() => {
         class="font-mono text-xs w-full"
         autoresize
         autofocus
-        :placeholder="t('post.metadataPlaceholder', 'Enter YAML metadata...')"
+        :placeholder="t('post.metadataPlaceholder')"
         @blur="stopEditing"
       />
       
@@ -189,13 +189,13 @@ const hasContent = computed(() => {
         color="error"
         variant="soft"
         icon="i-heroicons-exclamation-circle"
-        :title="t('validation.yamlError', 'YAML Syntax Error')"
+        :title="t('validation.yamlError')"
         :description="validationError"
       />
       
       <!-- Help Text -->
       <p class="text-xs text-gray-500 dark:text-gray-400">
-        {{ t('post.metadataHelp', 'Additional metadata in YAML format. Changes are auto-saved.') }}
+        {{ t('post.metadataHelp') }}
       </p>
     </div>
   </div>

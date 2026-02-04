@@ -97,7 +97,7 @@ const displayTitle = computed(() => {
     </CommonHorizontalScroll>
     
     <div v-else class="text-center py-8 text-sm text-gray-500">
-      {{ isDraft ? t('publication.noPublicationsDescription') : t('publication.noReadyPublicationsDescription', 'No ready publications found') }}
+      {{ isDraft ? t('publication.noPublicationsDescription') : t('publication.noReadyPublicationsDescription') }}
     </div>
   </div>
 </template>

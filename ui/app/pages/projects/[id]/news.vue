@@ -446,14 +446,14 @@ function formatScore(score: number) {
             <!-- Search Mode Selection -->
             <div class="w-full">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ t('news.mode') || 'Search Mode' }}
+                {{ t('news.mode') }}
               </label>
               <UiAppButtonGroup
                 v-model="currentQuery.mode"
                 :options="[
-                  { value: 'text', label: t('news.modeText') || 'Text' },
-                  { value: 'vector', label: t('news.modeVector') || 'Vector' },
-                  { value: 'hybrid', label: t('news.modeHybrid') || 'Hybrid' }
+                  { value: 'text', label: t('news.modeText') },
+                  { value: 'vector', label: t('news.modeVector') },
+                  { value: 'hybrid', label: t('news.modeHybrid') }
                 ]"
                 variant="outline"
                 active-variant="solid"
@@ -466,7 +466,7 @@ function formatScore(score: number) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.language') || 'Language' }}
+                  {{ t('news.language') }}
                 </label>
                 <CommonLanguageSelect
                   v-model="currentQuery.lang"
@@ -501,8 +501,8 @@ function formatScore(score: number) {
              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="w-full" v-if="currentQuery">
                 <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.sources') || 'Sources' }}
-                  <UTooltip :text="t('news.sourcesDescription') || 'Источник обычно это доменное имя сайта, поэтому если вы точно знаете новостной сайт то вводите его доменное имя и найдете его в списке'">
+                  {{ t('news.sources') }}
+                  <UTooltip :text="t('news.sourcesDescription')">
                     <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
                   </UTooltip>
                 </label>
@@ -511,7 +511,7 @@ function formatScore(score: number) {
 
                <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.sourceTags') || 'Source Tags' }}
+                  {{ t('news.sourceTags') }}
                 </label>
                 <NewsSourceTagSelector
                   v-model="currentQuery.sourceTags"
@@ -524,7 +524,7 @@ function formatScore(score: number) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.savedFrom') || 'Saved after' }}
+                  {{ t('news.savedFrom') }}
                 </label>
                 <UInput
                   v-model="currentQuery.savedFrom"
@@ -536,7 +536,7 @@ function formatScore(score: number) {
 
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.savedTo') || 'Saved before' }}
+                  {{ t('news.savedTo') }}
                 </label>
                 <UInput
                   v-model="currentQuery.savedTo"
@@ -551,13 +551,13 @@ function formatScore(score: number) {
              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-if="currentQuery">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {{ t('news.orderBy') || 'Sort by' }}
+                  {{ t('news.orderBy') }}
                 </label>
                 <UiAppButtonGroup
                   v-model="currentQuery.orderBy"
                   :options="[
-                    { value: 'relevance', label: t('news.orderByRelevance') || 'Relevance' },
-                    { value: 'savedAt', label: t('news.orderBySavedAt') || 'Date Saved' }
+                    { value: 'relevance', label: t('news.orderByRelevance') },
+                    { value: 'savedAt', label: t('news.orderBySavedAt') }
                   ]"
                   variant="outline"
                   active-variant="solid"
@@ -598,7 +598,7 @@ function formatScore(score: number) {
                         :class="currentQuery.isNotificationEnabled ? 'text-primary-500' : 'text-gray-400'"
                       />
                       <span class="text-sm font-medium" :class="currentQuery.isNotificationEnabled ? 'text-gray-900 dark:text-white' : 'text-gray-500'">
-                        {{ t('news.notifications') || 'Уведомления' }}
+                        {{ t('news.notifications') }}
                       </span>
                     </div>
                   </template>
@@ -630,7 +630,7 @@ function formatScore(score: number) {
                       'text-red-500': saveStatus === 'error'
                     }"
                   >
-                    {{ saveStatus === 'saved' ? t('common.saved') || 'Сохранено' : saveStatus === 'saving' ? t('common.saving') || 'Сохранение...' : t('common.saveError') || 'Ошибка сохранения' }}
+                    {{ saveStatus === 'saved' ? t('common.saved') : saveStatus === 'saving' ? t('common.saving') : t('common.saveError') }}
                   </span>
                 </div>
 
@@ -640,7 +640,7 @@ function formatScore(score: number) {
                   icon="i-heroicons-pencil-square"
                   @click="currentQuery && openEditModal(currentQuery.id, currentQuery.name)"
                 >
-                  {{ t('news.rename') || 'Переименовать' }}
+                  {{ t('common.rename') }}
                 </UButton>
                 <UButton
                   color="error"
@@ -683,7 +683,7 @@ function formatScore(score: number) {
                 icon="i-heroicons-arrow-down"
                 @click="loadMore"
               >
-                {{ t('common.loadMore') || 'Load More' }}
+                {{ t('common.loadMore') }}
               </UButton>
             </div>
           </div>

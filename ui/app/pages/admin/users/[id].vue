@@ -124,15 +124,16 @@ const formattedPreferences = computed(() => {
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <UButton
-          to="/admin"
           icon="i-heroicons-arrow-left"
           variant="ghost"
           color="neutral"
+          size="sm"
+          @click="$router.back()"
         >
           {{ t('common.back') }}
         </UButton>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ t('admin.userDetails', 'User Details') }}
+          {{ t('admin.userDetails') }}
         </h1>
       </div>
     </div>
@@ -142,7 +143,7 @@ const formattedPreferences = computed(() => {
     </div>
 
     <div v-else-if="!user" class="app-card p-12 text-center">
-      <p class="text-gray-500">{{ t('admin.userNotFound', 'User not found') }}</p>
+      <p class="text-gray-500">{{ t('admin.userNotFound') }}</p>
     </div>
 
     <div v-else class="space-y-6">
@@ -217,12 +218,12 @@ const formattedPreferences = computed(() => {
             <UDropdownMenu
              :items="[
                  [{
-                     label: t('auth.logout', 'Logout user'),
+                     label: t('auth.logout'),
                      icon: 'i-heroicons-arrow-right-start-on-rectangle',
                      onSelect: confirmLogout
                  }],
                  [{
-                     label: t('common.delete', 'Delete permanently'),
+                     label: t('common.delete'),
                      icon: 'i-heroicons-trash',
                      class: 'text-red-500 dark:text-red-400',
                      onSelect: confirmDelete
@@ -283,12 +284,12 @@ const formattedPreferences = computed(() => {
     <UiAppModal
       v-if="showBanModal"
       v-model:open="showBanModal"
-      :title="user?.isBanned ? t('admin.unbanUser', 'Unban User') : t('admin.banUser', 'Ban User')"
+      :title="user?.isBanned ? t('admin.unbanUser') : t('admin.banUser')"
     >
       <div v-if="!user?.isBanned" class="mb-4">
          <UTextarea
            v-model="banReason"
-           :placeholder="t('admin.banReason', 'Reason for blocking (optional)...')"
+           :placeholder="t('admin.banReason')"
            :rows="FORM_STYLES.textareaRows"
            autoresize
          />
@@ -297,8 +298,8 @@ const formattedPreferences = computed(() => {
       <p class="text-gray-600 dark:text-gray-400">
         {{
           user?.isBanned
-            ? t('admin.unbanConfirm', 'Are you sure you want to unban this user?')
-            : t('admin.banConfirm', 'Are you sure you want to ban this user?')
+            ? t('admin.unbanConfirm')
+            : t('admin.banConfirm')
         }}
       </p>
 
@@ -325,8 +326,8 @@ const formattedPreferences = computed(() => {
     <UiConfirmModal
         v-if="showDeleteConfirm"
         v-model:open="showDeleteConfirm"
-        :title="t('admin.deleteUserTitle', 'Delete user permanently?')"
-        :description="t('admin.deleteUserConfirm', 'This action cannot be undone. Checks related to projects and content will be removed.')"
+        :title="t('admin.deleteUserTitle')"
+        :description="t('admin.deleteUserConfirm')"
         :confirm-text="t('common.delete')"
         color="error"
         icon="i-heroicons-exclamation-triangle"
@@ -337,9 +338,9 @@ const formattedPreferences = computed(() => {
     <UiConfirmModal
         v-if="showLogoutConfirm"
         v-model:open="showLogoutConfirm"
-        :title="t('admin.logoutUserTitle', 'Logout user?')"
-        :description="t('admin.logoutUserConfirm', 'User will be logged out from all active sessions.')"
-        :confirm-text="t('auth.logout', 'Logout')"
+        :title="t('admin.logoutUserTitle')"
+        :description="t('admin.logoutUserConfirm')"
+        :confirm-text="t('auth.logout')"
         color="warning"
         icon="i-heroicons-arrow-right-start-on-rectangle"
         :loading="isLoggingOut"
