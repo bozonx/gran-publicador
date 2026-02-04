@@ -14,6 +14,7 @@ const props = defineProps<{
   modelValue: ContentBlock
   index: number
   contentItemId?: string
+  showDetach?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -146,10 +147,11 @@ const toggleCollapse = () => {
       
       <div class="flex items-center gap-1">
         <UButton
+          v-if="showDetach"
           size="xs"
           color="neutral"
           variant="ghost"
-          icon="i-heroicons-arrow-up-right-from-square"
+          icon="i-heroicons-arrow-top-right-on-square"
           :title="t('contentLibrary.actions.detach')"
           @click.stop="emit('detach')"
         />

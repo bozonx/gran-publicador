@@ -954,6 +954,7 @@ const executeMoveToProject = async () => {
                 @update:model-value="editForm.blocks[index] = $event"
                 :index="index"
                 :content-item-id="editForm.id"
+                :show-detach="editForm.blocks.length > 1"
                 @remove="removeBlock(index)"
                 @detach="detachBlock(index)"
                 @refresh="refreshActiveItem"
