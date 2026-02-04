@@ -233,19 +233,6 @@ async function handleDelete() {
 
 <template>
   <div>
-    <!-- Back button and breadcrumb -->
-    <div class="mb-6">
-      <UButton 
-        variant="ghost" 
-        color="neutral" 
-        icon="i-heroicons-arrow-left" 
-        :disabled="!canGoBack"
-        @click="goBack"
-      >
-        {{ t('common.back') }}
-      </UButton>
-    </div>
-
     <!-- Error state -->
     <div
       v-if="error"

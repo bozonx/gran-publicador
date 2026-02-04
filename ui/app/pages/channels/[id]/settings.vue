@@ -114,19 +114,6 @@ async function handleDelete() {
 
 <template>
   <div>
-    <!-- Back button -->
-    <div class="mb-6">
-      <UButton 
-        variant="ghost" 
-        color="neutral" 
-        icon="i-heroicons-arrow-left" 
-        :disabled="!canGoBack"
-        @click="goBack"
-      >
-        {{ t('common.back_to_channel', 'Back to Channel') }}
-      </UButton>
-    </div>
-
     <!-- Loading State -->
     <div v-if="isLoading && !channel" class="flex items-center justify-center py-12">
       <div class="text-center">

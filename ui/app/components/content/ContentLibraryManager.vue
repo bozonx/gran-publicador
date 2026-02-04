@@ -1177,16 +1177,6 @@ const executeMoveToProject = async () => {
         </template>
        
       </div>
-
-      <UButton
-        v-if="scope === 'project' && props.projectId"
-        variant="ghost"
-        color="neutral"
-        icon="i-heroicons-arrow-left"
-        :to="`/projects/${props.projectId}`"
-      >
-        {{ t('common.back') }}
-      </UButton>
     </div>
 
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">

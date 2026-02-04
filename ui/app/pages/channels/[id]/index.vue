@@ -404,19 +404,6 @@ const channelProblems = computed(() => {
 
 <template>
     <div>
-        <!-- Back Button -->
-        <div class="mb-6">
-            <UButton 
-              variant="ghost" 
-              color="neutral" 
-              icon="i-heroicons-arrow-left" 
-              :disabled="!canGoBack"
-              @click="goBack"
-            >
-                {{ t('common.back') }}
-            </UButton>
-        </div>
-
         <!-- Loading State -->
         <div v-if="isChannelLoading && !channel" class="flex items-center justify-center py-12">
             <div class="text-center">

@@ -167,19 +167,6 @@ async function handleTransfer() {
 
 <template>
   <div>
-    <!-- Back button -->
-    <div class="mb-6">
-      <UButton 
-        variant="ghost" 
-        color="neutral" 
-        icon="i-heroicons-arrow-left" 
-        :disabled="!canGoBack"
-        @click="goBack"
-      >
-        {{ t('common.back_to_project', 'Back to Project') }}
-      </UButton>
-    </div>
-
     <div v-if="isLoading && !currentProject" class="flex items-center justify-center py-12">
       <div class="text-center">
         <UIcon

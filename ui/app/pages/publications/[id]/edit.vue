@@ -856,25 +856,6 @@ async function executePublish(force: boolean) {
 
     <!-- Status Change Modal removed in favor of button group -->
 
-    <!-- Back button -->
-    <div class="mb-6">
-      <UButton
-        variant="ghost"
-        color="neutral"
-        icon="i-heroicons-arrow-left"
-        class="-ml-2.5"
-        :disabled="!canGoBack"
-        @click="handleCancel"
-      >
-        <span class="flex items-center gap-1">
-          {{ t('common.back') }}
-          <span v-if="currentProject" class="text-gray-500 font-normal">
-            to {{ currentProject.name }}
-          </span>
-        </span>
-      </UButton>
-    </div>
-
     <!-- Loading state -->
     <div v-if="isPublicationLoading && !currentPublication" class="flex items-center justify-center py-12">
         <UiLoadingSpinner size="md" />

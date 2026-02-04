@@ -123,15 +123,6 @@ const formattedPreferences = computed(() => {
     <!-- Header -->
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <UButton
-          icon="i-heroicons-arrow-left"
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          @click="$router.back()"
-        >
-          {{ t('common.back') }}
-        </UButton>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
           {{ t('admin.userDetails') }}
         </h1>

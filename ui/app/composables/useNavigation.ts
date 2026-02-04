@@ -1,5 +1,5 @@
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 
 /**
  * Composable for unified navigation behavior
@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router'
  * for browser back button and interface back buttons
  */
 export function useNavigation() {
-  const router = useRouter()
+  const router = useRouter();
 
   /**
    * Check if there's navigation history available within the current app
@@ -15,34 +15,39 @@ export function useNavigation() {
    * belongs to the same origin (prevents navigation to external sites)
    */
   const canGoBack = computed(() => {
+    if (!import.meta.client) {
+      return false;
+    }
+
     // Check if there's a previous page in the current session
-    const hasHistory = window.history.state?.back !== null && window.history.state?.back !== undefined
-    
+    const hasHistory =
+      window.history.state?.back !== null && window.history.state?.back !== undefined;
+
     if (!hasHistory) {
-      return false
+      return false;
     }
 
     // Check if the previous URL belongs to the same origin
     // This prevents navigating to external sites
     try {
-      const previousUrl = window.history.state?.back
+      const previousUrl = window.history.state?.back;
       if (!previousUrl) {
-        return false
+        return false;
       }
 
       // If it's a relative URL (starts with /), it's safe
       if (previousUrl.startsWith('/')) {
-        return true
+        return true;
       }
 
       // If it's an absolute URL, check the origin
-      const url = new URL(previousUrl, window.location.origin)
-      return url.origin === window.location.origin
+      const url = new URL(previousUrl, window.location.origin);
+      return url.origin === window.location.origin;
     } catch {
       // If URL parsing fails, assume it's not safe
-      return false
+      return false;
     }
-  })
+  });
 
   /**
    * Navigate back in history
@@ -52,12 +57,22 @@ export function useNavigation() {
    */
   function goBack() {
     if (canGoBack.value) {
-      router.back()
+      router.back();
     }
+  }
+
+  function goBackOrTo(fallbackTo: string) {
+    if (canGoBack.value) {
+      router.back();
+      return;
+    }
+
+    router.push(fallbackTo);
   }
 
   return {
     canGoBack,
-    goBack
-  }
+    goBack,
+    goBackOrTo,
+  };
 }
