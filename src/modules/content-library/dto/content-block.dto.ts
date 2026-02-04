@@ -31,11 +31,6 @@ class ContentBlockMediaInputDto {
 export class ContentBlockDto {
   @IsString()
   @IsOptional()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  public type?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
   public text?: string;
 

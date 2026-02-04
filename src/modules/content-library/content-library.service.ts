@@ -239,7 +239,6 @@ export class ContentLibraryService {
         blocks: {
           create: (dto.blocks ?? []).map((b, idx) => ({
             text: b.text,
-            type: b.type,
             order: b.order ?? idx,
             meta: (b.meta ?? {}) as any,
             media: {
@@ -353,7 +352,6 @@ export class ContentLibraryService {
     return (this.prisma as any).contentBlock.create({
       data: {
         contentItemId,
-        type: dto.type,
         text: dto.text,
         order: dto.order ?? nextOrder,
         meta: (dto.meta ?? {}) as any,
@@ -391,7 +389,6 @@ export class ContentLibraryService {
     return (this.prisma as any).contentBlock.update({
       where: { id: blockId },
       data: {
-        type: dto.type,
         text: dto.text,
         order: dto.order,
         meta: dto.meta ? (dto.meta as any) : undefined,

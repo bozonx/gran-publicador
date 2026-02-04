@@ -313,7 +313,6 @@ model ContentItem {
 model ContentBlock {
   id            String   @id @default(uuid())
   contentItemId String   @map("content_item_id")
-  type          String?
   text          String?  @db.Text
   order         Int      @default(0)
   meta          Json
@@ -324,7 +323,6 @@ model ContentBlock {
   media      ContentBlockMedia[]
 
   @@index([contentItemId])
-  @@index([type])
   @@map("content_blocks")
 }
 
