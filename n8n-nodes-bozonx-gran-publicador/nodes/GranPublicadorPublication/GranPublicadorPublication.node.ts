@@ -142,22 +142,6 @@ export class GranPublicadorPublication implements INodeType {
 				description: 'The main text content of the publication',
 			},
 			{
-				displayName: 'Source Texts (YAML/JSON)',
-				name: 'sourceTexts',
-				type: 'string',
-				typeOptions: {
-					rows: 4,
-				},
-				default: '',
-				description:
-					'Initial source text objects in YAML or JSON format: [{"content": "...", "source": "..."}]',
-				displayOptions: {
-					show: {
-						operation: ['create'],
-					},
-				},
-			},
-			{
 				displayName: 'Tags',
 				name: 'tags',
 				type: 'string',
@@ -248,22 +232,6 @@ export class GranPublicadorPublication implements INodeType {
 					},
 				},
 				description: 'The ID of the publication to add content to',
-			},
-			{
-				displayName: 'Source Texts to Add (YAML/JSON)',
-				name: 'sourceTexts',
-				type: 'string',
-				typeOptions: {
-					rows: 4,
-				},
-				default: '',
-				description:
-					'Source text objects to append in YAML or JSON format: [{"content": "...", "source": "..."}]',
-				displayOptions: {
-					show: {
-						operation: ['addContent'],
-					},
-				},
 			},
 			// --- Media Handle ---
 			{
@@ -377,13 +345,6 @@ export class GranPublicadorPublication implements INodeType {
 					const tags = this.getNodeParameter('tags', i) as string;
 					const content = this.getNodeParameter('content', i, '') as string;
 					const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
-					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
-
-					let sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
-
-					if (Array.isArray(sourceTexts)) {
-						sourceTexts = sourceTexts.filter((item: any) => item && item.content && item.content.trim() !== '');
-					}
 
 					if (additionalFields.meta) {
 						additionalFields.meta = parseYamlOrJson.call(this, additionalFields.meta, i, 'Meta');

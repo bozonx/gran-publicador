@@ -26,7 +26,7 @@ const navItems = computed(() => [
 </script>
 
 <template>
-  <div class="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden pb-safe">
+  <div class="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 lg:hidden pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
     <div class="flex items-center justify-around h-16">
       <NuxtLink
         v-for="item in navItems"

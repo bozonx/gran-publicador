@@ -23,7 +23,7 @@ const emit = defineEmits<{
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2">
-          <span class="text-xl font-bold text-gray-900 dark:text-white"> Gran Publicador </span>
+          <span class="hidden min-[360px]:inline text-xl font-bold text-gray-900 dark:text-white"> Gran Publicador </span>
         </NuxtLink>
       </div>
 

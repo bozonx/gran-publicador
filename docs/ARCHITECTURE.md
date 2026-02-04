@@ -627,8 +627,7 @@ Publication (Публикации)
   ├── tags: String
   ├── status: PublicationStatus
   ├── archivedAt: DateTime?
-  ├── archivedBy: DateTime?
-  └── sourceTexts: JSON (Источник материалов: [{ content, order, source? }])
+  └── archivedBy: DateTime?
 
 Media (Медиафайлы)
   ├── id: UUID

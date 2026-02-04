@@ -198,7 +198,7 @@ async function handleDeletePublication() {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Scheduled Section -->
-        <div class="app-card p-6">
+        <div class="app-card p-4 sm:p-6">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
@@ -250,7 +250,7 @@ async function handleDeletePublication() {
         </div>
 
         <!-- Problematic Section -->
-        <div class="app-card p-6">
+        <div class="app-card p-4 sm:p-6">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
@@ -294,7 +294,7 @@ async function handleDeletePublication() {
       </div>
 
       <!-- Published in the last 24h Section -->
-      <div class="app-card p-6">
+      <div class="app-card p-4 sm:p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />

@@ -478,7 +478,7 @@ async function handleDelete() {
     </div>
 
     <!-- Search and filters -->
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+    <div class="app-card p-4 space-y-4">
       <!-- Search -->
       <div class="flex items-center gap-4">
         <div class="flex-1">
@@ -644,7 +644,7 @@ async function handleDelete() {
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
     </div>
 
-    <div v-else-if="filteredPublications.length === 0" class="app-card p-12 text-center">
+    <div v-else-if="filteredPublications.length === 0" class="app-card p-6 sm:p-12 text-center">
         <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
           <UIcon name="i-heroicons-document-text" class="w-8 h-8 text-gray-400" />
         </div>

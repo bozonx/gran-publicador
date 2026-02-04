@@ -127,7 +127,7 @@ export function extractMedia(message: Message): ExtractedMedia[] {
 }
 
 /**
- * Format source string for sourceTexts array
+ * Format source string for publication meta
  */
 export function formatSource(message: Message): string {
   if (message.forward_origin) {

@@ -58,7 +58,7 @@ function closeSidebar() {
 
       <!-- Main content -->
       <main class="flex-1 min-w-0 pb-20 lg:pb-0">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-6">
           <slot />
         </div>
       </main>

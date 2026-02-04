@@ -159,7 +159,6 @@ x-api-key: gp_<TOKEN_VALUE>
 | `status` | Enum | Нет | Статус (`DRAFT`, `READY`) |
 | `media` | array | Нет | Массив объектов новых медиафайлов |
 | `existingMediaIds` | array | Нет | Массив ID уже загруженных медиа |
-| `sourceTexts` | array | Нет | Массив исходных текстов для контекста AI |
 
 ---
 

@@ -279,7 +279,7 @@ async function handleDelete() {
     <!-- Project not found -->
     <div
       v-else-if="!currentProject"
-      class="app-card p-12 text-center"
+      class="app-card p-6 sm:p-12 text-center"
     >
       <UIcon
         name="i-heroicons-document-magnifying-glass"
@@ -300,7 +300,7 @@ async function handleDelete() {
     <div v-else>
       <!-- Page header -->
       <div class="app-card mb-6 overflow-hidden">
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
@@ -457,7 +457,7 @@ async function handleDelete() {
         <!-- Scheduled and Problems Columns -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Scheduled Column -->
-          <div class="app-card p-6">
+          <div class="app-card p-4 sm:p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
@@ -495,7 +495,7 @@ async function handleDelete() {
           </div>
 
           <!-- Problem Column -->
-          <div class="app-card p-6">
+          <div class="app-card p-4 sm:p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
@@ -536,7 +536,7 @@ async function handleDelete() {
         </div>
 
         <!-- Published in the last 24h Section -->
-        <div class="app-card p-6">
+        <div class="app-card p-4 sm:p-6">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
@@ -586,7 +586,7 @@ async function handleDelete() {
       </div>
 
       <!-- Channels Section -->
-      <div id="channels-section" class="app-card mt-6 p-6">
+      <div id="channels-section" class="app-card mt-6 p-4 sm:p-6">
         <FeaturesChannelsList :project-id="currentProject.id" />
       </div>
       </div>
