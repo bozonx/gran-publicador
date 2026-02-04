@@ -75,9 +75,9 @@ export const CARD_STYLES = {
   hover: 'app-card-hover',
   
   // Padding variants (responsive)
-  paddingCompact: 'p-2 sm:p-3',
-  paddingNormal: 'p-3 sm:p-4',
-  paddingSpacious: 'p-4 sm:p-6',
+  paddingCompact: 'p-3 sm:p-4',
+  paddingNormal: 'p-4 sm:p-5',
+  paddingSpacious: 'p-5 sm:p-6',
   
   // Border variants
   borderPrimary: 'border-gray-200 dark:border-gray-700',
