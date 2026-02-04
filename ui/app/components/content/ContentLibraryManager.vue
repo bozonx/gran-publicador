@@ -66,6 +66,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 const activeTabId = ref<string | null>(null)
+const activeTab = ref<{ id: string; type: 'FOLDER' | 'SAVED_VIEW' } | null>(null)
 
 const q = ref('')
 const archiveStatus = ref<'active' | 'archived'>('active')
@@ -233,7 +234,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
         projectId: props.scope === 'project' ? props.projectId : undefined,
-        folderId: activeTabId.value || undefined,
+        folderId: (activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined),
         search: q.value || undefined,
         limit,
         offset: offset.value,
@@ -293,7 +294,7 @@ watch(selectedTags, () => {
   fetchItems({ reset: true })
 })
 
-watch(activeTabId, () => {
+watch(activeTab, () => {
   selectedIds.value = []
   fetchItems({ reset: true })
 })
@@ -811,6 +812,7 @@ const executeMoveToProject = async () => {
 
     <ContentLibraryTabs
       v-model="activeTabId"
+      @update:active-tab="activeTab = $event"
       :scope="scope"
       :project-id="props.projectId"
     />

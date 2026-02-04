@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublicationWithRelations } from '~/composables/usePublications'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 const props = defineProps<{
     publication: PublicationWithRelations
@@ -13,7 +14,6 @@ const toast = useToast()
 
 const isEditing = ref(false)
 const localNote = ref(props.publication.note || '')
-const isSaving = ref(false)
 
 // Focus textarea when editing starts
 const textareaRef = ref<any>(null)
@@ -28,33 +28,38 @@ function startEditing() {
     isEditing.value = true
 }
 
-function cancelEditing() {
+// Auto-save setup
+const { saveStatus, saveError, forceSave } = useAutosave({
+  data: localNote,
+  saveFn: async (note) => {
+    await updatePublication(props.publication.id, {
+        note: note
+    }, { silent: true }) // Silent update to not trigger global loading indicators if possible
+    
+    // We don't emit update here to avoid re-rendering parent components while typing
+    // But we might want to update local state if needed
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
+})
+
+async function finishEditing() {
+    // Ensure everything is saved
+    if (saveStatus.value === 'saving' || saveStatus.value === 'error' || localNote.value !== props.publication.note) {
+         try {
+            await forceSave()
+         } catch (e) {
+            // Error is handled by autosave
+            return 
+         }
+    }
+    
     isEditing.value = false
-    localNote.value = props.publication.note || ''
+    emit('update')
 }
 
-async function saveNote() {
-    isSaving.value = true
-    try {
-        await updatePublication(props.publication.id, {
-            note: localNote.value
-        })
-        isEditing.value = false
-        emit('update')
-        toast.add({
-            title: t('common.success'),
-            color: 'success'
-        })
-    } catch (err: any) {
-        toast.add({
-            title: t('common.error'),
-            description: err.message || t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isSaving.value = false
-    }
-}
+// Watch for clicks outside to close? 
+// For now, let's keep it explicit with "Done" button to avoid accidental closures while thinking
 </script>
 
 <template>
@@ -95,9 +100,17 @@ async function saveNote() {
 
       <!-- Mode: Edit -->
       <div v-else class="p-6 bg-gray-50/50 dark:bg-gray-900/20 space-y-4">
-          <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-primary-500" />
-              <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{ t('post.note') }}</span>
+          <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-primary-500" />
+                  <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{ t('post.note') }}</span>
+              </div>
+              
+              <!-- Autosave Status -->
+              <UiAutosaveStatus 
+                :status="saveStatus" 
+                :error="saveError" 
+              />
           </div>
 
           <UTextarea
@@ -110,24 +123,9 @@ async function saveNote() {
               variant="outline"
               size="lg"
               autofocus
+              @blur="finishEditing"
           />
-
-          <div class="flex justify-end gap-3 pt-2">
-              <UButton
-                  variant="ghost"
-                  color="neutral"
-                  :label="t('common.cancel')"
-                  @click="cancelEditing"
-              />
-              <UButton
-                  variant="solid"
-                  color="primary"
-                  :label="t('common.save')"
-                  :loading="isSaving"
-                  class="px-6"
-                  @click="saveNote"
-              />
-          </div>
       </div>
   </div>
 </template>
+

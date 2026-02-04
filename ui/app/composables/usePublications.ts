@@ -288,8 +288,10 @@ export function usePublications() {
         }
     }
 
-    async function updatePublication(id: string, data: any): Promise<PublicationWithRelations> {
-        isLoading.value = true
+    async function updatePublication(id: string, data: any, options: { silent?: boolean } = {}): Promise<PublicationWithRelations> {
+        if (!options.silent) {
+            isLoading.value = true
+        }
         error.value = null
 
         try {
@@ -307,7 +309,9 @@ export function usePublications() {
             error.value = err.message || 'Failed to update publication'
             throw err
         } finally {
-            isLoading.value = false
+            if (!options.silent) {
+                isLoading.value = false
+            }
         }
     }
 

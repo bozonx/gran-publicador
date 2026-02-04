@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | null]
+  'update:activeTab': [tab: ContentLibraryTab | null]
 }>()
 
 const { t } = useI18n()
@@ -38,6 +39,7 @@ const fetchTabs = async () => {
     // Auto-select first tab if none selected
     if (!activeTabId.value && tabs.value.length > 0 && tabs.value[0]) {
       activeTabId.value = tabs.value[0].id
+      emit('update:activeTab', tabs.value[0])
     }
   } catch (e: any) {
     console.error('Failed to fetch tabs', e)
@@ -58,6 +60,7 @@ const handleCreateTab = async (data: { type: 'FOLDER' | 'SAVED_VIEW'; title: str
     
     await fetchTabs()
     activeTabId.value = newTab.id
+    emit('update:activeTab', newTab)
     
     toast.add({
       title: t('common.success'),
@@ -79,6 +82,7 @@ const handleDeleteTab = async (tabId: string) => {
     
     if (activeTabId.value === tabId) {
       activeTabId.value = null
+      emit('update:activeTab', null)
     }
     
     await fetchTabs()
@@ -134,6 +138,7 @@ watch(() => props.projectId, () => {
 
 watch(() => props.scope, () => {
   activeTabId.value = null
+  emit('update:activeTab', null)
   fetchTabs()
 })
 
@@ -162,7 +167,7 @@ onMounted(() => {
             :variant="activeTabId === tab.id ? 'solid' : 'outline'"
             size="sm"
             :icon="getTabIcon(tab.type)"
-            @click="activeTabId = tab.id"
+            @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
             class="drag-handle cursor-move"
           >
             {{ tab.title }}
