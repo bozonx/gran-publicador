@@ -800,51 +800,30 @@ const executeMoveToProject = async () => {
       </UButton>
     </div>
 
-    <div class="app-card p-6">
-      <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-        <div class="flex-1 flex flex-col sm:flex-row gap-3">
-          <UInput
-            v-model="q"
-            :placeholder="t('contentLibrary.searchPlaceholder', 'Search by title, note, tags, text...')"
-            icon="i-heroicons-magnifying-glass"
-            class="flex-1"
-          />
-
+    <div class="app-card p-6 space-y-4">
+      <div class="flex flex-col md:flex-row gap-3 md:items-center justify-between">
+        <div class="flex items-center gap-2">
           <USelectMenu
-            v-model="selectedTags"
-            :items="availableTags"
-            multiple
-            :placeholder="t('contentLibrary.filter.filterByTags')"
-            class="w-64"
-            icon="i-heroicons-tag"
-            searchable
+            v-model="sortBy"
+            :items="sortOptions"
+            value-key="id"
+            label-key="label"
+            class="w-48"
+            :searchable="false"
           >
-          >
+            <template #leading>
+              <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
+            </template>
           </USelectMenu>
 
-          <div class="flex items-center gap-2">
-            <USelectMenu
-              v-model="sortBy"
-              :items="sortOptions"
-              value-key="id"
-              label-key="label"
-              class="w-48"
-              :searchable="false"
-            >
-              <template #leading>
-                <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
-              </template>
-            </USelectMenu>
-
-            <UButton
-              :key="sortOrder"
-              :icon="sortOrderIcon"
-              color="neutral"
-              variant="ghost"
-              @click="toggleSortOrder"
-              :title="sortOrderLabel"
-            />
-          </div>
+          <UButton
+            :key="sortOrder"
+            :icon="sortOrderIcon"
+            color="neutral"
+            variant="ghost"
+            @click="toggleSortOrder"
+            :title="sortOrderLabel"
+          />
         </div>
 
         <div class="flex items-center gap-3 justify-between md:justify-end">
@@ -893,6 +872,25 @@ const executeMoveToProject = async () => {
             </UButton>
           </template>
         </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <UInput
+          v-model="q"
+          :placeholder="t('contentLibrary.searchPlaceholder', 'Search by title, note, tags, text...')"
+          icon="i-heroicons-magnifying-glass"
+          class="flex-1"
+        />
+
+        <USelectMenu
+          v-model="selectedTags"
+          :items="availableTags"
+          multiple
+          :placeholder="t('contentLibrary.filter.filterByTags')"
+          class="w-full sm:w-64"
+          icon="i-heroicons-tag"
+          searchable
+        />
       </div>
 
       <div v-if="error" class="mt-4 text-red-600 dark:text-red-400">
