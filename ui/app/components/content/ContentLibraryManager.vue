@@ -558,13 +558,17 @@ const getItemTextBlocks = (item: ContentItem) => {
   return texts
 }
 
-const handleBulkAction = async (operation: 'DELETE' | 'ARCHIVE' | 'UNARCHIVE') => {
+const handleBulkAction = async (operation: 'ARCHIVE' | 'UNARCHIVE') => {
   bulkOperationType.value = operation
   
-  if (operation === 'DELETE') {
-    isBulkOperationModalOpen.value = true
-    return
-  }
+  // For archive (move to trash), show confirmation?
+  // User said "move to trash" looks like moving to trash.
+  // We can add a simple confirm if needed, but usually moving to trash is reversible so immediate is okay.
+  // But strictly speaking, if we want to mimic "Move to Trash" we might want a confirm or just do it.
+  // The Delete button was for PERMANENT delete. 
+  // Let's stick to immediate action for Archive/Restore for now, as it just toggles a flag.
+  // Wait, user said "instead of archiving do - to trash".
+  // Let's treat ARCHIVE as "Move to Trash".
   
   await executeBulkOperation()
 }
@@ -594,6 +598,72 @@ const executeBulkOperation = async () => {
     toast.add({
       title: t('common.error'),
       description: getApiErrorMessage(e, `Failed to perform bulk ${operation}`),
+      color: 'error'
+    })
+  } finally {
+    isBulkDeleting.value = false
+    isBulkOperationModalOpen.value = false
+  }
+}
+
+// Move to Project Logic
+const isMoveToProjectModalOpen = ref(false)
+const targetProjectId = ref<string | null>(null)
+const { data: projectsData, refresh: refreshProjects } = useFetch('/api/projects', {
+  headers: useRequestHeaders(['cookie']),
+  query: { page: 1, limit: 100 } // Fetch enough projects for the dropdown
+})
+
+const myProjects = computed(() => {
+  return (projectsData.value?.items || []).map((p: any) => ({
+    id: p.id,
+    label: p.name,
+    isPersonal: false
+  }))
+})
+
+// Add "Personal Scope" option
+const projectOptions = computed(() => {
+  return [
+    { id: 'PERSONAL', label: t('contentLibrary.bulk.personalScope'), isPersonal: true },
+    ...myProjects.value
+  ]
+})
+
+const handleMoveToProject = () => {
+  // Reset target project
+  targetProjectId.value = null
+  isMoveToProjectModalOpen.value = true
+}
+
+const executeMoveToProject = async () => {
+  if (selectedIds.value.length === 0) return
+  
+  isBulkDeleting.value = true // Re-use loading state
+  
+  // 'PERSONAL' id logic maps to null projectId for backend
+  const projectIdToSend = targetProjectId.value === 'PERSONAL' ? null : targetProjectId.value
+
+  try {
+    await api.post('/content-library/bulk', {
+      ids: selectedIds.value,
+      operation: 'SET_PROJECT',
+      projectId: projectIdToSend
+    })
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.bulk.success', { count: selectedIds.value.length }),
+      color: 'success'
+    })
+    
+    selectedIds.value = []
+    isMoveToProjectModalOpen.value = false
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, `Failed to move items`),
       color: 'error'
     })
   } finally {
@@ -891,29 +961,18 @@ const executeBulkOperation = async () => {
             class="text-white hover:bg-gray-700"
             @click="handleBulkAction('ARCHIVE')"
           >
-            {{ t('common.archive') }}
-          </UButton>
-          <UButton
-            v-else
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-arrow-uturn-left"
-            size="sm"
-            class="text-white hover:bg-gray-700"
-            @click="handleBulkAction('UNARCHIVE')"
-          >
-            {{ t('common.restore') }}
+            {{ t('contentLibrary.bulk.moveToTrash') }}
           </UButton>
 
           <UButton
-            color="error"
+            color="gray"
             variant="ghost"
-            icon="i-heroicons-trash"
+            icon="i-heroicons-folder-open"
             size="sm"
-            class="text-white hover:bg-red-900/50"
-            @click="handleBulkAction('DELETE')"
+            class="text-white hover:bg-gray-700"
+            @click="handleMoveToProject"
           >
-            {{ t('common.delete') }}
+            {{ t('contentLibrary.bulk.move') }}
           </UButton>
         </div>
 
@@ -1055,6 +1114,56 @@ const executeBulkOperation = async () => {
       :project-id="projectId"
       @uploaded="fetchItems({ reset: true })"
     />
+
+    <!-- Move to Project Modal -->
+    <UModal v-model="isMoveToProjectModalOpen">
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+              {{ t('contentLibrary.bulk.moveToProjectTitle') }}
+            </h3>
+            <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMoveToProjectModalOpen = false" />
+          </div>
+        </template>
+
+        <div class="py-4">
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {{ t('contentLibrary.bulk.moveToProjectDescription', { count: selectedIds.length }) }}
+          </p>
+
+          <USelectMenu
+            v-model="targetProjectId"
+            :options="projectOptions"
+            value-attribute="id"
+            option-attribute="label"
+            searchable
+            :search-attributes="['label']"
+            :placeholder="t('contentLibrary.bulk.moveToProject')"
+          >
+            <template #option="{ option }">
+              <span :class="{ 'text-primary-500 font-medium': option.isPersonal }">{{ option.label }}</span>
+            </template>
+          </USelectMenu>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="gray" variant="ghost" @click="isMoveToProjectModalOpen = false">
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton 
+              color="primary" 
+              :loading="isBulkDeleting"
+              :disabled="!targetProjectId" 
+              @click="executeMoveToProject"
+            >
+              {{ t('contentLibrary.bulk.move') }}
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
   </div>
 </template>
 
