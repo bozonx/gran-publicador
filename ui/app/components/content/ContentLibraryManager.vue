@@ -1117,50 +1117,37 @@ const executeMoveToProject = async () => {
     />
 
     <!-- Move to Project Modal -->
-    <UModal v-model="isMoveToProjectModalOpen">
-      <UCard>
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-              {{ t('contentLibrary.bulk.moveToProjectTitle') }}
-            </h3>
-            <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMoveToProjectModalOpen = false" />
-          </div>
-        </template>
+    <AppModal
+      v-model:open="isMoveToProjectModalOpen"
+      :title="t('contentLibrary.bulk.moveToProjectTitle')"
+      :description="t('contentLibrary.bulk.moveToProjectDescription', { count: selectedIds.length })"
+      :ui="{ content: 'w-full max-w-xl' }"
+      @close="isMoveToProjectModalOpen = false"
+    >
+      <USelectMenu
+        v-model="targetProjectId"
+        :options="projectOptions"
+        value-attribute="id"
+        option-attribute="label"
+        searchable
+        :search-attributes="['label']"
+        :placeholder="t('contentLibrary.bulk.selectProject')"
+      />
 
-        <div class="py-4">
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            {{ t('contentLibrary.bulk.moveToProjectDescription', { count: selectedIds.length }) }}
-          </p>
-
-          <USelectMenu
-            v-model="targetProjectId"
-            :options="projectOptions"
-            value-attribute="id"
-            option-attribute="label"
-            searchable
-            :search-attributes="['label']"
-            :placeholder="t('contentLibrary.bulk.selectProject')"
-          />
-        </div>
-
-        <template #footer>
-          <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" @click="isMoveToProjectModalOpen = false">
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton 
-              color="primary" 
-              :loading="isBulkDeleting"
-              :disabled="!targetProjectId" 
-              @click="executeMoveToProject"
-            >
-              {{ t('contentLibrary.bulk.move') }}
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </UModal>
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isMoveToProjectModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isBulkDeleting"
+          :disabled="!targetProjectId"
+          @click="executeMoveToProject"
+        >
+          {{ t('contentLibrary.bulk.move') }}
+        </UButton>
+      </template>
+    </AppModal>
   </div>
 </template>
 
