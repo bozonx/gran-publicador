@@ -829,7 +829,9 @@
       "deleteConfirmDescription": "Are you sure you want to move this item to trash? You can restore it later.",
       "bulkUpload": "Bulk Upload",
       "copyToItem": "Copy to new item",
-      "copyToItemSuccess": "Media copied to a new item"
+      "copyToItemSuccess": "Media copied to a new item",
+      "purgeConfirmTitle": "Empty trash?",
+      "purgeConfirmDescription": "Are you sure you want to permanently delete all items from the trash? This action cannot be undone."
     },
     "filter": {
       "active": "Active",

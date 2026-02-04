@@ -328,6 +328,18 @@ export class ContentLibraryService {
     return { deletedCount: result.count };
   }
 
+  public async purgeArchivedPersonal(userId: string) {
+    const result = await this.prisma.contentItem.deleteMany({
+      where: {
+        userId,
+        projectId: null,
+        archivedAt: { not: null },
+      },
+    });
+
+    return { deletedCount: result.count };
+  }
+
   public async createBlock(contentItemId: string, dto: CreateContentBlockDto, userId: string) {
     await this.assertContentItemAccess(contentItemId, userId, false);
     await this.assertContentItemMutationAllowed(contentItemId, userId);

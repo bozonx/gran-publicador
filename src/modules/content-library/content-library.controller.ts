@@ -144,6 +144,11 @@ export class ContentLibraryController {
     return this.contentLibraryService.purgeArchivedByProject(projectId, req.user.userId);
   }
 
+  @Post('personal/purge-archived')
+  public async purgeArchivedPersonal(@Request() req: UnifiedAuthRequest) {
+    return this.contentLibraryService.purgeArchivedPersonal(req.user.userId);
+  }
+
   @Post('bulk')
   public async bulkOperation(
     @Request() req: UnifiedAuthRequest,

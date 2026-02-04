@@ -119,6 +119,7 @@ const activeItem = ref<ContentItem | null>(null)
 
 const isBulkUploadModalOpen = ref(false)
 
+const isPurgeConfirmModalOpen = ref(false)
 const isPurging = ref(false)
 
 const isArchiveModalOpen = ref(false)
@@ -565,33 +566,20 @@ const restoreItem = async (itemId: string) => {
 }
 
 const purgeArchived = async () => {
-  // if (!projectId.value) return
   if (props.scope === 'project' && !props.projectId) return
 
   isPurging.value = true
   try {
-    // API might serve purge for project only?
     if (props.scope === 'project' && props.projectId) {
       await api.post(`/content-library/projects/${props.projectId}/purge-archived`)
+    } else if (props.scope === 'personal') {
+      await api.post('/content-library/personal/purge-archived')
     } else {
-      // Personal purge? Need to check if endpoint supports it.
-      // Looking at content-library.service.ts: 
-      // public async purgeArchivedByProject(projectId: string, userId: string)
-      // There is no purgeArchivedByPerson.
-      // So maybe disable purge button for personal scope for now or implement it.
-      // I'll disable it for personal scope for now to be safe, or just hide the button.
-      // Actually the button is conditional on archiveStatus === 'archived'.
-      // I'll assume purge is project-only feature for now unless I update backend.
-      // The requirement didn't specify purge.
-      toast.add({
-        title: t('common.note', 'Note'),
-        description: 'Purge not implemented for personal library',
-        color: 'primary'
-      })
       return
     }
     
     await fetchItems({ reset: true })
+    isPurgeConfirmModalOpen.value = false
   } catch (e: any) {
     toast.add({
       title: t('common.error', 'Error'),
@@ -802,49 +790,50 @@ const executeMoveToProject = async () => {
         </div>
 
         <div class="flex items-center gap-3 justify-between md:justify-end">
-          <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">
-            <UiAppButtonGroup
-              v-model="archiveStatus"
-              :options="[
-                { value: 'archived', label: t('contentLibrary.filter.archived') },
-                { value: 'active', label: t('contentLibrary.filter.active') }
-              ]"
+          <div class="flex items-center gap-2">
+            <UButton
+              :color="archiveStatus === 'archived' ? 'neutral' : 'neutral'"
               variant="outline"
-              active-variant="solid"
-              color="neutral"
-            />
+              :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
+              @click="archiveStatus = archiveStatus === 'active' ? 'archived' : 'active'"
+              size="sm"
+            >
+              {{ archiveStatus === 'archived' ? t('contentLibrary.filter.active') : t('contentLibrary.filter.archived') }}
+            </UButton>
           </div>
           <UButton
-            v-if="archiveStatus === 'archived' && scope === 'project'"
+            v-if="archiveStatus === 'archived'"
             size="sm"
-            color="warning"
+            color="error"
             variant="outline"
             icon="i-heroicons-trash"
             :loading="isPurging"
-            @click="purgeArchived"
+            @click="isPurgeConfirmModalOpen = true"
           >
             {{ t('contentLibrary.actions.purgeArchived', 'Empty trash') }}
           </UButton>
 
-          <UButton
-            color="neutral"
-            size="sm"
-            variant="outline"
-            icon="i-heroicons-cloud-arrow-up"
-            @click="isBulkUploadModalOpen = true"
-          >
-            {{ t('contentLibrary.actions.bulkUpload') }}
-          </UButton>
+          <template v-if="archiveStatus === 'active'">
+            <UButton
+              color="neutral"
+              size="sm"
+              variant="outline"
+              icon="i-heroicons-cloud-arrow-up"
+              @click="isBulkUploadModalOpen = true"
+            >
+              {{ t('contentLibrary.actions.bulkUpload') }}
+            </UButton>
 
-          <UButton
-            color="primary"
-            size="sm"
-            icon="i-heroicons-plus"
-            :loading="isStartCreating"
-            @click="createAndEdit"
-          >
-            {{ t('contentLibrary.actions.createEmpty', 'Create') }}
-          </UButton>
+            <UButton
+              color="primary"
+              size="sm"
+              icon="i-heroicons-plus"
+              :loading="isStartCreating"
+              @click="createAndEdit"
+            >
+              {{ t('contentLibrary.actions.createEmpty', 'Create') }}
+            </UButton>
+          </template>
         </div>
       </div>
 
@@ -910,6 +899,18 @@ const executeMoveToProject = async () => {
       icon="i-heroicons-trash"
       :loading="!!isArchivingId"
       @confirm="confirmArchive"
+    />
+
+    <UiConfirmModal
+      v-if="isPurgeConfirmModalOpen"
+      v-model:open="isPurgeConfirmModalOpen"
+      :title="t('contentLibrary.actions.purgeConfirmTitle')"
+      :description="t('contentLibrary.actions.purgeConfirmDescription')"
+      :confirm-text="t('contentLibrary.actions.purgeArchived')"
+      color="error"
+      icon="i-heroicons-trash"
+      :loading="isPurging"
+      @confirm="purgeArchived"
     />
 
     <UiConfirmModal
