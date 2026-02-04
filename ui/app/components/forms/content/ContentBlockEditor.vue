@@ -19,6 +19,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: ContentBlock): void
   (e: 'remove'): void
+  (e: 'detach'): void
   (e: 'refresh'): void
 }>()
 
@@ -144,6 +145,14 @@ const toggleCollapse = () => {
       </div>
       
       <div class="flex items-center gap-1">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-arrow-up-right-from-square"
+          :title="t('contentLibrary.actions.detach')"
+          @click.stop="emit('detach')"
+        />
         <UButton
           size="xs"
           color="error"

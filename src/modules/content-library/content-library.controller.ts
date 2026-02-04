@@ -246,4 +246,14 @@ export class ContentLibraryController {
       req.user.userId,
     );
   }
+
+  @Post('items/:id/blocks/:blockId/detach')
+  public async detachBlock(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Param('blockId') blockId: string,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.contentLibraryService.detachBlock(contentItemId, blockId, req.user.userId);
+  }
 }

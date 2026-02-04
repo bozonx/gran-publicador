@@ -820,6 +820,8 @@
       "createEmpty": "Create",
       "collapseAll": "Collapse all",
       "expandAll": "Expand all",
+      "detach": "Detach",
+      "detachSuccess": "Block detached to a new item",
       "moveToTrash": "Move to trash",
       "deleteConfirmTitle": "Move to trash?",
       "deleteConfirmDescription": "Are you sure you want to move this item to trash? You can restore it later.",

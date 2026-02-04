@@ -690,4 +690,40 @@ export class ContentLibraryService {
         throw new BadRequestException(`Unsupported operation: ${operation}`);
     }
   }
+
+  public async detachBlock(contentItemId: string, blockId: string, userId: string) {
+    const sourceItem = await this.assertContentItemAccess(contentItemId, userId, false);
+    await this.assertContentItemMutationAllowed(contentItemId, userId);
+
+    const block = await (this.prisma as any).contentBlock.findUnique({
+      where: { id: blockId },
+      select: { id: true, contentItemId: true, text: true },
+    });
+
+    if (!block || block.contentItemId !== contentItemId) {
+      throw new NotFoundException('Content block not found');
+    }
+
+    // Create new content item, copying scope from source
+    const newItem = await (this.prisma as any).contentItem.create({
+      data: {
+        userId: sourceItem.userId,
+        projectId: sourceItem.projectId,
+        title: block.text?.slice(0, 50) || 'Detached Block',
+        tags: [],
+        note: null,
+      },
+    });
+
+    // Move block to the new item
+    await (this.prisma as any).contentBlock.update({
+      where: { id: blockId },
+      data: {
+        contentItemId: newItem.id,
+        order: 0,
+      },
+    });
+
+    return newItem;
+  }
 }

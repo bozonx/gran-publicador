@@ -371,6 +371,35 @@ const removeBlock = async (index: number) => {
   }
 }
 
+const detachBlock = async (index: number) => {
+  const target = editForm.value
+  const block = target.blocks[index]
+  
+  if (!block || !block.id) return
+
+  try {
+    await api.post(`/content-library/items/${editForm.value.id}/blocks/${block.id}/detach`)
+    
+    target.blocks.splice(index, 1)
+    
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.actions.detachSuccess'),
+      color: 'success'
+    })
+    
+    // Background list update
+    fetchItems()
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to detach block'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  }
+}
+
 const handleReorder = async () => {
   if (!editForm.value.id) return
   
@@ -926,6 +955,7 @@ const executeMoveToProject = async () => {
                 :index="index"
                 :content-item-id="editForm.id"
                 @remove="removeBlock(index)"
+                @detach="detachBlock(index)"
                 @refresh="refreshActiveItem"
               />
             </div>
