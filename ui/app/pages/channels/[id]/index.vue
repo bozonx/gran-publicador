@@ -437,7 +437,7 @@ const channelProblems = computed(() => {
         <!-- Channel Content -->
         <div v-else class="space-y-6">
             <!-- Channel Header -->
-            <div class="app-card p-0 overflow-hidden">
+            <div class="app-card p-0! overflow-hidden">
                 <!-- Color bar -->
                 <div class="h-2" :style="{ backgroundColor: getSocialMediaColor(channel.socialMedia) }" />
                 
