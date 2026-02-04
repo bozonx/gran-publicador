@@ -296,7 +296,7 @@ async function performSubmit(data: PublicationFormData) {
     formActionsRef.value?.showError()
     toast.add({
       title: t('common.error'),
-      description: error.message || t('common.saveError'),
+      description: t('common.saveError'),
       color: 'error'
     })
   }

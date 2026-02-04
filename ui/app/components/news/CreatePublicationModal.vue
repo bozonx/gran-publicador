@@ -189,7 +189,7 @@ async function fetchData(targetUrl: string) {
         }
     } catch (err: any) {
         console.error('Failed to fetch content', err)
-        error.value = err.message || 'Failed to fetch content'
+        error.value = t('publication.scrapeFailed')
     } finally {
         isLoading.value = false
     }
@@ -285,7 +285,7 @@ async function handleNext() {
     console.error('Failed to create publication from news:', err)
     toast.add({
       title: t('common.error'),
-      description: err.message || t('publication.createError'),
+      description: t('publication.createError'),
       color: 'error'
     })
   } finally {

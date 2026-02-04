@@ -217,7 +217,7 @@ async function handleGenerate() {
     metadata.value = response.metadata || null;
   } else {
     // Error handling already in useLlm, but we can add toast for better UX
-    let errorDescription = error.value?.message || t('llm.errorMessage');
+    const errorDescription = t('llm.errorMessage');
     toast.add({
       title: t('llm.error'),
       description: errorDescription,
@@ -282,7 +282,7 @@ async function handleGenerationStep2(contentSource: string) {
     } else {
        toast.add({
         title: t('llm.error'),
-        description: error.value?.message || t('llm.errorMessage'),
+        description: t('llm.errorMessage'),
         color: 'error',
       });
     }

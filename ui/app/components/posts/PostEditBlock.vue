@@ -573,7 +573,7 @@ async function executePublish() {
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('publication.publishError'),
+      description: t('publication.publishError'),
       color: 'error'
     })
     // Also emit success on catch if something went wrong but backend might have saved some status
@@ -902,20 +902,6 @@ async function executePublish() {
                         class="w-full"
                         :placeholder="t('post.selectTemplate', 'Select template...')"
                     >
-                        <!-- @ts-ignore -->
-                        <template #label>
-                            <span v-if="formData.template" class="truncate" :class="{ 'text-red-500': !availableTemplates.find(t => t.value?.id === formData.template?.id) }">
-                                <template v-if="availableTemplates.find(t => t.value?.id === formData.template?.id)">
-                                    {{ availableTemplates.find(t => t.value?.id === formData.template?.id)?.label }}
-                                </template>
-                                <template v-else>
-                                    {{ t('post.templateNotFound', 'Template Not Found') }}
-                                </template>
-                            </span>
-                            <span v-else class="text-gray-500 truncate">
-                                {{ availableTemplates.find(t => t.value === null)?.label || t('channel.templateDefault', 'Default (Auto)') }}
-                            </span>
-                        </template>
                     </USelectMenu>
                 </UFormField>
             </div>

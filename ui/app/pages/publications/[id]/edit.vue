@@ -295,7 +295,7 @@ async function handleApplyLlm(data: { title?: string; description?: string; tags
   } catch (e: any) {
     toast.add({
       title: t('llm.applyError'),
-      description: e?.message || t('common.saveError'),
+      description: t('common.saveError'),
       color: 'error'
     })
     // Notify modal of error so it can stay open
@@ -643,7 +643,7 @@ async function executePublish(force: boolean) {
 
       toast.add({
         title: t('common.error'),
-        description: result.message || t('publication.publishError'),
+        description: t('publication.publishError'),
         color: 'error'
       })
     }
@@ -654,7 +654,7 @@ async function executePublish(force: boolean) {
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('publication.publishError'),
+      description: t('publication.publishError'),
       color: 'error'
     })
     // Refresh even on exception as some posts might have been updated before the crash

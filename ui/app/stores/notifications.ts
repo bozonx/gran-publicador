@@ -26,6 +26,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const api = useApi();
   const config = useRuntimeConfig();
   const toast = useToast();
+  const { t } = useI18n();
 
   const items = ref<Notification[]>([]);
   const unreadCount = ref(0);
@@ -48,8 +49,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
       });
       if (append) {
         // Avoid duplicates when appending
-        const existingIds = new Set(items.value.map((i) => i.id));
-        const newItems = response.items.filter((i) => !existingIds.has(i.id));
+        const existingIds = new Set(items.value.map(i => i.id));
+        const newItems = response.items.filter(i => !existingIds.has(i.id));
         items.value = [...items.value, ...newItems].slice(0, MAX_ITEMS * 2); // Allow more for the full page
       } else {
         items.value = response.items;
@@ -82,7 +83,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   async function markAsRead(id: string) {
     try {
       await api.patch(`/notifications/${id}/read`);
-      const item = items.value.find((n) => n.id === id);
+      const item = items.value.find(n => n.id === id);
       if (item && !item.readAt) {
         item.readAt = new Date().toISOString();
         unreadCount.value = Math.max(0, unreadCount.value - 1);
@@ -99,7 +100,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     const previousUnread = unreadCount.value;
     try {
       await api.patch('/notifications/read-all');
-      items.value.forEach((item) => {
+      items.value.forEach(item => {
         if (!item.readAt) {
           item.readAt = new Date().toISOString();
         }
@@ -121,7 +122,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     // Determine WS URL
     const apiBase = config.public.apiBase || '';
     let wsUrl = '';
-    
+
     if (apiBase.startsWith('http')) {
       // Full URL: http://localhost:8080/api/v1 -> http://localhost:8080
       const url = new URL(apiBase);
@@ -138,36 +139,36 @@ export const useNotificationsStore = defineStore('notifications', () => {
       transports: ['websocket'],
     });
 
-    socket.value.on('connect', () => {
-    });
+    socket.value.on('connect', () => {});
 
     socket.value.on('notification', (notification: Notification) => {
       // Check for duplicates
-      if (items.value.some((n) => n.id === notification.id)) return;
+      if (items.value.some(n => n.id === notification.id)) return;
 
       // Add to the beginning of the list
       items.value.unshift(notification);
-      
+
       // Limit list size
       if (items.value.length > MAX_ITEMS) {
         items.value = items.value.slice(0, MAX_ITEMS);
       }
-      
+
       unreadCount.value++;
-      
+
+      const description = formatToastDescription(notification);
+
       // Show a toast
       toast.add({
         title: notification.title,
-        description: notification.message,
+        description,
         icon: getNotificationIcon(notification.type),
         color: notification.type === NotificationType.PUBLICATION_FAILED ? 'error' : 'primary',
       });
     });
 
-    socket.value.on('disconnect', () => {
-    });
+    socket.value.on('disconnect', () => {});
 
-    socket.value.on('connect_error', (error) => {
+    socket.value.on('connect_error', error => {
       console.error('WebSocket connection error', error);
     });
   }
@@ -195,6 +196,21 @@ export const useNotificationsStore = defineStore('notifications', () => {
       default:
         return 'i-heroicons-bell';
     }
+  }
+
+  function formatToastDescription(notification: Notification): string {
+    const raw = (notification.message || '').toString();
+
+    // Avoid multiline/huge technical messages.
+    const singleLine = raw.replace(/[\r\n]+/g, ' ').trim();
+    const maxLen = 220;
+    const normalized = singleLine.length > maxLen ? `${singleLine.slice(0, maxLen)}…` : singleLine;
+
+    if (notification.type === NotificationType.PUBLICATION_FAILED) {
+      return normalized || t('publication.publishError');
+    }
+
+    return normalized;
   }
 
   return {

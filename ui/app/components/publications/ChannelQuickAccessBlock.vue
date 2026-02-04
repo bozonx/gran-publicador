@@ -105,19 +105,13 @@ async function createPostForChannel(channelId: string, channelName: string) {
     }, { silent: true })
     
     if (result) {
-      toast.add({
-        title: t('common.success'),
-        description: t('publication.postCreatedForChannel', { channel: channelName }),
-        color: 'success'
-      })
-      
       // Refresh publication to show new post
       emit('refresh')
     }
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('post.createError'),
+      description: t('post.createError'),
       color: 'error'
     })
   } finally {

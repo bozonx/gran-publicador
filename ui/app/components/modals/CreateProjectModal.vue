@@ -42,7 +42,7 @@ async function handleCreate() {
   } catch (error: any) {
     toast.add({
       title: t('common.error'),
-      description: error.message || t('common.saveError'),
+      description: t('common.saveError'),
       color: 'error'
     })
   } finally {

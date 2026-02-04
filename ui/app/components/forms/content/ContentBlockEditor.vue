@@ -95,7 +95,7 @@ const onCopyMedia = async (mediaLinkId: string) => {
     console.error('Failed to copy media to item', e)
     toast.add({
       title: t('common.error'),
-      description: e.data?.message || 'Failed to copy media',
+      description: t('common.saveError'),
       color: 'error'
     })
   }
