@@ -60,17 +60,10 @@ const currentProjectId = ref<string | undefined>(props.publication?.projectId ||
 const state = usePublicationFormState(props.publication, languageParam)
 
 const projectOptions = computed(() => {
-    const opts = projects.value.map(p => ({
+    return projects.value.map(p => ({
         value: p.id,
         label: p.name
     }))
-    
-    opts.unshift({
-        value: undefined,
-        label: t('publication.personal_draft')
-    } as any)
-    
-    return opts
 })
 
 watch(currentProjectId, async (newId) => {
@@ -284,8 +277,8 @@ async function performSubmit(data: PublicationFormData) {
     } else {
       const createData = {
         ...commonData,
-        projectId: currentProjectId.value || undefined,
-        status: data.status === 'SCHEDULED' && (!currentProjectId.value || state.channelIds.length === 0) ? 'DRAFT' : data.status,
+        projectId: currentProjectId.value!,
+        status: data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : data.status,
         linkToPublicationId: linkedPublicationId.value || undefined,
       }
 

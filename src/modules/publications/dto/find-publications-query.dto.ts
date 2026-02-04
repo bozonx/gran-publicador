@@ -48,9 +48,7 @@ export enum IssueType {
 }
 
 export enum DraftScope {
-  PERSONAL = 'personal',
   PROJECTS = 'projects',
-  ALL = 'all',
 }
 
 /**
@@ -64,7 +62,7 @@ export class FindPublicationsQueryDto {
 
   @IsOptional()
   @IsEnum(DraftScope)
-  scope?: DraftScope;
+  public scope?: DraftScope;
 
   @IsOptional()
   @Transform(({ value }) => {

@@ -274,7 +274,7 @@ async function handleDelete() {
         if (pid) {
             router.push(`/projects/${pid}`)
         } else {
-            router.push('/drafts')
+            router.push('/publications')
         }
     }
 }
@@ -393,17 +393,10 @@ async function handleCopyPublication() {
 
 const { projects, fetchProjects } = useProjects()
 const projectOptions = computed(() => {
-    const opts = projects.value.map(p => ({
+    return projects.value.map(p => ({
         value: p.id,
         label: p.name
     }))
-    
-    opts.unshift({
-        value: undefined,
-        label: t('publication.personal_draft')
-    } as any)
-    
-    return opts
 })
 
 const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))

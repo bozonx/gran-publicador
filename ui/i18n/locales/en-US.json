@@ -136,7 +136,7 @@
     "settings": "Settings",
     "admin": "Administration",
     "my_projects": "My Projects",
-    "drafts_and_templates": "Drafts and Templates",
+    "drafts_and_templates": "Publications",
     "media_library": "Media Library",
     "news": "News"
   },
@@ -654,11 +654,6 @@
     "projectArchived": "Project Archived",
     "hasArchivedChannels": "Archived Channels",
     "hasInactiveChannels": "Inactive Channels",
-    "personal_draft": "Personal Draft",
-    "personal_draft_short": "Personal",
-    "project_publication": "Project Publication",
-    "personal_draft_help": "Personal drafts are not linked to projects and are only visible to you",
-    "projectSelectorHelp": "Select a project to move this publication to, or leave as Personal Draft",
     "createError": "Failed to create publication",
     "filter": {
       "ownership": {

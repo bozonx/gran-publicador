@@ -136,7 +136,7 @@
     "admin": "Администрирование",
     "my_projects": "Мои проекты",
     "media_library": "Медиатека",
-    "drafts_and_templates": "Черновики и заготовки",
+    "drafts_and_templates": "Публикации",
     "news": "Новости"
   },
   "news": {
@@ -653,11 +653,6 @@
     "projectArchived": "Проект в архиве",
     "hasArchivedChannels": "Архивные каналы",
     "hasInactiveChannels": "Неактивные каналы",
-    "personal_draft": "Личный черновик",
-    "personal_draft_short": "Личный",
-    "project_publication": "Публикация в проект",
-    "personal_draft_help": "Личные черновики не привязаны к проектам и видны только вам",
-    "projectSelectorHelp": "Выберите проект или оставьте пустым для личного черновика",
     "filter": {
       "ownership": {
         "all": "Все",

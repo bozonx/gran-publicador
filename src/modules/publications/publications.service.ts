@@ -164,24 +164,6 @@ export class PublicationsService {
       );
     }
 
-    // Validation for personal drafts (no project)
-    if (!data.projectId) {
-      if (
-        data.status &&
-        data.status !== PublicationStatus.DRAFT &&
-        data.status !== PublicationStatus.READY
-      ) {
-        throw new BadRequestException('Personal drafts can only have DRAFT or READY status');
-      }
-
-      if (data.scheduledAt) {
-        throw new BadRequestException('Personal drafts cannot be scheduled');
-      }
-
-      if (data.channelIds?.length) {
-        throw new BadRequestException('Cannot create posts for personal drafts');
-      }
-    }
 
     let translationGroupId = data.translationGroupId;
 
@@ -199,8 +181,6 @@ export class PublicationsService {
       // 2. Validate Access (if user context provided)
       if (userId && targetPub.projectId) {
         await this.permissions.checkProjectAccess(targetPub.projectId, userId);
-      } else if (userId && targetPub.createdBy !== userId) {
-        throw new ForbiddenException('Access denied to personal draft');
       }
 
       // 3. Validate Project Scope (Issue 2)
@@ -462,126 +442,6 @@ export class PublicationsService {
     };
   }
 
-  /**
-   * Retrieve all personal drafts for a user.
-   *
-   * @param userId - The ID of the user.
-   * @param filters - Optional filters.
-   * @returns Publications with total count for pagination.
-   */
-  public async findUserDrafts(
-    userId: string,
-    filters?: {
-      status?: PublicationStatus | PublicationStatus[];
-      limit?: number;
-      offset?: number;
-      sortBy?: string;
-      sortOrder?: 'asc' | 'desc';
-      search?: string;
-      scope?: string;
-    },
-  ) {
-    // 1. Get all projects where user is a member or owner
-    const userProjects = await this.prisma.project.findMany({
-      where: {
-        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-      },
-      select: { id: true },
-    });
-    const userProjectIds = userProjects.map(p => p.id);
-
-    this.logger.log(
-      `findUserDrafts called for user ${userId} with filters: ${JSON.stringify(filters)}`,
-    );
-
-    const where: Prisma.PublicationWhereInput = {
-      archivedAt: null,
-    };
-
-    // Filter by scope
-    if (filters?.scope === 'personal') {
-      where.projectId = null as any;
-      where.createdBy = userId;
-    } else if (filters?.scope === 'projects') {
-      where.projectId = { in: userProjectIds };
-    } else {
-      // ALL: both personal and project-based drafts
-      where.OR = [
-        { projectId: null as any, createdBy: userId },
-        { projectId: { in: userProjectIds } },
-      ];
-    }
-
-    if (filters?.status) {
-      where.status = Array.isArray(filters.status) ? { in: filters.status } : filters.status;
-    }
-
-    if (filters?.search) {
-      const searchTerms: Prisma.PublicationWhereInput = {
-        OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { content: { contains: filters.search, mode: 'insensitive' } },
-        ],
-      };
-
-      // If we already have an OR for scope (the default case), we need to wrap everything in an AND
-      if (where.OR) {
-        const scopeOr = where.OR;
-        delete where.OR;
-        where.AND = [{ OR: scopeOr }, searchTerms];
-      } else {
-        where.AND = [searchTerms];
-      }
-    }
-
-    this.logger.log(`findUserDrafts final where clause: ${JSON.stringify(where)}`);
-
-    const include: Prisma.PublicationInclude = {
-      creator: {
-        select: {
-          id: true,
-          fullName: true,
-          avatarUrl: true,
-        },
-      },
-      media: {
-        include: {
-          media: true,
-        },
-        orderBy: {
-          order: Prisma.SortOrder.asc,
-        },
-      },
-      _count: {
-        select: {
-          posts: true,
-        },
-      },
-    };
-
-    const sortBy = filters?.sortBy || 'chronology';
-    const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
-
-    const [items, total] = await Promise.all([
-      this.prisma.publication.findMany({
-        where,
-        include,
-        orderBy: this.prepareOrderBy(sortBy, sortOrder),
-        take: filters?.limit,
-        skip: filters?.offset,
-      }),
-      this.prisma.publication.count({ where }),
-    ]);
-
-    return {
-      items: items.map((item: any) => ({
-        ...item,
-        meta: this.parseMetaJson(item.meta),
-        sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
-      })),
-      total,
-    };
-  }
 
   /**
    * Retrieve all publications for a given user across all projects they are members of.
@@ -714,14 +574,7 @@ export class PublicationsService {
       throw new NotFoundException('Publication not found');
     }
 
-    if (publication.projectId) {
-      await this.permissions.checkProjectAccess(publication.projectId, userId);
-    } else {
-      // For personal drafts, only creator can see it
-      if (publication.createdBy !== userId) {
-        throw new NotFoundException('Publication not found'); // Use 404 to avoid leaking existence
-      }
-    }
+    await this.permissions.checkProjectAccess(publication.projectId!, userId);
 
     // Fetch other publications in the same translation group
     let translations: any[] = [];
@@ -801,20 +654,6 @@ export class PublicationsService {
       }
     }
 
-    // Additional validations for personal drafts
-    if (!publication.projectId) {
-      if (
-        data.status &&
-        data.status !== PublicationStatus.DRAFT &&
-        data.status !== PublicationStatus.READY
-      ) {
-        throw new BadRequestException('Personal drafts can only have DRAFT or READY status');
-      }
-
-      if (data.scheduledAt) {
-        throw new BadRequestException('Personal drafts cannot be scheduled');
-      }
-    }
 
     let translationGroupId = data.translationGroupId;
 
@@ -839,13 +678,7 @@ export class PublicationsService {
       }
 
       // 3. Access Check
-      if (publication.createdBy !== userId) {
-        if (targetPub.projectId) {
-          await this.permissions.checkProjectAccess(targetPub.projectId, userId);
-        } else if (targetPub.createdBy !== userId) {
-          throw new ForbiddenException('Access denied to personal draft');
-        }
-      }
+      await this.permissions.checkProjectAccess(targetPub.projectId!, userId);
 
       // 4. Project Scope
       if (targetPub.projectId !== publication.projectId) {
@@ -1117,7 +950,7 @@ export class PublicationsService {
     const updated = await this.prisma.publication.update({
       where: { id },
       data: {
-        projectId: data.projectId !== undefined ? data.projectId : undefined,
+        projectId: data.projectId,
         title: data.title,
         description: data.description,
         content: data.content,
@@ -1235,8 +1068,6 @@ export class PublicationsService {
         if (pub.createdBy !== userId) {
           if (pub.projectId) {
             await this.permissions.checkProjectPermission(pub.projectId, userId, ['ADMIN']);
-          } else {
-            throw new ForbiddenException('Access denied to personal draft');
           }
         }
         authorizedIds.push(pub.id);
@@ -1348,15 +1179,12 @@ export class PublicationsService {
       }
     }
 
-    if (!publication.projectId) {
-      throw new BadRequestException('Cannot create posts for personal drafts');
-    }
 
     // Verify all channels belong to the same project
     const channels = await this.prisma.channel.findMany({
       where: {
         id: { in: channelIds },
-        projectId: publication.projectId,
+        projectId: publication.projectId!,
       },
     });
 

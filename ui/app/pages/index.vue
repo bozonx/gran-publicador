@@ -29,7 +29,7 @@ const { projects, fetchProjects, isLoading: projectsLoading } = useProjects()
 // Drafts data (all: personal + projects)
 const {
   publications: draftPublications,
-  fetchUserDrafts,
+  fetchUserPublications: fetchDrafts,
   totalCount: draftsCount,
   isLoading: draftsLoading,
   deletePublication
@@ -65,7 +65,7 @@ onMounted(async () => {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     await Promise.all([
       fetchProjects(),
-      fetchUserDrafts({ scope: 'all', status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+      fetchDrafts({ status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
       fetchRecentPublished({ 
         status: 'PUBLISHED', 
         publishedAfter: yesterday,
@@ -160,7 +160,7 @@ async function handleDeletePublication() {
   if (success) {
     showDeletePublicationModal.value = false
     publicationToDelete.value = null
-    fetchUserDrafts({ scope: 'all', status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' })
+    fetchDrafts({ status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' })
   }
 }
 </script>
@@ -187,7 +187,7 @@ async function handleDeletePublication() {
         :publications="draftPublications"
         :total-count="draftsCount"
         :loading="draftsLoading"
-        view-all-to="/drafts?scope=all&status=DRAFT"
+        view-all-to="/publications?status=DRAFT"
         :title="t('dashboard.your_recent_drafts')"
         show-project-info
         :show-toggle="false"

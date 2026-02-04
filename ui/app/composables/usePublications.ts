@@ -208,40 +208,6 @@ export function usePublications() {
         }
     }
 
-    async function fetchUserDrafts(
-        filters: PublicationsFilter = {}
-    ): Promise<PaginatedPublications> {
-        isLoading.value = true
-        error.value = null
-
-        try {
-            const params: Record<string, any> = {}
-            if (filters.status) {
-                params.status = Array.isArray(filters.status) 
-                    ? filters.status.join(',') 
-                    : filters.status
-            }
-            if (filters.limit) params.limit = filters.limit
-            if (filters.offset) params.offset = filters.offset
-            if (filters.sortBy) params.sortBy = filters.sortBy
-            if (filters.sortOrder) params.sortOrder = filters.sortOrder
-            if (filters.search) params.search = filters.search
-            if (filters.scope) params.scope = filters.scope
-
-            const data = await api.get<PaginatedPublications>('/publications/user/drafts', { params })
-            publications.value = data.items
-            totalCount.value = data.meta.total
-            return data
-        } catch (err: any) {
-            console.error('[usePublications] fetchUserDrafts error:', err)
-            error.value = err.message || 'Failed to fetch drafts'
-            publications.value = []
-            totalCount.value = 0
-            return { items: [], meta: { total: 0, limit: filters.limit || 50, offset: filters.offset || 0 } }
-        } finally {
-            isLoading.value = false
-        }
-    }
 
     async function fetchPublication(id: string): Promise<PublicationWithRelations | null> {
         isLoading.value = true
@@ -419,12 +385,8 @@ export function usePublications() {
                 const idx = publications.value.findIndex(p => p.id === publicationId)
                 if (idx !== -1) {
                     const pub = publications.value[idx]
-                    if (pub) {
-                        if (pub.projectId) {
-                            await fetchPublicationsByProject(pub.projectId, { includeArchived: true })
-                        } else {
-                            await fetchUserDrafts({ includeArchived: true } as any)
-                        }
+                    if (pub && pub.projectId) {
+                        await fetchPublicationsByProject(pub.projectId, { includeArchived: true })
                     }
                 }
             }
@@ -511,7 +473,6 @@ export function usePublications() {
         statusOptions,
         fetchPublicationsByProject,
         fetchUserPublications,
-        fetchUserDrafts,
         fetchPublication,
         createPublication,
         updatePublication,
