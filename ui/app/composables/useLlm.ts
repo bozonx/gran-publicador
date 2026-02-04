@@ -1,10 +1,5 @@
 import { ref } from 'vue'
 
-export interface SourceText {
-  content: string
-  order?: number
-  source?: string
-}
 
 interface GenerateLlmOptions {
   temperature?: number
@@ -12,9 +7,7 @@ interface GenerateLlmOptions {
   model?: string
   tags?: string[]
   content?: string
-  sourceTexts?: SourceText[]
   useContent?: boolean
-  selectedSourceIndexes?: number[]
 }
 
 interface LlmResponse {

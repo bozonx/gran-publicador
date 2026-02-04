@@ -88,12 +88,6 @@ export class PublicationsService {
     return typeof meta === 'object' && meta !== null ? meta : {};
   }
 
-  /**
-   * Return sourceTexts array, ensuring it's an array.
-   */
-  private parseSourceTextsJson(sourceTexts: any): any[] {
-    return Array.isArray(sourceTexts) ? sourceTexts : [];
-  }
 
   /**
    * Prepare Prisma orderBy clauses.
@@ -239,6 +233,8 @@ export class PublicationsService {
         description: data.description,
         authorComment: data.authorComment,
         content: data.content,
+        meta: (data.meta ?? {}) as any,
+        sourceTexts: [] as any, // Satisfy legacy types if needed, but will be removed once generated
         media: {
           create: [
             // New Image from URL
@@ -308,7 +304,6 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         meta: (data.meta ?? {}) as any,
-        sourceTexts: (data.sourceTexts ?? []) as any,
         contentItems: data.contentItemIds?.length
           ? {
               create: data.contentItemIds.map((id, i) => ({
@@ -346,7 +341,6 @@ export class PublicationsService {
     return {
       ...publication,
       meta: this.parseMetaJson(publication.meta),
-      sourceTexts: this.parseSourceTextsJson(publication.sourceTexts),
     };
   }
 
@@ -436,7 +430,6 @@ export class PublicationsService {
       items: items.map((item: any) => ({
         ...item,
         meta: this.parseMetaJson(item.meta),
-        sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
       })),
       total,
     };
@@ -541,7 +534,6 @@ export class PublicationsService {
       items: items.map((item: any) => ({
         ...item,
         meta: this.parseMetaJson(item.meta),
-        sourceTexts: this.parseSourceTextsJson(item.sourceTexts),
       })),
       total,
     };
@@ -612,7 +604,6 @@ export class PublicationsService {
       media: parsedMedia,
       translations,
       meta: this.parseMetaJson(publication.meta),
-      sourceTexts: this.parseSourceTextsJson((publication as any).sourceTexts),
     };
   }
 
@@ -981,14 +972,7 @@ export class PublicationsService {
         postType: data.postType,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        meta: data.meta ? { ...(publication.meta as any), ...(data.meta as any) } : undefined,
         note: data.note,
-        sourceTexts:
-          data.sourceTexts !== undefined
-            ? ((data.appendSourceTexts
-                ? [...publication.sourceTexts, ...data.sourceTexts]
-                : data.sourceTexts) as any)
-            : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
@@ -1000,7 +984,6 @@ export class PublicationsService {
     return {
       ...updated,
       meta: this.parseMetaJson(updated.meta),
-      sourceTexts: this.parseSourceTextsJson((updated as any).sourceTexts),
     };
   }
   public async remove(id: string, userId: string) {
@@ -1453,8 +1436,8 @@ export class PublicationsService {
         tags: source.tags,
         postType: source.postType,
         language: source.language,
-        meta: source.meta || {},
-        sourceTexts: (source.sourceTexts || []) as any,
+        meta: (source.meta as any) || {},
+        sourceTexts: [] as any,
         note: source.note,
         postDate: source.postDate,
         status: PublicationStatus.DRAFT,
@@ -1478,7 +1461,6 @@ export class PublicationsService {
     return {
       ...newPublication,
       meta: this.parseMetaJson(newPublication.meta),
-      sourceTexts: this.parseSourceTextsJson(newPublication.sourceTexts),
     };
   }
 }

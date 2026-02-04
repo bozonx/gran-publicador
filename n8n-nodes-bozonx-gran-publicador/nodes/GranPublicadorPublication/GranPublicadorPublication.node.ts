@@ -406,7 +406,6 @@ export class GranPublicadorPublication implements INodeType {
 						postType,
 						tags,
 						content,
-						sourceTexts,
 						...additionalFields,
 					};
 
@@ -429,27 +428,12 @@ export class GranPublicadorPublication implements INodeType {
 					});
 				} else if (operation === 'addContent') {
 					const publicationId = this.getNodeParameter('id', i) as string;
-					const sourceTextsRaw = this.getNodeParameter('sourceTexts', i, '') as string | any[];
 
-					let sourceTexts = parseYamlOrJson.call(this, sourceTextsRaw, i, 'Source Texts');
-
-					if (Array.isArray(sourceTexts)) {
-						sourceTexts = sourceTexts.filter((item: any) => item && item.content && item.content.trim() !== '');
-					}
-
-					// 1. Update sourceTexts (PATCH)
-					let response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
-						method: 'PATCH',
-						uri: `${baseUrl}/publications/${publicationId}`,
-						body: { sourceTexts, appendSourceTexts: true },
-						json: true,
-					});
-
-					// 2. Handle Media (POST /media)
+					// Handle Media (POST /media)
 					await handleMediaUpload.call(this, i, items[i], publicationId, baseUrl);
 
 					// Fetch latest state
-					response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
+					const response = await this.helpers.requestWithAuthentication.call(this, 'granPublicadorApi', {
 						method: 'GET',
 						uri: `${baseUrl}/publications/${publicationId}`,
 						json: true,

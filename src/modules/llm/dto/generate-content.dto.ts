@@ -72,50 +72,11 @@ export class GenerateContentDto {
   content?: string;
 
   /**
-   * Additional source texts to include in context.
-   */
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SourceTextDto)
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
-  sourceTexts?: SourceTextDto[];
-
-  /**
    * Whether to include main content in the context.
    */
   @IsOptional()
   @IsBoolean()
   useContent?: boolean;
-
-  /**
-   * Indexes of source texts to include (if not provided, all are included).
-   */
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  @Min(0, { each: true })
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SELECTED_INDEXES)
-  selectedSourceIndexes?: number[];
 }
 
-/**
- * DTO for source text in context.
- */
-export class SourceTextDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
-  content!: string;
 
-  @IsOptional()
-  @IsInt()
-  @Min(VALIDATION_LIMITS.MIN_ORDER)
-  @Max(VALIDATION_LIMITS.MAX_ORDER)
-  order?: number;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  source?: string;
-}

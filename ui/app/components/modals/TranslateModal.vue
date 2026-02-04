@@ -13,7 +13,7 @@ const isOpen = defineModel<boolean>('open', { default: false })
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
-  (e: 'translated', value: { translatedText: string; provider: string; model?: string; action: 'insert' | 'add' }): void
+  (e: 'translated', value: { translatedText: string; provider: string; model?: string }): void
 }>()
 
 const { t } = useI18n()
@@ -23,7 +23,6 @@ const { translateText, isLoading, error } = useTranslate()
 const targetLang = ref(props.defaultTargetLang || user.value?.language || 'en-US')
 const splitter = ref<'paragraph' | 'markdown' | 'sentence' | 'off'>('paragraph')
 const maxChunkLength = ref<number | undefined>(undefined)
-const action = ref<'insert' | 'add'>('add')
 
 
 const splitterOptions = computed(() => [
@@ -46,7 +45,6 @@ async function handleTranslate() {
       translatedText: result.translatedText,
       provider: result.provider,
       model: result.model,
-      action: action.value,
     })
     emit('update:open', false)
   } catch (err) {
@@ -61,9 +59,7 @@ watch(() => props.defaultTargetLang, (newVal) => {
 
 <template>
   <UiAppModal
-    v-model:open="isOpen"
     :title="t('translate.title')"
-    :description="t('sourceTexts.translate')"
   >
     <div class="space-y-4 py-2">
       <UFormField :label="t('translate.targetLanguage')">
@@ -94,15 +90,6 @@ watch(() => props.defaultTargetLang, (newVal) => {
         />
       </UFormField>
 
-      <UFormField :label="t('common.actions')">
-        <URadioGroup
-          v-model="action"
-          :options="[
-            { label: t('translate.addAsSourceText'), value: 'add' },
-            { label: t('translate.insertAsContent'), value: 'insert' }
-          ]"
-        />
-      </UFormField>
 
       <div
         v-if="error"

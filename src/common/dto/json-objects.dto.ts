@@ -68,16 +68,6 @@ export class MediaMetaDto {
   telegram?: TelegramMediaMetaDto;
 }
 
-/**
- * DTO for Source Text metadata.
- */
-export class SourceTextMetaDto {
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => RepostInfoDto)
-  repost?: RepostInfoDto;
-}
 
 /**
  * DTO for Telegram origin tracking.

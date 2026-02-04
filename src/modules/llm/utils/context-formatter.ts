@@ -2,11 +2,6 @@
  * Utilities for formatting LLM context.
  */
 
-export interface SourceText {
-  content: string;
-  order?: number;
-  source?: string;
-}
 
 export interface FormatContextOptions {
   includeMetadata?: boolean;
@@ -27,7 +22,6 @@ export function estimateTokens(text: string): number {
  */
 export function formatContext(
   content: string | null | undefined,
-  sourceTexts: SourceText[] | null | undefined,
   options: FormatContextOptions = {},
 ): string {
   const { includeMetadata = false } = options;
@@ -39,24 +33,7 @@ export function formatContext(
     context += `=== MAIN CONTENT ===\n${content}\n\n`;
   }
 
-  // Add source texts if provided
-  if (sourceTexts && sourceTexts.length > 0) {
-    context += `=== SOURCE MATERIALS ===\n\n`;
-
-    // Sort by order if specified
-    const sortedSources = [...sourceTexts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-    for (let i = 0; i < sortedSources.length; i++) {
-      const source = sortedSources[i];
-
-      context += `--- SOURCE ${i + 1}`;
-      if (includeMetadata && source.source) {
-        context += ` (${source.source})`;
-      }
-      context += ` ---\n${source.content}\n\n`;
-    }
-  }
-
+  // No more source texts
   return context;
 }
 
@@ -66,10 +43,9 @@ export function formatContext(
 export function buildPromptWithContext(
   userPrompt: string,
   content?: string | null,
-  sourceTexts?: SourceText[] | null,
   options: FormatContextOptions = {},
 ): string {
-  const context = formatContext(content, sourceTexts, options);
+  const context = formatContext(content, options);
 
   if (!context) {
     return userPrompt;

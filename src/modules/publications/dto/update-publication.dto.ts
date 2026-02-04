@@ -17,7 +17,7 @@ import { PublicationStatus, PostType } from '../../../generated/prisma/index.js'
 import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
-import { SourceTextDto } from './create-publication.dto.js';
+
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
@@ -121,19 +121,6 @@ export class UpdatePublicationDto {
   @IsUUID()
   public linkToPublicationId?: string;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SourceTextDto)
-  @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
-  public sourceTexts?: SourceTextDto[];
 
-  @IsString()
-  @IsUUID()
-  @IsOptional()
-  public projectId?: string;
-
-  @IsOptional()
-  public appendSourceTexts?: boolean;
 }
 

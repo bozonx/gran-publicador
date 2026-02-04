@@ -115,7 +115,6 @@ describe('PublicationsService (unit)', () => {
         ...createDto,
         createdBy: userId,
         meta: '{}',
-        sourceTexts: '[]',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -127,7 +126,6 @@ describe('PublicationsService (unit)', () => {
       expect(result).toEqual({
         ...mockPublication,
         meta: {},
-        sourceTexts: [],
       });
       expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         projectId,
@@ -711,7 +709,6 @@ describe('PublicationsService (unit)', () => {
         language: 'en-US',
         postType: PostType.POST,
         meta: {},
-        sourceTexts: [],
         media: [{ mediaId: 'media-1', order: 0, hasSpoiler: false }],
       };
 
@@ -728,7 +725,6 @@ describe('PublicationsService (unit)', () => {
         language: 'en-US',
         status: PublicationStatus.DRAFT,
         meta: {},
-        sourceTexts: [],
       };
 
       mockPrismaService.publication.create.mockResolvedValue(mockNewPublication);

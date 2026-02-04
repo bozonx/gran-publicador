@@ -1,26 +1,4 @@
 {
-  "sourceTexts": {
-    "title": "Source Texts",
-    "add": "Add Source Text",
-    "placeholder": "Enter source text here...",
-    "empty": "No source texts yet",
-    "source": "Source",
-    "manual": "Manual",
-    "contentPlaceholder": "Enter text content...",
-    "help": "Additional texts collected from Telegram bot or other sources. Use for AI summarization or manual content assembly.",
-    "view": "View source texts",
-    "hide": "Hide source texts",
-    "deleteAll": "Delete all",
-    "translate": "Translate this text",
-    "repostFrom": "Repost from",
-    "voice": "Voice message",
-    "author": "Author",
-    "viewSource": "View source",
-    "messageId": "MSG ID",
-    "chatId": "CHAT ID",
-    "copy": "Copy content",
-    "moveToContent": "Move to Content"
-  },
   "translate": {
     "title": "Translate Text",
     "targetLanguage": "Target Language",
@@ -35,8 +13,7 @@
     "maxChunkLengthHelp": "Maximum length for text chunks (optional)",
     "translateButton": "Translate",
     "cancel": "Cancel",
-    "insertAsContent": "Insert as main content",
-    "addAsSourceText": "Add as new source text"
+    "insertAsContent": "Insert as main content"
   },
   "common": {
     "loading": "Loading...",
@@ -771,7 +748,6 @@
     "scrapeFailed": "Automatic page detection failed",
     "imageUploadFailed": "Image could not be uploaded, publication created without it.",
     "copyToProject": "Copy to project",
-    "moveToSourceTexts": "Move to Source Texts",
     "noContent": "No content",
     "processed": "Processed"
   },

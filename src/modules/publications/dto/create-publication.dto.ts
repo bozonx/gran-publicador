@@ -24,36 +24,9 @@ import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
-import { PublicationMetaDto, SourceTextMetaDto } from '../../../common/dto/json-objects.dto.js';
+import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
 
 
-/**
- * DTO for source text item in publication.
- */
-export class SourceTextDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
-  public content!: string;
-
-  @IsNumber()
-  @IsInt()
-  @Min(VALIDATION_LIMITS.MIN_ORDER)
-  @Max(VALIDATION_LIMITS.MAX_ORDER)
-  @IsOptional()
-  public order?: number;
-
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  @IsOptional()
-  public source?: string;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => SourceTextMetaDto)
-  public meta?: SourceTextMetaDto;
-}
 
 /**
  * DTO for creating a new publication.
@@ -167,12 +140,6 @@ export class CreatePublicationDto {
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_CHANNELS_PER_PUBLICATION)
   public channelIds?: string[];
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SourceTextDto)
-  @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
-  public sourceTexts?: SourceTextDto[];
 
   @IsString()
   @IsOptional()

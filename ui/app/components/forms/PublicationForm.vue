@@ -185,12 +185,6 @@ watch(() => props.publication, (newPub, oldPub) => {
     state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
     state.translationGroupId = newPub.translationGroupId || undefined
     
-    if (newPub.sourceTexts) {
-        state.sourceTexts = newPub.sourceTexts.map((st: any, i: number) => ({
-            ...st,
-            order: typeof st.order === 'number' ? st.order : i
-        }))
-    }
     
     // Reset baseline for dirty tracking AFTER updating state
     nextTick(() => saveOriginalState())
@@ -337,44 +331,16 @@ function handleReset() {
   resetToOriginal()
 }
 
-// Translation Logic
 const isTranslateModalOpen = ref(false)
 const translationSourceText = ref('')
 
-function handleOpenTranslateModal(text: string) {
-    translationSourceText.value = text
+function handleOpenTranslateModal() {
+    translationSourceText.value = state.content || ''
     isTranslateModalOpen.value = true
 }
 
-function handleTranslated(result: { translatedText: string; action: 'insert' | 'add' }) {
-    if (result.action === 'insert') {
-        state.content = result.translatedText
-    } else {
-        if (!state.sourceTexts) state.sourceTexts = []
-        state.sourceTexts.push({
-            content: result.translatedText,
-            source: 'translation',
-            order: state.sourceTexts.length
-        })
-    }
-}
-
-function handleReplaceContent(text: string) {
-    state.content = text
-}
-
-function handleMoveToSourceTexts() {
-    if (isTextContentEmpty(state.content)) return
-
-    if (!state.sourceTexts) state.sourceTexts = []
-    
-    state.sourceTexts.push({
-        content: state.content || '',
-        source: 'manual',
-        order: state.sourceTexts.length
-    })
-    
-    state.content = ''
+function handleTranslated(result: { translatedText: string }) {
+    state.content = result.translatedText
 }
 
 </script>
@@ -490,17 +456,14 @@ function handleMoveToSourceTexts() {
               <span>{{ t('post.content') }}</span>
               <CommonInfoTooltip :text="t('post.contentTooltip')" />
             </div>
-            <UTooltip :text="t('publication.moveToSourceTexts')">
-                <UButton
-                    v-if="!isContentMissing"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost" 
-                    icon="i-heroicons-arrow-down-tray"
-                    :label="t('publication.moveToSourceTexts')"
-                    @click="handleMoveToSourceTexts"
-                />
-            </UTooltip>
+            <UButton
+                icon="i-heroicons-language"
+                color="primary"
+                variant="ghost"
+                size="xs"
+                :label="$t('actions.translate')"
+                @click="() => handleOpenTranslateModal()"
+            />
           </div>
         </template>
         
@@ -540,11 +503,6 @@ function handleMoveToSourceTexts() {
       </UFormField>
 
       <!-- Source Texts Section -->
-      <FormsPublicationSourceTexts
-        v-model="state.sourceTexts"
-        @translate="handleOpenTranslateModal"
-        @replace-content="handleReplaceContent"
-      />
 
       
       <UFormField name="tags" :label="t('post.tags')" :help="t('post.tagsHint')">
@@ -670,7 +628,7 @@ function handleMoveToSourceTexts() {
       v-model:open="isTranslateModalOpen"
       :source-text="translationSourceText"
       :default-target-lang="state.language"
-      @translated="handleTranslated"
+      @translated="(res) => handleTranslated(res)"
     />
 
 </template>
