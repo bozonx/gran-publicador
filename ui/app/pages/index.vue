@@ -26,7 +26,7 @@ function handleProjectCreated(projectId: string) {
 // Projects data
 const { projects, fetchProjects, isLoading: projectsLoading } = useProjects()
 
-// Drafts data (all: personal + projects)
+// Drafts data (all projects)
 const {
   publications: draftPublications,
   fetchUserPublications: fetchDrafts,
@@ -153,7 +153,7 @@ async function handleDeletePublication() {
   if (!publicationToDelete.value) return
   isDeletingPublication.value = true
   
-  // Decide which delete function to use based on whether it has a project
+  // Delete publication from project
   const success = await deletePublication(publicationToDelete.value.id)
     
   isDeletingPublication.value = false

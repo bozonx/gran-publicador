@@ -18,7 +18,7 @@ import { isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 
 interface Props {
-  /** Project ID for fetching channels (optional for personal drafts) */
+  /** Project ID for fetching channels */
   projectId?: string | null
   /** Publication data for editing, null for creating new */
   publication?: PublicationWithRelations | null
@@ -413,7 +413,6 @@ function handleMoveToSourceTexts() {
           <FormsPublicationStatusSelector 
             v-model="state.status"
             :is-content-missing="isContentMissing"
-            :is-personal="!currentProjectId"
           />
         </UFormField>
 

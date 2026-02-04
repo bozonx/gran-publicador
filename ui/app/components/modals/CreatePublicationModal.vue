@@ -47,7 +47,6 @@ const isLanguageLocked = computed(() => {
 
 // Form data
 const formData = reactive({
-  type: (props.projectId || props.preselectedChannelId) ? 'project' : ('personal' as 'personal' | 'project'),
   projectId: props.projectId || '',
   language: props.preselectedLanguage || user.value?.language || locale.value,
   postType: props.preselectedPostType || 'POST' as PostType,
@@ -72,7 +71,6 @@ watch(isOpen, (open) => {
     lastAppliedProjectId.value = props.projectId || null
 
     if (props.projectId) {
-      formData.type = 'project'
       formData.projectId = props.projectId
     }
   }
@@ -83,14 +81,12 @@ watch(() => props.projectId, (newProjectId) => {
   if (!newProjectId) return
 
   if (isProjectLocked.value) {
-    formData.type = 'project'
     formData.projectId = newProjectId
     lastAppliedProjectId.value = newProjectId
     return
   }
 
   if (!formData.projectId || formData.projectId === lastAppliedProjectId.value) {
-    formData.type = 'project'
     formData.projectId = newProjectId
     lastAppliedProjectId.value = newProjectId
   }
@@ -107,7 +103,7 @@ const activeProjects = computed(() => {
 
 // Watch for project ID to load channels
 watch(() => formData.projectId, async (newProjectId) => {
-  if (newProjectId && formData.type === 'project') {
+  if (newProjectId) {
     await fetchChannels({ projectId: newProjectId })
 
     if (!props.preselectedChannelId) {
@@ -123,23 +119,7 @@ watch(() => formData.projectId, async (newProjectId) => {
   }
 }, { immediate: true })
 
-watch(() => formData.type, async (newType) => {
-    if (isProjectLocked.value) {
-        formData.type = 'project'
-        if (props.projectId) {
-            formData.projectId = props.projectId
-        }
-        return
-    }
-
-    if (newType === 'personal') {
-        formData.projectId = ''
-        channels.value = []
-        formData.channelIds = []
-    } else if (props.projectId) {
-        formData.projectId = props.projectId
-    }
-})
+// No longer need type watcher since type is gone
 
 // Initialize form when modal opens or props change
 watch([isOpen, () => props.preselectedLanguage, () => props.preselectedChannelId, () => channels.value.length], ([open]) => {
@@ -190,7 +170,6 @@ watch([isOpen, () => props.preselectedChannelId], async ([open, preselectedChann
   const channel = await fetchChannel(preselectedChannelId)
   if (!channel) return
 
-  formData.type = 'project'
   formData.projectId = channel.projectId
   formData.language = channel.language
   formData.channelIds = [preselectedChannelId]
@@ -239,7 +218,7 @@ function toggleChannel(channelId: string) {
 async function handleCreate() {
   try {
     const createData = {
-      projectId: formData.type === 'project' ? formData.projectId : undefined,
+      projectId: formData.projectId,
       language: formData.language,
       postType: formData.postType,
       channelIds: formData.channelIds,
@@ -282,19 +261,11 @@ function handleClose() {
     <!-- Form -->
     <form id="create-publication-form" class="space-y-6" @submit.prevent="handleCreate">
       <!-- Publication Type Toggle -->
-      <UFormField v-if="!isProjectLocked" :label="t('common.type')">
-        <URadioGroup
-          v-model="formData.type"
-          :items="[
-            { value: 'personal', label: t('publication.personal_draft'), help: t('publication.personal_draft_help') },
-            { value: 'project', label: t('publication.project_publication') }
-          ]"
-        />
-      </UFormField>
+
 
       <!-- Project Selection (only if project type selected) -->
       <UFormField
-        v-if="formData.type === 'project' && !isProjectLocked"
+        v-if="!isProjectLocked"
         :label="t('project.title')"
         required
       >
@@ -339,7 +310,7 @@ function handleClose() {
 
       <!-- Channels (only if project selected) -->
       <UFormField
-        v-if="formData.type === 'project' && formData.projectId && !isChannelLocked"
+        v-if="formData.projectId && !isChannelLocked"
         :label="t('publication.selectChannels')"
         :help="t('publication.channelsHelp')"
       >

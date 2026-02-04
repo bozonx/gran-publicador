@@ -232,7 +232,7 @@ export class PublicationsService {
 
     const publication = await this.prisma.publication.create({
       data: {
-        projectId: data.projectId ?? null,
+        projectId: data.projectId,
         newsItemId: data.newsItemId ?? null,
         createdBy: userId ?? null,
         title: data.title,
@@ -327,7 +327,7 @@ export class PublicationsService {
     });
 
     const author = userId ? `user ${userId}` : 'external system';
-    const projectInfo = data.projectId ? `project ${data.projectId}` : 'personal drafts';
+    const projectInfo = `project ${data.projectId}`;
     this.logger.log(
       `Publication "${publication.title ?? publication.id}" created in ${projectInfo} by ${author}`,
     );
@@ -450,13 +450,7 @@ export class PublicationsService {
    * @param filters - Optional filters (status, limit, offset, includeArchived, sorting, search, etc.).
    * @returns Publications with total count for pagination.
    */
-  /**
-   * Retrieve all publications for a given user across all projects they are members of.
-   *
-   * @param userId - The ID of the user requesting the publications.
-   * @param filters - Optional filters.
-   * @returns Publications with total count for pagination.
-   */
+
   public async findAllForUser(
     userId: string,
     filters?: {
@@ -574,7 +568,11 @@ export class PublicationsService {
       throw new NotFoundException('Publication not found');
     }
 
-    await this.permissions.checkProjectAccess(publication.projectId!, userId);
+    if (!publication.projectId) {
+      throw new ForbiddenException('Personal publications are no longer supported');
+    }
+
+    await this.permissions.checkProjectAccess(publication.projectId, userId);
 
     // Fetch other publications in the same translation group
     let translations: any[] = [];
@@ -629,22 +627,18 @@ export class PublicationsService {
   public async update(id: string, userId: string, data: UpdatePublicationDto) {
     const publication = await this.findOne(id, userId);
 
-    if (publication.projectId) {
-      if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_OWN,
-        );
-      } else {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_ALL,
-        );
-      }
-    } else if (publication.createdBy !== userId) {
-      throw new NotFoundException('Publication not found');
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
     }
 
     // Permission check for moving to another project
@@ -680,7 +674,6 @@ export class PublicationsService {
       // 3. Access Check
       await this.permissions.checkProjectAccess(targetPub.projectId!, userId);
 
-      // 4. Project Scope
       if (targetPub.projectId !== publication.projectId) {
         // Assuming project doesn't change on update
         throw new BadRequestException('Cannot link publications from different projects');
@@ -1013,22 +1006,18 @@ export class PublicationsService {
   public async remove(id: string, userId: string) {
     const publication = await this.findOne(id, userId);
 
-    if (publication.projectId) {
-      if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_DELETE_OWN,
-        );
-      } else {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_DELETE_ALL,
-        );
-      }
-    } else if (publication.createdBy !== userId) {
-      throw new ForbiddenException('Access denied to personal draft');
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_DELETE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_DELETE_ALL,
+      );
     }
 
     return this.prisma.publication.delete({
@@ -1066,9 +1055,7 @@ export class PublicationsService {
     for (const pub of publications) {
       try {
         if (pub.createdBy !== userId) {
-          if (pub.projectId) {
-            await this.permissions.checkProjectPermission(pub.projectId, userId, ['ADMIN']);
-          }
+          await this.permissions.checkProjectPermission(pub.projectId!, userId, ['ADMIN']);
         }
         authorizedIds.push(pub.id);
       } catch (e) {
@@ -1241,22 +1228,18 @@ export class PublicationsService {
   public async addMedia(publicationId: string, userId: string, media: any[]) {
     const publication = await this.findOne(publicationId, userId);
 
-    if (publication.projectId) {
-      if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_OWN,
-        );
-      } else {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_ALL,
-        );
-      }
-    } else if (publication.createdBy !== userId) {
-      throw new ForbiddenException('Access denied to personal draft');
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
     }
 
     // Get the current max order
@@ -1317,22 +1300,18 @@ export class PublicationsService {
   public async removeMedia(publicationId: string, userId: string, mediaId: string) {
     const publication = await this.findOne(publicationId, userId);
 
-    if (publication.projectId) {
-      if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_OWN,
-        );
-      } else {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_ALL,
-        );
-      }
-    } else if (publication.createdBy !== userId) {
-      throw new ForbiddenException('Access denied to personal draft');
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
     }
 
     // Find the publication media entry
@@ -1370,22 +1349,18 @@ export class PublicationsService {
   ) {
     const publication = await this.findOne(publicationId, userId);
 
-    if (publication.projectId) {
-      if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_OWN,
-        );
-      } else {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_ALL,
-        );
-      }
-    } else if (publication.createdBy !== userId) {
-      throw new ForbiddenException('Access denied to personal draft');
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
     }
 
     // Update order for each media item in a transaction
@@ -1424,22 +1399,18 @@ export class PublicationsService {
   ) {
     const publication = await this.findOne(publicationId, userId);
 
-    if (publication.projectId) {
-      if (publication.createdBy === userId) {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_OWN,
-        );
-      } else {
-        await this.permissions.checkPermission(
-          publication.projectId,
-          userId,
-          PermissionKey.PUBLICATIONS_UPDATE_ALL,
-        );
-      }
-    } else if (publication.createdBy !== userId) {
-      throw new ForbiddenException('Access denied to personal draft');
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId!,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
     }
 
     return this.prisma.publicationMedia.update({
@@ -1462,16 +1433,14 @@ export class PublicationsService {
    * @param userId - The ID of the user performing the copy.
    * @returns The newly created publication copy.
    */
-  public async copy(id: string, targetProjectId: string | null, userId: string) {
+  public async copy(id: string, targetProjectId: string, userId: string) {
     const source = await this.findOne(id, userId);
 
-    if (targetProjectId) {
-      await this.permissions.checkPermission(
-        targetProjectId,
-        userId,
-        PermissionKey.PUBLICATIONS_CREATE,
-      );
-    }
+    await this.permissions.checkPermission(
+      targetProjectId,
+      userId,
+      PermissionKey.PUBLICATIONS_CREATE,
+    );
 
     const newPublication = await this.prisma.publication.create({
       data: {
@@ -1503,7 +1472,7 @@ export class PublicationsService {
     });
 
     this.logger.log(
-      `Publication ${id} copied to project ${targetProjectId || 'personal'} by user ${userId}. New publication ID: ${newPublication.id}`,
+      `Publication ${id} copied to project ${targetProjectId} by user ${userId}. New publication ID: ${newPublication.id}`,
     );
 
     return {

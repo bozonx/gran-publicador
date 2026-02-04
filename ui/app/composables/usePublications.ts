@@ -7,7 +7,7 @@ import { getStatusIcon } from '~/utils/publications'
 
 export interface Publication {
     id: string
-    projectId: string | null
+    projectId: string
     createdBy: string | null
     title: string | null
     description: string | null
@@ -86,7 +86,7 @@ export interface PublicationsFilter {
     ownership?: 'own' | 'notOwn' | 'all'
     issueType?: 'failed' | 'partial' | 'expired' | 'problematic' | 'all'
     socialMedia?: string
-    scope?: 'personal' | 'projects' | 'all'
+    scope?: 'projects'
     publishedAfter?: string
 }
 
@@ -446,7 +446,7 @@ export function usePublications() {
         return null
     }
 
-    async function copyPublication(id: string, projectId: string | null): Promise<PublicationWithRelations> {
+    async function copyPublication(id: string, projectId: string): Promise<PublicationWithRelations> {
         isLoading.value = true
         error.value = null
 

@@ -137,36 +137,6 @@ export class PublicationsController {
     };
   }
 
-  /**
-   * Get all personal drafts for the current user.
-   */
-  @Get('user/drafts')
-  public async findUserDrafts(
-    @Request() req: UnifiedAuthRequest,
-    @Query() query: FindPublicationsQueryDto,
-  ): Promise<PaginatedResponse<any>> {
-    const { limit = 20, offset = 0, status, sortBy, sortOrder, search, scope } = query;
-    const validatedLimit = Math.min(limit, this.MAX_LIMIT);
-
-    const result = await this.publicationsService.findUserDrafts(req.user.userId, {
-      limit: validatedLimit,
-      offset,
-      status,
-      sortBy,
-      sortOrder,
-      search,
-      scope,
-    });
-
-    return {
-      items: result.items,
-      meta: {
-        total: result.total,
-        limit: validatedLimit,
-        offset: offset || 0,
-      },
-    };
-  }
 
   /**
    * Get a single publication by ID.
@@ -310,7 +280,7 @@ export class PublicationsController {
   public async copy(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
-    @Body() body: { projectId: string | null },
+    @Body() body: { projectId: string },
   ) {
     // Validate project scope for API token users
     if (body.projectId && req.user.allProjects === false && req.user.projectIds) {

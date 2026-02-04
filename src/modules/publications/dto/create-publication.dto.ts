@@ -60,9 +60,9 @@ export class SourceTextDto {
  */
 export class CreatePublicationDto {
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @IsUUID()
-  public projectId?: string;
+  public projectId!: string;
 
   @IsString()
   @IsOptional()

@@ -130,9 +130,8 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsUUID()
-  @ValidateIf((o) => o.projectId !== null)
   @IsOptional()
-  public projectId?: string | null;
+  public projectId?: string;
 
   @IsOptional()
   public appendSourceTexts?: boolean;

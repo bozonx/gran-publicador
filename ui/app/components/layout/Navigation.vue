@@ -24,11 +24,6 @@ const mainNavItems = computed<NavItem[]>(() => [
     icon: 'i-heroicons-home',
   },
   {
-    label: t('navigation.drafts_and_templates', 'Drafts & Templates'),
-    to: '/drafts',
-    icon: 'i-heroicons-pencil-square',
-  },
-  {
     label: t('contentLibrary.title', 'Content Library'),
     to: '/content-library',
     icon: 'i-heroicons-rectangle-stack',
@@ -298,6 +293,16 @@ function getProjectTooltip(project: ProjectWithRole) {
                 active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 !text-primary-700 dark:!text-primary-300"
               >
                 <UIcon name="i-heroicons-newspaper" class="w-4 h-4" />
+              </NuxtLink>
+            </UTooltip>
+
+            <UTooltip :text="t('contentLibrary.title', 'Content Library')">
+              <NuxtLink 
+                :to="`/projects/${project.id}/content-library`"
+                class="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+                active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 !text-primary-700 dark:!text-primary-300"
+              >
+                <UIcon name="i-heroicons-rectangle-stack" class="w-4 h-4" />
               </NuxtLink>
             </UTooltip>
           </div>
