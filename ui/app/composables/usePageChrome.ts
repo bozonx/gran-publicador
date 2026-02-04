@@ -25,6 +25,7 @@ function getParamAsString(value: unknown): string | null {
 
 export function usePageChrome(): PageChrome {
   const route = useRoute();
+  const { t } = useI18n();
 
   const { currentProject } = useProjects();
   const { currentChannel } = useChannels();
@@ -52,7 +53,7 @@ export function usePageChrome(): PageChrome {
 
       return {
         visible: true,
-        label: 'Back to Project',
+        label: t('common.back_to_project'),
         fallbackTo: `/projects/${pid}`,
         onClick: () => goBackOrTo(`/projects/${pid}`),
       };
@@ -64,7 +65,7 @@ export function usePageChrome(): PageChrome {
 
       return {
         visible: true,
-        label: 'Back to Project',
+        label: t('common.back_to_project'),
         fallbackTo: `/projects/${pid}`,
         onClick: () => goBackOrTo(`/projects/${pid}`),
       };
@@ -76,7 +77,7 @@ export function usePageChrome(): PageChrome {
 
       return {
         visible: true,
-        label: 'Back to Project',
+        label: t('common.back_to_project'),
         fallbackTo: `/projects/${pid}`,
         onClick: () => goBackOrTo(`/projects/${pid}`),
       };
@@ -89,7 +90,7 @@ export function usePageChrome(): PageChrome {
     ) {
       return {
         visible: true,
-        label: 'Back to Projects',
+        label: t('common.back_to_projects'),
         fallbackTo: '/projects',
         onClick: () => goBackOrTo('/projects'),
       };
@@ -101,7 +102,7 @@ export function usePageChrome(): PageChrome {
 
       return {
         visible: true,
-        label: 'Back to Channel',
+        label: t('common.back_to_channel'),
         fallbackTo: `/channels/${cid}`,
         onClick: () => goBackOrTo(`/channels/${cid}`),
       };
@@ -114,7 +115,7 @@ export function usePageChrome(): PageChrome {
     ) {
       return {
         visible: true,
-        label: 'Back to Channels',
+        label: t('common.back_to_channels'),
         fallbackTo: '/channels',
         onClick: () => goBackOrTo('/channels'),
       };
@@ -123,7 +124,7 @@ export function usePageChrome(): PageChrome {
     if (path.startsWith('/publications/') && path.endsWith('/edit')) {
       return {
         visible: true,
-        label: 'Back to Drafts',
+        label: t('common.back_to_drafts'),
         fallbackTo: '/publications?status=DRAFT',
         onClick: () => goBackOrTo('/publications?status=DRAFT'),
       };
@@ -136,7 +137,7 @@ export function usePageChrome(): PageChrome {
     ) {
       return {
         visible: true,
-        label: 'Back to Publications',
+        label: t('common.back_to_publications'),
         fallbackTo: '/publications',
         onClick: () => goBackOrTo('/publications'),
       };
@@ -145,7 +146,7 @@ export function usePageChrome(): PageChrome {
     if (path.startsWith('/admin/users/')) {
       return {
         visible: true,
-        label: 'Back to Users',
+        label: t('common.back_to_users'),
         fallbackTo: '/admin',
         onClick: () => goBackOrTo('/admin'),
       };
@@ -163,21 +164,31 @@ export function usePageChrome(): PageChrome {
     };
 
     if (path.startsWith('/projects')) {
-      pushItem({ label: 'Projects', to: '/projects', icon: 'i-heroicons-briefcase' });
+      pushItem({
+        label: t('navigation.projects'),
+        to: '/projects',
+        icon: 'i-heroicons-briefcase',
+      });
 
       if (projectId.value) {
         pushItem({
-          label: currentProject.value?.name || 'Project',
+          label: currentProject.value?.name || t('navigation.projects'),
           to: `/projects/${projectId.value}`,
           icon: 'i-heroicons-folder',
         });
 
         if (path.endsWith('/settings')) {
-          pushItem({ label: 'Settings', icon: 'i-heroicons-cog-6-tooth' });
+          pushItem({
+            label: t('navigation.settings'),
+            icon: 'i-heroicons-cog-6-tooth',
+          });
         } else if (path.endsWith('/news')) {
-          pushItem({ label: 'News', icon: 'i-heroicons-newspaper' });
+          pushItem({ label: t('navigation.news'), icon: 'i-heroicons-newspaper' });
         } else if (path.endsWith('/content-library')) {
-          pushItem({ label: 'Content Library', icon: 'i-heroicons-rectangle-stack' });
+          pushItem({
+            label: t('contentLibrary.title'),
+            icon: 'i-heroicons-rectangle-stack',
+          });
         }
       }
 
@@ -185,17 +196,24 @@ export function usePageChrome(): PageChrome {
     }
 
     if (path.startsWith('/channels')) {
-      pushItem({ label: 'Channels', to: '/channels', icon: 'i-heroicons-hashtag' });
+      pushItem({
+        label: t('navigation.channels'),
+        to: '/channels',
+        icon: 'i-heroicons-hashtag',
+      });
 
       if (channelId.value) {
         pushItem({
-          label: currentChannel.value?.name || 'Channel',
+          label: currentChannel.value?.name || t('navigation.channels'),
           to: `/channels/${channelId.value}`,
           icon: 'i-heroicons-megaphone',
         });
 
         if (path.endsWith('/settings')) {
-          pushItem({ label: 'Settings', icon: 'i-heroicons-cog-6-tooth' });
+          pushItem({
+            label: t('navigation.settings'),
+            icon: 'i-heroicons-cog-6-tooth',
+          });
         }
       }
 
@@ -203,17 +221,21 @@ export function usePageChrome(): PageChrome {
     }
 
     if (path.startsWith('/publications')) {
-      pushItem({ label: 'Publications', to: '/publications', icon: 'i-heroicons-document-text' });
+      pushItem({
+        label: t('navigation.publications'),
+        to: '/publications',
+        icon: 'i-heroicons-document-text',
+      });
 
       if (publicationId.value) {
         pushItem({
-          label: currentPublication.value?.title || 'Publication',
+          label: currentPublication.value?.title || t('post.untitled'),
           to: `/publications/${publicationId.value}`,
           icon: 'i-heroicons-document',
         });
 
         if (path.endsWith('/edit')) {
-          pushItem({ label: 'Edit', icon: 'i-heroicons-pencil-square' });
+          pushItem({ label: t('common.edit'), icon: 'i-heroicons-pencil-square' });
         }
       }
 
@@ -221,11 +243,19 @@ export function usePageChrome(): PageChrome {
     }
 
     if (path.startsWith('/admin')) {
-      pushItem({ label: 'Admin', to: '/admin', icon: 'i-heroicons-shield-check' });
+      pushItem({
+        label: t('navigation.admin'),
+        to: '/admin',
+        icon: 'i-heroicons-shield-check',
+      });
 
       if (path.startsWith('/admin/users/')) {
-        pushItem({ label: 'Users', to: '/admin', icon: 'i-heroicons-users' });
-        pushItem({ label: 'User', icon: 'i-heroicons-user' });
+        pushItem({
+          label: t('navigation.users'),
+          to: '/admin',
+          icon: 'i-heroicons-users',
+        });
+        pushItem({ label: t('common.user'), icon: 'i-heroicons-user' });
       }
 
       return { visible: items.length > 1, items };
