@@ -20,6 +20,10 @@ import {
   CreateContentItemDto,
   CreateContentBlockDto,
   FindContentItemsQueryDto,
+  FindContentLibraryTabsQueryDto,
+  CreateContentLibraryTabDto,
+  UpdateContentLibraryTabDto,
+  ReorderContentLibraryTabsDto,
   ReorderContentBlockMediaDto,
   ReorderContentBlocksDto,
   UpdateContentItemDto,
@@ -82,6 +86,124 @@ export class ContentLibraryController {
     }
 
     return this.contentLibraryService.findAll(query, req.user.userId);
+  }
+
+  @Get('tabs')
+  public async listTabs(
+    @Request() req: UnifiedAuthRequest,
+    @Query() query: FindContentLibraryTabsQueryDto,
+  ) {
+    if (
+      query.scope === 'project' &&
+      query.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      ApiTokenGuard.validateProjectScope(
+        query.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
+    }
+
+    return this.contentLibraryService.listTabs(query, req.user.userId);
+  }
+
+  @Post('tabs')
+  public async createTab(
+    @Request() req: UnifiedAuthRequest,
+    @Body() dto: CreateContentLibraryTabDto,
+  ) {
+    if (
+      dto.scope === 'project' &&
+      dto.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      const projectId = dto.projectId;
+      const allProjects = req.user.allProjects;
+      const projectIds = req.user.projectIds;
+      const userId = req.user.userId;
+      const tokenId = req.user.tokenId;
+
+      ApiTokenGuard.validateProjectScope(projectId, allProjects, projectIds, {
+        userId,
+        tokenId,
+      });
+    }
+
+    return this.contentLibraryService.createTab(dto, req.user.userId);
+  }
+
+  @Patch('tabs/:id')
+  public async updateTab(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') tabId: string,
+    @Body() dto: UpdateContentLibraryTabDto,
+  ) {
+    if (
+      dto.scope === 'project' &&
+      dto.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.contentLibraryService.updateTab(tabId, dto, req.user.userId);
+  }
+
+  @Delete('tabs/:id')
+  public async deleteTab(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') tabId: string,
+    @Query() query: FindContentLibraryTabsQueryDto,
+  ) {
+    if (
+      query.scope === 'project' &&
+      query.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      ApiTokenGuard.validateProjectScope(
+        query.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
+    }
+
+    return this.contentLibraryService.deleteTab(tabId, query, req.user.userId);
+  }
+
+  @Patch('tabs/reorder')
+  public async reorderTabs(
+    @Request() req: UnifiedAuthRequest,
+    @Body() dto: ReorderContentLibraryTabsDto,
+  ) {
+    if (
+      dto.scope === 'project' &&
+      dto.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.contentLibraryService.reorderTabs(dto, req.user.userId);
   }
 
   @Get('tags')
@@ -166,10 +288,7 @@ export class ContentLibraryController {
   }
 
   @Post('bulk')
-  public async bulkOperation(
-    @Request() req: UnifiedAuthRequest,
-    @Body() dto: BulkOperationDto,
-  ) {
+  public async bulkOperation(@Request() req: UnifiedAuthRequest, @Body() dto: BulkOperationDto) {
     return this.contentLibraryService.bulkOperation(req.user.userId, dto);
   }
 

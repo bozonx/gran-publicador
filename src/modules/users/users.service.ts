@@ -142,7 +142,7 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.upsert({
+    return (this.prisma.user as any).upsert({
       where: { telegramId: userData.telegramId },
       update: {
         telegramUsername: userData.username,
@@ -162,6 +162,14 @@ export class UsersService {
             notifications: getDefaultNotificationPreferences(),
           }),
         ),
+        contentLibraryTabs: {
+          create: {
+            type: 'SAVED_VIEW',
+            title: 'All items',
+            order: 0,
+            config: {},
+          },
+        },
       },
     });
   }
@@ -175,7 +183,6 @@ export class UsersService {
       data: { hashedRefreshToken: null },
     });
   }
-
 
   /**
    * Find all users with pagination and filtering.
@@ -268,10 +275,10 @@ export class UsersService {
    */
   public async updateProfile(
     userId: string,
-    data: { 
-      fullName?: string; 
-      avatarUrl?: string; 
-      language?: string; 
+    data: {
+      fullName?: string;
+      avatarUrl?: string;
+      language?: string;
       uiLanguage?: string;
       isUiLanguageAuto?: boolean;
       projectOrder?: string[];
@@ -283,9 +290,14 @@ export class UsersService {
     if (data.fullName !== undefined) updateData.fullName = data.fullName;
     if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
     if (data.language !== undefined) updateData.language = this.normalizeLanguage(data.language);
-    if (data.uiLanguage !== undefined) updateData.uiLanguage = this.normalizeUiLanguage(data.uiLanguage);
+    if (data.uiLanguage !== undefined)
+      updateData.uiLanguage = this.normalizeUiLanguage(data.uiLanguage);
 
-    if (data.isUiLanguageAuto !== undefined || data.projectOrder !== undefined || data.newsQueryOrder !== undefined) {
+    if (
+      data.isUiLanguageAuto !== undefined ||
+      data.projectOrder !== undefined ||
+      data.newsQueryOrder !== undefined
+    ) {
       // Get current preferences to merge
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -294,7 +306,8 @@ export class UsersService {
       const currentPreferences = (user?.preferences as any) || {};
 
       const newPreferences = { ...currentPreferences };
-      if (data.isUiLanguageAuto !== undefined) newPreferences.isUiLanguageAuto = data.isUiLanguageAuto;
+      if (data.isUiLanguageAuto !== undefined)
+        newPreferences.isUiLanguageAuto = data.isUiLanguageAuto;
       if (data.projectOrder !== undefined) newPreferences.projectOrder = data.projectOrder;
       if (data.newsQueryOrder !== undefined) newPreferences.newsQueryOrder = data.newsQueryOrder;
 
@@ -383,7 +396,7 @@ export class UsersService {
     }
 
     const preferences = user.preferences as any;
-    
+
     // Return existing preferences or defaults
     if (preferences?.notifications && typeof preferences.notifications === 'object') {
       return preferences.notifications as NotificationPreferencesDto;

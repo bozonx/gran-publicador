@@ -20,6 +20,10 @@ export class FindContentItemsQueryDto {
   @IsOptional()
   public projectId?: string;
 
+  @IsUUID()
+  @IsOptional()
+  public folderId?: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_SEARCH_LENGTH)

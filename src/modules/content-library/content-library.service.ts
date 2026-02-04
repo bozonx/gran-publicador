@@ -99,6 +99,86 @@ export class ContentLibraryService {
     return item;
   }
 
+  private async assertFolderTabAccess(options: {
+    folderId: string;
+    scope: 'personal' | 'project';
+    projectId?: string;
+    userId: string;
+  }) {
+    const tab = await (this.prisma as any).contentLibraryTab.findUnique({
+      where: { id: options.folderId },
+      select: { id: true, type: true, userId: true, projectId: true },
+    });
+
+    if (!tab) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    if (tab.type !== 'FOLDER') {
+      throw new BadRequestException('Tab is not a folder');
+    }
+
+    if (options.scope === 'personal') {
+      if (tab.userId !== options.userId || tab.projectId !== null) {
+        throw new ForbiddenException('You do not have access to this folder');
+      }
+      return tab;
+    }
+
+    if (!options.projectId) {
+      throw new BadRequestException('projectId is required for project scope');
+    }
+
+    if (tab.projectId !== options.projectId) {
+      throw new ForbiddenException('Folder does not belong to this project');
+    }
+
+    await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
+    return tab;
+  }
+
+  private async assertTabAccess(options: {
+    tabId: string;
+    scope: 'personal' | 'project';
+    projectId?: string;
+    userId: string;
+    requireMutationPermission?: boolean;
+  }) {
+    const tab = await (this.prisma as any).contentLibraryTab.findUnique({
+      where: { id: options.tabId },
+      select: { id: true, type: true, userId: true, projectId: true },
+    });
+
+    if (!tab) {
+      throw new NotFoundException('Tab not found');
+    }
+
+    if (options.scope === 'personal') {
+      if (tab.userId !== options.userId || tab.projectId !== null) {
+        throw new ForbiddenException('You do not have access to this tab');
+      }
+      return tab;
+    }
+
+    if (!options.projectId) {
+      throw new BadRequestException('projectId is required for project scope');
+    }
+
+    if (tab.projectId !== options.projectId) {
+      throw new ForbiddenException('Tab does not belong to this project');
+    }
+
+    await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
+    if (options.requireMutationPermission) {
+      await this.permissions.checkProjectPermission(options.projectId, options.userId, [
+        'ADMIN',
+        'EDITOR',
+      ]);
+    }
+
+    return tab;
+  }
+
   private async assertContentItemMutationAllowed(contentItemId: string, userId: string) {
     const item = await this.assertContentItemAccess(contentItemId, userId, true);
 
@@ -150,6 +230,16 @@ export class ContentLibraryService {
       where.projectId = null;
     } else {
       where.projectId = query.projectId;
+    }
+
+    if (query.folderId) {
+      await this.assertFolderTabAccess({
+        folderId: query.folderId,
+        scope: query.scope,
+        projectId: query.projectId,
+        userId,
+      });
+      where.folderId = query.folderId;
     }
 
     if (query.tags && query.tags.length > 0) {
@@ -232,10 +322,20 @@ export class ContentLibraryService {
       await this.assertProjectContentMutationAllowed(dto.projectId, userId);
     }
 
+    if (dto.folderId) {
+      await this.assertFolderTabAccess({
+        folderId: dto.folderId,
+        scope: dto.scope,
+        projectId: dto.projectId,
+        userId,
+      });
+    }
+
     const created = await (this.prisma.contentItem as any).create({
       data: {
         userId: dto.scope === 'personal' ? userId : null,
         projectId: dto.scope === 'project' ? dto.projectId! : null,
+        folderId: dto.folderId ?? null,
         title: dto.title,
         tags: this.normalizeTags(dto.tags),
         note: dto.note,
@@ -274,9 +374,30 @@ export class ContentLibraryService {
     await this.assertContentItemAccess(id, userId, false);
     await this.assertContentItemMutationAllowed(id, userId);
 
+    if (dto.folderId !== undefined) {
+      const item = await this.prisma.contentItem.findUnique({
+        where: { id },
+        select: { userId: true, projectId: true },
+      });
+
+      if (!item) {
+        throw new NotFoundException('Content item not found');
+      }
+
+      if (dto.folderId) {
+        await this.assertFolderTabAccess({
+          folderId: dto.folderId,
+          scope: item.projectId ? 'project' : 'personal',
+          projectId: item.projectId ?? undefined,
+          userId,
+        });
+      }
+    }
+
     return (this.prisma.contentItem as any).update({
       where: { id },
       data: {
+        folderId: dto.folderId,
         title: dto.title,
         tags: dto.tags ? this.normalizeTags(dto.tags) : undefined,
         note: dto.note,
@@ -647,22 +768,18 @@ export class ContentLibraryService {
         }
 
         // 1. Combine Titles
-        const allTitles = items
-          .map((i: any) => i.title?.trim())
-          .filter(Boolean);
+        const allTitles = items.map((i: any) => i.title?.trim()).filter(Boolean);
         const newTitle = Array.from(new Set(allTitles)).join(' | ') || null;
 
         // 2. Combine Notes
-        const allNotes = items
-          .map((i: any) => i.note?.trim())
-          .filter(Boolean);
+        const allNotes = items.map((i: any) => i.note?.trim()).filter(Boolean);
         const newNote = allNotes.join('\n\n---\n\n') || null;
 
         // 3. Combine Tags (Unique)
         const allTags = items.flatMap((i: any) => i.tags || []);
         const newTags = this.normalizeTags(allTags);
 
-        await this.prisma.$transaction(async (tx) => {
+        await this.prisma.$transaction(async tx => {
           // Update target item
           await (tx.contentItem as any).update({
             where: { id: targetId },
@@ -681,7 +798,9 @@ export class ContentLibraryService {
           let currentOrder = (currentMaxOrderAgg._max.order ?? -1) + 1;
 
           for (const source of sourceItems) {
-            const sortedSourceBlocks = (source.blocks || []).sort((a: any, b: any) => a.order - b.order);
+            const sortedSourceBlocks = (source.blocks || []).sort(
+              (a: any, b: any) => a.order - b.order,
+            );
             for (const block of sortedSourceBlocks) {
               await (tx as any).contentBlock.update({
                 where: { id: block.id },
@@ -828,5 +947,145 @@ export class ContentLibraryService {
 
     const allTags = items.flatMap(item => item.tags);
     return Array.from(new Set(allTags)).sort();
+  }
+
+  public async listTabs(
+    query: { scope: 'personal' | 'project'; projectId?: string },
+    userId: string,
+  ) {
+    if (query.scope === 'project') {
+      if (!query.projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectAccess(query.projectId, userId, true);
+    }
+
+    const where: any = {};
+    if (query.scope === 'personal') {
+      where.userId = userId;
+      where.projectId = null;
+    } else {
+      where.projectId = query.projectId;
+    }
+
+    return (this.prisma as any).contentLibraryTab.findMany({
+      where,
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  public async createTab(
+    dto: {
+      scope: 'personal' | 'project';
+      projectId?: string;
+      type: 'FOLDER' | 'SAVED_VIEW';
+      title: string;
+      config?: unknown;
+    },
+    userId: string,
+  ) {
+    if (dto.scope === 'project') {
+      if (!dto.projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+    }
+
+    const scopeWhere: any =
+      dto.scope === 'personal' ? { userId, projectId: null } : { projectId: dto.projectId };
+
+    const maxOrder = await (this.prisma as any).contentLibraryTab.aggregate({
+      where: scopeWhere,
+      _max: { order: true },
+    });
+
+    const nextOrder = (maxOrder?._max?.order ?? -1) + 1;
+
+    return (this.prisma as any).contentLibraryTab.create({
+      data: {
+        type: dto.type,
+        title: dto.title,
+        userId: dto.scope === 'personal' ? userId : null,
+        projectId: dto.scope === 'project' ? dto.projectId! : null,
+        order: nextOrder,
+        config: (dto.config ?? {}) as any,
+      },
+    });
+  }
+
+  public async updateTab(
+    tabId: string,
+    dto: { scope: 'personal' | 'project'; projectId?: string; title?: string; config?: unknown },
+    userId: string,
+  ) {
+    const tab = await this.assertTabAccess({
+      tabId,
+      scope: dto.scope,
+      projectId: dto.projectId,
+      userId,
+      requireMutationPermission: true,
+    });
+
+    return (this.prisma as any).contentLibraryTab.update({
+      where: { id: tab.id },
+      data: {
+        title: dto.title,
+        config: dto.config as any,
+      },
+    });
+  }
+
+  public async deleteTab(
+    tabId: string,
+    options: { scope: 'personal' | 'project'; projectId?: string },
+    userId: string,
+  ) {
+    await this.assertTabAccess({
+      tabId,
+      scope: options.scope,
+      projectId: options.projectId,
+      userId,
+      requireMutationPermission: true,
+    });
+
+    return (this.prisma as any).contentLibraryTab.delete({ where: { id: tabId } });
+  }
+
+  public async reorderTabs(
+    dto: { scope: 'personal' | 'project'; projectId?: string; ids: string[] },
+    userId: string,
+  ) {
+    if (dto.scope === 'project') {
+      if (!dto.projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+    }
+
+    const where: any =
+      dto.scope === 'personal' ? { userId, projectId: null } : { projectId: dto.projectId };
+
+    const existing = await (this.prisma as any).contentLibraryTab.findMany({
+      where,
+      select: { id: true },
+    });
+
+    const existingIds = new Set(existing.map((t: any) => t.id));
+    for (const id of dto.ids) {
+      if (!existingIds.has(id)) {
+        throw new BadRequestException('Tabs list contains invalid id');
+      }
+    }
+
+    await this.prisma.$transaction(
+      dto.ids.map((id, idx) =>
+        (this.prisma as any).contentLibraryTab.update({
+          where: { id },
+          data: { order: idx },
+        }),
+      ),
+    );
+
+    return { ok: true };
   }
 }

@@ -11,6 +11,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ContentLibraryTabType {
+  FOLDER
+  SAVED_VIEW
+}
+
 model User {
   id String @id @default(uuid())
 
@@ -47,6 +52,7 @@ model User {
   llmPromptTemplates LlmPromptTemplate[]
   llmSystemPromptOverrides LlmSystemPromptOverride[]
   authorSignatures AuthorSignature[]
+  contentLibraryTabs ContentLibraryTab[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -98,8 +104,33 @@ model Project {
   llmPromptTemplates LlmPromptTemplate[]
   apiTokens    ApiTokenProject[]
   roles        Role[]
+  contentLibraryTabs ContentLibraryTab[]
 
   @@map("projects")
+}
+
+model ContentLibraryTab {
+  id        String  @id @default(uuid())
+  type      ContentLibraryTabType
+  title     String
+
+  userId    String? @map("user_id")
+  projectId String? @map("project_id")
+
+  order     Int     @default(0)
+  config    Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  folderItems ContentItem[]
+
+  @@index([userId, order])
+  @@index([projectId, order])
+  @@map("content_library_tabs")
 }
 
 model ProjectNewsQuery {
@@ -288,6 +319,8 @@ model ContentItem {
   userId    String?  @map("user_id")
   projectId String?  @map("project_id")
 
+  folderId  String?  @map("folder_id")
+
   title     String?
   tags      String[] @default([])
   note      String?
@@ -299,12 +332,14 @@ model ContentItem {
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder  ContentLibraryTab? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   blocks ContentBlock[]
   publications PublicationContentItem[]
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
+  @@index([folderId, createdAt])
   @@index([archivedAt])
   @@map("content_items")
 }

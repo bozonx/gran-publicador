@@ -20,6 +20,14 @@ describe('ContentLibraryService (unit)', () => {
       delete: jest.fn() as any,
       deleteMany: jest.fn() as any,
     },
+    contentLibraryTab: {
+      findUnique: jest.fn() as any,
+      findMany: jest.fn() as any,
+      create: jest.fn() as any,
+      update: jest.fn() as any,
+      delete: jest.fn() as any,
+      aggregate: jest.fn() as any,
+    },
     contentBlock: {
       aggregate: jest.fn() as any,
       create: jest.fn() as any,
@@ -169,6 +177,57 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ archivedAt: { not: null } }) }),
       );
+    });
+
+    it('should validate folderId access and apply folderId filter', async () => {
+      mockPrismaService.contentLibraryTab.findUnique.mockResolvedValue({
+        id: 'f-1',
+        type: 'FOLDER',
+        userId: 'user-1',
+        projectId: null,
+      });
+      mockPrismaService.contentItem.findMany.mockResolvedValue([]);
+      mockPrismaService.contentItem.count.mockResolvedValue(0);
+
+      await service.findAll({ scope: 'personal', folderId: 'f-1' } as any, 'user-1');
+
+      expect(mockPrismaService.contentLibraryTab.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'f-1' } }),
+      );
+      expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ folderId: 'f-1' }) }),
+      );
+    });
+  });
+
+  describe('tabs', () => {
+    it('listTabs should return tabs ordered by order for personal scope', async () => {
+      mockPrismaService.contentLibraryTab.findMany.mockResolvedValue([{ id: 't-1' }]);
+
+      await expect(service.listTabs({ scope: 'personal' } as any, 'user-1')).resolves.toEqual([
+        { id: 't-1' },
+      ]);
+
+      expect(mockPrismaService.contentLibraryTab.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ userId: 'user-1', projectId: null }),
+          orderBy: { order: 'asc' },
+        }),
+      );
+    });
+
+    it('createTab should require projectId for project scope', async () => {
+      await expect(
+        service.createTab({ scope: 'project', type: 'FOLDER', title: 'Folder' } as any, 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('reorderTabs should reject ids outside scope', async () => {
+      mockPrismaService.contentLibraryTab.findMany.mockResolvedValue([{ id: 't-1' }]);
+
+      await expect(
+        service.reorderTabs({ scope: 'personal', ids: ['t-1', 't-2'] } as any, 'user-1'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

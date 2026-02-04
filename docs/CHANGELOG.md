@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Media Storage microservice integration for file handling.
 - Speech-To-Text (STT) support via external gateway.
 - Reprocessing capabilities for existing media files.
+- Content Library tabs: folders and saved views with per-scope ordering.
 
 ### Fixed
 - Prisma generate error in GitHub Actions caused by missing `DATABASE_URL` and uncompiled config files.

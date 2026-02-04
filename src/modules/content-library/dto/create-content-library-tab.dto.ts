@@ -1,0 +1,22 @@
+import { IsIn, IsObject, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+
+export class CreateContentLibraryTabDto {
+  @IsIn(['personal', 'project'])
+  public scope!: 'personal' | 'project';
+
+  @IsUUID()
+  @IsOptional()
+  public projectId?: string;
+
+  @IsIn(['FOLDER', 'SAVED_VIEW'])
+  public type!: 'FOLDER' | 'SAVED_VIEW';
+
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  public title!: string;
+
+  @IsObject()
+  @IsOptional()
+  public config?: Record<string, unknown>;
+}
