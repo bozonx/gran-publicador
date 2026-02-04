@@ -57,6 +57,15 @@ export interface PublicationWithRelations extends Publication {
             sizeBytes?: number
         }
     }>
+    contentItems?: Array<{
+        id: string
+        order: number
+        contentItem: {
+            id: string
+            title: string | null
+            tags: string[]
+        }
+    }>
     _count?: {
         posts: number
     }

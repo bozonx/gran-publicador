@@ -71,6 +71,14 @@ export class PublicationsService {
         order: 'asc' as const,
       },
     },
+    contentItems: {
+      include: {
+        contentItem: true,
+      },
+      orderBy: {
+        order: 'asc' as const,
+      },
+    },
   };
 
   /**
@@ -311,6 +319,7 @@ export class PublicationsService {
           ].filter(Boolean),
         },
 
+        note: data.note,
         tags: data.tags,
         status: data.status ?? PublicationStatus.DRAFT,
         language: data.language,
@@ -320,6 +329,14 @@ export class PublicationsService {
         scheduledAt: data.scheduledAt,
         meta: (data.meta ?? {}) as any,
         sourceTexts: (data.sourceTexts ?? []) as any,
+        contentItems: data.contentItemIds?.length
+          ? {
+              create: data.contentItemIds.map((id, i) => ({
+                contentItemId: id,
+                order: i,
+              })),
+            }
+          : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });

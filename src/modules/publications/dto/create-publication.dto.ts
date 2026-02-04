@@ -183,4 +183,11 @@ export class CreatePublicationDto {
   @IsOptional()
   @MaxLength(255)
   public newsItemId?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsUUID('all', { each: true })
+  @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
+  public contentItemIds?: string[];
 }

@@ -553,6 +553,8 @@
     "description": "Description",
     "authorComment": "Author comment",
     "note": "Internal note",
+    "notePlaceholder": "Notes for yourself...",
+    "noteHint": "Internal note, will not be visible in channels",
     "tags": "Tags",
     "clickToPreview": "Click to preview post content",
     "previewTitle": "Post Preview",
@@ -595,7 +597,6 @@
     "authorSignaturePlaceholder": "Enter author signature in Markdown format...",
     "postTitleTooltip": "Main title of the post",
     "descriptionTooltip": "Short summary or description",
-    "notePlaceholder": "Internal notes...",
     "status": {
       "pending": "Pending",
       "published": "Published",

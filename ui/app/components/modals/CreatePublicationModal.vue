@@ -13,6 +13,7 @@ interface Props {
   prefilledMediaIds?: any[]
   prefilledTags?: string
   prefilledNote?: string
+  prefilledContentItemIds?: string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -247,6 +248,7 @@ async function handleCreate() {
       existingMediaIds: props.prefilledMediaIds || [],
       tags: props.prefilledTags || '',
       note: props.prefilledNote || '',
+      contentItemIds: props.prefilledContentItemIds || [],
     }
 
     const publication = await createPublication(createData)

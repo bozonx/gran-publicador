@@ -237,7 +237,8 @@ const publicationData = ref({
   content: '',
   mediaIds: [] as any[],
   tags: '',
-  note: ''
+  note: '',
+  contentItemIds: [] as string[]
 })
 
 const PUBLICATION_SEPARATOR = '\n\n---\n\n'
@@ -290,7 +291,7 @@ const aggregateSelectedItemsToPublicationOrThrow = (selectedItems: any[]) => {
     const title = (item.title || '').toString().trim()
     if (title) titleParts.push(title)
 
-    const note = stripHtmlAndSpecialChars(item.note || '').trim()
+    const note = (item.note || '').toString().trim()
     if (note) noteParts.push(note)
 
     for (const tag of (item.tags || [])) {
@@ -319,7 +320,7 @@ const aggregateSelectedItemsToPublicationOrThrow = (selectedItems: any[]) => {
 
   const title = titleParts.join(' | ')
   const content = contentParts.join(PUBLICATION_SEPARATOR)
-  const note = noteParts.join(PUBLICATION_SEPARATOR)
+  const note = Array.from(new Set(noteParts)).join(PUBLICATION_SEPARATOR)
 
   const tags = joinPublicationTags(normalizePublicationTags(allTags))
 
@@ -351,6 +352,7 @@ const aggregateSelectedItemsToPublicationOrThrow = (selectedItems: any[]) => {
     media,
     projectId: projectIds.size === 1 ? Array.from(projectIds)[0] : undefined,
     allowProjectSelection: projectIds.size !== 1,
+    contentItemIds: itemsToUse.map(i => i.id),
   }
 }
 
@@ -958,7 +960,8 @@ const handleCreatePublication = (item: any) => {
     content: texts.join('\n\n'),
     mediaIds: (item.blocks || []).flatMap((b: any) => (b.media || []).map((m: any) => ({ id: m.mediaId }))).filter((m: any) => !!m.id),
     tags: formatTags(item.tags || []),
-    note: item.note || ''
+    note: item.note || '',
+    contentItemIds: [item.id]
   }
   
   isCreatePublicationModalOpen.value = true
@@ -980,6 +983,7 @@ const handleCreatePublicationFromSelection = () => {
       mediaIds: aggregated.media,
       tags: aggregated.tags,
       note: aggregated.note,
+      contentItemIds: aggregated.contentItemIds
     }
     isCreatePublicationModalOpen.value = true
   } catch (e: any) {
@@ -1635,6 +1639,7 @@ const executeMoveToProject = async () => {
       :prefilled-media-ids="publicationData.mediaIds"
       :prefilled-tags="publicationData.tags"
       :prefilled-note="publicationData.note"
+      :prefilled-content-item-ids="publicationData.contentItemIds"
     />
 
     <!-- Rename Tab Modal -->
