@@ -46,7 +46,6 @@ interface ContentBlockMedia {
 
 interface ContentBlock {
   id?: string
-  type?: string | null
   text?: string | null
   order: number
   meta?: any

@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsString, ArrayMaxSize, ArrayMinSize, IsOptional, IsUUID } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export enum BulkOperationType {
@@ -11,7 +11,7 @@ export enum BulkOperationType {
 
 export class BulkOperationDto {
   @IsArray()
-  @IsString({ each: true })
+  @IsUUID(undefined, { each: true })
   @ArrayMinSize(1)
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_BULK_IDS)
   ids!: string[];
@@ -19,11 +19,7 @@ export class BulkOperationDto {
   @IsEnum(BulkOperationType)
   operation!: BulkOperationType;
 
-  // Optional project ID. If null or undefined, and operation is SET_PROJECT,
-  // it might imply "personal" (null). But class-validator with plain strings
-  // is tricky with null. Let's say if undefined it means personal?
-  // Or force it. Let's use IsOptional + IsUUID.
   @IsOptional()
-  @IsUUID(4)
+  @IsUUID()
   projectId?: string;
 }

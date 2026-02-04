@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsUUID } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class ReorderContentLibraryTabsDto {
@@ -10,7 +10,7 @@ export class ReorderContentLibraryTabsDto {
   public projectId?: string;
 
   @IsArray()
-  @IsString({ each: true })
+  @IsUUID(undefined, { each: true })
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_PROMPTS)
   public ids!: string[];
 }

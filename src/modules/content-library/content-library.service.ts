@@ -30,6 +30,30 @@ export class ContentLibraryService {
     private readonly permissions: PermissionsService,
   ) {}
 
+  private async withSerializableRetry<T>(operationName: string, fn: () => Promise<T>): Promise<T> {
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        const isRetryable =
+          error?.code === 'P2034' ||
+          (typeof error?.message === 'string' &&
+            (error.message.includes('deadlock') || error.message.includes('could not serialize')));
+
+        if (!isRetryable || attempt === maxRetries - 1) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Retrying serializable transaction for ${operationName} (attempt ${attempt + 2}/${maxRetries})`,
+        );
+      }
+    }
+
+    throw new Error(`Unreachable: serializable retry loop exhausted for ${operationName}`);
+  }
+
   private normalizeSearchTokens(search: string): string[] {
     return search
       .split(/[,\s]+/)
@@ -118,6 +142,13 @@ export class ContentLibraryService {
       throw new BadRequestException('Tab is not a folder');
     }
 
+    if (
+      (tab.userId === null && tab.projectId === null) ||
+      (tab.userId !== null && tab.projectId !== null)
+    ) {
+      throw new BadRequestException('Invalid folder scope configuration');
+    }
+
     if (options.scope === 'personal') {
       if (tab.userId !== options.userId || tab.projectId !== null) {
         throw new ForbiddenException('You do not have access to this folder');
@@ -151,6 +182,13 @@ export class ContentLibraryService {
 
     if (!tab) {
       throw new NotFoundException('Tab not found');
+    }
+
+    if (
+      (tab.userId === null && tab.projectId === null) ||
+      (tab.userId !== null && tab.projectId !== null)
+    ) {
+      throw new BadRequestException('Invalid tab scope configuration');
     }
 
     if (options.scope === 'personal') {
@@ -256,23 +294,29 @@ export class ContentLibraryService {
       ];
     }
 
+    const includeBlocks = query.includeBlocks !== false;
+
     const [items, total] = await Promise.all([
       this.prisma.contentItem.findMany({
         where,
         orderBy: { [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc' },
         take: limit,
         skip: offset,
-        include: {
-          blocks: {
-            orderBy: { order: 'asc' },
-            include: {
-              media: {
-                orderBy: { order: 'asc' },
-                include: { media: true },
+        ...(includeBlocks
+          ? {
+              include: {
+                blocks: {
+                  orderBy: { order: 'asc' },
+                  include: {
+                    media: {
+                      orderBy: { order: 'asc' },
+                      include: { media: true },
+                    },
+                  },
+                },
               },
-            },
-          },
-        },
+            }
+          : {}),
       }),
       this.prisma.contentItem.count({ where }),
     ]);
@@ -478,30 +522,37 @@ export class ContentLibraryService {
     }
     */
 
-    const maxOrderAgg = await (this.prisma as any).contentBlock.aggregate({
-      where: { contentItemId },
-      _max: { order: true },
-    });
-    const nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
+    return this.withSerializableRetry('createBlock', () =>
+      this.prisma.$transaction(
+        async tx => {
+          const maxOrderAgg = await (tx as any).contentBlock.aggregate({
+            where: { contentItemId },
+            _max: { order: true },
+          });
+          const nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
 
-    return (this.prisma as any).contentBlock.create({
-      data: {
-        contentItemId,
-        text: dto.text,
-        order: dto.order ?? nextOrder,
-        meta: (dto.meta ?? {}) as any,
-        media: {
-          create: (dto.media ?? []).map((m, idx) => ({
-            mediaId: m.mediaId,
-            order: m.order ?? idx,
-            hasSpoiler: !!m.hasSpoiler,
-          })),
+          return (tx as any).contentBlock.create({
+            data: {
+              contentItemId,
+              text: dto.text,
+              order: dto.order ?? nextOrder,
+              meta: (dto.meta ?? {}) as any,
+              media: {
+                create: (dto.media ?? []).map((m, idx) => ({
+                  mediaId: m.mediaId,
+                  order: m.order ?? idx,
+                  hasSpoiler: !!m.hasSpoiler,
+                })),
+              },
+            },
+            include: {
+              media: { orderBy: { order: 'asc' }, include: { media: true } },
+            },
+          });
         },
-      },
-      include: {
-        media: { orderBy: { order: 'asc' }, include: { media: true } },
-      },
-    });
+        { isolationLevel: 'Serializable' },
+      ),
+    );
   }
 
   public async updateBlock(
@@ -600,21 +651,28 @@ export class ContentLibraryService {
       throw new NotFoundException('Media not found');
     }
 
-    const maxOrderAgg = await (this.prisma as any).contentBlockMedia.aggregate({
-      where: { contentBlockId: blockId },
-      _max: { order: true },
-    });
-    const nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
+    return this.withSerializableRetry('attachBlockMedia', () =>
+      this.prisma.$transaction(
+        async tx => {
+          const maxOrderAgg = await (tx as any).contentBlockMedia.aggregate({
+            where: { contentBlockId: blockId },
+            _max: { order: true },
+          });
+          const nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
 
-    return (this.prisma as any).contentBlockMedia.create({
-      data: {
-        contentBlockId: blockId,
-        mediaId: dto.mediaId,
-        order: dto.order ?? nextOrder,
-        hasSpoiler: !!dto.hasSpoiler,
-      },
-      include: { media: true },
-    });
+          return (tx as any).contentBlockMedia.create({
+            data: {
+              contentBlockId: blockId,
+              mediaId: dto.mediaId,
+              order: dto.order ?? nextOrder,
+              hasSpoiler: !!dto.hasSpoiler,
+            },
+            include: { media: true },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      ),
+    );
   }
 
   public async detachBlockMedia(
@@ -734,17 +792,30 @@ export class ContentLibraryService {
         });
 
       case BulkOperationType.SET_PROJECT:
-        // Ensure user has access to target project if it's set
         if (dto.projectId) {
-          await this.permissions.checkProjectAccess(dto.projectId, userId, true);
+          await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
         }
 
-        return this.prisma.contentItem.updateMany({
-          where: { id: { in: authorizedIds } },
-          data: {
-            projectId: dto.projectId || null,
-          },
-        });
+        await this.prisma.$transaction(
+          authorizedIds.map(id =>
+            this.prisma.contentItem.update({
+              where: { id },
+              data: dto.projectId
+                ? {
+                    projectId: dto.projectId,
+                    userId: null,
+                    folderId: null,
+                  }
+                : {
+                    projectId: null,
+                    userId,
+                    folderId: null,
+                  },
+            }),
+          ),
+        );
+
+        return { count: authorizedIds.length };
 
       case BulkOperationType.MERGE: {
         if (authorizedIds.length < 2) {
@@ -839,27 +910,27 @@ export class ContentLibraryService {
       throw new NotFoundException('Content block not found');
     }
 
-    // Create new content item, copying scope from source
-    const newItem = await (this.prisma as any).contentItem.create({
-      data: {
-        userId: sourceItem.userId,
-        projectId: sourceItem.projectId,
-        title: block.text?.slice(0, 50) || 'Detached Block',
-        tags: [],
-        note: null,
-      },
-    });
+    return this.prisma.$transaction(async tx => {
+      const newItem = await (tx.contentItem as any).create({
+        data: {
+          userId: sourceItem.userId,
+          projectId: sourceItem.projectId,
+          title: block.text?.slice(0, 50) || 'Detached Block',
+          tags: [],
+          note: null,
+        },
+      });
 
-    // Move block to the new item
-    await (this.prisma as any).contentBlock.update({
-      where: { id: blockId },
-      data: {
-        contentItemId: newItem.id,
-        order: 0,
-      },
-    });
+      await (tx as any).contentBlock.update({
+        where: { id: blockId },
+        data: {
+          contentItemId: newItem.id,
+          order: 0,
+        },
+      });
 
-    return newItem;
+      return newItem;
+    });
   }
 
   public async copyMediaToItem(
@@ -888,36 +959,37 @@ export class ContentLibraryService {
       throw new NotFoundException('Content block media not found');
     }
 
-    // Create new content item
-    const newItem = await (this.prisma as any).contentItem.create({
-      data: {
-        userId: sourceItem.userId,
-        projectId: sourceItem.projectId,
-        title: `Copy of media from ${sourceItem.title || 'unnamed item'}`,
-        tags: [],
-        note: null,
-        blocks: {
-          create: [
-            {
-              text: '',
-              order: 0,
-              meta: {},
-              media: {
-                create: [
-                  {
-                    mediaId: link.mediaId,
-                    order: 0,
-                    hasSpoiler: link.hasSpoiler,
-                  },
-                ],
+    return this.prisma.$transaction(async tx => {
+      const newItem = await (tx.contentItem as any).create({
+        data: {
+          userId: sourceItem.userId,
+          projectId: sourceItem.projectId,
+          title: `Copy of media from ${sourceItem.title || 'unnamed item'}`,
+          tags: [],
+          note: null,
+          blocks: {
+            create: [
+              {
+                text: '',
+                order: 0,
+                meta: {},
+                media: {
+                  create: [
+                    {
+                      mediaId: link.mediaId,
+                      order: 0,
+                      hasSpoiler: link.hasSpoiler,
+                    },
+                  ],
+                },
               },
-            },
-          ],
+            ],
+          },
         },
-      },
-    });
+      });
 
-    return newItem;
+      return newItem;
+    });
   }
 
   public async getAvailableTags(
@@ -932,21 +1004,20 @@ export class ContentLibraryService {
       await this.permissions.checkProjectAccess(projectId, userId, true);
     }
 
-    const where: any = {};
-    if (scope === 'personal') {
-      where.userId = userId;
-      where.projectId = null;
-    } else {
-      where.projectId = projectId;
-    }
+    const tags = await this.prisma.$queryRaw<Array<{ tag: string }>>`
+      SELECT DISTINCT unnest(tags) AS tag
+      FROM content_items
+      WHERE (
+        (${scope} = 'personal' AND user_id = ${userId} AND project_id IS NULL)
+        OR
+        (${scope} = 'project' AND project_id = ${projectId ?? null})
+      )
+    `;
 
-    const items = await this.prisma.contentItem.findMany({
-      where,
-      select: { tags: true },
-    });
-
-    const allTags = items.flatMap(item => item.tags);
-    return Array.from(new Set(allTags)).sort();
+    return tags
+      .map(t => t.tag)
+      .filter(Boolean)
+      .sort();
   }
 
   public async listTabs(
@@ -994,23 +1065,30 @@ export class ContentLibraryService {
     const scopeWhere: any =
       dto.scope === 'personal' ? { userId, projectId: null } : { projectId: dto.projectId };
 
-    const maxOrder = await (this.prisma as any).contentLibraryTab.aggregate({
-      where: scopeWhere,
-      _max: { order: true },
-    });
+    return this.withSerializableRetry('createTab', () =>
+      this.prisma.$transaction(
+        async tx => {
+          const maxOrder = await (tx as any).contentLibraryTab.aggregate({
+            where: scopeWhere,
+            _max: { order: true },
+          });
 
-    const nextOrder = (maxOrder?._max?.order ?? -1) + 1;
+          const nextOrder = (maxOrder?._max?.order ?? -1) + 1;
 
-    return (this.prisma as any).contentLibraryTab.create({
-      data: {
-        type: dto.type,
-        title: dto.title,
-        userId: dto.scope === 'personal' ? userId : null,
-        projectId: dto.scope === 'project' ? dto.projectId! : null,
-        order: nextOrder,
-        config: (dto.config ?? {}) as any,
-      },
-    });
+          return (tx as any).contentLibraryTab.create({
+            data: {
+              type: dto.type,
+              title: dto.title,
+              userId: dto.scope === 'personal' ? userId : null,
+              projectId: dto.scope === 'project' ? dto.projectId! : null,
+              order: nextOrder,
+              config: (dto.config ?? {}) as any,
+            },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      ),
+    );
   }
 
   public async updateTab(

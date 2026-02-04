@@ -4,11 +4,6 @@ import { VALIDATION_LIMITS } from '../../../common/constants/validation.constant
 export class UpdateContentBlockDto {
   @IsString()
   @IsOptional()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  public type?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
   public text?: string;
 

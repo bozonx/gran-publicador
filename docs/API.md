@@ -180,11 +180,12 @@ x-api-key: gp_<TOKEN_VALUE>
 | :--- | :--- | :---: | :--- |
 | `scope` | string | Да | `personal` или `project` |
 | `projectId` | UUID | Нет* | Обязателен при `scope=project` |
-| `search` | string | Нет | Поиск по `title`, `note`, `tags`, `texts.content` |
+| `search` | string | Нет | Поиск по `title`, `note`, `tags`, `blocks.text` |
 | `limit` | number | Нет | Лимит (см. [Пагинация](#пагинация-query-параметры)) |
 | `offset` | number | Нет | Смещение (см. [Пагинация](#пагинация-query-параметры)) |
 | `includeArchived` | boolean | Нет | Включить архивные вместе с активными |
 | `archivedOnly` | boolean | Нет | Вернуть только архивные |
+| `includeBlocks` | boolean | Нет | Включить `blocks` в ответ (по умолчанию `true`). Для ускорения списков можно передать `false` |
 
 ### POST `/content-library/items`
 
@@ -199,10 +200,9 @@ x-api-key: gp_<TOKEN_VALUE>
 | `title` | string | Нет | Заголовок |
 | `tags` | string[] | Нет | Массив тегов |
 | `note` | string | Нет | Заметка |
-| `texts` | array | Нет* | Список текстовых блоков |
-| `media` | array | Нет* | Список ссылок на медиа |
+| `blocks` | array | Нет | Список блоков контента |
 
-Примечание: требуется хотя бы один `texts` или хотя бы один `media`.
+Примечание: пустые элементы/блоки допустимы (создаются UI сразу при нажатии "создать").
 
 ### PATCH `/content-library/items/:id`
 

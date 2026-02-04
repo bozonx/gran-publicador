@@ -1,9 +1,9 @@
-import { ArrayMaxSize, IsArray, IsInt, IsString, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsInt, IsUUID, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 class ContentBlockMediaOrderItemDto {
-  @IsString()
+  @IsUUID()
   public id!: string;
 
   @IsInt()

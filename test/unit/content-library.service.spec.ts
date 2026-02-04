@@ -5,6 +5,7 @@ import { jest } from '@jest/globals';
 import { ContentLibraryService } from '../../src/modules/content-library/content-library.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
+import { BulkOperationType } from '../../src/modules/content-library/dto/bulk-operation.dto.js';
 
 describe('ContentLibraryService (unit)', () => {
   let service: ContentLibraryService;
@@ -77,12 +78,91 @@ describe('ContentLibraryService (unit)', () => {
     service = moduleRef.get<ContentLibraryService>(ContentLibraryService);
   });
 
+  describe('bulkOperation', () => {
+    it('SET_PROJECT should require mutation permission for target project and move items into project scope', async () => {
+      mockPrismaService.contentItem.findUnique
+        .mockResolvedValueOnce({ id: 'ci-1', userId: 'user-1', projectId: null, archivedAt: null })
+        .mockResolvedValueOnce({ id: 'ci-2', userId: 'user-1', projectId: null, archivedAt: null });
+
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
+
+      const res = await service.bulkOperation('user-1', {
+        ids: ['ci-1', 'ci-2'],
+        operation: BulkOperationType.SET_PROJECT,
+        projectId: 'p1',
+      } as any);
+
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
+        'ADMIN',
+        'EDITOR',
+      ]);
+
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-1' },
+          data: { projectId: 'p1', userId: null, folderId: null },
+        }),
+      );
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-2' },
+          data: { projectId: 'p1', userId: null, folderId: null },
+        }),
+      );
+
+      expect(res).toEqual({ count: 2 });
+    });
+
+    it('SET_PROJECT should move items into personal scope when projectId is not provided', async () => {
+      mockPrismaService.contentItem.findUnique
+        .mockResolvedValueOnce({ id: 'ci-1', userId: null, projectId: 'p1', archivedAt: null })
+        .mockResolvedValueOnce({ id: 'ci-2', userId: null, projectId: 'p1', archivedAt: null });
+
+      mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
+
+      const res = await service.bulkOperation('user-1', {
+        ids: ['ci-1', 'ci-2'],
+        operation: BulkOperationType.SET_PROJECT,
+      } as any);
+
+      expect(mockPermissionsService.checkProjectPermission).not.toHaveBeenCalled();
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-1' },
+          data: { projectId: null, userId: 'user-1', folderId: null },
+        }),
+      );
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-2' },
+          data: { projectId: null, userId: 'user-1', folderId: null },
+        }),
+      );
+
+      expect(res).toEqual({ count: 2 });
+    });
+  });
+
   afterAll(async () => {
     await moduleRef.close();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockPrismaService.$transaction.mockImplementation(async (input: any, _options?: any) => {
+      if (typeof input === 'function') {
+        return input(mockPrismaService);
+      }
+
+      // Batch mode: array of Prisma promises
+      if (Array.isArray(input)) {
+        return Promise.all(input);
+      }
+
+      return undefined;
+    });
   });
 
   describe('create', () => {
@@ -307,7 +387,6 @@ describe('ContentLibraryService (unit)', () => {
         service.createBlock(
           'ci-1',
           {
-            type: 'plain',
             text: '   ',
             media: [],
           } as any,
@@ -324,7 +403,6 @@ describe('ContentLibraryService (unit)', () => {
       const res = await service.createBlock(
         'ci-1',
         {
-          type: 'plain',
           text: 'hello',
           media: [],
         } as any,
