@@ -1,8 +1,9 @@
 {
+  "welcome": "Hello! I will save your messages to Content Library. Send a post (text/media/voice), and then send more posts anytime.",
   "start_message": "Send text, photos, videos, documents, audio or voice messages.",
   "user_not_found": "❌ User not found in the system.\n\nPlease send /start to begin.",
   "user_banned": "🚫 Your account has been banned.\nReason: {reason}\n\nIf you believe this is a mistake, please contact support.",
-  "content_item_created": "✅ Content item created.",
+  "content_item_created": "✅ Saved. Send another post when ready.",
   "unsupported_message_type": "❌ Unsupported message type.",
   "command_not_found": "❓ Unknown command: {command}",
   "error_private_only": "🚫 This bot only works in private chats.",

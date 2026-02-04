@@ -41,18 +41,18 @@ export class TelegramBotUpdate {
     const from = ctx.from;
     if (!from) return;
 
-    const lang = from.language_code;
+    const fallbackLang = from.language_code;
 
     // Check if private chat
     if (ctx.chat?.type !== 'private') {
-      await ctx.reply(String(this.i18n.t('telegram.error_private_only', { lang })));
+      await ctx.reply(String(this.i18n.t('telegram.error_private_only', { lang: fallbackLang })));
       return;
     }
 
     this.logger.debug(`Received /start from ${from.id} (${from.username})`);
 
     // Create or update user
-    await this.usersService.findOrCreateTelegramUser({
+    const user = await this.usersService.findOrCreateTelegramUser({
       telegramId: BigInt(from.id),
       username: from.username,
       firstName: from.first_name,
@@ -60,6 +60,8 @@ export class TelegramBotUpdate {
       languageCode: from.language_code,
     });
 
+    const lang = user.uiLanguage ?? fallbackLang;
+    await ctx.reply(String(this.i18n.t('telegram.welcome', { lang })));
     await ctx.reply(String(this.i18n.t('telegram.start_message', { lang })));
   }
 
@@ -77,12 +79,15 @@ export class TelegramBotUpdate {
       return;
     }
 
-    const lang = from.language_code;
+    const fallbackLang = from.language_code;
 
     // Handle commands
     if ('text' in message && message.text?.startsWith('/')) {
       const command = message.text.split(' ')[0];
       if (command === '/start') return; // Ignore, handled by onStart
+
+      const user = await this.usersService.findByTelegramId(BigInt(from.id)).catch(() => null);
+      const lang = user?.uiLanguage ?? fallbackLang;
 
       await ctx.reply(
         String(this.i18n.t('telegram.command_not_found', { lang, args: { command } })),
@@ -100,7 +105,7 @@ export class TelegramBotUpdate {
         );
 
         await ctx
-          .reply(String(this.i18n.t('telegram.error_internal', { lang })))
+          .reply(String(this.i18n.t('telegram.error_internal', { lang: fallbackLang })))
           .catch(() => undefined);
       });
   }
@@ -119,7 +124,7 @@ export class TelegramBotUpdate {
     const from = ctx.from;
     if (!from) return;
 
-    const lang = from.language_code;
+    const fallbackLang = from.language_code;
 
     try {
       const alreadyProcessed = await this.isMessageAlreadyProcessed({
@@ -133,9 +138,11 @@ export class TelegramBotUpdate {
 
       const user = await this.usersService.findByTelegramId(BigInt(from.id));
       if (!user) {
-        await ctx.reply(String(this.i18n.t('telegram.user_not_found', { lang })));
+        await ctx.reply(String(this.i18n.t('telegram.user_not_found', { lang: fallbackLang })));
         return;
       }
+
+      const lang = user.uiLanguage ?? fallbackLang;
 
       if (user.isBanned) {
         await ctx.reply(
@@ -201,7 +208,7 @@ export class TelegramBotUpdate {
         error instanceof Error ? error.stack : undefined,
       );
       await ctx
-        .reply(String(this.i18n.t('telegram.error_internal', { lang })))
+        .reply(String(this.i18n.t('telegram.error_internal', { lang: fallbackLang })))
         .catch(() => undefined);
     }
   }

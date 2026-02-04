@@ -85,29 +85,11 @@ export class AppConfig {
   public telegramBotEnabled!: boolean;
 
   /**
-   * Session TTL in minutes for Telegram bot.
-   * Defined by TELEGRAM_SESSION_TTL_MINUTES environment variable.
-   * Default: 10
-   */
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  public telegramSessionTtlMinutes: number = 10;
-
-  /**
    * Frontend URL for publication links in bot messages.
    * Defined by FRONTEND_URL environment variable.
    */
   @IsString()
   public frontendUrl!: string;
-
-  /**
-   * Base URL for the Telegram Mini App.
-   * Defined by TELEGRAM_MINI_APP_URL environment variable.
-   */
-  @IsOptional()
-  @IsString()
-  public telegramMiniAppUrl?: string;
 
   /**
    * JWT Secret for auth.
@@ -202,9 +184,7 @@ export default registerAs('app', (): AppConfig => {
     adminTelegramId: process.env.TELEGRAM_ADMIN_ID || undefined,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
     telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
-    telegramSessionTtlMinutes: parseInt(process.env.TELEGRAM_SESSION_TTL_MINUTES ?? '10', 10),
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
-    telegramMiniAppUrl: process.env.TELEGRAM_MINI_APP_URL || undefined,
     jwtSecret: process.env.JWT_SECRET,
     systemApiSecret: process.env.SYSTEM_API_SECRET,
     systemApiIpRestrictionEnabled: process.env.SYSTEM_API_IP_RESTRICTION_ENABLED !== 'false',
@@ -241,10 +221,6 @@ export default registerAs('app', (): AppConfig => {
     throw new Error(
       'App config validation error: TELEGRAM_BOT_TOKEN is required when TELEGRAM_BOT_ENABLED is true',
     );
-  }
-
-  if (!config.telegramMiniAppUrl) {
-    config.telegramMiniAppUrl = 'https://t.me/your_bot/app';
   }
 
   return config;

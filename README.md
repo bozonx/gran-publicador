@@ -232,8 +232,6 @@ pnpm dev
 | `TELEGRAM_BOT_ENABLED` | Нет | Включить Telegram бота (по умолчанию `false`) |
 | `TELEGRAM_BOT_TOKEN` | Условно | Токен Telegram бота от @BotFather (обязателен если `TELEGRAM_BOT_ENABLED=true`) |
 | `TELEGRAM_ADMIN_ID` | Нет | Telegram ID супер-администратора (опционально) |
-| `TELEGRAM_SESSION_TTL_MINUTES` | Нет | TTL для внутренних ключей Telegram (мин), по умолчанию `10` |
-| `TELEGRAM_MINI_APP_URL` | Нет | Base URL для Telegram Mini App |
 | `SOCIAL_POSTING_SERVICE_URL` | Да | URL микросервиса постинга |
 | `NEWS_SERVICE_URL` | Да | URL микросервиса новостей |
 | `STT_SERVICE_URL` | Да | URL микросервиса Speech-To-Text |

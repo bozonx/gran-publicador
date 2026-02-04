@@ -38,7 +38,7 @@ describe('TelegramBotUpdate', () => {
 
     const usersService = {
       findByTelegramId: jest.fn(async () => ({ id: 'user1', isBanned: false })),
-      findOrCreateTelegramUser: jest.fn(async () => ({ id: 'user1' })),
+      findOrCreateTelegramUser: jest.fn(async () => ({ id: 'user1', uiLanguage: 'en-US' })),
     };
 
     const mediaService = {
@@ -97,6 +97,32 @@ describe('TelegramBotUpdate', () => {
 
     expect(deps.prisma.contentItem.create).toHaveBeenCalledTimes(1);
     expect(ctx.reply).toHaveBeenCalledWith('telegram.content_item_created');
+  });
+
+  it('handles /start: creates user and replies with welcome + start_message', async () => {
+    const deps = createDeps();
+    const update = new TelegramBotUpdate(
+      deps.usersService as any,
+      deps.prisma as any,
+      deps.mediaService as any,
+      deps.sttService as any,
+      deps.i18n as any,
+      deps.configService as any,
+    );
+
+    const ctx = createCtx({
+      message: {
+        message_id: 1,
+        chat: { id: 200 },
+        text: '/start',
+      },
+    });
+
+    await update.onStart(ctx as any);
+
+    expect(deps.usersService.findOrCreateTelegramUser).toHaveBeenCalledTimes(1);
+    expect(ctx.reply).toHaveBeenCalledWith('telegram.welcome');
+    expect(ctx.reply).toHaveBeenCalledWith('telegram.start_message');
   });
 
   it('for media_group_id replies only on first message, then silently appends media', async () => {
