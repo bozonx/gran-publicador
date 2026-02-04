@@ -69,13 +69,13 @@ onMounted(() => {
         <div 
           v-for="item in items" 
           :key="item.id"
-          class="min-w-[280px] w-[280px] flex-shrink-0 h-full"
+          class="min-w-[280px] w-[280px] shrink-0 h-full"
         >
           <ContentItemCard
             :item="item"
             hide-checkbox
             hide-actions
-            class="!h-full shadow-sm"
+            class="h-full! shadow-sm"
             @click="handleCardClick"
           />
         </div>

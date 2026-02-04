@@ -101,7 +101,7 @@ const processQueue = async () => {
           projectId: props.scope === 'project' ? props.projectId : undefined,
           title: fileItem.file.name,
           blocks: [
-            { text, type: 'plain', order: 0, meta: {}, media: [] }
+            { text, order: 0, meta: {}, media: [] }
           ]
         })
       } else {
@@ -118,7 +118,6 @@ const processQueue = async () => {
           blocks: [
             { 
               text: '', 
-              type: 'plain', 
               order: 0, 
               meta: {}, 
               media: [{ mediaId: media.id, order: 0, hasSpoiler: false }] 

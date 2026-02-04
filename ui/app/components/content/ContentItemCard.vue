@@ -38,7 +38,7 @@ const getAllItemMedia = (item: any) => {
 
 const getItemTextBlocks = (item: any) => {
   const texts = (item.blocks || [])
-    .map(b => stripHtmlAndSpecialChars(b.text).trim())
+    .map((b: any) => stripHtmlAndSpecialChars(b.text).trim())
     .filter(Boolean)
     
   if (texts.length === 0 && item.note) {
