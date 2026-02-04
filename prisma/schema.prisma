@@ -249,7 +249,7 @@ model Channel {
 
 model Publication {
   id                 String  @id @default(uuid())
-  projectId          String? @map("project_id")
+  projectId          String  @map("project_id")
   // ID for linking translations of the same content
   translationGroupId String? @map("translation_group_id")
   // ID of the news item from microservice if this publication was created from news
@@ -292,7 +292,7 @@ model Publication {
   // Internal note for author's reference only. Never published to social media
   note          String?
 
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   creator User?    @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   posts   Post[]
   media   PublicationMedia[]

@@ -5,6 +5,8 @@ import {
   PostStatus,
   PublicationStatus,
   NotificationType,
+  LlmPromptTemplateCategory,
+  ContentLibraryTabType,
 } from '../src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
@@ -43,6 +45,7 @@ async function main() {
   await prisma.contentBlockMedia.deleteMany({});
   await prisma.contentBlock.deleteMany({});
   await prisma.contentItem.deleteMany({});
+  await prisma.contentLibraryTab.deleteMany({});
 
   await prisma.media.deleteMany({});
   await prisma.publication.deleteMany({});
@@ -278,6 +281,35 @@ async function main() {
     });
   }
 
+  // 3.2 CONTENT LIBRARY TABS
+  console.log('  Generating content library tabs...');
+  const contentLibraryTabs = [
+    {
+      id: 'tab10000-0000-4000-8000-000000000001',
+      type: ContentLibraryTabType.FOLDER,
+      title: 'Common Assets',
+      projectId: projectData[0].id,
+      order: 0,
+      config: {},
+    },
+    {
+      id: 'tab10000-0000-4000-8000-000000000002',
+      type: ContentLibraryTabType.SAVED_VIEW,
+      title: 'Recent Images',
+      projectId: projectData[0].id,
+      order: 1,
+      config: { filter: { type: 'IMAGE' } },
+    },
+  ];
+
+  for (const tab of contentLibraryTabs) {
+    await prisma.contentLibraryTab.upsert({
+      where: { id: tab.id },
+      update: tab,
+      create: tab,
+    });
+  }
+
   // 4. PROJECT MEMBERSHIPS (GUESTS)
   console.log('  Adding guest memberships...');
 
@@ -503,7 +535,6 @@ async function main() {
       language: 'ru-RU',
       translationGroupId: translationGroup1,
       meta: {},
-      sourceTexts: [],
     },
     {
       id: '44444444-4444-4444-8444-444444444445',
@@ -517,7 +548,6 @@ async function main() {
       language: 'en-US',
       translationGroupId: translationGroup1,
       meta: {},
-      sourceTexts: [],
     },
     {
       id: '44444444-4444-4444-8444-444444444442',
@@ -530,7 +560,6 @@ async function main() {
       postType: PostType.POST,
       language: 'ru-RU',
       meta: {},
-      sourceTexts: [],
     },
     {
       id: '44444444-4444-4444-8444-444444444443',
@@ -543,7 +572,6 @@ async function main() {
       postType: PostType.NEWS,
       language: 'ru-RU',
       meta: {},
-      sourceTexts: [],
     },
     {
       id: '44444444-4444-4444-8444-444444444460',
@@ -555,7 +583,6 @@ async function main() {
       postType: PostType.POST,
       language: 'ru-RU',
       meta: {},
-      sourceTexts: [],
     },
     {
       id: '44444444-4444-4444-8444-444444444481',
@@ -567,7 +594,6 @@ async function main() {
       postType: PostType.POST,
       language: 'ru-RU',
       meta: {},
-      sourceTexts: [],
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
     },
     {
@@ -579,7 +605,6 @@ async function main() {
       status: PublicationStatus.PUBLISHED,
       postType: PostType.ARTICLE,
       meta: {},
-      sourceTexts: [],
       createdAt: new Date(),
     },
     {
@@ -593,18 +618,19 @@ async function main() {
       language: 'ru-RU',
       newsItemId: 'news-item-123456789',
       meta: { originalUrl: 'https://example.com/news/123' },
-      sourceTexts: [
-        { source: 'url:https://example.com/news/123', content: 'Original news text...', order: 0 },
-      ],
       createdAt: new Date(),
     },
   ];
 
   for (const pub of publications) {
+    const pubData = {
+      ...pub,
+      effectiveAt: (pub as any).postDate || (pub as any).createdAt || new Date(),
+    };
     await prisma.publication.upsert({
       where: { id: pub.id },
-      update: pub,
-      create: pub,
+      update: pubData,
+      create: pubData,
     });
   }
 
@@ -676,7 +702,7 @@ async function main() {
         postType: PostType.POST,
         language: 'ru-RU',
         meta: {},
-        sourceTexts: [],
+        effectiveAt: new Date(Date.now() - 1000 * 60 * 60 * i),
       },
       update: {},
     });
@@ -809,7 +835,7 @@ async function main() {
       projectId: null,
       name: 'Summarize for Telegram',
       description: 'Creates a short summary for Telegram posts',
-      category: 'CONTENT',
+      category: LlmPromptTemplateCategory.CONTENT,
       prompt:
         'Summarize the following text for a Telegram post. Keep it under 500 characters. Use emojis.',
       order: 0,
@@ -821,7 +847,7 @@ async function main() {
       projectId: projectData[0].id,
       name: 'Technical Tone Rewriter',
       description: 'Rewrites text in a technical tone',
-      category: 'EDITING',
+      category: LlmPromptTemplateCategory.EDITING,
       prompt:
         'Rewrite the following text to sound more technical and professional. Use appropriate terminology.',
       order: 0,
@@ -829,7 +855,6 @@ async function main() {
   ];
 
   for (const pt of promptTemplates) {
-    // @ts-ignore
     await prisma.llmPromptTemplate.upsert({
       where: { id: pt.id },
       update: pt,
@@ -846,11 +871,11 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
       tags: ['nuxt', 'future', 'speculation'],
+      folderId: 'tab10000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111111',
-          type: 'plain',
           text: 'Nuxt 5 might introduce native AI integration...',
           order: 0,
           meta: {},
@@ -864,11 +889,11 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
       tags: ['image', 'asset'],
+      folderId: 'tab10000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111112',
-          type: 'plain',
           text: null,
           order: 0,
           meta: {},
@@ -890,11 +915,9 @@ async function main() {
       title: 'Travel Log Segment',
       tags: ['travel', 'raw'],
       note: null,
-      meta: {},
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111113',
-          type: 'plain',
           text: 'Arrived in Tokyo at 5 AM. The city was already awake.',
           order: 0,
           meta: {},
@@ -920,7 +943,6 @@ async function main() {
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111114',
-          type: 'plain',
           text: 'This content item is in archive.',
           order: 0,
           meta: {},
@@ -935,11 +957,9 @@ async function main() {
       title: 'Personal: Quick snippet',
       tags: ['personal', 'snippet'],
       note: null,
-      meta: {},
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111115',
-          type: 'plain',
           text: 'Personal library item example.',
           order: 0,
           meta: {},
