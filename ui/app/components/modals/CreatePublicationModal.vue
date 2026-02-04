@@ -8,6 +8,10 @@ interface Props {
   preselectedPostType?: PostType
   preselectedChannelIds?: string[]
   allowProjectSelection?: boolean
+  prefilledContent?: string
+  prefilledMediaIds?: string[]
+  prefilledTags?: string
+  prefilledNote?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -237,7 +241,10 @@ async function handleCreate() {
       language: formData.language,
       postType: formData.postType,
       channelIds: formData.channelIds,
-      content: '', // Empty content, will be filled later
+      content: props.prefilledContent || '',
+      existingMediaIds: props.prefilledMediaIds || [],
+      tags: props.prefilledTags || '',
+      note: props.prefilledNote || '',
     }
 
     const publication = await createPublication(createData)

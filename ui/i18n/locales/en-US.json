@@ -830,6 +830,7 @@
       "bulkUpload": "Bulk Upload",
       "copyToItem": "Copy to new item",
       "copyToItemSuccess": "Media copied to a new item",
+      "createPublication": "Create publication",
       "purgeConfirmTitle": "Empty trash?",
       "purgeConfirmDescription": "Are you sure you want to permanently delete all items from the trash? This action cannot be undone."
     },

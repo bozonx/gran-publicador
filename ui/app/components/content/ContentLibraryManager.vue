@@ -144,6 +144,14 @@ const isBulkOperationModalOpen = ref(false)
 const isMergeConfirmModalOpen = ref(false)
 const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE' | 'MERGE'>('DELETE')
 
+const isCreatePublicationModalOpen = ref(false)
+const publicationData = ref({
+  content: '',
+  mediaIds: [] as string[],
+  tags: '',
+  note: ''
+})
+
 const isAllSelected = computed(() => {
   return items.value.length > 0 && items.value.every(item => selectedIds.value.includes(item.id))
 })
@@ -608,6 +616,21 @@ const handleBulkAction = async (operation: 'ARCHIVE' | 'UNARCHIVE') => {
   await executeBulkOperation()
 }
 
+const handleCreatePublication = (item: any) => {
+  const texts = (item.blocks || [])
+    .map((b: any) => stripHtmlAndSpecialChars(b.text || '').trim())
+    .filter(Boolean)
+
+  publicationData.value = {
+    content: texts.join('\n\n'),
+    mediaIds: (item.blocks || []).flatMap((b: any) => (b.media || []).map((m: any) => m.mediaId)).filter(Boolean),
+    tags: formatTags(item.tags || []),
+    note: item.note || ''
+  }
+  
+  isCreatePublicationModalOpen.value = true
+}
+
 const handleMerge = () => {
   bulkOperationType.value = 'MERGE'
   isMergeConfirmModalOpen.value = true
@@ -804,7 +827,7 @@ const executeMoveToProject = async () => {
           <UButton
             v-if="archiveStatus === 'archived'"
             size="sm"
-            color="error"
+            color="neutral"
             variant="outline"
             icon="i-heroicons-trash"
             :loading="isPurging"
@@ -867,6 +890,7 @@ const executeMoveToProject = async () => {
             @toggle-selection="toggleSelection"
             @archive="openArchiveModal"
             @restore="restoreItem"
+            @create-publication="handleCreatePublication"
           />
         </div>
 
@@ -1102,8 +1126,16 @@ const executeMoveToProject = async () => {
       
       <template #footer>
         <div class="flex justify-between items-center w-full">
-           <div class="text-xs text-gray-500">
-             <!-- Left side footer content if any -->
+           <div class="text-xs text-gray-500 flex gap-2">
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-paper-airplane"
+                @click="handleCreatePublication(activeItem)"
+              >
+                {{ t('contentLibrary.actions.createPublication') }}
+              </UButton>
            </div>
            <UButton 
             color="primary" 
@@ -1154,6 +1186,16 @@ const executeMoveToProject = async () => {
         </UButton>
       </template>
     </AppModal>
+
+    <ModalsCreatePublicationModal
+      v-if="isCreatePublicationModalOpen"
+      v-model:open="isCreatePublicationModalOpen"
+      :project-id="projectId"
+      :allow-project-selection="scope === 'personal'"
+      :prefilled-content="publicationData.content"
+      :prefilled-media-ids="publicationData.mediaIds"
+      :prefilled-tags="publicationData.tags"
+      :prefilled-note="publicationData.note"
+    />
   </div>
 </template>
-

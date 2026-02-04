@@ -15,6 +15,7 @@ const emit = defineEmits<{
   (e: 'toggleSelection', itemId: string): void
   (e: 'archive', item: any): void
   (e: 'restore', itemId: string): void
+  (e: 'create-publication', item: any): void
 }>()
 
 const { t } = useI18n()
@@ -101,6 +102,16 @@ const formatTags = (tags: string[]): string => {
           :title="t('contentLibrary.actions.moveToTrash')"
           class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           @click.stop="emit('archive', item)"
+        />
+        <UButton
+          v-if="!item.archivedAt"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-paper-airplane"
+          :title="t('contentLibrary.actions.createPublication')"
+          class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          @click.stop="emit('create-publication', item)"
         />
         <UButton
           v-else
