@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import type { ContentLibraryTab } from '~/composables/useContentLibraryTabs'
+import CreateTabModal from '~/components/content/CreateTabModal.vue'
 
 const props = defineProps<{
   scope: 'project' | 'personal'

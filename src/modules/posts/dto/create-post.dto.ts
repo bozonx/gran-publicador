@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDate, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { PostStatus, PostType } from '../../../generated/prisma/index.js';
 
 /**
@@ -29,12 +37,12 @@ export class CreatePostDto {
   public status?: PostStatus;
 
   @Type(() => Date)
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsDate()
-  @IsOptional()
   public scheduledAt?: Date;
 
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
-  @IsOptional()
   public content?: string | null;
 
   @IsOptional()
@@ -46,7 +54,7 @@ export class CreatePostDto {
   @IsOptional()
   public platformOptions?: any;
 
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
-  @IsOptional()
   public authorSignature?: string;
 }

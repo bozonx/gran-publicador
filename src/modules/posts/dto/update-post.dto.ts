@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 /**
  * DTO for updating an existing post.
@@ -11,11 +11,11 @@ export class UpdatePostDto {
   public tags?: string; // Can override publication tags
 
   @Type(() => Date)
-  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   public scheduledAt?: Date;
 
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
-  @IsOptional()
   public content?: string | null;
 
   @Type(() => Date)
@@ -32,7 +32,7 @@ export class UpdatePostDto {
   @IsOptional()
   public platformOptions?: any;
 
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
-  @IsOptional()
   public authorSignature?: string;
 }

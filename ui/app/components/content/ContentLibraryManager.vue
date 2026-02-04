@@ -8,6 +8,7 @@ import AppModal from '~/components/ui/AppModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
 import BulkUploadModal from '~/components/forms/content/BulkUploadModal.vue'
+import ContentLibraryTabs from '~/components/content/ContentLibraryTabs.vue'
 
 const props = defineProps<{
   scope: 'project' | 'personal'

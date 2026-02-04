@@ -110,6 +110,8 @@ export class PostsService {
       status?: PostStatus;
       scheduledAt?: Date;
       content?: string | null;
+      meta?: any;
+      template?: any;
       platformOptions?: any;
       authorSignature?: string;
     },
@@ -183,7 +185,8 @@ export class PostsService {
         status: postStatus,
         scheduledAt: data.scheduledAt,
         content: normalizedOverrideContent ?? null,
-        meta: {},
+        meta: data.meta ?? {},
+        template: data.template ?? null,
         platformOptions: data.platformOptions,
         authorSignature: authorSignature || undefined,
         errorMessage,
@@ -451,6 +454,8 @@ export class PostsService {
       publishedAt?: Date | null;
       errorMessage?: string | null;
       content?: string | null;
+      meta?: any;
+      template?: any;
       platformOptions?: any;
       authorSignature?: string | null;
     },
@@ -555,6 +560,8 @@ export class PostsService {
         publishedAt: data.publishedAt,
         errorMessage: data.errorMessage,
         content: data.content,
+        meta: data.meta,
+        template: data.template,
         platformOptions: data.platformOptions,
         authorSignature: data.authorSignature,
       },

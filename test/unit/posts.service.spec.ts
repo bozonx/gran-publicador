@@ -101,6 +101,33 @@ describe('PostsService (unit)', () => {
       expect(mockPrismaService.post.update).toHaveBeenCalled();
     });
 
+    it('should persist template on update', async () => {
+      const userId = 'user-1';
+      const postId = 'post-1';
+      const updateDto = { template: { id: 'tpl-2' } };
+
+      const mockPost = {
+        id: postId,
+        channelId: 'channel-1',
+        publicationId: 'pub-1',
+        publication: { createdBy: userId, content: 'base' },
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockChannelsService.findOne.mockResolvedValue({});
+      mockPrismaService.post.update.mockResolvedValue({ ...mockPost, ...updateDto });
+
+      await service.update(postId, userId, updateDto as any);
+
+      expect(mockPrismaService.post.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            template: updateDto.template,
+          }),
+        }),
+      );
+    });
+
     it('should allow admin to update post', async () => {
       const userId = 'admin-1';
       const postId = 'post-1';
@@ -268,6 +295,40 @@ describe('PostsService (unit)', () => {
       const result = await service.create(userId, channelId, dto);
       expect(result).toBeDefined();
       expect(mockPrismaService.post.create).toHaveBeenCalled();
+    });
+
+    it('should persist template on create', async () => {
+      const userId = 'user-1';
+      const channelId = 'channel-1';
+      const projectId = 'p1';
+      const dto = { publicationId: 'pub-1', template: { id: 'tpl-1' } };
+
+      mockChannelsService.findOne.mockResolvedValue({
+        id: channelId,
+        projectId,
+        socialMedia: SocialMedia.TELEGRAM,
+      });
+      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.findFirst.mockResolvedValue({
+        id: 'pub-1',
+        projectId,
+        content: 'base',
+      });
+      mockPrismaService.publicationMedia.count.mockResolvedValue(0);
+      mockPrismaService.post.create.mockResolvedValue({
+        id: 'new-post',
+        ...dto,
+      });
+
+      await service.create(userId, channelId, dto as any);
+
+      expect(mockPrismaService.post.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            template: dto.template,
+          }),
+        }),
+      );
     });
 
     it('should throw if publication does not belong to project', async () => {
