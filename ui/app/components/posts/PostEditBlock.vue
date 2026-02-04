@@ -14,8 +14,8 @@ import {
 import type { ChannelPostTemplate } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
-import yaml from 'js-yaml'
 import SocialIcon from '~/components/common/SocialIcon.vue'
+import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import AuthorSignatureSelector from './AuthorSignatureSelector.vue'
@@ -76,13 +76,13 @@ const headerDateInfo = computed(() => {
             tooltip: t('post.publishedAt')
         }
     }
-    const scheduledAt = props.post?.scheduledAt || props.publication?.scheduledAt
-    if (scheduledAt) {
+    // Only show if overridden specifically on the post
+    if (props.post?.scheduledAt) {
         return {
-            date: formatPublishedAt(scheduledAt),
+            date: formatPublishedAt(props.post.scheduledAt),
             icon: 'i-heroicons-clock',
             color: 'text-amber-500',
-            tooltip: props.post?.scheduledAt ? t('post.scheduledAt') : t('post.inheritedScheduledAt', 'Scheduled (inherited from publication)')
+            tooltip: t('post.scheduledAt')
         }
     }
     return null
@@ -91,6 +91,20 @@ const headerDateInfo = computed(() => {
 const overriddenTags = computed(() => {
     if (!props.post?.tags) return []
     return props.post.tags.split(',').filter(t => t.trim())
+})
+
+const currentTemplateName = computed(() => {
+    const template = formData.template
+    if (!template || !template.id) return null
+    
+    // Try to find name in available templates
+    const found = availableTemplates.value.find(t => t.value?.id === template.id)
+    if (found) {
+        // Remove " (Default)" suffix if present for display in header
+        return found.label.replace(/\s\(.*\)$/, '')
+    }
+    
+    return null
 })
 
 const formData = reactive({
@@ -566,20 +580,7 @@ async function executePublish() {
     emit('success')
   }
 }
-const metaYaml = computed(() => {
-  if (!props.post?.meta) return null
-  try {
-    const metaObj = typeof props.post.meta === 'string' 
-      ? JSON.parse(props.post.meta) 
-      : props.post.meta
-    
-    if (Object.keys(metaObj).length === 0) return null
-    return yaml.dump(metaObj)
-  } catch (e) {
-    console.error('Failed to dump meta to YAML', e)
-    return typeof props.post.meta === 'string' ? props.post.meta : JSON.stringify(props.post.meta, null, 2)
-  }
-})
+
 </script>
 
 <template>
@@ -701,8 +702,21 @@ const metaYaml = computed(() => {
 
             </div>
             
-            <!-- Overridden Tags -->
-            <div v-if="overriddenTags.length > 0" class="flex flex-wrap gap-1">
+            <!-- Template & Tags Info -->
+            <div v-if="currentTemplateName || overriddenTags.length > 0" class="flex flex-wrap gap-1 items-center">
+                 <!-- Template Name -->
+                 <UBadge
+                    v-if="currentTemplateName"
+                    variant="subtle"
+                    color="primary"
+                    size="xs"
+                    class="font-medium mr-1"
+                 >
+                    <UIcon name="i-heroicons-squares-2x2" class="w-3 h-3 mr-1" />
+                    {{ currentTemplateName }}
+                 </UBadge>
+
+                 <!-- Overridden Tags -->
                  <UBadge 
                     v-for="tag in overriddenTags" 
                     :key="tag"
@@ -1038,14 +1052,13 @@ const metaYaml = computed(() => {
       />
 
       <!-- Meta Data YAML -->
-      <div v-if="metaYaml" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
-        <div class="flex items-center gap-2 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          <UIcon name="i-heroicons-code-bracket" class="w-4 h-4" />
-          {{ t('post.metadata', 'Metadata') }}
-        </div>
-        <div class="bg-gray-100 dark:bg-gray-800 rounded-md p-4 overflow-x-auto border border-gray-200 dark:border-gray-700">
-          <pre class="text-xs font-mono text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre">{{ metaYaml }}</pre>
-        </div>
+      <!-- Meta Data YAML -->
+      <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
+        <MetadataEditor 
+          v-model="formData.meta"
+          :label="t('post.metadata', 'Metadata')"
+          :disabled="isDeleting"
+        />
       </div>
 
     </div>

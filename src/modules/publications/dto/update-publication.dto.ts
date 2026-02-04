@@ -94,9 +94,7 @@ export class UpdatePublicationDto {
 
   @IsObject()
   @IsOptional()
-  @ValidateNested()
-  @Type(() => PublicationMetaDto)
-  public meta?: PublicationMetaDto;
+  public meta?: any;
 
   @IsString()
   @IsOptional()

@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import yaml from 'js-yaml'
 import { VueDraggable } from 'vue-draggable-plus'
+import { type ContentLibraryTab, useContentLibraryTabs } from '~/composables/useContentLibraryTabs'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import AppModal from '~/components/ui/AppModal.vue'
@@ -9,6 +10,13 @@ import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
 import BulkUploadModal from '~/components/forms/content/BulkUploadModal.vue'
 import ContentLibraryTabs from '~/components/content/ContentLibraryTabs.vue'
+
+interface TabConfig {
+  search?: string
+  tags?: string[]
+  sortBy?: 'createdAt' | 'title'
+  sortOrder?: 'asc' | 'desc'
+}
 
 const props = defineProps<{
   scope: 'project' | 'personal'
@@ -58,6 +66,7 @@ const { t, d } = useI18n()
 const api = useApi()
 const toast = useToast()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
+const { updateTab } = useContentLibraryTabs()
 const { formatDateShort, truncateContent } = useFormatters()
 
 // const projectId = computed(() => route.params.id as string) // Replaced by props.projectId
@@ -66,7 +75,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 const activeTabId = ref<string | null>(null)
-const activeTab = ref<{ id: string; type: 'FOLDER' | 'SAVED_VIEW' } | null>(null)
+const activeTab = ref<ContentLibraryTab | null>(null)
 
 const q = ref('')
 const archiveStatus = ref<'active' | 'archived'>('active')
@@ -77,8 +86,7 @@ const items = ref<ContentItem[]>([])
 const availableTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
 
-const SORT_BY_STORAGE_KEY = 'content-library-sort-by'
-const SORT_ORDER_STORAGE_KEY = 'content-library-sort-order'
+
 
 const sortBy = ref<'createdAt' | 'title'>('createdAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
@@ -104,17 +112,74 @@ function toggleSortOrder() {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
-watch(sortBy, (val) => {
-  if (import.meta.client) {
-    localStorage.setItem(SORT_BY_STORAGE_KEY, val)
+// Configuration persistence logic
+const isRestoringConfig = ref(false)
+
+const saveTabSettings = useDebounceFn(async () => {
+  if (!activeTab.value || isRestoringConfig.value) return
+
+  try {
+    const config: TabConfig = {
+      search: q.value || undefined,
+      tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
+      sortBy: sortBy.value,
+      sortOrder: sortOrder.value
+    }
+
+    // Update local state first to avoid UI flicker if needed, though we react to props
+    if (activeTab.value.config) {
+      Object.assign(activeTab.value.config, config)
+    }
+
+    await updateTab(activeTab.value.id, {
+      scope: props.scope,
+      projectId: props.projectId,
+      config
+    })
+  } catch (e) {
+    console.error('Failed to save tab settings', e)
   }
+}, 1000)
+
+const restoreTabSettings = () => {
+  if (!activeTab.value) return
+
+  isRestoringConfig.value = true
+  
+  const config = activeTab.value.config as TabConfig || {}
+  
+  q.value = config.search || ''
+  selectedTags.value = config.tags || []
+  
+  if (config.sortBy) sortBy.value = config.sortBy
+  if (config.sortOrder) sortOrder.value = config.sortOrder
+  
+  if (!config.sortBy) {
+    sortBy.value = 'createdAt'
+  }
+  
+  if (!config.sortOrder) {
+    sortOrder.value = 'desc'
+  }
+
+  // Allow next tick for watchers to settle before enabling save
+  setTimeout(() => {
+    isRestoringConfig.value = false
+  }, 100)
+}
+
+// Watchers for saving settings
+watch([q, selectedTags, sortBy, sortOrder], () => {
+  if (!isRestoringConfig.value && activeTab.value) {
+    saveTabSettings()
+  }
+}, { deep: true })
+
+watch(sortBy, (val) => {
   fetchItems({ reset: true })
 })
 
 watch(sortOrder, (val) => {
-  if (import.meta.client) {
-    localStorage.setItem(SORT_ORDER_STORAGE_KEY, val)
-  }
   fetchItems({ reset: true })
 })
 
@@ -294,9 +359,20 @@ watch(selectedTags, () => {
   fetchItems({ reset: true })
 })
 
-watch(activeTab, () => {
-  selectedIds.value = []
-  fetchItems({ reset: true })
+watch(activeTab, (newTab, oldTab) => {
+  if (newTab?.id !== oldTab?.id) {
+    selectedIds.value = []
+    if (newTab) {
+      restoreTabSettings()
+    } else {
+      // Reset to defaults when clearing tab
+      q.value = ''
+      selectedTags.value = []
+      sortBy.value = 'createdAt'
+      sortOrder.value = 'desc'
+    }
+    fetchItems({ reset: true })
+  }
 })
 
 watch(
@@ -321,25 +397,11 @@ watch(() => props.scope, () => {
   fetchItems({ reset: true })
 })
 
-onMounted(() => {
-  if (import.meta.client) {
-    const storedSortBy = localStorage.getItem(SORT_BY_STORAGE_KEY)
-    if (storedSortBy === 'createdAt' || storedSortBy === 'title') {
-      sortBy.value = storedSortBy
-    }
-
-    const storedSortOrder = localStorage.getItem(SORT_ORDER_STORAGE_KEY)
-    if (storedSortOrder === 'asc' || storedSortOrder === 'desc') {
-      sortOrder.value = storedSortOrder
-    }
-  }
-
   fetchAvailableTags()
   fetchItems({ reset: true })
   if (props.scope === 'project' && props.projectId) {
     fetchProject(props.projectId)
   }
-})
 
 const createAndEdit = async () => {
   if (props.scope === 'project' && !props.projectId) return

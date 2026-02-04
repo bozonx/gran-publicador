@@ -130,9 +130,7 @@ export class CreatePublicationDto {
 
   @IsObject()
   @IsOptional()
-  @ValidateNested()
-  @Type(() => PublicationMetaDto)
-  public meta?: PublicationMetaDto;
+  public meta?: any;
 
   @IsString()
   @IsOptional()
