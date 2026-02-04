@@ -48,6 +48,15 @@ describe('TelegramBotUpdate', () => {
       transcribeAudioStream: jest.fn(),
     };
 
+    const i18n = {
+      t: jest.fn((key: string, options?: any) => {
+        const args = options?.args ?? {};
+        if (key === 'telegram.command_not_found') return `cmd:${args.command}`;
+        if (key === 'telegram.user_banned') return `banned:${args.reason}`;
+        return key;
+      }),
+    };
+
     const configService = {
       get: jest.fn(() => ({ telegramBotToken: 't' })),
     };
@@ -57,6 +66,7 @@ describe('TelegramBotUpdate', () => {
       usersService,
       mediaService,
       sttService,
+      i18n,
       configService,
       ...overrides,
     };
@@ -69,6 +79,7 @@ describe('TelegramBotUpdate', () => {
       deps.prisma as any,
       deps.mediaService as any,
       deps.sttService as any,
+      deps.i18n as any,
       deps.configService as any,
     );
 
@@ -84,7 +95,7 @@ describe('TelegramBotUpdate', () => {
     await (update as any).userQueues.get(100)?.onIdle();
 
     expect(deps.prisma.contentItem.create).toHaveBeenCalledTimes(1);
-    expect(ctx.reply).toHaveBeenCalledWith('Content item created.');
+    expect(ctx.reply).toHaveBeenCalledWith('telegram.content_item_created');
   });
 
   it('for media_group_id replies only on first message, then silently appends media', async () => {
@@ -95,6 +106,7 @@ describe('TelegramBotUpdate', () => {
       deps.prisma as any,
       deps.mediaService as any,
       deps.sttService as any,
+      deps.i18n as any,
       deps.configService as any,
     );
 
@@ -109,7 +121,7 @@ describe('TelegramBotUpdate', () => {
 
     await update.onMessage(ctx1 as any);
     await (update as any).userQueues.get(100)?.onIdle();
-    expect(ctx1.reply).toHaveBeenCalledWith('Content item created.');
+    expect(ctx1.reply).toHaveBeenCalledWith('telegram.content_item_created');
 
     deps.prisma.contentBlock.findFirst.mockResolvedValueOnce({
       id: 'cbExisting',
@@ -138,6 +150,7 @@ describe('TelegramBotUpdate', () => {
       deps.prisma as any,
       deps.mediaService as any,
       deps.sttService as any,
+      deps.i18n as any,
       deps.configService as any,
     );
 
@@ -152,7 +165,7 @@ describe('TelegramBotUpdate', () => {
     await update.onMessage(ctx as any);
     await (update as any).userQueues.get(100)?.onIdle();
 
-    expect(ctx.reply).toHaveBeenCalledWith('Unsupported message type.');
+    expect(ctx.reply).toHaveBeenCalledWith('telegram.unsupported_message_type');
     expect(deps.prisma.contentItem.create).not.toHaveBeenCalled();
   });
 });

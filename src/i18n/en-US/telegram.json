@@ -1,8 +1,11 @@
 {
   "welcome_new": "Hello, {name}! 👋\n\nI will help you collect interesting posts and reposts for your projects.\n\nJust forward me a message from any channel and I will save it as a draft publication.",
   "welcome_existing": "Welcome back, {name}! 👋\n\nSend me a repost or message, and I will create a draft publication.",
+  "start_message": "Send text, photos, videos, documents, audio or voice messages.",
   "user_not_found": "❌ User not found in the system.\n\nPlease send /start to begin.",
   "user_banned": "🚫 Your account has been banned.\nReason: {reason}\n\nIf you believe this is a mistake, please contact support.",
+  "content_item_created": "✅ Content item created.",
+  "unsupported_message_type": "❌ Unsupported message type.",
   "draft_created": "✅ Draft created!\n\n📎 Media: {mediaCount}\n📄 Source texts: {sourceTextsCount}\n\nYou can now:\n• Send more messages to add source texts\n• Send a voice message (it will be converted to text)\n• Send media to attach to publication\n• Click \"✅ Continue\" to open the app and form a post from the collected materials",
   "draft_updated": "✅ Draft updated!\n\n📎 Media: {mediaCount}\n📄 Source texts: {sourceTextsCount}\n\nYou can now:\n• Send more messages to add source texts\n• Send a voice message (it will be converted to text)\n• Send media to attach to publication\n• Click \"✅ Continue\" to open the app and form a post from the collected materials",
   "draft_completed": "✅ Draft publication saved!\n\nYou can edit it in Gran Publicador:\n{url}\n\nSend another message to create a new draft.",

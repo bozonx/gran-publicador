@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Context } from 'grammy';
+import { I18nService } from 'nestjs-i18n';
 import { UsersService } from '../users/users.service.js';
 import { MediaService } from '../media/media.service.js';
 import { extractMessageContent, formatSource } from './telegram-content.helper.js';
@@ -24,6 +25,7 @@ export class TelegramBotUpdate {
     private readonly prisma: PrismaService,
     private readonly mediaService: MediaService,
     private readonly sttService: SttService,
+    private readonly i18n: I18nService,
     private readonly configService: ConfigService,
   ) {
     const appConfig = this.configService.get<AppConfig>('app')!;
@@ -39,9 +41,11 @@ export class TelegramBotUpdate {
     const from = ctx.from;
     if (!from) return;
 
+    const lang = from.language_code;
+
     // Check if private chat
     if (ctx.chat?.type !== 'private') {
-      await ctx.reply('This bot works only in private chat.');
+      await ctx.reply(String(this.i18n.t('telegram.error_private_only', { lang })));
       return;
     }
 
@@ -56,7 +60,7 @@ export class TelegramBotUpdate {
       languageCode: from.language_code,
     });
 
-    await ctx.reply('Send text, photos, videos, documents, audio or voice messages.');
+    await ctx.reply(String(this.i18n.t('telegram.start_message', { lang })));
   }
 
   /**
@@ -73,12 +77,16 @@ export class TelegramBotUpdate {
       return;
     }
 
+    const lang = from.language_code;
+
     // Handle commands
     if ('text' in message && message.text?.startsWith('/')) {
       const command = message.text.split(' ')[0];
       if (command === '/start') return; // Ignore, handled by onStart
 
-      await ctx.reply(`Unknown command: ${command}`);
+      await ctx.reply(
+        String(this.i18n.t('telegram.command_not_found', { lang, args: { command } })),
+      );
       return;
     }
 
@@ -100,14 +108,23 @@ export class TelegramBotUpdate {
     const from = ctx.from;
     if (!from) return;
 
+    const lang = from.language_code;
+
     const user = await this.usersService.findByTelegramId(BigInt(from.id));
     if (!user) {
-      await ctx.reply('User not found. Send /start first.');
+      await ctx.reply(String(this.i18n.t('telegram.user_not_found', { lang })));
       return;
     }
 
     if (user.isBanned) {
-      await ctx.reply('You are banned.');
+      await ctx.reply(
+        String(
+          this.i18n.t('telegram.user_banned', {
+            lang,
+            args: { reason: user.banReason || 'No reason provided' },
+          }),
+        ),
+      );
       return;
     }
 
@@ -120,7 +137,7 @@ export class TelegramBotUpdate {
       supportedText.length > 0 || supportedMedia.length > 0 || voiceMedia.length > 0;
 
     if (!hasAnySupported) {
-      await ctx.reply('Unsupported message type.');
+      await ctx.reply(String(this.i18n.t('telegram.unsupported_message_type', { lang })));
       return;
     }
 
@@ -138,7 +155,7 @@ export class TelegramBotUpdate {
       });
 
       if (created.reportCreated) {
-        await ctx.reply('Content item created.');
+        await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
       }
 
       return;
@@ -155,7 +172,7 @@ export class TelegramBotUpdate {
     });
 
     if (contentItem) {
-      await ctx.reply('Content item created.');
+      await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
     }
   }
 
@@ -399,7 +416,8 @@ export class TelegramBotUpdate {
       return transcription.text;
     } catch (error) {
       this.logger.error(`Error transcribing voice: ${error}`);
-      await ctx.reply('Voice transcription failed.').catch(() => {});
+      const lang = ctx.from?.language_code;
+      await ctx.reply(String(this.i18n.t('telegram.error_stt_failed', { lang }))).catch(() => {});
       return '';
     }
   }
