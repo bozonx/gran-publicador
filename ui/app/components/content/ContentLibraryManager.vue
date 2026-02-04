@@ -256,7 +256,7 @@ const createAndEdit = async () => {
     const payload: any = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
       blocks: [
-        { text: '', type: 'plain', order: 0, meta: {}, media: [] }
+        { text: '', order: 0, meta: {}, media: [] }
       ]
     }
     if (props.scope === 'project') {
@@ -295,10 +295,14 @@ const openEditModal = (item: ContentItem) => {
   }
 
   if (editForm.value.blocks.length === 0) {
-    editForm.value.blocks.push({ text: '', type: 'plain', order: 0, meta: {}, media: [] })
+    editForm.value.blocks.push({ text: '', order: 0, meta: {}, media: [] })
   }
 
   isEditModalOpen.value = true
+}
+
+const handleAddBlock = () => {
+  editForm.value.blocks.push({ text: '', order: 0, meta: {}, media: [] })
 }
 
 
@@ -335,7 +339,6 @@ const addBlock = async () => {
   try {
     const res = await api.post<ContentBlock>(`/content-library/items/${editForm.value.id}/blocks`, {
       text: '',
-      type: 'plain',
       order: maxOrder + 1,
       meta: {},
       media: []
@@ -430,7 +433,6 @@ const saveItem = async (formData: typeof editForm.value) => {
     if (b.id) {
       await api.patch(`/content-library/items/${formData.id}/blocks/${b.id}`, {
         text: b.text,
-        type: b.type || 'plain',
         order: b.order,
         meta: b.meta || {}
       })
@@ -530,34 +532,6 @@ const purgeArchived = async () => {
   }
 }
 
-const getAllItemMedia = (item: ContentItem) => {
-  const mediaLinks: Array<{ media?: any; order: number }> = []
-  let order = 0
-  
-  for (const block of (item.blocks || [])) {
-    for (const m of (block.media || [])) {
-      mediaLinks.push({
-        media: m.media,
-        order: order++
-      })
-    }
-  }
-  
-  return mediaLinks
-}
-
-const getItemTextBlocks = (item: ContentItem) => {
-  const texts = (item.blocks || [])
-    .map(b => stripHtmlAndSpecialChars(b.text).trim())
-    .filter(Boolean)
-    
-  if (texts.length === 0 && item.note) {
-    const noteClean = stripHtmlAndSpecialChars(item.note).trim()
-    if (noteClean) texts.push(noteClean)
-  }
-  
-  return texts
-}
 
 const handleBulkAction = async (operation: 'ARCHIVE' | 'UNARCHIVE') => {
   bulkOperationType.value = operation
@@ -795,110 +769,18 @@ const executeMoveToProject = async () => {
           />
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div
+          <ContentItemCard
             v-for="item in items"
             :key="item.id"
-            class="app-card app-card-hover p-4 cursor-pointer group flex flex-col h-full relative"
-            :class="{ 'ring-2 ring-primary-500 rounded-lg': selectedIds.includes(item.id) }"
+            :item="item"
+            :selected="selectedIds.includes(item.id)"
+            :is-archiving="isArchivingId === item.id"
+            :is-restoring="isRestoringId === item.id"
             @click="openEditModal(item)"
-          >
-            <!-- Checkbox for selection -->
-            <div class="absolute top-2 left-2 z-10 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity" :class="{ 'opacity-100': selectedIds.includes(item.id) }" @click.stop>
-              <UCheckbox
-                :model-value="selectedIds.includes(item.id)"
-                @update:model-value="toggleSelection(item.id)"
-              />
-            </div>
-            <!-- Header: Title, Tags, Delete -->
-            <div class="flex items-start justify-between gap-3 mb-2">
-              <div class="flex-1 min-w-0">
-                <h3 
-                  class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1"
-                  :class="{ 'italic text-gray-500 font-medium': !item.title }"
-                >
-                  {{ item.title || t('contentLibrary.untitled', 'Untitled') }}
-                </h3>
-                
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <UBadge v-if="item.archivedAt" color="warning" size="xs" variant="subtle">
-                    {{ t('common.archived', 'Archived') }}
-                  </UBadge>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                <UButton
-                  v-if="!item.archivedAt"
-                  size="xs"
-                  color="warning"
-                  variant="ghost"
-                  icon="i-heroicons-trash"
-                  :loading="isArchivingId === item.id"
-                  :title="t('contentLibrary.actions.moveToTrash')"
-                  class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  @click.stop="openArchiveModal(item)"
-                />
-                <UButton
-                  v-else
-                  size="xs"
-                  color="primary"
-                  variant="ghost"
-                  icon="i-heroicons-arrow-uturn-left"
-                  :loading="isRestoringId === item.id"
-                  :title="t('common.restore')"
-                  class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  @click.stop="restoreItem(item.id)"
-                />
-              </div>
-            </div>
-
-            <!-- Media preview -->
-            <div v-if="getAllItemMedia(item).length > 0" class="mb-3 flex justify-center h-48">
-              <MediaStack
-                :media="getAllItemMedia(item)"
-                size="md"
-                :clickable="false"
-              />
-            </div>
-
-            <!-- Content preview -->
-            <div v-if="getItemTextBlocks(item).length > 0" class="mb-3 space-y-2">
-              <p 
-                v-for="(text, idx) in getItemTextBlocks(item)"
-                :key="idx"
-                class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed"
-              >
-                {{ truncateContent(text, 150) }}
-              </p>
-            </div>
-
-            <!-- Footer: Date, Stats, Tags -->
-            <div class="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
-              <div class="flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-1 shrink-0">
-                  <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
-                  <span>{{ formatDateShort(item.createdAt) }}</span>
-                </div>
-
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center gap-1" :title="t('contentLibrary.blocksCount', { count: item.blocks?.length || 0 })">
-                    <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
-                    <span>{{ item.blocks?.length || 0 }}</span>
-                  </div>
-                  <div class="flex items-center gap-1" :title="t('contentLibrary.mediaCount', { count: getAllItemMedia(item).length })">
-                    <UIcon name="i-heroicons-photo" class="w-3.5 h-3.5" />
-                    <span>{{ getAllItemMedia(item).length }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Tags if present -->
-              <div v-if="item.tags && item.tags.length > 0" class="flex items-center gap-1 text-xs text-gray-400 italic">
-                <UIcon name="i-heroicons-tag" class="w-3.5 h-3.5 shrink-0" />
-                <span class="truncate">{{ formatTags(item.tags) }}</span>
-              </div>
-            </div>
-          </div>
+            @toggle-selection="toggleSelection"
+            @archive="openArchiveModal"
+            @restore="restoreItem"
+          />
         </div>
 
         <div v-if="items.length === 0" class="py-10 text-center text-gray-500 dark:text-gray-400">

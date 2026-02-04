@@ -178,6 +178,9 @@ async function handleDeletePublication() {
     </div>
 
     <div class="space-y-8">
+      <!-- Recent Content Widget -->
+      <DashboardRecentContentWidget />
+
       <!-- Combined Drafts -->
       <PublicationsDraftsSection
         v-if="draftsCount > 0 || draftsLoading"
