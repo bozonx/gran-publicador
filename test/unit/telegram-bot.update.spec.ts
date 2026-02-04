@@ -99,6 +99,55 @@ describe('TelegramBotUpdate', () => {
     expect(ctx.reply).toHaveBeenCalledWith('telegram.content_item_created');
   });
 
+  it('includes Mini App button when TELEGRAM_MINI_APP_URL is configured', async () => {
+    const deps = createDeps({
+      configService: {
+        get: jest.fn(() => ({
+          telegramBotToken: 't',
+          telegramMiniAppUrl: 'https://app.example.com',
+        })),
+      },
+    });
+
+    const update = new TelegramBotUpdate(
+      deps.usersService as any,
+      deps.prisma as any,
+      deps.mediaService as any,
+      deps.sttService as any,
+      deps.i18n as any,
+      deps.configService as any,
+    );
+
+    const ctx = createCtx({
+      message: {
+        message_id: 1,
+        chat: { id: 200 },
+        text: 'Hello',
+      },
+    });
+
+    await update.onMessage(ctx as any);
+    await (update as any).userQueues.get(100)?.onIdle();
+
+    const call = (ctx.reply as any).mock.calls.find(
+      (c: any[]) => c[0] === 'telegram.content_item_created',
+    );
+    expect(call).toBeTruthy();
+    expect(call[1]).toMatchObject({
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              web_app: {
+                url: expect.stringContaining('/content-library?contentItemId=ci1'),
+              },
+            },
+          ],
+        ],
+      },
+    });
+  });
+
   it('handles /start: creates user and replies with welcome + start_message', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(

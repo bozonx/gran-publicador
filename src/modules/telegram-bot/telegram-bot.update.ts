@@ -19,6 +19,7 @@ const MAX_TITLE_LENGTH = 80;
 export class TelegramBotUpdate {
   private readonly logger = new Logger(TelegramBotUpdate.name);
   private readonly userQueues = new Map<number, PQueue>();
+  private readonly miniAppBaseUrl?: string;
 
   constructor(
     private readonly usersService: UsersService,
@@ -29,9 +30,48 @@ export class TelegramBotUpdate {
     private readonly configService: ConfigService,
   ) {
     const appConfig = this.configService.get<AppConfig>('app')!;
+    this.miniAppBaseUrl = appConfig.telegramMiniAppUrl;
     if (!appConfig.telegramBotToken) {
       this.logger.warn('Telegram bot token is not configured (TELEGRAM_BOT_TOKEN).');
     }
+  }
+
+  private buildMiniAppContentLibraryUrl(contentItemId: string): string | null {
+    if (!this.miniAppBaseUrl) return null;
+    try {
+      const url = new URL(this.miniAppBaseUrl);
+      const basePath = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
+      url.pathname = `${basePath}/content-library`;
+      url.searchParams.set('contentItemId', contentItemId);
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  private async replyContentItemCreated(
+    ctx: Context,
+    lang: string,
+    contentItemId: string,
+  ): Promise<void> {
+    const miniAppUrl = this.buildMiniAppContentLibraryUrl(contentItemId);
+    if (!miniAppUrl) {
+      await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
+      return;
+    }
+
+    await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })), {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: String(this.i18n.t('telegram.button_open_mini_app', { lang })),
+              web_app: { url: miniAppUrl },
+            },
+          ],
+        ],
+      },
+    });
   }
 
   /**
@@ -182,8 +222,8 @@ export class TelegramBotUpdate {
           mediaGroupId: mgid,
         });
 
-        if (created.reportCreated) {
-          await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
+        if (created.reportCreated && created.contentItemId) {
+          await this.replyContentItemCreated(ctx, lang, created.contentItemId);
         }
 
         return;
@@ -200,7 +240,7 @@ export class TelegramBotUpdate {
       });
 
       if (contentItem) {
-        await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
+        await this.replyContentItemCreated(ctx, lang, contentItem.id);
       }
     } catch (error) {
       this.logger.error(
@@ -362,7 +402,7 @@ export class TelegramBotUpdate {
     supportedMedia: Array<ReturnType<typeof extractMessageContent>['media'][number]>;
     voiceMedia: Array<ReturnType<typeof extractMessageContent>['media'][number]>;
     mediaGroupId: string;
-  }): Promise<{ reportCreated: boolean }> {
+  }): Promise<{ reportCreated: boolean; contentItemId?: string }> {
     const {
       ctx,
       userId,
@@ -390,7 +430,7 @@ export class TelegramBotUpdate {
     });
 
     if (!existingBlock) {
-      await this.createContentItemFromMessage({
+      const created = await this.createContentItemFromMessage({
         ctx,
         userId,
         telegramUserId,
@@ -400,7 +440,7 @@ export class TelegramBotUpdate {
         voiceMedia,
       });
 
-      return { reportCreated: true };
+      return { reportCreated: true, contentItemId: created?.id };
     }
 
     if (voiceMedia.length > 0) {
@@ -419,7 +459,7 @@ export class TelegramBotUpdate {
     }
 
     if (supportedMedia.length === 0) {
-      return { reportCreated: false };
+      return { reportCreated: false, contentItemId: existingBlock.contentItemId };
     }
 
     const maxOrderAgg = await (this.prisma as any).contentBlockMedia.aggregate({
@@ -471,7 +511,7 @@ export class TelegramBotUpdate {
       nextOrder++;
     }
 
-    return { reportCreated: false };
+    return { reportCreated: false, contentItemId: existingBlock.contentItemId };
   }
 
   /**

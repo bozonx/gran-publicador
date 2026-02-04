@@ -70,7 +70,8 @@ interface FindContentItemsResponse {
 }
 
 const { t, d } = useI18n()
-// const route = useRoute() // Removed route dependency for projectId
+const route = useRoute()
+const router = useRouter()
 const api = useApi()
 const toast = useToast()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
@@ -115,6 +116,26 @@ const sortOrderIcon = computed(() =>
 const sortOrderLabel = computed(() => 
   sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')
 )
+
+onMounted(async () => {
+  const raw = route.query.contentItemId
+  const contentItemId = typeof raw === 'string' ? raw : undefined
+  if (!contentItemId) return
+
+  try {
+    const item = await api.get<ContentItem>(`/content-library/items/${contentItemId}`)
+    openEditModal(item)
+    const { contentItemId: _, ...rest } = route.query
+    await router.replace({ query: rest })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error', 'Error'),
+      description: getApiErrorMessage(e, 'Failed to open content item'),
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle',
+    })
+  }
+})
 
 function toggleSortOrder() {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'

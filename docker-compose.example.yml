@@ -22,17 +22,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  redis:
-    image: redis:8-alpine
-    container_name: gran_publicador_redis
-    restart: unless-stopped
-    ports:
-      - '6379:6379'
-    #volumes:
-    #  - ./test-data/redis:/data
-    user: '1000:1000'
-    command: redis-server --save "" --appendonly no
+  # redis:
+  #   image: redis:8-alpine
+  #   container_name: gran_publicador_redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - '6379:6379'
+  #   #volumes:
+  #   #  - ./test-data/redis:/data
+  #   user: '1000:1000'
+  #   command: redis-server --save "" --appendonly no
 
 volumes:
   postgres_data:
