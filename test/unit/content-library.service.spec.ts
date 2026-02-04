@@ -85,7 +85,6 @@ describe('ContentLibraryService (unit)', () => {
         service.create(
           {
             scope: 'personal',
-            meta: {},
           } as any,
           'user-1',
         ),

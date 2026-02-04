@@ -40,10 +40,6 @@ export class CreateContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
-  @IsObject()
-  @IsOptional()
-  public meta?: Record<string, any>;
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ContentBlockDto)

@@ -40,7 +40,6 @@ interface ContentItem {
   title: string | null
   note: string | null
   tags: string[]
-  meta: any
   createdAt: string
   archivedAt: string | null
   blocks: ContentBlock[]
@@ -90,8 +89,6 @@ const editForm = ref({
   tags: '',
   note: '',
   blocks: [] as ContentBlock[],
-  meta: {} as any,
-  metaError: null as string | null
 })
 
 
@@ -137,7 +134,6 @@ const { saveStatus, saveError, forceSave } = useAutosave({
   data: toRef(() => editForm.value),
   saveFn: async (data: any) => {
     if (!isEditModalOpen.value || !activeItem.value) return
-    if (editForm.value.metaError) return
     await saveItem(data)
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
@@ -256,7 +252,7 @@ const createAndEdit = async () => {
     const payload: any = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
       blocks: [
-        { text: '', order: 0, meta: {}, media: [] }
+        { text: '', order: 0, media: [] }
       ]
     }
     if (props.scope === 'project') {
@@ -290,19 +286,17 @@ const openEditModal = (item: ContentItem) => {
     tags: formatTags(item.tags || []),
     note: item.note || '',
     blocks: JSON.parse(JSON.stringify(item.blocks || [])).sort((a: any, b: any) => a.order - b.order),
-    meta: item.meta || {},
-    metaError: null
   }
 
   if (editForm.value.blocks.length === 0) {
-    editForm.value.blocks.push({ text: '', order: 0, meta: {}, media: [] })
+    editForm.value.blocks.push({ text: '', order: 0, media: [] })
   }
 
   isEditModalOpen.value = true
 }
 
 const handleAddBlock = () => {
-  editForm.value.blocks.push({ text: '', order: 0, meta: {}, media: [] })
+  editForm.value.blocks.push({ text: '', order: 0, media: [] })
 }
 
 
@@ -340,7 +334,6 @@ const addBlock = async () => {
     const res = await api.post<ContentBlock>(`/content-library/items/${editForm.value.id}/blocks`, {
       text: '',
       order: maxOrder + 1,
-      meta: {},
       media: []
     })
     target.blocks.push(res)
@@ -407,10 +400,6 @@ const handleReorder = async () => {
   }
 }
 
-const handleMetaUpdate = (newMeta: any) => {
-  editForm.value.meta = newMeta
-}
-
 const saveItem = async (formData: typeof editForm.value) => {
   if (!activeItem.value) return
 
@@ -418,7 +407,6 @@ const saveItem = async (formData: typeof editForm.value) => {
     title: formData.title || null,
     tags: parseTags(formData.tags),
     note: formData.note || null,
-    meta: formData.meta
   })
 
 
@@ -996,14 +984,7 @@ const executeMoveToProject = async () => {
           />
         </UFormField>
 
-        <!-- Additional Metadata -->
-        <div class="pt-4 border-t border-gray-100 dark:border-gray-800">
-          <CommonYamlEditor 
-            v-model="editForm.meta"
-            :error="editForm.metaError"
-            label="Metadata (YAML)"
-          />
-        </div>
+        <!-- Note Field -->
       </div>
       
       <template #footer>

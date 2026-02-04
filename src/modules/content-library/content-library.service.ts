@@ -235,7 +235,6 @@ export class ContentLibraryService {
         title: dto.title,
         tags: this.normalizeTags(dto.tags),
         note: dto.note,
-        meta: (dto.meta ?? {}) as any,
         blocks: {
           create: (dto.blocks ?? []).map((b, idx) => ({
             text: b.text,
@@ -277,7 +276,6 @@ export class ContentLibraryService {
         title: dto.title,
         tags: dto.tags ? this.normalizeTags(dto.tags) : undefined,
         note: dto.note,
-        meta: dto.meta ? (dto.meta as any) : undefined,
       },
       include: {
         blocks: {
@@ -648,12 +646,6 @@ export class ContentLibraryService {
         const allTags = items.flatMap((i: any) => i.tags || []);
         const newTags = this.normalizeTags(allTags);
 
-        // 4. Merge Meta
-        let newMeta = { ...(targetItem.meta as any) || {} };
-        for (const source of sourceItems) {
-          newMeta = { ...newMeta, ...((source.meta as any) || {}) };
-        }
-
         await this.prisma.$transaction(async (tx) => {
           // Update target item
           await (tx.contentItem as any).update({
@@ -662,7 +654,6 @@ export class ContentLibraryService {
               title: newTitle,
               note: newNote,
               tags: newTags,
-              meta: newMeta,
             },
           });
 

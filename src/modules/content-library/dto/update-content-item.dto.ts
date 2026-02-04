@@ -2,7 +2,6 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
-  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -27,8 +26,4 @@ export class UpdateContentItemDto {
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
-
-  @IsObject()
-  @IsOptional()
-  public meta?: Record<string, any>;
 }

@@ -291,7 +291,6 @@ model ContentItem {
   title     String?
   tags      String[] @default([])
   note      String?
-  meta      Json
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

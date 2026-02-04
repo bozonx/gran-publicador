@@ -847,7 +847,6 @@ async function main() {
       title: 'Draft Idea: Nuxt 5 Predictions',
       tags: ['nuxt', 'future', 'speculation'],
       note: 'Just some random thoughts',
-      meta: {},
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111111',
@@ -866,7 +865,6 @@ async function main() {
       title: 'Cool Image for Post',
       tags: ['image', 'asset'],
       note: 'To be used in upcoming posts',
-      meta: {},
       blocks: [
         {
           id: 'cblk1111-1111-4111-8111-111111111112',
@@ -918,8 +916,6 @@ async function main() {
       title: 'Archived: Old snippet',
       tags: ['archived', 'example'],
       note: 'This item is archived to test trash flow',
-      meta: {},
-      archivedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       archivedBy: devUser.id,
       blocks: [
         {
