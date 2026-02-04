@@ -99,7 +99,7 @@ const isRestoringId = ref<string | null>(null)
 const hasMore = computed(() => items.value.length < total.value)
 
 // Auto-save setup
-const { saveStatus, saveError } = useAutosave({
+const { saveStatus, saveError, forceSave } = useAutosave({
   data: toRef(() => editForm.value),
   saveFn: async (data: any) => {
     if (!isEditModalOpen.value || !activeItem.value) return
@@ -411,6 +411,7 @@ const saveItem = async (formData: typeof editForm.value) => {
 }
 
 const handleCloseModal = async () => {
+  await forceSave()
   isEditModalOpen.value = false
   activeItem.value = null
   await fetchItems({ reset: true })

@@ -200,7 +200,7 @@ const handleDone = () => {
           class="hidden"
           @change="onFilesSelected"
         />
-        <div class="flex flex-col items-center gap-3">
+        <div class="flex flex-col items-center gap-3 pointer-events-none">
           <div class="p-4 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform">
             <UIcon 
               name="i-heroicons-cloud-arrow-up" 
