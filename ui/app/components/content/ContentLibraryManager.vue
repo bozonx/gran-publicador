@@ -115,18 +115,21 @@ function toggleSortOrder() {
 // Configuration persistence logic
 const isRestoringConfig = ref(false)
 
+// Helper to get current config from state
+const getCurrentConfig = (): TabConfig => ({
+  search: q.value || undefined,
+  tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
+  sortBy: sortBy.value,
+  sortOrder: sortOrder.value
+})
+
 const saveTabSettings = useDebounceFn(async () => {
   if (!activeTab.value || isRestoringConfig.value) return
 
   try {
-    const config: TabConfig = {
-      search: q.value || undefined,
-      tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
-      sortBy: sortBy.value,
-      sortOrder: sortOrder.value
-    }
+    const config = getCurrentConfig()
 
-    // Update local state first to avoid UI flicker if needed, though we react to props
+    // Update local state to keep UI in sync if we switch back without reload
     if (activeTab.value.config) {
       Object.assign(activeTab.value.config, config)
     }
@@ -361,8 +364,28 @@ watch(selectedTags, () => {
   fetchItems({ reset: true })
 })
 
-watch(activeTab, (newTab, oldTab) => {
+watch(activeTab, async (newTab, oldTab) => {
   if (newTab?.id !== oldTab?.id) {
+    // Save previous tab settings immediately before switching
+    if (oldTab && !isRestoringConfig.value) {
+       // Capture state BEFORE restoreTabSettings modifies it
+       const config = getCurrentConfig()
+       // Fire and forget - or await if we want to be sure? 
+       // Better to just call updateTab. We don't want to block UI excessively but we want to ensure it sends.
+       try {
+         // Also update the oldTab object in memory if possible (though it's a prop clone/ref)
+         if (oldTab.config) Object.assign(oldTab.config, config)
+         
+         await updateTab(oldTab.id, {
+           scope: props.scope,
+           projectId: props.projectId,
+           config
+         })
+       } catch (e) {
+         console.error('Failed to save previous tab settings', e)
+       }
+    }
+
     selectedIds.value = []
     if (newTab) {
       restoreTabSettings()

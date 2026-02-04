@@ -639,7 +639,7 @@ function handleMoveToSourceTexts() {
           <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
         </UFormField>
 
-        <CommonYamlEditor v-model="state.meta" :label="t('common.meta')" :help="t('common.metaHelp')" :rows="8" />
+        <CommonMetadataEditor v-model="state.meta" :label="t('common.meta')" :rows="8" />
 
       </UiFormAdvancedSection>
 
