@@ -148,7 +148,7 @@ const isAnyPostPublished = computed(() => {
 
     <!-- Loading state -->
     <div v-if="isLoading && !currentPublication" class="flex items-center justify-center py-12">
-      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin"></UIcon>
+      <UiLoadingSpinner size="md" />
     </div>
 
     <!-- Content -->

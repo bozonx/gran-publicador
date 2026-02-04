@@ -296,7 +296,27 @@ export class AuthService {
     );
   }
 
-  public async refreshTokens(userId: string, refreshToken: string): Promise<AuthResponseDto> {
+  public async refreshTokens(refreshToken: string): Promise<AuthResponseDto> {
+    const secret = this.configService.get<string>('app.jwtSecret');
+    if (!secret) {
+      throw new Error('JWT secret is not configured');
+    }
+
+    let userId: string;
+    try {
+      const payload = (await this.jwtService.verifyAsync(refreshToken, {
+        secret,
+      })) as { sub?: unknown };
+
+      if (!payload?.sub || typeof payload.sub !== 'string') {
+        throw new ForbiddenException('Access Denied (Invalid refresh token payload)');
+      }
+
+      userId = payload.sub;
+    } catch {
+      throw new ForbiddenException('Access Denied (Invalid refresh token)');
+    }
+
     const user = await this.usersService.findById(userId);
     if (!user || !user.hashedRefreshToken || user.deletedAt)
       throw new ForbiddenException('Access Denied (Invalid user or account deleted)');

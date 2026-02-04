@@ -478,7 +478,7 @@ async function handleDelete() {
             </div>
 
             <div v-if="isScheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
-              <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+              <UiLoadingSpinner size="sm" />
             </div>
             <div v-else-if="scheduledPublications.length > 0" class="grid grid-cols-1 gap-2">
               <PublicationsPublicationMiniItem
@@ -516,7 +516,7 @@ async function handleDelete() {
             </div>
 
             <div v-if="isProblemsLoading && !problemPublications.length" class="flex justify-center py-4">
-              <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+              <UiLoadingSpinner size="sm" />
             </div>
             <div v-else-if="problemPublications.length > 0" class="grid grid-cols-1 gap-2">
               <PublicationsPublicationMiniItem
@@ -557,7 +557,7 @@ async function handleDelete() {
           </div>
 
           <div v-if="isPublishedLoading && !publishedPublications.length" class="flex justify-center py-4">
-            <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+            <UiLoadingSpinner size="sm" />
           </div>
 
           <div v-else-if="publishedPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

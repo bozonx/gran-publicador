@@ -660,8 +660,7 @@ function formatScore(score: number) {
         <div class="space-y-4">
           <!-- Loading state initial -->
           <div v-if="isNewsLoading && news.length === 0" class="flex flex-col items-center justify-center py-24 space-y-4">
-            <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin" />
-            <p class="text-gray-500 dark:text-gray-400 animate-pulse">{{ t('news.loading') }}</p>
+            <UiLoadingSpinner size="xl" color="primary" :label="t('news.loading')" centered />
           </div>
 
           <!-- News list -->
@@ -726,7 +725,7 @@ function formatScore(score: number) {
 
     <!-- Initial state when project is loading -->
     <div v-else-if="isProjectLoading || isQueriesLoading" class="flex justify-center py-24">
-      <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 text-primary-500 animate-spin" />
+      <UiLoadingSpinner size="xl" color="primary" />
     </div>
 
     <!-- Add Tab Modal -->

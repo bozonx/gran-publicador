@@ -22,6 +22,7 @@ describe('AuthService (unit)', () => {
   const mockJwtService = {
     sign: jest.fn() as any,
     signAsync: jest.fn() as any,
+    verifyAsync: jest.fn() as any,
   };
 
   const mockConfigService = {
@@ -32,6 +33,9 @@ describe('AuthService (unit)', () => {
         key === 'app.telegramBotToken'
       ) {
         return mockBotToken;
+      }
+      if (key === 'app.jwtSecret') {
+        return 'test_jwt_secret_test_jwt_secret_test_jwt_secret';
       }
       return null;
     }),
@@ -187,6 +191,47 @@ describe('AuthService (unit)', () => {
       mockUsersService.findById.mockResolvedValue(null);
 
       await expect(service.getProfile(userId)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('refreshTokens', () => {
+    it('should issue new tokens when refresh token is valid and matches stored hash', async () => {
+      mockJwtService.verifyAsync.mockResolvedValue({ sub: 'user-1' });
+      mockUsersService.findById.mockResolvedValue({
+        id: 'user-1',
+        telegramId: 1n,
+        telegramUsername: 'u',
+        hashedRefreshToken: 'hashed',
+        deletedAt: null,
+      });
+
+      const { createHash } = await import('node:crypto');
+      const hashed = createHash('sha256').update('refresh.token').digest('hex');
+      mockUsersService.findById.mockResolvedValue({
+        id: 'user-1',
+        telegramId: 1n,
+        telegramUsername: 'u',
+        hashedRefreshToken: hashed,
+        deletedAt: null,
+      });
+
+      mockJwtService.signAsync
+        .mockResolvedValueOnce('new.access')
+        .mockResolvedValueOnce('new.refresh');
+      mockUsersService.updateHashedRefreshToken.mockResolvedValue(undefined);
+
+      const result = await service.refreshTokens('refresh.token');
+
+      expect(result.accessToken).toBe('new.access');
+      expect(result.refreshToken).toBe('new.refresh');
+      expect(mockJwtService.verifyAsync).toHaveBeenCalled();
+      expect(mockUsersService.updateHashedRefreshToken).toHaveBeenCalled();
+    });
+
+    it('should throw if refresh token is invalid', async () => {
+      mockJwtService.verifyAsync.mockRejectedValue(new Error('invalid'));
+
+      await expect(service.refreshTokens('bad.token')).rejects.toThrow('Access Denied');
     });
   });
 });

@@ -1,115 +1,183 @@
 export interface ApiOptions {
-    headers?: Record<string, string>
-    onUploadProgress?: (progress: number) => void
-    [key: string]: any
+  headers?: Record<string, string>;
+  onUploadProgress?: (progress: number) => void;
+  [key: string]: any;
 }
 
 export const useApi = () => {
-    const config = useRuntimeConfig();
-    const token = useCookie('auth_token');
+  const config = useRuntimeConfig();
+  const accessToken = useLocalStorage<string | null>('auth_access_token', null);
+  const refreshToken = useLocalStorage<string | null>('auth_refresh_token', null);
+  let refreshPromise: Promise<void> | null = null;
 
-    // Base path for API, matching NestJS global prefix
-    const rawApiBase = config.public.apiBase || '';
-    const cleanApiBase = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
-    const apiBase = cleanApiBase ? `${cleanApiBase}/api/v1` : '/api/v1';
+  // Base path for API, matching NestJS global prefix
+  const rawApiBase = config.public.apiBase || '';
+  const cleanApiBase = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
+  const apiBase = cleanApiBase ? `${cleanApiBase}/api/v1` : '/api/v1';
 
-    // XMLHttpRequest-based upload with progress tracking
-    const uploadWithProgress = async <T>(
-        url: string,
-        body: FormData,
-        options: ApiOptions = {}
-    ): Promise<T> => {
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
+  const refreshTokens = async (): Promise<void> => {
+    if (!refreshToken.value) {
+      throw new Error('No refresh token');
+    }
 
-            // Track upload progress
-            if (options.onUploadProgress) {
-                xhr.upload.addEventListener('progress', (event) => {
-                    if (event.lengthComputable) {
-                        const progress = Math.round((event.loaded / event.total) * 100);
-                        options.onUploadProgress!(progress);
-                    }
-                });
-            }
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        try {
+          const response = await $fetch<{ accessToken: string; refreshToken?: string }>(
+            `${apiBase}/auth/refresh`,
+            {
+              method: 'POST',
+              body: {
+                refreshToken: refreshToken.value,
+              },
+            },
+          );
 
-            // Handle completion
-            xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        resolve(response);
-                    } catch (error) {
-                        reject(new Error('Failed to parse response'));
-                    }
-                } else if (xhr.status === 401) {
-                    token.value = null;
-                    reject(new Error('Unauthorized'));
-                } else {
-                    try {
-                        const error = JSON.parse(xhr.responseText);
-                        reject(new Error(error.message || `Request failed with status ${xhr.status}`));
-                    } catch {
-                        reject(new Error(`Request failed with status ${xhr.status}`));
-                    }
-                }
-            });
+          accessToken.value = response.accessToken;
+          if (response.refreshToken) {
+            refreshToken.value = response.refreshToken;
+          }
+        } catch (e) {
+          accessToken.value = null;
+          refreshToken.value = null;
+          throw e;
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+    }
 
-            // Handle errors
-            xhr.addEventListener('error', () => {
-                reject(new Error('Network error'));
-            });
+    await refreshPromise;
+  };
 
-            xhr.addEventListener('abort', () => {
-                reject(new Error('Upload aborted'));
-            });
+  const isUnauthorizedError = (error: any): boolean => {
+    const status = error?.response?.status;
+    return status === 401;
+  };
 
-            // Open request
-            xhr.open('POST', `${apiBase}${url}`);
+  // XMLHttpRequest-based upload with progress tracking
+  const uploadWithProgress = async <T>(
+    url: string,
+    body: FormData,
+    options: ApiOptions = {},
+    attempt = 0,
+  ): Promise<T> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
 
-            // Set authorization header
-            if (token.value) {
-                xhr.setRequestHeader('Authorization', `Bearer ${token.value}`);
-            }
-
-            // Send request
-            xhr.send(body);
+      // Track upload progress
+      if (options.onUploadProgress) {
+        xhr.upload.addEventListener('progress', event => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            options.onUploadProgress!(progress);
+          }
         });
+      }
+
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error('Failed to parse response'));
+          }
+        } else if (xhr.status === 401) {
+          if (attempt >= 1) {
+            accessToken.value = null;
+            refreshToken.value = null;
+            reject(new Error('Unauthorized'));
+            return;
+          }
+
+          refreshTokens()
+            .then(() => uploadWithProgress<T>(url, body, options, attempt + 1))
+            .then(resolve)
+            .catch(reject);
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new Error(error.message || `Request failed with status ${xhr.status}`));
+          } catch {
+            reject(new Error(`Request failed with status ${xhr.status}`));
+          }
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload aborted'));
+      });
+
+      // Open request
+      xhr.open('POST', `${apiBase}${url}`);
+
+      // Set authorization header
+      if (accessToken.value) {
+        xhr.setRequestHeader('Authorization', `Bearer ${accessToken.value}`);
+      }
+
+      // Send request
+      xhr.send(body);
+    });
+  };
+
+  const request = async <T>(url: string, options: ApiOptions = {}, attempt = 0) => {
+    // Use XMLHttpRequest for FormData with progress tracking
+    if (options.body instanceof FormData && options.onUploadProgress) {
+      return uploadWithProgress<T>(url, options.body, options);
+    }
+
+    // Use $fetch for regular requests
+    const headers = {
+      ...options.headers,
     };
 
-    const request = async <T>(url: string, options: ApiOptions = {}) => {
-        // Use XMLHttpRequest for FormData with progress tracking
-        if (options.body instanceof FormData && options.onUploadProgress) {
-            return uploadWithProgress<T>(url, options.body, options);
-        }
+    if (accessToken.value) {
+      headers.Authorization = `Bearer ${accessToken.value}`;
+    }
 
-        // Use $fetch for regular requests
-        const headers = {
-            ...options.headers,
-        };
-
-        if (token.value) {
-            headers.Authorization = `Bearer ${token.value}`;
+    try {
+      return await $fetch<T>(`${apiBase}${url}`, {
+        ...options,
+        headers,
+      });
+    } catch (error: any) {
+      if (isUnauthorizedError(error)) {
+        if (attempt >= 1) {
+          accessToken.value = null;
+          refreshToken.value = null;
+          throw error;
         }
 
         try {
-            return await $fetch<T>(`${apiBase}${url}`, {
-                ...options,
-                headers,
-            });
-        } catch (error: any) {
-            if (error.response?.status === 401) {
-                // Handle unauthorized (clear token, etc.)
-                token.value = null;
-            }
-            throw error;
+          await refreshTokens();
+        } catch {
+          throw error;
         }
-    };
 
-    return {
-        get: <T>(url: string, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'GET' }),
-        post: <T>(url: string, body?: any, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'POST', body }),
-        patch: <T>(url: string, body?: any, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'PATCH', body }),
-        put: <T>(url: string, body?: any, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'PUT', body }),
-        delete: <T>(url: string, options: ApiOptions = {}) => request<T>(url, { ...options, method: 'DELETE' }),
-    };
+        return request<T>(url, options, attempt + 1);
+      }
+      throw error;
+    }
+  };
+
+  return {
+    get: <T>(url: string, options: ApiOptions = {}) =>
+      request<T>(url, { ...options, method: 'GET' }),
+    post: <T>(url: string, body?: any, options: ApiOptions = {}) =>
+      request<T>(url, { ...options, method: 'POST', body }),
+    patch: <T>(url: string, body?: any, options: ApiOptions = {}) =>
+      request<T>(url, { ...options, method: 'PATCH', body }),
+    put: <T>(url: string, body?: any, options: ApiOptions = {}) =>
+      request<T>(url, { ...options, method: 'PUT', body }),
+    delete: <T>(url: string, options: ApiOptions = {}) =>
+      request<T>(url, { ...options, method: 'DELETE' }),
+  };
 };

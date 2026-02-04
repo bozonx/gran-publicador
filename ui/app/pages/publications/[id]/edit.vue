@@ -877,7 +877,7 @@ async function executePublish(force: boolean) {
 
     <!-- Loading state -->
     <div v-if="isPublicationLoading && !currentPublication" class="flex items-center justify-center py-12">
-        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin"></UIcon>
+        <UiLoadingSpinner size="md" />
     </div>
 
     <div v-else-if="currentPublication" class="space-y-6 pb-12">

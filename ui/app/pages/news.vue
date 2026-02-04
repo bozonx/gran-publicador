@@ -286,7 +286,7 @@ function formatScore(score: number) {
 
         <!-- Loading state -->
         <div v-if="isNewsLoading" class="flex justify-center py-12">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-500 animate-spin" />
+          <UiLoadingSpinner size="md" color="primary" />
         </div>
 
         <!-- News list -->
@@ -326,7 +326,7 @@ function formatScore(score: number) {
 
     <!-- Initial loading for projects -->
     <div v-else-if="isLoading" class="flex justify-center py-12">
-      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-500 animate-spin" />
+      <UiLoadingSpinner size="md" color="primary" />
     </div>
 
     <NewsCreatePublicationModal

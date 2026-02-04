@@ -197,11 +197,7 @@ function toggleArchivedChannels() {
     <!-- Loading state -->
     <div v-if="isLoading" class="flex items-center justify-center py-12">
       <div class="text-center">
-        <UIcon
-          name="i-heroicons-arrow-path"
-          class="w-8 h-8 text-gray-400 animate-spin mx-auto mb-3"
-        />
-        <p class="text-gray-500 dark:text-gray-400">{{ t('common.loading') }}</p>
+        <UiLoadingSpinner size="md" :label="t('common.loading')" centered />
       </div>
     </div>
 

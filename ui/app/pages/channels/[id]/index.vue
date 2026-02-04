@@ -420,8 +420,7 @@ const channelProblems = computed(() => {
         <!-- Loading State -->
         <div v-if="isChannelLoading && !channel" class="flex items-center justify-center py-12">
             <div class="text-center">
-                <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin mx-auto mb-3" />
-                <p class="text-gray-500 dark:text-gray-400">{{ t('common.loading') }}</p>
+                <UiLoadingSpinner size="md" :label="t('common.loading')" centered />
             </div>
         </div>
 
@@ -647,7 +646,7 @@ const channelProblems = computed(() => {
                     </div>
 
                     <div v-if="isScheduledLoading && !scheduledPosts.length" class="flex justify-center py-4">
-                        <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+                        <UiLoadingSpinner size="sm" />
                     </div>
                     <div v-else-if="scheduledPosts.length > 0" class="grid grid-cols-1 gap-2">
                         <PublicationsPublicationMiniItem
@@ -685,7 +684,7 @@ const channelProblems = computed(() => {
                     </div>
 
                     <div v-if="isProblemsLoading && !problemPosts.length" class="flex justify-center py-4">
-                        <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-gray-400 animate-spin" />
+                        <UiLoadingSpinner size="sm" />
                     </div>
                     <div v-else-if="problemPosts.length > 0" class="grid grid-cols-1 gap-2">
                         <PublicationsPublicationMiniItem
@@ -734,7 +733,7 @@ const channelProblems = computed(() => {
 
                 <!-- Posts List -->
                 <div v-if="isPostsLoading && page === 1" class="flex items-center justify-center py-12">
-                     <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
+                     <UiLoadingSpinner size="md" />
                 </div>
 
                 <div v-else-if="posts.length === 0" class="app-card p-12 text-center">

@@ -5,12 +5,14 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { JWT_STRATEGY } from '../../common/constants/auth.constants.js';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request.interface.js';
 import { AuthService } from './auth.service.js';
 import { RefreshTokenDto, TelegramLoginDto, TelegramWidgetLoginDto } from './dto/index.js';
 
@@ -56,7 +58,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(AuthGuard(JWT_STRATEGY))
   @HttpCode(HttpStatus.NO_CONTENT)
-  public async logout(@Request() req: AuthenticatedRequest) {
+  public async logout(@Req() req: AuthenticatedRequest) {
     await this.authService.logout(req.user.sub);
   }
 
@@ -66,7 +68,7 @@ export class AuthController {
    */
   @UseGuards(AuthGuard(JWT_STRATEGY))
   @Get('me')
-  public async getProfile(@Request() req: AuthenticatedRequest) {
+  public async getProfile(@Req() req: AuthenticatedRequest) {
     return this.authService.getProfile(req.user.sub);
   }
 

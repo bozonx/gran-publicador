@@ -112,7 +112,7 @@ onMounted(() => {
     title-class="text-lg font-medium text-gray-900 dark:text-white"
   >
     <div v-if="isLoading" class="flex justify-center py-8">
-      <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-gray-400" />
+      <UiLoadingSpinner />
     </div>
 
     <div v-else-if="preferences" class="overflow-x-auto">
