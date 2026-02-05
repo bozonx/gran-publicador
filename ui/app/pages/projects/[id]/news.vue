@@ -69,6 +69,47 @@ const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<NewsItem | null>(null)
 const processedNewsMap = ref<Record<string, string>>({}) // newsId -> publicationId
 
+// Collapse state management
+const COLLAPSE_STATE_STORAGE_KEY = 'news-queries-collapse-state'
+const collapsedQueries = ref<Map<string, boolean>>(new Map())
+
+// Load collapse state from localStorage
+function loadCollapseState() {
+  if (!import.meta.client) return
+  try {
+    const stored = localStorage.getItem(COLLAPSE_STATE_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      collapsedQueries.value = new Map(Object.entries(parsed))
+    }
+  } catch (e) {
+    console.error('Failed to load collapse state:', e)
+  }
+}
+
+// Save collapse state to localStorage
+function saveCollapseState() {
+  if (!import.meta.client) return
+  try {
+    const obj = Object.fromEntries(collapsedQueries.value)
+    localStorage.setItem(COLLAPSE_STATE_STORAGE_KEY, JSON.stringify(obj))
+  } catch (e) {
+    console.error('Failed to save collapse state:', e)
+  }
+}
+
+// Toggle collapse state for a query
+function toggleCollapse(queryId: string) {
+  const current = collapsedQueries.value.get(queryId) ?? true
+  collapsedQueries.value.set(queryId, !current)
+  saveCollapseState()
+}
+
+// Check if query is collapsed
+function isQueryCollapsed(queryId: string): boolean {
+  return collapsedQueries.value.get(queryId) ?? true
+}
+
 function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
   selectedNewsItem.value = item
@@ -96,6 +137,9 @@ async function initQueries() {
       await fetchProject(projectId.value)
     }
 
+    // Load collapse state from localStorage
+    loadCollapseState()
+
     // Load publications to mark processed news
     loadProcessedNews()
     
@@ -105,6 +149,14 @@ async function initQueries() {
       
       if (queries && queries.length > 0) {
         newsQueries.value = queries
+        
+        // Initialize collapse state for new queries (default to collapsed)
+        queries.forEach(q => {
+          if (!collapsedQueries.value.has(q.id)) {
+            collapsedQueries.value.set(q.id, true)
+          }
+        })
+        saveCollapseState()
         
         // Select query by ID from URL if provided, otherwise first one
         const queryIdParam = route.query.id as string
@@ -269,6 +321,10 @@ async function addTab() {
     const created = await createQuery(newQuery) as NewsQuery
     newsQueries.value.push(created)
     
+    // Set newly created query as expanded (not collapsed)
+    collapsedQueries.value.set(created.id, false)
+    saveCollapseState()
+    
     await nextTick()
     
     // Select the new tab
@@ -423,8 +479,77 @@ function formatScore(score: number) {
       <!-- Tab Content -->
       <div v-if="currentQuery" class="space-y-6">
         <!-- Search settings card -->
-        <div class="news-config-card overflow-hidden">
-          <div class="p-6 space-y-6">
+        <div 
+          class="news-config-card overflow-hidden transition-all duration-300"
+          :class="{ 
+            'cursor-pointer hover:shadow-md hover:border-primary-200 dark:hover:border-primary-800': isQueryCollapsed(currentQuery.id)
+          }"
+          @click="isQueryCollapsed(currentQuery.id) && toggleCollapse(currentQuery.id)"
+        >
+          <!-- Card Header with Caret Button -->
+          <div class="flex items-start justify-between p-6 pb-4">
+            <div class="flex-1 min-w-0">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                {{ currentQuery.name }}
+                <UIcon 
+                  v-if="currentQuery.isNotificationEnabled" 
+                  name="i-heroicons-bell-alert" 
+                  class="w-4 h-4 text-primary-500"
+                />
+              </h2>
+            </div>
+            <UButton
+              :icon="isQueryCollapsed(currentQuery.id) ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click.stop="toggleCollapse(currentQuery.id)"
+              :title="isQueryCollapsed(currentQuery.id) ? t('common.expand') : t('common.collapse')"
+            />
+          </div>
+
+          <!-- Collapsed Summary View -->
+          <div v-if="isQueryCollapsed(currentQuery.id)" class="px-6 pb-6 space-y-3">
+            <!-- Search Query Preview -->
+            <div v-if="currentQuery.q" class="text-sm text-gray-600 dark:text-gray-400">
+              <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('news.searchPlaceholder') }}:</span>
+              {{ currentQuery.q.length > 150 ? currentQuery.q.slice(0, 150) + '...' : currentQuery.q }}
+            </div>
+
+            <!-- Key Parameters -->
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+              <!-- Mode -->
+              <div class="flex items-center gap-1.5 px-2.5 py-1 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-md border border-primary-100 dark:border-primary-800">
+                <UIcon name="i-heroicons-magnifying-glass" class="w-3.5 h-3.5" />
+                <span class="font-medium">
+                  {{ currentQuery.mode === 'text' ? t('news.modeText') : currentQuery.mode === 'vector' ? t('news.modeVector') : t('news.modeHybrid') }}
+                </span>
+              </div>
+
+              <!-- Language -->
+              <div v-if="currentQuery.lang" class="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md border border-gray-200 dark:border-gray-700">
+                <UIcon name="i-heroicons-language" class="w-3.5 h-3.5" />
+                <span>{{ currentQuery.lang }}</span>
+              </div>
+
+              <!-- Date Range -->
+              <div v-if="currentQuery.savedFrom || currentQuery.savedTo" class="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md border border-gray-200 dark:border-gray-700">
+                <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
+                <span>
+                  {{ currentQuery.savedFrom || '...' }} — {{ currentQuery.savedTo || '...' }}
+                </span>
+              </div>
+
+              <!-- Min Score -->
+              <div class="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md border border-gray-200 dark:border-gray-700">
+                <UIcon name="i-heroicons-chart-bar" class="w-3.5 h-3.5" />
+                <span>{{ currentQuery.minScore }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expanded Full Form -->
+          <div v-else class="px-6 pb-6 space-y-6">
             <!-- Search row (Query input) -->
             <div class="w-full">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

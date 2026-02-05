@@ -814,6 +814,8 @@
       "createEmpty": "Create",
       "collapseAll": "Collapse all",
       "expandAll": "Expand all",
+      "collapse": "Collapse",
+      "expand": "Expand",
       "detach": "Detach",
       "detachSuccess": "Block detached to a new item",
       "moveToTrash": "Move to trash",

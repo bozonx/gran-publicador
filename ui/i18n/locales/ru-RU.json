@@ -814,6 +814,8 @@
       "createEmpty": "Создать",
       "collapseAll": "Свернуть все",
       "expandAll": "Развернуть все",
+      "collapse": "Свернуть",
+      "expand": "Развернуть",
       "detach": "Открепить",
       "detachSuccess": "Блок перенесен в отдельный элемент",
       "moveToTrash": "В корзину",
