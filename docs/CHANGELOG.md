@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Media Storage microservice integration for file handling.
 - Speech-To-Text (STT) support via external gateway.
 - Reprocessing capabilities for existing media files.
+- Media endpoint to replace an existing FS media file while keeping the same Media ID.
 - Content Library tabs: folders and saved views with per-scope ordering.
 
 ### Fixed

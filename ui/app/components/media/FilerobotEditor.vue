@@ -32,17 +32,26 @@ onMounted(async () => {
     const config = {
       source: props.source,
       onSave: (editedImageObject: any) => {
-        const base64 = editedImageObject.imageBase64
+        const canvas: HTMLCanvasElement | undefined = editedImageObject.imageCanvas
         const type = editedImageObject.mimeType
         const name = editedImageObject.fullName || props.filename || 'edited-image.png'
 
-        // Convert base64 to File
-        fetch(base64)
-          .then(res => res.blob())
-          .then(blob => {
+        if (!canvas) {
+          console.error('Filerobot onSave: missing imageCanvas')
+          return
+        }
+
+        canvas.toBlob(
+          (blob: Blob | null) => {
+            if (!blob) {
+              console.error('Filerobot onSave: canvas.toBlob returned null')
+              return
+            }
             const file = new File([blob], name, { type })
             emit('save', file)
-          })
+          },
+          type,
+        )
       },
       onClose: () => {
         emit('close')

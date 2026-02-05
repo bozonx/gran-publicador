@@ -213,6 +213,99 @@ describe('MediaService (unit)', () => {
     });
   });
 
+  describe('replaceFsMediaFile', () => {
+    it('should replace FS file, update DB meta, and delete old storage file', async () => {
+      const mediaId = 'media-1';
+      const oldStoragePath = 'old-file-id';
+      const newStoragePath = 'new-file-id';
+
+      mockPrismaService.media.findUnique.mockResolvedValue({
+        id: mediaId,
+        storageType: StorageType.FS,
+        storagePath: oldStoragePath,
+        meta: { customKey: 'customValue', width: 10 },
+      });
+
+      const client = mockAgent.get('http://localhost:8083');
+      client
+        .intercept({
+          path: '/api/v1/files',
+          method: 'POST',
+        })
+        .reply(200, {
+          id: newStoragePath,
+          originalSize: 200,
+          size: 100,
+          width: 20,
+          height: 30,
+          mimeType: 'image/jpeg',
+          checksum: 'hash',
+          url: 'http://storage/file',
+        });
+
+      client
+        .intercept({
+          path: `/api/v1/files/${oldStoragePath}`,
+          method: 'DELETE',
+        })
+        .reply(200, {});
+
+      mockPrismaService.media.update.mockResolvedValue({
+        id: mediaId,
+        type: MediaType.IMAGE,
+        storageType: StorageType.FS,
+        storagePath: newStoragePath,
+        filename: 'new.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 100n,
+        meta: {
+          customKey: 'customValue',
+          originalSize: 200,
+          size: 100,
+          width: 20,
+          height: 30,
+          mimeType: 'image/jpeg',
+          checksum: 'hash',
+          url: 'http://storage/file',
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.replaceFsMediaFile(
+        mediaId,
+        Readable.from([Buffer.from('data')]),
+        'new.jpg',
+        'image/jpeg',
+        'user-1',
+      );
+
+      expect(result.id).toBe(mediaId);
+      expect(result.storagePath).toBe(newStoragePath);
+      expect(result.meta.customKey).toBe('customValue');
+      expect(result.meta.width).toBe(20);
+    });
+
+    it('should throw for non-FS media', async () => {
+      mockPrismaService.media.findUnique.mockResolvedValue({
+        id: 'media-1',
+        storageType: StorageType.TELEGRAM,
+        storagePath: 'tg-file-id',
+        meta: {},
+      });
+
+      await expect(
+        service.replaceFsMediaFile(
+          'media-1',
+          Readable.from([Buffer.from('data')]),
+          'new.jpg',
+          'image/jpeg',
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
   describe('getFileStream', () => {
     it('should proxy stream from storage', async () => {
       const client = mockAgent.get('http://localhost:8083');

@@ -17,3 +17,9 @@ export const TELEGRAM_MEDIA_PROXY_RETRY_COUNT = 2;
  * Delay between Telegram media proxy retries in milliseconds.
  */
 export const TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS = 2000;
+
+/**
+ * Jitter ratio applied to Telegram media proxy retry delays.
+ * Example: 0.2 means ±20%.
+ */
+export const TELEGRAM_MEDIA_PROXY_RETRY_JITTER_RATIO = 0.2;

@@ -755,6 +755,22 @@ GET /api/v1/users?limit=50&offset=0
 }
 ```
 
+### POST /media/:id/replace-file
+
+Заменить файл существующего медиа (только для `storageType: FS`) с сохранением того же `Media.id`.
+
+**Content-Type:** `multipart/form-data`
+
+#### Запрос
+
+- `file` (multipart/field) — новый файл.
+- `optimize` (multipart/field, optional) — JSON-строка с параметрами оптимизации (как в `/media/upload`).
+- `projectId` (multipart/field, optional) — UUID проекта для подстановки дефолтных настроек оптимизации.
+
+#### Ответ
+
+Тот же формат, что и при `/media/upload` (обновлённые `storagePath`, `mimeType`, `sizeBytes`, `meta`).
+
 ### POST /media/upload-from-url
 
 Загрузить файл с внешнего URL (сервер скачает его себе).

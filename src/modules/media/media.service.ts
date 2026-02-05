@@ -159,6 +159,66 @@ export class MediaService {
     return normalized;
   }
 
+  public async replaceFsMediaFile(
+    id: string,
+    fileStream: Readable,
+    filename: string,
+    mimetype: string,
+    userId?: string,
+    optimize?: Record<string, any>,
+    projectId?: string,
+  ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
+    if (userId) await this.checkMediaAccess(id, userId);
+
+    const media = await this.prisma.media.findUnique({ where: { id } });
+    if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
+    if (media.storageType !== StorageType.FS) {
+      throw new BadRequestException('Only FS media can be replaced');
+    }
+
+    let effectiveOptimize = optimize;
+    if (!effectiveOptimize && projectId) {
+      try {
+        effectiveOptimize = await this.getProjectOptimizationSettings(projectId);
+      } catch (error) {
+        this.logger.error(`Failed to load project optimization: ${(error as Error).message}`);
+      }
+    }
+
+    const oldStoragePath = media.storagePath;
+    const existingMeta = this.parseMeta(media.meta);
+
+    const { fileId, metadata } = await this.uploadFileToStorage(
+      fileStream,
+      filename,
+      mimetype,
+      userId,
+      undefined,
+      effectiveOptimize,
+    );
+
+    const updated = await this.update(id, {
+      storagePath: fileId,
+      filename,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.size,
+      meta: {
+        ...existingMeta,
+        ...metadata,
+      },
+    });
+
+    try {
+      await this.deleteFileFromStorage(oldStoragePath);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete old file ${oldStoragePath} from Media Storage: ${(error as Error).message}`,
+      );
+    }
+
+    return updated;
+  }
+
   async create(
     data: CreateMediaDto,
   ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {

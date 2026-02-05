@@ -21,6 +21,8 @@ interface MediaItem {
   meta?: Record<string, any>
   fullMediaMeta?: Record<string, any>
   publicToken?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 async function handleDone() {
@@ -82,6 +84,7 @@ const {
   reorderMediaInPublication,
   updateMediaLinkInPublication,
   updateMedia,
+  replaceMediaFile,
   fetchMedia,
 } = useMedia()
 const { validatePostContent } = useSocialMediaValidation()
@@ -573,25 +576,51 @@ function closeMediaModal() {
 }
 
 function handleEditMedia() {
+  if (!selectedMedia.value) return
+  if (selectedMedia.value.type !== 'IMAGE') {
+    toast.add({
+      title: t('common.error'),
+      description: t('media.editOnlyImages', 'Only images can be edited'),
+      color: 'error',
+    })
+    return
+  }
+
   isEditorOpen.value = true
 }
 
 async function handleEditorSave(file: File) {
   if (!selectedMedia.value) return
+  if (selectedMedia.value.type !== 'IMAGE') return
 
   isSavingMeta.value = true
   try {
     const defaults = getDefaultOptimizationParams()
     const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
 
-    const newMedia = await uploadMedia(file, undefined, optimizeParams, currentProject.value?.id)
+    const updated = await replaceMediaFile(
+      selectedMedia.value.id,
+      file,
+      optimizeParams,
+      currentProject.value?.id,
+    )
 
-    await deleteMedia(selectedMedia.value.id)
+    if (selectedMedia.value && selectedMedia.value.id === updated.id) {
+      selectedMedia.value.storagePath = updated.storagePath
+      selectedMedia.value.filename = updated.filename
+      selectedMedia.value.mimeType = updated.mimeType
+      selectedMedia.value.sizeBytes = updated.sizeBytes
+      selectedMedia.value.meta = updated.meta
+      selectedMedia.value.updatedAt = updated.updatedAt
+    }
 
-    if (props.publicationId) {
-      await addMediaToPublication(props.publicationId, [{ id: newMedia.id }])
-    } else if (props.onAdd) {
-      await props.onAdd([{ id: newMedia.id }])
+    if (updated.id) {
+      fetchMedia(updated.id).then(fullMedia => {
+        if (fullMedia && selectedMedia.value && selectedMedia.value.id === fullMedia.id) {
+          selectedMedia.value.fullMediaMeta = fullMedia.fullMediaMeta
+          selectedMedia.value.publicToken = fullMedia.publicToken
+        }
+      })
     }
 
     toast.add({
@@ -601,7 +630,6 @@ async function handleEditorSave(file: File) {
     })
 
     isEditorOpen.value = false
-    isModalOpen.value = false
     emit('refresh')
   } catch (error: any) {
     toast.add({

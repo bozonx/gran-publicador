@@ -110,6 +110,60 @@ export class MediaController {
   }
 
   /**
+   * Replace an existing FS media file in Media Storage.
+   * Keeps the same Media ID in DB and updates metadata.
+   */
+  @Post(':id/replace-file')
+  @UseGuards(JwtOrApiTokenGuard)
+  async replaceFile(@Param('id') id: string, @Req() req: UnifiedAuthRequest) {
+    if (!req.isMultipart?.()) {
+      throw new BadRequestException('Request is not multipart');
+    }
+
+    const part = await req.file();
+    if (!part) {
+      this.logger.warn('Replace-file attempt without file part');
+      throw new BadRequestException('No file uploaded');
+    }
+
+    this.logger.debug(
+      `Received replace-file request: id="${id}", filename="${part.filename}", mimetype="${part.mimetype}"`,
+    );
+
+    const fileStream = part.file;
+
+    let optimize: Record<string, any> | undefined;
+    let projectId: string | undefined;
+    const fields = (part as any).fields;
+    const getFieldValue = (field: any) => field?.value;
+
+    if (fields) {
+      if (fields.optimize) {
+        try {
+          const optimizeValue = getFieldValue(fields.optimize);
+          optimize = typeof optimizeValue === 'string' ? JSON.parse(optimizeValue) : optimizeValue;
+        } catch (error) {
+          this.logger.error(`Failed to parse optimize field: ${(error as any).message}`);
+        }
+      }
+
+      if (fields.projectId) {
+        projectId = getFieldValue(fields.projectId);
+      }
+    }
+
+    return this.mediaService.replaceFsMediaFile(
+      id,
+      fileStream,
+      part.filename,
+      part.mimetype,
+      req.user.userId,
+      optimize,
+      projectId,
+    );
+  }
+
+  /**
    * Upload from URL endpoint.
    * Proxies the request to Media Storage.
    */

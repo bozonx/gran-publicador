@@ -67,6 +67,36 @@ export function useMedia() {
     }
   }
 
+  async function replaceMediaFile(
+    id: string,
+    file: File,
+    optimize?: Record<string, any>,
+    projectId?: string,
+  ): Promise<MediaItem> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const formData = new FormData();
+
+      if (projectId) {
+        formData.append('projectId', projectId);
+      }
+
+      if (optimize) {
+        formData.append('optimize', JSON.stringify(optimize));
+      }
+
+      formData.append('file', file);
+
+      return await api.post<MediaItem>(`/media/${id}/replace-file`, formData);
+    } catch (err: any) {
+      error.value = err.message || 'Failed to replace media file';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function fetchMedia(id: string): Promise<MediaItem | null> {
     isLoading.value = true;
     error.value = null;
@@ -260,6 +290,7 @@ export function useMedia() {
     fetchMedia,
     deleteMedia,
     uploadMedia,
+    replaceMediaFile,
     uploadMediaFromUrl,
     updateMedia,
     fetchAllMedia,
