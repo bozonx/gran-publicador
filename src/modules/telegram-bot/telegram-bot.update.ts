@@ -529,7 +529,10 @@ export class TelegramBotUpdate {
 
       // undici request returns a stream in response.body
       const { request } = await import('undici');
-      const response = await request(fileUrl);
+      const response = await request(fileUrl, {
+        headersTimeout: 60000,
+        bodyTimeout: 60000,
+      });
 
       if (response.statusCode !== 200) {
         throw new Error(`Failed to download file: ${response.statusCode}`);

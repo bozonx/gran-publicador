@@ -695,6 +695,8 @@ export class ProjectsService {
       const response = await request(url, {
         method: 'GET',
         query: searchParams,
+        headersTimeout: 60000,
+        bodyTimeout: 60000,
       });
 
       if (response.statusCode >= 400) {
@@ -755,6 +757,8 @@ export class ProjectsService {
             fingerprint,
             mode: config.refreshMode,
           }),
+          headersTimeout: 60000,
+          bodyTimeout: 60000,
         });
       } else {
         // Otherwise we just GET the news item which should already have content
@@ -766,6 +770,8 @@ export class ProjectsService {
 
         response = await request(url, {
           method: 'GET',
+          headersTimeout: 60000,
+          bodyTimeout: 60000,
         });
       }
 

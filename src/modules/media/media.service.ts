@@ -572,31 +572,43 @@ export class MediaService {
     }
 
     try {
+      this.logger.debug(`Retrieving file from Telegram: ${fileId}`);
       const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
-      const getFileResponse = await request(getFileUrl, { method: 'GET' });
+      const getFileResponse = await request(getFileUrl, {
+        method: 'GET',
+        headersTimeout: (this.config.timeoutSecs || 60) * 1000,
+        bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
+      });
+
       const getFileData = (await getFileResponse.body.json()) as any;
 
       if (!getFileData.ok || !getFileData.result?.file_path) {
         this.logger.warn(
-          `File not found in Telegram: ${fileId}. Response: ${JSON.stringify(getFileData)}`,
+          `File not found in Telegram (getFile failed): ${fileId}. Response: ${JSON.stringify(getFileData)}`,
         );
         throw new NotFoundException('File not found in Telegram');
       }
 
+      this.logger.debug(`Downloading file from Telegram path: ${getFileData.result.file_path}`);
       const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
-      const downloadResponse = await request(downloadUrl, { method: 'GET' });
+      const downloadResponse = await request(downloadUrl, {
+        method: 'GET',
+        headersTimeout: (this.config.timeoutSecs || 60) * 1000,
+        bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
+      });
 
       if (downloadResponse.statusCode >= 400) {
         this.logger.error(
-          `Failed to download from Telegram: ${downloadUrl}, status: ${downloadResponse.statusCode}`,
+          `Failed to download from Telegram: ${downloadUrl} (status: ${downloadResponse.statusCode})`,
         );
-        throw new InternalServerErrorException('Failed to download from Telegram');
+        throw new InternalServerErrorException('Failed to download content from Telegram servers');
       }
 
       const headers: Record<string, string> = {};
       if (mimeType) headers['Content-Type'] = mimeType;
       if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
 
+      this.logger.debug(`Successfully started streaming Telegram file: ${fileId}`);
       return {
         stream: downloadResponse.body as any as Readable,
         status: downloadResponse.statusCode,
