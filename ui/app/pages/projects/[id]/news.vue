@@ -209,21 +209,24 @@ onMounted(initQueries)
 
 // Perform search using current query parameters
 async function handleSearch() {
-  if (!currentQuery.value?.q.trim()) {
+  const hasQuery = currentQuery.value?.q?.trim()
+  const hasSources = currentQuery.value?.sources?.trim()
+
+  if (!hasQuery && !hasSources) {
     news.value = []
     return
   }
 
   await searchNews({
-    q: currentQuery.value.q,
-    mode: currentQuery.value.mode,
-    lang: currentQuery.value.lang,
-    sourceTags: currentQuery.value.sourceTags,
-    savedFrom: currentQuery.value.savedFrom,
-    savedTo: currentQuery.value.savedTo,
-    orderBy: currentQuery.value.orderBy,
-    minScore: currentQuery.value.minScore,
-    sources: currentQuery.value.sources
+    q: currentQuery.value?.q || '',
+    mode: currentQuery.value?.mode,
+    lang: currentQuery.value?.lang,
+    sourceTags: currentQuery.value?.sourceTags,
+    savedFrom: currentQuery.value?.savedFrom,
+    savedTo: currentQuery.value?.savedTo,
+    orderBy: currentQuery.value?.orderBy,
+    minScore: currentQuery.value?.minScore,
+    sources: currentQuery.value?.sources
   })
 }
 
@@ -234,15 +237,15 @@ async function loadMore() {
   isLoadMoreLoading.value = true
   try {
     await searchNews({
-      q: currentQuery.value.q,
-      mode: currentQuery.value.mode,
-      lang: currentQuery.value.lang,
-      sourceTags: currentQuery.value.sourceTags,
-      savedFrom: currentQuery.value.savedFrom,
-      savedTo: currentQuery.value.savedTo,
-      orderBy: currentQuery.value.orderBy,
-      minScore: currentQuery.value.minScore,
-      sources: currentQuery.value.sources
+      q: currentQuery.value?.q || '',
+      mode: currentQuery.value?.mode,
+      lang: currentQuery.value?.lang,
+      sourceTags: currentQuery.value?.sourceTags,
+      savedFrom: currentQuery.value?.savedFrom,
+      savedTo: currentQuery.value?.savedTo,
+      orderBy: currentQuery.value?.orderBy,
+      minScore: currentQuery.value?.minScore,
+      sources: currentQuery.value?.sources
     }, undefined, true)
   } finally {
     isLoadMoreLoading.value = false
@@ -296,7 +299,10 @@ watch(
     currentQuery.value?.orderBy,
   ],
   () => {
-    if (currentQuery.value?.q) {
+    const hasQuery = currentQuery.value?.q?.trim()
+    const hasSources = currentQuery.value?.sources?.trim()
+    
+    if (hasQuery || hasSources) {
       debouncedSearch()
     }
   },
@@ -409,6 +415,10 @@ function formatDate(dateString: string) {
 function formatScore(score: number) {
   return `${Math.round(score * 100)}%`
 }
+
+const sourcesTooltipText = computed(() => {
+  return `${t('news.sourcesDescription')}\n\n${t('news.search_not_required_with_sources')}`
+})
 </script>
 
 <template>
@@ -627,9 +637,7 @@ function formatScore(score: number) {
               <div class="w-full" v-if="currentQuery">
                 <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.sources') }}
-                  <UTooltip :text="t('news.sourcesDescription')">
-                    <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
-                  </UTooltip>
+                  <CommonInfoTooltip :text="sourcesTooltipText" />
                 </label>
                 <NewsSourceSelector v-model="selectedSources" />
               </div>

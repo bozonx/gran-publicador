@@ -7,9 +7,9 @@ import { VALIDATION_LIMITS } from '../../../common/constants/validation.constant
  */
 export class SearchNewsQueryDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_SEARCH_LENGTH)
-  q!: string;
+  q?: string;
 
   @IsOptional()
   @IsString()

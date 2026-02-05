@@ -36,10 +36,9 @@ const handleClose = () => {
 </script>
 
 <template>
-  <UiAppModal 
+  <AppModal 
     v-model:open="isOpen"
     :title="title"
-    :description="description"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <div class="flex flex-col gap-4">
@@ -58,15 +57,15 @@ const handleClose = () => {
                   }"
               />
           </div>
-          <div class="flex-1">
-              <p v-if="description" class="text-sm text-gray-500 dark:text-gray-400">
+          <div v-if="description" class="flex-1">
+              <p class="text-sm text-gray-500 dark:text-gray-400">
                   {{ description }}
               </p>
-              <slot v-else />
           </div>
       </div>
-      <div v-else>
-           <slot />
+      
+      <div v-if="$slots.default" class="w-full">
+        <slot />
       </div>
     </div>
 
@@ -86,5 +85,5 @@ const handleClose = () => {
         {{ confirmText || t('common.confirm') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>
