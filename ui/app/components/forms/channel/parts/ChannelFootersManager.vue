@@ -173,7 +173,7 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
 
 <template>
   <div class="space-y-4">
-    <Teleport defer to="#channel-footers-actions" v-if="hasTeleportTarget">
+    <Teleport v-if="hasTeleportTarget" defer to="#channel-footers-actions">
       <UButton
         icon="i-heroicons-plus"
         size="xs"
@@ -241,7 +241,7 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
             name="i-heroicons-star-20-solid" 
             class="w-4 h-4 text-primary-500 mr-2" 
           />
-          <div class="w-4 h-4 mr-2" v-else></div>
+          <div v-else class="w-4 h-4 mr-2"></div>
           
           <UButton
             icon="i-heroicons-trash"

@@ -169,7 +169,7 @@ defineExpose({
 </script>
 
 <template>
-  <form :id="formId" @submit.prevent="handleSubmit" class="space-y-6">
+  <form :id="formId" class="space-y-6" @submit.prevent="handleSubmit">
     <!-- Project Selection (Optional) -->
     <UFormField v-if="props.showProjectSelect" :label="t('channel.project')" required>
       <USelectMenu

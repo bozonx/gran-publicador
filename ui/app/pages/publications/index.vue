@@ -494,8 +494,8 @@ async function handleDelete() {
           :icon="sortOrderIcon"
           color="neutral"
           variant="ghost"
-          @click="toggleSortOrder"
           :title="sortOrderLabel"
+          @click="toggleSortOrder"
         />
       </div>
     </div>
@@ -670,8 +670,8 @@ async function handleDelete() {
       <UCheckbox
         :model-value="isAllSelected"
         :indeterminate="isSomeSelected"
-        @update:model-value="toggleSelectAll"
         :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
+        @update:model-value="toggleSelectAll"
       />
     </div>
 
@@ -722,8 +722,8 @@ async function handleDelete() {
             variant="ghost" 
             size="xs" 
             icon="i-heroicons-x-mark" 
-            @click="selectedIds = []" 
-            :title="t('common.clearSelection', 'Clear')"
+            :title="t('common.clearSelection', 'Clear')" 
+            @click="selectedIds = []"
           />
         </div>
 
@@ -735,8 +735,8 @@ async function handleDelete() {
             variant="ghost"
             icon="i-heroicons-archive-box"
             size="sm"
-            @click="handleBulkAction('ARCHIVE')"
             :loading="bulkActionPending"
+            @click="handleBulkAction('ARCHIVE')"
           >
             {{ t('common.archive') }}
           </UButton>
@@ -746,8 +746,8 @@ async function handleDelete() {
             variant="ghost"
             icon="i-heroicons-arrow-path"
             size="sm"
-            @click="handleBulkAction('UNARCHIVE')"
             :loading="bulkActionPending"
+            @click="handleBulkAction('UNARCHIVE')"
           >
             {{ t('common.restore') }}
           </UButton>
@@ -773,8 +773,8 @@ async function handleDelete() {
             variant="ghost"
             icon="i-heroicons-folder-plus"
             size="sm"
-            @click="showBulkMoveModal = true"
             :loading="bulkActionPending"
+            @click="showBulkMoveModal = true"
           >
             {{ t('publication.bulk.moveToProject') }}
           </UButton>
@@ -785,8 +785,8 @@ async function handleDelete() {
             variant="ghost"
             icon="i-heroicons-trash"
             size="sm"
-            @click="showBulkDeleteModal = true"
             :loading="bulkActionPending"
+            @click="showBulkDeleteModal = true"
           >
             {{ t('common.delete') }}
           </UButton>

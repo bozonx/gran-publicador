@@ -107,8 +107,8 @@ const columns = computed(() => [
                                 size="sm"
                                 color="primary"
                                 variant="soft"
-                                @click="handleRestore(row.id)"
                                 class="rounded-xl transition-all duration-200 hover:scale-105"
+                                @click="handleRestore(row.id)"
                             >
                                 {{ t('archive.restore') }}
                             </UButton>
@@ -117,8 +117,8 @@ const columns = computed(() => [
                                 size="sm"
                                 color="error"
                                 variant="soft"
-                                @click="handleDelete(row.id)"
                                 class="rounded-xl transition-all duration-200 hover:scale-105"
+                                @click="handleDelete(row.id)"
                             >
                                 {{ t('archive.delete_permanent') }}
                             </UButton>

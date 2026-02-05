@@ -95,8 +95,8 @@ function handleClose(close?: () => void) {
             icon="i-heroicons-x-mark"
             class="-mr-2 ml-4"
             size="md"
-            @click="handleClose(close)"
             :aria-label="t('common.close')"
+            @click="handleClose(close)"
           />
         </div>
 

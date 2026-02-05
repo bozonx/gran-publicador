@@ -188,12 +188,12 @@ async function onDragEnd() {
             :icon="sortOrder === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down'"
             color="neutral"
             variant="ghost"
-            @click="toggleSortOrder"
             :title="sortOrder === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')"
+            @click="toggleSortOrder"
           />
         </template>
 
-        <UButton icon="i-heroicons-plus" @click="openCreateModal" color="primary">
+        <UButton icon="i-heroicons-plus" color="primary" @click="openCreateModal">
             {{ t('project.createProject') }}
         </UButton>
       </div>

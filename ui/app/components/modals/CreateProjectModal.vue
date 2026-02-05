@@ -65,7 +65,7 @@ watch(isOpen, (open) => {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('project.createProject')">
-    <form id="create-project-form" @submit.prevent="handleCreate" class="space-y-6">
+    <form id="create-project-form" class="space-y-6" @submit.prevent="handleCreate">
       <UFormField :label="t('project.name')" required>
         <UInput 
           v-model="formState.name" 

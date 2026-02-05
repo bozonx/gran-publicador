@@ -154,7 +154,7 @@ const formattedPreferences = computed(() => {
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">
                   {{ user.fullName || '-' }}
                 </h2>
-                <UIcon v-if="user.isAdmin" name="i-heroicons-shield-check" class="w-5 h-5 text-primary" v-tooltip="t('user.isAdmin')" />
+                <UIcon v-if="user.isAdmin" v-tooltip="t('user.isAdmin')" name="i-heroicons-shield-check" class="w-5 h-5 text-primary" />
               </div>
               <p 
                 class="text-lg font-medium"
@@ -188,8 +188,8 @@ const formattedPreferences = computed(() => {
               :variant="user.isAdmin ? 'outline' : 'solid'"
               :icon="user.isAdmin ? 'i-heroicons-user-minus' : 'i-heroicons-shield-check'"
               :loading="isTogglingAdmin"
-              @click="handleToggleAdmin"
               size="sm"
+              @click="handleToggleAdmin"
             >
               {{ user.isAdmin ? t('admin.revokeAdmin') : t('admin.grantAdmin') }}
             </UButton>
@@ -200,8 +200,8 @@ const formattedPreferences = computed(() => {
               :variant="user.isBanned ? 'outline' : 'solid'"
               :icon="user.isBanned ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'"
               :loading="isTogglingBan"
-              @click="confirmBan"
               size="sm"
+              @click="confirmBan"
             >
               {{ user.isBanned ? t('admin.unban') : t('admin.ban') }}
             </UButton>

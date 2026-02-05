@@ -56,9 +56,9 @@ function handleDelete(e: Event) {
     <div v-if="showCheckbox" class="absolute top-1 left-1 p-3 z-10 cursor-default" @click.stop="emit('update:selected', !selected)">
       <UCheckbox
         :model-value="selected"
+        :ui="{ wrapper: 'pointer-events-none' }"
         @update:model-value="(val) => emit('update:selected', !!val)"
         @click.stop
-        :ui="{ wrapper: 'pointer-events-none' }"
       />
     </div>
 

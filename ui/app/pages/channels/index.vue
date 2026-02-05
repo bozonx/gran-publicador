@@ -325,8 +325,8 @@ const showPagination = computed(() => {
           :icon="sortOrderIcon"
           color="neutral"
           variant="ghost"
-          @click="toggleSortOrder"
           :title="sortOrderLabel"
+          @click="toggleSortOrder"
         />
       </div>
     </div>

@@ -35,7 +35,7 @@ function handleCancel() {
       <UButton color="neutral" variant="ghost" @click="handleCancel">
         {{ t('common.stay', 'Stay') }}
       </UButton>
-      <UButton color="warning" @click="handleConfirm" class="px-6">
+      <UButton color="warning" class="px-6" @click="handleConfirm">
         {{ t('common.leave', 'Leave without saving') }}
       </UButton>
     </template>

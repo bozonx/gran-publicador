@@ -134,10 +134,10 @@ function triggerFileInput() {
             @change="handleFileUpload"
           />
           <UButton
-            @click="triggerFileInput"
             :loading="uploadProgress || isUploading"
             block
             icon="i-heroicons-arrow-up-tray"
+            @click="triggerFileInput"
           >
             {{ t('media.chooseFile', 'Choose File') }}
           </UButton>
@@ -164,9 +164,9 @@ function triggerFileInput() {
           </UFormField>
 
           <UButton
-            @click="addMedia"
             :disabled="!sourceInput.trim()"
             block
+            @click="addMedia"
           >
             {{ t('media.add', 'Add Media') }}
           </UButton>

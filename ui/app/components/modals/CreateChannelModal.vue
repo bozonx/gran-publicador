@@ -50,8 +50,8 @@ function handleClose() {
   <UiAppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
     <div ref="modalRootRef">
       <FormsChannelCreateForm
-        ref="createFormRef"
         id="create-channel-form"
+        ref="createFormRef"
         :initial-project-id="props.initialProjectId"
         :show-project-select="props.showProjectSelect ?? !props.initialProjectId"
         @submit="handleCreate"

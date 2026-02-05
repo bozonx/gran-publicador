@@ -55,10 +55,11 @@ function toggleChannel(channelId: string) {
         <UCheckbox 
           :model-value="modelValue.includes(channel.value)"
           :disabled="channel.isDisabled"
-          @update:model-value="!channel.isDisabled && toggleChannel(channel.value)"
-          class="pointer-events-none" 
+          class="pointer-events-none"
+          @update:model-value="!channel.isDisabled && toggleChannel(channel.value)" 
         />
-        <span :class="[
+        <span
+:class="[
           'text-sm font-medium truncate max-w-32',
           channel.isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'
         ]">

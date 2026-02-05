@@ -514,8 +514,8 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
 
         <!-- Chat Area -->
         <div 
-          class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/30 dark:bg-gray-900/10 p-4 space-y-4"
           ref="chatContainer"
+          class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/30 dark:bg-gray-900/10 p-4 space-y-4"
         >
           <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 opacity-60">
              <UIcon name="i-heroicons-chat-bubble-left-right" class="w-12 h-12 mb-2" />
@@ -652,7 +652,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.title" :label="t('post.title')" />
               </div>
-              <UInput ref="step2TitleInputRef" v-if="selectedFields.title" v-model="extractionResult.title" class="bg-white dark:bg-gray-800 w-full" />
+              <UInput v-if="selectedFields.title" ref="step2TitleInputRef" v-model="extractionResult.title" class="bg-white dark:bg-gray-800 w-full" />
            </div>
 
            <!-- Description -->
@@ -660,7 +660,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.description" :label="t('post.description')" />
               </div>
-              <UTextarea ref="step2DescriptionTextareaRef" v-if="selectedFields.description" v-model="extractionResult.description" autoresize :rows="2" class="w-full" />
+              <UTextarea v-if="selectedFields.description" ref="step2DescriptionTextareaRef" v-model="extractionResult.description" autoresize :rows="2" class="w-full" />
            </div>
 
            <!-- Tags -->
@@ -692,7 +692,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
               <div class="flex items-center justify-between">
                 <UCheckbox v-model="selectedFields.content" :label="t('post.contentLabel')" />
               </div>
-              <UTextarea ref="step2ContentTextareaRef" v-if="selectedFields.content" v-model="extractionResult.content" autoresize :rows="5" class="font-mono text-xs w-full" />
+              <UTextarea v-if="selectedFields.content" ref="step2ContentTextareaRef" v-model="extractionResult.content" autoresize :rows="5" class="font-mono text-xs w-full" />
            </div>
            
            <!-- Regenerate Button for Step 2 -->

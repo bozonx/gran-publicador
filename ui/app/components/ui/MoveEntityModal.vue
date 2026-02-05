@@ -84,8 +84,8 @@ const handleMove = async () => {
             <UButton
                 color="neutral"
                 variant="ghost"
-                @click="isOpen = false"
                 class="rounded-xl"
+                @click="isOpen = false"
             >
                 {{ t('common.cancel') }}
             </UButton>
@@ -93,8 +93,8 @@ const handleMove = async () => {
                 color="primary"
                 :loading="loading"
                 :disabled="!selectedTargetId"
-                @click="handleMove"
                 class="rounded-xl px-6 shadow-lg shadow-primary-500/20"
+                @click="handleMove"
             >
                 {{ t('archive.confirm_move') }}
             </UButton>

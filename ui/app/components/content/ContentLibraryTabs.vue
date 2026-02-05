@@ -179,8 +179,8 @@ defineExpose({
             :variant="activeTabId === tab.id ? 'solid' : 'outline'"
             size="sm"
             :icon="getTabIcon(tab.type)"
-            @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
             class="drag-handle cursor-move max-w-full"
+            @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
           >
             <span class="truncate max-w-[12rem] sm:max-w-[16rem]">
               {{ tab.title }}
@@ -194,8 +194,8 @@ defineExpose({
         variant="outline"
         size="sm"
         icon="i-heroicons-plus"
-        @click="isCreateModalOpen = true"
         :title="t('contentLibrary.tabs.create')"
+        @click="isCreateModalOpen = true"
       />
     </div>
 

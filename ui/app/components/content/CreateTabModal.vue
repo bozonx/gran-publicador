@@ -64,8 +64,8 @@ watch(() => props.open, (val) => {
 
         <div class="grid grid-cols-1 gap-3">
           <button
-            @click="selectedType = 'FOLDER'"
             class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-left group"
+            @click="selectedType = 'FOLDER'"
           >
             <div class="flex items-start gap-3">
               <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
@@ -83,8 +83,8 @@ watch(() => props.open, (val) => {
           </button>
 
           <button
-            @click="selectedType = 'SAVED_VIEW'"
             class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-left group"
+            @click="selectedType = 'SAVED_VIEW'"
           >
             <div class="flex items-start gap-3">
               <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">

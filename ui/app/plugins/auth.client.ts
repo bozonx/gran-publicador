@@ -8,11 +8,11 @@ export default defineNuxtPlugin(async () => {
     if (!isAuthenticated.value) {
         // In dev mode, auto-login
         if (authMode.value === 'dev') {
-            // eslint-disable-next-line no-console
+             
             console.info('Dev mode: Attempting auto-login')
             try {
                 await loginWithDev()
-                // eslint-disable-next-line no-console
+                 
                 console.info('Dev mode: Auto-login successful')
             } catch (e) {
                 console.error('Dev mode: Auto-login failed', e)
@@ -23,11 +23,11 @@ export default defineNuxtPlugin(async () => {
             // @ts-ignore
             const tg = window.Telegram?.WebApp
             if (tg?.initData) {
-                // eslint-disable-next-line no-console
+                 
                 console.info('Mini App mode: Attempting auto-login')
                 try {
                     await loginWithTelegram(tg.initData)
-                    // eslint-disable-next-line no-console
+                     
                     console.info('Mini App mode: Auto-login successful')
                 } catch (e) {
                     console.error('Mini App mode: Auto-login failed', e)

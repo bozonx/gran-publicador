@@ -259,9 +259,9 @@ const isMaxLengthReached = computed(() => {
     <!-- BubbleMenu for Links -->
     <BubbleMenu
       v-if="editor"
+      v-show="editor.isActive('link') || isLinkMenuOpen"
       :editor="editor"
       :tippy-options="{ duration: 100, placement: 'top' }"
-      v-show="editor.isActive('link') || isLinkMenuOpen"
     >
       <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
         <UInput

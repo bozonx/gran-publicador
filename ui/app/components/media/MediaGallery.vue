@@ -1086,24 +1086,24 @@ const mediaValidation = computed(() => {
           <div class="flex gap-3 pt-2">
             <UButton
               v-if="showExtendedOptions"
-              @click="confirmAndUploadExtended"
               :disabled="stagedFiles.length === 0 && !sourceInput.trim() || uploadProgress"
               :loading="uploadProgress"
               block
               size="lg"
               color="primary"
               icon="i-heroicons-check"
+              @click="confirmAndUploadExtended"
             >
               {{ uploadProgress ? t('media.uploading', 'Uploading...') : t('media.confirmAndUpload') }}
             </UButton>
             <UButton
               v-else
-              @click="addMedia"
               :disabled="!sourceInput.trim() || uploadProgress"
               :loading="uploadProgress"
               block
               size="lg"
               icon="i-heroicons-plus"
+              @click="addMedia"
             >
               {{ uploadProgress ? t('media.uploading', 'Uploading...') : addMediaButtonLabel }}
             </UButton>

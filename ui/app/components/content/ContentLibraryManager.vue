@@ -1198,10 +1198,10 @@ const executeMoveToProject = async () => {
       <ContentLibraryTabs
         ref="contentLibraryTabsRef"
         v-model="activeTabId"
-        @update:active-tab="activeTab = $event"
         :scope="scope"
         :project-id="props.projectId"
         class="flex-1 min-w-0"
+        @update:active-tab="activeTab = $event"
       />
 
       <div class="flex items-center gap-2 shrink-0 pt-1">
@@ -1209,8 +1209,8 @@ const executeMoveToProject = async () => {
             :color="archiveStatus === 'archived' ? 'neutral' : 'neutral'"
             variant="ghost" 
             :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
-            @click="archiveStatus = archiveStatus === 'active' ? 'archived' : 'active'"
             size="sm"
+            @click="archiveStatus = archiveStatus === 'active' ? 'archived' : 'active'"
           >
             {{ archiveStatus === 'archived' ? t('contentLibrary.filter.active') : t('contentLibrary.filter.archived') }}
           </UButton>
@@ -1286,7 +1286,7 @@ const executeMoveToProject = async () => {
                     </UButton>
                 </template>
                 
-                <div class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1" v-if="activeTab"></div>
+                <div v-if="activeTab" class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
                 
                 <CommonViewToggle v-model="viewMode" />
             </div>
@@ -1333,8 +1333,8 @@ const executeMoveToProject = async () => {
                     :icon="sortOrderIcon"
                     color="neutral"
                     variant="ghost"
-                    @click="toggleSortOrder"
                     :title="sortOrderLabel"
+                    @click="toggleSortOrder"
                 />
             </div>
         </div>
@@ -1356,8 +1356,8 @@ const executeMoveToProject = async () => {
           <UCheckbox
             :model-value="isAllSelected"
             :indeterminate="isSomeSelected"
-            @update:model-value="toggleSelectAll"
             :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
+            @update:model-value="toggleSelectAll"
           />
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1550,10 +1550,10 @@ const executeMoveToProject = async () => {
             <div v-for="(block, index) in editForm.blocks" :key="block.id || index">
               <ContentBlockEditor
                 :model-value="editForm.blocks[index]!"
-                @update:model-value="editForm.blocks[index] = $event"
                 :index="index"
                 :content-item-id="editForm.id"
                 :show-detach="editForm.blocks.length > 1"
+                @update:model-value="editForm.blocks[index] = $event"
                 @remove="removeBlock(index)"
                 @detach="detachBlock(index)"
                 @refresh="refreshActiveItem"
@@ -1708,7 +1708,7 @@ const executeMoveToProject = async () => {
       @close="isRenameTabModalOpen = false"
     >
         <UFormField :label="t('common.title', 'Title')">
-            <UInput v-model="newTabTitle" @keydown.enter="handleRenameTab" autofocus />
+            <UInput v-model="newTabTitle" autofocus @keydown.enter="handleRenameTab" />
         </UFormField>
 
         <template #footer>

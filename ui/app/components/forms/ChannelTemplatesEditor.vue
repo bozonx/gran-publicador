@@ -333,7 +333,7 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
             name="i-heroicons-star-20-solid" 
             class="w-4 h-4 text-primary-500 mr-2" 
           />
-          <div class="w-4 h-4 mr-2" v-else></div>
+          <div v-else class="w-4 h-4 mr-2"></div>
 
           <UButton
             icon="i-heroicons-trash"
@@ -479,7 +479,7 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                     <div class="flex-1"></div>
                   </div>
 
-                  <div class="space-y-4 pt-2" v-if="block.enabled">
+                  <div v-if="block.enabled" class="space-y-4 pt-2">
                     <template v-if="block.insert !== 'custom'">
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <UFormField class="w-full">
@@ -577,7 +577,7 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
               <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
                 {{ t('common.cancel') }}
               </UButton>
-              <UButton color="primary" @click="handleSaveTemplate" :disabled="!templateForm.name">
+              <UButton color="primary" :disabled="!templateForm.name" @click="handleSaveTemplate">
                 {{ t('common.save') }}
               </UButton>
             </div>

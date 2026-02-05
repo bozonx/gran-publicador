@@ -178,8 +178,8 @@ function toggleArchivedChannels() {
           :icon="sortOrder === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down'"
           color="neutral"
           variant="ghost"
-          @click="toggleSortOrder"
           :title="sortOrder === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')"
+          @click="toggleSortOrder"
         />
 
         <UButton

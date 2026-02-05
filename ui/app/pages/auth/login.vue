@@ -32,7 +32,7 @@ const loadWidget = async () => {
   
   if (widgetContainer.value) {
     const botName = config.public.telegramBotName
-    // eslint-disable-next-line no-console
+     
     
     // Clear container
     widgetContainer.value.innerHTML = ''

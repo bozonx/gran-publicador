@@ -63,11 +63,11 @@ const internalValue = computed({
     label-key="name"
     value-key="name"
   >
-    <template #leading v-if="modelValue.length">
+    <template v-if="modelValue.length" #leading>
        <UIcon name="i-heroicons-funnel" class="w-4 h-4 text-primary-500" />
     </template>
 
-    <template v-slot:default>
+    <template #default>
       <span v-if="modelValue.length" class="truncate font-semibold text-primary-600 dark:text-primary-400">
         {{ modelValue.length === 1 ? modelValue[0] : `${modelValue.length} ${t('news.sourcesSelected')}` }}
       </span>

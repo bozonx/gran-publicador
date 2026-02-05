@@ -8,7 +8,7 @@ export default defineNuxtPlugin(() => {
 
   // In dev mode, skip Telegram SDK initialization
   if (isDevMode) {
-    // eslint-disable-next-line no-console
+     
     console.info('[Telegram] Dev mode enabled, skipping SDK initialization')
     return
   }
@@ -19,7 +19,7 @@ export default defineNuxtPlugin(() => {
       const webApp = window.Telegram.WebApp
       webApp.ready()
       webApp.expand()
-      // eslint-disable-next-line no-console
+       
       console.info('[Telegram] WebApp initialized')
     } catch (error) {
       console.error('[Telegram] Failed to initialize WebApp:', error)

@@ -45,16 +45,16 @@ const handleConfirm = () => {
             <UButton
                 color="neutral"
                 variant="ghost"
-                @click="isOpen = false"
                 class="rounded-xl"
+                @click="isOpen = false"
             >
                 {{ t('common.cancel') }}
             </UButton>
             <UButton
                 color="error"
                 icon="i-heroicons-trash"
-                @click="handleConfirm"
                 class="rounded-xl shadow-lg shadow-error-500/20"
+                @click="handleConfirm"
             >
                 {{ t('archive.confirm_delete') }}
             </UButton>

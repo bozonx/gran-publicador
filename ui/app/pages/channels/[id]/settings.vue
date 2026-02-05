@@ -156,8 +156,8 @@ async function handleDelete() {
 
         <!-- Credentials -->
         <UiAppCard
-          id="credentials"
           v-if="canEdit(channel) && (channel.socialMedia === 'TELEGRAM' || channel.socialMedia === 'VK')"
+          id="credentials"
           :title="channel.socialMedia === 'TELEGRAM' ? t('channel.telegramCredentials', 'Telegram Credentials') : t('channel.vkCredentials', 'VK Credentials')"
           :description="t('channel.credentials_desc', 'Manage connection credentials for this channel')"
         >

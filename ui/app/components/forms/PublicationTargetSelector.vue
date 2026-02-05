@@ -60,12 +60,12 @@ const selectedChannelIds = computed({
     <UFormField :label="t('project.title')" :help="t('publication.projectSelectorHelp')">
       <USelectMenu
         :model-value="currentProjectIdValue"
-        @update:model-value="currentProjectId = $event"
         :items="activeProjectsOptions"
         value-key="value"
         label-key="label"
         class="w-full"
         :placeholder="t('publication.select_project')"
+        @update:model-value="currentProjectId = $event"
       >
         <template #leading>
           <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />

@@ -211,12 +211,12 @@ function handleEnabledToggle(val: boolean) {
           <input
             type="range"
             :value="state.quality"
-            @input="(e) => updateField('quality', Number((e.target as HTMLInputElement).value))"
             :disabled="disabled"
             min="1"
             max="100"
             step="1"
             class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            @input="(e) => updateField('quality', Number((e.target as HTMLInputElement).value))"
           />
         </div>
       </UFormField>
@@ -244,12 +244,12 @@ function handleEnabledToggle(val: boolean) {
           <input
             type="range"
             :value="state.effort"
-            @input="(e) => updateField('effort', Number((e.target as HTMLInputElement).value))"
             :disabled="disabled"
             min="0"
             max="9"
             step="1"
             class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            @input="(e) => updateField('effort', Number((e.target as HTMLInputElement).value))"
           />
         </div>
       </UFormField>

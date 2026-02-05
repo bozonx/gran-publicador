@@ -713,8 +713,8 @@ async function executePublish() {
 
                 <!-- Language Code -->
                 <UTooltip 
-                    :text="hasLanguageMismatch ? t('post.languageMismatch', 'Channel language differs from publication') : ''"
                     v-if="!isCreating && displayLanguage"
+                    :text="hasLanguageMismatch ? t('post.languageMismatch', 'Channel language differs from publication') : ''"
                     :disabled="!hasLanguageMismatch"
                 >
                     <UBadge 
@@ -780,7 +780,7 @@ async function executePublish() {
         </div>
 
         <!-- Expand/Collapse Button -->
-        <div class="shrink-0 ml-2" v-if="!isCreating">
+        <div v-if="!isCreating" class="shrink-0 ml-2">
           <UButton
             variant="ghost"
             color="neutral"

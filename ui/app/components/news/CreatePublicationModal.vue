@@ -219,7 +219,7 @@ async function handleNext() {
     const sourceTextContent = `# ${title}\n\n${body}`
     
     // Get language from scraped data or user preferences or fallback to 'en-US'
-    let lang = sd.meta?.lang || user.value?.language || locale.value
+    const lang = sd.meta?.lang || user.value?.language || locale.value
     
     // Prepare metadata: remove fields we use directly to avoid duplication
     // Use sourceNewsItem if available for richer metadata

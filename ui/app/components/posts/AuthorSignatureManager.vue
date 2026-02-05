@@ -175,7 +175,7 @@ async function handleDragEnd() {
 
 <template>
   <div class="space-y-4">
-    <Teleport defer v-if="channelId" to="#channel-signatures-actions">
+    <Teleport v-if="channelId" defer to="#channel-signatures-actions">
       <div class="flex gap-2">
         <UButton
           icon="i-heroicons-plus"
@@ -246,7 +246,7 @@ async function handleDragEnd() {
             name="i-heroicons-star-20-solid" 
             class="w-4 h-4 text-primary-500 mr-2" 
           />
-          <div class="w-4 h-4 mr-2" v-else></div>
+          <div v-else class="w-4 h-4 mr-2"></div>
           
           <UButton
             icon="i-heroicons-trash"
@@ -346,7 +346,7 @@ async function handleDragEnd() {
         <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton color="primary" :loading="isLoading" @click="handleSave" :disabled="!form.content">
+        <UButton color="primary" :loading="isLoading" :disabled="!form.content" @click="handleSave">
           {{ t('common.save') }}
         </UButton>
       </template>

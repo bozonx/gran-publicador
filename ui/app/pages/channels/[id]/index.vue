@@ -756,9 +756,9 @@ const channelProblems = computed(() => {
                 <div v-if="hasMore" class="mt-8 flex justify-center">
                     <UButton 
                         :loading="isPostsLoading"
-                        @click="loadMore"
                         color="primary"
                         variant="soft"
+                        @click="loadMore"
                     >
                         {{ t('common.loadMore', 'Load More') }}
                     </UButton>

@@ -65,7 +65,7 @@ function closeModal() {
 
 <template>
   <UiAppModal v-model:open="isOpen" :title="t('projectMember.invite')">
-    <form class="space-y-4" @submit.prevent="handleInvite" id="invite-member-form">
+    <form id="invite-member-form" class="space-y-4" @submit.prevent="handleInvite">
       <UFormField :label="t('projectMember.userUsernameOrId')">
         <UInput
           v-model="username"

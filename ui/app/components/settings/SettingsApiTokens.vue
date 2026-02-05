@@ -180,7 +180,7 @@ function formatDate(date: string | null | undefined): string {
     </p>
 
     <div v-if="tokensLoading" class="space-y-3">
-      <USkeleton class="h-16 w-full" v-for="i in 2" :key="i" />
+      <USkeleton v-for="i in 2" :key="i" class="h-16 w-full" />
     </div>
 
     <div v-else-if="tokens.length === 0" class="text-center py-8">
@@ -287,7 +287,7 @@ function formatDate(date: string | null | undefined): string {
         <UButton color="neutral" variant="outline" @click="showCreateTokenModal = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton color="primary" @click="handleCreateToken" :loading="tokensLoading">
+        <UButton color="primary" :loading="tokensLoading" @click="handleCreateToken">
           {{ t('common.create') }}
         </UButton>
       </template>
@@ -326,7 +326,7 @@ function formatDate(date: string | null | undefined): string {
         <UButton color="neutral" variant="outline" @click="showEditTokenModal = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton color="primary" @click="handleUpdateToken" :loading="tokensLoading">
+        <UButton color="primary" :loading="tokensLoading" @click="handleUpdateToken">
           {{ t('common.save') }}
         </UButton>
       </template>

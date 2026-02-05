@@ -60,8 +60,8 @@ onMounted(() => {
       <!-- Horizontal scroll container -->
       <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1">
         <div 
-          v-if="isLoading && items.length === 0" 
           v-for="i in 5" 
+          v-if="isLoading && items.length === 0" 
           :key="i"
           class="min-w-[280px] w-[280px] h-[320px] bg-gray-100 dark:bg-gray-800 animate-pulse rounded-lg"
         ></div>

@@ -184,8 +184,8 @@ onMounted(() => {
   <div class="w-full">
     <!-- Trigger Area -->
     <div
-      @click="isOpen = true"
       class="group relative w-full min-h-[44px] px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm cursor-pointer hover:border-primary-500/50 dark:hover:border-primary-500/50 transition-all flex flex-wrap gap-2 items-center"
+      @click="isOpen = true"
     >
         <!-- Selected Tags Chips -->
         <UBadge
@@ -250,7 +250,8 @@ onMounted(() => {
               </div>
               
               <div v-else class="space-y-6">
-                 <div v-for="(group, catLabel) in searchResults.reduce((acc, tag) => {
+                 <div
+v-for="(group, catLabel) in searchResults.reduce((acc, tag) => {
                     (acc[tag.categoryLabel] = acc[tag.categoryLabel] || []).push(tag);
                     return acc;
                  }, {} as Record<string, Tag[]>)" :key="catLabel">
@@ -348,10 +349,10 @@ onMounted(() => {
          </div>
          <div class="flex gap-3">
             <UButton 
+              v-if="selectedTags.length > 0" 
               color="neutral" 
-              variant="ghost" 
+              variant="ghost"
               size="sm"
-              v-if="selectedTags.length > 0"
               @click="selectedTags = []"
             >
                {{ t('common.clear') || 'Clear' }}

@@ -317,7 +317,7 @@ const isAnyPostPublished = computed(() => {
 
 
             <!-- Media Gallery -->
-            <div class="mt-10 mb-8" v-if="currentPublication.media && currentPublication.media.length > 0">
+            <div v-if="currentPublication.media && currentPublication.media.length > 0" class="mt-10 mb-8">
               <MediaGallery 
                 :media="currentPublication.media" 
                 :publication-id="currentPublication.id"

@@ -513,8 +513,8 @@ const sourcesTooltipText = computed(() => {
               color="neutral"
               variant="ghost"
               size="sm"
-              @click.stop="toggleCollapse(currentQuery.id)"
               :title="isQueryCollapsed(currentQuery.id) ? t('common.expand') : t('common.collapse')"
+              @click.stop="toggleCollapse(currentQuery.id)"
             />
           </div>
 
@@ -634,7 +634,7 @@ const sourcesTooltipText = computed(() => {
 
             <!-- Sources & Source Tags -->
              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="w-full" v-if="currentQuery">
+              <div v-if="currentQuery" class="w-full">
                 <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {{ t('news.sources') }}
                   <CommonInfoTooltip :text="sourcesTooltipText" />
@@ -868,7 +868,7 @@ const sourcesTooltipText = computed(() => {
       v-model:open="isAddModalOpen"
       :title="t('news.addTab')"
     >
-      <form @submit.prevent="addTab" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="addTab">
         <UFormField :label="t('news.tabName')">
           <UInput
             v-model="newTabName"
@@ -903,7 +903,7 @@ const sourcesTooltipText = computed(() => {
       :title="t('news.editTab')"
       :description="t('news.editTabDescription')"
     >
-      <form @submit.prevent="saveTabName" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="saveTabName">
         <UFormField :label="t('news.tabName')">
           <UInput
             v-model="editingTabName"

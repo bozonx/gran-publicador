@@ -108,7 +108,7 @@ async function handleSubmit() {
     :title="isEditing ? t('roles.editRole') : t('roles.createRole')"
     :description="isSystem ? t('roles.cannotDeleteSystem') : undefined"
   >
-    <form class="space-y-6" @submit.prevent="handleSubmit" id="role-form">
+    <form id="role-form" class="space-y-6" @submit.prevent="handleSubmit">
       <!-- Name functionality. Disabled if System role -->
       <UFormField :label="t('roles.roleName')">
         <UInput

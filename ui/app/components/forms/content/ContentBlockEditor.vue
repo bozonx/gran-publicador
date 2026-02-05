@@ -166,10 +166,10 @@ const toggleCollapse = () => {
       >
         <UTextarea 
           :model-value="props.modelValue.text ?? ''"
-          @update:model-value="updateText"
           :rows="6"
           :placeholder="t('contentLibrary.fields.textPlaceholder')"
           class="w-full font-mono text-sm"
+          @update:model-value="updateText"
         />
       </UFormField>
 
@@ -178,19 +178,19 @@ const toggleCollapse = () => {
         <MediaGallery
           :media="props.modelValue.media || []"
           :editable="true"
-          @refresh="handleRefresh"
           :on-add="onAddMedia"
           :on-reorder="onReorderMedia"
           :on-update-link="onUpdateLinkMedia"
           :on-copy="onCopyMedia"
+          @refresh="handleRefresh"
         />
       </div>
 
       <div class="mt-2">
         <CommonMetadataEditor
           :model-value="props.modelValue.meta || {}"
-          @update:model-value="(newMeta) => emit('update:modelValue', { ...props.modelValue, meta: newMeta })"
           :label="t('common.meta')"
+          @update:model-value="(newMeta) => emit('update:modelValue', { ...props.modelValue, meta: newMeta })"
         />
       </div>
     </div>

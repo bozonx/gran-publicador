@@ -201,11 +201,11 @@ async function handleTransfer() {
             :project="currentProject"
             :is-loading="isSaving"
             :visible-sections="['general']"
-            @submit="handleUpdate"
             autosave
             hide-header
             hide-cancel
             flat
+            @submit="handleUpdate"
           />
         </UiAppCard>
 
@@ -220,11 +220,11 @@ async function handleTransfer() {
             :project="currentProject"
             :is-loading="isSaving"
             :visible-sections="['preferences']"
-            @submit="handleUpdate"
             autosave
             hide-header
             hide-cancel
             flat
+            @submit="handleUpdate"
           />
         </UiAppCard>
 
@@ -238,11 +238,11 @@ async function handleTransfer() {
             :project="currentProject"
             :is-loading="isSaving"
             :visible-sections="['optimization']"
-            @submit="handleUpdate"
             autosave
             hide-header
             hide-cancel
             flat
+            @submit="handleUpdate"
           />
         </UiAppCard>
 

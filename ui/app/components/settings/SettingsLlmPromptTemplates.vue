@@ -438,7 +438,7 @@ const displayTemplates = computed({
       v-model:open="isModalOpen"
       :title="modalMode === 'create' ? t('llm.addTemplate') : t('llm.editTemplate')"
     >
-      <form @submit.prevent="handleSubmit" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="handleSubmit">
         <UFormField :label="t('llm.templateName')" required class="w-full">
           <UInput
             v-model="formData.name"
