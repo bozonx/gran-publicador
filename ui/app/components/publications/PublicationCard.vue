@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import CommonThumb from '~/components/common/Thumb.vue'
+import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
+import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{
   publication: PublicationWithRelations
@@ -19,6 +22,15 @@ const { getStatusColor, getStatusDisplayName, getStatusIcon, getPublicationProbl
 const { formatDateShort, truncateContent } = useFormatters()
 const route = useRoute()
 const isArchiveView = computed(() => route.query.archived === 'true')
+const authStore = useAuthStore()
+
+const thumbData = computed(() => {
+  if (!props.publication.media || props.publication.media.length === 0) {
+    return { first: null, totalCount: 0 }
+  }
+
+  return getMediaLinksThumbDataLoose(props.publication.media as any, authStore.accessToken || undefined)
+})
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
@@ -123,10 +135,18 @@ function handleDelete(e: Event) {
 
     <!-- Media preview -->
     <div v-if="publication.media && publication.media.length > 0" class="mb-3 flex justify-center">
-      <MediaStack
-        :media="publication.media"
+      <CommonThumb
+        v-if="thumbData.first"
+        :src="thumbData.first.src"
+        :srcset="thumbData.first.srcset"
+        :alt="thumbData.first.placeholderText"
         size="sm"
         :clickable="false"
+        :is-video="thumbData.first.isVideo"
+        :placeholder-icon="thumbData.first.placeholderIcon"
+        :placeholder-text="''"
+        :show-stack="thumbData.totalCount > 1"
+        :total-count="thumbData.totalCount"
       />
     </div>
 

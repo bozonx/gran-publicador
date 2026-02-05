@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import CommonThumb from '~/components/common/Thumb.vue'
+import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
+import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{
   item: any
@@ -20,6 +23,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { formatDateShort, truncateContent } = useFormatters()
+const authStore = useAuthStore()
 
 const getAllItemMedia = (item: any) => {
   const mediaLinks: Array<{ media?: any; order: number }> = []
@@ -36,6 +40,15 @@ const getAllItemMedia = (item: any) => {
   
   return mediaLinks
 }
+
+const thumbData = computed(() => {
+  const links = getAllItemMedia(props.item)
+  if (links.length === 0) {
+    return { first: null, totalCount: 0 }
+  }
+
+  return getMediaLinksThumbDataLoose(links as any, authStore.accessToken || undefined)
+})
 
 const getItemTextBlocks = (item: any) => {
   const texts = (item.blocks || [])
@@ -129,10 +142,18 @@ const formatTags = (tags: string[]): string => {
 
     <!-- Media preview -->
     <div v-if="getAllItemMedia(item).length > 0" class="mb-3 flex justify-center h-48">
-      <MediaStack
-        :media="getAllItemMedia(item)"
+      <CommonThumb
+        v-if="thumbData.first"
+        :src="thumbData.first.src"
+        :srcset="thumbData.first.srcset"
+        :alt="thumbData.first.placeholderText"
         size="md"
         :clickable="false"
+        :is-video="thumbData.first.isVideo"
+        :placeholder-icon="thumbData.first.placeholderIcon"
+        :placeholder-text="thumbData.first.placeholderText"
+        :show-stack="thumbData.totalCount > 1"
+        :total-count="thumbData.totalCount"
       />
     </div>
 

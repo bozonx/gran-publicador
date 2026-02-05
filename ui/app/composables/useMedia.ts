@@ -1,6 +1,24 @@
 import { ref } from 'vue';
 import { useApi } from './useApi';
 
+export interface MediaThumbData {
+  src: string | null;
+  srcset: string | null;
+  isVideo: boolean;
+  placeholderIcon: string;
+  placeholderText: string;
+}
+
+export interface MediaItemLike {
+  id: string;
+  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | string;
+  storageType: 'TELEGRAM' | 'FS' | string;
+  storagePath: string;
+  filename?: string;
+  mimeType?: string;
+  sizeBytes?: number | string;
+}
+
 export interface MediaItem {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT';
@@ -276,6 +294,78 @@ export function getMediaFileUrl(mediaId: string, token?: string): string {
   }
 
   return url;
+}
+
+export function getMediaThumbData(media: MediaItemLike, token?: string): MediaThumbData {
+  const placeholderIcon =
+    media.type === 'IMAGE'
+      ? 'i-heroicons-photo'
+      : media.type === 'VIDEO'
+        ? 'i-heroicons-video-camera'
+        : media.type === 'AUDIO'
+          ? 'i-heroicons-musical-note'
+          : 'i-heroicons-document';
+
+  const placeholderText = media.filename || 'Untitled';
+
+  const canShowPreview =
+    media.type === 'IMAGE' ||
+    (media.storageType === 'TELEGRAM' && (media.type === 'VIDEO' || media.type === 'DOCUMENT'));
+
+  if (!canShowPreview) {
+    return {
+      src: null,
+      srcset: null,
+      isVideo: media.type === 'VIDEO',
+      placeholderIcon,
+      placeholderText,
+    };
+  }
+
+  if (media.type === 'IMAGE') {
+    if (media.storageType === 'FS') {
+      const src = getThumbnailUrl(media.id, 400, 400, token);
+      const srcset = `${src} 1x, ${getThumbnailUrl(media.id, 800, 800, token)} 2x`;
+      return {
+        src,
+        srcset,
+        isVideo: false,
+        placeholderIcon,
+        placeholderText,
+      };
+    }
+
+    return {
+      src: getMediaFileUrl(media.id, token),
+      srcset: null,
+      isVideo: false,
+      placeholderIcon,
+      placeholderText,
+    };
+  }
+
+  return {
+    src: getThumbnailUrl(media.id, 400, 400, token),
+    srcset: null,
+    isVideo: media.type === 'VIDEO',
+    placeholderIcon,
+    placeholderText,
+  };
+}
+
+export function getMediaLinksThumbDataLoose(
+  mediaLinks: Array<{ media?: MediaItemLike; order: number }>,
+  token?: string,
+): { first: MediaThumbData | null; totalCount: number } {
+  const firstMedia = mediaLinks[0]?.media;
+  if (!firstMedia) {
+    return { first: null, totalCount: mediaLinks.length };
+  }
+
+  return {
+    first: getMediaThumbData(firstMedia, token),
+    totalCount: mediaLinks.length,
+  };
 }
 
 /**
