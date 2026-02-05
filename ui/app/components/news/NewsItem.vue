@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { NewsItem } from '~/composables/useNews'
 import { dump } from 'js-yaml'
+import CommonThumb from '~/components/common/Thumb.vue'
 
 const props = defineProps<{
   item: NewsItem
@@ -73,18 +74,18 @@ const displayText = computed(() => {
       
       <div v-if="displayText || item.mainImageUrl" class="flex flex-col sm:flex-row gap-4 mb-4">
         <div class="flex-1 min-w-0">
-          <p v-if="displayText" class="text-base text-gray-600 dark:text-gray-400 break-words">
+          <p v-if="displayText" class="text-base text-gray-600 dark:text-gray-400 wrap-break-word">
             {{ displayText }}
           </p>
         </div>
         
         <div v-if="item.mainImageUrl" class="shrink-0">
-          <img 
-            :src="item.mainImageUrl" 
+          <CommonThumb
+            :src="item.mainImageUrl"
             :alt="item.title"
-            class="w-full sm:w-48 h-48 sm:h-32 object-cover rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800"
-            loading="lazy"
-            @error="(e) => (e.target as HTMLElement).style.display = 'none'"
+            size="md"
+            :clickable="false"
+            box-class="w-full sm:w-48 h-48 sm:h-32"
           />
         </div>
       </div>

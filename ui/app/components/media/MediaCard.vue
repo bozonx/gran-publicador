@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getMediaFileUrl, getThumbnailUrl } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
+import CommonThumb from '~/components/common/Thumb.vue'
 
 interface MediaItem {
   id: string
@@ -101,94 +102,42 @@ function handleClick() {
 </script>
 
 <template>
-  <div
-    :class="[
-      sizeClasses,
-      'border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50 group relative',
-      clickable && 'cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors'
-    ]"
+  <CommonThumb
+    :box-class="sizeClasses"
+    :src="shouldShowPreview ? (previewUrl || null) : null"
+    :srcset="shouldShowPreview ? (previewSrcset || null) : null"
+    :alt="media.filename || 'Media'"
+    :clickable="clickable"
+    :size="size"
+    :img-class="hasSpoiler ? 'blur-xl scale-110' : undefined"
+    :error="imageError"
+    :placeholder-icon="getMediaIcon(media.type)"
+    :placeholder-text="size !== 'sm' ? (media.filename || 'Untitled') : ''"
+    :error-text="t('media.loadError', 'File unavailable')"
+    :is-video="media.type === 'VIDEO'"
     @click="handleClick"
+    @error="handleImageError"
   >
-    <!-- Image preview with error handling -->
-    <div
-      v-if="shouldShowPreview"
-      class="w-full h-full relative"
-    >
-      <img
-        :src="previewUrl || undefined"
-        :srcset="previewSrcset || undefined"
-        :alt="media.filename || 'Media'"
-        :class="['w-full h-full object-cover', hasSpoiler && 'blur-xl scale-110']"
-        @error="handleImageError"
-      />
-      
-      <!-- Spoiler Indicator Overlay -->
-      <div 
-        v-if="hasSpoiler" 
-        class="absolute inset-0 flex items-center justify-center bg-black/20"
-      >
-        <UIcon 
-          name="i-heroicons-eye-slash" 
+    <template v-if="hasSpoiler" #overlay>
+      <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+        <UIcon
+          name="i-heroicons-eye-slash"
           :class="[
             'text-white drop-shadow-md',
-            size === 'sm' ? 'w-6 h-6' : size === 'md' ? 'w-10 h-10' : 'w-14 h-14'
-          ]" 
+            size === 'sm' ? 'w-6 h-6' : size === 'md' ? 'w-10 h-10' : 'w-14 h-14',
+          ]"
         />
       </div>
-    </div>
-    
-    <!-- Icon for other types or failed images -->
-    <div
-      v-else
-      class="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
-    >
-      <UIcon
-        :name="imageError ? 'i-heroicons-exclamation-triangle' : getMediaIcon(media.type)"
-        :class="[
-          size === 'sm' ? 'w-8 h-8' : size === 'md' ? 'w-12 h-12' : 'w-16 h-16',
-          imageError ? 'text-red-500' : 'text-gray-400'
-        ]"
-      />
-      <p 
-        v-if="size !== 'sm'"
-        class="text-xs text-center truncate w-full px-2" 
-        :class="imageError ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'"
-      >
-        {{ imageError ? t('media.loadError', 'File unavailable') : (media.filename || 'Untitled') }}
-      </p>
-      <div v-if="!imageError && size !== 'sm'" class="flex flex-col gap-1">
-        <UBadge size="xs" color="neutral">
-          {{ media.type }}
-        </UBadge>
-        <div class="flex gap-1">
-          <UBadge
-            size="xs"
-            :color="media.storageType === 'TELEGRAM' ? 'secondary' : 'success'"
-          >
-            {{ media.storageType }}
-          </UBadge>
-          <UBadge
-            v-if="hasSpoiler"
-            size="xs"
-            color="warning"
-            variant="solid"
-          >
-            SPOILER
-          </UBadge>
-        </div>
-      </div>
-    </div>
+    </template>
 
-    <!-- Overlay info for images -->
-    <div
-      v-if="showOverlay && media.type === 'IMAGE' && !imageError"
-      class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-    >
+    <template v-if="showOverlay && media.type === 'IMAGE' && !imageError" #bottom>
       <p class="text-xs text-white truncate">
         {{ media.storageType }} • {{ formatSizeMB(media.sizeBytes) }}
       </p>
-    </div>
+    </template>
 
-    <slot name="actions" />
-  </div>
+    <template #actions>
+      <slot name="actions" />
+    </template>
+  </CommonThumb>
 </template>

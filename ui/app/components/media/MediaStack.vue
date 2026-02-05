@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import CommonThumb from '~/components/common/Thumb.vue'
+import { getMediaFileUrl, getThumbnailUrl } from '~/composables/useMedia'
+import { useAuthStore } from '~/stores/auth'
+
 interface MediaItem {
   id: string
   type: string
@@ -27,6 +31,8 @@ const emit = defineEmits<{
   (e: 'click', media: MediaItem): void
 }>()
 
+const authStore = useAuthStore()
+
 const firstMedia = computed(() => props.media[0]?.media)
 const mediaCount = computed(() => props.media.length)
 
@@ -39,15 +45,44 @@ const sizeClasses = computed(() => {
   return sizes[props.size]
 })
 
-const stackOffsets = computed(() => {
-  // Generate stack offsets based on media count (max 3 visible layers)
-  const count = Math.min(mediaCount.value - 1, 3)
-  return Array.from({ length: count }, (_, i) => ({
-    right: `${(i + 1) * 4}px`,
-    top: `${(i + 1) * 4}px`,
-    zIndex: count - i,
-  }))
+const imageError = ref(false)
+
+const shouldShowPreview = computed(() => {
+  if (imageError.value) return false
+  if (!firstMedia.value) return false
+
+  if (firstMedia.value.type === 'IMAGE') return true
+  if (firstMedia.value.storageType !== 'TELEGRAM') return false
+  return firstMedia.value.type === 'VIDEO' || firstMedia.value.type === 'DOCUMENT'
 })
+
+const previewUrl = computed(() => {
+  if (!firstMedia.value) return null
+  if (!shouldShowPreview.value) return null
+
+  if (firstMedia.value.type === 'IMAGE') {
+    if (firstMedia.value.storageType === 'FS') {
+      return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined)
+    }
+    return getMediaFileUrl(firstMedia.value.id, authStore.accessToken || undefined)
+  }
+
+  return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined)
+})
+
+const previewSrcset = computed(() => {
+  if (!firstMedia.value) return null
+  if (!shouldShowPreview.value) return null
+  if (firstMedia.value.type !== 'IMAGE') return null
+  if (firstMedia.value.storageType !== 'FS') return null
+
+  const token = authStore.accessToken || undefined
+  return `${getThumbnailUrl(firstMedia.value.id, 400, 400, token)} 1x, ${getThumbnailUrl(firstMedia.value.id, 800, 800, token)} 2x`
+})
+
+function handleImageError() {
+  imageError.value = true
+}
 
 function handleClick() {
   if (props.clickable && firstMedia.value) {
@@ -57,41 +92,25 @@ function handleClick() {
 </script>
 
 <template>
-  <div :class="['relative', sizeClasses]">
-    <!-- Stack layers (visual only, no actual images) -->
-    <div
-      v-for="(offset, index) in stackOffsets"
-      :key="`stack-${index}`"
-      :class="[
-        'absolute inset-0 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800',
-      ]"
-      :style="{
-        transform: `translate(${offset.right}, ${offset.top})`,
-        zIndex: offset.zIndex,
-      }"
-    />
-
-    <!-- Main media card -->
-    <div class="relative" style="z-index: 10">
-      <MediaCard
-        v-if="firstMedia"
-        :media="firstMedia"
-        :clickable="clickable"
-        :size="size"
-        @click="handleClick"
-      >
-        <template #actions>
-          <slot name="actions" />
-        </template>
-      </MediaCard>
-
-      <!-- Count badge -->
-      <div
-        v-if="mediaCount > 1"
-        class="absolute top-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded-full"
-      >
-        +{{ mediaCount - 1 }}
-      </div>
-    </div>
-  </div>
+  <CommonThumb
+    v-if="firstMedia"
+    :box-class="sizeClasses"
+    :src="shouldShowPreview ? (previewUrl || null) : null"
+    :srcset="shouldShowPreview ? (previewSrcset || null) : null"
+    :alt="firstMedia.filename || 'Media'"
+    :clickable="clickable"
+    :size="size"
+    :is-video="firstMedia.type === 'VIDEO'"
+    :error="imageError"
+    :placeholder-icon="firstMedia.type === 'IMAGE' ? 'i-heroicons-photo' : firstMedia.type === 'VIDEO' ? 'i-heroicons-video-camera' : firstMedia.type === 'AUDIO' ? 'i-heroicons-musical-note' : 'i-heroicons-document'"
+    :placeholder-text="size !== 'sm' ? (firstMedia.filename || 'Untitled') : ''"
+    :show-stack="mediaCount > 1"
+    :total-count="mediaCount"
+    @click="handleClick"
+    @error="handleImageError"
+  >
+    <template #actions>
+      <slot name="actions" />
+    </template>
+  </CommonThumb>
 </template>
