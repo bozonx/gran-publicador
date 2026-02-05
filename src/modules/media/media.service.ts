@@ -299,6 +299,8 @@ export class MediaService {
         metadata: {
           originalSize: result.originalSize,
           size: result.size,
+          width: result.width,
+          height: result.height,
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,
@@ -353,6 +355,8 @@ export class MediaService {
         metadata: {
           originalSize: result.originalSize,
           size: result.size,
+          width: result.width,
+          height: result.height,
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,
@@ -397,6 +401,8 @@ export class MediaService {
         metadata: {
           originalSize: result.originalSize,
           size: result.size,
+          width: result.width,
+          height: result.height,
           mimeType: result.mimeType,
           originalMimeType: result.originalMimeType,
           optimizationParams: result.optimizationParams,

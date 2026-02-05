@@ -745,6 +745,30 @@ const exifData = computed(() => {
   return exif
 })
 
+const resolution = computed(() => {
+  const meta = selectedMedia.value?.meta
+  const fullMeta = selectedMedia.value?.fullMediaMeta
+  
+  // Try to find width and height in various common locations
+  const w = fullMeta?.width || meta?.width || fullMeta?.video?.width || meta?.video?.width
+  const h = fullMeta?.height || meta?.height || fullMeta?.video?.height || meta?.video?.height
+  
+  if (w && h) {
+    return `${w} × ${h}`
+  }
+  
+  // Fallback to EXIF if available
+  if (exifData.value) {
+    const exifW = exifData.value.ImageWidth || exifData.value.ExifImageWidth
+    const exifH = exifData.value.ImageHeight || exifData.value.ExifImageHeight
+    if (exifW && exifH) {
+      return `${exifW} × ${exifH}`
+    }
+  }
+
+  return null
+})
+
 const publicMediaUrl = computed(() => {
   if (!selectedMedia.value?.publicToken || !selectedMedia.value?.id) return null
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -1264,6 +1288,10 @@ const mediaValidation = computed(() => {
           <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
             <span class="text-gray-500 shrink-0">size:</span>
             <span class="text-gray-900 dark:text-gray-200">{{ formatBytes(selectedMedia.sizeBytes) }}</span>
+          </div>
+          <div v-if="resolution" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
+            <span class="text-gray-500 shrink-0">resolution:</span>
+            <span class="text-gray-900 dark:text-gray-200">{{ resolution }}</span>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
             <span class="text-gray-500 shrink-0">path:</span>

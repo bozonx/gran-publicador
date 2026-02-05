@@ -152,7 +152,13 @@ function handleError() {
       style="z-index: 10"
       @click="handleClick"
     >
-      <div class="absolute inset-0" style="background-image: url('/thumb-checkerboard.svg'); background-size: 16px 16px;"></div>
+      <div class="absolute inset-0 bg-gray-50 dark:bg-gray-900/50"></div>
+
+      <div
+        v-if="canShowImage"
+        class="absolute inset-0"
+        style="background-image: url('/thumb-checkerboard.svg'); background-size: 32px 32px;"
+      ></div>
 
       <div v-if="canShowImage" class="w-full h-full relative">
         <img
@@ -183,7 +189,7 @@ function handleError() {
         </p>
       </div>
 
-      <div v-if="isPending" class="absolute inset-0 flex items-center justify-center bg-black/10">
+      <div v-if="isPending" class="absolute inset-0 flex items-center justify-center bg-gray-50/80 dark:bg-gray-900/60">
         <LoadingSpinner size="lg" color="primary" />
       </div>
 

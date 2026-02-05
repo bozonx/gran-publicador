@@ -924,6 +924,7 @@
       "upload": "Upload"
     },
     "mediaType": "Media Type",
+    "resolution": "Resolution",
     "filename": "Filename (optional)",
     "add": "Add Media",
     "noMedia": "No media files",
