@@ -8,6 +8,7 @@ import {
   ServiceUnavailableException,
   BadGatewayException,
   InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
@@ -18,7 +19,11 @@ import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/index.js';
 import { MediaConfig } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
-import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
+import {
+  DEFAULT_MICROSERVICE_TIMEOUT_MS,
+  TELEGRAM_MEDIA_PROXY_RETRY_COUNT,
+  TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS,
+} from '../../common/constants/global.constants.js';
 
 /**
  * MediaService - Proxy for Media Storage microservice
@@ -26,6 +31,10 @@ import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.c
 @Injectable()
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   constructor(
     private prisma: PrismaService,
@@ -572,59 +581,82 @@ export class MediaService {
       throw new InternalServerErrorException('Telegram bot token not configured');
     }
 
-    try {
-      this.logger.debug(`Retrieving file from Telegram: ${fileId}`);
-      const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
-      const getFileResponse = await request(getFileUrl, {
-        method: 'GET',
-        headersTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
-        bodyTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
-      });
+    const maxAttempts = TELEGRAM_MEDIA_PROXY_RETRY_COUNT + 1;
+    let lastError: unknown;
 
-      const getFileData = (await getFileResponse.body.json()) as any;
-
-      if (!getFileData.ok || !getFileData.result?.file_path) {
-        this.logger.warn(
-          `File not found in Telegram (getFile failed): ${fileId}. Response: ${JSON.stringify(getFileData)}`,
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        this.logger.debug(
+          `Retrieving file from Telegram: ${fileId} (attempt ${attempt}/${maxAttempts})`,
         );
-        throw new NotFoundException('File not found in Telegram');
+
+        const timeoutMs = (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
+
+        const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
+        const getFileResponse = await request(getFileUrl, {
+          method: 'GET',
+          headersTimeout: timeoutMs,
+          bodyTimeout: timeoutMs,
+        });
+
+        const getFileData = (await getFileResponse.body.json()) as any;
+
+        if (!getFileData.ok || !getFileData.result?.file_path) {
+          this.logger.warn(
+            `File not found in Telegram (getFile failed): ${fileId}. Response: ${JSON.stringify(getFileData)}`,
+          );
+          throw new NotFoundException('File not found in Telegram');
+        }
+
+        this.logger.debug(`Downloading file from Telegram path: ${getFileData.result.file_path}`);
+        const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
+        const downloadResponse = await request(downloadUrl, {
+          method: 'GET',
+          headersTimeout: timeoutMs,
+          bodyTimeout: timeoutMs,
+        });
+
+        if (downloadResponse.statusCode >= 400) {
+          this.logger.error(
+            `Failed to download from Telegram: ${downloadUrl} (status: ${downloadResponse.statusCode})`,
+          );
+          throw new InternalServerErrorException(
+            'Failed to download content from Telegram servers',
+          );
+        }
+
+        const headers: Record<string, string> = {};
+        if (mimeType) headers['Content-Type'] = mimeType;
+        if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
+
+        this.logger.debug(`Successfully started streaming Telegram file: ${fileId}`);
+        return {
+          stream: downloadResponse.body as any as Readable,
+          status: downloadResponse.statusCode,
+          headers,
+        };
+      } catch (error) {
+        lastError = error;
+
+        if (attempt < maxAttempts) {
+          this.logger.warn(
+            `Telegram file retrieval failed for ${fileId} (attempt ${attempt}/${maxAttempts}): ${(error as Error).message}. Retrying in ${TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS}ms`,
+          );
+          await this.sleep(TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS);
+          continue;
+        }
       }
-
-      this.logger.debug(`Downloading file from Telegram path: ${getFileData.result.file_path}`);
-      const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
-      const downloadResponse = await request(downloadUrl, {
-        method: 'GET',
-        headersTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
-        bodyTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
-      });
-
-      if (downloadResponse.statusCode >= 400) {
-        this.logger.error(
-          `Failed to download from Telegram: ${downloadUrl} (status: ${downloadResponse.statusCode})`,
-        );
-        throw new InternalServerErrorException('Failed to download content from Telegram servers');
-      }
-
-      const headers: Record<string, string> = {};
-      if (mimeType) headers['Content-Type'] = mimeType;
-      if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
-
-      this.logger.debug(`Successfully started streaming Telegram file: ${fileId}`);
-      return {
-        stream: downloadResponse.body as any as Readable,
-        status: downloadResponse.statusCode,
-        headers,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error(
-        `Error during Telegram file retrieval: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(`Telegram proxy error: ${(error as Error).message}`);
     }
+
+    if (lastError instanceof HttpException) {
+      throw lastError;
+    }
+
+    this.logger.error(
+      `Error during Telegram file retrieval after ${maxAttempts} attempts: ${(lastError as Error).message}`,
+      (lastError as Error)?.stack,
+    );
+    throw new InternalServerErrorException(`Telegram proxy error: ${(lastError as Error).message}`);
   }
 
   public async checkMediaAccess(mediaId: string, userId: string): Promise<void> {
