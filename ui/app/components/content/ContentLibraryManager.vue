@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import yaml from 'js-yaml'
 import { VueDraggable } from 'vue-draggable-plus'
 import { type ContentLibraryTab, useContentLibraryTabs } from '~/composables/useContentLibraryTabs'
+import { useViewMode } from '~/composables/useViewMode'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import AppModal from '~/components/ui/AppModal.vue'
@@ -99,6 +100,13 @@ const totalUnfiltered = ref(0)
 const items = ref<ContentItem[]>([])
 const availableTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
+
+const viewModeStorageKey = computed(() => {
+  const projectPart = props.projectId ? `:${props.projectId}` : ''
+  return `content-library:view-mode:${props.scope}${projectPart}`
+})
+
+const { viewMode } = useViewMode(viewModeStorageKey.value)
 
 
 

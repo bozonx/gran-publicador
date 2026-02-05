@@ -107,9 +107,8 @@ const stackOffsets = computed(() => {
 
 const badgeText = computed(() => {
   const count = props.totalCount || 0
-  if (!props.showStack || count <= 1) return null
-  if (count > 3) return `${count}`
-  return `+${count - 1}`
+  if (!props.showStack || count <= 3) return null
+  return `${count}`
 })
 
 const hasBottomSlot = computed(() => !!useSlots().bottom)
@@ -146,13 +145,14 @@ function handleError() {
     <div
       :class="[
         boxClasses,
-        'border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50 group relative',
+        'border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden group relative',
+        isError ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-900/50',
         clickable && 'cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors',
       ]"
       style="z-index: 10"
       @click="handleClick"
     >
-      <div class="absolute inset-0 bg-gray-50 dark:bg-gray-900/50"></div>
+      <div :class="['absolute inset-0', isError ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-900/50']"></div>
 
       <div
         v-if="canShowImage && !isPending"

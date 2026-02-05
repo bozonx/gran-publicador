@@ -179,10 +179,11 @@ onMounted(async () => {
       },
       Text: { text: 'Type here...' },
       rotate: { angle: 90, factor: 1 },
-      closeAfterSave: true,
+      closeAfterSave: false,
       defaultSavedImageName: baseFilename.value,
       defaultSavedImageType: 'png',
       defaultSavedImageQuality: 0.95,
+      showBackButton: false,
       removeSaveButton: true,
       // You can add more config here to match the app style
       theme: {
@@ -206,10 +207,7 @@ onMounted(async () => {
         console.error('FilerobotImageEditor onClose:', closingReason)
 
         const reason = typeof closingReason === 'string' ? closingReason : ''
-        const shouldClose =
-          reason === 'close-button-clicked' ||
-          reason === 'back-button-clicked' ||
-          reason === 'after-saving'
+        const shouldClose = reason === 'close-button-clicked'
 
         if (!shouldClose) {
           loadError.value = 'Image editor closed unexpectedly. Check console for details.'
