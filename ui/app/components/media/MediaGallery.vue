@@ -1517,24 +1517,19 @@ const mediaValidation = computed(() => {
   </MediaViewerModal>
 
   <!-- Image Editor Modal -->
-  <UiAppModal
+  <UiFullscreenModal
     v-model:open="isEditorOpen"
-    :title="t('media.editImage', 'Edit Image')"
     :prevent-close="isSavingMediaFile"
-    :ui="{
-      content: 'w-[98vw] max-w-7xl h-[95vh] !overflow-visible',
-      body: 'p-0 h-full flex flex-col !overflow-visible !overflow-y-visible',
-    }"
   >
-    <div v-if="selectedMedia && isEditorOpen" class="flex-1 overflow-hidden">
-        <MediaFilerobotEditor
-            :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
-            :filename="selectedMedia.filename"
-            @save="handleEditorSave"
-            @close="handleEditorClose"
-        />
+    <div v-if="selectedMedia && isEditorOpen" class="h-full w-full">
+      <MediaFilerobotEditor
+        :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
+        :filename="selectedMedia.filename"
+        @save="handleEditorSave"
+        @close="handleEditorClose"
+      />
     </div>
-  </UiAppModal>
+  </UiFullscreenModal>
 </template>
 
 <style scoped>

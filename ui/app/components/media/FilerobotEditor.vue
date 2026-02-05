@@ -20,6 +20,7 @@ const editorContainer = ref<HTMLDivElement | null>(null)
 let editorInstance: any = null
 
 const isInstantSaving = ref(false)
+const loadError = ref<string | null>(null)
 
 const baseFilename = computed(() => {
   const raw = props.filename || 'edited-image'
@@ -132,6 +133,7 @@ function terminateEditorInstance() {
 
 onMounted(async () => {
   if (!import.meta.client) return
+  loadError.value = null
   
   try {
     const module = await import('filerobot-image-editor')
@@ -150,7 +152,6 @@ onMounted(async () => {
 
         if (!canvas) {
           console.error('Filerobot onSave: missing imageCanvas')
-          emit('close')
           return
         }
 
@@ -158,13 +159,11 @@ onMounted(async () => {
           (blob: Blob | null) => {
             if (!blob) {
               console.error('Filerobot onSave: canvas.toBlob returned null')
-              emit('close')
               return
             }
 
             if (!type.startsWith('image/')) {
               console.error(`Filerobot onSave: invalid output mimeType: ${type}`)
-              emit('close')
               return
             }
 
@@ -203,14 +202,28 @@ onMounted(async () => {
 
     editorInstance = new FilerobotImageEditor(editorContainer.value, config)
     editorInstance.render({
-      onClose: () => {
+      onClose: (closingReason: unknown) => {
+        console.error('FilerobotImageEditor onClose:', closingReason)
+
+        const reason = typeof closingReason === 'string' ? closingReason : ''
+        const shouldClose =
+          reason === 'close-button-clicked' ||
+          reason === 'back-button-clicked' ||
+          reason === 'after-saving'
+
+        if (!shouldClose) {
+          loadError.value = 'Image editor closed unexpectedly. Check console for details.'
+          terminateEditorInstance()
+          return
+        }
+
         terminateEditorInstance()
         emit('close')
       },
     })
   } catch (err) {
     console.error('Failed to load FilerobotImageEditor:', err)
-    emit('close')
+    loadError.value = 'Failed to initialize image editor. Check console for details.'
   }
 })
 
@@ -231,7 +244,13 @@ onBeforeUnmount(() => {
         Save
       </button>
     </div>
-    <div ref="editorContainer" class="flex-1 min-h-0"></div>
+    <div v-if="loadError" class="flex-1 min-h-0 flex items-center justify-center p-6">
+      <div class="max-w-xl text-center">
+        <div class="text-white font-semibold">Image editor failed to load</div>
+        <div class="mt-2 text-sm text-gray-300">{{ loadError }}</div>
+      </div>
+    </div>
+    <div v-else ref="editorContainer" class="flex-1 min-h-0"></div>
   </div>
 </template>
 
