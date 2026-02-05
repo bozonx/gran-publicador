@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="filerobot-editor-wrapper w-full h-full flex flex-col bg-gray-950 overflow-hidden">
+  <div class="filerobot-editor-wrapper w-full h-full flex flex-col bg-gray-950 overflow-visible">
     <div class="absolute top-3 right-14 z-60">
       <button
         type="button"

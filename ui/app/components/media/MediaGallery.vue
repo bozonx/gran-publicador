@@ -1522,8 +1522,8 @@ const mediaValidation = computed(() => {
     :title="t('media.editImage', 'Edit Image')"
     :prevent-close="isSavingMediaFile"
     :ui="{
-      content: 'w-[98vw] max-w-7xl h-[95vh]',
-      body: 'p-0 h-full flex flex-col',
+      content: 'w-[98vw] max-w-7xl h-[95vh] !overflow-visible',
+      body: 'p-0 h-full flex flex-col !overflow-visible !overflow-y-visible',
     }"
   >
     <div v-if="selectedMedia && isEditorOpen" class="flex-1 overflow-hidden">
