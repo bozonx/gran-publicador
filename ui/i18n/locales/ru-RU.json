@@ -589,6 +589,7 @@
     "template": "Шаблон",
     "selectTemplate": "Выберите шаблон...",
     "selectFooter": "Выберите футер...",
+    "noneFooter": "Без футера",
     "errorTemplateDeleted": "Шаблон был удален, используется системный шаблон",
     "errorFooterDeleted": "Выбранный футер был удален, он не будет выведен",
     "authorSignature": "Подпись автора",

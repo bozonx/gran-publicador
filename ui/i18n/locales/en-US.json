@@ -586,6 +586,7 @@
     "template": "Template",
     "selectTemplate": "Select template...",
     "selectFooter": "Select footer...",
+    "noneFooter": "No footer",
     "errorTemplateDeleted": "Template was deleted, using system template",
     "errorFooterDeleted": "Selected footer was deleted, it will be skipped",
     "authorSignature": "Author Signature",
@@ -1096,9 +1097,6 @@
   "form": {
     "unsavedChanges": "Unsaved changes",
     "resetConfirm": "Are you sure you want to reset all changes? The form will return to the last saved state."
-  },
-  "common": {
-    "inlineMarkdownHelp": "Use *bold*, _italic_, `monospace`, ~strikethrough~, [link](url) for inline formatting."
   },
   "validation": {
     "required": "This field is required",

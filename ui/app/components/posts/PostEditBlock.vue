@@ -460,7 +460,7 @@ const availableFooters = computed(() => {
 
     return [
         { value: null, label: effectiveDefaultLabel },
-        { value: 'none', label: t('authorSignature.none', 'No footer') },
+        { value: 'none', label: t('post.noneFooter', 'No footer') },
         ...list
     ]
 })
@@ -473,7 +473,7 @@ const isTemplateMissing = computed(() => {
 })
 
 const isFooterMissing = computed(() => {
-    if (!formData.footerId) return false
+    if (!formData.footerId || formData.footerId === 'none') return false
     const preferences = getChannelPreferences(selectedChannel.value)
     if (!preferences?.footers) return true
     return !preferences.footers.some((f: any) => f.id === formData.footerId)
