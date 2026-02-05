@@ -10,6 +10,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { user } = useAuth()
 const {
   fetchByChannel,
   create,
@@ -217,9 +218,13 @@ async function handleDragEnd() {
           >
             <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
           </div>
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
               {{ sig.content }}
+            </div>
+            <div v-if="sig.user && sig.userId !== user?.id" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+              <UIcon name="i-heroicons-user" class="w-3 h-3" />
+              <span>{{ sig.user.fullName || sig.user.telegramUsername || sig.userId }}</span>
             </div>
           </div>
         </div>

@@ -67,6 +67,7 @@ export class AuthorSignaturesService {
       // Project owner and admin see all signatures
       return this.prisma.authorSignature.findMany({
         where: { channelId },
+        include: { user: true },
         orderBy: [{ userId: 'asc' }, { order: 'asc' }],
       });
     }
@@ -74,6 +75,7 @@ export class AuthorSignaturesService {
     // Regular members only see their own signatures
     return this.prisma.authorSignature.findMany({
       where: { channelId, userId: currentUserId },
+      include: { user: true },
       orderBy: { order: 'asc' },
     });
   }
@@ -92,9 +94,10 @@ export class AuthorSignaturesService {
 
   async update(id: string, userId: string, dto: UpdateAuthorSignatureDto) {
     const signature = await this.findOne(id);
+    const hasAccess = await this.checkAccess(id, userId);
 
-    if (signature.userId !== userId) {
-      throw new ForbiddenException('You can only update your own signatures');
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have permission to update this signature');
     }
 
     if (dto.isDefault) {
@@ -131,10 +134,10 @@ export class AuthorSignaturesService {
   }
 
   async delete(id: string, userId: string) {
-    const signature = await this.findOne(id);
+    const hasAccess = await this.checkAccess(id, userId);
 
-    if (signature.userId !== userId) {
-      throw new ForbiddenException('You can only delete your own signatures');
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have permission to delete this signature');
     }
 
     return this.prisma.authorSignature.delete({

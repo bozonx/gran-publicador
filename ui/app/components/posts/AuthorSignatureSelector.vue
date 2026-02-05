@@ -12,6 +12,7 @@ const props = defineProps<Props>()
 const emit = defineEmits(['select'])
 
 const { t } = useI18n()
+const { user } = useAuth()
 const { fetchByChannel } = useAuthorSignatures()
 
 const userSignatures = ref<AuthorSignature[]>([])
@@ -54,9 +55,12 @@ const options = computed(() => {
   if (userSignatures.value.length > 0) {
     list.push({ disabled: true, label: t('authorSignature.user_defined', 'Custom Signatures'), type: 'label' })
     userSignatures.value.forEach(s => {
+      const authorName = s.user && s.userId !== user?.value?.id 
+        ? ` (${s.user.fullName || s.user.telegramUsername})` 
+        : ''
       list.push({
         value: s.id,
-        label: s.content.split('\n')[0].slice(0, 50) + (s.isDefault ? ` (${t('authorSignature.is_default', 'Default')})` : ''),
+        label: s.content.split('\n')[0].slice(0, 50) + (s.isDefault ? ` (${t('authorSignature.is_default', 'Default')})` : '') + authorName,
         icon: 'i-heroicons-pencil-square',
         content: s.content,
         isDefault: s.isDefault

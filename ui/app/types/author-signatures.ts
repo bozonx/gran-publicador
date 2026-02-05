@@ -8,6 +8,11 @@ export interface AuthorSignature {
   order: number
   createdAt: string
   updatedAt: string
+  user?: {
+    id: string
+    fullName?: string
+    telegramUsername?: string
+  }
 }
 
 export interface PresetSignature {
