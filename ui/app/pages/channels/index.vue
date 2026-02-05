@@ -422,6 +422,8 @@ const showPagination = computed(() => {
     </div>
 
     <!-- Channels list view -->
+    <CommonFoundCount :count="totalCount" :show="hasActiveFilters" class="mb-2" />
+
     <div v-if="isListView" class="space-y-4">
        <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-12">
           <UiLoadingSpinner size="md" />
@@ -438,10 +440,6 @@ const showPagination = computed(() => {
             {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
           </p>
        </div>
-
-       <p v-if="hasActiveFilters" class="text-xs text-secondary-500 dark:text-secondary-400 mt-2 text-right">
-          {{ t('common.found', 'Found') }}: {{ totalCount }}
-        </p>
 
        <ChannelListItem
          v-for="channel in channels"
@@ -469,10 +467,6 @@ const showPagination = computed(() => {
             {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
           </p>
        </div>
-
-       <p v-if="hasActiveFilters" class="text-xs text-secondary-500 dark:text-secondary-400 mt-2 text-right col-span-full">
-          {{ t('common.found', 'Found') }}: {{ totalCount }}
-        </p>
 
        <ChannelCard
          v-for="channel in channels"
