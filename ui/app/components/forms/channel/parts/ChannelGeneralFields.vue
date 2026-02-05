@@ -244,9 +244,11 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
       :label="t('channel.tags', 'Tags')"
       :help="t('channel.tagsHelp', 'Channel tags for publication orientation')"
     >
-      <UInput
+      <CommonInputTags
         v-model="state.tags"
         :placeholder="t('channel.tagsPlaceholder', 'tag1, tag2, tag3')"
+        color="neutral"
+        variant="outline"
         class="w-full"
       />
     </UFormField>
