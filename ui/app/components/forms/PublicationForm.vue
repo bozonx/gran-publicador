@@ -505,11 +505,12 @@ function handleTranslated(result: { translatedText: string }) {
 
       
       <UFormField name="tags" :label="t('post.tags')" :help="t('post.tagsHint')">
-        <UInput
-            v-model="state.tags"
-            :placeholder="t('post.tagsPlaceholder')"
-            class="w-full"
-            icon="i-heroicons-hashtag"
+        <CommonInputTags
+          v-model="state.tags"
+          :placeholder="t('post.tagsPlaceholder')"
+          color="neutral"
+          variant="outline"
+          class="w-full"
         />
       </UFormField>
 

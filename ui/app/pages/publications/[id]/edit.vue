@@ -1190,7 +1190,7 @@ async function executePublish(force: boolean) {
                                         color="neutral"
                                         variant="soft"
                                         size="sm"
-                                        class="uppercase font-mono text-[10px] cursor-pointer"
+                                        class="uppercase font-mono text-xxs cursor-pointer"
                                      >
                                         {{ trans.language }}
                                      </UBadge>

@@ -764,16 +764,13 @@ async function executePublish() {
                  </UBadge>
 
                  <!-- Overridden Tags -->
-                 <UBadge 
-                    v-for="tag in overriddenTags" 
-                    :key="tag"
-                    variant="subtle" 
-                    color="neutral" 
-                    size="xs"
-                    class="font-mono"
-                >
-                    #{{ tag.trim() }}
-                </UBadge>
+                 <CommonTags
+                   :tags="overriddenTags"
+                   color="neutral"
+                   variant="subtle"
+                   size="xs"
+                   badge-class="font-mono"
+                 />
             </div>
 
             <!-- Content Preview (Only if overridden for this post) -->
@@ -894,10 +891,11 @@ async function executePublish() {
 
                     <!-- Tags (Override) -->
                     <UFormField :label="t('post.tags')">
-                        <UInput 
-                          v-model="formData.tags" 
-                          :placeholder="t('post.tagsPlaceholder')" 
-                          icon="i-heroicons-hashtag" 
+                        <CommonInputTags
+                          v-model="formData.tags"
+                          :placeholder="t('post.tagsPlaceholder')"
+                          color="neutral"
+                          variant="outline"
                           class="w-full"
                         />
                     </UFormField>

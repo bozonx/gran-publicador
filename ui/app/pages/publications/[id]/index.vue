@@ -280,7 +280,7 @@ const isAnyPostPublished = computed(() => {
 
               <!-- Author Comment -->
               <div v-if="currentPublication.authorComment" class="mt-3">
-                <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <h3 class="text-xxs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                   <UIcon name="i-heroicons-chat-bubble-bottom-center-text" class="w-3.5 h-3.5" />
                   {{ t('post.authorComment') }}
                 </h3>
@@ -291,7 +291,7 @@ const isAnyPostPublished = computed(() => {
 
               <!-- Description -->
               <div v-if="showDescription" class="mt-3">
-                <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <h3 class="text-xxs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                   <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
                   {{ t('post.description') }}
                 </h3>
