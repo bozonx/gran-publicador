@@ -86,7 +86,7 @@ describe('LlmPromptTemplatesController', () => {
       expect(result).toEqual(templates);
     });
 
-    it('should throw ForbiddenException when user requests other user templates', async () => {
+    it('should throw ForbiddenException when user requests other user templates', () => {
       expect(() => controller.findAllByUser('other-user', mockRequest)).toThrow(ForbiddenException);
 
       expect(service.findAllByUser).not.toHaveBeenCalled();

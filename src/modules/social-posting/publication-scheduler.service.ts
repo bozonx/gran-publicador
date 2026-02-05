@@ -40,8 +40,10 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
     this.logger.log(`Aligning scheduler: first run in ${delay}ms`);
 
     this.initialTimeout = setTimeout(() => {
-      this.handleCron();
-      const interval = setInterval(() => this.handleCron(), intervalMs);
+      void this.handleCron();
+      const interval = setInterval(() => {
+        void this.handleCron();
+      }, intervalMs);
       this.schedulerRegistry.addInterval('publication-scheduler', interval);
     }, delay);
 

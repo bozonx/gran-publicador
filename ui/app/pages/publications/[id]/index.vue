@@ -304,11 +304,13 @@ const isAnyPostPublished = computed(() => {
               <div v-if="currentPublication.tags" class="flex flex-wrap items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-sm">
                  <div class="flex items-center gap-2">
                     <UIcon name="i-heroicons-tag" class="w-5 h-5 text-gray-400" />
-                    <div class="flex flex-wrap gap-1">
-                      <span v-for="tag in currentPublication.tags.split(',')" :key="tag" class="text-primary-600 dark:text-primary-400 font-medium">
-                        #{{ tag.trim() }}
-                      </span>
-                    </div>
+                    <CommonTags
+                      :tags="currentPublication.tags"
+                      color="primary"
+                      variant="soft"
+                      size="sm"
+                      badge-class="font-medium"
+                    />
                   </div>
               </div>
             </div>

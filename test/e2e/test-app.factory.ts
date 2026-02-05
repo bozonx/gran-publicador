@@ -24,11 +24,11 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
   })
     .overrideProvider(REDIS_CLIENT)
     .useValue({
-      get: async () => null,
-      set: async () => 'OK',
-      del: async () => 0,
+      get: () => Promise.resolve(null),
+      set: () => Promise.resolve('OK'),
+      del: () => Promise.resolve(0),
       on: () => {},
-      quit: async () => 'OK',
+      quit: () => Promise.resolve('OK'),
     })
     .overrideProvider(PrismaService)
     .useValue({

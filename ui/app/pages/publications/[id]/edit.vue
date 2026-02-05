@@ -1165,15 +1165,15 @@ async function executePublish(force: boolean) {
                         </p>
 
                         <!-- Tags -->
-                        <div v-if="currentPublication.tags" class="flex flex-wrap gap-1 mt-2">
-                            <span 
-                                v-for="tag in currentPublication.tags.split(',')" 
-                                :key="tag"
-                                class="text-xxs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded font-mono"
-                            >
-                                #{{ tag.trim() }}
-                            </span>
-                        </div>
+                        <CommonTags
+                          v-if="currentPublication.tags"
+                          :tags="currentPublication.tags"
+                          color="neutral"
+                          variant="soft"
+                          size="xs"
+                          badge-class="font-mono"
+                          container-class="mt-2"
+                        />
 
                         <!-- Translation Info -->
                          <div v-if="currentPublication.translations && currentPublication.translations.length > 0" class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">

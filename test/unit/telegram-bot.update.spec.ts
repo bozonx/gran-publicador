@@ -7,7 +7,7 @@ describe('TelegramBotUpdate', () => {
       from: { id: 100, username: 'u', language_code: 'en-US' },
       chat: { id: 200, type: 'private' },
       message: { message_id: 1, chat: { id: 200 } },
-      reply: jest.fn(async () => undefined),
+      reply: jest.fn(() => undefined),
       api: {
         getFile: jest.fn(),
         deleteMessage: jest.fn(),
@@ -17,32 +17,31 @@ describe('TelegramBotUpdate', () => {
   };
 
   const createDeps = (overrides: any = {}) => {
-    let prisma: any;
-    prisma = {
+    const prisma: any = {
       contentItem: {
-        create: jest.fn(async () => ({ id: 'ci1' })),
+        create: jest.fn(() => ({ id: 'ci1' })),
       },
       contentBlock: {
-        create: jest.fn(async () => ({ id: 'cb1' })),
-        findFirst: jest.fn(async () => null),
-        findUnique: jest.fn(async () => ({ text: null })),
-        update: jest.fn(async () => ({})),
+        create: jest.fn(() => ({ id: 'cb1' })),
+        findFirst: jest.fn(() => null),
+        findUnique: jest.fn(() => ({ text: null })),
+        update: jest.fn(() => ({})),
       },
       contentBlockMedia: {
-        create: jest.fn(async () => ({})),
-        aggregate: jest.fn(async () => ({ _max: { order: null } })),
-        findFirst: jest.fn(async () => null),
+        create: jest.fn(() => ({})),
+        aggregate: jest.fn(() => ({ _max: { order: null } })),
+        findFirst: jest.fn(() => null),
       },
     };
-    prisma.$transaction = jest.fn(async (fn: any) => fn(prisma));
+    prisma.$transaction = jest.fn(async (fn: any) => await fn(prisma));
 
     const usersService = {
-      findByTelegramId: jest.fn(async () => ({ id: 'user1', isBanned: false })),
-      findOrCreateTelegramUser: jest.fn(async () => ({ id: 'user1', uiLanguage: 'en-US' })),
+      findByTelegramId: jest.fn(() => ({ id: 'user1', isBanned: false })),
+      findOrCreateTelegramUser: jest.fn(() => ({ id: 'user1', uiLanguage: 'en-US' })),
     };
 
     const mediaService = {
-      create: jest.fn(async () => ({ id: 'm1' })),
+      create: jest.fn(() => ({ id: 'm1' })),
     };
 
     const sttService = {

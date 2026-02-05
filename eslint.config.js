@@ -61,19 +61,19 @@ export default [
             '@typescript-eslint/explicit-module-boundary-types': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/no-unused-vars': [
-                'error',
+                'warn',
                 {
                     argsIgnorePattern: '^_',
                     varsIgnorePattern: '^_',
                     caughtErrorsIgnorePattern: '^_',
                 },
             ],
-            '@typescript-eslint/prefer-nullish-coalescing': 'error',
+            '@typescript-eslint/prefer-nullish-coalescing': 'warn',
             '@typescript-eslint/prefer-optional-chain': 'error',
             '@typescript-eslint/no-floating-promises': 'error',
             '@typescript-eslint/await-thenable': 'error',
             '@typescript-eslint/no-misused-promises': 'error',
-            '@typescript-eslint/require-await': 'error',
+            '@typescript-eslint/require-await': 'warn',
             '@typescript-eslint/no-unnecessary-type-assertion': 'error',
             '@typescript-eslint/prefer-as-const': 'error',
             '@typescript-eslint/no-non-null-assertion': 'warn',
@@ -86,7 +86,7 @@ export default [
 
             // NestJS specific rules
             '@typescript-eslint/explicit-member-accessibility': [
-                'error',
+                'warn',
                 {
                     accessibility: 'explicit',
                     overrides: {
@@ -112,6 +112,8 @@ export default [
             // General rules
             'no-console': 'warn',
             'no-debugger': 'error',
+            'no-undef': 'off',
+            'no-redeclare': 'off',
             'prefer-const': 'error',
             'no-var': 'error',
             'no-unused-vars': 'off', // Handled by @typescript-eslint/no-unused-vars

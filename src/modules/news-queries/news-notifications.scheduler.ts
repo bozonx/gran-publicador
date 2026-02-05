@@ -32,7 +32,12 @@ export class NewsNotificationsScheduler implements OnModuleInit {
 
     this.logger.log(`Scheduling news notifications check every ${intervalMinutes} minutes`);
 
-    const interval = setInterval(() => this.handleNewsNotifications(), intervalMinutes * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        void this.handleNewsNotifications();
+      },
+      intervalMinutes * 60 * 1000,
+    );
     this.schedulerRegistry.addInterval('news-notifications', interval);
   }
 

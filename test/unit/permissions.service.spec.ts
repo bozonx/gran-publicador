@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { jest } from '@jest/globals';
 import { PermissionKey } from '../../src/common/types/permissions.types.js';
 

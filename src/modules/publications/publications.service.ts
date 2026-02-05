@@ -25,6 +25,7 @@ import {
   IssueType,
   OwnershipType,
 } from './dto/index.js';
+import type { BulkOperationDto } from './dto/bulk-operation.dto.js';
 import { PublicationMediaInputDto } from './dto/publication-media-input.dto.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { MediaService } from '../media/media.service.js';
@@ -1012,10 +1013,7 @@ export class PublicationsService {
    * @param userId - The ID of the user performing the operation.
    * @param dto - The bulk operation data.
    */
-  public async bulkOperation(
-    userId: string,
-    dto: import('./dto/bulk-operation.dto.js').BulkOperationDto,
-  ) {
+  public async bulkOperation(userId: string, dto: BulkOperationDto) {
     const { ids, operation, status } = dto;
 
     if (!ids || ids.length === 0) {
@@ -1106,7 +1104,7 @@ export class PublicationsService {
           data: { status },
         });
 
-      case 'MOVE':
+      case 'MOVE': {
         if (!dto.targetProjectId) {
           throw new BadRequestException('targetProjectId is required for MOVE operation');
         }
@@ -1137,6 +1135,7 @@ export class PublicationsService {
         await Promise.all(authorizedIds.map(id => this.refreshPublicationEffectiveAt(id)));
 
         return moveResult;
+      }
 
       default:
         throw new BadRequestException(`Unsupported operation: ${operation}`);

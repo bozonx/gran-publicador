@@ -759,7 +759,7 @@ export class SocialPostingService {
   }
 
   private hasContentOrMedia(content: string | null, media: any[]): boolean {
-    return !!(content && content.trim()) || media.length > 0;
+    return Boolean(content?.trim()) || media.length > 0;
   }
 
   /**

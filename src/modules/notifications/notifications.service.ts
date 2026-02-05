@@ -203,6 +203,6 @@ export class NotificationsService {
    * Escape special characters for Telegram MarkdownV2.
    */
   private escapeMarkdown(text: string): string {
-    return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+    return text.replace(/([[_*\]()~`>#+\-=|{}.!])/g, '\\$1');
   }
 }

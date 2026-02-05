@@ -5,7 +5,7 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ChannelsService } from '../../src/modules/channels/channels.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { jest } from '@jest/globals';
-import { PostStatus, PublicationStatus, SocialMedia } from '../../src/generated/prisma/index.js';
+import { PostStatus, SocialMedia } from '../../src/generated/prisma/index.js';
 
 describe('PostsService (unit)', () => {
   let service: PostsService;

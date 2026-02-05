@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SocialPostingService } from '../../../src/modules/social-posting/social-posting.service.js';
 import { PrismaService } from '../../../src/modules/prisma/prisma.service.js';
 import { ShutdownService } from '../../../src/common/services/shutdown.service.js';
-import { PostStatus, PublicationStatus } from '../../../src/generated/prisma/index.js';
+import { PostStatus } from '../../../src/generated/prisma/index.js';
 import { NotificationsService } from '../../../src/modules/notifications/notifications.service.js';
 import { jest } from '@jest/globals';
 import { MockAgent, setGlobalDispatcher, getGlobalDispatcher } from 'undici';
