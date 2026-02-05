@@ -47,8 +47,8 @@ export class TagsFormatter {
 
   private static convertStringCase(str: string, targetCase: TagCase): string {
     const words = str
-      .replace(/([a-z])([A-Z])/g, '$1 $2') // Basic camelCase split for frontend compatibility
-      .replace(/[-_]/g, ' ')                 
+      .replace(/(\p{Ll})(\p{Lu})/gu, '$1 $2')
+      .replace(/[-_]/g, ' ')
       .split(/\s+/)
       .map(w => w.toLowerCase())
       .filter(w => w.length > 0);
@@ -98,7 +98,7 @@ export class SocialPostingBodyFormatter {
       { enabled: true, insert: 'authorComment', before: '', after: '' },
       { enabled: true, insert: 'authorSignature', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
-      { enabled: true, insert: 'custom', before: '', after: '', content: '' },
+      { enabled: false, insert: 'custom', before: '', after: '', content: '' },
       { enabled: true, insert: 'footer', before: '', after: '' },
     ];
   }

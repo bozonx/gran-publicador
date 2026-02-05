@@ -7,6 +7,7 @@ export enum BulkOperationType {
   ARCHIVE = 'ARCHIVE',
   UNARCHIVE = 'UNARCHIVE',
   SET_STATUS = 'SET_STATUS',
+  MOVE = 'MOVE',
 }
 
 export class BulkOperationDto {
@@ -22,4 +23,8 @@ export class BulkOperationDto {
   @IsOptional()
   @IsEnum(PublicationStatus)
   status?: PublicationStatus;
+
+  @IsOptional()
+  @IsString()
+  targetProjectId?: string;
 }

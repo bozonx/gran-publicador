@@ -1111,6 +1111,38 @@ export class PublicationsService {
           data: { status },
         });
 
+      case 'MOVE':
+        if (!dto.targetProjectId) {
+          throw new BadRequestException('targetProjectId is required for MOVE operation');
+        }
+
+        // Verify target project access
+        await this.permissions.checkPermission(
+          dto.targetProjectId,
+          userId,
+          PermissionKey.PUBLICATIONS_CREATE,
+        );
+
+        // 1. Delete all posts for these publications as they belong to channels of another project
+        await this.prisma.post.deleteMany({
+          where: { publicationId: { in: authorizedIds } },
+        });
+
+        // 2. Update publications: change project, reset status to DRAFT, clear scheduledAt
+        const moveResult = await this.prisma.publication.updateMany({
+          where: { id: { in: authorizedIds } },
+          data: {
+            projectId: dto.targetProjectId,
+            status: PublicationStatus.DRAFT,
+            scheduledAt: null,
+          },
+        });
+
+        // Refresh effectiveAt for moved publications
+        await Promise.all(authorizedIds.map(id => this.refreshPublicationEffectiveAt(id)));
+
+        return moveResult;
+
       default:
         throw new BadRequestException(`Unsupported operation: ${operation}`);
     }

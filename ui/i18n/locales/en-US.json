@@ -752,7 +752,12 @@
       "publishAnyway": "Publish Anyway"
     },
     "bulkDeleteConfirm": "Delete {count} publications?",
-    "bulk": {},
+    "bulk": {
+      "moveSuccess": "Successfully moved {count} publications to another project",
+      "moveTitle": "Move Publications",
+      "moveDescription": "Select the project you want to move the selected publications ({count}) to. Associated posts will be deleted, and publication status will be reset to 'Draft'.",
+      "moveToProject": "Move to project"
+    },
     "media": "Media Files",
     "createSuccess": "Publication created successfully",
     "unlink": "Unlink from group",

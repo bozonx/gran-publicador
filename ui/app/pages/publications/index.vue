@@ -394,8 +394,30 @@ watch([selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilte
 
 const showBulkDeleteModal = ref(false)
 const showBulkStatusModal = ref(false)
+const showBulkMoveModal = ref(false)
 const bulkActionPending = ref(false)
 const bulkStatusToSet = ref<PublicationStatus | null>(null)
+const targetProjectIdForBulk = ref<string | undefined>()
+
+async function handleBulkMove() {
+  if (!targetProjectIdForBulk.value || selectedIds.value.length === 0) return
+
+  bulkActionPending.value = true
+  const success = await bulkOperation(selectedIds.value, 'MOVE', undefined, targetProjectIdForBulk.value)
+  bulkActionPending.value = false
+
+  if (success) {
+    showBulkMoveModal.value = false
+    targetProjectIdForBulk.value = undefined
+    selectedIds.value = []
+    fetchPublications()
+  }
+}
+
+const projectsForMove = computed(() => projects.value.map(p => ({
+  id: p.id,
+  name: p.name
+})))
 
 async function handleBulkAction(operation: string, status?: string) {
   if (selectedIds.value.length === 0) return
@@ -745,6 +767,18 @@ async function handleDelete() {
             </UButton>
           </UDropdownMenu>
 
+          <!-- Move to project -->
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-folder-plus"
+            size="sm"
+            @click="showBulkMoveModal = true"
+            :loading="bulkActionPending"
+          >
+            {{ t('publication.bulk.moveToProject') }}
+          </UButton>
+
           <!-- Delete -->
           <UButton
             color="error"
@@ -797,4 +831,37 @@ async function handleDelete() {
     :loading="bulkActionPending"
     @confirm="handleBulkAction('DELETE')"
   />
+
+  <!-- Bulk Move Modal -->
+  <UiConfirmModal
+    v-if="showBulkMoveModal"
+    v-model:open="showBulkMoveModal"
+    :title="t('publication.bulk.moveTitle')"
+    :description="t('publication.bulk.moveDescription', { count: selectedIds.length })"
+    :confirm-text="t('common.confirm')"
+    color="primary"
+    icon="i-heroicons-folder-plus"
+    :loading="bulkActionPending"
+    :disable-confirm="!targetProjectIdForBulk"
+    @confirm="handleBulkMove"
+  >
+    <template #default>
+      <div class="mt-4">
+        <USelectMenu
+          v-model="targetProjectIdForBulk"
+          :items="projectsForMove"
+          value-key="id"
+          label-key="name"
+          :placeholder="t('publication.selectProject')"
+          class="w-full"
+          searchable
+          :search-placeholder="t('common.search')"
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-folder" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
+      </div>
+    </template>
+  </UiConfirmModal>
 </template>

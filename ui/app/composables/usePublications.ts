@@ -335,12 +335,13 @@ export function usePublications() {
     ids: string[],
     operation: string,
     status?: string,
+    targetProjectId?: string,
   ): Promise<boolean> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      await api.post('/publications/bulk', { ids, operation, status });
+      await api.post('/publications/bulk', { ids, operation, status, targetProjectId });
 
       toast.add({
         title: t('common.success'),

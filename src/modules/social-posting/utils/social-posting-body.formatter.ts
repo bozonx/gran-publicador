@@ -55,7 +55,7 @@ export class SocialPostingBodyFormatter {
       { enabled: true, insert: 'authorComment', before: '', after: '' },
       { enabled: true, insert: 'authorSignature', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
-      { enabled: true, insert: 'custom', before: '', after: '', content: '' },
+      { enabled: false, insert: 'custom', before: '', after: '', content: '' },
       { enabled: true, insert: 'footer', before: '', after: '' },
     ];
   }
@@ -137,6 +137,10 @@ export class SocialPostingBodyFormatter {
 
     // Join all blocks with double newline (one empty line between them)
     let result = formattedBlocks.join('\n\n');
+
+    // Replace placeholders
+    const signature = data.authorSignature || '';
+    result = result.replace(/\{\{authorSignature\}\}/g, signature);
 
     return result.trim().replace(/\n{3,}/g, '\n\n');
   }
