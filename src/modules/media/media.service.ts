@@ -23,6 +23,7 @@ import {
   DEFAULT_MICROSERVICE_TIMEOUT_MS,
   TELEGRAM_MEDIA_PROXY_RETRY_COUNT,
   TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS,
+  TELEGRAM_MEDIA_PROXY_RETRY_JITTER_RATIO,
 } from '../../common/constants/global.constants.js';
 
 /**
@@ -32,8 +33,46 @@ import {
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
 
+  private static readonly TELEGRAM_RETRY_META = Symbol('telegram_retry_meta');
+
   private async sleep(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private getJitteredDelayMs(baseDelayMs: number): number {
+    const ratio = TELEGRAM_MEDIA_PROXY_RETRY_JITTER_RATIO;
+    if (!ratio || ratio <= 0) return baseDelayMs;
+    const delta = baseDelayMs * ratio;
+    const jittered = baseDelayMs + (Math.random() * 2 - 1) * delta;
+    return Math.max(0, Math.round(jittered));
+  }
+
+  private isTelegramRetryableHttpStatus(statusCode: number): boolean {
+    return statusCode === 429 || statusCode >= 500;
+  }
+
+  private isRetryableTelegramError(error: unknown): boolean {
+    if (this.isTimeoutError(error) || this.isConnectionError(error)) return true;
+    return false;
+  }
+
+  private getTelegramRetryAfterSeconds(error: unknown): number | undefined {
+    const meta = (error as any)?.[MediaService.TELEGRAM_RETRY_META] as
+      | { retryAfterSeconds?: number }
+      | undefined;
+    if (!meta) return undefined;
+    if (typeof meta.retryAfterSeconds !== 'number' || meta.retryAfterSeconds <= 0) return undefined;
+    return meta.retryAfterSeconds;
+  }
+
+  private resolveTelegramRetryDelayMs(params: {
+    baseDelayMs: number;
+    retryAfterSeconds?: number;
+  }): number {
+    const jitteredBase = this.getJitteredDelayMs(params.baseDelayMs);
+    if (!params.retryAfterSeconds || params.retryAfterSeconds <= 0) return jitteredBase;
+    const retryAfterMs = params.retryAfterSeconds * 1000;
+    return Math.max(retryAfterMs, jitteredBase);
   }
 
   constructor(
@@ -659,12 +698,54 @@ export class MediaService {
           bodyTimeout: timeoutMs,
         });
 
+        if (getFileResponse.statusCode >= 400) {
+          if (!this.isTelegramRetryableHttpStatus(getFileResponse.statusCode)) {
+            throw new BadGatewayException(
+              `Telegram getFile returned HTTP ${getFileResponse.statusCode}`,
+            );
+          }
+
+          throw new ServiceUnavailableException(
+            `Telegram getFile returned HTTP ${getFileResponse.statusCode}`,
+          );
+        }
+
         const getFileData = (await getFileResponse.body.json()) as any;
 
-        if (!getFileData.ok || !getFileData.result?.file_path) {
-          this.logger.warn(
-            `File not found in Telegram (getFile failed): ${fileId}. Response: ${JSON.stringify(getFileData)}`,
+        if (getFileData?.ok === false) {
+          const errorCode: number | undefined =
+            typeof getFileData?.error_code === 'number' ? getFileData.error_code : undefined;
+          const retryAfterSeconds: number | undefined =
+            typeof getFileData?.parameters?.retry_after === 'number'
+              ? getFileData.parameters.retry_after
+              : undefined;
+
+          if (errorCode === 429) {
+            const delayMs = this.resolveTelegramRetryDelayMs({
+              baseDelayMs: TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS,
+              retryAfterSeconds,
+            });
+            const err = new ServiceUnavailableException(
+              `Telegram rate limit exceeded. Retry after ${Math.ceil(delayMs / 1000)} seconds`,
+            ) as any;
+            err[MediaService.TELEGRAM_RETRY_META] = { retryAfterSeconds };
+            throw err as ServiceUnavailableException;
+          }
+
+          if (typeof errorCode === 'number' && errorCode >= 500) {
+            throw new ServiceUnavailableException(`Telegram getFile returned ${errorCode}`);
+          }
+
+          if (errorCode === 404) {
+            throw new NotFoundException('File not found in Telegram');
+          }
+
+          throw new BadGatewayException(
+            `Telegram getFile failed: ${getFileData?.description || 'Unknown error'}`,
           );
+        }
+
+        if (!getFileData?.result?.file_path) {
           throw new NotFoundException('File not found in Telegram');
         }
 
@@ -677,11 +758,18 @@ export class MediaService {
         });
 
         if (downloadResponse.statusCode >= 400) {
-          this.logger.error(
-            `Failed to download from Telegram: ${downloadUrl} (status: ${downloadResponse.statusCode})`,
-          );
-          throw new InternalServerErrorException(
-            'Failed to download content from Telegram servers',
+          if (downloadResponse.statusCode === 404) {
+            throw new NotFoundException('File not found in Telegram');
+          }
+
+          if (!this.isTelegramRetryableHttpStatus(downloadResponse.statusCode)) {
+            throw new BadGatewayException(
+              `Telegram file download returned HTTP ${downloadResponse.statusCode}`,
+            );
+          }
+
+          throw new ServiceUnavailableException(
+            `Telegram file download returned HTTP ${downloadResponse.statusCode}`,
           );
         }
 
@@ -698,13 +786,33 @@ export class MediaService {
       } catch (error) {
         lastError = error;
 
-        if (attempt < maxAttempts) {
+        const shouldRetry =
+          attempt < maxAttempts &&
+          (this.isRetryableTelegramError(error) || error instanceof ServiceUnavailableException);
+
+        if (shouldRetry) {
+          const retryAfterSeconds = this.getTelegramRetryAfterSeconds(error);
+          const delayMs = this.resolveTelegramRetryDelayMs({
+            baseDelayMs: TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS,
+            retryAfterSeconds,
+          });
+
           this.logger.warn(
-            `Telegram file retrieval failed for ${fileId} (attempt ${attempt}/${maxAttempts}): ${(error as Error).message}. Retrying in ${TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS}ms`,
+            `Telegram file retrieval failed for ${fileId} (attempt ${attempt}/${maxAttempts}): ${(error as Error).message}. Retrying in ${delayMs}ms`,
           );
-          await this.sleep(TELEGRAM_MEDIA_PROXY_RETRY_DELAY_MS);
+          await this.sleep(delayMs);
           continue;
         }
+
+        if (error instanceof HttpException) {
+          throw error;
+        }
+
+        this.logger.error(
+          `Error during Telegram file retrieval: ${(error as Error).message}`,
+          (error as Error).stack,
+        );
+        throw new InternalServerErrorException(`Telegram proxy error: ${(error as Error).message}`);
       }
     }
 
