@@ -879,6 +879,19 @@ async function executePublish() {
             <div class="flex flex-col md:flex-row gap-6">
                 <!-- Column 1 (60%) -->
                 <div class="w-full md:w-[60%] space-y-6">
+                    <!-- Scheduled At (Custom for post) -->
+                    <UFormField :label="t('post.scheduledAt')">
+                        <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
+                            <UInput 
+                                v-model="formData.scheduledAt" 
+                                type="datetime-local" 
+                                class="w-full" 
+                                icon="i-heroicons-clock" 
+                                :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
+                            />
+                        </UTooltip>
+                    </UFormField>
+
                     <!-- Tags (Override) -->
                     <UFormField :label="t('post.tags')">
                         <UInput 
@@ -889,93 +902,80 @@ async function executePublish() {
                         />
                     </UFormField>
 
-                <!-- Author Signature Editor -->
-                <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                          {{ t('post.authorSignature', 'Author Signature') }}
-                        </label>
-                        <AuthorSignatureSelector
-                            :channel-id="formData.channelId || props.post?.channelId || null"
-                            :disabled="isLoading"
-                            minimal
-                            @select="(content) => formData.authorSignature = content"
-                        />
-                    </div>
-                    <UTextarea
-                        v-model="formData.authorSignature"
-                        :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
-                        :disabled="isLoading"
-                        :rows="3"
-                        class="w-full"
-                    />
-                </div>
-            </div>
-
-            <!-- Column 2 (40%) -->
-            <div class="w-full md:w-[40%] space-y-6">
-                <!-- Scheduled At (Custom for post) -->
-                <UFormField :label="t('post.scheduledAt')">
-                    <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
-                        <UInput 
-                            v-model="formData.scheduledAt" 
-                            type="datetime-local" 
-                            class="w-full" 
-                            icon="i-heroicons-clock" 
-                            :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
-                        />
-                    </UTooltip>
-                </UFormField>
-
-                <!-- Platform Specific Options -->
-                <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'">
-                    <UFormField :label="t('post.options.title', 'Platform Options')">
-                        <div class="flex items-center gap-2 py-1">
-                            <UCheckbox 
-                            v-model="formData.platformOptions.disableNotification" 
-                            :label="t('post.options.disableNotification')" 
+                    <!-- Author Signature Editor -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                              {{ t('post.authorSignature', 'Author Signature') }}
+                            </label>
+                            <AuthorSignatureSelector
+                                :channel-id="formData.channelId || props.post?.channelId || null"
+                                :disabled="isLoading"
+                                minimal
+                                @select="(content) => formData.authorSignature = content"
                             />
                         </div>
-                    </UFormField>
+                        <UTextarea
+                            v-model="formData.authorSignature"
+                            :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
+                            :disabled="isLoading"
+                            :rows="3"
+                            class="w-full"
+                        />
+                    </div>
                 </div>
 
-                <!-- Template Selector -->
-                <UFormField 
-                    v-if="availableTemplates.length > 0"
-                    :label="t('post.template')" 
-                    :error="isTemplateMissing ? t('post.errorTemplateDeleted', 'Template was deleted, using system default') : undefined"
-                >
-                    <USelectMenu
-                        v-model="formData.template"
-                        :items="availableTemplates"
-                        value-key="value"
-                        label-key="label"
-                        class="w-full"
-                        :placeholder="t('post.selectTemplate', 'Select template...')"
-                        :color="isTemplateMissing ? 'warning' : 'neutral'"
+                <!-- Column 2 (40%) -->
+                <div class="w-full md:w-[40%] space-y-6">
+                    <!-- Template Selector -->
+                    <UFormField 
+                        v-if="availableTemplates.length > 0"
+                        :label="t('post.template')" 
+                        :error="isTemplateMissing ? t('post.errorTemplateDeleted', 'Template was deleted, using system default') : undefined"
                     >
-                    </USelectMenu>
-                </UFormField>
+                        <USelectMenu
+                            v-model="formData.template"
+                            :items="availableTemplates"
+                            value-key="value"
+                            label-key="label"
+                            class="w-full"
+                            :placeholder="t('post.selectTemplate', 'Select template...')"
+                            :color="isTemplateMissing ? 'warning' : 'neutral'"
+                        >
+                        </USelectMenu>
+                    </UFormField>
 
-                <!-- Footer Selector -->
-                <UFormField 
-                    v-if="availableFooters.length > 1"
-                    :label="t('channel.footers', 'Footers')" 
-                    :error="isFooterMissing ? t('post.errorFooterDeleted', 'Selected footer was deleted, it will be skipped') : undefined"
-                >
-                    <USelectMenu
-                        v-model="formData.footerId"
-                        :items="availableFooters"
-                        value-key="value"
-                        label-key="label"
-                        class="w-full"
-                        :placeholder="t('post.selectFooter', 'Select footer...')"
-                        :color="isFooterMissing ? 'warning' : 'neutral'"
+                    <!-- Footer Selector -->
+                    <UFormField 
+                        v-if="availableFooters.length > 1"
+                        :label="t('channel.footers', 'Footers')" 
+                        :error="isFooterMissing ? t('post.errorFooterDeleted', 'Selected footer was deleted, it will be skipped') : undefined"
                     >
-                    </USelectMenu>
-                </UFormField>
+                        <USelectMenu
+                            v-model="formData.footerId"
+                            :items="availableFooters"
+                            value-key="value"
+                            label-key="label"
+                            class="w-full"
+                            :placeholder="t('post.selectFooter', 'Select footer...')"
+                            :color="isFooterMissing ? 'warning' : 'neutral'"
+                        >
+                        </USelectMenu>
+                    </UFormField>
+
+                    <!-- Platform Specific Options -->
+                    <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'">
+                        <UFormField :label="t('post.options.title', 'Platform Options')">
+                            <div class="flex items-center gap-2 py-1">
+                                <UCheckbox 
+                                v-model="formData.platformOptions.disableNotification" 
+                                :label="t('post.options.disableNotification')" 
+                                />
+                            </div>
+                        </UFormField>
+                    </div>
+                </div>
             </div>
-       </div>
        </div>
        
        <!-- Post Content (Override) -->
