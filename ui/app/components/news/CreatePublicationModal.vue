@@ -331,13 +331,21 @@ function handleUseNewsData(clearError = true) {
     v-model:open="isOpen"
     :title="t('publication.create')"
     class="w-full max-w-4xl"
+    :prevent-close="isCreating"
+    :close-button="!isCreating"
   >
-    <div class="space-y-6 min-h-[300px]">
+    <div class="space-y-6 min-h-[300px] relative">
+      <!-- Loading news content spinner -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-12 h-full">
          <UiLoadingSpinner size="xl" color="primary" :label="t('common.loading')" centered />
       </div>
+
+      <!-- Creating publication spinner (overlay) -->
+      <div v-if="isCreating" class="absolute inset-x-0 inset-y-[-24px] z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-xs rounded-2xl">
+         <UiLoadingSpinner size="xl" color="primary" :label="t('common.saving')" centered />
+      </div>
       
-      <div v-else class="space-y-6">
+      <div v-else-if="!isLoading" class="space-y-6">
         <!-- Error Banner -->
         <div v-if="error" class="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-100 dark:border-red-900/30 flex items-start gap-3">
            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 shrink-0 mt-0.5" />

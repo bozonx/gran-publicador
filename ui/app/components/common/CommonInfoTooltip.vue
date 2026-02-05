@@ -10,15 +10,10 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <UPopover :popper="{ placement }">
+  <UTooltip :text="text" :popper="{ placement }" class="inline-flex items-center align-middle ml-1">
     <UIcon
       name="i-heroicons-information-circle"
       class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help transition-colors"
     />
-    <template #content>
-      <div class="p-3 max-w-xs text-xs whitespace-pre-line">
-        {{ text }}
-      </div>
-    </template>
-  </UPopover>
+  </UTooltip>
 </template>

@@ -322,10 +322,10 @@ async function handleDragEnd() {
 
         <UFormField required>
           <template #label>
-            <div class="flex items-center gap-1.5">
-              <span>{{ t('post.contentLabel') }}</span>
+            <span class="inline-flex items-center gap-1.5">
+              {{ t('post.contentLabel') }}
               <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
-            </div>
+            </span>
           </template>
           <UTextarea
             v-model="form.content"
