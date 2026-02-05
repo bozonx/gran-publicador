@@ -12,7 +12,7 @@ export class ShutdownService implements OnApplicationShutdown {
   private shutdownTimeout: number;
 
   constructor(private readonly configService: ConfigService) {
-    const appConfig = this.configService.get<any>('app');
+    const appConfig = this.configService.get('app');
     this.shutdownTimeout = (appConfig?.shutdownTimeoutSeconds ?? 30) * 1000;
   }
 
@@ -33,10 +33,9 @@ export class ShutdownService implements OnApplicationShutdown {
     const shutdownPromise = this.performShutdown();
     let timeoutId: NodeJS.Timeout;
     const timeoutPromise = new Promise<void>((_, reject) => {
-      timeoutId = setTimeout(
-        () => reject(new Error('Shutdown timeout exceeded')),
-        this.shutdownTimeout,
-      );
+      timeoutId = setTimeout(() => {
+        reject(new Error('Shutdown timeout exceeded'));
+      }, this.shutdownTimeout);
     });
 
     try {

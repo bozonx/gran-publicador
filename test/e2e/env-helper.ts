@@ -23,7 +23,7 @@ export function saveEnvVars(...keys: string[]): EnvSnapshot {
 export function restoreEnvVars(snapshot: EnvSnapshot): void {
   for (const [key, value] of Object.entries(snapshot)) {
     if (value === undefined) {
-      delete process.env[key];
+      Reflect.deleteProperty(process.env, key);
     } else {
       process.env[key] = value;
     }
@@ -40,7 +40,9 @@ export function withEnvVars(vars: Record<string, string>): () => void {
     process.env[key] = value;
   }
 
-  return () => restoreEnvVars(snapshot);
+  return () => {
+    restoreEnvVars(snapshot);
+  };
 }
 
 /**

@@ -10,7 +10,7 @@ import { jest } from '@jest/globals';
 
 describe('LlmPromptTemplatesController', () => {
   let controller: LlmPromptTemplatesController;
-  let service: LlmPromptTemplatesService;
+  let _service: LlmPromptTemplatesService;
 
   const mockService = {
     create: jest.fn() as any,
@@ -46,7 +46,7 @@ describe('LlmPromptTemplatesController', () => {
     }).compile();
 
     controller = module.get<LlmPromptTemplatesController>(LlmPromptTemplatesController);
-    service = module.get<LlmPromptTemplatesService>(LlmPromptTemplatesService);
+    _service = module.get<LlmPromptTemplatesService>(LlmPromptTemplatesService);
   });
 
   afterEach(() => {
@@ -61,12 +61,18 @@ describe('LlmPromptTemplatesController', () => {
         prompt: 'Test prompt',
       };
 
-      const created = { id: 'template-1', ...dto, order: 0 };
+      const created = {
+        id: 'template-1',
+        userId: dto.userId,
+        name: dto.name,
+        prompt: dto.prompt,
+        order: 0,
+      };
       mockService.create.mockResolvedValue(created);
 
       const result = await controller.create(dto);
 
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(mockService.create).toHaveBeenCalledWith(dto);
       expect(result).toEqual(created);
     });
   });
@@ -82,14 +88,14 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.findAllByUser('user-1', mockRequest);
 
-      expect(service.findAllByUser).toHaveBeenCalledWith('user-1');
+      expect(mockService.findAllByUser).toHaveBeenCalledWith('user-1');
       expect(result).toEqual(templates);
     });
 
     it('should throw ForbiddenException when user requests other user templates', () => {
       expect(() => controller.findAllByUser('other-user', mockRequest)).toThrow(ForbiddenException);
 
-      expect(service.findAllByUser).not.toHaveBeenCalled();
+      expect(mockService.findAllByUser).not.toHaveBeenCalled();
     });
   });
 
@@ -104,7 +110,7 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.findAllByProject('project-1', mockRequest);
 
-      expect(service.findAllByProject).toHaveBeenCalledWith('project-1');
+      expect(mockService.findAllByProject).toHaveBeenCalledWith('project-1');
       expect(result).toEqual(templates);
     });
   });
@@ -117,7 +123,7 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.findOne('template-1');
 
-      expect(service.findOne).toHaveBeenCalledWith('template-1');
+      expect(mockService.findOne).toHaveBeenCalledWith('template-1');
       expect(result).toEqual(template);
     });
   });
@@ -128,12 +134,12 @@ describe('LlmPromptTemplatesController', () => {
         name: 'Updated Name',
       };
 
-      const updated = { id: 'template-1', ...dto };
+      const updated = { id: 'template-1', name: dto.name };
       mockService.update.mockResolvedValue(updated);
 
       const result = await controller.update('template-1', dto);
 
-      expect(service.update).toHaveBeenCalledWith('template-1', dto);
+      expect(mockService.update).toHaveBeenCalledWith('template-1', dto);
       expect(result).toEqual(updated);
     });
   });
@@ -145,7 +151,7 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.remove('template-1');
 
-      expect(service.remove).toHaveBeenCalledWith('template-1');
+      expect(mockService.remove).toHaveBeenCalledWith('template-1');
       expect(result).toEqual(deleted);
     });
   });
@@ -160,7 +166,7 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.reorder(dto, mockRequest);
 
-      expect(service.reorder).toHaveBeenCalledWith(dto.ids, 'user-1');
+      expect(mockService.reorder).toHaveBeenCalledWith(dto.ids, 'user-1');
       expect(result).toEqual({ success: true });
     });
   });

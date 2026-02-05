@@ -6,7 +6,7 @@ import { jest } from '@jest/globals';
 
 describe('LlmController', () => {
   let controller: LlmController;
-  let service: LlmService;
+  let _service: LlmService;
 
   const mockLlmService = {
     generateContent: jest.fn() as any,
@@ -25,7 +25,7 @@ describe('LlmController', () => {
     }).compile();
 
     controller = module.get<LlmController>(LlmController);
-    service = module.get<LlmService>(LlmService);
+    _service = module.get<LlmService>(LlmService);
   });
 
   afterEach(() => {
@@ -73,8 +73,8 @@ describe('LlmController', () => {
 
       const result = await controller.generate(dto);
 
-      expect(service.generateContent).toHaveBeenCalledWith(dto);
-      expect(service.extractContent).toHaveBeenCalledWith(mockResponse);
+      expect(mockLlmService.generateContent).toHaveBeenCalledWith(dto);
+      expect(mockLlmService.extractContent).toHaveBeenCalledWith(mockResponse);
       expect(result).toEqual({
         content: 'Generated content',
         metadata: mockResponse._router,

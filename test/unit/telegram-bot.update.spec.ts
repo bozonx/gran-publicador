@@ -51,8 +51,8 @@ describe('TelegramBotUpdate', () => {
     const i18n = {
       t: jest.fn((key: string, options?: any) => {
         const args = options?.args ?? {};
-        if (key === 'telegram.command_not_found') return `cmd:${args.command}`;
-        if (key === 'telegram.user_banned') return `banned:${args.reason}`;
+        if (key === 'telegram.command_not_found') return `cmd:${String(args.command)}`;
+        if (key === 'telegram.user_banned') return `banned:${String(args.reason)}`;
         return key;
       }),
     };

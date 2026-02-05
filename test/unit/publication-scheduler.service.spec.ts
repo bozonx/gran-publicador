@@ -56,7 +56,7 @@ describe('PublicationSchedulerService', () => {
   let service: PublicationSchedulerService;
   let prisma: typeof mockPrismaService;
   let socialPostingService: typeof mockSocialPostingService;
-  let module: TestingModule;
+  let module: TestingModule | undefined;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -78,9 +78,8 @@ describe('PublicationSchedulerService', () => {
   });
 
   afterEach(async () => {
-    if (module) {
-      await module.close();
-    }
+    await module?.close();
+    module = undefined;
   });
 
   it('should mark publication as EXPIRED if scheduledAt is too old and no posts', async () => {

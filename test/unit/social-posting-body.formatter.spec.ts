@@ -7,7 +7,6 @@ describe('SocialPostingBodyFormatter', () => {
       footers: [
         { id: 'f1', name: 'Footer 1', content: 'Footer 1 Content', isDefault: false },
         { id: 'f2', name: 'Default Footer', content: 'Default Footer Content', isDefault: true },
-        // @ts-ignore
         { id: 'f3', name: 'Empty Footer', content: '', isDefault: false },
       ],
       templates: [
@@ -95,7 +94,6 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT1);
     expect(result).toContain('Main Content');
     expect(result).toContain('Footer 1 Content');
@@ -111,7 +109,6 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT2);
     expect(result).toContain('Main Content');
     expect(result).toContain('Default Footer Content');
@@ -127,7 +124,6 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT3);
     expect(result).toContain('Main Content');
     expect(result).not.toContain('Footer 1 Content');
@@ -143,7 +139,6 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelNoTemplates);
     expect(result).toContain('Main Content');
     expect(result).toContain('Default Footer Content');
@@ -158,7 +153,6 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT4);
     expect(result).toBe('Main Content');
   });
@@ -172,7 +166,6 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithT5);
     expect(result).toBe('Main Content\n\nNote: Author Note');
   });
@@ -191,7 +184,6 @@ describe('SocialPostingBodyFormatter', () => {
       authorSignature: 'John Doe',
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(dataWithSignature, channelWithT6);
     expect(result).toBe('Main Content\n\nBy: John Doe');
   });
@@ -222,20 +214,17 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, channelWithCustom);
     expect(result).toBe('Written by {{authorSignature}}');
   });
 
   it('should support explicit footerOverride', () => {
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, 'f1');
     expect(result).toContain('Main Content');
     expect(result).toContain('Footer 1 Content');
   });
 
   it('should skip footer if footerOverride is non-existent', () => {
-    // @ts-ignore
     const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, 'deleted-footer');
     expect(result).toContain('Main Content');
     expect(result).not.toContain('Footer 1 Content');

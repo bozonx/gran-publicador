@@ -8,7 +8,6 @@ import { jest } from '@jest/globals';
 
 describe('LlmPromptTemplatesService', () => {
   let service: LlmPromptTemplatesService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     llmPromptTemplate: {
@@ -34,7 +33,6 @@ describe('LlmPromptTemplatesService', () => {
     }).compile();
 
     service = module.get<LlmPromptTemplatesService>(LlmPromptTemplatesService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -55,7 +53,9 @@ describe('LlmPromptTemplatesService', () => {
 
       mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
         id: 'template-1',
-        ...dto,
+        userId: dto.userId,
+        name: dto.name,
+        prompt: dto.prompt,
         category: 'GENERAL',
         order: 3,
         createdAt: new Date(),
@@ -64,14 +64,16 @@ describe('LlmPromptTemplatesService', () => {
 
       const result = await service.create(dto);
 
-      expect(prisma.llmPromptTemplate.aggregate).toHaveBeenCalledWith({
+      expect(mockPrismaService.llmPromptTemplate.aggregate).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         _max: { order: true },
       });
 
-      expect(prisma.llmPromptTemplate.create).toHaveBeenCalledWith({
+      expect(mockPrismaService.llmPromptTemplate.create).toHaveBeenCalledWith({
         data: {
-          ...dto,
+          userId: dto.userId,
+          name: dto.name,
+          prompt: dto.prompt,
           order: 3,
         },
       });
@@ -92,7 +94,9 @@ describe('LlmPromptTemplatesService', () => {
 
       mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
         id: 'template-1',
-        ...dto,
+        projectId: dto.projectId,
+        name: dto.name,
+        prompt: dto.prompt,
         category: 'GENERAL',
         order: 0,
         createdAt: new Date(),
@@ -147,7 +151,7 @@ describe('LlmPromptTemplatesService', () => {
 
       const result = await service.findAllByUser('user-1');
 
-      expect(prisma.llmPromptTemplate.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.llmPromptTemplate.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         orderBy: { order: 'asc' },
       });
@@ -167,7 +171,7 @@ describe('LlmPromptTemplatesService', () => {
 
       const result = await service.findAllByProject('project-1');
 
-      expect(prisma.llmPromptTemplate.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.llmPromptTemplate.findMany).toHaveBeenCalledWith({
         where: { projectId: 'project-1' },
         orderBy: { order: 'asc' },
       });
@@ -208,7 +212,8 @@ describe('LlmPromptTemplatesService', () => {
 
       mockPrismaService.llmPromptTemplate.update.mockResolvedValue({
         id: 'template-1',
-        ...updateDto,
+        name: updateDto.name,
+        prompt: updateDto.prompt,
       });
 
       const result = await service.update('template-1', updateDto);
@@ -241,7 +246,7 @@ describe('LlmPromptTemplatesService', () => {
 
       const result = await service.remove('template-1');
 
-      expect(prisma.llmPromptTemplate.delete).toHaveBeenCalledWith({
+      expect(mockPrismaService.llmPromptTemplate.delete).toHaveBeenCalledWith({
         where: { id: 'template-1' },
       });
 
@@ -258,7 +263,7 @@ describe('LlmPromptTemplatesService', () => {
         id,
         userId,
         projectId: null,
-        name: `Template ${index}`,
+        name: `Template ${String(index)}`,
         order: index,
       }));
 
@@ -268,7 +273,7 @@ describe('LlmPromptTemplatesService', () => {
       const result = await service.reorder(ids, userId);
 
       expect(result.success).toBe(true);
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
     });
 
     it('should reorder project templates for project member', async () => {
@@ -280,7 +285,7 @@ describe('LlmPromptTemplatesService', () => {
         id,
         userId: null,
         projectId,
-        name: `Template ${index}`,
+        name: `Template ${String(index)}`,
         order: index,
         project: {
           ownerId: 'other-user',

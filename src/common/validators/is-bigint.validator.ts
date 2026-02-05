@@ -24,7 +24,7 @@ export class IsBigIntConstraint implements ValidatorConstraintInterface {
  * Decorator to validate that a value is a BigInt.
  */
 export function IsBigInt(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -58,7 +58,7 @@ export class MinBigIntConstraint implements ValidatorConstraintInterface {
  * Decorator to validate minimum BigInt value.
  */
 export function MinBigInt(minValue: number | bigint, validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,

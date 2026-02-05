@@ -128,7 +128,7 @@ describe('AuthService (unit)', () => {
 
     it('should throw UnauthorizedException if hash is invalid', async () => {
       const authDate = Math.floor(Date.now() / 1000);
-      const initData = `user=%7B%22id%22%3A123%7D&hash=invalid_hash&auth_date=${authDate}`;
+      const initData = `user=%7B%22id%22%3A123%7D&hash=invalid_hash&auth_date=${String(authDate)}`;
 
       await expect(service.loginWithTelegram(initData)).rejects.toThrow(UnauthorizedException);
       expect(mockUsersService.findOrCreateTelegramUser).not.toHaveBeenCalled();

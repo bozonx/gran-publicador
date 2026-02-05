@@ -11,9 +11,7 @@ describe('Health (e2e)', () => {
 
   afterEach(async () => {
     // Clean up app instance after each test
-    if (app) {
-      await app.close();
-    }
+    await app.close();
   });
 
   describe('GET /api/v1/health', () => {
