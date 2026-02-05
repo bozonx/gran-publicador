@@ -52,12 +52,6 @@ async function onAddMedia(media: any[]) {
   }
 }
 
-async function onRemoveMedia(mediaLinkId: string) {
-  if (!props.contentItemId || !props.modelValue.id) return
-  await api.delete(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media/${mediaLinkId}`)
-  emit('refresh')
-}
-
 async function onReorderMedia(reorderData: any[]) {
   if (!props.contentItemId || !props.modelValue.id) return
   await api.patch(`/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media/reorder`, {

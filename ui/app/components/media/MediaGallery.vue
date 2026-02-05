@@ -522,11 +522,6 @@ const hasNextMedia = computed(() => {
   return currentMediaIndex.value >= 0 && currentMediaIndex.value < localMedia.value.length - 1
 })
 
-const selectedItem = computed(() => {
-  if (currentMediaIndex.value === -1) return null
-  return localMedia.value[currentMediaIndex.value]
-})
-
 function openMediaModal(item: MediaLinkItem) {
   if (!item.media) return
   selectedMedia.value = item.media
@@ -933,13 +928,13 @@ const mediaValidation = computed(() => {
                       @click.stop="handleDeleteClick(item.media.id)"
                     />
                     <UButton
-                      v-if="props.onCopy"
+                      v-if="props.onCopy && item.id"
                       icon="i-heroicons-document-duplicate"
                       color="neutral"
                       variant="solid"
                       size="xs"
                       :title="t('contentLibrary.actions.copyToItem')"
-                      @click.stop="props.onCopy(item.id!)"
+                      @click.stop="props.onCopy(item.id)"
                     />
                   </div>
 
