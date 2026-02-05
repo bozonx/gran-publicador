@@ -1595,9 +1595,11 @@ const executeMoveToProject = async () => {
           :label="t('contentLibrary.fields.tags', 'Tags')"
           class="w-full"
         >
-          <UInput 
+          <CommonInputTags
             v-model="editForm.tags"
             :placeholder="t('contentLibrary.fields.tagsPlaceholder', 'Comma separated tags...')"
+            color="neutral"
+            variant="outline"
             class="w-full"
           />
         </UFormField>

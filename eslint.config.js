@@ -1,64 +1,46 @@
 import eslint from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import { defineConfig } from 'eslint/config';
+import globals from 'globals';
 import prettier from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 import jest from 'eslint-plugin-jest';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default defineConfig(
     // Ignore patterns
     {
         ignores: ['dist/', 'node_modules/', 'coverage/', '.eslintrc.cjs'],
     },
-
     // Base ESLint recommended rules
     eslint.configs.recommended,
 
-    // TypeScript files configuration
+    // TypeScript ESLint (typed linting)
+    ...tseslint.configs.recommendedTypeChecked,
+    ...tseslint.configs.strictTypeChecked,
+
     {
         files: ['**/*.ts'],
         languageOptions: {
-            parser: tsparser,
+            parser: tseslint.parser,
             parserOptions: {
-                project: ['./tsconfig.eslint.json', './tsconfig.json'],
+                projectService: true,
                 tsconfigRootDir: import.meta.dirname,
                 sourceType: 'module',
-                ecmaVersion: 2022,
+                ecmaVersion: 'latest',
             },
             globals: {
-                // Node.js globals
-                process: 'readonly',
-                __dirname: 'readonly',
-                __filename: 'readonly',
-                Buffer: 'readonly',
-                console: 'readonly',
-                module: 'readonly',
-                require: 'readonly',
-                exports: 'readonly',
-                global: 'readonly',
-                // ES2022 globals
-                Promise: 'readonly',
-                Symbol: 'readonly',
-                WeakMap: 'readonly',
-                WeakSet: 'readonly',
-                Map: 'readonly',
-                Set: 'readonly',
-                Proxy: 'readonly',
-                Reflect: 'readonly',
+                ...globals.node,
             },
         },
         plugins: {
-            '@typescript-eslint': tseslint,
+            '@typescript-eslint': tseslint.plugin,
             prettier,
-            jest,
         },
         rules: {
             // Prettier integration
             'prettier/prettier': 'error',
 
-            // TypeScript specific rules
-            '@typescript-eslint/explicit-function-return-type': 'off',
-            '@typescript-eslint/explicit-module-boundary-types': 'off',
+            // Project conventions
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/no-unused-vars': [
                 'warn',
@@ -70,11 +52,7 @@ export default [
             ],
             '@typescript-eslint/prefer-nullish-coalescing': 'warn',
             '@typescript-eslint/prefer-optional-chain': 'error',
-            '@typescript-eslint/no-floating-promises': 'error',
-            '@typescript-eslint/await-thenable': 'error',
-            '@typescript-eslint/no-misused-promises': 'error',
             '@typescript-eslint/require-await': 'warn',
-            '@typescript-eslint/no-unnecessary-type-assertion': 'error',
             '@typescript-eslint/prefer-as-const': 'error',
             '@typescript-eslint/no-non-null-assertion': 'warn',
             '@typescript-eslint/consistent-type-imports': [
@@ -84,7 +62,7 @@ export default [
             '@typescript-eslint/consistent-type-exports': 'error',
             '@typescript-eslint/no-import-type-side-effects': 'error',
 
-            // NestJS specific rules
+            // NestJS-ish convention
             '@typescript-eslint/explicit-member-accessibility': [
                 'warn',
                 {
@@ -99,7 +77,29 @@ export default [
                 },
             ],
 
-            // Jest specific rules
+            // General rules
+            'no-console': 'warn',
+            'no-debugger': 'error',
+            'no-undef': 'off',
+            'no-redeclare': 'off',
+            'prefer-const': 'error',
+            'no-var': 'error',
+            'no-unused-vars': 'off',
+        },
+    },
+
+    // Jest (tests only)
+    {
+        files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
+        plugins: {
+            jest,
+        },
+        languageOptions: {
+            globals: {
+                ...globals.jest,
+            },
+        },
+        rules: {
             'jest/no-disabled-tests': 'warn',
             'jest/no-focused-tests': 'error',
             'jest/no-identical-title': 'error',
@@ -109,35 +109,6 @@ export default [
             'jest/no-done-callback': 'error',
             'jest/valid-describe-callback': 'error',
 
-            // General rules
-            'no-console': 'warn',
-            'no-debugger': 'error',
-            'no-undef': 'off',
-            'no-redeclare': 'off',
-            'prefer-const': 'error',
-            'no-var': 'error',
-            'no-unused-vars': 'off', // Handled by @typescript-eslint/no-unused-vars
-        },
-    },
-
-    // Test files override
-    {
-        files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
-        languageOptions: {
-            globals: {
-                // Jest globals
-                jest: 'readonly',
-                describe: 'readonly',
-                it: 'readonly',
-                test: 'readonly',
-                expect: 'readonly',
-                beforeAll: 'readonly',
-                beforeEach: 'readonly',
-                afterAll: 'readonly',
-                afterEach: 'readonly',
-            },
-        },
-        rules: {
             '@typescript-eslint/no-unsafe-assignment': 'off',
             '@typescript-eslint/no-unsafe-member-access': 'off',
             '@typescript-eslint/no-unsafe-call': 'off',
@@ -151,4 +122,4 @@ export default [
 
     // Prettier config (must be last to override other configs)
     prettierConfig,
-];
+);
