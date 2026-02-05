@@ -113,6 +113,7 @@ export class PostsService {
       meta?: any;
       template?: any;
       platformOptions?: any;
+      footerId?: string | null;
       authorSignature?: string;
     },
   ) {
@@ -188,6 +189,7 @@ export class PostsService {
         meta: data.meta ?? {},
         template: data.template ?? null,
         platformOptions: data.platformOptions,
+        footerId: data.footerId ?? null,
         authorSignature: authorSignature || undefined,
         errorMessage,
       },
@@ -457,6 +459,7 @@ export class PostsService {
       meta?: any;
       template?: any;
       platformOptions?: any;
+      footerId?: string | null;
       authorSignature?: string | null;
     },
   ) {
@@ -563,6 +566,7 @@ export class PostsService {
         meta: data.meta,
         template: data.template,
         platformOptions: data.platformOptions,
+        footerId: data.footerId,
         authorSignature: data.authorSignature,
       },
       include: {

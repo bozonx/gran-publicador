@@ -20,6 +20,7 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
       },
       channel,
       post.template, // Pass the template override
+      post.footerId, // Pass the footer override
     );
 
     const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl, params.publicMediaBaseUrl, params.mediaService);

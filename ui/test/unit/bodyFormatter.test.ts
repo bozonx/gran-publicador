@@ -99,7 +99,7 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).toContain('Default Footer Content')
   })
 
-  it('should replace {{authorSignature}} placeholder', () => {
+  it('should NOT replace {{authorSignature}} placeholder', () => {
     const channelWithCustom = {
       preferences: {
         templates: [
@@ -123,7 +123,20 @@ describe('SocialPostingBodyFormatter', () => {
     }
 
     const result = SocialPostingBodyFormatter.format(mockData, channelWithCustom)
-    expect(result).toBe('Written by John Doe')
+    expect(result).toBe('Written by {{authorSignature}}')
+  })
+
+  it('should support explicit footerOverride', () => {
+    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, 'f1')
+    expect(result).toContain('Main Content')
+    expect(result).toContain('Footer 1 Content')
+  })
+
+  it('should skip footer if footerOverride is non-existent', () => {
+    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, 'non-existent')
+    expect(result).toContain('Main Content')
+    expect(result).not.toContain('Footer 1 Content')
+    expect(result).not.toContain('Default Footer Content')
   })
 
   it('should respect enabled/disabled blocks in template', () => {

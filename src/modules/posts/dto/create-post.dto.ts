@@ -56,5 +56,9 @@ export class CreatePostDto {
 
   @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
+  public footerId?: string | null;
+
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  @IsString()
   public authorSignature?: string;
 }

@@ -404,6 +404,8 @@ model Post {
   // Data received after publication (usually url or message id). Not editable by user.
   meta          Json
   template      Json?
+  // Footer ID reference (optional override for template's footer)
+  footerId      String? @map("footer_id")
   // Overwrite of publication content for this specific post
   content       String?
   // Platform-specific options (e.g., disableNotification for Telegram)

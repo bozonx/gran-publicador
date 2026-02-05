@@ -588,6 +588,9 @@
     "metadataPlaceholder": "Введите метаданные в YAML...",
     "template": "Шаблон",
     "selectTemplate": "Выберите шаблон...",
+    "selectFooter": "Выберите футер...",
+    "errorTemplateDeleted": "Шаблон был удален, используется системный шаблон",
+    "errorFooterDeleted": "Выбранный футер был удален, он не будет выведен",
     "authorSignature": "Подпись автора",
     "authorSignaturePlaceholder": "Введите подпись автора в формате Markdown...",
     "status": {

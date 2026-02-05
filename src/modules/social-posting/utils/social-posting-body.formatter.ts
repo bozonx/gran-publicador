@@ -67,6 +67,7 @@ export class SocialPostingBodyFormatter {
     data: PublicationData,
     channel: { language: string; preferences?: any },
     templateOverride?: { id: string } | null,
+    footerOverride?: string | null,
   ): string {
     const templates: ChannelPostTemplate[] = channel.preferences?.templates || [];
 
@@ -115,10 +116,30 @@ export class SocialPostingBodyFormatter {
           const footers: ChannelFooter[] = channel.preferences?.footers || [];
           let footerObj: ChannelFooter | undefined;
 
-          if (block.footerId) {
+          // Priority 1: Post-level footer override
+          if (footerOverride !== undefined && footerOverride !== null) {
+            if (footerOverride === 'none') {
+              value = '';
+              break;
+            }
+            footerObj = footers.find(f => f.id === footerOverride);
+            // If explicit override is problematic (deleted), we skip footer
+            if (!footerObj) {
+              value = '';
+              break;
+            }
+          }
+          // Priority 2: Template block's footerId
+          else if (block.footerId) {
             footerObj = footers.find(f => f.id === block.footerId);
-          } else {
-            // Find default footer if none specified in block
+            // If template references deleted footer, skip footer entirely
+            if (!footerObj) {
+              value = '';
+              break;
+            }
+          }
+          // Priority 3: Default footer
+          else {
             footerObj = footers.find(f => f.isDefault);
           }
 
@@ -136,11 +157,7 @@ export class SocialPostingBodyFormatter {
     }
 
     // Join all blocks with double newline (one empty line between them)
-    let result = formattedBlocks.join('\n\n');
-
-    // Replace placeholders
-    const signature = data.authorSignature || '';
-    result = result.replace(/\{\{authorSignature\}\}/g, signature);
+    const result = formattedBlocks.join('\n\n');
 
     return result.trim().replace(/\n{3,}/g, '\n\n');
   }

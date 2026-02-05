@@ -196,7 +196,7 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).toBe('Main Content\n\nBy: John Doe');
   });
 
-  it('should still support {{authorSignature}} placeholder', () => {
+  it('should NOT replace {{authorSignature}} placeholder', () => {
     const channelWithCustom = {
       ...mockChannel,
       preferences: {
@@ -205,6 +205,8 @@ describe('SocialPostingBodyFormatter', () => {
             id: 't_custom',
             name: 'Template with Placeholder',
             order: 0,
+            postType: null,
+            language: null,
             isDefault: true,
             template: [
               {
@@ -212,7 +214,7 @@ describe('SocialPostingBodyFormatter', () => {
                 insert: 'custom',
                 before: '',
                 after: '',
-                content: 'Signature: {{authorSignature}}',
+                content: 'Written by {{authorSignature}}',
               },
             ],
           },
@@ -220,12 +222,23 @@ describe('SocialPostingBodyFormatter', () => {
       },
     };
 
-    const dataWithSignature = {
-      authorSignature: 'John Doe',
-    };
-
     // @ts-ignore
-    const result = SocialPostingBodyFormatter.format(dataWithSignature, channelWithCustom);
-    expect(result).toBe('Signature: John Doe');
+    const result = SocialPostingBodyFormatter.format(mockData, channelWithCustom);
+    expect(result).toBe('Written by {{authorSignature}}');
+  });
+
+  it('should support explicit footerOverride', () => {
+    // @ts-ignore
+    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, 'f1');
+    expect(result).toContain('Main Content');
+    expect(result).toContain('Footer 1 Content');
+  });
+
+  it('should skip footer if footerOverride is non-existent', () => {
+    // @ts-ignore
+    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, 'deleted-footer');
+    expect(result).toContain('Main Content');
+    expect(result).not.toContain('Footer 1 Content');
+    expect(result).not.toContain('Default Footer Content');
   });
 });

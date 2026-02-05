@@ -106,7 +106,8 @@ export class SocialPostingBodyFormatter {
   static format(
     data: PublicationDataForFormatting, 
     channel: { preferences?: any },
-    templateOverride?: { id: string } | null
+    templateOverride?: { id: string } | null,
+    footerOverride?: string | null
   ): string {
     const preferences = typeof channel.preferences === 'string' ? JSON.parse(channel.preferences) : channel.preferences;
     const templates: ChannelPostTemplate[] = preferences?.templates || [];
@@ -153,9 +154,30 @@ export class SocialPostingBodyFormatter {
           const footers: ChannelFooter[] = preferences?.footers || [];
           let footerObj: ChannelFooter | undefined;
           
-          if (block.footerId) {
+          // Priority 1: Post-level footer override
+          if (footerOverride !== undefined && footerOverride !== null) {
+            if (footerOverride === 'none') {
+              value = '';
+              break;
+            }
+            footerObj = footers.find((f) => f.id === footerOverride);
+            // If override specified but not found, skip footer entirely
+            if (!footerObj) {
+              value = '';
+              break;
+            }
+          }
+          // Priority 2: Template block's footerId
+          else if (block.footerId) {
             footerObj = footers.find((f) => f.id === block.footerId);
-          } else {
+            // If template references deleted footer, skip footer entirely
+            if (!footerObj) {
+              value = '';
+              break;
+            }
+          }
+          // Priority 3: Default footer
+          else {
             footerObj = footers.find((f) => f.isDefault);
           }
           
@@ -176,11 +198,7 @@ export class SocialPostingBodyFormatter {
       }
     }
 
-    let result = formattedBlocks.join('\n\n');
-    
-    // Replace placeholders
-    const signature = data.authorSignature || '';
-    result = result.replace(/\{\{authorSignature\}\}/g, signature);
+    const result = formattedBlocks.join('\n\n');
 
     return result.trim().replace(/\n{3,}/g, '\n\n');
   }

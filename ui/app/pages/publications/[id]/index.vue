@@ -81,7 +81,8 @@ async function showPostPreview(post: any) {
       authorSignature: authorSignatureContent,
     },
     post.channel || post,
-    post.template
+    post.template,
+    post.footerId
   )
   
   isPreviewModalOpen.value = true
