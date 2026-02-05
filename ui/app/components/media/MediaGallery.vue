@@ -220,7 +220,7 @@ async function uploadFiles(files: FileList | File[], options?: any) {
           progresses[index] = progress
           const totalProgress = progresses.reduce((a, b) => a + b, 0)
           uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
-        }, optimizeParams)
+        }, optimizeParams, currentProject.value?.id)
       })
     )
     
@@ -565,7 +565,7 @@ async function handleEditorSave(file: File) {
         const defaults = getDefaultOptimizationParams()
         const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
         
-        const newMedia = await uploadMedia(file, undefined, optimizeParams)
+        const newMedia = await uploadMedia(file, undefined, optimizeParams, currentProject.value?.id)
         
         // 2. Add to publication at the same position or just add it
         // To make it a true "replace", we should remove the old one.
@@ -1180,7 +1180,7 @@ const emit = defineEmits<Emits>()
             <div :key="selectedMedia.id" class="absolute inset-0 flex items-center justify-center">
               <img
                 v-if="selectedMedia.type === 'IMAGE'"
-                :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
                 :alt="selectedMedia.filename || 'Media'"
                 class="max-w-full max-h-full object-contain"
               />
@@ -1189,7 +1189,7 @@ const emit = defineEmits<Emits>()
                   controls
                   autoplay
                   class="max-w-full max-h-full"
-                  :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                  :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
                 >
                   Your browser does not support the video tag.
                 </video>
@@ -1226,7 +1226,7 @@ const emit = defineEmits<Emits>()
                         controls
                         autoplay
                         class="w-full mt-2"
-                        :src="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+                        :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
                     >
                          Your browser does not support the audio element.
                     </audio>
@@ -1453,7 +1453,7 @@ const emit = defineEmits<Emits>()
   >
     <div v-if="selectedMedia && isEditorOpen" class="flex-1 overflow-hidden">
         <MediaFilerobotEditor
-            :source="getMediaFileUrl(selectedMedia.id, authStore.token || undefined)"
+            :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
             :filename="selectedMedia.filename"
             @save="handleEditorSave"
             @close="isEditorOpen = false"

@@ -111,7 +111,7 @@ const processQueue = async () => {
         fileItem.status = 'uploading'
         const media = await uploadMedia(fileItem.file, (p) => {
           fileItem.progress = p
-        })
+        }, undefined, props.scope === 'project' ? props.projectId : undefined)
         
         fileItem.status = 'creating'
         await api.post('/content-library/items', {

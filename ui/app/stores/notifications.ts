@@ -134,7 +134,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
     socket.value = io(`${wsUrl}/notifications`, {
       auth: {
-        token: authStore.token,
+        token: authStore.accessToken,
       },
       transports: ['websocket'],
     });

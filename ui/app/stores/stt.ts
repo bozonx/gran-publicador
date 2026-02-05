@@ -17,7 +17,7 @@ export const useSttStore = defineStore('stt', () => {
 
     const apiBase = config.public.apiBase || '';
     let wsUrl = '';
-    
+
     if (apiBase.startsWith('http')) {
       const url = new URL(apiBase);
       wsUrl = url.origin;
@@ -27,12 +27,12 @@ export const useSttStore = defineStore('stt', () => {
 
     socket.value = io(`${wsUrl}/stt`, {
       auth: {
-        token: authStore.token,
+        token: authStore.accessToken,
       },
       transports: ['websocket'],
     });
 
-    socket.value.on('connect_error', (error) => {
+    socket.value.on('connect_error', error => {
       console.error('STT WebSocket connection error', error);
     });
 
