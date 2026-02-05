@@ -267,6 +267,7 @@ describe('MediaService (unit)', () => {
           mimeType: 'image/jpeg',
           checksum: 'hash',
           url: 'http://storage/file',
+          gp: { editedAt: new Date().toISOString() },
         },
         createdAt: new Date(),
         updatedAt: new Date(),

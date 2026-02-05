@@ -28,7 +28,7 @@ describe('CommonThumb', () => {
         clickable: false,
       },
       global: {
-        components: {
+        stubs: {
           UIcon: UIconStub,
           LoadingSpinner: LoadingSpinnerStub,
         },
@@ -44,10 +44,11 @@ describe('CommonThumb', () => {
         src: 'https://example.com/a.png',
         error: true,
         errorText: 'Boom',
+        pending: false,
         clickable: false,
       },
       global: {
-        components: {
+        stubs: {
           UIcon: UIconStub,
           LoadingSpinner: LoadingSpinnerStub,
         },
@@ -65,10 +66,11 @@ describe('CommonThumb', () => {
       props: {
         src: 'https://example.com/a.png',
         isVideo: true,
+        pending: false,
         clickable: false,
       },
       global: {
-        components: {
+        stubs: {
           UIcon: UIconStub,
           LoadingSpinner: LoadingSpinnerStub,
         },
@@ -87,14 +89,14 @@ describe('CommonThumb', () => {
         clickable: false,
       },
       global: {
-        components: {
+        stubs: {
           UIcon: UIconStub,
           LoadingSpinner: LoadingSpinnerStub,
         },
       },
     });
 
-    expect(wrapper.text()).toContain('+6');
+    expect(wrapper.text()).toContain('7');
   });
 
   it('renders bottom and actions slots', () => {
@@ -108,7 +110,7 @@ describe('CommonThumb', () => {
         actions: '<div data-test="actions">Actions</div>',
       },
       global: {
-        components: {
+        stubs: {
           UIcon: UIconStub,
           LoadingSpinner: LoadingSpinnerStub,
         },

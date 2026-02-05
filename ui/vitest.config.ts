@@ -18,14 +18,14 @@ export default defineConfig(async () => ({
       reportsDirectory: 'coverage',
     },
     projects: [
-      {
+      await defineVitestProject({
         test: {
           name: 'unit',
           include: ['test/unit/**/*.{test,spec}.ts'],
           environment: 'happy-dom',
           setupFiles: ['test/setup/unit.setup.ts'],
         },
-      },
+      }),
       await defineVitestProject({
         test: {
           name: 'nuxt',
