@@ -1,7 +1,14 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  modules: ['@nuxt/ui', '@nuxt/icon', '@nuxtjs/i18n', '@pinia/nuxt', '@vueuse/nuxt'],
+  modules: [
+    '@nuxt/ui',
+    '@nuxt/icon',
+    '@nuxtjs/i18n',
+    '@pinia/nuxt',
+    '@vueuse/nuxt',
+    ...(process.env.NODE_ENV === 'test' ? ['@nuxt/test-utils/module'] : []),
+  ],
 
   i18n: {
     locales: [
@@ -44,7 +51,8 @@ export default defineNuxtConfig({
       devTelegramId: process.env.VITE_DEV_TELEGRAM_ID || '',
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '',
       telegramBotName: process.env.NUXT_PUBLIC_TELEGRAM_BOT_NAME || 'gran_publicador_bot',
-      newsServiceUrl: process.env.NUXT_PUBLIC_NEWS_SERVICE_URL || process.env.NEWS_SERVICE_URL || '',
+      newsServiceUrl:
+        process.env.NUXT_PUBLIC_NEWS_SERVICE_URL || process.env.NEWS_SERVICE_URL || '',
     },
   },
 
