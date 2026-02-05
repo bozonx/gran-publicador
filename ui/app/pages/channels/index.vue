@@ -422,7 +422,7 @@ const showPagination = computed(() => {
     </div>
 
     <!-- Channels list view -->
-    <CommonFoundCount :count="totalCount" :show="hasActiveFilters" class="mb-2" />
+    <CommonFoundCount :count="totalCount" :show="!!hasActiveFilters" class="mb-4" />
 
     <div v-if="isListView" class="space-y-4">
        <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-12">

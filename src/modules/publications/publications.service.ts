@@ -413,7 +413,7 @@ export class PublicationsService {
     const sortBy = filters?.sortBy || 'chronology';
     const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
-    const [items, total] = await Promise.all([
+    const [items, total, totalUnfiltered] = await Promise.all([
       this.prisma.publication.findMany({
         where,
         include,
@@ -422,6 +422,12 @@ export class PublicationsService {
         skip: filters?.offset,
       }),
       this.prisma.publication.count({ where }),
+      this.prisma.publication.count({ 
+        where: { 
+          projectId,
+          archivedAt: null 
+        } 
+      }),
     ]);
 
     return {
@@ -430,6 +436,7 @@ export class PublicationsService {
         meta: this.parseMetaJson(item.meta),
       })),
       total,
+      totalUnfiltered,
     };
   }
 
@@ -517,7 +524,7 @@ export class PublicationsService {
     const sortBy = filters?.sortBy || 'chronology';
     const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
 
-    const [items, total] = await Promise.all([
+    const [items, total, totalUnfiltered] = await Promise.all([
       this.prisma.publication.findMany({
         where,
         include,
@@ -526,6 +533,12 @@ export class PublicationsService {
         skip: filters?.offset,
       }),
       this.prisma.publication.count({ where }),
+      this.prisma.publication.count({
+        where: {
+          projectId: { in: userProjectIds },
+          archivedAt: null,
+        },
+      }),
     ]);
 
     return {
@@ -534,6 +547,7 @@ export class PublicationsService {
         meta: this.parseMetaJson(item.meta),
       })),
       total,
+      totalUnfiltered,
     };
   }
 

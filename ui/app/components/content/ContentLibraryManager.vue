@@ -65,6 +65,7 @@ interface ContentItem {
 interface FindContentItemsResponse {
   items: ContentItem[]
   total: number
+  totalUnfiltered?: number
   limit: number
   offset: number
 }
@@ -91,6 +92,7 @@ const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
 const offset = ref(0)
 const total = ref(0)
+const totalUnfiltered = ref(0)
 const items = ref<ContentItem[]>([])
 const availableTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
@@ -557,6 +559,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
     })
 
     total.value = res.total
+    totalUnfiltered.value = res.totalUnfiltered || res.total
 
     if (offset.value === 0) {
       items.value = res.items
@@ -1150,11 +1153,12 @@ const executeMoveToProject = async () => {
 
 <template>
   <div class="space-y-6">
+    <!-- Header Section -->
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
-          {{ t('contentLibrary.title', 'Content library') }}
-          <CommonCountBadge :count="total" :title="t('contentLibrary.badgeCountTooltip')" />
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
+          {{ scope === 'personal' ? t('contentLibrary.title') : t('project.contentLibrary') }}
+          <CommonCountBadge :count="totalUnfiltered" :title="t('contentLibrary.badgeCountTooltip')" />
         </h1>
         
         <template v-if="scope === 'project'">
@@ -1175,10 +1179,21 @@ const executeMoveToProject = async () => {
             {{ t('contentLibrary.subtitlePersonal') }}
           </p>
         </template>
-       
+      </div>
+
+      <div v-if="saveStatus === 'saving' || saveStatus === 'saved' || saveStatus === 'error'" class="flex items-center gap-2 text-sm pt-2">
+        <UIcon 
+          :name="saveStatus === 'saved' ? 'i-heroicons-check-circle' : saveStatus === 'saving' ? 'i-heroicons-arrow-path' : 'i-heroicons-exclamation-circle'" 
+          class="w-4 h-4"
+          :class="{ 'text-green-500': saveStatus === 'saved', 'text-blue-500 animate-spin': saveStatus === 'saving', 'text-red-500': saveStatus === 'error' }"
+        />
+        <span :class="{ 'text-gray-500': saveStatus === 'saved', 'text-blue-500': saveStatus === 'saving', 'text-red-500': saveStatus === 'error' }">
+          {{ saveStatus === 'saved' ? t('common.saved') : saveStatus === 'saving' ? t('common.saving') : t('common.saveError') }}
+        </span>
       </div>
     </div>
 
+    <!-- Tabs and Archive Toggle -->
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
       <ContentLibraryTabs
         ref="contentLibraryTabsRef"
@@ -1190,7 +1205,7 @@ const executeMoveToProject = async () => {
       />
 
       <div class="flex items-center gap-2 shrink-0 pt-1">
-         <UButton
+          <UButton
             :color="archiveStatus === 'archived' ? 'neutral' : 'neutral'"
             variant="ghost" 
             :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
@@ -1214,59 +1229,66 @@ const executeMoveToProject = async () => {
       </div>
     </div>
 
+    <!-- Main Content Card -->
     <div class="app-card-lg space-y-4">
       <!-- Toolbar -->
       <div class="flex flex-col gap-4">
-        <!-- Top Row: Actions -->
+        <!-- Top Row: Actions and View Toggle -->
         <div class="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center pb-2 border-b border-gray-100 dark:border-gray-800">
             <!-- Left: Creation -->
             <div class="flex items-center gap-2">
                 <template v-if="archiveStatus === 'active'">
                     <UButton
-                    color="primary"
-                    size="sm"
-                    icon="i-heroicons-plus"
-                    :loading="isStartCreating"
-                    @click="createAndEdit"
+                      color="primary"
+                      size="sm"
+                      icon="i-heroicons-plus"
+                      :loading="isStartCreating"
+                      @click="createAndEdit"
                     >
-                    {{ t('contentLibrary.actions.createEmpty', 'Create') }}
+                      {{ t('contentLibrary.actions.createEmpty', 'Create') }}
                     </UButton>
 
                     <UButton
-                    color="neutral"
-                    size="sm"
-                    variant="outline"
-                    icon="i-heroicons-cloud-arrow-up"
-                    @click="isBulkUploadModalOpen = true"
+                      color="neutral"
+                      size="sm"
+                      variant="outline"
+                      icon="i-heroicons-cloud-arrow-up"
+                      @click="isBulkUploadModalOpen = true"
                     >
-                    {{ t('contentLibrary.actions.bulkUpload') }}
+                      {{ t('contentLibrary.actions.bulkUpload') }}
                     </UButton>
                 </template>
             </div>
 
-            <!-- Right: Tab Actions -->
-            <div class="flex items-center gap-2" v-if="activeTab">
-                 <!-- Rename -->
-                <UButton
-                    color="neutral"
-                    variant="ghost"
-                    size="sm"
-                    icon="i-heroicons-pencil-square"
-                    @click="openRenameTabModal"
-                >
-                    {{ t('common.rename') }}
-                </UButton>
+            <!-- Right: Tab Actions and View Toggle -->
+            <div class="flex items-center gap-2">
+                <template v-if="activeTab">
+                    <!-- Rename -->
+                    <UButton
+                        color="neutral"
+                        variant="ghost"
+                        size="sm"
+                        icon="i-heroicons-pencil-square"
+                        @click="openRenameTabModal"
+                    >
+                        {{ t('common.rename') }}
+                    </UButton>
+                    
+                     <!-- Delete -->
+                     <UButton
+                        color="error"
+                        variant="ghost"
+                        size="sm"
+                        icon="i-heroicons-trash"
+                        @click="openDeleteTabModal"
+                    >
+                         {{ t('common.delete') }}
+                    </UButton>
+                </template>
                 
-                 <!-- Delete -->
-                 <UButton
-                    color="error"
-                    variant="ghost"
-                    size="sm"
-                    icon="i-heroicons-trash"
-                    @click="openDeleteTabModal"
-                >
-                     {{ t('common.delete') }}
-                </UButton>
+                <div class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1" v-if="activeTab"></div>
+                
+                <CommonViewToggle v-model="viewMode" />
             </div>
         </div>
 
@@ -1274,21 +1296,21 @@ const executeMoveToProject = async () => {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <!-- Col 1: Search -->
             <UInput
-            v-model="q"
-            :placeholder="t('contentLibrary.searchPlaceholder', 'Search...')"
-            icon="i-heroicons-magnifying-glass"
-            class="w-full"
+              v-model="q"
+              :placeholder="t('contentLibrary.searchPlaceholder', 'Search...')"
+              icon="i-heroicons-magnifying-glass"
+              class="w-full"
             />
 
             <!-- Col 2: Tags -->
             <USelectMenu
-            v-model="selectedTags"
-            :items="availableTags"
-            multiple
-            :placeholder="t('contentLibrary.filter.filterByTags')"
-            class="w-full"
-            icon="i-heroicons-tag"
-            searchable
+              v-model="selectedTags"
+              :items="availableTags"
+              multiple
+              :placeholder="t('contentLibrary.filter.filterByTags')"
+              class="w-full"
+              icon="i-heroicons-tag"
+              searchable
             />
 
             <!-- Col 3: Sorting -->
@@ -1302,7 +1324,7 @@ const executeMoveToProject = async () => {
                     :searchable="false"
                 >
                     <template #leading>
-                    <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
+                      <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
                     </template>
                 </USelectMenu>
 
@@ -1318,6 +1340,8 @@ const executeMoveToProject = async () => {
         </div>
       </div>
 
+      <!-- Found items indicator -->
+      <CommonFoundCount :count="total" :show="q.length > 0 || selectedTags.length > 0" class="mb-2" />
       <div v-if="error" class="mt-4 text-red-600 dark:text-red-400">
         {{ error }}
       </div>

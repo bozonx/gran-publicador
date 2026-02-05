@@ -658,6 +658,8 @@ function formatScore(score: number) {
 
         <!-- Results Section -->
         <div class="space-y-4">
+          <CommonFoundCount :count="news.length" :show="news.length > 0" class="mb-4" />
+          
           <!-- Loading state initial -->
           <div v-if="isNewsLoading && news.length === 0" class="flex flex-col items-center justify-center py-24 space-y-4">
             <UiLoadingSpinner size="xl" color="primary" :label="t('news.loading')" centered />

@@ -32,6 +32,7 @@ const {
   publications,
   isLoading,
   totalCount,
+  totalUnfilteredCount,
   statusOptions,
   fetchUserPublications,
   bulkOperation,
@@ -445,7 +446,7 @@ async function handleDelete() {
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           {{ t('publication.titlePlural') }}
-          <CommonCountBadge :count="filteredCount" :title="t('publication.filter.badgeCountTooltip')" />
+          <CommonCountBadge :count="totalUnfilteredCount" :title="t('publication.filter.badgeCountTooltip')" />
         </h1>
       </div>
 
@@ -653,6 +654,8 @@ async function handleDelete() {
     </div>
 
     <!-- Publications list view -->
+    <CommonFoundCount :count="totalCount" :show="!!hasActiveFilters" class="mb-4" />
+
     <div v-if="isListView" class="space-y-4">
         <PublicationsPublicationListItem
           v-for="pub in filteredPublications"

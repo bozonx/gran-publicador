@@ -120,6 +120,7 @@ export class PublicationsController {
         items: result.items,
         meta: {
           total: result.total,
+          totalUnfiltered: result.totalUnfiltered,
           limit: validatedLimit,
           offset: offset || 0,
         },
@@ -131,6 +132,7 @@ export class PublicationsController {
       items: result.items,
       meta: {
         total: result.total,
+        totalUnfiltered: result.totalUnfiltered,
         limit: validatedLimit,
         offset: offset || 0,
       },

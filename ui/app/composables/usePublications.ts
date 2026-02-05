@@ -93,6 +93,7 @@ export interface PaginatedPublications {
   items: PublicationWithRelations[];
   meta: {
     total: number;
+    totalUnfiltered?: number;
     limit: number;
     offset: number;
   };
@@ -113,6 +114,7 @@ export function usePublications() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const totalCount = ref(0);
+  const totalUnfilteredCount = ref(0);
 
   const statusOptions = computed(() => [
     { value: 'DRAFT', label: t('publicationStatus.draft') },
@@ -153,6 +155,7 @@ export function usePublications() {
       const data = await api.get<PaginatedPublications>('/publications', { params });
       publications.value = data.items;
       totalCount.value = data.meta.total;
+      totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return data;
     } catch (err: any) {
       console.error('[usePublications] fetchPublicationsByProject error:', err);
@@ -197,6 +200,7 @@ export function usePublications() {
       const data = await api.get<PaginatedPublications>('/publications', { params });
       publications.value = data.items;
       totalCount.value = data.meta.total;
+      totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return data;
     } catch (err: any) {
       console.error('[usePublications] fetchUserPublications error:', err);
@@ -495,6 +499,7 @@ export function usePublications() {
     isLoading,
     error,
     totalCount,
+    totalUnfilteredCount,
     statusOptions,
     fetchPublicationsByProject,
     fetchUserPublications,

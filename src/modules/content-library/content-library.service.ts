@@ -319,11 +319,20 @@ export class ContentLibraryService {
           : {}),
       }),
       this.prisma.contentItem.count({ where }),
-    ]);
+      this.prisma.contentItem.count({
+        where: {
+          userId: query.scope === 'personal' ? userId : undefined,
+          projectId: query.scope === 'project' ? query.projectId : undefined,
+          archivedAt: null,
+          folderId: query.folderId ? query.folderId : undefined,
+        },
+      }),
+    ]) as [any[], number, number];
 
     return {
       items,
       total,
+      totalUnfiltered,
       limit,
       offset,
     };
