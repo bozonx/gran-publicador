@@ -131,9 +131,9 @@ function handleSaveTemplate() {
   // Validate block markdown
   for (const block of templateForm.template) {
     if (block.enabled) {
-      if (containsBlockMarkdown(block.before) || 
-          containsBlockMarkdown(block.after) || 
-          (block.insert === 'custom' && containsBlockMarkdown(block.content))) {
+      if (containsBlockMarkdown(block.before || '') || 
+          containsBlockMarkdown(block.after || '') || 
+          (block.insert === 'custom' && containsBlockMarkdown(block.content || ''))) {
         toast.add({
           title: t('common.error'),
           description: t('validation.inlineMarkdownOnly'),
@@ -484,10 +484,10 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <UFormField class="w-full">
                           <template #label>
-                            <div class="flex items-center gap-1.5">
-                              <span>{{ t('channel.templateBefore') }}</span>
-                              <CommonInfoTooltip :text="t('channel.templateBeforeTooltip')" />
-                            </div>
+                            <span class="inline-flex items-center gap-1.5">
+                              {{ t('channel.templateBefore') }}
+                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+                            </span>
                           </template>
                           <UTextarea
                             v-model="block.before"
@@ -496,16 +496,16 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                             autoresize
                           />
                           <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
-                            <CommonWhitespaceVisualizer :text="block.before" />
-                            <span v-if="containsBlockMarkdown(block.before)" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
+                            <CommonWhitespaceVisualizer :text="block.before || ''" />
+                            <span v-if="containsBlockMarkdown(block.before || '')" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
                           </div>
                         </UFormField>
                         <UFormField class="w-full">
                           <template #label>
-                            <div class="flex items-center gap-1.5">
-                              <span>{{ t('channel.templateAfter') }}</span>
-                              <CommonInfoTooltip :text="t('channel.templateAfterTooltip')" />
-                            </div>
+                            <span class="inline-flex items-center gap-1.5">
+                              {{ t('channel.templateAfter') }}
+                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+                            </span>
                           </template>
                           <UTextarea
                             v-model="block.after"
@@ -514,8 +514,8 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                             autoresize
                           />
                           <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
-                             <CommonWhitespaceVisualizer :text="block.after" />
-                             <span v-if="containsBlockMarkdown(block.after)" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
+                             <CommonWhitespaceVisualizer :text="block.after || ''" />
+                             <span v-if="containsBlockMarkdown(block.after || '')" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
                           </div>
                         </UFormField>
                       </div>
@@ -546,7 +546,13 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                     </template>
 
                     <template v-if="block.insert === 'custom'">
-                      <UFormField :label="t('channel.templateInsertCustom')" class="w-full">
+                      <UFormField class="w-full">
+                        <template #label>
+                          <span class="inline-flex items-center gap-1.5">
+                            {{ t('channel.templateInsertCustom') }}
+                            <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+                          </span>
+                        </template>
                           <UTextarea
                             v-model="block.content"
                             :rows="4"
@@ -555,8 +561,8 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                             autoresize
                           />
                           <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
-                            <CommonWhitespaceVisualizer :text="block.content" />
-                            <span v-if="containsBlockMarkdown(block.content)" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
+                            <CommonWhitespaceVisualizer :text="block.content || ''" />
+                            <span v-if="containsBlockMarkdown(block.content || '')" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
                           </div>
                       </UFormField>
                     </template>
