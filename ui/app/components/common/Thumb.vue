@@ -107,8 +107,8 @@ const stackOffsets = computed(() => {
 
 const badgeText = computed(() => {
   const count = props.totalCount || 0
-  if (!props.showStack) return null
-  if (count <= 2) return null
+  if (!props.showStack || count <= 1) return null
+  if (count > 3) return `${count}`
   return `+${count - 1}`
 })
 
@@ -155,13 +155,14 @@ function handleError() {
       <div class="absolute inset-0 bg-gray-50 dark:bg-gray-900/50"></div>
 
       <div
-        v-if="canShowImage"
+        v-if="canShowImage && !isPending"
         class="absolute inset-0"
         style="background-image: url('/thumb-checkerboard.svg'); background-size: 32px 32px;"
       ></div>
 
       <div v-if="canShowImage" class="w-full h-full relative">
         <img
+          v-show="!isPending"
           :src="src || undefined"
           :srcset="srcset || undefined"
           :alt="alt"
@@ -171,7 +172,7 @@ function handleError() {
         />
       </div>
 
-      <div v-if="!canShowImage" class="w-full h-full flex flex-col items-center justify-center gap-2 p-4 relative">
+      <div v-if="!canShowImage && !isPending" class="w-full h-full flex flex-col items-center justify-center gap-2 p-4 relative">
         <UIcon
           :name="isError ? errorIcon : placeholderIcon"
           :class="[
@@ -189,7 +190,7 @@ function handleError() {
         </p>
       </div>
 
-      <div v-if="isPending" class="absolute inset-0 flex items-center justify-center bg-gray-50/80 dark:bg-gray-900/60">
+      <div v-if="isPending" class="absolute inset-0 flex items-center justify-center">
         <LoadingSpinner size="lg" color="primary" />
       </div>
 
