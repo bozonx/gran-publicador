@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getRoleBadgeColor } from '~/utils/roles';
+import { getRoleBadgeColor } from '../../app/utils/roles';
 
 describe('utils/roles', () => {
   it('returns neutral for missing role', () => {

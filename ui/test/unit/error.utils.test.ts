@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatError } from '~/utils/error';
+import { formatError } from '../../app/utils/error';
 
 describe('utils/error', () => {
   it('formats Error instances', () => {

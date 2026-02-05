@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isTextContentEmpty, stripHtmlAndSpecialChars } from '~/utils/text';
+import { isTextContentEmpty, stripHtmlAndSpecialChars } from '../../app/utils/text';
 
 describe('utils/text', () => {
   describe('stripHtmlAndSpecialChars', () => {
@@ -17,7 +17,7 @@ describe('utils/text', () => {
 
     it('decodes basic html entities', () => {
       expect(stripHtmlAndSpecialChars('a&nbsp;b &amp; c &lt; d &gt; e &quot;f&quot;')).toBe(
-        'a b & c < d > e "f"'
+        'a b & c < d > e "f"',
       );
     });
 

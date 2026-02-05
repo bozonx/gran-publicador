@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { eventBus } from '~/utils/events';
+import { eventBus } from '../../app/utils/events';
 
 describe('utils/events', () => {
   it('calls listeners on emit', () => {
