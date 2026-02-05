@@ -107,6 +107,7 @@ export class ChannelsController {
         total: result.total,
         limit: validatedLimit,
         offset: offset || 0,
+        totalUnfiltered: (result as any).totalUnfiltered,
       },
     };
   }

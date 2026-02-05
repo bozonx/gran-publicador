@@ -19,6 +19,7 @@ const { user } = useAuth()
 const { 
   channels, 
   totalCount,
+  totalUnfilteredCount,
   fetchChannels, 
   isLoading,
   getSocialMediaIcon,
@@ -246,7 +247,7 @@ function toggleSortOrder() {
 
 // Count badge - use server total count
 const nonArchivedChannelsCount = computed(() => {
-    return totalCount.value
+    return totalUnfilteredCount.value
 })
 
 // Project filter options
@@ -358,22 +359,7 @@ const showPagination = computed(() => {
 
       <!-- Filters -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-        <!-- Ownership Filter (Button group) -->
-        <div class="flex items-center gap-2" :title="t('channel.filter.ownership.title')">
-          <UiAppButtonGroup
-            v-model="ownershipFilter"
-            :options="[
-              { value: 'own', label: t('channel.filter.ownership.own') },
-              { value: 'guest', label: t('channel.filter.ownership.guest') },
-              { value: 'all', label: t('channel.filter.ownership.all') }
-            ]"
-            variant="outline"
-            active-variant="solid"
-          />
-          <CommonInfoTooltip :text="t('channel.filter.ownership.tooltip')" />
-        </div>
 
-        <!-- Issues Filter (Select) -->
         <!-- Issues Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('channel.filter.problems.title')">
           <UiAppButtonGroup
@@ -387,6 +373,21 @@ const showPagination = computed(() => {
             color="warning"
           />
            <CommonInfoTooltip :text="t('channel.filter.problems.tooltip')" />
+        </div>
+
+        <!-- Ownership Filter (Button group) -->
+        <div class="flex items-center gap-2" :title="t('channel.filter.ownership.title')">
+          <UiAppButtonGroup
+            v-model="ownershipFilter"
+            :options="[
+              { value: 'own', label: t('channel.filter.ownership.own') },
+              { value: 'guest', label: t('channel.filter.ownership.guest') },
+              { value: 'all', label: t('channel.filter.ownership.all') }
+            ]"
+            variant="outline"
+            active-variant="solid"
+          />
+          <CommonInfoTooltip :text="t('channel.filter.ownership.tooltip')" />
         </div>
 
         <!-- Archive Filter (Button group) -->
@@ -438,6 +439,10 @@ const showPagination = computed(() => {
           </p>
        </div>
 
+       <p v-if="hasActiveFilters" class="text-xs text-secondary-500 dark:text-secondary-400 mt-2 text-right">
+          {{ t('common.found', 'Found') }}: {{ totalCount }}
+        </p>
+
        <ChannelListItem
          v-for="channel in channels"
          :key="channel.id"
@@ -464,6 +469,10 @@ const showPagination = computed(() => {
             {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
           </p>
        </div>
+
+       <p v-if="hasActiveFilters" class="text-xs text-secondary-500 dark:text-secondary-400 mt-2 text-right col-span-full">
+          {{ t('common.found', 'Found') }}: {{ totalCount }}
+        </p>
 
        <ChannelCard
          v-for="channel in channels"

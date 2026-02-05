@@ -215,7 +215,7 @@ export class ChannelsService {
       archivedOnly?: boolean;
       projectIds?: string[];
     } = {},
-  ): Promise<{ items: ChannelResponseDto[]; total: number }> {
+  ): Promise<{ items: ChannelResponseDto[]; total: number; totalUnfiltered: number }> {
     const validatedLimit = Math.min(filters.limit ?? 50, 1000);
     const offset = filters.offset ?? 0;
 
@@ -250,11 +250,11 @@ export class ChannelsService {
       });
       const userAllowedProjectIds = userProjects.map(p => p.id);
 
-      if (userAllowedProjectIds.length === 0) return { items: [], total: 0 };
+      if (userAllowedProjectIds.length === 0) return { items: [], total: 0, totalUnfiltered: 0 };
 
       if (filters.projectIds && filters.projectIds.length > 0) {
         const allowedIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
-        if (allowedIds.length === 0) return { items: [], total: 0 };
+        if (allowedIds.length === 0) return { items: [], total: 0, totalUnfiltered: 0 };
         where.projectId = { in: allowedIds };
       } else {
         where.projectId = { in: userAllowedProjectIds };
@@ -350,7 +350,15 @@ export class ChannelsService {
       orderBy.push({ name: sortOrder }, { id: 'asc' });
     }
 
-    const [channels, total] = await Promise.all([
+    const unfilteredWhere: any = { archivedAt: null, project: { archivedAt: null } };
+    if (!user?.isAdmin) {
+      unfilteredWhere.projectId = where.projectId;
+      if (filters.ownership) {
+        unfilteredWhere.project = { ...unfilteredWhere.project, ...where.project };
+      }
+    }
+
+    const [channels, total, totalUnfiltered] = await Promise.all([
       this.prisma.channel.findMany({
         where,
         include: {
@@ -370,6 +378,7 @@ export class ChannelsService {
         skip: offset,
       }),
       this.prisma.channel.count({ where }),
+      this.prisma.channel.count({ where: unfilteredWhere }),
     ]);
 
     const channelIds = channels.map(c => c.id);
@@ -393,7 +402,7 @@ export class ChannelsService {
       });
     });
 
-    return { items, total };
+    return { items, total, totalUnfiltered };
   }
 
   public async findArchivedForProject(

@@ -19,6 +19,7 @@ export function useChannels() {
     const channels = ref<ChannelWithProject[]>([])
     const currentChannel = useState<ChannelWithProject | null>('useChannels.currentChannel', () => null)
     const totalCount = ref(0)
+    const totalUnfilteredCount = ref(0)
     const isLoading = ref(false)
     const error = ref<string | null>(null)
 
@@ -60,10 +61,11 @@ export function useChannels() {
                 delete params.archivedOnly
             }
             
-            const response = await api.get<{ items: ChannelWithProject[]; meta: { total: number; limit: number; offset: number } }>('/channels', { params })
+            const response = await api.get<{ items: ChannelWithProject[]; meta: { total: number; limit: number; offset: number; totalUnfiltered?: number } }>('/channels', { params })
             
             channels.value = response.items
             totalCount.value = response.meta.total
+            totalUnfilteredCount.value = response.meta.totalUnfiltered ?? response.meta.total
             
             return response.items
         } catch (err: any) {
@@ -278,6 +280,7 @@ export function useChannels() {
         channels,
         currentChannel,
         totalCount,
+        totalUnfilteredCount,
         isLoading,
         error,
         socialMediaOptions,
