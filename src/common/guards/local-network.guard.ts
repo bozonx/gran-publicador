@@ -21,7 +21,7 @@ export class LocalNetworkGuard implements CanActivate {
 
   public canActivate(context: ExecutionContext): boolean {
     const config = this.configService.get<AppConfig>('app')!;
-    
+
     // Skip check if disabled in config
     if (!config.systemApiIpRestrictionEnabled) {
       return true;

@@ -190,10 +190,15 @@ export class ChannelsController {
    */
   private validateProjectScope(req: UnifiedAuthRequest, projectId: string) {
     if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+      ApiTokenGuard.validateProjectScope(
+        projectId,
+        req.user.allProjects,
+        req.user.projectIds ?? [],
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
   }
 }

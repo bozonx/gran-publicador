@@ -4,4 +4,3 @@ export class UpdateMemberDto {
   @IsUUID()
   public roleId!: string;
 }
-

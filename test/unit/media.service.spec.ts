@@ -1,8 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -109,7 +106,7 @@ describe('MediaService (unit)', () => {
       const dbResponse = {
         id: 'media-1',
         ...createDto,
-        meta: createDto.meta as any,
+        meta: createDto.meta,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -131,17 +128,19 @@ describe('MediaService (unit)', () => {
       const mimetype = 'text/plain';
 
       const client = mockAgent.get('http://localhost:8083');
-      client.intercept({
-        path: '/api/v1/files',
-        method: 'POST',
-      }).reply(200, {
-        id: 'storage-id-123',
-        originalSize: 4,
-        size: 4,
-        mimeType: 'text/plain',
-        checksum: 'hash',
-        url: 'http://storage/file',
-      });
+      client
+        .intercept({
+          path: '/api/v1/files',
+          method: 'POST',
+        })
+        .reply(200, {
+          id: 'storage-id-123',
+          originalSize: 4,
+          size: 4,
+          mimeType: 'text/plain',
+          checksum: 'hash',
+          url: 'http://storage/file',
+        });
 
       const result = await service.uploadFileToStorage(stream, filename, mimetype);
       expect(result.fileId).toBe('storage-id-123');
@@ -150,10 +149,12 @@ describe('MediaService (unit)', () => {
 
     it('should throw error if storage returns non-ok response', async () => {
       const client = mockAgent.get('http://localhost:8083');
-      client.intercept({
-        path: '/api/v1/files',
-        method: 'POST',
-      }).reply(400, { message: 'Error' });
+      client
+        .intercept({
+          path: '/api/v1/files',
+          method: 'POST',
+        })
+        .reply(400, { message: 'Error' });
 
       await expect(
         service.uploadFileToStorage(Readable.from([Buffer.from('')]), 'f', 'm'),
@@ -167,17 +168,19 @@ describe('MediaService (unit)', () => {
       const filename = 'image.jpg';
 
       const client = mockAgent.get('http://localhost:8083');
-      client.intercept({
-        path: '/api/v1/files/from-url',
-        method: 'POST',
-      }).reply(200, {
-        id: 'storage-id-456',
-        originalSize: 1024,
-        size: 800,
-        mimeType: 'image/jpeg',
-        checksum: 'hash123',
-        url: 'http://storage/file',
-      });
+      client
+        .intercept({
+          path: '/api/v1/files/from-url',
+          method: 'POST',
+        })
+        .reply(200, {
+          id: 'storage-id-456',
+          originalSize: 1024,
+          size: 800,
+          mimeType: 'image/jpeg',
+          checksum: 'hash123',
+          url: 'http://storage/file',
+        });
 
       const result = await service.uploadFileFromUrl(url, filename);
       expect(result.fileId).toBe('storage-id-456');
@@ -196,12 +199,14 @@ describe('MediaService (unit)', () => {
 
       mockPrismaService.media.findUnique.mockResolvedValue(mockMedia);
       mockPrismaService.media.delete.mockResolvedValue(mockMedia);
-      
+
       const client = mockAgent.get('http://localhost:8083');
-      client.intercept({
-        path: '/api/v1/files/file-id-123',
-        method: 'DELETE',
-      }).reply(200, {});
+      client
+        .intercept({
+          path: '/api/v1/files/file-id-123',
+          method: 'DELETE',
+        })
+        .reply(200, {});
 
       const result = await service.remove(mediaId);
       expect(result).toEqual(mockMedia);
@@ -211,12 +216,14 @@ describe('MediaService (unit)', () => {
   describe('getFileStream', () => {
     it('should proxy stream from storage', async () => {
       const client = mockAgent.get('http://localhost:8083');
-      client.intercept({
-        path: '/api/v1/files/file-id/download',
-        method: 'GET',
-      }).reply(200, Buffer.from('data'), {
-          headers: { 'content-type': 'image/jpeg' }
-      });
+      client
+        .intercept({
+          path: '/api/v1/files/file-id/download',
+          method: 'GET',
+        })
+        .reply(200, Buffer.from('data'), {
+          headers: { 'content-type': 'image/jpeg' },
+        });
 
       const result = await service.getFileStream('file-id');
       expect(result.headers['content-type']).toBe('image/jpeg');
@@ -227,12 +234,14 @@ describe('MediaService (unit)', () => {
   describe('getThumbnailStream', () => {
     it('should proxy thumbnail request', async () => {
       const client = mockAgent.get('http://localhost:8083');
-      client.intercept({
-        path: /^\/api\/v1\/files\/file-id\/thumbnail.*/,
-        method: 'GET',
-      }).reply(200, Buffer.from('thumb'), {
-          headers: { 'content-type': 'image/jpeg' }
-      });
+      client
+        .intercept({
+          path: /^\/api\/v1\/files\/file-id\/thumbnail.*/,
+          method: 'GET',
+        })
+        .reply(200, Buffer.from('thumb'), {
+          headers: { 'content-type': 'image/jpeg' },
+        });
 
       const result = await service.getThumbnailStream('file-id', 100, 100, 80);
       expect(result.status).toBe(200);

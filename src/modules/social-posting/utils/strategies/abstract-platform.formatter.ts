@@ -1,8 +1,5 @@
-import { PostRequestDto } from '../../dto/social-posting.dto.js';
-import {
-  MediaType,
-  StorageType,
-} from '../../../../generated/prisma/index.js';
+import type { PostRequestDto } from '../../dto/social-posting.dto.js';
+import { MediaType, StorageType } from '../../../../generated/prisma/index.js';
 
 export interface FormatterParams {
   post: any; // Post with relations or simplified
@@ -108,7 +105,7 @@ export abstract class AbstractPlatformFormatter {
   }
 
   protected applyCommonOptions(request: PostRequestDto, post: any): void {
-      if (post.platformOptions) {
+    if (post.platformOptions) {
       const opts =
         typeof post.platformOptions === 'string'
           ? JSON.parse(post.platformOptions)

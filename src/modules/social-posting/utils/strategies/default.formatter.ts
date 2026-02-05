@@ -1,5 +1,5 @@
-import { AbstractPlatformFormatter, FormatterParams } from './abstract-platform.formatter.js';
-import { PostRequestDto } from '../../dto/social-posting.dto.js';
+import { AbstractPlatformFormatter, type FormatterParams } from './abstract-platform.formatter.js';
+import type { PostRequestDto } from '../../dto/social-posting.dto.js';
 import { SocialPostingBodyFormatter } from '../social-posting-body.formatter.js';
 import { TagsFormatter } from '../tags.formatter.js';
 
@@ -23,7 +23,12 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
       post.footerId, // Pass the footer override
     );
 
-    const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl, params.publicMediaBaseUrl, params.mediaService);
+    const mediaMapping = this.mapMedia(
+      publication.media,
+      mediaStorageUrl,
+      params.publicMediaBaseUrl,
+      params.mediaService,
+    );
 
     const request: PostRequestDto = {
       platform: channel.socialMedia.toLowerCase(),

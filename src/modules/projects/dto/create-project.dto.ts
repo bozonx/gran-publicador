@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { ProjectPreferencesDto } from '../../../common/dto/json-objects.dto.js';
@@ -23,4 +30,3 @@ export class CreateProjectDto {
   @Type(() => ProjectPreferencesDto)
   public preferences?: ProjectPreferencesDto;
 }
-

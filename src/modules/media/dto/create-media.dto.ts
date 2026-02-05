@@ -1,10 +1,17 @@
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { MediaType, StorageType } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { IsBigInt, MinBigInt } from '../../../common/validators/index.js';
 import { MediaMetaDto } from '../../../common/dto/json-objects.dto.js';
-
 
 export class CreateMediaDto {
   @IsEnum(MediaType)
@@ -50,4 +57,3 @@ export class CreateMediaDto {
   @Type(() => MediaMetaDto)
   meta?: MediaMetaDto;
 }
-

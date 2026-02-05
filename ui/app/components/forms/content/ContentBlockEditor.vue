@@ -25,7 +25,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const api = useApi()
-const { uploadMedia } = useMedia()
 const toast = useToast()
 
 const isCollapsed = ref(false)
@@ -68,10 +67,22 @@ async function onReorderMedia(reorderData: any[]) {
 }
 
 async function onUpdateLinkMedia(mediaLinkId: string, data: any) {
-  // Note: Backend might not have a direct endpoint for updating link metadata like hasSpoiler for blocks yet.
-  // If needed, it should be implemented in content-library.service.ts
-  // For now, we'll skip or use reorder/bulk update if available.
-  console.log('Update link media not implemented for blocks yet', mediaLinkId, data)
+  if (!props.contentItemId || !props.modelValue.id) return
+
+  try {
+    await api.patch(
+      `/content-library/items/${props.contentItemId}/blocks/${props.modelValue.id}/media/${mediaLinkId}`,
+      data,
+    )
+    emit('refresh')
+  } catch (e: any) {
+    console.error('Failed to update block media link', e)
+    toast.add({
+      title: t('common.error'),
+      description: t('common.saveError'),
+      color: 'error',
+    })
+  }
 }
 
 function handleRefresh() {
@@ -175,7 +186,6 @@ const toggleCollapse = () => {
           :editable="true"
           @refresh="handleRefresh"
           :on-add="onAddMedia"
-          :on-remove="onRemoveMedia"
           :on-reorder="onReorderMedia"
           :on-update-link="onUpdateLinkMedia"
           :on-copy="onCopyMedia"

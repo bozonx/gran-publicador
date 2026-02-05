@@ -15,4 +15,3 @@ import { ProjectsService } from './projects.service.js';
   exports: [ProjectsService],
 })
 export class ProjectsModule {}
-

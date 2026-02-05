@@ -35,6 +35,35 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const imageError = ref(false)
 
+const shouldShowPreview = computed(() => {
+  if (imageError.value) return false
+  if (props.media.type === 'IMAGE') return true
+  if (props.media.storageType !== 'TELEGRAM') return false
+  return props.media.type === 'VIDEO' || props.media.type === 'DOCUMENT'
+})
+
+const previewUrl = computed(() => {
+  if (!shouldShowPreview.value) return null
+
+  if (props.media.type === 'IMAGE') {
+    if (props.media.storageType === 'FS') {
+      return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined)
+    }
+    return getMediaFileUrl(props.media.id, authStore.accessToken || undefined)
+  }
+
+  return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined)
+})
+
+const previewSrcset = computed(() => {
+  if (!shouldShowPreview.value) return null
+  if (props.media.type !== 'IMAGE') return null
+  if (props.media.storageType !== 'FS') return null
+
+  const token = authStore.accessToken || undefined
+  return `${getThumbnailUrl(props.media.id, 400, 400, token)} 1x, ${getThumbnailUrl(props.media.id, 800, 800, token)} 2x`
+})
+
 const sizeClasses = computed(() => {
   const sizes = {
     sm: 'w-24 h-24',
@@ -82,20 +111,12 @@ function handleClick() {
   >
     <!-- Image preview with error handling -->
     <div
-      v-if="media.type === 'IMAGE' && !imageError"
+      v-if="shouldShowPreview"
       class="w-full h-full relative"
     >
       <img
-        v-if="media.storageType === 'FS'"
-        :src="getThumbnailUrl(media.id, 400, 400, authStore.accessToken || undefined)"
-        :srcset="`${getThumbnailUrl(media.id, 400, 400, authStore.accessToken || undefined)} 1x, ${getThumbnailUrl(media.id, 800, 800, authStore.accessToken || undefined)} 2x`"
-        :alt="media.filename || 'Media'"
-        :class="['w-full h-full object-cover', hasSpoiler && 'blur-xl scale-110']"
-        @error="handleImageError"
-      />
-      <img
-        v-else
-        :src="getMediaFileUrl(media.id, authStore.accessToken || undefined)"
+        :src="previewUrl || undefined"
+        :srcset="previewSrcset || undefined"
         :alt="media.filename || 'Media'"
         :class="['w-full h-full object-cover', hasSpoiler && 'blur-xl scale-110']"
         @error="handleImageError"

@@ -21,14 +21,15 @@ interface MediaItem {
   publicToken?: string
 }
 
+interface MediaLinkItem {
+  id?: string
+  media?: MediaItem
+  order: number
+  hasSpoiler?: boolean
+}
 
 interface Props {
-  media: Array<{
-    id?: string
-    media?: MediaItem
-    order: number
-    hasSpoiler?: boolean
-  }>
+  media: MediaLinkItem[]
   publicationId?: string
   editable?: boolean
   socialMedia?: string | string[]
@@ -36,7 +37,6 @@ interface Props {
   postType?: string
   // Generic callbacks for when not used in a publication context
   onAdd?: (media: CreateMediaInput[]) => Promise<void>
-  onRemove?: (mediaId: string) => Promise<void>
   onReorder?: (reorderData: Array<{ id: string; order: number }>) => Promise<void>
   onUpdateLink?: (mediaLinkId: string, data: { hasSpoiler?: boolean; order?: number }) => Promise<void>
   onCopy?: (mediaLinkId: string) => Promise<void>
@@ -47,6 +47,12 @@ const props = withDefaults(defineProps<Props>(), {
   showValidation: true,
 })
 
+ interface Emits {
+  (e: 'refresh'): void
+ }
+
+ const emit = defineEmits<Emits>()
+
 const { t } = useI18n()
 const authStore = useAuthStore()
 const { currentProject } = useProjects()
@@ -56,9 +62,9 @@ const {
   uploadMediaFromUrl, 
   isLoading: isUploading, 
   addMediaToPublication, 
-  removeMediaFromPublication, 
   reorderMediaInPublication,
   updateMediaLinkInPublication,
+  updateMedia,
   fetchMedia,
 } = useMedia()
 const { validatePostContent } = useSocialMediaValidation()
@@ -128,15 +134,19 @@ const editableDescription = ref('')
 const isSavingMeta = ref(false)
 
 const isDeleteModalOpen = ref(false)
-const mediaToDeleteId = ref<string | null>(null)
+const mediaToDeleteMediaId = ref<string | null>(null)
 const isDeleting = ref(false)
 
+function normalizeMediaLinks(items: MediaLinkItem[]): MediaLinkItem[] {
+  return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+}
+
 // Create a local reactive copy of media for drag and drop
-const localMedia = ref([...props.media])
+const localMedia = ref<MediaLinkItem[]>(normalizeMediaLinks(props.media))
 
 // Watch for changes in props.media to update localMedia
 watch(() => props.media, (newMedia) => {
-  localMedia.value = [...newMedia]
+  localMedia.value = normalizeMediaLinks(newMedia)
 }, { deep: true })
 
 const mediaTypeOptions = [
@@ -161,11 +171,9 @@ function getMediaIcon(type: string) {
   return icons[type] || 'i-heroicons-document'
 }
 
-
 function triggerFileInput() {
   fileInput.value?.click()
 }
-
 
 function getDefaultOptimizationParams() {
   const projectOpt = currentProjectOptimization.value
@@ -245,8 +253,6 @@ async function uploadFiles(files: FileList | File[], options?: any) {
     uploadProgressPercent.value = 0
   }
 }
-
-const { updateMedia } = useMedia()
 
 async function saveMediaMeta() {
   if (!selectedMedia.value) return
@@ -369,7 +375,6 @@ async function addMedia() {
   }
 }
 
-
 async function confirmAndUploadExtended() {
   if (stagedFiles.value.length === 0 && !sourceInput.value.trim()) return
 
@@ -405,20 +410,16 @@ function toggleExtendedOptions() {
 }
 
 function handleDeleteClick(mediaId: string) {
-  mediaToDeleteId.value = mediaId
+  mediaToDeleteMediaId.value = mediaId
   isDeleteModalOpen.value = true
 }
 
 async function confirmRemoveMedia() {
-  if (!mediaToDeleteId.value) return
+  if (!mediaToDeleteMediaId.value) return
 
   isDeleting.value = true
   try {
-    if (props.publicationId) {
-      await removeMediaFromPublication(props.publicationId, mediaToDeleteId.value)
-    } else if (props.onRemove) {
-      await props.onRemove(mediaToDeleteId.value)
-    }
+    await deleteMedia(mediaToDeleteMediaId.value)
 
     // Emit event to refresh publication data
     emit('refresh')
@@ -431,22 +432,25 @@ async function confirmRemoveMedia() {
   } finally {
     isDeleting.value = false
     isDeleteModalOpen.value = false
-    mediaToDeleteId.value = null
+    mediaToDeleteMediaId.value = null
   }
 }
 
-
-
 async function handleDragEnd() {
   isDragging.value = false
-  
+
   // Prepare the reorder data
   const reorderData = localMedia.value
-    .filter(item => item.id) // Only include items with IDs
-    .map((item, index) => ({
-      id: item.id!,
-      order: index,
-    }))
+    .filter(item => item.id)
+    .map((item, index) => ({ id: item.id!, order: index }))
+
+  // Keep local order fields consistent with array order.
+  for (let i = 0; i < localMedia.value.length; i += 1) {
+    const item = localMedia.value[i]
+    if (item) {
+      item.order = i
+    }
+  }
 
   try {
     if (props.publicationId) {
@@ -465,7 +469,7 @@ async function handleDragEnd() {
     })
     
     // Revert to original order on error
-    localMedia.value = [...props.media]
+    localMedia.value = normalizeMediaLinks(props.media)
   }
 }
 
@@ -523,7 +527,7 @@ const selectedItem = computed(() => {
   return localMedia.value[currentMediaIndex.value]
 })
 
-function openMediaModal(item: typeof localMedia.value[0]) {
+function openMediaModal(item: MediaLinkItem) {
   if (!item.media) return
   selectedMedia.value = item.media
   selectedMediaLinkId.value = item.id || null
@@ -556,59 +560,41 @@ function handleEditMedia() {
 }
 
 async function handleEditorSave(file: File) {
-    if (!selectedMedia.value || !selectedMediaLinkId.value) return
+  if (!selectedMedia.value) return
 
-    isSavingMeta.value = true
-    try {
-        // 1. Upload new edited image
-        // Use current optimization settings if available
-        const defaults = getDefaultOptimizationParams()
-        const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
-        
-        const newMedia = await uploadMedia(file, undefined, optimizeParams, currentProject.value?.id)
-        
-        // 2. Add to publication at the same position or just add it
-        // To make it a true "replace", we should remove the old one.
-        
-        // Find current index
-        const oldIndex = currentMediaIndex.value
-        
-        // Remove old media link
-        if (props.publicationId) {
-          await removeMediaFromPublication(props.publicationId, selectedMediaLinkId.value)
-        } else if (props.onRemove) {
-          await props.onRemove(selectedMediaLinkId.value)
-        }
-        
-        // Add new media link
-        if (props.publicationId) {
-          await addMediaToPublication(props.publicationId, [{ id: newMedia.id }])
-        } else if (props.onAdd) {
-          await props.onAdd([{ id: newMedia.id }])
-        }
-        
-        // After adding, it will be at the end. If we want to preserve order, we should reorder.
-        // But the refresh will happen and user can move it.
-        // For now, let's just refresh.
-        
-        toast.add({
-            title: t('common.success'),
-            description: t('media.editSuccess', 'Image edited successfully'),
-            color: 'success',
-        })
-        
-        isEditorOpen.value = false
-        isModalOpen.value = false
-        emit('refresh')
-    } catch (error: any) {
-        toast.add({
-            title: t('common.error'),
-            description: t('media.editError', 'Failed to save edited image'),
-            color: 'error',
-        })
-    } finally {
-        isSavingMeta.value = false
+  isSavingMeta.value = true
+  try {
+    const defaults = getDefaultOptimizationParams()
+    const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
+
+    const newMedia = await uploadMedia(file, undefined, optimizeParams, currentProject.value?.id)
+
+    await deleteMedia(selectedMedia.value.id)
+
+    if (props.publicationId) {
+      await addMediaToPublication(props.publicationId, [{ id: newMedia.id }])
+    } else if (props.onAdd) {
+      await props.onAdd([{ id: newMedia.id }])
     }
+
+    toast.add({
+      title: t('common.success'),
+      description: t('media.editSuccess', 'Image edited successfully'),
+      color: 'success',
+    })
+
+    isEditorOpen.value = false
+    isModalOpen.value = false
+    emit('refresh')
+  } catch (error: any) {
+    toast.add({
+      title: t('common.error'),
+      description: t('media.editError', 'Failed to save edited image'),
+      color: 'error',
+    })
+  } finally {
+    isSavingMeta.value = false
+  }
 }
 
 const transitionName = ref('slide-next')
@@ -806,12 +792,6 @@ const mediaValidation = computed(() => {
     errors: uniqueErrors
   }
 })
-
-interface Emits {
-  (e: 'refresh'): void
-}
-
-const emit = defineEmits<Emits>()
 </script>
 
 <template>
@@ -926,7 +906,7 @@ const emit = defineEmits<Emits>()
           >
             <div
               v-for="item in localMedia"
-              :key="item.media?.id"
+              :key="item.id || item.media?.id"
               :class="[
                 'shrink-0 relative',
                 editable && 'cursor-move'

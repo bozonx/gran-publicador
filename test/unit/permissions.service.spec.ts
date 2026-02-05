@@ -85,9 +85,9 @@ describe('PermissionsService (unit)', () => {
         archivedAt: new Date(),
       });
 
-      await expect(
-        service.checkProjectAccess(projectId, userId, false),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.checkProjectAccess(projectId, userId, false)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw ForbiddenException if user is neither owner nor member', async () => {

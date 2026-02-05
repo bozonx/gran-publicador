@@ -26,8 +26,6 @@ import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
 
-
-
 /**
  * DTO for creating a new publication.
  */
@@ -139,7 +137,6 @@ export class CreatePublicationDto {
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_CHANNELS_PER_PUBLICATION)
   public channelIds?: string[];
-
 
   @IsString()
   @IsOptional()

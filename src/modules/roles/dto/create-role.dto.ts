@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsObject, ValidateNested, MaxLength, IsBoolean, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsObject,
+  ValidateNested,
+  MaxLength,
+  IsBoolean,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { RolePermissions } from '../../../common/types/permissions.types.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';

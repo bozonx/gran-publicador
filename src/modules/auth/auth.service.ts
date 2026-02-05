@@ -304,9 +304,9 @@ export class AuthService {
 
     let userId: string;
     try {
-      const payload = (await this.jwtService.verifyAsync(refreshToken, {
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
         secret,
-      })) as { sub?: unknown };
+      });
 
       if (!payload?.sub || typeof payload.sub !== 'string') {
         throw new ForbiddenException('Access Denied (Invalid refresh token payload)');
@@ -318,7 +318,7 @@ export class AuthService {
     }
 
     const user = await this.usersService.findById(userId);
-    if (!user || !user.hashedRefreshToken || user.deletedAt)
+    if (!user?.hashedRefreshToken || user.deletedAt)
       throw new ForbiddenException('Access Denied (Invalid user or account deleted)');
 
     const isMatch = await this.verifyRefreshToken(user.hashedRefreshToken, refreshToken);

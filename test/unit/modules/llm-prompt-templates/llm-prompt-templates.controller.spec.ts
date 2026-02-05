@@ -22,7 +22,6 @@ describe('LlmPromptTemplatesController', () => {
     reorder: jest.fn() as any,
   };
 
-
   const mockPrismaService = {};
 
   const mockRequest = {
@@ -88,13 +87,10 @@ describe('LlmPromptTemplatesController', () => {
     });
 
     it('should throw ForbiddenException when user requests other user templates', async () => {
-      expect(() => controller.findAllByUser('other-user', mockRequest)).toThrow(
-        ForbiddenException,
-      );
+      expect(() => controller.findAllByUser('other-user', mockRequest)).toThrow(ForbiddenException);
 
       expect(service.findAllByUser).not.toHaveBeenCalled();
     });
-
   });
 
   describe('findAllByProject', () => {

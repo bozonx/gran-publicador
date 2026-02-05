@@ -216,10 +216,15 @@ export class ProjectsController {
   ) {
     // Validate project scope for API token users
     if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+      ApiTokenGuard.validateProjectScope(
+        projectId,
+        req.user.allProjects,
+        req.user.projectIds ?? [],
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
 
     return this.projectsService.fetchNewsContent(projectId, req.user.userId, newsId, body);

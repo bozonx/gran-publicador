@@ -1,4 +1,4 @@
-import { RolePermissions, SystemRoleType } from '../types/permissions.types.js';
+import { type RolePermissions, SystemRoleType } from '../types/permissions.types.js';
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleType, RolePermissions> = {
   [SystemRoleType.VIEWER]: {

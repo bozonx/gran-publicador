@@ -10,14 +10,16 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   AttachContentBlockMediaDto,
+  UpdateContentBlockMediaLinkDto,
+  BulkOperationDto,
   CreateContentBlockDto,
   CreateContentItemDto,
+  CreateContentLibraryTabDto,
   FindContentItemsQueryDto,
   ReorderContentBlockMediaDto,
   ReorderContentBlocksDto,
   UpdateContentItemDto,
   UpdateContentBlockDto,
-  BulkOperationDto,
   BulkOperationType,
 } from './dto/index.js';
 
@@ -296,7 +298,7 @@ export class ContentLibraryService {
 
     const includeBlocks = query.includeBlocks !== false;
 
-    const [items, total, totalUnfiltered] = await Promise.all([
+    const [items, total, totalUnfiltered] = (await Promise.all([
       this.prisma.contentItem.findMany({
         where,
         orderBy: { [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc' },
@@ -327,9 +329,7 @@ export class ContentLibraryService {
           folderId: query.folderId ? query.folderId : undefined,
         },
       }),
-    ]) as [any[], number, number];
-
-
+    ])) as [any[], number, number];
 
     return {
       items,
@@ -579,7 +579,7 @@ export class ContentLibraryService {
       where: { id: blockId },
       select: { id: true, contentItemId: true },
     });
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -604,7 +604,7 @@ export class ContentLibraryService {
       where: { id: blockId },
       select: { id: true, contentItemId: true },
     });
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -637,6 +637,43 @@ export class ContentLibraryService {
     return { success: true };
   }
 
+  public async updateBlockMediaLink(
+    contentItemId: string,
+    blockId: string,
+    mediaLinkId: string,
+    dto: UpdateContentBlockMediaLinkDto,
+    userId: string,
+  ) {
+    await this.assertContentItemAccess(contentItemId, userId, false);
+    await this.assertContentItemMutationAllowed(contentItemId, userId);
+
+    const block = await (this.prisma as any).contentBlock.findUnique({
+      where: { id: blockId },
+      select: { id: true, contentItemId: true },
+    });
+    if (block?.contentItemId !== contentItemId) {
+      throw new NotFoundException('Content block not found');
+    }
+
+    const link = await (this.prisma as any).contentBlockMedia.findUnique({
+      where: { id: mediaLinkId },
+      select: { id: true, contentBlockId: true },
+    });
+
+    if (link?.contentBlockId !== blockId) {
+      throw new NotFoundException('Content block media not found');
+    }
+
+    return (this.prisma as any).contentBlockMedia.update({
+      where: { id: mediaLinkId },
+      data: {
+        hasSpoiler: dto.hasSpoiler,
+        order: dto.order,
+      },
+      include: { media: true },
+    });
+  }
+
   public async attachBlockMedia(
     contentItemId: string,
     blockId: string,
@@ -650,7 +687,7 @@ export class ContentLibraryService {
       where: { id: blockId },
       select: { id: true, contentItemId: true },
     });
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -699,7 +736,7 @@ export class ContentLibraryService {
       where: { id: blockId },
       select: { id: true, contentItemId: true },
     });
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -708,7 +745,7 @@ export class ContentLibraryService {
       select: { id: true, contentBlockId: true },
     });
 
-    if (!link || link.contentBlockId !== blockId) {
+    if (link?.contentBlockId !== blockId) {
       throw new NotFoundException('Content block media not found');
     }
 
@@ -728,7 +765,7 @@ export class ContentLibraryService {
       where: { id: blockId },
       select: { id: true, contentItemId: true },
     });
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -873,7 +910,7 @@ export class ContentLibraryService {
           });
 
           // Re-order and move blocks
-          let currentMaxOrderAgg = await (tx as any).contentBlock.aggregate({
+          const currentMaxOrderAgg = await (tx as any).contentBlock.aggregate({
             where: { contentItemId: targetId },
             _max: { order: true },
           });
@@ -917,7 +954,7 @@ export class ContentLibraryService {
       select: { id: true, contentItemId: true, text: true },
     });
 
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -957,7 +994,7 @@ export class ContentLibraryService {
       where: { id: blockId },
       select: { id: true, contentItemId: true },
     });
-    if (!block || block.contentItemId !== contentItemId) {
+    if (block?.contentItemId !== contentItemId) {
       throw new NotFoundException('Content block not found');
     }
 
@@ -966,7 +1003,7 @@ export class ContentLibraryService {
       select: { id: true, contentBlockId: true, mediaId: true, order: true, hasSpoiler: true },
     });
 
-    if (!link || link.contentBlockId !== blockId) {
+    if (link?.contentBlockId !== blockId) {
       throw new NotFoundException('Content block media not found');
     }
 

@@ -58,8 +58,8 @@ export class NewsConfig {
 export default registerAs('news', (): NewsConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.NEWS_SERVICE_URL || 'http://news-microservice:8088',
-    notificationIntervalMinutes: process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES 
-      ? parseInt(process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES, 10) 
+    notificationIntervalMinutes: process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES
+      ? parseInt(process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES, 10)
       : 10,
     schedulerLookbackHours: process.env.NEWS_SCHEDULER_LOOKBACK_HOURS
       ? parseInt(process.env.NEWS_SCHEDULER_LOOKBACK_HOURS, 10)
@@ -72,7 +72,6 @@ export default registerAs('news', (): NewsConfig => {
   };
 
   const config = plainToClass(NewsConfig, rawConfig);
-
 
   const errors = validateSync(config, {
     skipMissingProperties: false,

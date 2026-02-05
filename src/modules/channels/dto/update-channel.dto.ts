@@ -1,8 +1,18 @@
-import { IsBoolean, IsLocale, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsLocale,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
-import { ChannelCredentialsDto, ChannelPreferencesDto } from '../../../common/dto/json-objects.dto.js';
-
+import {
+  ChannelCredentialsDto,
+  ChannelPreferencesDto,
+} from '../../../common/dto/json-objects.dto.js';
 
 /**
  * DTO for updating an existing channel.
@@ -49,4 +59,3 @@ export class UpdateChannelDto {
   @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   public tags?: string;
 }
-

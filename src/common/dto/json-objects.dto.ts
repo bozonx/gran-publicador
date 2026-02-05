@@ -1,4 +1,15 @@
-import { IsOptional, IsString, IsObject, ValidateNested, IsBoolean, IsUUID, IsNumber, IsArray, IsIn, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsObject,
+  ValidateNested,
+  IsBoolean,
+  IsUUID,
+  IsNumber,
+  IsArray,
+  IsIn,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../constants/validation.constants.js';
 
@@ -68,7 +79,6 @@ export class MediaMetaDto {
   telegram?: TelegramMediaMetaDto;
 }
 
-
 /**
  * DTO for Telegram origin tracking.
  */
@@ -127,7 +137,6 @@ export class PublicationMetaDto {
   newsData?: any;
 }
 
-
 /**
  * DTO for media optimization settings.
  */
@@ -176,7 +185,6 @@ export class MediaOptimizationDto {
   @IsBoolean()
   skipOptimization?: boolean;
 }
-
 
 /**
  * DTO for Project preferences.

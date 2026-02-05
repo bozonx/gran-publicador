@@ -49,7 +49,10 @@ export class AuthorSignaturesController {
   }
 
   @Get('channel/:channelId')
-  public async findAllByChannel(@Param('channelId') channelId: string, @Request() req: UnifiedAuthRequest) {
+  public async findAllByChannel(
+    @Param('channelId') channelId: string,
+    @Request() req: UnifiedAuthRequest,
+  ) {
     return this.authorSignaturesService.findAllByChannel(channelId, req.user.id);
   }
 

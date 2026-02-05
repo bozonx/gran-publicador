@@ -15,22 +15,23 @@ import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ContentLibraryService } from './content-library.service.js';
 import {
   AttachContentBlockMediaDto,
-  CreateContentItemDto,
+  UpdateContentBlockMediaLinkDto,
+  BulkOperationDto,
   CreateContentBlockDto,
+  CreateContentItemDto,
+  CreateContentLibraryTabDto,
   FindContentItemsQueryDto,
   FindContentLibraryTabsQueryDto,
-  CreateContentLibraryTabDto,
   UpdateContentLibraryTabDto,
   ReorderContentLibraryTabsDto,
   ReorderContentBlockMediaDto,
   ReorderContentBlocksDto,
   UpdateContentItemDto,
   UpdateContentBlockDto,
-  BulkOperationDto,
 } from './dto/index.js';
-import { ContentLibraryService } from './content-library.service.js';
 
 @Controller('content-library')
 @UseGuards(JwtOrApiTokenGuard)
@@ -382,6 +383,24 @@ export class ContentLibraryController {
     return this.contentLibraryService.reorderBlockMedia(
       contentItemId,
       blockId,
+      dto,
+      req.user.userId,
+    );
+  }
+
+  @Patch('items/:id/blocks/:blockId/media/:mediaLinkId')
+  public async updateBlockMediaLink(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Param('blockId') blockId: string,
+    @Param('mediaLinkId') mediaLinkId: string,
+    @Body() dto: UpdateContentBlockMediaLinkDto,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.contentLibraryService.updateBlockMediaLink(
+      contentItemId,
+      blockId,
+      mediaLinkId,
       dto,
       req.user.userId,
     );

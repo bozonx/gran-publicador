@@ -6,6 +6,7 @@ export * from './create-content-block.dto.js';
 export * from './update-content-block.dto.js';
 export * from './reorder-content-blocks.dto.js';
 export * from './attach-content-block-media.dto.js';
+export * from './update-content-block-media-link.dto.js';
 export * from './reorder-content-block-media.dto.js';
 export * from './bulk-operation.dto.js';
 

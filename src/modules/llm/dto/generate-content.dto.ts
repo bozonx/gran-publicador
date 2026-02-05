@@ -78,5 +78,3 @@ export class GenerateContentDto {
   @IsBoolean()
   useContent?: boolean;
 }
-
-

@@ -10,4 +10,3 @@ export class AddMemberDto {
   @IsUUID()
   public roleId!: string;
 }
-

@@ -94,7 +94,6 @@ export class UsersController {
     @Param('id') userId: string,
     @Body() updateDto: UpdateUserAdminDto,
   ) {
-
     // Prevent user from removing their own admin status
     if (userId === req.user.sub && !updateDto.isAdmin) {
       throw new ForbiddenException('Cannot remove your own admin status');
@@ -125,7 +124,6 @@ export class UsersController {
     @Param('id') userId: string,
     @Body() banDto: BanUserDto,
   ) {
-
     if (userId === req.user.sub) {
       throw new ForbiddenException('Cannot ban yourself');
     }

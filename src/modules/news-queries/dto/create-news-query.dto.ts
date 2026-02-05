@@ -1,4 +1,12 @@
-import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class CreateNewsQueryDto {
@@ -31,8 +39,6 @@ export class CreateNewsQueryDto {
   @IsOptional()
   @IsString()
   sources?: string;
-
-
 
   @IsNumber()
   @IsOptional()

@@ -14,7 +14,7 @@ export class NewsQueriesService {
     });
 
     // Remap DB fields to flat structure for frontend compatibility (and convenience)
-    return queries.map((q) => this.mapToResponse(q));
+    return queries.map(q => this.mapToResponse(q));
   }
 
   async findAllDefault(userId: string) {
@@ -26,7 +26,7 @@ export class NewsQueriesService {
       select: { id: true, name: true },
     });
 
-    const projectIds = projects.map((p) => p.id);
+    const projectIds = projects.map(p => p.id);
 
     const queries = await this.prisma.projectNewsQuery.findMany({
       where: {
@@ -34,11 +34,11 @@ export class NewsQueriesService {
         isNotificationEnabled: true,
       },
       include: {
-        project: { select: { name: true } }
-      }
+        project: { select: { name: true } },
+      },
     });
 
-    return queries.map((q) => ({
+    return queries.map(q => ({
       ...this.mapToResponse(q),
       projectName: q.project.name,
     }));
@@ -74,13 +74,12 @@ export class NewsQueriesService {
       where: { id },
     });
 
-    if (!query || query.projectId !== projectId) {
+    if (query?.projectId !== projectId) {
       throw new NotFoundException('Query not found');
     }
 
-
     const { name, isNotificationEnabled, ...settingsUpdate } = dto;
-    
+
     // Merge existing settings with updates
     const currentSettings = query.settings as any;
     const newSettings = { ...currentSettings, ...settingsUpdate };
@@ -102,17 +101,17 @@ export class NewsQueriesService {
       where: { id },
     });
 
-    if (!query || query.projectId !== projectId) {
+    if (query?.projectId !== projectId) {
       throw new NotFoundException('Query not found');
     }
 
     await this.prisma.projectNewsQuery.delete({ where: { id } });
     return { success: true };
   }
-  
+
   // Helper to flatten the response so frontend gets a similar shape as before
   private mapToResponse(query: any) {
-    const settings = (query.settings as any) || {};
+    const settings = query.settings || {};
     return {
       id: query.id,
       projectId: query.projectId,

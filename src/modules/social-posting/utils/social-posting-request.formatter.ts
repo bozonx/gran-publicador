@@ -1,5 +1,5 @@
 import type { PostRequestDto } from '../dto/social-posting.dto.js';
-import { FormatterParams } from './strategies/abstract-platform.formatter.js';
+import type { FormatterParams } from './strategies/abstract-platform.formatter.js';
 import { TelegramFormatter } from './strategies/telegram.formatter.js';
 import { DefaultFormatter } from './strategies/default.formatter.js';
 
@@ -20,7 +20,8 @@ export class SocialPostingRequestFormatter {
     const platform = channel.socialMedia.toLowerCase();
 
     // Select strategy
-    const strategy = this.strategies[platform as keyof typeof this.strategies] || this.strategies.default;
+    const strategy =
+      this.strategies[platform as keyof typeof this.strategies] || this.strategies.default;
 
     return strategy.format(params);
   }

@@ -1,10 +1,5 @@
 import { SocialPostingRequestFormatter } from '../../src/modules/social-posting/utils/social-posting-request.formatter.js';
-import {
-  PostType,
-  SocialMedia,
-  MediaType,
-  StorageType,
-} from '../../src/generated/prisma/index.js';
+import { PostType, SocialMedia, MediaType, StorageType } from '../../src/generated/prisma/index.js';
 
 describe('SocialPostingRequestFormatter', () => {
   const mockPost = {

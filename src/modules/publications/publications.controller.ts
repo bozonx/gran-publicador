@@ -57,15 +57,16 @@ export class PublicationsController {
     @Body() createPublicationDto: CreatePublicationDto,
   ) {
     // Validate project scope for API token users if projectId is provided
-    if (
-      createPublicationDto.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(createPublicationDto.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (createPublicationDto.projectId && req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(
+        createPublicationDto.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
     return this.publicationsService.create(createPublicationDto, req.user.userId);
   }
@@ -139,7 +140,6 @@ export class PublicationsController {
     };
   }
 
-
   /**
    * Get a single publication by ID.
    */
@@ -191,10 +191,15 @@ export class PublicationsController {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
     if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+      ApiTokenGuard.validateProjectScope(
+        publication.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
 
     return this.publicationsService.createPostsFromPublication(
@@ -266,10 +271,15 @@ export class PublicationsController {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
     if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(publication.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+      ApiTokenGuard.validateProjectScope(
+        publication.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
 
     return this.socialPostingService.publishPublication(id, { force });
@@ -286,10 +296,15 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users
     if (body.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(body.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+      ApiTokenGuard.validateProjectScope(
+        body.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
 
     return this.publicationsService.copy(id, body.projectId, req.user.userId);

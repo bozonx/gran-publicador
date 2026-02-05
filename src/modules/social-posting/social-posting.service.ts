@@ -52,7 +52,7 @@ export class SocialPostingService {
       },
     });
 
-    const maxPublishedAt = (agg._max.publishedAt as Date | null) ?? lastPublishedAt;
+    const maxPublishedAt = agg._max.publishedAt ?? lastPublishedAt;
     await this.prisma.publication.update({
       where: { id: publicationId },
       data: { effectiveAt: maxPublishedAt },

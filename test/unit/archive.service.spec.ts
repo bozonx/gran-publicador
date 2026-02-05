@@ -158,11 +158,7 @@ describe('ArchiveService', () => {
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
 
-      const result = await service.isEntityArchived(
-        ArchiveEntityType.PROJECT,
-        projectId,
-        userId,
-      );
+      const result = await service.isEntityArchived(ArchiveEntityType.PROJECT, projectId, userId);
 
       expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
         projectId,
@@ -188,11 +184,7 @@ describe('ArchiveService', () => {
       mockPrismaService.channel.findUnique.mockResolvedValue(mockChannel);
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
 
-      const result = await service.isEntityArchived(
-        ArchiveEntityType.CHANNEL,
-        channelId,
-        userId,
-      );
+      const result = await service.isEntityArchived(ArchiveEntityType.CHANNEL, channelId, userId);
 
       expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
         projectId,
@@ -213,11 +205,7 @@ describe('ArchiveService', () => {
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
 
-      const result = await service.isEntityArchived(
-        ArchiveEntityType.PROJECT,
-        projectId,
-        userId,
-      );
+      const result = await service.isEntityArchived(ArchiveEntityType.PROJECT, projectId, userId);
 
       expect(result).toBe(false);
     });

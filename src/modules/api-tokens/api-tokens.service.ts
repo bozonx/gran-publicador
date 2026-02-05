@@ -95,9 +95,7 @@ export class ApiTokensService {
 
     // Validate: can't have both allProjects=true and specific projectIds
     if (allProjects && projectIds.length > 0) {
-      throw new ForbiddenException(
-        'Cannot specify both allProjects=true and specific projectIds',
-      );
+      throw new ForbiddenException('Cannot specify both allProjects=true and specific projectIds');
     }
 
     // Validate project scope - ensure user is a member of all projects in scope
@@ -105,10 +103,7 @@ export class ApiTokensService {
       const projects = await this.prisma.project.findMany({
         where: {
           id: { in: projectIds },
-          OR: [
-            { ownerId: userId },
-            { members: { some: { userId } } },
-          ],
+          OR: [{ ownerId: userId }, { members: { some: { userId } } }],
         },
       });
 
@@ -222,7 +217,7 @@ export class ApiTokensService {
     }
 
     const updateData: any = {};
-    
+
     if (dto.name !== undefined) {
       updateData.name = dto.name;
     }
@@ -230,7 +225,7 @@ export class ApiTokensService {
     // Handle allProjects flag update
     if (dto.allProjects !== undefined) {
       updateData.allProjects = dto.allProjects;
-      
+
       // If switching to allProjects=true, remove all specific project links
       if (dto.allProjects) {
         await this.prisma.apiTokenProject.deleteMany({
@@ -256,10 +251,7 @@ export class ApiTokensService {
         const projects = await this.prisma.project.findMany({
           where: {
             id: { in: projectIds },
-            OR: [
-              { ownerId: userId },
-              { members: { some: { userId } } },
-            ],
+            OR: [{ ownerId: userId }, { members: { some: { userId } } }],
           },
         });
 

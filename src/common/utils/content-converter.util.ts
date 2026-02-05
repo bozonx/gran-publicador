@@ -13,13 +13,26 @@ export class ContentConverter {
       return text;
     }
 
-    const tags: { pos: number; type: 'start' | 'end'; tag: string; priority: number; index: number }[] = [];
+    const tags: {
+      pos: number;
+      type: 'start' | 'end';
+      tag: string;
+      priority: number;
+      index: number;
+    }[] = [];
 
     // Helper to add tags safely
-    const addTag = (start: number, end: number, startStr: string, endStr: string, priority: number, index: number) => {
+    const addTag = (
+      start: number,
+      end: number,
+      startStr: string,
+      endStr: string,
+      priority: number,
+      index: number,
+    ) => {
       // Ensure we don't go out of bounds
       if (start < 0 || end > text.length) return;
-      
+
       tags.push({ pos: start, type: 'start', tag: startStr, priority, index });
       tags.push({ pos: end, type: 'end', tag: endStr, priority: -priority, index });
     };
@@ -88,8 +101,8 @@ export class ContentConverter {
     //    - If priority is equal: use index to ensure mirror symmetry (Nested properly)
     tags.sort((a, b) => {
       if (a.pos !== b.pos) return a.pos - b.pos;
-      if (a.type !== b.type) return a.type === 'end' ? -1 : 1; 
-      
+      if (a.type !== b.type) return a.type === 'end' ? -1 : 1;
+
       const priorityDiff = b.priority - a.priority;
       if (priorityDiff !== 0) return priorityDiff;
 
@@ -99,7 +112,7 @@ export class ContentConverter {
 
     let result = '';
     let lastPos = 0;
-    
+
     for (const tag of tags) {
       if (tag.pos > lastPos) {
         result += text.substring(lastPos, tag.pos);
@@ -123,15 +136,18 @@ export class ContentConverter {
     // Parse Markdown to AST
     const processor = unified().use(remarkParse).use(remarkGfm);
     const tree = processor.parse(markdown);
-    
+
     // Convert AST to Telegram HTML
-    return this.astToTelegramHtml(tree, { 
-      isInsideCode: false, 
-      isInsidePre: false 
+    return this.astToTelegramHtml(tree, {
+      isInsideCode: false,
+      isInsidePre: false,
     }).trim();
   }
 
-  private static astToTelegramHtml(node: any, context: { isInsideCode: boolean; isInsidePre: boolean }): string {
+  private static astToTelegramHtml(
+    node: any,
+    context: { isInsideCode: boolean; isInsidePre: boolean },
+  ): string {
     // Helper to process children efficiently
     const processChildren = (ctx = context) => {
       if (!node.children) return '';
@@ -148,12 +164,12 @@ export class ContentConverter {
       let text = node.value;
       // Escape HTML entities
       text = this.escapeHtml(text);
-      
+
       // Handle custom spoiler ||text|| if not inside code
       if (!context.isInsideCode && !context.isInsidePre) {
-         text = text.replace(/\|\|(.*?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
+        text = text.replace(/\|\|(.*?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
       }
-      
+
       return text;
     }
 
@@ -169,7 +185,7 @@ export class ContentConverter {
     // Telegram doesn't support headers.
     // Requirement: "just clear and go as simple text with one empty line after it"
     // Since paragraph adds \n\n, and strict simple text implies just text...
-    // But we need to distinguish a header block from just inline text. 
+    // But we need to distinguish a header block from just inline text.
     // Usually headers are blocks. So we treat it like a paragraph (plain text + \n\n)
     if (node.type === 'heading') {
       return processChildren() + '\n\n';
@@ -179,7 +195,7 @@ export class ContentConverter {
     if (node.type === 'code') {
       const code = this.escapeHtml(node.value);
       const lang = node.lang ? ` class="language-${node.lang}"` : '';
-      // Telegram: pre/code cannot contain other entities. 
+      // Telegram: pre/code cannot contain other entities.
       // We are effectively just emitting text here, so no children recursion needed for 'value'.
       return `<pre><code${lang}>${code}</code></pre>\n\n`;
     }
@@ -188,7 +204,7 @@ export class ContentConverter {
     if (node.type === 'blockquote') {
       // Telegram: blockquote can't be nested inside another blockquote (though UI supports it mostly, API is stricter).
       // We treat it as generic container.
-      // Note: blockquotes in MD often contain paragraphs. 
+      // Note: blockquotes in MD often contain paragraphs.
       // We strip the last newline to merge into the quote properly, usually.
       const content = processChildren();
       // To ensure valid HTML, let's keep it simple.
@@ -199,36 +215,40 @@ export class ContentConverter {
     if (node.type === 'list') {
       const ordered = node.ordered;
       const start = node.start || 1;
-      
-      return node.children.map((c: any, i: number) => {
-        // c is listItem
-        // Process children of listItem (usually paragraph)
-        // We need to strip the paragraph's trailing newlines to make it a single line item if possible
-        // or just handle it naturally.
-        
-        let itemContent = this.astToTelegramHtml(c, context).trim();
-        
-        // Remove wrapping paragraphs logic if necessary, but simply trimming is usually enough for simple lists.
-        // If content has multiple blocks, it might get messy, but standard MD lists usually simple.
-        
-        if (ordered) {
-          return `${start + i}. ${itemContent}\n`;
-        } else {
-          return `• ${itemContent}\n`;
-        }
-      }).join('') + '\n';
+
+      return (
+        node.children
+          .map((c: any, i: number) => {
+            // c is listItem
+            // Process children of listItem (usually paragraph)
+            // We need to strip the paragraph's trailing newlines to make it a single line item if possible
+            // or just handle it naturally.
+
+            const itemContent = this.astToTelegramHtml(c, context).trim();
+
+            // Remove wrapping paragraphs logic if necessary, but simply trimming is usually enough for simple lists.
+            // If content has multiple blocks, it might get messy, but standard MD lists usually simple.
+
+            if (ordered) {
+              return `${start + i}. ${itemContent}\n`;
+            } else {
+              return `• ${itemContent}\n`;
+            }
+          })
+          .join('') + '\n'
+      );
     }
 
     if (node.type === 'listItem') {
-       // Should be handled by parent 'list'
-       return processChildren();
+      // Should be handled by parent 'list'
+      return processChildren();
     }
 
     // --- Inline Elements ---
 
     // Special Rule: If inside Code/Pre, ignore formatting logic and just output text (children recursion with flag)
     if (context.isInsideCode || context.isInsidePre) {
-       return processChildren();
+      return processChildren();
     }
 
     // 8. Bold (Strong) -> <b>
@@ -262,22 +282,22 @@ export class ContentConverter {
 
     // 13. HTML (Raw)
     if (node.type === 'html') {
-       // Support basic valid tags if user typed them manually
-       // This is crucial for <a> with attributes or <u> which isn't standard MD
-       const val = node.value;
-       const allowedTags = 'a|u|s|b|i|strong|em|tg-spoiler|ins|strike|del|span|code|pre|blockquote';
-       const regex = new RegExp(`^<\\/?(${allowedTags})(\\s+[^>]*?)?>`, 'i');
-       
-       if (val.match(regex)) {
-          return val;
-       }
-       return this.escapeHtml(val);
+      // Support basic valid tags if user typed them manually
+      // This is crucial for <a> with attributes or <u> which isn't standard MD
+      const val = node.value;
+      const allowedTags = 'a|u|s|b|i|strong|em|tg-spoiler|ins|strike|del|span|code|pre|blockquote';
+      const regex = new RegExp(`^<\\/?(${allowedTags})(\\s+[^>]*?)?>`, 'i');
+
+      if (val.match(regex)) {
+        return val;
+      }
+      return this.escapeHtml(val);
     }
-    
+
     // 14. Support for explicit 'underline' if coming from extended AST or if we decide to handle HTML-like nodes parsed as text differently,
-    // but standard remark-gfm doesn't have 'underline' node type usually. 
+    // but standard remark-gfm doesn't have 'underline' node type usually.
     // If it was just text with <u> tags, it falls into 'html' node above.
-    
+
     // Fallback: just return children text
     if (node.children) {
       return processChildren();

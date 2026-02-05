@@ -44,10 +44,15 @@ export class PostsController {
     // Validate project scope for API token users
     if (req.user.allProjects !== undefined) {
       const channel = await this.channelsService.findOne(channelId, req.user.userId);
-      ApiTokenGuard.validateProjectScope(channel.projectId, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+      ApiTokenGuard.validateProjectScope(
+        channel.projectId,
+        req.user.allProjects,
+        req.user.projectIds ?? [],
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
     }
 
     return this.postsService.create(req.user.userId, channelId, data);
@@ -78,16 +83,26 @@ export class PostsController {
     // Validate project scope for API token users
     if (req.user.allProjects !== undefined) {
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
+        ApiTokenGuard.validateProjectScope(
+          projectId,
+          req.user.allProjects,
+          req.user.projectIds ?? [],
+          {
+            userId: req.user.userId,
+            tokenId: req.user.tokenId,
+          },
+        );
       } else if (channelId) {
         const channel = await this.channelsService.findOne(channelId, req.user.userId);
-        ApiTokenGuard.validateProjectScope(channel.projectId, req.user.allProjects, req.user.projectIds ?? [], {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
+        ApiTokenGuard.validateProjectScope(
+          channel.projectId,
+          req.user.allProjects,
+          req.user.projectIds ?? [],
+          {
+            userId: req.user.userId,
+            tokenId: req.user.tokenId,
+          },
+        );
       }
     }
 
@@ -111,10 +126,15 @@ export class PostsController {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
+        ApiTokenGuard.validateProjectScope(
+          projectId,
+          req.user.allProjects,
+          req.user.projectIds ?? [],
+          {
+            userId: req.user.userId,
+            tokenId: req.user.tokenId,
+          },
+        );
       }
     }
 
@@ -134,10 +154,15 @@ export class PostsController {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
+        ApiTokenGuard.validateProjectScope(
+          projectId,
+          req.user.allProjects,
+          req.user.projectIds ?? [],
+          {
+            userId: req.user.userId,
+            tokenId: req.user.tokenId,
+          },
+        );
       }
     }
 
@@ -153,10 +178,15 @@ export class PostsController {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
+        ApiTokenGuard.validateProjectScope(
+          projectId,
+          req.user.allProjects,
+          req.user.projectIds ?? [],
+          {
+            userId: req.user.userId,
+            tokenId: req.user.tokenId,
+          },
+        );
       }
     }
 
@@ -175,10 +205,15 @@ export class PostsController {
       // @ts-ignore - post returned from findOne includes channel
       const projectId = post.channel?.projectId;
       if (projectId) {
-        ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        });
+        ApiTokenGuard.validateProjectScope(
+          projectId,
+          req.user.allProjects,
+          req.user.projectIds ?? [],
+          {
+            userId: req.user.userId,
+            tokenId: req.user.tokenId,
+          },
+        );
       }
     }
 

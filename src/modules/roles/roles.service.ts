@@ -1,8 +1,17 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateRoleDto } from './dto/create-role.dto.js';
 import { UpdateRoleDto } from './dto/update-role.dto.js';
-import { DEFAULT_ROLE_PERMISSIONS, SYSTEM_ROLE_NAMES } from '../../common/constants/default-permissions.constants.js';
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_NAMES,
+} from '../../common/constants/default-permissions.constants.js';
 import { SystemRoleType } from '../../common/types/permissions.types.js';
 
 import { Prisma } from '../../generated/prisma/index.js';
@@ -21,7 +30,7 @@ export class RolesService {
    * @param tx - Optional transaction client.
    */
   public async createDefaultRoles(projectId: string, tx?: Prisma.TransactionClient): Promise<void> {
-    const roles = Object.values(SystemRoleType).map((systemType) => ({
+    const roles = Object.values(SystemRoleType).map(systemType => ({
       projectId,
       name: SYSTEM_ROLE_NAMES[systemType],
       isSystem: true,
@@ -73,7 +82,7 @@ export class RolesService {
       ],
     });
 
-    return roles.map((role) => ({
+    return roles.map(role => ({
       ...role,
       permissions: role.permissions as any,
     }));
@@ -164,7 +173,9 @@ export class RolesService {
       },
     });
 
-    this.logger.log(`Custom role "${role.name}" created for project ${projectId} by user ${userId}`);
+    this.logger.log(
+      `Custom role "${role.name}" created for project ${projectId} by user ${userId}`,
+    );
 
     return {
       ...role,
@@ -215,7 +226,9 @@ export class RolesService {
       },
     });
 
-    this.logger.log(`Role "${updated.name}" updated for project ${role.projectId} by user ${userId}`);
+    this.logger.log(
+      `Role "${updated.name}" updated for project ${role.projectId} by user ${userId}`,
+    );
 
     return {
       ...updated,
@@ -259,7 +272,9 @@ export class RolesService {
       where: { id },
     });
 
-    this.logger.log(`Custom role "${role.name}" deleted from project ${role.projectId} by user ${userId}`);
+    this.logger.log(
+      `Custom role "${role.name}" deleted from project ${role.projectId} by user ${userId}`,
+    );
   }
 
   /**

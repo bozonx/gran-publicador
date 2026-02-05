@@ -52,7 +52,9 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.logger.debug(`Client ${client.id} (user ${payload.sub}) connected to STT`);
     } catch (error: any) {
-      this.logger.debug(`Client ${client.id} STT connection error: ${error.message}, disconnecting`);
+      this.logger.debug(
+        `Client ${client.id} STT connection error: ${error.message}, disconnecting`,
+      );
       client.disconnect();
     }
   }
@@ -81,24 +83,24 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Starting STT stream for client ${client.id}: ${filename} (${mimetype})`);
 
     const passThrough = new PassThrough();
-    
+
     // Add detailed logging for stream lifecycle
-    passThrough.on('error', (err) => {
+    passThrough.on('error', err => {
       this.logger.error(`Stream error for client ${client.id}: ${err.message}`);
     });
-    
+
     passThrough.on('finish', () => {
       this.logger.debug(`Stream finished (no more writes) for client ${client.id}`);
     });
-    
+
     passThrough.on('close', () => {
       this.logger.debug(`Stream closed for client ${client.id}`);
     });
-    
+
     passThrough.on('end', () => {
       this.logger.debug(`Stream ended (no more reads) for client ${client.id}`);
     });
-    
+
     // Get user language
     const user = await this.usersService.findById(client.data.userId);
     const language = data.language || user?.language;
@@ -106,17 +108,17 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Start transcription promise
     const transcriptionPromise = this.sttService
       .transcribeAudioStream(passThrough, filename, mimetype, language)
-      .then((result) => {
+      .then(result => {
         client.emit('transcription-result', result);
       })
-      .catch((error) => {
+      .catch(error => {
         this.logger.error(`Transcription error for client ${client.id}: ${error.message}`);
         client.emit('transcription-error', { message: error.message });
       })
       .finally(() => {
         // Only delete from map if this is still the active stream for this client
         const current = this.activeStreams.get(client.id);
-        if (current && current.stream === passThrough) {
+        if (current?.stream === passThrough) {
           this.logger.debug(`Transcription finished for client ${client.id}, cleaning up`);
           this.activeStreams.delete(client.id);
         }
@@ -138,9 +140,9 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // chunk might be a Buffer or ArrayBuffer depending on socket.io configuration
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    
+
     if (active.stream.writable && !active.stream.writableEnded) {
-      active.stream.write(buffer, (err) => {
+      active.stream.write(buffer, err => {
         if (err) {
           this.logger.error(`Error writing to STT stream for client ${client.id}: ${err.message}`);
           this.cleanupStream(client.id, 'write-error');
@@ -172,7 +174,7 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // But if it's a new session or error, we must destroy
       if (reason === 'disconnect') {
         if (!active.stream.writableEnded) {
-           active.stream.end(); 
+          active.stream.end();
         }
       } else {
         active.stream.destroy();

@@ -149,7 +149,9 @@ export class MediaService {
     return normalized;
   }
 
-  async create(data: CreateMediaDto): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
+  async create(
+    data: CreateMediaDto,
+  ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const { meta, sizeBytes, ...rest } = data;
     const created = await this.prisma.media.create({
       data: {
@@ -190,7 +192,9 @@ export class MediaService {
     }));
   }
 
-  async findOne(id: string): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
+  async findOne(
+    id: string,
+  ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
     return {
@@ -283,7 +287,7 @@ export class MediaService {
       if (response.statusCode >= 400) {
         const errorBody = await response.body.json().catch(() => ({}));
         const errorMessage = (errorBody as any).message || 'Microservice error';
-        
+
         if (response.statusCode === 400) throw new BadRequestException(errorMessage);
         if (response.statusCode === 404) throw new NotFoundException(errorMessage);
         throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
@@ -373,19 +377,18 @@ export class MediaService {
 
     const config = this.config;
     try {
-      const response = await request(
-        `${config.serviceUrl}/files/${media.storagePath}/reprocess`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
-          headersTimeout: (config.timeoutSecs || 60) * 1000,
-        },
-      );
+      const response = await request(`${config.serviceUrl}/files/${media.storagePath}/reprocess`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
+      });
 
       if (response.statusCode >= 400) {
         const errorBody = await response.body.json().catch(() => ({}));
-        throw new BadGatewayException(`Media Storage error: ${(errorBody as any).message || 'Microservice error'}`);
+        throw new BadGatewayException(
+          `Media Storage error: ${(errorBody as any).message || 'Microservice error'}`,
+        );
       }
 
       const result = (await response.body.json()) as any;
@@ -416,7 +419,9 @@ export class MediaService {
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
     } catch (error) {
-      this.logger.error(`Failed to delete file ${fileId} from Media Storage: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to delete file ${fileId} from Media Storage: ${(error as Error).message}`,
+      );
     }
   }
 
@@ -440,7 +445,7 @@ export class MediaService {
 
       const responseHeaders: Record<string, string> = {};
       const skipHeaders = ['connection', 'keep-alive', 'transfer-encoding'];
-      
+
       for (const [key, value] of Object.entries(response.headers)) {
         if (!skipHeaders.includes(key.toLowerCase()) && typeof value === 'string') {
           responseHeaders[key] = value;
@@ -448,7 +453,7 @@ export class MediaService {
       }
 
       return {
-        stream: (response.body as any) as Readable,
+        stream: response.body as any as Readable,
         status: response.statusCode,
         headers: responseHeaders,
       };
@@ -479,7 +484,8 @@ export class MediaService {
         },
       );
 
-      if (response.statusCode >= 400) throw new Error(`Media Storage returned ${response.statusCode}`);
+      if (response.statusCode >= 400)
+        throw new Error(`Media Storage returned ${response.statusCode}`);
 
       const responseHeaders: Record<string, string> = {};
       for (const [key, value] of Object.entries(response.headers)) {
@@ -487,7 +493,7 @@ export class MediaService {
       }
 
       return {
-        stream: (response.body as any) as Readable,
+        stream: response.body as any as Readable,
         status: response.statusCode,
         headers: responseHeaders,
       };
@@ -504,7 +510,8 @@ export class MediaService {
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
-      if (response.statusCode >= 400) throw new Error(`Media Storage returned ${response.statusCode}`);
+      if (response.statusCode >= 400)
+        throw new Error(`Media Storage returned ${response.statusCode}`);
       return (await response.body.json()) as any;
     } catch (error) {
       this.handleMicroserviceError(error, 'file info');
@@ -564,7 +571,9 @@ export class MediaService {
       const getFileData = (await getFileResponse.body.json()) as any;
 
       if (!getFileData.ok || !getFileData.result?.file_path) {
-        this.logger.warn(`File not found in Telegram: ${fileId}. Response: ${JSON.stringify(getFileData)}`);
+        this.logger.warn(
+          `File not found in Telegram: ${fileId}. Response: ${JSON.stringify(getFileData)}`,
+        );
         throw new NotFoundException('File not found in Telegram');
       }
 
@@ -572,7 +581,9 @@ export class MediaService {
       const downloadResponse = await request(downloadUrl, { method: 'GET' });
 
       if (downloadResponse.statusCode >= 400) {
-        this.logger.error(`Failed to download from Telegram: ${downloadUrl}, status: ${downloadResponse.statusCode}`);
+        this.logger.error(
+          `Failed to download from Telegram: ${downloadUrl}, status: ${downloadResponse.statusCode}`,
+        );
         throw new InternalServerErrorException('Failed to download from Telegram');
       }
 
@@ -581,7 +592,7 @@ export class MediaService {
       if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
 
       return {
-        stream: (downloadResponse.body as any) as Readable,
+        stream: downloadResponse.body as any as Readable,
         status: downloadResponse.statusCode,
         headers,
       };
@@ -589,7 +600,10 @@ export class MediaService {
       if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error(`Error during Telegram file retrieval: ${(error as Error).message}`, (error as Error).stack);
+      this.logger.error(
+        `Error during Telegram file retrieval: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
       throw new InternalServerErrorException(`Telegram proxy error: ${(error as Error).message}`);
     }
   }

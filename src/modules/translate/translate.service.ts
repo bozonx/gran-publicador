@@ -120,13 +120,21 @@ export class TranslateService {
         if (response.statusCode >= 400) {
           const errorText = await response.body.text();
 
-          if (response.statusCode >= 400 && response.statusCode < 500 && response.statusCode !== 429) {
-            this.logger.error(`Translate Gateway returned HTTP ${response.statusCode}: ${errorText}`);
+          if (
+            response.statusCode >= 400 &&
+            response.statusCode < 500 &&
+            response.statusCode !== 429
+          ) {
+            this.logger.error(
+              `Translate Gateway returned HTTP ${response.statusCode}: ${errorText}`,
+            );
             throw new BadRequestException(`Translation failed: ${errorText}`);
           }
 
           if (response.statusCode >= 500) {
-            this.logger.error(`Translate Gateway returned HTTP ${response.statusCode}: ${errorText}`);
+            this.logger.error(
+              `Translate Gateway returned HTTP ${response.statusCode}: ${errorText}`,
+            );
             throw new BadGatewayException(`Translate Gateway error: ${errorText}`);
           }
 

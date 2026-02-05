@@ -114,7 +114,12 @@ describe('TranslateService', () => {
         path: '/api/v1/translate',
         method: 'POST',
       })
-      .reply(200, { translatedText: 'Привет', provider: 'override-provider', model: 'm', chunksCount: 1 });
+      .reply(200, {
+        translatedText: 'Привет',
+        provider: 'override-provider',
+        model: 'm',
+        chunksCount: 1,
+      });
 
     await service.translateText(dto);
   });

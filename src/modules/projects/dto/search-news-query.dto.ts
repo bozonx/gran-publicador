@@ -1,4 +1,18 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsInt, MaxLength, IsIn, IsISO8601, IsArray, IsEnum, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsInt,
+  MaxLength,
+  IsIn,
+  IsISO8601,
+  IsArray,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
@@ -15,7 +29,6 @@ export class SearchNewsQueryDto {
   @IsString()
   @IsIn(['text', 'vector', 'hybrid'])
   mode?: 'text' | 'vector' | 'hybrid';
-
 
   @IsOptional()
   @IsISO8601()
@@ -49,12 +62,9 @@ export class SearchNewsQueryDto {
   @IsString()
   sourceTags?: string;
 
-
-
   @IsOptional()
   @IsString()
   lang?: string;
-
 
   @IsOptional()
   @Type(() => Number)

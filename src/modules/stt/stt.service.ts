@@ -80,9 +80,9 @@ export class SttService {
 
       // Get headers from form-data
       const formHeaders = form.getHeaders();
-      
+
       this.logger.debug(`Starting upload to STT Gateway for ${filename}`);
-      
+
       const response = await request(`${config.serviceUrl}/transcribe/stream`, {
         method: 'POST',
         body: form as any,

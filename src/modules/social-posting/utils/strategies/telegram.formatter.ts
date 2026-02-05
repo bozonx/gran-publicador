@@ -1,5 +1,5 @@
-import { AbstractPlatformFormatter, FormatterParams } from './abstract-platform.formatter.js';
-import { PostRequestDto } from '../../dto/social-posting.dto.js';
+import { AbstractPlatformFormatter, type FormatterParams } from './abstract-platform.formatter.js';
+import type { PostRequestDto } from '../../dto/social-posting.dto.js';
 import { SocialPostingBodyFormatter } from '../social-posting-body.formatter.js';
 import { ContentConverter } from '../../../../common/utils/content-converter.util.js';
 
@@ -23,7 +23,12 @@ export class TelegramFormatter extends AbstractPlatformFormatter {
       post.footerId, // Pass the footer override
     );
 
-    const mediaMapping = this.mapMedia(publication.media, mediaStorageUrl, params.publicMediaBaseUrl, params.mediaService);
+    const mediaMapping = this.mapMedia(
+      publication.media,
+      mediaStorageUrl,
+      params.publicMediaBaseUrl,
+      params.mediaService,
+    );
 
     // Telegram specific: Convert MD to HTML
     body = ContentConverter.mdToTelegramHtml(body);
@@ -48,7 +53,7 @@ export class TelegramFormatter extends AbstractPlatformFormatter {
     // - description: do not pass
     // - tags: do not pass (already in body)
     // - mode: do not pass
-    
+
     return request;
   }
 }

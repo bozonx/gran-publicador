@@ -22,7 +22,6 @@ import { PublicationMediaInputDto } from './publication-media-input.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { PublicationMetaDto } from '../../../common/dto/json-objects.dto.js';
 
-
 /**
  * DTO for updating an existing publication.
  */
@@ -103,7 +102,7 @@ export class UpdatePublicationDto {
 
   @IsString()
   @IsUUID()
-  @ValidateIf((o) => o.translationGroupId !== null)
+  @ValidateIf(o => o.translationGroupId !== null)
   @IsOptional()
   public translationGroupId?: string | null;
 
@@ -120,7 +119,4 @@ export class UpdatePublicationDto {
   @IsOptional()
   @IsUUID()
   public linkToPublicationId?: string;
-
-
 }
-

@@ -1,4 +1,13 @@
-import { IsArray, IsString, IsNumber, IsInt, Min, Max, ValidateNested, ArrayMaxSize } from 'class-validator';
+import {
+  IsArray,
+  IsString,
+  IsNumber,
+  IsInt,
+  Min,
+  Max,
+  ValidateNested,
+  ArrayMaxSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 

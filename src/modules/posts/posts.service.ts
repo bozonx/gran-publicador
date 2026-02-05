@@ -41,9 +41,7 @@ export class PostsService {
     });
 
     const effectiveAt =
-      (publishedAgg._max.publishedAt as Date | null) ??
-      publication.scheduledAt ??
-      publication.createdAt;
+      publishedAgg._max.publishedAt ?? publication.scheduledAt ?? publication.createdAt;
 
     await this.prisma.publication.update({
       where: { id: publicationId },

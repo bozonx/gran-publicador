@@ -1,4 +1,7 @@
-import { extractMedia, extractText } from '../../src/modules/telegram-bot/telegram-content.helper.js';
+import {
+  extractMedia,
+  extractText,
+} from '../../src/modules/telegram-bot/telegram-content.helper.js';
 import { MediaType } from '../../src/generated/prisma/index.js';
 
 describe('telegram-content.helper', () => {
@@ -38,9 +41,7 @@ describe('telegram-content.helper', () => {
 
     it('should default hasSpoiler to undefined if not present', () => {
       const message = {
-        photo: [
-          { file_id: 's1', file_size: 100, width: 90, height: 90 },
-        ],
+        photo: [{ file_id: 's1', file_size: 100, width: 90, height: 90 }],
       } as any;
 
       const media = extractMedia(message);
@@ -137,9 +138,7 @@ describe('telegram-content.helper', () => {
           { offset: 14, length: 15, type: 'pre', language: 'javascript' },
         ],
       } as any;
-      expect(extractText(message)).toBe(
-        '`const x = 10;` ```javascript\nconsole.log(x);\n```',
-      );
+      expect(extractText(message)).toBe('`const x = 10;` ```javascript\nconsole.log(x);\n```');
     });
 
     it('should handle blockquote', () => {

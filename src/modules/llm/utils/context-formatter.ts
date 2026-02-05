@@ -2,7 +2,6 @@
  * Utilities for formatting LLM context.
  */
 
-
 export interface FormatContextOptions {
   includeMetadata?: boolean;
 }

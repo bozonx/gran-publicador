@@ -49,9 +49,7 @@ export class PermissionsService {
 
     // Check archived status if required
     if (!allowArchived && project.archivedAt) {
-      throw new ForbiddenException(
-        'Project is archived. Restore it to perform this action.',
-      );
+      throw new ForbiddenException('Project is archived. Restore it to perform this action.');
     }
   }
 
@@ -118,10 +116,7 @@ export class PermissionsService {
       throw new ForbiddenException('No access to project');
     }
 
-    const [category, action] = permissionKey.split('.') as [
-      keyof RolePermissions,
-      string,
-    ];
+    const [category, action] = permissionKey.split('.') as [keyof RolePermissions, string];
     const hasPermission = (permissions[category] as any)?.[action] === true;
 
     if (!hasPermission) {
@@ -178,10 +173,7 @@ export class PermissionsService {
   /**
    * Retrieve the user's role name or 'OWNER'.
    */
-  public async getUserProjectRole(
-    projectId: string,
-    userId: string,
-  ): Promise<string | null> {
+  public async getUserProjectRole(projectId: string, userId: string): Promise<string | null> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { isAdmin: true },
@@ -221,4 +213,3 @@ export class PermissionsService {
     };
   }
 }
-

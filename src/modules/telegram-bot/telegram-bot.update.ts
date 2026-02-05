@@ -291,7 +291,7 @@ export class TelegramBotUpdate {
   }
 
   private getTitleForMessage(message: Message, extractedText: string): string | null {
-    if (message.forward_origin && message.forward_origin.type === 'channel') {
+    if (message.forward_origin?.type === 'channel') {
       const username = message.forward_origin.chat.username;
       if (username) return `Forward from @${username}`;
       const title = message.forward_origin.chat.title;
@@ -330,7 +330,7 @@ export class TelegramBotUpdate {
 
     let finalText = extractedText;
     if (voiceMedia.length > 0) {
-      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0]!.fileId, undefined);
+      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, undefined);
       if (transcribed) {
         finalText = finalText ? `${finalText}\n\n${transcribed}` : transcribed;
       }
@@ -444,7 +444,7 @@ export class TelegramBotUpdate {
     }
 
     if (voiceMedia.length > 0) {
-      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0]!.fileId, undefined);
+      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, undefined);
       if (transcribed) {
         const current = await (this.prisma as any).contentBlock.findUnique({
           where: { id: existingBlock.id },

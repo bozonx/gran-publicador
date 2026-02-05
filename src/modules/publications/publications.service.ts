@@ -88,7 +88,6 @@ export class PublicationsService {
     return typeof meta === 'object' && meta !== null ? meta : {};
   }
 
-
   /**
    * Prepare Prisma orderBy clauses.
    */
@@ -116,9 +115,7 @@ export class PublicationsService {
     });
 
     const effectiveAt =
-      (publishedAgg._max.publishedAt as Date | null) ??
-      publication.scheduledAt ??
-      publication.createdAt;
+      publishedAgg._max.publishedAt ?? publication.scheduledAt ?? publication.createdAt;
 
     await this.prisma.publication.update({
       where: { id: publicationId },
@@ -157,7 +154,6 @@ export class PublicationsService {
         PermissionKey.PUBLICATIONS_CREATE,
       );
     }
-
 
     let translationGroupId = data.translationGroupId;
 
@@ -233,7 +229,7 @@ export class PublicationsService {
         description: data.description,
         authorComment: data.authorComment,
         content: data.content,
-        meta: (data.meta ?? {}) as any,
+        meta: data.meta ?? {},
         media: {
           create: [
             // New Image from URL
@@ -411,7 +407,7 @@ export class PublicationsService {
     };
 
     const sortBy = filters?.sortBy || 'chronology';
-    const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
+    const sortOrder = filters?.sortOrder || 'desc';
 
     const [items, total, totalUnfiltered] = await Promise.all([
       this.prisma.publication.findMany({
@@ -422,11 +418,11 @@ export class PublicationsService {
         skip: filters?.offset,
       }),
       this.prisma.publication.count({ where }),
-      this.prisma.publication.count({ 
-        where: { 
+      this.prisma.publication.count({
+        where: {
           projectId,
-          archivedAt: null 
-        } 
+          archivedAt: null,
+        },
       }),
     ]);
 
@@ -439,7 +435,6 @@ export class PublicationsService {
       totalUnfiltered,
     };
   }
-
 
   /**
    * Retrieve all publications for a given user across all projects they are members of.
@@ -522,7 +517,7 @@ export class PublicationsService {
     };
 
     const sortBy = filters?.sortBy || 'chronology';
-    const sortOrder = (filters?.sortOrder || 'desc') as 'asc' | 'desc';
+    const sortOrder = filters?.sortOrder || 'desc';
 
     const [items, total, totalUnfiltered] = await Promise.all([
       this.prisma.publication.findMany({
@@ -632,13 +627,13 @@ export class PublicationsService {
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_OWN,
       );
     } else {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_ALL,
       );
@@ -667,7 +662,7 @@ export class PublicationsService {
       }
 
       // 3. Access Check
-      await this.permissions.checkProjectAccess(targetPub.projectId!, userId);
+      await this.permissions.checkProjectAccess(targetPub.projectId, userId);
 
       if (targetPub.projectId !== publication.projectId) {
         // Assuming project doesn't change on update
@@ -994,13 +989,13 @@ export class PublicationsService {
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_DELETE_OWN,
       );
     } else {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_DELETE_ALL,
       );
@@ -1041,7 +1036,7 @@ export class PublicationsService {
     for (const pub of publications) {
       try {
         if (pub.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(pub.projectId!, userId, ['ADMIN']);
+          await this.permissions.checkProjectPermission(pub.projectId, userId, ['ADMIN']);
         }
         authorizedIds.push(pub.id);
       } catch (e) {
@@ -1184,12 +1179,11 @@ export class PublicationsService {
       }
     }
 
-
     // Verify all channels belong to the same project
     const channels = await this.prisma.channel.findMany({
       where: {
         id: { in: channelIds },
-        projectId: publication.projectId!,
+        projectId: publication.projectId,
       },
     });
 
@@ -1248,13 +1242,13 @@ export class PublicationsService {
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_OWN,
       );
     } else {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_ALL,
       );
@@ -1320,13 +1314,13 @@ export class PublicationsService {
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_OWN,
       );
     } else {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_ALL,
       );
@@ -1369,13 +1363,13 @@ export class PublicationsService {
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_OWN,
       );
     } else {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_ALL,
       );
@@ -1419,13 +1413,13 @@ export class PublicationsService {
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_OWN,
       );
     } else {
       await this.permissions.checkPermission(
-        publication.projectId!,
+        publication.projectId,
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_ALL,
       );

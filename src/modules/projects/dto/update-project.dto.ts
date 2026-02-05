@@ -23,5 +23,3 @@ export class UpdateProjectDto {
   @Type(() => ProjectPreferencesDto)
   public preferences?: ProjectPreferencesDto;
 }
-
-

@@ -1,10 +1,4 @@
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  MaxLength,
-  ValidateIf,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { LlmPromptTemplateCategory } from '../../../generated/prisma/index.js';
 
@@ -28,7 +22,13 @@ export class UpsertSystemLlmPromptOverrideDto {
   @IsOptional()
   public category?: LlmPromptTemplateCategory;
 
-  @ValidateIf(o => o.name === undefined && o.description === undefined && o.prompt === undefined && o.category === undefined)
+  @ValidateIf(
+    o =>
+      o.name === undefined &&
+      o.description === undefined &&
+      o.prompt === undefined &&
+      o.category === undefined,
+  )
   @IsString({ message: 'At least one field must be provided' })
   private readonly _atLeastOneField?: string;
 }

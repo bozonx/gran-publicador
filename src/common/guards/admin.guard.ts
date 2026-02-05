@@ -19,7 +19,7 @@ export class AdminGuard implements CanActivate {
     const userId = user.sub || user.id;
     const dbUser = await this.usersService.findById(userId);
 
-    if (!dbUser || !dbUser.isAdmin) {
+    if (!dbUser?.isAdmin) {
       throw new ForbiddenException('Admin access required');
     }
 

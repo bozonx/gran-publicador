@@ -13,7 +13,15 @@ import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.j
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateProjectDto, UpdateProjectDto, AddMemberDto, UpdateMemberDto, SearchNewsQueryDto, FetchNewsContentDto, TransferProjectDto } from './dto/index.js';
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+  AddMemberDto,
+  UpdateMemberDto,
+  SearchNewsQueryDto,
+  FetchNewsContentDto,
+  TransferProjectDto,
+} from './dto/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
@@ -458,7 +466,7 @@ export class ProjectsService {
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
-    
+
     return this.prisma.project.update({
       where: { id: projectId },
       data: { ...data, preferences: data.preferences ? (data.preferences as any) : undefined },
@@ -469,8 +477,9 @@ export class ProjectsService {
     // TODO: Update to use new permission system
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can delete project');
-    
+    if (project.ownerId !== userId)
+      throw new ForbiddenException('Only project owner can delete project');
+
     return this.prisma.project.delete({ where: { id: projectId } });
   }
 
@@ -478,8 +487,9 @@ export class ProjectsService {
     // TODO: Update to use new permission system
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can archive project');
-    
+    if (project.ownerId !== userId)
+      throw new ForbiddenException('Only project owner can archive project');
+
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: new Date(), archivedBy: userId },
@@ -490,8 +500,9 @@ export class ProjectsService {
     // TODO: Update to use new permission system
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId) throw new ForbiddenException('Only project owner can unarchive project');
-    
+    if (project.ownerId !== userId)
+      throw new ForbiddenException('Only project owner can unarchive project');
+
     return this.prisma.project.update({
       where: { id: projectId },
       data: { archivedAt: null, archivedBy: null },
@@ -676,7 +687,7 @@ export class ProjectsService {
       if (query.includeContent) searchParams.includeContent = query.includeContent;
 
       if (query.lang) searchParams.locale = query.lang;
-      
+
       if (query.limit) searchParams.limit = query.limit;
       if (query.minScore !== undefined) searchParams.minScore = query.minScore;
       if (query.orderBy) searchParams.orderBy = query.orderBy;
@@ -699,8 +710,15 @@ export class ProjectsService {
     }
   }
 
-  public async fetchNewsContent(projectId: string, userId: string, newsId: string, data: FetchNewsContentDto) {
-    this.logger.debug(`fetchNewsContent called for ${newsId}, contentLength: ${data.contentLength}, force: ${data.force}`);
+  public async fetchNewsContent(
+    projectId: string,
+    userId: string,
+    newsId: string,
+    data: FetchNewsContentDto,
+  ) {
+    this.logger.debug(
+      `fetchNewsContent called for ${newsId}, contentLength: ${data.contentLength}, force: ${data.force}`,
+    );
     await this.permissions.checkProjectAccess(projectId, userId);
 
     const config = this.configService.get<NewsConfig>('news')!;
@@ -719,7 +737,9 @@ export class ProjectsService {
           try {
             fingerprint = JSON.parse(config.refreshFingerprint);
           } catch (e) {
-            this.logger.warn(`Failed to parse refreshFingerprint config: ${config.refreshFingerprint}`);
+            this.logger.warn(
+              `Failed to parse refreshFingerprint config: ${config.refreshFingerprint}`,
+            );
           }
         }
 
@@ -740,10 +760,10 @@ export class ProjectsService {
         // Otherwise we just GET the news item which should already have content
         this.logger.debug(`Fetching existing news content for ${newsId}`);
         const url = `${baseUrl}/news/${newsId}`;
-        
-        // We do not pass locale query param to avoid implicit translation; 
+
+        // We do not pass locale query param to avoid implicit translation;
         // we want the item as it exists in the DB (original language/state).
-        
+
         response = await request(url, {
           method: 'GET',
         });
@@ -752,35 +772,42 @@ export class ProjectsService {
       if (response.statusCode >= 400) {
         const errorText = await response.body.text();
         this.logger.error(`News microservice returned ${response.statusCode}: ${errorText}`);
-        
+
         // If it failed and we have fallback data, use it
         if (data.title || data.description) {
-          this.logger.warn(`Using fallback data for news ${newsId} after service error ${response.statusCode}`);
+          this.logger.warn(
+            `Using fallback data for news ${newsId} after service error ${response.statusCode}`,
+          );
           return {
             title: data.title,
             content: data.description,
             description: data.description,
           };
         }
-        
+
         throw new Error(`News microservice error: ${response.statusCode}`);
       }
 
       const result = (await response.body.json()) as any;
-      this.logger.debug(`Microservice response keys for news ${newsId}: ${Object.keys(result).join(', ')}`);
-      
+      this.logger.debug(
+        `Microservice response keys for news ${newsId}: ${Object.keys(result).join(', ')}`,
+      );
+
       // Extract data with proper priority
       // 1. Check result.item (new API)
       // 2. Check result top level (original API/compatibility)
       const item = result.item || result;
-      
+
       const content = item.content || item.body || item.text || item.original?.content;
       const title = item.title || item.original?.title || data.title;
-      const description = item.description || item.summary || item.original?.description || data.description;
+      const description =
+        item.description || item.summary || item.original?.description || data.description;
 
       // If we got an empty content from refresh/get, try fallback
       if (!content && (data.title || data.description)) {
-        this.logger.warn(`No content found in microservice response for news ${newsId}, using fallback from DTO (description length: ${data.description?.length})`);
+        this.logger.warn(
+          `No content found in microservice response for news ${newsId}, using fallback from DTO (description length: ${data.description?.length})`,
+        );
         return {
           ...result,
           title: title || data.title,
@@ -789,7 +816,9 @@ export class ProjectsService {
         };
       }
 
-      this.logger.debug(`Successfully fetched content for news ${newsId} (length: ${content?.length})`);
+      this.logger.debug(
+        `Successfully fetched content for news ${newsId} (length: ${content?.length})`,
+      );
 
       return {
         ...result,
@@ -799,10 +828,12 @@ export class ProjectsService {
       };
     } catch (error: any) {
       this.logger.error(`Failed to fetch news content: ${error.message}`);
-      
+
       // Attempt fallback on catch as well
       if (data.title || data.description) {
-        this.logger.warn(`Using fallback data for news ${newsId} after exception: ${error.message}`);
+        this.logger.warn(
+          `Using fallback data for news ${newsId} after exception: ${error.message}`,
+        );
         return {
           title: data.title,
           content: data.description,
@@ -864,29 +895,35 @@ export class ProjectsService {
         try {
           const sender = await tx.user.findUnique({ where: { id: userId } });
           const senderName = sender
-            ? sender.fullName || (sender.telegramUsername ? `@${sender.telegramUsername}` : 'Unknown User')
+            ? sender.fullName ||
+              (sender.telegramUsername ? `@${sender.telegramUsername}` : 'Unknown User')
             : 'Unknown User';
-          
+
           const lang = targetUser.uiLanguage || 'en-US';
 
-          await this.notifications.create({
-            userId: data.targetUserId,
-            type: 'PROJECT_TRANSFER' as any,
-            title: this.i18n.t('notifications.PROJECT_TRANSFER_TITLE', { lang }),
-            message: this.i18n.t('notifications.PROJECT_TRANSFER_MESSAGE', {
-              lang,
-              args: {
-                senderName,
-                projectName: project.name,
-              },
-            }),
-            meta: { projectId, transferredBy: userId },
-          }, tx);
+          await this.notifications.create(
+            {
+              userId: data.targetUserId,
+              type: 'PROJECT_TRANSFER' as any,
+              title: this.i18n.t('notifications.PROJECT_TRANSFER_TITLE', { lang }),
+              message: this.i18n.t('notifications.PROJECT_TRANSFER_MESSAGE', {
+                lang,
+                args: {
+                  senderName,
+                  projectName: project.name,
+                },
+              }),
+              meta: { projectId, transferredBy: userId },
+            },
+            tx,
+          );
         } catch (error: any) {
           this.logger.error(`Failed to send project transfer notification: ${error.message}`);
         }
 
-        this.logger.log(`Project "${project.name}" (${project.id}) transferred from ${userId} to ${data.targetUserId}`);
+        this.logger.log(
+          `Project "${project.name}" (${project.id}) transferred from ${userId} to ${data.targetUserId}`,
+        );
 
         return updatedProject;
       },

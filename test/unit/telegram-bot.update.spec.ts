@@ -76,12 +76,12 @@ describe('TelegramBotUpdate', () => {
   it('creates content item for text message and replies', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.usersService as any,
-      deps.prisma as any,
-      deps.mediaService as any,
-      deps.sttService as any,
-      deps.i18n as any,
-      deps.configService as any,
+      deps.usersService,
+      deps.prisma,
+      deps.mediaService,
+      deps.sttService,
+      deps.i18n,
+      deps.configService,
     );
 
     const ctx = createCtx({
@@ -92,7 +92,7 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onMessage(ctx as any);
+    await update.onMessage(ctx);
     await (update as any).userQueues.get(100)?.onIdle();
 
     expect(deps.prisma.contentItem.create).toHaveBeenCalledTimes(1);
@@ -110,12 +110,12 @@ describe('TelegramBotUpdate', () => {
     });
 
     const update = new TelegramBotUpdate(
-      deps.usersService as any,
-      deps.prisma as any,
-      deps.mediaService as any,
-      deps.sttService as any,
-      deps.i18n as any,
-      deps.configService as any,
+      deps.usersService,
+      deps.prisma,
+      deps.mediaService,
+      deps.sttService,
+      deps.i18n,
+      deps.configService,
     );
 
     const ctx = createCtx({
@@ -126,12 +126,10 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onMessage(ctx as any);
+    await update.onMessage(ctx);
     await (update as any).userQueues.get(100)?.onIdle();
 
-    const call = (ctx.reply as any).mock.calls.find(
-      (c: any[]) => c[0] === 'telegram.content_item_created',
-    );
+    const call = ctx.reply.mock.calls.find((c: any[]) => c[0] === 'telegram.content_item_created');
     expect(call).toBeTruthy();
     expect(call[1]).toMatchObject({
       reply_markup: {
@@ -151,12 +149,12 @@ describe('TelegramBotUpdate', () => {
   it('handles /start: creates user and replies with welcome + start_message', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.usersService as any,
-      deps.prisma as any,
-      deps.mediaService as any,
-      deps.sttService as any,
-      deps.i18n as any,
-      deps.configService as any,
+      deps.usersService,
+      deps.prisma,
+      deps.mediaService,
+      deps.sttService,
+      deps.i18n,
+      deps.configService,
     );
 
     const ctx = createCtx({
@@ -167,7 +165,7 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onStart(ctx as any);
+    await update.onStart(ctx);
 
     expect(deps.usersService.findOrCreateTelegramUser).toHaveBeenCalledTimes(1);
     expect(ctx.reply).toHaveBeenCalledWith('telegram.welcome');
@@ -178,12 +176,12 @@ describe('TelegramBotUpdate', () => {
     const deps = createDeps();
 
     const update = new TelegramBotUpdate(
-      deps.usersService as any,
-      deps.prisma as any,
-      deps.mediaService as any,
-      deps.sttService as any,
-      deps.i18n as any,
-      deps.configService as any,
+      deps.usersService,
+      deps.prisma,
+      deps.mediaService,
+      deps.sttService,
+      deps.i18n,
+      deps.configService,
     );
 
     const ctx1 = createCtx({
@@ -195,7 +193,7 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onMessage(ctx1 as any);
+    await update.onMessage(ctx1);
     await (update as any).userQueues.get(100)?.onIdle();
     expect(ctx1.reply).toHaveBeenCalledWith('telegram.content_item_created');
 
@@ -213,7 +211,7 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onMessage(ctx2 as any);
+    await update.onMessage(ctx2);
     await (update as any).userQueues.get(100)?.onIdle();
     expect(ctx2.reply).not.toHaveBeenCalled();
     expect(deps.prisma.contentBlockMedia.create).toHaveBeenCalled();
@@ -222,12 +220,12 @@ describe('TelegramBotUpdate', () => {
   it('rejects unsupported message type', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.usersService as any,
-      deps.prisma as any,
-      deps.mediaService as any,
-      deps.sttService as any,
-      deps.i18n as any,
-      deps.configService as any,
+      deps.usersService,
+      deps.prisma,
+      deps.mediaService,
+      deps.sttService,
+      deps.i18n,
+      deps.configService,
     );
 
     const ctx = createCtx({
@@ -238,7 +236,7 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onMessage(ctx as any);
+    await update.onMessage(ctx);
     await (update as any).userQueues.get(100)?.onIdle();
 
     expect(ctx.reply).toHaveBeenCalledWith('telegram.unsupported_message_type');
@@ -251,12 +249,12 @@ describe('TelegramBotUpdate', () => {
     deps.prisma.contentBlock.findFirst.mockResolvedValueOnce({ id: 'cbExisting' });
 
     const update = new TelegramBotUpdate(
-      deps.usersService as any,
-      deps.prisma as any,
-      deps.mediaService as any,
-      deps.sttService as any,
-      deps.i18n as any,
-      deps.configService as any,
+      deps.usersService,
+      deps.prisma,
+      deps.mediaService,
+      deps.sttService,
+      deps.i18n,
+      deps.configService,
     );
 
     const ctx = createCtx({
@@ -267,7 +265,7 @@ describe('TelegramBotUpdate', () => {
       },
     });
 
-    await update.onMessage(ctx as any);
+    await update.onMessage(ctx);
     await (update as any).userQueues.get(100)?.onIdle();
 
     expect(deps.prisma.contentItem.create).not.toHaveBeenCalled();
