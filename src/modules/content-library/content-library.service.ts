@@ -296,7 +296,7 @@ export class ContentLibraryService {
 
     const includeBlocks = query.includeBlocks !== false;
 
-    const [items, total] = await Promise.all([
+    const [items, total, totalUnfiltered] = await Promise.all([
       this.prisma.contentItem.findMany({
         where,
         orderBy: { [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc' },
@@ -328,6 +328,8 @@ export class ContentLibraryService {
         },
       }),
     ]) as [any[], number, number];
+
+
 
     return {
       items,

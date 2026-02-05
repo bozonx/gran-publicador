@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 import type { ChannelFooter, ChannelWithProject } from '~/types/channels'
+import { containsBlockMarkdown } from '~/utils/markdown-validation'
 
 interface Props {
   channel: ChannelWithProject
@@ -87,6 +88,15 @@ function openEditFooter(footer: ChannelFooter) {
 
 function saveFooter() {
   if (!footerForm.content) return
+
+  if (containsBlockMarkdown(footerForm.content)) {
+    toast.add({
+      title: t('common.error'),
+      description: t('validation.inlineMarkdownOnly'),
+      color: 'error'
+    })
+    return
+  }
 
   // Automatically set name from content for backend compatibility
   footerForm.name = footerForm.content.split('\n')[0].slice(0, 50) || 'Footer'
@@ -289,7 +299,13 @@ const hasTeleportTarget = computed(() => isMounted.value && !!document?.getEleme
     >
       <div class="space-y-4">
 
-        <UFormField :label="t('channel.footerContent')" required>
+        <UFormField required>
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('channel.footerContent') }}</span>
+              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+            </div>
+          </template>
           <UTextarea
             v-model="footerForm.content"
             :placeholder="t('channel.footerContentPlaceholder')"

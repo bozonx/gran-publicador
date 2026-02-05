@@ -341,7 +341,11 @@ export function usePublications() {
     error.value = null;
 
     try {
-      await api.post('/publications/bulk', { ids, operation, status, targetProjectId });
+      const payload = { ids, operation, status, targetProjectId };
+      // Remove undefined/null values to avoid issues with whitelist: true, forbidNonWhitelisted: true
+      Object.keys(payload).forEach(key => (payload[key as keyof typeof payload] === undefined || payload[key as keyof typeof payload] === null) && delete payload[key as keyof typeof payload]);
+      
+      await api.post('/publications/bulk', payload);
 
       toast.add({
         title: t('common.success'),

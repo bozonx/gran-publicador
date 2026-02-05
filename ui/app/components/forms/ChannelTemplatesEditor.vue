@@ -7,6 +7,7 @@ import type {
   ChannelPostTemplate, 
   TemplateBlock 
 } from '~/types/channels'
+import { containsBlockMarkdown } from '~/utils/markdown-validation'
 
 interface Props {
   channel: ChannelWithProject
@@ -14,6 +15,7 @@ interface Props {
 
 const { channel } = defineProps<Props>()
 const { t } = useI18n()
+const toast = useToast()
 const { updateChannel } = useChannels()
 const { languageOptions } = useLanguages()
 
@@ -126,16 +128,32 @@ async function saveTemplates() {
 function handleSaveTemplate() {
   if (!templateForm.name) return
 
+  // Validate block markdown
+  for (const block of templateForm.template) {
+    if (block.enabled) {
+      if (containsBlockMarkdown(block.before) || 
+          containsBlockMarkdown(block.after) || 
+          (block.insert === 'custom' && containsBlockMarkdown(block.content))) {
+        toast.add({
+          title: t('common.error'),
+          description: t('validation.inlineMarkdownOnly'),
+          color: 'error'
+        })
+        return
+      }
+    }
+  }
+
   if (editingTemplate.value) {
     const index = templates.value.findIndex(t => t.id === templateForm.id)
     if (index !== -1 && templates.value[index]) {
       templates.value[index] = {
-        id: templateForm.id,
-        name: templateForm.name,
+        id: templateForm.id || '',
+        name: templateForm.name || '',
         order: templates.value[index].order,
-        postType: templateForm.postType,
-        language: templateForm.language,
-        isDefault: templateForm.isDefault,
+        postType: templateForm.postType || null,
+        language: templateForm.language || null,
+        isDefault: !!templateForm.isDefault,
         template: JSON.parse(JSON.stringify(templateForm.template))
       }
     }
@@ -477,7 +495,10 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                             class="font-mono text-xs w-full"
                             autoresize
                           />
-                          <CommonWhitespaceVisualizer :text="block.before" class="mt-1" />
+                          <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
+                            <CommonWhitespaceVisualizer :text="block.before" />
+                            <span v-if="containsBlockMarkdown(block.before)" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
+                          </div>
                         </UFormField>
                         <UFormField class="w-full">
                           <template #label>
@@ -492,7 +513,10 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                             class="font-mono text-xs w-full"
                             autoresize
                           />
-                          <CommonWhitespaceVisualizer :text="block.after" class="mt-1" />
+                          <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
+                             <CommonWhitespaceVisualizer :text="block.after" />
+                             <span v-if="containsBlockMarkdown(block.after)" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
+                          </div>
                         </UFormField>
                       </div>
                     </template>
@@ -523,14 +547,17 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
 
                     <template v-if="block.insert === 'custom'">
                       <UFormField :label="t('channel.templateInsertCustom')" class="w-full">
-                        <UTextarea
-                          v-model="block.content"
-                          :rows="4"
-                          class="font-mono text-xs w-full"
-                          :placeholder="t('channel.templateInsertCustomPlaceholder')"
-                          autoresize
-                        />
-                        <CommonWhitespaceVisualizer :text="block.content" class="mt-1" />
+                          <UTextarea
+                            v-model="block.content"
+                            :rows="4"
+                            class="font-mono text-xs w-full"
+                            :placeholder="t('channel.templateInsertCustomPlaceholder')"
+                            autoresize
+                          />
+                          <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
+                            <CommonWhitespaceVisualizer :text="block.content" />
+                            <span v-if="containsBlockMarkdown(block.content)" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
+                          </div>
                       </UFormField>
                     </template>
                   </div>

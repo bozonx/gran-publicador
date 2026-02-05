@@ -4,6 +4,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import type { AuthorSignature, CreateAuthorSignatureInput, UpdateAuthorSignatureInput } from '~/types/author-signatures'
 import { PRESET_SIGNATURES } from '~/constants/preset-signatures'
+import { containsBlockMarkdown } from '~/utils/markdown-validation'
 
 const props = defineProps<{
   channelId: string
@@ -19,6 +20,8 @@ const {
   setDefault,
   isLoading
 } = useAuthorSignatures()
+
+const toast = useToast()
 
 const signatures = ref<AuthorSignature[]>([])
 const isModalOpen = ref(false)
@@ -75,6 +78,15 @@ function openEdit(signature: AuthorSignature) {
 
 async function handleSave() {
   if (!form.content) return
+
+  if (containsBlockMarkdown(form.content)) {
+    toast.add({
+      title: t('common.error'),
+      description: t('validation.inlineMarkdownOnly'),
+      color: 'error'
+    })
+    return
+  }
 
   // Automatically set name from content for backend compatibility
   form.name = form.content.split('\n')[0]?.slice(0, 50) || 'Signature'
@@ -308,7 +320,13 @@ async function handleDragEnd() {
           </UDropdownMenu>
         </div>
 
-        <UFormField :label="t('post.contentLabel')" required>
+        <UFormField required>
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('post.contentLabel') }}</span>
+              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+            </div>
+          </template>
           <UTextarea
             v-model="form.content"
             placeholder="[Click here](https://example.com)"

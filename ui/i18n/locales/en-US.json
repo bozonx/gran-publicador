@@ -108,8 +108,8 @@
     "clear": "Clear",
     "copied": "Copied!",
     "done": "Done",
-    "noResults": "No results found",
-    "more": "More"
+    "more": "More",
+    "inlineMarkdownHelp": "Only inline markdown is allowed (bold, italic, links). Block elements like headings or lists are not supported here."
   },
   "actions": {
     "translate": "Translate"
@@ -1094,9 +1094,13 @@
     "unsavedChanges": "Unsaved changes",
     "resetConfirm": "Are you sure you want to reset all changes? The form will return to the last saved state."
   },
+  "common": {
+    "inlineMarkdownHelp": "Use *bold*, _italic_, `monospace`, ~strikethrough~, [link](url) for inline formatting."
+  },
   "validation": {
     "required": "This field is required",
-    "minLength": "Minimum length: {min} characters",
+    "minLength": "Minimum {count} characters",
+    "inlineMarkdownOnly": "Only inline markdown is allowed.",
     "maxLength": "Maximum length: {max} characters",
     "url": "Enter a valid URL",
     "number": "Enter a number",
