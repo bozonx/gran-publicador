@@ -17,6 +17,7 @@ import { I18nService } from 'nestjs-i18n';
 import { PRESET_SIGNATURES } from '../author-signatures/constants/preset-signatures.constants.js';
 import { request } from 'undici';
 import { MediaService } from '../media/media.service.js';
+import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 
 @Injectable()
 export class SocialPostingService {
@@ -672,7 +673,7 @@ export class SocialPostingService {
     const url = `${baseUrl}/${endpoint}`;
 
     const appConfig = this.configService.get<AppConfig>('app')!;
-    const timeout = (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000;
+    const timeout = (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
 
     try {
       const response = await request(url, {

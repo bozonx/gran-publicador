@@ -12,6 +12,7 @@ import { StorageType } from '../../generated/prisma/index.js';
 import type { Message } from 'grammy/types';
 import type { Readable } from 'stream';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 
 const MAX_TITLE_LENGTH = 80;
 
@@ -530,8 +531,8 @@ export class TelegramBotUpdate {
       // undici request returns a stream in response.body
       const { request } = await import('undici');
       const response = await request(fileUrl, {
-        headersTimeout: 60000,
-        bodyTimeout: 60000,
+        headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+        bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
       });
 
       if (response.statusCode !== 200) {

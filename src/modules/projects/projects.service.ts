@@ -10,7 +10,7 @@ import {
 } from '../../generated/prisma/index.js';
 
 import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.js';
-import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
+import { DEFAULT_STALE_CHANNELS_DAYS, DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -695,8 +695,8 @@ export class ProjectsService {
       const response = await request(url, {
         method: 'GET',
         query: searchParams,
-        headersTimeout: 60000,
-        bodyTimeout: 60000,
+        headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+        bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
       });
 
       if (response.statusCode >= 400) {
@@ -757,8 +757,8 @@ export class ProjectsService {
             fingerprint,
             mode: config.refreshMode,
           }),
-          headersTimeout: 60000,
-          bodyTimeout: 60000,
+          headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+          bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         });
       } else {
         // Otherwise we just GET the news item which should already have content
@@ -770,8 +770,8 @@ export class ProjectsService {
 
         response = await request(url, {
           method: 'GET',
-          headersTimeout: 60000,
-          bodyTimeout: 60000,
+          headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+          bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         });
       }
 

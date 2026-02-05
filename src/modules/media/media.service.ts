@@ -18,6 +18,7 @@ import { CreateMediaDto, UpdateMediaDto } from './dto/index.js';
 import { MediaType, StorageType, Media } from '../../generated/prisma/index.js';
 import { MediaConfig } from '../../config/media.config.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
+import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 
 /**
  * MediaService - Proxy for Media Storage microservice
@@ -576,8 +577,8 @@ export class MediaService {
       const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
       const getFileResponse = await request(getFileUrl, {
         method: 'GET',
-        headersTimeout: (this.config.timeoutSecs || 60) * 1000,
-        bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
+        headersTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
+        bodyTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
       });
 
       const getFileData = (await getFileResponse.body.json()) as any;
@@ -593,8 +594,8 @@ export class MediaService {
       const downloadUrl = `https://api.telegram.org/file/bot${telegramBotToken}/${getFileData.result.file_path}`;
       const downloadResponse = await request(downloadUrl, {
         method: 'GET',
-        headersTimeout: (this.config.timeoutSecs || 60) * 1000,
-        bodyTimeout: (this.config.timeoutSecs || 60) * 1000,
+        headersTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
+        bodyTimeout: (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS,
       });
 
       if (downloadResponse.statusCode >= 400) {
