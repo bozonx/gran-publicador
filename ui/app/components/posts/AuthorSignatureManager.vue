@@ -320,11 +320,12 @@ async function handleDragEnd() {
           </UDropdownMenu>
         </div>
 
-        <UFormField required>
+        <UFormField>
           <template #label>
-            <span class="inline-flex items-center gap-1.5">
+            <span class="inline-flex items-center">
               {{ t('post.contentLabel') }}
-              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+              <span class="text-red-500 ml-0.5">*</span>
+              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
             </span>
           </template>
           <UTextarea

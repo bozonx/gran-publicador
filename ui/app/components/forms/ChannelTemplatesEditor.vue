@@ -484,9 +484,9 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <UFormField class="w-full">
                           <template #label>
-                            <span class="inline-flex items-center gap-1.5">
+                            <span class="inline-flex items-center">
                               {{ t('channel.templateBefore') }}
-                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
                             </span>
                           </template>
                           <UTextarea
@@ -502,9 +502,9 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                         </UFormField>
                         <UFormField class="w-full">
                           <template #label>
-                            <span class="inline-flex items-center gap-1.5">
+                            <span class="inline-flex items-center">
                               {{ t('channel.templateAfter') }}
-                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
                             </span>
                           </template>
                           <UTextarea
@@ -548,9 +548,9 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
                     <template v-if="block.insert === 'custom'">
                       <UFormField class="w-full">
                         <template #label>
-                          <span class="inline-flex items-center gap-1.5">
+                          <span class="inline-flex items-center">
                             {{ t('channel.templateInsertCustom') }}
-                            <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" />
+                            <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
                           </span>
                         </template>
                           <UTextarea
