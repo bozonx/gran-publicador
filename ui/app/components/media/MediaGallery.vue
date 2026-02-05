@@ -148,6 +148,8 @@ const editableHasSpoiler = ref(false)
 const isModalOpen = ref(false)
 const isEditorOpen = ref(false)
 
+const isSavingMediaFile = ref(false)
+
 const editableMetadata = ref<Record<string, any> | null>(null)
 const editableAlt = ref('')
 const editableDescription = ref('')
@@ -589,11 +591,25 @@ function handleEditMedia() {
   isEditorOpen.value = true
 }
 
+function handleEditorClose() {
+  if (isSavingMediaFile.value) return
+  isEditorOpen.value = false
+}
+
 async function handleEditorSave(file: File) {
   if (!selectedMedia.value) return
   if (selectedMedia.value.type !== 'IMAGE') return
 
-  isSavingMeta.value = true
+  if (!file?.type?.toLowerCase?.().startsWith('image/')) {
+    toast.add({
+      title: t('common.error'),
+      description: t('media.editError', 'Failed to save edited image'),
+      color: 'error',
+    })
+    return
+  }
+
+  isSavingMediaFile.value = true
   try {
     const defaults = getDefaultOptimizationParams()
     const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
@@ -638,7 +654,7 @@ async function handleEditorSave(file: File) {
       color: 'error',
     })
   } finally {
-    isSavingMeta.value = false
+    isSavingMediaFile.value = false
   }
 }
 
@@ -1229,7 +1245,7 @@ const mediaValidation = computed(() => {
             <div :key="selectedMedia.id" class="absolute inset-0 flex items-center justify-center">
               <img
                 v-if="selectedMedia.type === 'IMAGE'"
-                :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
+                :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
                 :alt="selectedMedia.filename || 'Media'"
                 class="max-w-full max-h-full object-contain"
               />
@@ -1238,7 +1254,7 @@ const mediaValidation = computed(() => {
                   controls
                   autoplay
                   class="max-w-full max-h-full"
-                  :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
+                  :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
                 >
                   Your browser does not support the video tag.
                 </video>
@@ -1275,7 +1291,7 @@ const mediaValidation = computed(() => {
                         controls
                         autoplay
                         class="w-full mt-2"
-                        :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
+                        :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
                     >
                          Your browser does not support the audio element.
                     </audio>
@@ -1504,6 +1520,7 @@ const mediaValidation = computed(() => {
   <UiAppModal
     v-model:open="isEditorOpen"
     :title="t('media.editImage', 'Edit Image')"
+    :prevent-close="isSavingMediaFile"
     :ui="{
       content: 'w-[98vw] max-w-7xl h-[95vh]',
       body: 'p-0 h-full flex flex-col',
@@ -1511,10 +1528,10 @@ const mediaValidation = computed(() => {
   >
     <div v-if="selectedMedia && isEditorOpen" class="flex-1 overflow-hidden">
         <MediaFilerobotEditor
-            :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined)"
+            :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
             :filename="selectedMedia.filename"
             @save="handleEditorSave"
-            @close="isEditorOpen = false"
+            @close="handleEditorClose"
         />
     </div>
   </UiAppModal>

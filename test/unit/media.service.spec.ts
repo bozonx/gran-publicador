@@ -284,6 +284,26 @@ describe('MediaService (unit)', () => {
       expect(result.storagePath).toBe(newStoragePath);
       expect(result.meta.customKey).toBe('customValue');
       expect(result.meta.width).toBe(20);
+      expect(result.meta.gp?.editedAt).toBeDefined();
+    });
+
+    it('should throw for non-image mimetype', async () => {
+      mockPrismaService.media.findUnique.mockResolvedValue({
+        id: 'media-1',
+        storageType: StorageType.FS,
+        storagePath: 'old-file-id',
+        meta: {},
+      });
+
+      await expect(
+        service.replaceFsMediaFile(
+          'media-1',
+          Readable.from([Buffer.from('data')]),
+          'new.txt',
+          'text/plain',
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw for non-FS media', async () => {

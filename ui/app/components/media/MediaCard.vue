@@ -11,6 +11,8 @@ interface MediaItem {
   filename?: string
   mimeType?: string
   sizeBytes?: number | string
+  updatedAt?: string
+  meta?: Record<string, any>
 }
 
 interface Props {
@@ -39,21 +41,29 @@ const imageError = ref(false)
 const shouldShowPreview = computed(() => {
   if (imageError.value) return false
   if (props.media.type === 'IMAGE') return true
-  if (props.media.storageType !== 'TELEGRAM') return false
-  return props.media.type === 'VIDEO' || props.media.type === 'DOCUMENT'
+
+  // For other types, we only show preview if it's from Telegram and has an explicit thumbnail
+  if (props.media.storageType === 'TELEGRAM') {
+    const hasThumbnail = !!props.media.meta?.telegram?.thumbnailFileId
+    return (props.media.type === 'VIDEO' || props.media.type === 'DOCUMENT' || props.media.type === 'AUDIO') && hasThumbnail
+  }
+
+  return false
 })
 
 const previewUrl = computed(() => {
   if (!shouldShowPreview.value) return null
 
+  const version = props.media.updatedAt
+
   if (props.media.type === 'IMAGE') {
     if (props.media.storageType === 'FS') {
-      return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined)
+      return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined, version)
     }
-    return getMediaFileUrl(props.media.id, authStore.accessToken || undefined)
+    return getMediaFileUrl(props.media.id, authStore.accessToken || undefined, version)
   }
 
-  return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined)
+  return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined, version)
 })
 
 const previewSrcset = computed(() => {
@@ -62,7 +72,8 @@ const previewSrcset = computed(() => {
   if (props.media.storageType !== 'FS') return null
 
   const token = authStore.accessToken || undefined
-  return `${getThumbnailUrl(props.media.id, 400, 400, token)} 1x, ${getThumbnailUrl(props.media.id, 800, 800, token)} 2x`
+  const version = props.media.updatedAt
+  return `${getThumbnailUrl(props.media.id, 400, 400, token, version)} 1x, ${getThumbnailUrl(props.media.id, 800, 800, token, version)} 2x`
 })
 
 const sizeClasses = computed(() => {

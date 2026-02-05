@@ -11,6 +11,7 @@ interface MediaItem {
   filename?: string
   mimeType?: string
   sizeBytes?: number
+  updatedAt?: string
 }
 
 interface Props {
@@ -60,14 +61,16 @@ const previewUrl = computed(() => {
   if (!firstMedia.value) return null
   if (!shouldShowPreview.value) return null
 
+  const version = firstMedia.value.updatedAt
+
   if (firstMedia.value.type === 'IMAGE') {
     if (firstMedia.value.storageType === 'FS') {
-      return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined)
+      return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined, version)
     }
-    return getMediaFileUrl(firstMedia.value.id, authStore.accessToken || undefined)
+    return getMediaFileUrl(firstMedia.value.id, authStore.accessToken || undefined, version)
   }
 
-  return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined)
+  return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined, version)
 })
 
 const previewSrcset = computed(() => {
@@ -77,7 +80,8 @@ const previewSrcset = computed(() => {
   if (firstMedia.value.storageType !== 'FS') return null
 
   const token = authStore.accessToken || undefined
-  return `${getThumbnailUrl(firstMedia.value.id, 400, 400, token)} 1x, ${getThumbnailUrl(firstMedia.value.id, 800, 800, token)} 2x`
+  const version = firstMedia.value.updatedAt
+  return `${getThumbnailUrl(firstMedia.value.id, 400, 400, token, version)} 1x, ${getThumbnailUrl(firstMedia.value.id, 800, 800, token, version)} 2x`
 })
 
 function handleImageError() {

@@ -29,15 +29,38 @@ onMounted(async () => {
     
     if (!editorContainer.value) return
 
+    const normalizeImageMimeType = (value: unknown): string => {
+      const raw = typeof value === 'string' ? value.toLowerCase() : ''
+      if (raw.startsWith('image/')) return raw
+      return 'image/png'
+    }
+
+    const getExtensionForMimeType = (mimeType: string): string => {
+      if (mimeType === 'image/jpeg') return 'jpg'
+      if (mimeType === 'image/webp') return 'webp'
+      if (mimeType === 'image/avif') return 'avif'
+      if (mimeType === 'image/gif') return 'gif'
+      return 'png'
+    }
+
+    const normalizeFilename = (name: string, mimeType: string): string => {
+      const ext = getExtensionForMimeType(mimeType)
+      const safeName = name?.trim() ? name.trim() : `edited-image.${ext}`
+      if (safeName.includes('.')) return safeName
+      return `${safeName}.${ext}`
+    }
+
     const config = {
       source: props.source,
       onSave: (editedImageObject: any) => {
         const canvas: HTMLCanvasElement | undefined = editedImageObject.imageCanvas
-        const type = editedImageObject.mimeType
-        const name = editedImageObject.fullName || props.filename || 'edited-image.png'
+        const type = normalizeImageMimeType(editedImageObject.mimeType)
+        const rawName = editedImageObject.fullName || props.filename || 'edited-image'
+        const name = normalizeFilename(rawName, type)
 
         if (!canvas) {
           console.error('Filerobot onSave: missing imageCanvas')
+          emit('close')
           return
         }
 
@@ -45,8 +68,16 @@ onMounted(async () => {
           (blob: Blob | null) => {
             if (!blob) {
               console.error('Filerobot onSave: canvas.toBlob returned null')
+              emit('close')
               return
             }
+
+            if (!type.startsWith('image/')) {
+              console.error(`Filerobot onSave: invalid output mimeType: ${type}`)
+              emit('close')
+              return
+            }
+
             const file = new File([blob], name, { type })
             emit('save', file)
           },
@@ -82,6 +113,7 @@ onMounted(async () => {
     editorInstance.render()
   } catch (err) {
     console.error('Failed to load FilerobotImageEditor:', err)
+    emit('close')
   }
 })
 

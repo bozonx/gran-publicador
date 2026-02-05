@@ -130,6 +130,10 @@ export class MediaController {
       `Received replace-file request: id="${id}", filename="${part.filename}", mimetype="${part.mimetype}"`,
     );
 
+    if (!part.mimetype?.toLowerCase().startsWith('image/')) {
+      throw new BadRequestException('Only image files can be used for replace-file');
+    }
+
     const fileStream = part.file;
 
     let optimize: Record<string, any> | undefined;

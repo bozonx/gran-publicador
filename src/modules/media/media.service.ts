@@ -209,6 +209,10 @@ export class MediaService {
   ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     if (userId) await this.checkMediaAccess(id, userId);
 
+    if (!mimetype?.toLowerCase().startsWith('image/')) {
+      throw new BadRequestException('Only image files can be used for replace-file');
+    }
+
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
     if (media.storageType !== StorageType.FS) {
@@ -216,7 +220,17 @@ export class MediaService {
     }
 
     let effectiveOptimize = optimize;
-    if (!effectiveOptimize && projectId) {
+    const optimizeDisabled =
+      effectiveOptimize &&
+      typeof effectiveOptimize === 'object' &&
+      ((effectiveOptimize as any).enabled === false ||
+        (effectiveOptimize as any).skipOptimization === true);
+
+    if (optimizeDisabled) {
+      effectiveOptimize = undefined;
+    }
+
+    if (!effectiveOptimize && projectId && !optimizeDisabled) {
       try {
         effectiveOptimize = await this.getProjectOptimizationSettings(projectId);
       } catch (error) {
@@ -244,6 +258,10 @@ export class MediaService {
       meta: {
         ...existingMeta,
         ...metadata,
+        gp: {
+          ...(existingMeta.gp || {}),
+          editedAt: new Date().toISOString(),
+        },
       },
     });
 
@@ -663,7 +681,16 @@ export class MediaService {
     if (media.storageType === StorageType.FS)
       return this.getThumbnailStream(media.storagePath, width, height, quality, fit);
     else if (media.storageType === StorageType.TELEGRAM) {
-      const thumbnailFileId = media.meta.telegram?.thumbnailFileId || media.storagePath;
+      const thumbnailFileId = media.meta.telegram?.thumbnailFileId;
+
+      if (!thumbnailFileId) {
+        // Only allow fallback to storagePath if it's an image
+        if (media.type === MediaType.IMAGE) {
+          return this.getTelegramStream(media.storagePath, 'image/jpeg');
+        }
+        throw new NotFoundException('No thumbnail available for this media');
+      }
+
       return this.getTelegramStream(thumbnailFileId, 'image/jpeg');
     }
     throw new BadRequestException('Unsupported storage type');

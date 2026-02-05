@@ -304,7 +304,11 @@ export function useMedia() {
 /**
  * Get URL for media file
  */
-export function getMediaFileUrl(mediaId: string, token?: string): string {
+export function getMediaFileUrl(
+  mediaId: string,
+  token?: string,
+  version?: string | number,
+): string {
   const config = useRuntimeConfig();
   const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
   let url = `${apiBase}/media/${mediaId}/file`;
@@ -320,8 +324,18 @@ export function getMediaFileUrl(mediaId: string, token?: string): string {
     }
   }
 
+  const params: string[] = [];
+
   if (authToken) {
-    url += `?token=${authToken}`;
+    params.push(`token=${authToken}`);
+  }
+
+  if (version !== undefined && version !== null && String(version).length > 0) {
+    params.push(`v=${encodeURIComponent(String(version))}`);
+  }
+
+  if (params.length > 0) {
+    url += `?${params.join('&')}`;
   }
 
   return url;
@@ -407,6 +421,7 @@ export function getThumbnailUrl(
   width?: number,
   height?: number,
   token?: string,
+  version?: string | number,
 ): string {
   const config = useRuntimeConfig();
   const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
@@ -423,10 +438,12 @@ export function getThumbnailUrl(
     }
   }
 
-  const params = [];
+  const params: string[] = [];
   if (width) params.push(`w=${width}`);
   if (height) params.push(`h=${height}`);
   if (authToken) params.push(`token=${authToken}`);
+  if (version !== undefined && version !== null && String(version).length > 0)
+    params.push(`v=${encodeURIComponent(String(version))}`);
 
   if (params.length > 0) {
     url += `?${params.join('&')}`;
