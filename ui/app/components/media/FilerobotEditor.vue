@@ -204,14 +204,16 @@ onMounted(async () => {
     editorInstance = new FilerobotImageEditor(editorContainer.value, config)
     editorInstance.render({
       onClose: (closingReason: unknown) => {
-        console.error('FilerobotImageEditor onClose:', closingReason)
-
         const reason = typeof closingReason === 'string' ? closingReason : ''
-        const shouldClose = reason === 'close-button-clicked'
+
+        const shouldClose =
+          reason === 'close-button-clicked' ||
+          reason === 'back-button-clicked' ||
+          reason === 'esc-key-pressed' ||
+          reason === 'overlay-clicked'
 
         if (!shouldClose) {
-          loadError.value = 'Image editor closed unexpectedly. Check console for details.'
-          terminateEditorInstance()
+          console.debug('FilerobotImageEditor onClose ignored:', closingReason)
           return
         }
 
