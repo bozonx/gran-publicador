@@ -164,11 +164,10 @@ const toggleCollapse = () => {
         :label="t('contentLibrary.fields.text')" 
         required
       >
-        <UTextarea 
+        <EditorTiptapEditor 
           :model-value="props.modelValue.text ?? ''"
-          :rows="6"
           :placeholder="t('contentLibrary.fields.textPlaceholder')"
-          class="w-full font-mono text-sm"
+          :min-height="150"
           @update:model-value="updateText"
         />
       </UFormField>

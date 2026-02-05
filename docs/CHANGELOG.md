@@ -16,6 +16,12 @@ All notable changes to this project will be documented in this file.
 - Content Library tabs: folders and saved views with per-scope ordering.
 
 ### Fixed
+- TipTap editor: removed duplicate `BubbleMenuExtension` from extensions array (already provided by `<BubbleMenu>` component).
+- TipTap editor: replaced deprecated `tippyOptions` with Floating UI `options` in BubbleMenu components.
+- TipTap editor: replaced undocumented `extensionManager.configure()` hacks with proper `editor.setOptions()` for dynamic placeholder/characterCount updates.
+- TipTap editor: removed redundant manual `editor.destroy()` in `onBeforeUnmount` (handled automatically by `useEditor`).
+- Removed unused `@tiptap/extension-bubble-menu` and `@tiptap/extension-floating-menu` dependencies.
+- Content Library: integrated TipTap rich text editor into `ContentBlockEditor` replacing plain `UTextarea`.
 - Prisma generate error in GitHub Actions caused by missing `DATABASE_URL` and uncompiled config files.
 - LLM config validation error in environments without `FREE_LLM_ROUTER_URL`.
 - E2E tests failing due to missing Redis connection and configuration.

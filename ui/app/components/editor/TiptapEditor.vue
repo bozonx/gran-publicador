@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -8,7 +8,6 @@ import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
-import { BubbleMenu as BubbleMenuExtension } from '@tiptap/extension-bubble-menu'
 import { common, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { Table } from '@tiptap/extension-table'
@@ -121,7 +120,6 @@ const extensions = [
       class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
     },
   }),
-  BubbleMenuExtension,
   Placeholder.configure({
     placeholder: props.placeholder,
   }),
@@ -179,15 +177,23 @@ watch(
 watch(
   () => props.maxLength,
   (limit) => {
-    editor.value?.extensionManager.extensions.find(e => e.name === 'characterCount')?.configure({ limit })
+    editor.value?.setOptions({
+      extensions: extensions.map(ext =>
+        ext.name === 'characterCount' ? CharacterCount.configure({ limit }) : ext
+      ),
+    })
   }
 )
 
 // Watch for placeholder changes
 watch(
   () => props.placeholder,
-  (placeholder) => {
-    editor.value?.extensionManager.extensions.find(e => e.name === 'placeholder')?.configure({ placeholder })
+  (newPlaceholder) => {
+    editor.value?.setOptions({
+      extensions: extensions.map(ext =>
+        ext.name === 'placeholder' ? Placeholder.configure({ placeholder: newPlaceholder }) : ext
+      ),
+    })
   }
 )
 
@@ -198,10 +204,6 @@ watch(
     editor.value?.setEditable(!disabled)
   }
 )
-
-onBeforeUnmount(() => {
-  editor.value?.destroy()
-})
 
 /**
  * Commands
@@ -256,7 +258,7 @@ const isMaxLengthReached = computed(() => {
       v-if="editor"
       v-show="editor.isActive('link') || isLinkMenuOpen"
       :editor="editor"
-      :tippy-options="{ duration: 100, placement: 'top' }"
+      :options="{ offset: 6, placement: 'top' }"
     >
       <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
         <UInput
@@ -288,7 +290,7 @@ const isMaxLengthReached = computed(() => {
     <BubbleMenu
       v-if="editor"
       :editor="editor"
-      :tippy-options="{ duration: 100, placement: 'bottom' }"
+      :options="{ offset: 6, placement: 'bottom' }"
       :should-show="({ editor }) => editor.isActive('table')"
     >
       <div class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-x-auto max-w-[90vw]">

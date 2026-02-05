@@ -967,7 +967,9 @@
     "created_at": "Uploaded At",
     "editImage": "Edit Image",
     "editSuccess": "Image edited successfully",
-    "editError": "Failed to edit image"
+    "editError": "Failed to edit image",
+    "editOnlyImages": "Only images can be edited",
+    "editOnlyFSImages": "Only local images can be edited"
   },
   "postType": {
     "post": "Post",

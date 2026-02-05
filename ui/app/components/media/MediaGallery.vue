@@ -579,10 +579,10 @@ function closeMediaModal() {
 
 function handleEditMedia() {
   if (!selectedMedia.value) return
-  if (selectedMedia.value.type !== 'IMAGE') {
+  if (selectedMedia.value.type !== 'IMAGE' || selectedMedia.value.storageType !== 'FS') {
     toast.add({
       title: t('common.error'),
-      description: t('media.editOnlyImages', 'Only images can be edited'),
+      description: t('media.editOnlyFSImages', 'Only local images can be edited'),
       color: 'error',
     })
     return
@@ -1214,7 +1214,7 @@ const mediaValidation = computed(() => {
   >
     <template #header-right>
       <UButton
-        v-if="editable && selectedMedia?.type === 'IMAGE'"
+        v-if="editable && selectedMedia?.type === 'IMAGE' && selectedMedia?.storageType === 'FS'"
         icon="i-heroicons-pencil-square"
         variant="ghost"
         color="neutral"
