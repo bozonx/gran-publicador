@@ -5,6 +5,8 @@ import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
 import { MEDIA_OPTIMIZATION_PRESETS } from '~/utils/media-presets'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { useAutosave } from '~/composables/useAutosave'
 
 interface MediaItem {
   id: string
@@ -19,6 +21,21 @@ interface MediaItem {
   meta?: Record<string, any>
   fullMediaMeta?: Record<string, any>
   publicToken?: string
+}
+
+async function handleDone() {
+  await forceSaveMediaMeta()
+
+  if (mediaSaveStatus.value === 'error') {
+    toast.add({
+      title: t('common.error'),
+      description: t('common.saveError', 'Failed to save'),
+      color: 'error',
+    })
+    return
+  }
+
+  closeMediaModal()
 }
 
 interface MediaLinkItem {
@@ -132,6 +149,56 @@ const editableMetadata = ref<Record<string, any> | null>(null)
 const editableAlt = ref('')
 const editableDescription = ref('')
 const isSavingMeta = ref(false)
+
+const autosaveMediaPayload = computed(() => {
+  if (!selectedMedia.value) return null
+
+  return {
+    id: selectedMedia.value.id,
+    mediaLinkId: selectedMediaLinkId.value,
+    alt: editableAlt.value,
+    description: editableDescription.value,
+    meta: editableMetadata.value,
+    hasSpoiler: editableHasSpoiler.value,
+  }
+})
+
+const { saveStatus: mediaSaveStatus, saveError: mediaSaveError, forceSave: forceSaveMediaMeta } = useAutosave({
+  data: autosaveMediaPayload,
+  saveFn: async (data) => {
+    if (!isModalOpen.value) return
+
+    const updated = await updateMedia(data.id, {
+      alt: data.alt || undefined,
+      description: data.description || undefined,
+      meta: data.meta || undefined,
+    })
+
+    if (selectedMedia.value && selectedMedia.value.id === updated.id) {
+      selectedMedia.value.meta = updated.meta
+      selectedMedia.value.alt = updated.alt
+      selectedMedia.value.description = updated.description
+    }
+
+    emit('refresh')
+
+    if (!data.mediaLinkId) return
+
+    try {
+      if (props.publicationId) {
+        await updateMediaLinkInPublication(props.publicationId, data.mediaLinkId, {
+          hasSpoiler: data.hasSpoiler,
+        })
+      } else if (props.onUpdateLink) {
+        await props.onUpdateLink(data.mediaLinkId, { hasSpoiler: data.hasSpoiler })
+      }
+    } catch (error: any) {
+      console.error('Failed to update media spoiler', error)
+    }
+  },
+  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+  skipInitial: true,
+})
 
 const isDeleteModalOpen = ref(false)
 const mediaToDeleteMediaId = ref<string | null>(null)
@@ -251,51 +318,6 @@ async function uploadFiles(files: FileList | File[], options?: any) {
   } finally {
     uploadProgress.value = false
     uploadProgressPercent.value = 0
-  }
-}
-
-async function saveMediaMeta() {
-  if (!selectedMedia.value) return
-
-  isSavingMeta.value = true
-  try {
-    const updated = await updateMedia(selectedMedia.value.id, {
-      alt: editableAlt.value || undefined,
-      description: editableDescription.value || undefined,
-      meta: editableMetadata.value || undefined
-    })
-
-    // Update local state
-    selectedMedia.value.meta = updated.meta
-    selectedMedia.value.alt = updated.alt
-    selectedMedia.value.description = updated.description
-
-    emit('refresh')
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: t('common.saveError', 'Failed to save'),
-      color: 'error',
-    })
-  } finally {
-    isSavingMeta.value = false
-  }
-
-  // Handle PublicationMedia.hasSpoiler update
-  if (selectedMediaLinkId.value) {
-    try {
-      if (props.publicationId) {
-        await updateMediaLinkInPublication(
-          props.publicationId,
-          selectedMediaLinkId.value,
-          { hasSpoiler: editableHasSpoiler.value }
-        )
-      } else if (props.onUpdateLink) {
-        await props.onUpdateLink(selectedMediaLinkId.value, { hasSpoiler: editableHasSpoiler.value })
-      }
-    } catch (error: any) {
-      console.error('Failed to update media spoiler', error)
-    }
   }
 }
 
@@ -1402,15 +1424,20 @@ const mediaValidation = computed(() => {
     </div>
     
     <template #footer>
-      <div v-if="editable" class="flex justify-end gap-2 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800">
+      <div
+        v-if="editable"
+        class="flex items-center justify-between gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800"
+      >
+        <UiAutosaveStatus :status="mediaSaveStatus" :error="mediaSaveError" :last-saved="null" />
+
         <UButton
           icon="i-heroicons-check"
           variant="solid"
           color="primary"
-          :loading="isSavingMeta"
-          @click="saveMediaMeta"
+          :loading="mediaSaveStatus === 'saving'"
+          @click="handleDone"
         >
-          {{ t('common.save', 'Save') }}
+          {{ t('common.done', 'Done') }}
         </UButton>
       </div>
     </template>
