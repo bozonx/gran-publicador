@@ -46,6 +46,7 @@
     "mdast-util-to-string": "^4.0.0",
     "nuxt": "^4.3.0",
     "pinia": "^3.0.4",
+    "remark-gfm": "^4.0.1",
     "reka-ui": "^2.8.0",
     "remark-parse": "^11.0.0",
     "socket.io-client": "^4.8.3",

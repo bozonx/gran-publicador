@@ -86,7 +86,7 @@ const sanitizedContent = computed(() => {
   // We ONLY allow tags that are safe and expected from Markdown.
   // Any other tags (like <div>, <span>, etc. from raw HTML in MD) will be stripped.
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre'],
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre', 'u', 's', 'del', 'ins', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'td', 'th'],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'title']
   })
 })

@@ -681,6 +681,7 @@ function navigateToNextMedia() {
 // Keyboard navigation
 function handleKeydown(event: KeyboardEvent) {
   if (!isModalOpen.value) return
+  if (isEditorOpen.value) return
   
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
@@ -1208,6 +1209,7 @@ const mediaValidation = computed(() => {
     v-model:open="isModalOpen"
     :title="selectedMedia?.filename || t('media.preview', 'Media Preview')"
     :counter-text="currentMediaIndex >= 0 ? `${currentMediaIndex + 1} / ${localMedia.length}` : undefined"
+    :prevent-close="isEditorOpen"
     @close="closeMediaModal"
   >
     <template #header-right>

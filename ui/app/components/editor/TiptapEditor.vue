@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
-// @ts-expect-error: Tiptap vue-3 exports are messy in this version
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -17,13 +16,8 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { useStt } from '~/composables/useStt'
-import MarkdownIt from 'markdown-it'
 
 const lowlight = createLowlight(common)
-const md = new MarkdownIt({
-  html: true,
-  breaks: true,
-})
 
 interface Props {
   /** Initial content (Markdown) */
@@ -113,8 +107,10 @@ const extensions = [
     codeBlock: false,
   }),
   Markdown.configure({
-    transformPastedText: true,
-    transformCopiedText: true,
+    markedOptions: {
+      gfm: true,
+      breaks: false,
+    },
   }),
   Underline,
   Link.configure({
@@ -155,7 +151,7 @@ const editor = useEditor({
   },
   onCreate: ({ editor }) => {
     if (props.modelValue) {
-      editor.commands.setContent(md.render(props.modelValue), { emitUpdate: false })
+      editor.commands.setContent(props.modelValue, { emitUpdate: false, contentType: 'markdown' })
     }
   },
   onBlur: () => {
@@ -173,7 +169,7 @@ watch(
     if (editor.value) {
       const currentMarkdown = editor.value.getMarkdown()
       if (newValue !== currentMarkdown) {
-        editor.value.commands.setContent(md.render(newValue || ''), { emitUpdate: false })
+        editor.value.commands.setContent(newValue || '', { emitUpdate: false, contentType: 'markdown' })
       }
     }
   }
@@ -236,7 +232,6 @@ function removeLink() {
 }
 
 function insertTable() {
-  // @ts-expect-error: Table extension types not automatically inferred
   editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
 

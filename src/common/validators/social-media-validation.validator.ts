@@ -1,6 +1,7 @@
 import { SocialMedia, PostType, MediaType } from '../../generated/prisma/index.js';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
 import { SKIP, visit } from 'unist-util-visit';
 import { toString } from 'mdast-util-to-string';
 
@@ -35,14 +36,22 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '');
 }
 
+function htmlNodeToText(value: string): string {
+  return stripHtmlTags(value);
+}
+
 function getPlainTextFromMarkdown(markdown: string): string {
-  const tree = unified().use(remarkParse).parse(markdown);
+  const tree = unified().use(remarkParse).use(remarkGfm).parse(markdown);
 
   visit(tree as any, 'html', (_node: any, index?: number, parent?: any) => {
     if (!parent || typeof index !== 'number') return;
 
+    const node = _node as { value?: unknown };
+    const val = typeof node.value === 'string' ? node.value : '';
+    const replacement = { type: 'text', value: htmlNodeToText(val) };
+
     const children = (parent.children ?? []) as any[];
-    children.splice(index, 1);
+    children.splice(index, 1, replacement);
 
     return SKIP;
   });

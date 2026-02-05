@@ -1,5 +1,6 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
 import { SKIP, visit } from 'unist-util-visit';
 import { toString } from 'mdast-util-to-string';
 
@@ -76,14 +77,22 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '');
 }
 
+function htmlNodeToText(value: string): string {
+  return stripHtmlTags(value);
+}
+
 function getPlainTextFromMarkdown(markdown: string): string {
-  const tree = unified().use(remarkParse).parse(markdown);
+  const tree = unified().use(remarkParse).use(remarkGfm).parse(markdown);
 
   visit(tree as any, 'html', (_node: any, index?: number, parent?: any) => {
     if (!parent || typeof index !== 'number') return;
 
+    const node = _node as { value?: unknown };
+    const val = typeof node.value === 'string' ? node.value : '';
+    const replacement = { type: 'text', value: htmlNodeToText(val) };
+
     const children = (parent.children ?? []) as any[];
-    children.splice(index, 1);
+    children.splice(index, 1, replacement);
 
     return SKIP;
   });
@@ -141,7 +150,8 @@ function validateMediaTypes(
     if (isGallery) {
       errors.push({
         field: 'media',
-        message: 'Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.',
+        message:
+          'Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.',
       });
     } else if (mediaCount === 1 && media[0]) {
       if (media[0].type !== MediaType.IMAGE) {
@@ -157,11 +167,9 @@ function validateMediaTypes(
   if (isGallery) {
     // Validate gallery media types
     if (rules.allowedGalleryMediaTypes && rules.allowedGalleryMediaTypes.length > 0) {
-      const invalidMedia = media.filter(
-        (m) => !rules.allowedGalleryMediaTypes!.includes(m.type),
-      );
+      const invalidMedia = media.filter(m => !rules.allowedGalleryMediaTypes!.includes(m.type));
       if (invalidMedia.length > 0) {
-        const invalidTypes = [...new Set(invalidMedia.map((m) => m.type))].join(', ');
+        const invalidTypes = [...new Set(invalidMedia.map(m => m.type))].join(', ');
         const allowedTypes = rules.allowedGalleryMediaTypes.join(', ');
         errors.push({
           field: 'media',
