@@ -38,9 +38,12 @@ interface ContentBlockMedia {
   hasSpoiler: boolean
   media: {
     id: string
+    type: string
+    storageType: string
+    storagePath: string
     mimeType?: string | null
-    url?: string | null
-    fileName?: string | null
+    filename?: string | null
+    meta?: Record<string, any>
   }
 }
 

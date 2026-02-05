@@ -12,11 +12,12 @@ export interface MediaThumbData {
 export interface MediaItemLike {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | string;
-  storageType: 'TELEGRAM' | 'FS' | string;
+  storageType?: 'TELEGRAM' | 'FS' | string;
   storagePath: string;
   filename?: string;
   mimeType?: string;
   sizeBytes?: number | string;
+  meta?: Record<string, any>;
 }
 
 export interface MediaItem {
@@ -353,9 +354,16 @@ export function getMediaThumbData(media: MediaItemLike, token?: string): MediaTh
 
   const placeholderText = media.filename || 'Untitled';
 
+  const type = (media.type || '').toUpperCase();
+  const storageType = (media.storageType || '').toUpperCase();
+  const hasThumbnailInMeta = !!media.meta?.telegram?.thumbnailFileId;
+
   const canShowPreview =
-    media.type === 'IMAGE' ||
-    (media.storageType === 'TELEGRAM' && (media.type === 'VIDEO' || media.type === 'DOCUMENT'));
+    media.id &&
+    (type === 'IMAGE' ||
+      (storageType === 'TELEGRAM' &&
+        (type === 'VIDEO' || type === 'DOCUMENT' || type === 'AUDIO') &&
+        hasThumbnailInMeta));
 
   if (!canShowPreview) {
     return {
@@ -367,8 +375,8 @@ export function getMediaThumbData(media: MediaItemLike, token?: string): MediaTh
     };
   }
 
-  if (media.type === 'IMAGE') {
-    if (media.storageType === 'FS') {
+  if (type === 'IMAGE') {
+    if (storageType === 'FS') {
       const src = getThumbnailUrl(media.id, 400, 400, token);
       const srcset = `${src} 1x, ${getThumbnailUrl(media.id, 800, 800, token)} 2x`;
       return {
@@ -392,7 +400,7 @@ export function getMediaThumbData(media: MediaItemLike, token?: string): MediaTh
   return {
     src: getThumbnailUrl(media.id, 400, 400, token),
     srcset: null,
-    isVideo: media.type === 'VIDEO',
+    isVideo: type === 'VIDEO',
     placeholderIcon,
     placeholderText,
   };

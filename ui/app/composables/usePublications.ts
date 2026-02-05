@@ -54,6 +54,7 @@ export interface PublicationWithRelations extends Publication {
       filename?: string;
       mimeType?: string;
       sizeBytes?: number;
+      meta?: Record<string, any>;
     };
   }>;
   contentItems?: Array<{

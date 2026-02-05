@@ -40,12 +40,16 @@ const imageError = ref(false)
 
 const shouldShowPreview = computed(() => {
   if (imageError.value) return false
-  if (props.media.type === 'IMAGE') return true
+  
+  const type = (props.media.type || '').toUpperCase()
+  const storageType = (props.media.storageType || '').toUpperCase()
+  
+  if (type === 'IMAGE') return true
 
   // For other types, we only show preview if it's from Telegram and has an explicit thumbnail
-  if (props.media.storageType === 'TELEGRAM') {
+  if (storageType === 'TELEGRAM') {
     const hasThumbnail = !!props.media.meta?.telegram?.thumbnailFileId
-    return (props.media.type === 'VIDEO' || props.media.type === 'DOCUMENT' || props.media.type === 'AUDIO') && hasThumbnail
+    return (type === 'VIDEO' || type === 'DOCUMENT' || type === 'AUDIO') && hasThumbnail
   }
 
   return false

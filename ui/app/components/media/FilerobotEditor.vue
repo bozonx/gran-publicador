@@ -19,8 +19,26 @@ const emit = defineEmits<{
 const editorContainer = ref<HTMLDivElement | null>(null)
 let editorInstance: any = null
 
+function terminateEditorInstance() {
+  if (!editorInstance) return
+
+  try {
+    if (typeof editorInstance.terminate === 'function') {
+      editorInstance.terminate()
+      return
+    }
+    if (typeof editorInstance.unmount === 'function') {
+      editorInstance.unmount()
+    }
+  } catch (error) {
+    console.error('Failed to terminate FilerobotImageEditor instance:', error)
+  } finally {
+    editorInstance = null
+  }
+}
+
 onMounted(async () => {
-  if (process.server) return
+  if (!import.meta.client) return
   
   try {
     const module = await import('filerobot-image-editor')
@@ -84,9 +102,6 @@ onMounted(async () => {
           type,
         )
       },
-      onClose: () => {
-        emit('close')
-      },
       // Filerobot 4.x config
       annotationsCommon: {
         fill: '#3b82f6', // primary blue
@@ -110,7 +125,12 @@ onMounted(async () => {
     }
 
     editorInstance = new FilerobotImageEditor(editorContainer.value, config)
-    editorInstance.render()
+    editorInstance.render({
+      onClose: () => {
+        terminateEditorInstance()
+        emit('close')
+      },
+    })
   } catch (err) {
     console.error('Failed to load FilerobotImageEditor:', err)
     emit('close')
@@ -118,13 +138,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (editorInstance) {
-    if (typeof editorInstance.terminate === 'function') {
-      editorInstance.terminate()
-    } else if (typeof editorInstance.unmount === 'function') {
-      editorInstance.unmount()
-    }
-  }
+  terminateEditorInstance()
 })
 </script>
 
