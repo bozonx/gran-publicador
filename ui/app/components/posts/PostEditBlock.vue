@@ -128,7 +128,7 @@ const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formDa
 
 // Auto-save setup
 const { saveStatus, saveError } = useAutosave({
-  data: toRef(() => formData),
+  data: computed(() => formData),
   saveFn: async (data) => {
     if (!props.autosave || props.isCreating) return { saved: false, skipped: true }
     
