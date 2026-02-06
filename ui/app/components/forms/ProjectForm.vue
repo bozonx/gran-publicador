@@ -111,9 +111,14 @@ function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
 const { saveStatus, saveError } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
-    if (!props.autosave) return
+    if (!props.autosave) return { saved: false, skipped: true }
+    
+    // Simple validation for autosave
+    if (!state.name) return { saved: false, skipped: true }
+
     const updateData = prepareUpdateData(state)
     await emit('submit', updateData, { silent: true })
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,

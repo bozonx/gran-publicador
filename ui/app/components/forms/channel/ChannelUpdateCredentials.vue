@@ -78,9 +78,19 @@ function prepareUpdateData(formData: any) {
 const { saveStatus, saveError } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
-    if (!props.autosave) return
+    if (!props.autosave) return { saved: false, skipped: true }
+    
+    // Simple validation: check if relevant credentials are not empty
     const updateData = prepareUpdateData(state)
+    const creds = updateData.credentials as any
+    const isEmpty = props.channel.socialMedia === 'TELEGRAM' 
+        ? (!creds.telegramBotToken || !creds.telegramChannelId)
+        : (props.channel.socialMedia === 'VK' ? !creds.vkAccessToken : false)
+
+    if (isEmpty) return { saved: false, skipped: true }
+
     await performUpdate(updateData, true)
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,

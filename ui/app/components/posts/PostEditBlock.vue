@@ -130,12 +130,19 @@ const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formDa
 const { saveStatus, saveError } = useAutosave({
   data: toRef(() => formData),
   saveFn: async (data) => {
-    if (!props.autosave || props.isCreating) return
+    if (!props.autosave || props.isCreating) return { saved: false, skipped: true }
     
-    // Only save if valid. If invalid, we skip auto-save to avoid corrupting data
-    if (!validationResult.value.isValid) return
+    // Skip auto-save if invalid and NOT in PENDING status
+    // For PENDING posts we allow saving even if constraints are violated (draft mode)
+    // If it's already PUBLISHED or FAILED we are more strict, but usually those shouldn't be edited directly without republishing
+    const canSaveAsInvalid = formData.status === 'PENDING'
+    
+    if (!validationResult.value.isValid && !canSaveAsInvalid) {
+      return { saved: false, skipped: true }
+    }
 
     await performSave()
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
@@ -844,8 +851,10 @@ async function executePublish() {
           variant="soft"
           class="mb-4"
           icon="i-heroicons-exclamation-triangle"
-          :title="t('validation.validationWarningTitle')"
         >
+          <template #title>
+             <span>{{ t('validation.validationWarningTitle') }}</span>
+          </template>
           <template #description>
              <ul class="list-disc list-inside">
                 <li v-for="(error, index) in validationResult.errors" :key="index">

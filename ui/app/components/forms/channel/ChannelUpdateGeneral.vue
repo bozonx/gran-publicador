@@ -80,7 +80,11 @@ async function performUpdate(data: any, silent: boolean = false) {
 const { saveStatus, saveError } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
-    if (!props.autosave) return
+    if (!props.autosave) return { saved: false, skipped: true }
+    
+    // Simple validation for autosave
+    if (!state.name) return { saved: false, skipped: true }
+
     const updateData = {
       name: state.name,
       description: state.description || null,
@@ -88,6 +92,7 @@ const { saveStatus, saveError } = useAutosave({
       tags: state.tags || null,
     }
     await performUpdate(updateData, true)
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,

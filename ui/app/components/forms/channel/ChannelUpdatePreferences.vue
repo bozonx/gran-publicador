@@ -54,7 +54,7 @@ async function performUpdate(data: any, silent: boolean = false) {
 const { saveStatus, saveError } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
-    if (!props.autosave) return
+    if (!props.autosave) return { saved: false, skipped: true }
     const updateData = {
         preferences: {
             // Merge with existing preferences to avoid data loss
@@ -63,6 +63,7 @@ const { saveStatus, saveError } = useAutosave({
         }
     }
     await performUpdate(updateData, true)
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,

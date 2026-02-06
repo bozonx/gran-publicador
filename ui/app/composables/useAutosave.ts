@@ -6,7 +6,7 @@ export type SaveStatus = 'saved' | 'saving' | 'error';
 
 export interface AutosaveOptions<T> {
   // Function to save data
-  saveFn: (data: T) => Promise<void>;
+  saveFn: (data: T) => Promise<void | SaveResult>;
 
   // Data to watch for changes
   data: Ref<T | null>;
@@ -21,12 +21,19 @@ export interface AutosaveOptions<T> {
   isEqual?: (a: T, b: T) => boolean;
 }
 
+export interface SaveResult {
+  saved: boolean;
+  skipped?: boolean;
+}
+
 export interface AutosaveReturn {
   saveStatus: Ref<SaveStatus>;
   saveError: Ref<string | null>;
   lastSavedAt: Ref<Date | null>;
   isDirty: Ref<boolean>;
   forceSave: () => Promise<void>;
+  // Manual trigger that ignores isEqual check
+  triggerSave: () => Promise<void>;
 }
 
 /**
@@ -61,12 +68,13 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
   /**
    * Perform the actual save operation
+   * @param force If true, skip equality check
    */
-  async function performSave() {
+  async function performSave(force = false) {
     if (!data.value) return;
 
     // Check if data is dirty
-    if (lastSavedState.value && isEqual(data.value, lastSavedState.value)) {
+    if (!force && lastSavedState.value && isEqual(data.value, lastSavedState.value)) {
       return;
     }
 
@@ -74,16 +82,29 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     saveQueue = saveQueue.then(async () => {
       saveStatus.value = 'saving';
       saveError.value = null;
-      isDirty.value = false;
 
       try {
-        await saveFn(data.value!);
+        const result = await saveFn(data.value!);
+        
+        // Handle both simple void return and SaveResult object
+        const wasSaved = result === undefined || (typeof result === 'object' && result.saved === true);
+        const wasSkipped = typeof result === 'object' && result.skipped === true;
 
-        // Update last saved state
-        lastSavedState.value = deepClone(data.value!);
-
-        saveStatus.value = 'saved';
-        lastSavedAt.value = new Date();
+        if (wasSaved) {
+          // Update last saved state
+          lastSavedState.value = deepClone(data.value!);
+          saveStatus.value = 'saved';
+          lastSavedAt.value = new Date();
+          isDirty.value = false;
+        } else if (wasSkipped) {
+          // If skipped (e.g. invalid state), we keep the dirty flag and previous status
+          // but we might want to show that it's NOT saved if it was previously saving
+          saveStatus.value = 'saved'; // Return to 'saved' to hide spinner, but don't update lastSavedState
+        } else {
+          // Failed to save according to result
+          saveStatus.value = 'error';
+          isDirty.value = true;
+        }
       } catch (err: any) {
         console.error('Auto-save failed:', err);
         saveStatus.value = 'error';
@@ -173,7 +194,8 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     saveError,
     lastSavedAt,
     isDirty,
-    forceSave: performSave,
+    forceSave: () => performSave(false),
+    triggerSave: () => performSave(true),
   };
 }
 

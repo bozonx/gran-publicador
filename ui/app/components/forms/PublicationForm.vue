@@ -84,7 +84,10 @@ const isLoading = ref(false)
 
 const isEditMode = computed(() => !!props.publication?.id)
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
-const isContentMissing = computed(() => isTextContentEmpty(state.content) && !hasMedia.value)
+const isContentMissing = computed(() => {
+    const isContentEmpty = (text: string | null | undefined) => !text || text.trim() === '' || text === '<p></p>'
+    return isContentEmpty(state.content) && !hasMedia.value
+})
 
 // Social Media Validation
 const validationErrors = computed(() => {
@@ -115,7 +118,9 @@ const validationErrors = computed(() => {
         )
     }
 
-    return errors.map(e => `${e.channel}: ${e.message}`)
+    return errors
+        .filter(e => e.message?.trim())
+        .map(e => `${e.channel}: ${e.message}`)
 })
 
 const isValid = computed(() => validationErrors.value.length === 0)
@@ -147,13 +152,18 @@ onMounted(async () => {
 const { saveStatus, saveError } = useAutosave({
   data: toRef(() => state),
   saveFn: async (data) => {
-    if (!props.autosave || !isEditMode.value) return
+    if (!props.autosave || !isEditMode.value) return { saved: false, skipped: true }
     
-    // Only save if valid. If invalid, we skip auto-save to avoid corrupting data
-    // based on partial/invalid inputs (like wrong date format)
-    if (!isValid.value) return
+    // Skip auto-save if invalid and NOT in DRAFT status
+    // For DRAFTs we allow saving even if content is missing or rules are violated
+    const canSaveAsInvalid = state.status === 'DRAFT'
+    
+    if (!isValid.value && !canSaveAsInvalid) {
+      return { saved: false, skipped: true }
+    }
 
     await performSubmit(data as PublicationFormData)
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
@@ -475,7 +485,7 @@ function handleTranslated(result: { translatedText: string }) {
           class="mb-3"
         />
 
-        <UAlert v-if="validationErrors.length > 0" color="warning" variant="soft" icon="i-heroicons-exclamation-triangle" :title="t('validation.validationWarningTitle')" class="mb-3">
+        <UAlert v-if="validationErrors.length > 0" color="warning" variant="soft" icon="i-heroicons-exclamation-triangle" class="mb-3">
             <template #title>
               <span>{{ t('validation.validationWarningTitle') }}</span>
             </template>

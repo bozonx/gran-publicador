@@ -278,6 +278,44 @@ function terminateEditorInstance() {
   }
 }
 
+const editorWrapper = ref<HTMLDivElement | null>(null)
+let portalObserver: MutationObserver | null = null
+
+function adoptPortals() {
+  const wrapper = editorWrapper.value
+  if (!wrapper) return
+
+  const portalIds = ['SfxPopper', 'SfxPopup']
+
+  // Move any existing portals
+  for (const id of portalIds) {
+    const el = document.getElementById(id)
+    if (el && el.parentElement !== wrapper) {
+      wrapper.appendChild(el)
+    }
+  }
+
+  // Watch for portals created later by React
+  if (portalObserver) portalObserver.disconnect()
+  portalObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node instanceof HTMLElement && portalIds.includes(node.id)) {
+          wrapper.appendChild(node)
+        }
+      }
+    }
+  })
+  portalObserver.observe(document.body, { childList: true })
+}
+
+function cleanupPortals() {
+  if (portalObserver) {
+    portalObserver.disconnect()
+    portalObserver = null
+  }
+}
+
 async function initEditor() {
   if (!import.meta.client) return
   loadError.value = null
@@ -357,6 +395,10 @@ async function initEditor() {
         emit('close')
       },
     })
+
+    // Move Filerobot portal containers inside the editor wrapper
+    // so they share the same stacking context as the fullscreen modal
+    adoptPortals()
   } catch (err) {
     console.error('Failed to load FilerobotImageEditor:', err)
     loadError.value = 'Failed to initialize image editor. Check console for details.'
@@ -368,12 +410,14 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  cleanupPortals()
   terminateEditorInstance()
 })
 </script>
 
 <template>
   <div
+    ref="editorWrapper"
     class="filerobot-editor-wrapper w-full h-full flex flex-col overflow-visible"
     :class="isDarkMode ? 'bg-gray-950' : 'bg-gray-50'"
   >
@@ -415,9 +459,3 @@ onBeforeUnmount(() => {
 }
 </style>
 
-<style>
-#SfxPopper,
-#SfxPopup {
-  z-index: 9999 !important;
-}
-</style>

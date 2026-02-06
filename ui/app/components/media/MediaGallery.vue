@@ -171,7 +171,7 @@ const autosaveMediaPayload = computed(() => {
 const { saveStatus: mediaSaveStatus, saveError: mediaSaveError, forceSave: forceSaveMediaMeta } = useAutosave({
   data: autosaveMediaPayload,
   saveFn: async (data) => {
-    if (!isModalOpen.value) return
+    if (!isModalOpen.value || !data) return { saved: false, skipped: true }
 
     const updated = await updateMedia(data.id, {
       alt: data.alt || undefined,
@@ -199,7 +199,10 @@ const { saveStatus: mediaSaveStatus, saveError: mediaSaveError, forceSave: force
       }
     } catch (error: any) {
       console.error('Failed to update media spoiler', error)
+      return { saved: false }
     }
+
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
