@@ -655,6 +655,7 @@ export class MediaService {
     id: string,
     userId?: string,
     range?: string,
+    download?: boolean,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
@@ -664,6 +665,7 @@ export class MediaService {
         media.storagePath,
         media.mimeType ?? undefined,
         media.filename ?? undefined,
+        download,
       );
     throw new BadRequestException('Unsupported storage type');
   }
@@ -700,6 +702,7 @@ export class MediaService {
     fileId: string,
     mimeType?: string,
     filename?: string,
+    download?: boolean,
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     const telegramBotToken = this.configService.get<string>('app.telegramBotToken');
     if (!telegramBotToken) {
@@ -802,7 +805,10 @@ export class MediaService {
 
         const headers: Record<string, string> = {};
         if (mimeType) headers['Content-Type'] = mimeType;
-        if (filename) headers['Content-Disposition'] = `inline; filename="${filename}"`;
+        if (filename) {
+          const disposition = download ? 'attachment' : 'inline';
+          headers['Content-Disposition'] = `${disposition}; filename="${filename}"`;
+        }
 
         this.logger.debug(`Successfully started streaming Telegram file: ${fileId}`);
         return {

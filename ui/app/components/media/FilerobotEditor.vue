@@ -188,22 +188,84 @@ onMounted(async () => {
       // You can add more config here to match the app style
       theme: {
         palette: {
+          // Backgrounds
           'bg-primary': '#111827',
-          'bg-secondary': '#1f2937',
+          'bg-primary-light': '#111827',
+          'bg-primary-hover': '#1f2937',
           'bg-primary-active': '#374151',
+          'bg-primary-stateless': '#374151',
+          'bg-primary-0-5-opacity': 'rgba(17, 24, 39, 0.5)',
+          'bg-secondary': '#1f2937',
+          'bg-stateless': '#1f2937',
+          'bg-hover': '#374151',
+          'bg-active': '#374151',
+          'bg-grey': '#4b5563',
+          'bg-base-light': '#1e3a5f',
+          'bg-base-medium': '#1e3a5f',
+          'bg-tooltip': '#4b5563',
+          // Text
+          'txt-primary': '#f3f4f6',
+          'txt-secondary': '#9ca3af',
+          'txt-secondary-invert': '#374151',
+          'txt-placeholder': '#6b7280',
+          'txt-warning': '#fbbf24',
+          'txt-error': '#f87171',
+          'txt-info': '#60a5fa',
+          'txt-primary-invert': '#111827',
+          // Icons (note: IconsPrimary key is "icon-primary")
+          'icon-primary': '#e5e7eb',
+          'icons-primary-opacity-0-6': 'rgba(229, 231, 235, 0.6)',
+          'icons-secondary': '#9ca3af',
+          'icons-placeholder': '#4b5563',
+          'icons-invert': '#111827',
+          'icons-muted': '#6b7280',
+          'icons-primary-hover': '#f3f4f6',
+          'icons-secondary-hover': '#d1d5db',
+          // Accent
           'accent-primary': '#3b82f6',
           'accent-primary-hover': '#2563eb',
           'accent-primary-active': '#1e40af',
-          'icons-primary': '#e5e7eb',
-          'icons-secondary': '#9ca3af',
-          'borders-secondary': '#374151',
+          'accent-primary-disabled': '#374151',
+          'accent-stateless': '#3b82f6',
+          // Borders
           'borders-primary': '#4b5563',
+          'borders-primary-hover': '#6b7280',
+          'borders-secondary': '#374151',
           'borders-strong': '#6b7280',
+          'borders-invert': '#9ca3af',
+          'border-hover-bottom': 'rgba(59, 130, 246, 0.18)',
+          'border-active-bottom': '#3b82f6',
+          'border-primary-stateless': '#4b5563',
+          'borders-disabled': 'rgba(59, 130, 246, 0.4)',
+          'borders-button': '#6b7280',
+          'borders-item': '#374151',
+          // Links
+          'link-primary': '#9ca3af',
+          'link-stateless': '#9ca3af',
+          'link-hover': '#d1d5db',
+          'link-active': '#f3f4f6',
+          'link-muted': '#6b7280',
+          'link-pressed': '#3b82f6',
+          // Buttons
+          'btn-primary-text': '#ffffff',
+          'btn-primary-text-0-6': 'rgba(255, 255, 255, 0.6)',
+          'btn-primary-text-0-4': 'rgba(255, 255, 255, 0.4)',
+          'btn-disabled-text': '#6b7280',
+          'btn-secondary-text': '#f3f4f6',
+          // States
+          'error': '#ef4444',
+          'error-hover': '#dc2626',
+          'error-active': '#b91c1c',
+          'success': '#22c55e',
+          'warning': '#f59e0b',
+          'info': '#3b82f6',
+          // Shadows
           'light-shadow': 'rgba(0, 0, 0, 0.3)',
-          'warning': '#ef4444',
-          'txt-primary': '#f3f4f6',
-          'txt-secondary': '#9ca3af',
-          'txt-primary-invert': '#111827',
+          'medium-shadow': 'rgba(0, 0, 0, 0.4)',
+          'large-shadow': 'rgba(0, 0, 0, 0.5)',
+          // Active states
+          'active-secondary': '#1f2937',
+          'active-secondary-hover': 'rgba(59, 130, 246, 0.1)',
         }
       },
     }
@@ -280,9 +342,8 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-.SfxPopper-root,
-.SfxModal-root,
-[data-popper-placement] {
-  z-index: 70 !important;
+#SfxPopper,
+#SfxPopup {
+  z-index: 9999 !important;
 }
 </style>

@@ -233,12 +233,18 @@ export class MediaController {
    */
   @Get(':id/file')
   @UseGuards(JwtOrApiTokenGuard)
-  async getFile(@Param('id') id: string, @Req() req: UnifiedAuthRequest, @Res() res: FastifyReply) {
+  async getFile(
+    @Param('id') id: string,
+    @Req() req: UnifiedAuthRequest,
+    @Res() res: FastifyReply,
+    @Query('download') download?: string,
+  ) {
     const range = req.headers.range;
     const { stream, status, headers } = await this.mediaService.getMediaFile(
       id,
       req.user.userId,
       range,
+      download === '1' || download === 'true',
     );
 
     res.status(status);
@@ -355,6 +361,7 @@ export class MediaController {
     @Param('token') token: string,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
+    @Query('download') download?: string,
   ) {
     if (!this.mediaService.verifyPublicToken(id, token)) {
       throw new BadRequestException('Invalid media token');
@@ -365,6 +372,7 @@ export class MediaController {
       id,
       undefined, // Skip permission check
       range as string,
+      download === '1' || download === 'true',
     );
 
     res.status(status);

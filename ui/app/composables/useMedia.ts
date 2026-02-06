@@ -309,6 +309,7 @@ export function getMediaFileUrl(
   mediaId: string,
   token?: string,
   version?: string | number,
+  download?: boolean,
 ): string {
   const config = useRuntimeConfig();
   const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
@@ -333,6 +334,10 @@ export function getMediaFileUrl(
 
   if (version !== undefined && version !== null && String(version).length > 0) {
     params.push(`v=${encodeURIComponent(String(version))}`);
+  }
+
+  if (download) {
+    params.push('download=1');
   }
 
   if (params.length > 0) {
