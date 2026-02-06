@@ -123,6 +123,8 @@ const hasMedia = computed(() => {
 })
 
 const isContentOrMediaMissing = computed(() => {
+    // Only require content/media for non-DRAFT statuses
+    if (currentPublication.value?.status === 'DRAFT') return false
     return isContentEmpty.value && !hasMedia.value
 })
 
@@ -227,9 +229,12 @@ watch(projectId, async (newId) => {
 /**
  * Handle successful publication update
  */
-function handleSuccess(id: string) {
-  // Data is already updated by updatePublication in usePublications hook
-  // No need to refetch, avoiding potential race conditions and overwrite issues
+async function handleSuccess(id: string) {
+  // Refresh publication data to keep page-level computed properties in sync
+  // (e.g. isContentOrMediaMissing, publicationProblems)
+  if (publicationId.value) {
+    await fetchPublication(publicationId.value)
+  }
 }
 
 

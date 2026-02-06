@@ -85,8 +85,9 @@ const isLoading = ref(false)
 const isEditMode = computed(() => !!props.publication?.id)
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
 const isContentMissing = computed(() => {
-    const isContentEmpty = (text: string | null | undefined) => !text || text.trim() === '' || text === '<p></p>'
-    return isContentEmpty(state.content) && !hasMedia.value
+    // Only show content/media requirement for non-DRAFT statuses
+    if (state.status === 'DRAFT') return false
+    return isTextContentEmpty(state.content) && !hasMedia.value
 })
 
 // Social Media Validation
@@ -179,6 +180,13 @@ watch(() => props.publication, (newPub, oldPub) => {
     // more than the props (which might be stale or just an echo from autosave).
     // We strictly avoid overwriting user input with server data while editing.
     if (oldPub && newPub.id === oldPub.id) {
+        // Sync status from server even for the same publication
+        // (status is managed externally via buttons on the edit page)
+        if (newPub.status && newPub.status !== state.status) {
+          state.status = newPub.status as PublicationStatus
+          // Reset dirty baseline so status sync doesn't trigger autosave
+          nextTick(() => saveOriginalState())
+        }
         return
     }
 
