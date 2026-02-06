@@ -270,7 +270,6 @@ async function performSubmit(data: PublicationFormData) {
         // Status is managed by separate actions in edit mode, don't send it back 
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,
-        projectId: currentProjectId.value || null,
         linkToPublicationId: linkedPublicationId.value || undefined,
         translationGroupId: state.translationGroupId === null ? null : undefined,
       })

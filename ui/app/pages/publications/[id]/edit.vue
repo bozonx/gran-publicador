@@ -28,7 +28,8 @@ const {
   deletePublication, 
   updatePublication,
   copyPublication,
-  statusOptions 
+  statusOptions,
+  bulkOperation,
 } = usePublications()
 const { fetchChannels, channels } = useChannels()
 const { canGoBack, goBack } = useNavigation()
@@ -440,9 +441,17 @@ async function handleUpdateProject() {
     if (!currentPublication.value) return
     isUpdatingProject.value = true
     try {
-        await updatePublication(currentPublication.value.id, {
-            projectId: newProjectId.value || null
-        })
+        if (!newProjectId.value) return
+
+        const success = await bulkOperation(
+          [currentPublication.value.id],
+          'MOVE',
+          undefined,
+          newProjectId.value,
+        )
+
+        if (!success) return
+
         isProjectModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
     } catch (err: any) {
