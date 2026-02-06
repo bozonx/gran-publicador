@@ -22,6 +22,153 @@ let editorInstance: any = null
 const isInstantSaving = ref(false)
 const loadError = ref<string | null>(null)
 
+const colorMode = useColorMode()
+const isDarkMode = computed(() => colorMode.value === 'dark')
+
+const darkPalette = {
+  'bg-primary': '#0f172a',
+  'bg-primary-light': '#0f172a',
+  'bg-primary-hover': '#111827',
+  'bg-primary-active': '#1e293b',
+  'bg-primary-stateless': '#1e293b',
+  'bg-primary-0-5-opacity': 'rgba(15, 23, 42, 0.5)',
+  'bg-secondary': '#111827',
+  'bg-stateless': '#111827',
+  'bg-hover': '#1e293b',
+  'bg-active': '#334155',
+  'bg-grey': '#475569',
+  'bg-base-light': '#0b1220',
+  'bg-base-medium': '#0b1220',
+  'bg-tooltip': '#0b1220',
+  'txt-primary': '#e5e7eb',
+  'txt-secondary': '#94a3b8',
+  'txt-secondary-invert': '#111827',
+  'txt-placeholder': '#64748b',
+  'txt-warning': '#fbbf24',
+  'txt-error': '#f87171',
+  'txt-info': '#60a5fa',
+  'txt-primary-invert': '#0b1220',
+  'icon-primary': '#f8fafc',
+  'icons-primary-opacity-0-6': 'rgba(248, 250, 252, 0.65)',
+  'icons-secondary': '#cbd5e1',
+  'icons-placeholder': '#64748b',
+  'icons-invert': '#0b1220',
+  'icons-muted': '#64748b',
+  'icons-primary-hover': '#ffffff',
+  'icons-secondary-hover': '#f1f5f9',
+  'accent-primary': '#60a5fa',
+  'accent-primary-hover': '#2563eb',
+  'accent-primary-active': '#1d4ed8',
+  'accent-primary-disabled': '#334155',
+  'accent-stateless': '#60a5fa',
+  'borders-primary': '#475569',
+  'borders-primary-hover': '#64748b',
+  'borders-secondary': '#334155',
+  'borders-strong': '#64748b',
+  'borders-invert': '#cbd5e1',
+  'border-hover-bottom': 'rgba(59, 130, 246, 0.24)',
+  'border-active-bottom': '#3b82f6',
+  'border-primary-stateless': '#334155',
+  'borders-disabled': 'rgba(59, 130, 246, 0.35)',
+  'borders-button': '#475569',
+  'borders-item': '#1f2937',
+  'link-primary': '#93c5fd',
+  'link-stateless': '#93c5fd',
+  'link-hover': '#bfdbfe',
+  'link-active': '#dbeafe',
+  'link-muted': '#94a3b8',
+  'link-pressed': '#60a5fa',
+  'btn-primary-text': '#ffffff',
+  'btn-primary-text-0-6': 'rgba(255, 255, 255, 0.6)',
+  'btn-primary-text-0-4': 'rgba(255, 255, 255, 0.4)',
+  'btn-disabled-text': '#64748b',
+  'btn-secondary-text': '#e5e7eb',
+  'error': '#ef4444',
+  'error-hover': '#dc2626',
+  'error-active': '#b91c1c',
+  'success': '#22c55e',
+  'warning': '#f59e0b',
+  'info': '#3b82f6',
+  'light-shadow': 'rgba(0, 0, 0, 0.4)',
+  'medium-shadow': 'rgba(0, 0, 0, 0.55)',
+  'large-shadow': 'rgba(0, 0, 0, 0.7)',
+  'active-secondary': '#111827',
+  'active-secondary-hover': 'rgba(96, 165, 250, 0.14)',
+} satisfies Record<string, string>
+
+const lightPalette = {
+  'bg-primary': '#f8fafc',
+  'bg-primary-light': '#f8fafc',
+  'bg-primary-hover': '#f1f5f9',
+  'bg-primary-active': '#e5e7eb',
+  'bg-primary-stateless': '#e5e7eb',
+  'bg-primary-0-5-opacity': 'rgba(248, 250, 252, 0.5)',
+  'bg-secondary': '#ffffff',
+  'bg-stateless': '#ffffff',
+  'bg-hover': '#f1f5f9',
+  'bg-active': '#e5e7eb',
+  'bg-grey': '#cbd5e1',
+  'bg-base-light': '#eff6ff',
+  'bg-base-medium': '#dbeafe',
+  'bg-tooltip': '#0f172a',
+  'txt-primary': '#0f172a',
+  'txt-secondary': '#334155',
+  'txt-secondary-invert': '#e2e8f0',
+  'txt-placeholder': '#64748b',
+  'txt-warning': '#b45309',
+  'txt-error': '#b91c1c',
+  'txt-info': '#1d4ed8',
+  'txt-primary-invert': '#ffffff',
+  'icon-primary': '#0f172a',
+  'icons-primary-opacity-0-6': 'rgba(15, 23, 42, 0.6)',
+  'icons-secondary': '#334155',
+  'icons-placeholder': '#94a3b8',
+  'icons-invert': '#ffffff',
+  'icons-muted': '#64748b',
+  'icons-primary-hover': '#020617',
+  'icons-secondary-hover': '#020617',
+  'accent-primary': '#2563eb',
+  'accent-primary-hover': '#1d4ed8',
+  'accent-primary-active': '#1e40af',
+  'accent-primary-disabled': '#cbd5e1',
+  'accent-stateless': '#2563eb',
+  'borders-primary': '#cbd5e1',
+  'borders-primary-hover': '#94a3b8',
+  'borders-secondary': '#e2e8f0',
+  'borders-strong': '#94a3b8',
+  'borders-invert': '#0f172a',
+  'border-hover-bottom': 'rgba(37, 99, 235, 0.24)',
+  'border-active-bottom': '#2563eb',
+  'border-primary-stateless': '#cbd5e1',
+  'borders-disabled': 'rgba(37, 99, 235, 0.25)',
+  'borders-button': '#94a3b8',
+  'borders-item': '#e2e8f0',
+  'link-primary': '#1d4ed8',
+  'link-stateless': '#1d4ed8',
+  'link-hover': '#1e40af',
+  'link-active': '#1e3a8a',
+  'link-muted': '#334155',
+  'link-pressed': '#2563eb',
+  'btn-primary-text': '#ffffff',
+  'btn-primary-text-0-6': 'rgba(255, 255, 255, 0.6)',
+  'btn-primary-text-0-4': 'rgba(255, 255, 255, 0.4)',
+  'btn-disabled-text': '#64748b',
+  'btn-secondary-text': '#0f172a',
+  'error': '#dc2626',
+  'error-hover': '#b91c1c',
+  'error-active': '#991b1b',
+  'success': '#16a34a',
+  'warning': '#d97706',
+  'info': '#2563eb',
+  'light-shadow': 'rgba(15, 23, 42, 0.12)',
+  'medium-shadow': 'rgba(15, 23, 42, 0.16)',
+  'large-shadow': 'rgba(15, 23, 42, 0.22)',
+  'active-secondary': '#ffffff',
+  'active-secondary-hover': 'rgba(37, 99, 235, 0.08)',
+} satisfies Record<string, string>
+
+const editorPalette = computed(() => (isDarkMode.value ? darkPalette : lightPalette))
+
 const baseFilename = computed(() => {
   const raw = props.filename || 'edited-image'
   const trimmed = raw?.trim() ? raw.trim() : 'edited-image'
@@ -131,10 +278,10 @@ function terminateEditorInstance() {
   }
 }
 
-onMounted(async () => {
+async function initEditor() {
   if (!import.meta.client) return
   loadError.value = null
-  
+
   try {
     const module = await import('filerobot-image-editor')
     // The library might export differently depending on version/bundler
@@ -185,88 +332,8 @@ onMounted(async () => {
       defaultSavedImageQuality: 0.95,
       showBackButton: false,
       removeSaveButton: true,
-      // You can add more config here to match the app style
       theme: {
-        palette: {
-          // Backgrounds
-          'bg-primary': '#111827',
-          'bg-primary-light': '#111827',
-          'bg-primary-hover': '#1f2937',
-          'bg-primary-active': '#374151',
-          'bg-primary-stateless': '#374151',
-          'bg-primary-0-5-opacity': 'rgba(17, 24, 39, 0.5)',
-          'bg-secondary': '#1f2937',
-          'bg-stateless': '#1f2937',
-          'bg-hover': '#374151',
-          'bg-active': '#374151',
-          'bg-grey': '#4b5563',
-          'bg-base-light': '#1e3a5f',
-          'bg-base-medium': '#1e3a5f',
-          'bg-tooltip': '#4b5563',
-          // Text
-          'txt-primary': '#f3f4f6',
-          'txt-secondary': '#9ca3af',
-          'txt-secondary-invert': '#374151',
-          'txt-placeholder': '#6b7280',
-          'txt-warning': '#fbbf24',
-          'txt-error': '#f87171',
-          'txt-info': '#60a5fa',
-          'txt-primary-invert': '#111827',
-          // Icons (note: IconsPrimary key is "icon-primary")
-          'icon-primary': '#e5e7eb',
-          'icons-primary-opacity-0-6': 'rgba(229, 231, 235, 0.6)',
-          'icons-secondary': '#9ca3af',
-          'icons-placeholder': '#4b5563',
-          'icons-invert': '#111827',
-          'icons-muted': '#6b7280',
-          'icons-primary-hover': '#f3f4f6',
-          'icons-secondary-hover': '#d1d5db',
-          // Accent
-          'accent-primary': '#3b82f6',
-          'accent-primary-hover': '#2563eb',
-          'accent-primary-active': '#1e40af',
-          'accent-primary-disabled': '#374151',
-          'accent-stateless': '#3b82f6',
-          // Borders
-          'borders-primary': '#4b5563',
-          'borders-primary-hover': '#6b7280',
-          'borders-secondary': '#374151',
-          'borders-strong': '#6b7280',
-          'borders-invert': '#9ca3af',
-          'border-hover-bottom': 'rgba(59, 130, 246, 0.18)',
-          'border-active-bottom': '#3b82f6',
-          'border-primary-stateless': '#4b5563',
-          'borders-disabled': 'rgba(59, 130, 246, 0.4)',
-          'borders-button': '#6b7280',
-          'borders-item': '#374151',
-          // Links
-          'link-primary': '#9ca3af',
-          'link-stateless': '#9ca3af',
-          'link-hover': '#d1d5db',
-          'link-active': '#f3f4f6',
-          'link-muted': '#6b7280',
-          'link-pressed': '#3b82f6',
-          // Buttons
-          'btn-primary-text': '#ffffff',
-          'btn-primary-text-0-6': 'rgba(255, 255, 255, 0.6)',
-          'btn-primary-text-0-4': 'rgba(255, 255, 255, 0.4)',
-          'btn-disabled-text': '#6b7280',
-          'btn-secondary-text': '#f3f4f6',
-          // States
-          'error': '#ef4444',
-          'error-hover': '#dc2626',
-          'error-active': '#b91c1c',
-          'success': '#22c55e',
-          'warning': '#f59e0b',
-          'info': '#3b82f6',
-          // Shadows
-          'light-shadow': 'rgba(0, 0, 0, 0.3)',
-          'medium-shadow': 'rgba(0, 0, 0, 0.4)',
-          'large-shadow': 'rgba(0, 0, 0, 0.5)',
-          // Active states
-          'active-secondary': '#1f2937',
-          'active-secondary-hover': 'rgba(59, 130, 246, 0.1)',
-        }
+        palette: editorPalette.value,
       },
     }
 
@@ -294,6 +361,10 @@ onMounted(async () => {
     console.error('Failed to load FilerobotImageEditor:', err)
     loadError.value = 'Failed to initialize image editor. Check console for details.'
   }
+}
+
+onMounted(async () => {
+  await initEditor()
 })
 
 onBeforeUnmount(() => {
@@ -302,7 +373,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="filerobot-editor-wrapper w-full h-full flex flex-col bg-gray-950 overflow-visible">
+  <div
+    class="filerobot-editor-wrapper w-full h-full flex flex-col overflow-visible"
+    :class="isDarkMode ? 'bg-gray-950' : 'bg-gray-50'"
+  >
     <div class="absolute top-3 right-14 z-60">
       <button
         type="button"
