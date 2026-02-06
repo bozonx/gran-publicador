@@ -194,9 +194,16 @@ onMounted(async () => {
           'accent-primary': '#3b82f6',
           'accent-primary-hover': '#2563eb',
           'accent-primary-active': '#1e40af',
+          'icons-primary': '#e5e7eb',
+          'icons-secondary': '#9ca3af',
           'borders-secondary': '#374151',
+          'borders-primary': '#4b5563',
+          'borders-strong': '#6b7280',
+          'light-shadow': 'rgba(0, 0, 0, 0.3)',
+          'warning': '#ef4444',
           'txt-primary': '#f3f4f6',
           'txt-secondary': '#9ca3af',
+          'txt-primary-invert': '#111827',
         }
       },
     }
@@ -269,5 +276,13 @@ onBeforeUnmount(() => {
 /* Ensure canvas area fills available height */
 :deep(.SfxImageEditor-canvas-container) {
   flex-grow: 1;
+}
+</style>
+
+<style>
+.SfxPopper-root,
+.SfxModal-root,
+[data-popper-placement] {
+  z-index: 70 !important;
 }
 </style>
