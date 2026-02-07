@@ -50,7 +50,7 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
     // Add tags as separate field if present
     const tagsString = post.tags || publication.tags;
     if (tagsString) {
-      (request as any).tags = TagsFormatter.format(tagsString);
+      request.tags = TagsFormatter.toArray(tagsString);
     }
 
     this.applyCommonOptions(request, post);

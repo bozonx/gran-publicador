@@ -14,28 +14,22 @@ export interface TagFormatOptions {
 }
 
 export class TagsFormatter {
-  /**
-   * Formats a string of tags or a single tag based on options.
-   * Returns a string of space-separated hashtags.
-   */
-  static format(tags: string | null | undefined, options: TagFormatOptions = {}): string {
-    if (!tags) return '';
+  static toArray(tags: string | null | undefined, options: TagFormatOptions = {}): string[] {
+    if (!tags) return [];
 
     const tagCase = options.tagCase || 'none';
 
-    // 1. Split into chunks by comma
     const chunks = tags
       .split(',')
       .map(c => c.trim())
       .filter(c => c.length > 0);
+
     const individualTags: string[] = [];
 
     for (const chunk of chunks) {
       if (tagCase !== 'none') {
-        // If we have a case transformation, the whole chunk (even with spaces) is one potential tag
         individualTags.push(chunk.startsWith('#') ? chunk.slice(1) : chunk);
       } else {
-        // If no case transformation, split the chunk further by whitespace (standard behavior)
         const subTags = chunk
           .split(/\s+/)
           .map(t => t.trim())
@@ -45,19 +39,23 @@ export class TagsFormatter {
       }
     }
 
-    if (individualTags.length === 0) return '';
+    if (individualTags.length === 0) return [];
 
-    const formattedTags = individualTags.map(tag => {
+    return individualTags.map(tag => {
       let result = tag;
-
       if (tagCase !== 'none') {
         result = this.convertStringCase(result, tagCase);
       }
-
       return `#${result}`;
     });
+  }
 
-    return formattedTags.join(' ');
+  /**
+   * Formats a string of tags or a single tag based on options.
+   * Returns a string of space-separated hashtags.
+   */
+  static format(tags: string | null | undefined, options: TagFormatOptions = {}): string {
+    return this.toArray(tags, options).join(' ');
   }
 
   private static convertStringCase(str: string, targetCase: TagCase): string {

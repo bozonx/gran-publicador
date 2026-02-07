@@ -581,26 +581,37 @@ function defaultIsEqual<T>(a: T, b: T): boolean {
  * Deep clone using JSON serialization
  */
 function deepCloneOrNull<T>(obj: T): T | null {
+  let structuredCloneError: unknown = null;
   if (typeof structuredClone === 'function') {
     try {
       return structuredClone(toRaw(obj));
     } catch (error) {
       // Vue reactive proxies and some complex objects can fail structuredClone.
-      // Fall back to JSON clone for plain data.
-      if (!autosaveCloneWarnedStructuredClone) {
-        autosaveCloneWarnedStructuredClone = true;
-        logger.warn('Failed to structuredClone autosave state, falling back to JSON clone', error);
-      }
+      // We'll try JSON clone and only warn if THAT fails too.
+      structuredCloneError = error;
     }
   }
 
   try {
     return JSON.parse(JSON.stringify(toRaw(obj)));
-  } catch (error) {
+  } catch (jsonCloneError) {
+    // Log only when we have no viable baseline at all.
+    if (!autosaveCloneWarnedStructuredClone && structuredCloneError) {
+      autosaveCloneWarnedStructuredClone = true;
+      logger.warn(
+        'Failed to structuredClone autosave state; falling back to JSON clone',
+        structuredCloneError,
+      );
+    }
+
     if (!autosaveCloneWarnedJsonClone) {
       autosaveCloneWarnedJsonClone = true;
-      logger.warn('Failed to deep clone autosave state, falling back to null baseline', error);
+      logger.warn(
+        'Failed to deep clone autosave state, falling back to null baseline',
+        jsonCloneError,
+      );
     }
+
     return null;
   }
 }

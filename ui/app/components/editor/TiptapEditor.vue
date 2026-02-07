@@ -121,14 +121,14 @@ function buildExtensions(opts: { placeholder: string; maxLength?: number }) {
       },
     }),
     Placeholder.configure({
-      placeholder: opts.placeholder,
+      placeholder: () => resolvedPlaceholder.value,
     }),
     CodeBlockLowlight.configure({
       lowlight,
       defaultLanguage: 'javascript',
     }),
     CharacterCount.configure({
-      limit: opts.maxLength,
+      limit: props.maxLength,
     }),
     Table.configure({
       resizable: true,
@@ -173,16 +173,6 @@ watch(
         editor.value.commands.setContent(newValue || '', { emitUpdate: false, contentType: 'markdown' })
       }
     }
-  }
-)
-
-// Watch for maxLength or placeholder changes — rebuild extensions consistently
-watch(
-  [() => props.maxLength, resolvedPlaceholder],
-  ([limit, placeholder]) => {
-    editor.value?.setOptions({
-      extensions: buildExtensions({ placeholder, maxLength: limit }),
-    })
   }
 )
 
