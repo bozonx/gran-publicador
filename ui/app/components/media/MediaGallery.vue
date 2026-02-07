@@ -193,7 +193,7 @@ const {
 
     emit('refresh')
 
-    if (!data.mediaLinkId) return { saved: true, skipped: true }
+    if (!data.mediaLinkId) return { saved: true }
 
     try {
       if (props.publicationId) {
