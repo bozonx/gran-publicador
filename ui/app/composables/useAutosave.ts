@@ -1,6 +1,10 @@
-import { ref, watch, type Ref } from 'vue';
+import { ref, watch, type Ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { AUTO_SAVE_DEBOUNCE_MS, AUTOSAVE_INDICATOR_DELAY_MS, AUTOSAVE_INDICATOR_DISPLAY_MS } from '~/constants/autosave';
+import {
+  AUTO_SAVE_DEBOUNCE_MS,
+  AUTOSAVE_INDICATOR_DELAY_MS,
+  AUTOSAVE_INDICATOR_DISPLAY_MS,
+} from '~/constants/autosave';
 import { logger } from '~/utils/logger';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
@@ -53,11 +57,14 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
   const router = useRouter();
   const { t } = useI18n();
+  const toast = useToast();
 
   const saveStatus = ref<SaveStatus>('saved');
   const saveError = ref<string | null>(null);
   const lastSavedAt = ref<Date | null>(null);
   const isDirty = ref(false);
+
+  const shouldRetry = computed(() => isDirty.value && saveStatus.value === 'error');
 
   // Indicator visibility logic
   const isIndicatorVisible = ref(false);
@@ -65,9 +72,31 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   let indicatorDelayTimer: NodeJS.Timeout | null = null;
   let indicatorDisplayTimer: NodeJS.Timeout | null = null;
 
+  // Retry logic
+  const RETRY_INTERVAL_MS = 3000;
+  let retryTimer: NodeJS.Timeout | null = null;
+  let errorToastShownForCycle = false;
+
   function clearIndicatorTimers() {
     if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
     if (indicatorDisplayTimer) clearTimeout(indicatorDisplayTimer);
+  }
+
+  function clearRetryTimer() {
+    if (retryTimer) clearInterval(retryTimer);
+    retryTimer = null;
+  }
+
+  function ensureRetryTimer() {
+    if (retryTimer) return;
+    retryTimer = setInterval(() => {
+      if (!shouldRetry.value) {
+        clearRetryTimer();
+        return;
+      }
+
+      void triggerSave();
+    }, RETRY_INTERVAL_MS);
   }
 
   // Store last saved state for dirty checking
@@ -77,7 +106,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   let saveQueue = Promise.resolve();
 
   if (skipInitial && data.value) {
-    lastSavedState.value = deepClone(data.value);
+    lastSavedState.value = deepCloneOrNull(data.value);
   }
 
   /**
@@ -96,9 +125,10 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     saveQueue = saveQueue.then(async () => {
       saveStatus.value = 'saving';
       saveError.value = null;
+      clearRetryTimer();
 
       const saveStartTime = Date.now();
-      
+
       // Start delay timer for "Saving..." indicator
       clearIndicatorTimers();
       indicatorDelayTimer = setTimeout(() => {
@@ -118,10 +148,11 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
         if (wasSaved) {
           // Update last saved state
-          lastSavedState.value = deepClone(data.value!);
+          lastSavedState.value = deepCloneOrNull(data.value!);
           saveStatus.value = 'saved';
           lastSavedAt.value = new Date();
           isDirty.value = false;
+          errorToastShownForCycle = false;
 
           // Clear delay timer if save finished before it fired
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
@@ -140,17 +171,29 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         } else if (wasSkipped) {
           // If skipped (e.g. invalid state), we keep the dirty flag and previous status
           saveStatus.value = 'saved';
-          
+
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
           isIndicatorVisible.value = false;
+          clearRetryTimer();
         } else {
           // Failed to save according to result
           saveStatus.value = 'error';
+          saveError.value = t('common.saveError');
           isDirty.value = true;
 
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
           indicatorStatus.value = 'error';
           isIndicatorVisible.value = true;
+
+          if (!errorToastShownForCycle) {
+            errorToastShownForCycle = true;
+            toast.add({
+              title: t('common.error'),
+              description: saveError.value,
+              color: 'error',
+            });
+          }
+          ensureRetryTimer();
         }
       } catch (err: any) {
         logger.error('Auto-save failed', err);
@@ -161,6 +204,17 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
         indicatorStatus.value = 'error';
         isIndicatorVisible.value = true;
+
+        if (!errorToastShownForCycle) {
+          errorToastShownForCycle = true;
+          toast.add({
+            title: t('common.error'),
+            description: saveError.value,
+            color: 'error',
+          });
+        }
+
+        ensureRetryTimer();
       }
     });
 
@@ -177,7 +231,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
       if (!newValue) return;
 
       if (skipInitial && lastSavedState.value === null) {
-        lastSavedState.value = deepClone(newValue);
+        lastSavedState.value = deepCloneOrNull(newValue);
         return;
       }
 
@@ -205,15 +259,18 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         }
 
         // This is a tab switch or similar - update saved state without saving for the NEW value
-        lastSavedState.value = deepClone(newValue);
+        lastSavedState.value = deepCloneOrNull(newValue);
         isDirty.value = false;
         isIndicatorVisible.value = false;
         clearIndicatorTimers();
+        clearRetryTimer();
+        errorToastShownForCycle = false;
         return;
       }
 
       // This is an actual data change - mark as dirty and trigger save
       isDirty.value = true;
+      errorToastShownForCycle = false;
       debouncedSave();
     },
     { deep: true },
@@ -249,6 +306,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   onUnmounted(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload);
     clearIndicatorTimers();
+    clearRetryTimer();
   });
 
   return {
@@ -258,7 +316,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     isDirty,
     isIndicatorVisible,
     indicatorStatus,
-    forceSave: () => performSave(false),
+    forceSave: () => performSave(true),
     triggerSave: () => performSave(true),
   };
 }
@@ -277,10 +335,15 @@ function defaultIsEqual<T>(a: T, b: T): boolean {
 /**
  * Deep clone using JSON serialization
  */
-function deepClone<T>(obj: T): T {
+function deepCloneOrNull<T>(obj: T): T | null {
   try {
+    if (typeof structuredClone === 'function') {
+      return structuredClone(obj);
+    }
+
     return JSON.parse(JSON.stringify(obj));
-  } catch {
-    return obj;
+  } catch (error) {
+    logger.warn('Failed to deep clone autosave state, falling back to null baseline', error);
+    return null;
   }
 }

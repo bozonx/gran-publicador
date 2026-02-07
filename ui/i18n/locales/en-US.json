@@ -2,6 +2,7 @@
   "translate": {
     "title": "Translate Text",
     "targetLanguage": "Target Language",
+    "targetLanguagePrecise": "Translate TO language",
     "splitter": "Text Splitter",
     "splitterOptions": {
       "paragraph": "Paragraph",
@@ -109,8 +110,7 @@
     "copied": "Copied!",
     "done": "Done",
     "more": "More",
-    "inlineMarkdownHelp": "Only inline markdown is allowed (bold, italic, links). Block elements like headings or lists are not supported here."
-    ,
+    "inlineMarkdownHelp": "Only inline markdown is allowed (bold, italic, links). Block elements like headings or lists are not supported here.",
     "unexpectedError": "Unexpected error. Please try again.",
     "savingInProgressConfirm": "Data is still being saved. Are you sure you want to leave this page?"
   },

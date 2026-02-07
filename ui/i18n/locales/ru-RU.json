@@ -2,6 +2,7 @@
   "translate": {
     "title": "Перевод текста",
     "targetLanguage": "Язык перевода",
+    "targetLanguagePrecise": "Язык, НА который переводим",
     "splitter": "Разделитель текста",
     "splitterOptions": {
       "paragraph": "Абзац",
