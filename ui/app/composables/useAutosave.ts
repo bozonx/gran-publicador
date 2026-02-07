@@ -1,4 +1,4 @@
-import { ref, watch, type Ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, watch, type Ref, computed, onMounted, onUnmounted, toRaw } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import {
   AUTO_SAVE_DEBOUNCE_MS,
@@ -9,6 +9,9 @@ import {
   AUTOSAVE_RETRY_MAX_DELAY_MS,
 } from '~/constants/autosave';
 import { logger } from '~/utils/logger';
+
+let autosaveCloneWarnedStructuredClone = false;
+let autosaveCloneWarnedJsonClone = false;
 
 function resolveUseI18n(): null | (() => { t: (key: string) => unknown }) {
   // Nuxt auto-imports are available at runtime, but not in unit tests.
@@ -580,18 +583,24 @@ function defaultIsEqual<T>(a: T, b: T): boolean {
 function deepCloneOrNull<T>(obj: T): T | null {
   if (typeof structuredClone === 'function') {
     try {
-      return structuredClone(obj);
+      return structuredClone(toRaw(obj));
     } catch (error) {
       // Vue reactive proxies and some complex objects can fail structuredClone.
       // Fall back to JSON clone for plain data.
-      logger.warn('Failed to structuredClone autosave state, falling back to JSON clone', error);
+      if (!autosaveCloneWarnedStructuredClone) {
+        autosaveCloneWarnedStructuredClone = true;
+        logger.warn('Failed to structuredClone autosave state, falling back to JSON clone', error);
+      }
     }
   }
 
   try {
-    return JSON.parse(JSON.stringify(obj));
+    return JSON.parse(JSON.stringify(toRaw(obj)));
   } catch (error) {
-    logger.warn('Failed to deep clone autosave state, falling back to null baseline', error);
+    if (!autosaveCloneWarnedJsonClone) {
+      autosaveCloneWarnedJsonClone = true;
+      logger.warn('Failed to deep clone autosave state, falling back to null baseline', error);
+    }
     return null;
   }
 }

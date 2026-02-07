@@ -77,6 +77,8 @@
     "hideArchived": "Hide Archived",
     "saveSuccess": "Saved successfully",
     "saveError": "Failed to save",
+    "unsavedChanges": "Unsaved changes",
+    "retry": "Retry",
     "stay": "Stay",
     "leave": "Leave without saving",
     "stale": "Stale",
