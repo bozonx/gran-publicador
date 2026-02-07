@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
+import { logger } from '~/utils/logger';
 
 export interface User {
   id: string;
@@ -94,7 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
       const devTelegramId = config.public.devTelegramId;
 
       if (!devTelegramId) {
-        throw new Error('VITE_DEV_TELEGRAM_ID not set');
+        throw new Error('NUXT_PUBLIC_DEV_TELEGRAM_ID not set');
       }
 
       const response = await api.post<AuthResponse>('/auth/dev', {
@@ -109,7 +110,7 @@ export const useAuthStore = defineStore('auth', () => {
       return response;
     } catch (err: any) {
       error.value = err.message;
-      console.error('Dev login failed', err);
+      logger.error('Dev login failed', err);
       throw err;
     } finally {
       isLoading.value = false;
@@ -136,7 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
       isInitialized.value = true;
       return userData;
     } catch (err) {
-      console.error('Fetch me failed', err);
+      logger.error('Fetch me failed', err);
       user.value = null;
     } finally {
       isLoading.value = false;

@@ -1,8 +1,45 @@
+import { logger } from '~/utils/logger';
+
 export interface ApiOptions {
   headers?: Record<string, string>;
   onUploadProgress?: (progress: number) => void;
   [key: string]: any;
 }
+
+interface NormalizedApiError extends Error {
+  status?: number;
+  data?: unknown;
+}
+
+const toMessage = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value instanceof Error) return value.message;
+  return 'Request failed';
+};
+
+const createApiError = (
+  message: string,
+  extras?: Partial<NormalizedApiError>,
+): NormalizedApiError => {
+  const err = new Error(message) as NormalizedApiError;
+  if (extras?.status !== undefined) err.status = extras.status;
+  if (extras?.data !== undefined) err.data = extras.data;
+  return err;
+};
+
+const normalizeFetchError = (error: any): NormalizedApiError => {
+  const status = error?.response?.status;
+  const data = error?.data;
+
+  const messageFromData =
+    typeof data?.message === 'string'
+      ? data.message
+      : Array.isArray(data?.message)
+        ? data.message.join(', ')
+        : undefined;
+
+  return createApiError(messageFromData || toMessage(error), { status, data });
+};
 
 export const useApi = () => {
   const config = useRuntimeConfig();
@@ -17,7 +54,7 @@ export const useApi = () => {
 
   const refreshTokens = async (): Promise<void> => {
     if (!refreshToken.value) {
-      throw new Error('No refresh token');
+      throw createApiError('No refresh token');
     }
 
     if (!refreshPromise) {
@@ -38,9 +75,10 @@ export const useApi = () => {
             refreshToken.value = response.refreshToken;
           }
         } catch (e) {
+          logger.warn('Auth refresh failed', e);
           accessToken.value = null;
           refreshToken.value = null;
-          throw e;
+          throw normalizeFetchError(e);
         } finally {
           refreshPromise = null;
         }
@@ -51,7 +89,7 @@ export const useApi = () => {
   };
 
   const isUnauthorizedError = (error: any): boolean => {
-    const status = error?.response?.status;
+    const status = error?.response?.status ?? error?.status;
     return status === 401;
   };
 
@@ -79,8 +117,7 @@ export const useApi = () => {
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
-            const response = JSON.parse(xhr.responseText);
-            resolve(response);
+            resolve(xhr.responseText ? JSON.parse(xhr.responseText) : (undefined as T));
           } catch (error) {
             reject(new Error('Failed to parse response'));
           }
@@ -88,7 +125,7 @@ export const useApi = () => {
           if (attempt >= 1) {
             accessToken.value = null;
             refreshToken.value = null;
-            reject(new Error('Unauthorized'));
+            reject(createApiError('Unauthorized', { status: 401 }));
             return;
           }
 
@@ -98,10 +135,16 @@ export const useApi = () => {
             .catch(reject);
         } else {
           try {
-            const error = JSON.parse(xhr.responseText);
-            reject(new Error(error.message || `Request failed with status ${xhr.status}`));
+            const data = xhr.responseText ? JSON.parse(xhr.responseText) : undefined;
+            const message =
+              typeof data?.message === 'string'
+                ? data.message
+                : `Request failed with status ${xhr.status}`;
+            reject(createApiError(message, { status: xhr.status, data }));
           } catch {
-            reject(new Error(`Request failed with status ${xhr.status}`));
+            reject(
+              createApiError(`Request failed with status ${xhr.status}`, { status: xhr.status }),
+            );
           }
         }
       });
@@ -116,11 +159,17 @@ export const useApi = () => {
       });
 
       // Open request
-      xhr.open('POST', `${apiBase}${url}`);
+      xhr.open(String(options.method || 'POST'), `${apiBase}${url}`);
 
       // Set authorization header
       if (accessToken.value) {
         xhr.setRequestHeader('Authorization', `Bearer ${accessToken.value}`);
+      }
+
+      if (options.headers) {
+        for (const [key, value] of Object.entries(options.headers)) {
+          xhr.setRequestHeader(key, value);
+        }
       }
 
       // Send request
@@ -153,18 +202,19 @@ export const useApi = () => {
         if (attempt >= 1) {
           accessToken.value = null;
           refreshToken.value = null;
-          throw error;
+          throw normalizeFetchError(error);
         }
 
         try {
           await refreshTokens();
         } catch {
-          throw error;
+          throw normalizeFetchError(error);
         }
 
         return request<T>(url, options, attempt + 1);
       }
-      throw error;
+
+      throw normalizeFetchError(error);
     }
   };
 

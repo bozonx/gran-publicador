@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick } from 'vue'
+import { logger } from '~/utils/logger'
 
 definePageMeta({
   layout: 'auth',
@@ -19,7 +20,7 @@ const onTelegramAuth = async (user: any) => {
     await loginWithTelegramWidget(user)
     router.push('/')
   } catch (e) {
-    console.error("Widget login failed", e)
+    logger.error('Widget login failed', e)
   }
 }
 
@@ -77,7 +78,7 @@ onMounted(async () => {
        await loginWithTelegram(tg.initData)
        router.push('/')
      } catch (e) {
-       console.error("Mini App login failed", e)
+       logger.error('Mini App login failed', e)
        isTelegramContent.value = false
      }
   } else if (isDev) {
@@ -85,7 +86,7 @@ onMounted(async () => {
        await loginWithDev()
        router.push('/')
      } catch (e) {
-       console.error("Dev login failed", e)
+       logger.error('Dev login failed', e)
        isTelegramContent.value = false
      }
   } else {

@@ -5,108 +5,113 @@
  * 3. Browser language
  * 4. Default (en-US)
  */
-export default defineNuxtPlugin((nuxtApp) => {
-    const i18n = nuxtApp.$i18n
-    if (!i18n) return
+import { logger } from '~/utils/logger';
 
-    const locale = (i18n as any).locale
-    const setLocale = (i18n as any).setLocale
-    const locales = (i18n as any).locales // Array of locale objects
+export default defineNuxtPlugin(nuxtApp => {
+  const i18n = nuxtApp.$i18n;
+  if (!i18n) return;
 
-    const auth = useAuthStore()
+  const locale = (i18n as any).locale;
+  const setLocale = (i18n as any).setLocale;
+  const locales = (i18n as any).locales; // Array of locale objects
 
-    // Get available locale codes from config
-    const availableLocales = computed(() => locales.value.map((l: any) => l.code))
+  const auth = useAuthStore();
 
-    const DEFAULT_LOCALE = 'en-US'
+  // Get available locale codes from config
+  const availableLocales = computed(() => locales.value.map((l: any) => l.code));
 
-    /**
-     * Normalize and find best match for a language code
-     * e.g. 'en-GB' -> 'en-US', 'ru' -> 'ru-RU'
-     */
-    function findBestMatch(langCode: string | null | undefined): string | null {
-        if (!langCode) return null
+  const DEFAULT_LOCALE = 'en-US';
 
-        // 1. Precise match
-        if (availableLocales.value.includes(langCode)) {
-            return langCode
-        }
+  /**
+   * Normalize and find best match for a language code
+   * e.g. 'en-GB' -> 'en-US', 'ru' -> 'ru-RU'
+   */
+  function findBestMatch(langCode: string | null | undefined): string | null {
+    if (!langCode) return null;
 
-        // 2. Fuzzy match by base language (e.g. 'en' from 'en-GB')
-        const parts = langCode.split('-')
-        const baseLang = parts[0]?.toLowerCase()
-        if (!baseLang) return null
-
-        // Find the first available locale that starts with this base lang
-        const match = availableLocales.value.find((l: string) => l.toLowerCase().startsWith(baseLang))
-
-        return match || null
+    // 1. Precise match
+    if (availableLocales.value.includes(langCode)) {
+      return langCode;
     }
 
-    function getTelegramLocale(): string | null {
-        if (typeof window === 'undefined') return null
-        // @ts-ignore
-        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user
-        return tgUser?.language_code || null
+    // 2. Fuzzy match by base language (e.g. 'en' from 'en-GB')
+    const parts = langCode.split('-');
+    const baseLang = parts[0]?.toLowerCase();
+    if (!baseLang) return null;
+
+    // Find the first available locale that starts with this base lang
+    const match = availableLocales.value.find((l: string) => l.toLowerCase().startsWith(baseLang));
+
+    return match || null;
+  }
+
+  function getTelegramLocale(): string | null {
+    if (typeof window === 'undefined') return null;
+    // @ts-ignore
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    return tgUser?.language_code || null;
+  }
+
+  function getBrowserLocale(): string | null {
+    if (typeof navigator === 'undefined') return null;
+    return navigator.language || (navigator.languages && navigator.languages[0]) || null;
+  }
+
+  // Logic to run on client init
+  if (import.meta.client) {
+    // Find initial locale based on priority
+    const findTargetLocale = () => {
+      // 1. User Profile from DB (UI Language specifically)
+      if (auth.user?.uiLanguage) {
+        const match = findBestMatch(auth.user.uiLanguage);
+        if (match) return match;
+      }
+
+      // 2. Telegram WebApp
+      const tgLang = getTelegramLocale();
+      if (tgLang) {
+        const match = findBestMatch(tgLang);
+        if (match) return match;
+      }
+
+      // 3. Browser
+      const browserLang = getBrowserLocale();
+      if (browserLang) {
+        const match = findBestMatch(browserLang);
+        if (match) return match;
+      }
+
+      // 4. Default / Fallback
+      return DEFAULT_LOCALE;
+    };
+
+    // Apply initial locale
+    const initialLocale = findTargetLocale();
+    if (initialLocale && initialLocale !== locale.value) {
+      logger.info(`i18n: initializing UI locale to: ${initialLocale}`);
+      if (setLocale) {
+        setLocale(initialLocale);
+      } else {
+        locale.value = initialLocale;
+      }
     }
 
-    function getBrowserLocale(): string | null {
-        if (typeof navigator === 'undefined') return null
-        return navigator.language || (navigator.languages && navigator.languages[0]) || null
-    }
-
-    // Logic to run on client init
-    if (import.meta.client) {
-        // Find initial locale based on priority
-        const findTargetLocale = () => {
-            // 1. User Profile from DB (UI Language specifically)
-            if (auth.user?.uiLanguage) {
-                const match = findBestMatch(auth.user.uiLanguage)
-                if (match) return match
-            }
-
-            // 2. Telegram WebApp
-            const tgLang = getTelegramLocale()
-            if (tgLang) {
-                const match = findBestMatch(tgLang)
-                if (match) return match
-            }
-
-            // 3. Browser
-            const browserLang = getBrowserLocale()
-            if (browserLang) {
-                const match = findBestMatch(browserLang)
-                if (match) return match
-            }
-
-            // 4. Default / Fallback
-            return DEFAULT_LOCALE
-        }
-
-        // Apply initial locale
-        const initialLocale = findTargetLocale()
-        if (initialLocale && initialLocale !== locale.value) {
-            console.info(`[i18n] Initializing UI locale to: ${initialLocale}`)
+    // Watch for user UI language changes
+    watch(
+      () => auth.user?.uiLanguage,
+      newLang => {
+        if (newLang) {
+          const match = findBestMatch(newLang) || DEFAULT_LOCALE;
+          if (match !== locale.value) {
+            logger.info(`i18n: user UI language changed, setting locale to: ${match}`);
             if (setLocale) {
-                setLocale(initialLocale)
+              setLocale(match);
             } else {
-                locale.value = initialLocale
+              locale.value = match;
             }
+          }
         }
-
-        // Watch for user UI language changes
-        watch(() => auth.user?.uiLanguage, (newLang) => {
-            if (newLang) {
-                const match = findBestMatch(newLang) || DEFAULT_LOCALE
-                if (match !== locale.value) {
-                    console.info(`[i18n] User UI language changed, setting locale to: ${match}`)
-                    if (setLocale) {
-                        setLocale(match)
-                    } else {
-                        locale.value = match
-                    }
-                }
-            }
-        })
-    }
-})
+      },
+    );
+  }
+});
