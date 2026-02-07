@@ -8,6 +8,10 @@ export interface TextSelectionRange {
 
 const LIST_NODE_TYPES = new Set(['bulletList', 'orderedList']);
 
+function isMeaningfulText(text: string): boolean {
+  return text.replace(/\u00a0/g, ' ').trim().length > 0;
+}
+
 /**
  * Expand selection range so that every touched block is fully included.
  * For lists: expands to cover complete listItems that overlap with the selection,
@@ -80,6 +84,70 @@ function getSelectedPlainText(editor: Editor, range: TextSelectionRange): string
     .trim();
 }
 
+function getListContext(
+  editor: Editor,
+  range: TextSelectionRange,
+): {
+  listType: 'bulletList' | 'orderedList';
+  listPos: number;
+} | null {
+  const doc = editor.state.doc;
+  const docSize = doc.content.size;
+
+  const fromProbe = Math.max(0, Math.min(range.from + 1, docSize));
+  const toProbe = Math.max(0, Math.min(range.to - 1, docSize));
+
+  if (fromProbe >= toProbe) return null;
+
+  const $from = doc.resolve(fromProbe);
+  const $to = doc.resolve(toProbe);
+
+  function findListDepth($pos: any): number | null {
+    for (let d = $pos.depth; d >= 1; d -= 1) {
+      if ($pos.node(d).type.name === 'listItem') {
+        const listDepth = d - 1;
+        const listNode = $pos.node(listDepth);
+        if (LIST_NODE_TYPES.has(listNode.type.name)) return listDepth;
+      }
+    }
+    return null;
+  }
+
+  const fromListDepth = findListDepth($from);
+  const toListDepth = findListDepth($to);
+  if (fromListDepth === null || toListDepth === null) return null;
+
+  const fromListPos = $from.before(fromListDepth);
+  const toListPos = $to.before(toListDepth);
+  if (fromListPos !== toListPos) return null;
+
+  const listNode = $from.node(fromListDepth);
+  if (!LIST_NODE_TYPES.has(listNode.type.name)) return null;
+
+  return {
+    listType: listNode.type.name as 'bulletList' | 'orderedList',
+    listPos: fromListPos,
+  };
+}
+
+function filterEmptyListItemsJson(content: any[]): any[] {
+  return content.filter(node => {
+    if (node?.type !== 'listItem') return true;
+    const text = String(node?.textContent ?? '');
+    if (text) return isMeaningfulText(text);
+
+    // Fallback: try to walk content and find any non-empty text node
+    const stack: any[] = Array.isArray(node?.content) ? [...node.content] : [];
+    while (stack.length > 0) {
+      const cur = stack.pop();
+      if (!cur) continue;
+      if (cur.type === 'text' && isMeaningfulText(String(cur.text ?? ''))) return true;
+      if (Array.isArray(cur.content)) stack.push(...cur.content);
+    }
+    return false;
+  });
+}
+
 function getSelectedBlocksMarkdown(editor: Editor, range: TextSelectionRange): string {
   const manager = getMarkdownManager(editor);
   if (!manager) return '';
@@ -100,10 +168,8 @@ function getSelectedBlocksMarkdown(editor: Editor, range: TextSelectionRange): s
           const absTo = absFrom + child.nodeSize;
 
           if (absTo > range.from && absFrom < range.to) {
-            const text = String(child.textContent ?? '')
-              .replace(/\u00a0/g, ' ')
-              .trim();
-            if (text.length > 0) {
+            const text = String(child.textContent ?? '');
+            if (isMeaningfulText(text)) {
               listItems.push(child.toJSON());
             }
           }
@@ -171,19 +237,28 @@ export function replaceSelectionWithMarkdown(
   const docJson = manager.parse(markdown);
   if (!docJson?.content?.length) return;
 
+  const listContext = getListContext(editor, range);
+
+  let contentToInsert: any[] = docJson.content;
+
+  if (
+    listContext &&
+    contentToInsert.length === 1 &&
+    contentToInsert[0]?.type === listContext.listType &&
+    Array.isArray(contentToInsert[0]?.content)
+  ) {
+    // If selection is inside a list and parsed markdown is a list,
+    // insert list items directly to avoid nesting a list inside a listItem.
+    contentToInsert = filterEmptyListItemsJson(contentToInsert[0].content);
+  }
+
   const { from, to } = range;
   const docSize = editor.state.doc.content.size;
 
   // Validate positions against current document
   if (from < 0 || to > docSize || from > to) return;
 
-  editor
-    .chain()
-    .focus()
-    .setTextSelection({ from, to })
-    .deleteSelection()
-    .insertContent(docJson.content)
-    .run();
+  editor.chain().focus().insertContentAt({ from, to }, contentToInsert).run();
 }
 
 /**
