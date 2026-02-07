@@ -25,8 +25,8 @@ export default [
     },
     rules: {
       'no-debugger': 'error',
-      'prefer-const': 'error',
-      'no-var': 'error',
+      'prefer-const': isStrict ? 'error' : 'warn',
+      'no-var': isStrict ? 'error' : 'warn',
 
       'no-undef': isStrict ? 'error' : 'off',
 
@@ -39,6 +39,14 @@ export default [
       'vue/multi-word-component-names': isStrict ? 'error' : 'warn',
       'vue/no-mutating-props': isStrict ? 'error' : 'warn',
       'vue/no-v-html': isStrict ? 'error' : 'warn',
+
+      '@typescript-eslint/ban-ts-comment': isStrict ? 'error' : 'warn',
+      '@typescript-eslint/no-unused-expressions': isStrict ? 'error' : 'warn',
+      '@typescript-eslint/no-empty-object-type': isStrict ? 'error' : 'warn',
+      'no-useless-escape': isStrict ? 'error' : 'warn',
+      'no-empty': isStrict ? 'error' : 'warn',
+      'vue/no-use-v-if-with-v-for': isStrict ? 'error' : 'warn',
+      'vue/no-unused-vars': isStrict ? 'error' : 'warn',
     },
   },
   {
