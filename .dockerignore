@@ -55,9 +55,7 @@ docker-compose*.yml
 .gitlab-ci.yml
 
 # TypeScript configs (only keep tsconfig.build.json for production)
-tsconfig.json
 tsconfig.eslint.json
-nest-cli.json
 
 # Misc
 tmp/

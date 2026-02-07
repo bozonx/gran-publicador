@@ -1,132 +1,142 @@
 import { ref, type ShallowRef } from 'vue';
-import { Editor } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import { Markdown } from '@tiptap/markdown';
-import { common, createLowlight } from 'lowlight';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
-
-const lowlight = createLowlight(common);
+import type { Editor } from '@tiptap/core';
 
 export interface TextSelectionRange {
   from: number;
   to: number;
 }
 
+const LIST_NODE_TYPES = new Set(['bulletList', 'orderedList']);
+
 /**
- * Shared extensions for serialization (excludes Placeholder and CharacterCount
- * to avoid i18n "localsInner" errors in temporary editors).
+ * Expand selection range so that every touched block is fully included.
+ * For lists: expands to cover complete listItems that overlap with the selection,
+ * NOT the entire list (so unselected items are excluded).
+ * For other blocks: expands to the nearest top-level block boundary.
  */
-function buildSerializationExtensions() {
-  return [
-    StarterKit.configure({
-      heading: { levels: [1, 2, 3] },
-      codeBlock: false,
-    }),
-    Link.configure({
-      openOnClick: false,
-      autolink: true,
-      linkOnPaste: true,
-    }),
-    Markdown.configure({
-      transformPastedText: true,
-      transformCopiedText: true,
-      markedOptions: {
-        gfm: true,
-        breaks: false,
-      },
-    }),
-    CodeBlockLowlight.configure({
-      lowlight,
-      defaultLanguage: 'javascript',
-    }),
-    Table.configure({
-      resizable: true,
-    }),
-    TableRow,
-    TableHeader,
-    TableCell,
-  ];
+function expandRangeToBlocks(editor: Editor, range: TextSelectionRange): TextSelectionRange {
+  const doc = editor.state.doc;
+  const docSize = doc.content.size;
+  let from = Math.max(0, Math.min(range.from, docSize));
+  let to = Math.max(0, Math.min(range.to, docSize));
+  if (from >= to) return { from, to };
+
+  const $from = doc.resolve(from);
+  const $to = doc.resolve(Math.max(from, to - 1));
+
+  // Walk up from $from to find the best expansion depth
+  // For list items: expand to listItem boundary (not the whole list)
+  // For everything else: expand to depth 1 (top-level block)
+  const fromDepth = findExpansionDepth($from);
+  const toDepth = findExpansionDepth($to);
+
+  from = $from.before(fromDepth);
+  to = $to.after(toDepth);
+
+  return {
+    from: Math.max(0, from),
+    to: Math.min(docSize, to),
+  };
 }
 
 /**
- * Extract markdown from the current selection of a Tiptap editor.
- * Creates a temporary editor for serialization, then destroys it.
+ * Find the depth to expand to for a resolved position.
+ * If inside a listItem, returns the listItem depth.
+ * Otherwise returns depth 1 (top-level block).
  */
-export function getSelectionMarkdown(editor: Editor): string {
+function findExpansionDepth(pos: any): number {
+  for (let d = pos.depth; d >= 1; d -= 1) {
+    if (pos.node(d).type.name === 'listItem') return d;
+  }
+  return Math.min(1, pos.depth);
+}
+
+/**
+ * Get the markdown manager from the editor's storage.
+ * Returns null if the Markdown extension is not installed.
+ */
+function getMarkdownManager(editor: Editor): any {
+  return (editor as any).storage?.markdown?.manager ?? null;
+}
+
+/**
+ * Extract markdown from a range of the editor document.
+ * Uses the editor's own markdown manager to serialize JSON nodes.
+ *
+ * For lists: only includes listItems that overlap with the range,
+ * wrapping them in the parent list type to preserve structure.
+ * For other blocks: includes the full top-level node.
+ */
+export function getSelectionMarkdown(editor: Editor, range?: TextSelectionRange): string {
   const { state } = editor;
-  const selection = state.selection;
-  if (selection.empty) return '';
 
-  const slice = selection.content();
-  const fragment = slice.content;
-  const schema = state.schema;
-
-  const hasOnlyInline = (() => {
-    if (fragment.childCount === 0) return true;
-    for (let i = 0; i < fragment.childCount; i += 1) {
-      if (!fragment.child(i).isInline) return false;
-    }
-    return true;
+  const effectiveRange: TextSelectionRange | null = (() => {
+    if (range) return range;
+    const selection = state.selection;
+    if (selection.empty) return null;
+    return { from: selection.from, to: selection.to };
   })();
 
-  const docType = schema.nodes.doc;
-  const paragraphType = schema.nodes.paragraph;
-  if (!docType || !paragraphType) return '';
+  if (!effectiveRange) return '';
 
-  const doc = hasOnlyInline
-    ? docType.create(null, [paragraphType.create(null, fragment)])
-    : docType.create(null, fragment);
+  const nodes: any[] = [];
 
-  const tempEditor = new Editor({
-    content: doc.toJSON(),
-    extensions: buildSerializationExtensions(),
+  // Walk through top-level children of doc
+  state.doc.forEach((node: any, offset: number) => {
+    const nodeStart = offset;
+    const nodeEnd = offset + node.nodeSize;
+
+    // Skip nodes that don't overlap with the range
+    if (nodeEnd <= effectiveRange.from || nodeStart >= effectiveRange.to) return;
+
+    if (LIST_NODE_TYPES.has(node.type.name)) {
+      // For lists: collect only listItems that overlap with the range
+      const items: any[] = [];
+      node.forEach((child: any, childOffset: number) => {
+        const itemStart = nodeStart + 1 + childOffset;
+        const itemEnd = itemStart + child.nodeSize;
+        if (itemEnd > effectiveRange.from && itemStart < effectiveRange.to) {
+          items.push(child.toJSON());
+        }
+      });
+      if (items.length > 0) {
+        nodes.push({
+          type: node.type.name,
+          attrs: node.attrs,
+          content: items,
+        });
+      }
+    } else {
+      nodes.push(node.toJSON());
+    }
   });
 
-  try {
-    const anyEditor = tempEditor as any;
-    if (typeof anyEditor.getMarkdown === 'function') {
-      return anyEditor.getMarkdown();
-    }
+  if (nodes.length === 0) return '';
 
-    const maybeMarkdownStorage = anyEditor.storage?.markdown;
-    if (maybeMarkdownStorage && typeof maybeMarkdownStorage.getMarkdown === 'function') {
-      return maybeMarkdownStorage.getMarkdown();
-    }
+  const manager = getMarkdownManager(editor);
+  if (!manager) return '';
 
-    return '';
-  } finally {
-    tempEditor.destroy();
-  }
+  const docJson = { type: 'doc', content: nodes };
+  const markdown = String(manager.serialize(docJson)).replace(/\u00a0/g, ' ');
+  return markdown;
 }
 
 /**
  * Replace a selection range with markdown content.
- * Parses markdown into ProseMirror nodes via a temporary editor,
- * then replaces the target range using a single transaction.
+ * Parses markdown via the editor's markdown manager into JSON,
+ * then replaces the target range.
  */
 export function replaceSelectionWithMarkdown(
   editor: Editor,
   range: TextSelectionRange,
   markdown: string,
 ): void {
-  // Parse markdown into ProseMirror document via temporary editor
-  const tempEditor = new Editor({
-    content: markdown,
-    contentType: 'markdown',
-    extensions: buildSerializationExtensions(),
-  });
+  const manager = getMarkdownManager(editor);
+  if (!manager) return;
 
-  const parsedDoc = tempEditor.state.doc;
-  tempEditor.destroy();
-
-  // Extract content nodes from the parsed document
-  const nodes: any[] = [];
-  parsedDoc.forEach((node: any) => nodes.push(node));
+  // Parse markdown into Tiptap JSON via the manager
+  const docJson = manager.parse(markdown);
+  if (!docJson?.content?.length) return;
 
   const { from, to } = range;
   const docSize = editor.state.doc.content.size;
@@ -139,7 +149,7 @@ export function replaceSelectionWithMarkdown(
     .focus()
     .setTextSelection({ from, to })
     .deleteSelection()
-    .insertContent(nodes.map(n => n.toJSON()))
+    .insertContent(docJson.content)
     .run();
 }
 
@@ -167,13 +177,13 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     const selection = editor.state.selection;
     if (selection.empty) return '';
 
-    pendingRange.value = {
+    pendingRange.value = expandRangeToBlocks(editor, {
       from: selection.from,
       to: selection.to,
-    };
+    });
 
     try {
-      pendingSourceText.value = getSelectionMarkdown(editor);
+      pendingSourceText.value = getSelectionMarkdown(editor, pendingRange.value!);
       if (!pendingSourceText.value) {
         pendingRange.value = null;
         return '';

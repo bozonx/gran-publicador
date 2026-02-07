@@ -48,6 +48,7 @@
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "7.3.0",
     "@prisma/client-runtime-utils": "7.3.0",
+    "cacheable": "^1.10.4",
     "cache-manager": "^7.2.8",
     "cache-manager-redis-yet": "^5.1.5",
     "class-transformer": "^0.5.1",
