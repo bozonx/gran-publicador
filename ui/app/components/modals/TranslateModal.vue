@@ -7,6 +7,7 @@ const props = defineProps<{
   open: boolean
   sourceText: string
   defaultTargetLang?: string
+  splitter?: 'paragraph' | 'markdown' | 'sentence' | 'off'
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
@@ -56,6 +57,7 @@ async function handleTranslate() {
         ref="translateFormRef"
         :source-text="sourceText"
         :default-target-lang="defaultTargetLang"
+        :splitter="splitter"
       />
     </div>
 

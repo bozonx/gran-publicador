@@ -252,11 +252,16 @@ function insertTable() {
 // Text actions composable (shared logic for translate, future LLM actions, etc.)
 const {
   pendingSourceText: translateSourceText,
+  pendingKind: translatePendingKind,
   isActionPending: isTranslateActionPending,
   captureSelection: captureTranslateSelection,
   applyResult: applyTranslateResult,
   cancelAction: cancelTranslateAction,
 } = useEditorTextActions(editor)
+
+const translateSplitter = computed(() => {
+  return translatePendingKind.value === 'inline' ? 'off' : 'markdown'
+})
 
 function openTranslateModal() {
   const text = captureTranslateSelection()
@@ -609,6 +614,7 @@ const isMaxLengthReached = computed(() => {
       v-model:open="isTranslateModalOpen"
       :source-text="translateSourceText"
       :default-target-lang="defaultTargetLang"
+      :splitter="translateSplitter"
       @translated="handleTranslated"
     />
   </div>

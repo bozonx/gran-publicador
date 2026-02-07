@@ -24,9 +24,6 @@ function expandRangeToBlocks(editor: Editor, range: TextSelectionRange): TextSel
   const $from = doc.resolve(from);
   const $to = doc.resolve(Math.max(from, to - 1));
 
-  // Walk up from $from to find the best expansion depth
-  // For list items: expand to listItem boundary (not the whole list)
-  // For everything else: expand to depth 1 (top-level block)
   const fromDepth = findExpansionDepth($from);
   const toDepth = findExpansionDepth($to);
 
@@ -51,12 +48,89 @@ function findExpansionDepth(pos: any): number {
   return Math.min(1, pos.depth);
 }
 
+function getSelectionKind(editor: Editor): 'inline' | 'block' {
+  const { selection } = editor.state;
+  if (selection.empty) return 'inline';
+
+  const $from = selection.$from;
+  const $to = selection.$to;
+
+  const sameParent = $from.sameParent($to);
+  const inTextblock = $from.parent.isTextblock && $to.parent.isTextblock;
+
+  if (sameParent && inTextblock) {
+    return 'inline';
+  }
+
+  return 'block';
+}
+
 /**
  * Get the markdown manager from the editor's storage.
  * Returns null if the Markdown extension is not installed.
  */
 function getMarkdownManager(editor: Editor): any {
   return (editor as any).storage?.markdown?.manager ?? null;
+}
+
+function getSelectedPlainText(editor: Editor, range: TextSelectionRange): string {
+  return editor.state.doc
+    .textBetween(range.from, range.to, ' ')
+    .replace(/\u00a0/g, ' ')
+    .trim();
+}
+
+function getSelectedBlocksMarkdown(editor: Editor, range: TextSelectionRange): string {
+  const manager = getMarkdownManager(editor);
+  if (!manager) return '';
+
+  const { doc } = editor.state;
+  const selected: any[] = [];
+
+  doc.nodesBetween(range.from, range.to, (node: any, pos: number, parent: any) => {
+    if (!parent) return true;
+
+    if (parent.type?.name === 'doc') {
+      if (LIST_NODE_TYPES.has(node.type.name)) {
+        const listItems: any[] = [];
+        node.nodesBetween(0, node.content.size, (child: any, childPos: number) => {
+          if (child.type.name !== 'listItem') return true;
+
+          const absFrom = pos + 1 + childPos;
+          const absTo = absFrom + child.nodeSize;
+
+          if (absTo > range.from && absFrom < range.to) {
+            const text = String(child.textContent ?? '')
+              .replace(/\u00a0/g, ' ')
+              .trim();
+            if (text.length > 0) {
+              listItems.push(child.toJSON());
+            }
+          }
+
+          return false;
+        });
+
+        if (listItems.length > 0) {
+          selected.push({
+            type: node.type.name,
+            attrs: node.attrs,
+            content: listItems,
+          });
+        }
+
+        return false;
+      }
+
+      selected.push(node.toJSON());
+      return false;
+    }
+
+    return true;
+  });
+
+  if (selected.length === 0) return '';
+  return String(manager.serialize({ type: 'doc', content: selected })).replace(/\u00a0/g, ' ');
 }
 
 /**
@@ -68,57 +142,17 @@ function getMarkdownManager(editor: Editor): any {
  * For other blocks: includes the full top-level node.
  */
 export function getSelectionMarkdown(editor: Editor, range?: TextSelectionRange): string {
-  const { state } = editor;
+  const { selection } = editor.state;
+  if (selection.empty && !range) return '';
 
-  const effectiveRange: TextSelectionRange | null = (() => {
-    if (range) return range;
-    const selection = state.selection;
-    if (selection.empty) return null;
-    return { from: selection.from, to: selection.to };
-  })();
+  const effectiveRange: TextSelectionRange = range ?? { from: selection.from, to: selection.to };
+  const kind = getSelectionKind(editor);
 
-  if (!effectiveRange) return '';
+  if (kind === 'inline') {
+    return getSelectedPlainText(editor, effectiveRange);
+  }
 
-  const nodes: any[] = [];
-
-  // Walk through top-level children of doc
-  state.doc.forEach((node: any, offset: number) => {
-    const nodeStart = offset;
-    const nodeEnd = offset + node.nodeSize;
-
-    // Skip nodes that don't overlap with the range
-    if (nodeEnd <= effectiveRange.from || nodeStart >= effectiveRange.to) return;
-
-    if (LIST_NODE_TYPES.has(node.type.name)) {
-      // For lists: collect only listItems that overlap with the range
-      const items: any[] = [];
-      node.forEach((child: any, childOffset: number) => {
-        const itemStart = nodeStart + 1 + childOffset;
-        const itemEnd = itemStart + child.nodeSize;
-        if (itemEnd > effectiveRange.from && itemStart < effectiveRange.to) {
-          items.push(child.toJSON());
-        }
-      });
-      if (items.length > 0) {
-        nodes.push({
-          type: node.type.name,
-          attrs: node.attrs,
-          content: items,
-        });
-      }
-    } else {
-      nodes.push(node.toJSON());
-    }
-  });
-
-  if (nodes.length === 0) return '';
-
-  const manager = getMarkdownManager(editor);
-  if (!manager) return '';
-
-  const docJson = { type: 'doc', content: nodes };
-  const markdown = String(manager.serialize(docJson)).replace(/\u00a0/g, ' ');
-  return markdown;
+  return getSelectedBlocksMarkdown(editor, effectiveRange);
 }
 
 /**
@@ -134,7 +168,6 @@ export function replaceSelectionWithMarkdown(
   const manager = getMarkdownManager(editor);
   if (!manager) return;
 
-  // Parse markdown into Tiptap JSON via the manager
   const docJson = manager.parse(markdown);
   if (!docJson?.content?.length) return;
 
@@ -165,6 +198,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
   const pendingRange = ref<TextSelectionRange | null>(null);
   const pendingSourceText = ref('');
   const isActionPending = ref(false);
+  const pendingKind = ref<'inline' | 'block' | null>(null);
 
   /**
    * Capture the current selection: extract markdown, lock editor, store range.
@@ -177,15 +211,17 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     const selection = editor.state.selection;
     if (selection.empty) return '';
 
-    pendingRange.value = expandRangeToBlocks(editor, {
-      from: selection.from,
-      to: selection.to,
-    });
+    const kind = getSelectionKind(editor);
+    pendingKind.value = kind;
+
+    const rawRange = { from: selection.from, to: selection.to };
+    pendingRange.value = kind === 'block' ? expandRangeToBlocks(editor, rawRange) : rawRange;
 
     try {
       pendingSourceText.value = getSelectionMarkdown(editor, pendingRange.value!);
       if (!pendingSourceText.value) {
         pendingRange.value = null;
+        pendingKind.value = null;
         return '';
       }
 
@@ -199,6 +235,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
       pendingRange.value = null;
       pendingSourceText.value = '';
       isActionPending.value = false;
+      pendingKind.value = null;
       return '';
     }
   }
@@ -222,11 +259,22 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     // Unlock editor before applying changes
     editor.setEditable(true);
 
-    replaceSelectionWithMarkdown(editor, pendingRange.value, markdown);
+    if (pendingKind.value === 'inline') {
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from: pendingRange.value.from, to: pendingRange.value.to })
+        .deleteSelection()
+        .insertContent(String(markdown))
+        .run();
+    } else {
+      replaceSelectionWithMarkdown(editor, pendingRange.value, markdown);
+    }
 
     pendingRange.value = null;
     pendingSourceText.value = '';
     isActionPending.value = false;
+    pendingKind.value = null;
     return true;
   }
 
@@ -242,11 +290,13 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     pendingRange.value = null;
     pendingSourceText.value = '';
     isActionPending.value = false;
+    pendingKind.value = null;
   }
 
   return {
     pendingRange,
     pendingSourceText,
+    pendingKind,
     isActionPending,
     captureSelection,
     applyResult,

@@ -6,6 +6,7 @@ import { useTranslate } from '~/composables/useTranslate'
 const props = defineProps<{
   sourceText: string
   defaultTargetLang?: string
+  splitter?: 'paragraph' | 'markdown' | 'sentence' | 'off'
 }>()
 
 const emit = defineEmits<{
@@ -26,7 +27,7 @@ async function submit() {
     const result = await translateText({
       text: props.sourceText,
       targetLang: targetLang.value,
-      splitter: 'markdown', // Hardcoded as requested
+      splitter: props.splitter ?? 'markdown',
     })
 
     emit('translated', {
