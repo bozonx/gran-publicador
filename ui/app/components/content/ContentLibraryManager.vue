@@ -509,7 +509,7 @@ function toggleSelection(itemId: string) {
 const hasMore = computed(() => items.value.length < total.value)
 
 // Auto-save setup
-const { saveStatus, saveError, forceSave } = useAutosave({
+const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus } = useAutosave({
   data: toRef(() => editForm.value),
   saveFn: async (data: any) => {
     if (!isEditModalOpen.value || !activeItem.value) return
@@ -1585,10 +1585,10 @@ const executeMoveToProject = async () => {
               <span>{{ t('contentLibrary.fields.title', 'Title') }}</span>
               <!-- Auto-save status indicator inline with title -->
               <span class="ml-auto">
-                 <UiAutosaveStatus 
-                  :status="saveStatus" 
+                 <UiSaveStatusIndicator 
+                  :status="indicatorStatus" 
+                  :visible="isIndicatorVisible"
                   :error="saveError" 
-                  :last-saved="null"
                 />
               </span>
             </span>

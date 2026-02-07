@@ -77,7 +77,7 @@ async function performUpdate(data: any, silent: boolean = false) {
 }
 
 // Auto-save setup
-const { saveStatus, saveError } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
     if (!props.autosave) return { saved: false, skipped: true }
@@ -142,9 +142,10 @@ const currentProjectName = computed(() => {
     </div>
 
     <div class="mt-6 flex justify-end">
-      <UiAutosaveStatus 
+      <UiSaveStatusIndicator 
         v-if="autosave" 
-        :status="saveStatus" 
+        :status="indicatorStatus" 
+        :visible="isIndicatorVisible"
         :error="saveError" 
       />
       <UiFormActions

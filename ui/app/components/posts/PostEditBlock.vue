@@ -127,7 +127,7 @@ const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formDa
 })
 
 // Auto-save setup
-const { saveStatus, saveError } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
   data: computed(() => formData),
   saveFn: async (data) => {
     if (!props.autosave || props.isCreating) return { saved: false, skipped: true }
@@ -1075,6 +1075,12 @@ async function executePublish() {
               {{ t('common.cancel') }}
             </UButton>
             
+            <UiSaveStatusIndicator 
+              v-if="autosave && !isCreating" 
+              :status="indicatorStatus" 
+              :visible="isIndicatorVisible"
+              :error="saveError" 
+            />
             <UTooltip 
               v-if="!isCreating" 
               :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!canPublishPost(props.post, props.publication) ? (!validationResult.isValid ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish')) : '')"
@@ -1089,12 +1095,6 @@ async function executePublish() {
                 @click="handlePublishPost"
               ></UButton>
             </UTooltip>
-
-            <UiAutosaveStatus 
-              v-if="autosave && !isCreating" 
-              :status="saveStatus" 
-              :error="saveError" 
-            />
             <UiSaveButton
               v-else
               ref="saveButtonRef"

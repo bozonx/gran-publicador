@@ -150,7 +150,7 @@ onMounted(async () => {
 })
 
 // Auto-save setup
-const { saveStatus, saveError } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
   data: toRef(() => state),
   saveFn: async (data) => {
     if (!props.autosave || !isEditMode.value) return { saved: false, skipped: true }
@@ -615,9 +615,10 @@ function handleTranslated(result: { translatedText: string }) {
       </UiFormAdvancedSection>
 
       <div class="flex justify-end items-center gap-4">
-        <UiAutosaveStatus 
+        <UiSaveStatusIndicator 
           v-if="autosave && isEditMode" 
-          :status="saveStatus" 
+          :status="indicatorStatus" 
+          :visible="isIndicatorVisible"
           :error="saveError" 
         />
         <UiFormActions

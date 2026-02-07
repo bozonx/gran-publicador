@@ -1,6 +1,6 @@
 import { ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave';
+import { AUTO_SAVE_DEBOUNCE_MS, AUTOSAVE_INDICATOR_DELAY_MS, AUTOSAVE_INDICATOR_DISPLAY_MS } from '~/constants/autosave';
 import { logger } from '~/utils/logger';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
@@ -31,6 +31,8 @@ export interface AutosaveReturn {
   saveStatus: Ref<SaveStatus>;
   saveError: Ref<string | null>;
   lastSavedAt: Ref<Date | null>;
+  isIndicatorVisible: Ref<boolean>;
+  indicatorStatus: Ref<SaveStatus>;
   isDirty: Ref<boolean>;
   forceSave: () => Promise<void>;
   // Manual trigger that ignores isEqual check
@@ -56,6 +58,17 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   const saveError = ref<string | null>(null);
   const lastSavedAt = ref<Date | null>(null);
   const isDirty = ref(false);
+
+  // Indicator visibility logic
+  const isIndicatorVisible = ref(false);
+  const indicatorStatus = ref<SaveStatus>('saved');
+  let indicatorDelayTimer: NodeJS.Timeout | null = null;
+  let indicatorDisplayTimer: NodeJS.Timeout | null = null;
+
+  function clearIndicatorTimers() {
+    if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
+    if (indicatorDisplayTimer) clearTimeout(indicatorDisplayTimer);
+  }
 
   // Store last saved state for dirty checking
   const lastSavedState = ref<T | null>(null);
@@ -84,6 +97,15 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
       saveStatus.value = 'saving';
       saveError.value = null;
 
+      const saveStartTime = Date.now();
+      
+      // Start delay timer for "Saving..." indicator
+      clearIndicatorTimers();
+      indicatorDelayTimer = setTimeout(() => {
+        indicatorStatus.value = 'saving';
+        isIndicatorVisible.value = true;
+      }, AUTOSAVE_INDICATOR_DELAY_MS);
+
       try {
         const result = await saveFn(data.value!);
 
@@ -92,26 +114,53 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           result === undefined || (typeof result === 'object' && result.saved === true);
         const wasSkipped = typeof result === 'object' && result.skipped === true;
 
+        const duration = Date.now() - saveStartTime;
+
         if (wasSaved) {
           // Update last saved state
           lastSavedState.value = deepClone(data.value!);
           saveStatus.value = 'saved';
           lastSavedAt.value = new Date();
           isDirty.value = false;
+
+          // Clear delay timer if save finished before it fired
+          if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
+
+          if (duration >= AUTOSAVE_INDICATOR_DELAY_MS) {
+            // If save took longer than delay, show "Saved" for a while
+            indicatorStatus.value = 'saved';
+            isIndicatorVisible.value = true;
+            indicatorDisplayTimer = setTimeout(() => {
+              isIndicatorVisible.value = false;
+            }, AUTOSAVE_INDICATOR_DISPLAY_MS);
+          } else {
+            // Fast save - hide indicator if it was somehow shown
+            isIndicatorVisible.value = false;
+          }
         } else if (wasSkipped) {
           // If skipped (e.g. invalid state), we keep the dirty flag and previous status
-          // but we might want to show that it's NOT saved if it was previously saving
-          saveStatus.value = 'saved'; // Return to 'saved' to hide spinner, but don't update lastSavedState
+          saveStatus.value = 'saved';
+          
+          if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
+          isIndicatorVisible.value = false;
         } else {
           // Failed to save according to result
           saveStatus.value = 'error';
           isDirty.value = true;
+
+          if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
+          indicatorStatus.value = 'error';
+          isIndicatorVisible.value = true;
         }
       } catch (err: any) {
         logger.error('Auto-save failed', err);
         saveStatus.value = 'error';
         saveError.value = t('common.saveError');
         isDirty.value = true;
+
+        if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
+        indicatorStatus.value = 'error';
+        isIndicatorVisible.value = true;
       }
     });
 
@@ -158,6 +207,8 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         // This is a tab switch or similar - update saved state without saving for the NEW value
         lastSavedState.value = deepClone(newValue);
         isDirty.value = false;
+        isIndicatorVisible.value = false;
+        clearIndicatorTimers();
         return;
       }
 
@@ -197,6 +248,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
   onUnmounted(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload);
+    clearIndicatorTimers();
   });
 
   return {
@@ -204,6 +256,8 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     saveError,
     lastSavedAt,
     isDirty,
+    isIndicatorVisible,
+    indicatorStatus,
     forceSave: () => performSave(false),
     triggerSave: () => performSave(true),
   };

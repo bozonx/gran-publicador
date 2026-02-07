@@ -168,7 +168,13 @@ const autosaveMediaPayload = computed(() => {
   }
 })
 
-const { saveStatus: mediaSaveStatus, saveError: mediaSaveError, forceSave: forceSaveMediaMeta } = useAutosave({
+const { 
+  saveStatus: mediaSaveStatus, 
+  saveError: mediaSaveError, 
+  forceSave: forceSaveMediaMeta,
+  isIndicatorVisible: isMediaIndicatorVisible,
+  indicatorStatus: mediaIndicatorStatus
+} = useAutosave({
   data: autosaveMediaPayload,
   saveFn: async (data) => {
     if (!isModalOpen.value || !data) return { saved: false, skipped: true }
@@ -1504,7 +1510,7 @@ const mediaValidation = computed(() => {
         v-if="editable"
         class="flex items-center justify-between gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800"
       >
-        <UiAutosaveStatus :status="mediaSaveStatus" :error="mediaSaveError" :last-saved="null" />
+        <UiSaveStatusIndicator :status="mediaIndicatorStatus" :visible="isMediaIndicatorVisible" :error="mediaSaveError" />
 
         <UButton
           icon="i-heroicons-check"
