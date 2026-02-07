@@ -56,10 +56,6 @@ async function handleTranslate() {
         ref="translateFormRef"
         :source-text="sourceText"
         :default-target-lang="defaultTargetLang"
-        @translated="(res) => {
-          emit('translated', res)
-          isOpen = false
-        }"
       />
     </div>
 

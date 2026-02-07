@@ -5,6 +5,8 @@
     "test",
     "dist",
     "**/*spec.ts",
-    "**/*e2e-spec.ts"
+    "**/*e2e-spec.ts",
+    "ui",
+    "n8n-nodes-bozonx-gran-publicador"
   ]
 }

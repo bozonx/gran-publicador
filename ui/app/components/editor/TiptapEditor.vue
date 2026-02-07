@@ -2,7 +2,6 @@
 import { ref, computed, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
-import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -15,6 +14,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { useStt } from '~/composables/useStt'
+import { useEditorTextActions } from '~/composables/useEditorTextActions'
 
 const lowlight = createLowlight(common)
 
@@ -29,6 +29,8 @@ interface Props {
   disabled?: boolean
   /** Minimum height in pixels */
   minHeight?: number
+  /** Default target language for translation modal */
+  defaultTargetLang?: string
 }
 
 interface Emits {
@@ -42,6 +44,7 @@ const props = withDefaults(defineProps<Props>(), {
   maxLength: undefined,
   disabled: false,
   minHeight: 200,
+  defaultTargetLang: undefined,
 })
 
 const emit = defineEmits<Emits>()
@@ -53,15 +56,7 @@ const resolvedPlaceholder = computed(() => props.placeholder ?? t('editor.placeh
 const linkUrlInput = ref('')
 const isLinkMenuOpen = ref(false)
 const isSourceMode = ref(false)
-
-interface TextSelectionRange {
-  from: number
-  to: number
-}
-
 const isTranslateModalOpen = ref(false)
-const translateSourceText = ref('')
-const translateSelectionRange = ref<TextSelectionRange | null>(null)
 
 // STT Integration
 const { 
@@ -254,105 +249,32 @@ function insertTable() {
   editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
 
-function getSelectionMarkdown(): string {
-  if (!editor.value) return ''
-
-  const { state } = editor.value
-  const selection = state.selection
-  if (selection.empty) return ''
-
-  const slice = selection.content()
-  const fragment = slice.content
-
-  const schema = state.schema
-
-  const hasOnlyInline = (() => {
-    if (fragment.childCount === 0) return true
-    for (let i = 0; i < fragment.childCount; i += 1) {
-      const child = fragment.child(i)
-      if (!child.isInline) return false
-    }
-    return true
-  })()
-
-  const docType = schema.nodes.doc
-  const paragraphType = schema.nodes.paragraph
-
-  if (!docType || !paragraphType) return ''
-
-  const doc = hasOnlyInline
-    ? docType.create(null, [paragraphType.create(null, fragment)])
-    : docType.create(null, fragment)
-
-  // Create a temporary editor specifically for serialization
-  // We EXCLUDE Placeholder and CharacterCount to avoid "localsInner" i18n errors
-  const tempEditor = new Editor({
-    content: doc.toJSON(),
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        codeBlock: false,
-      }),
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        linkOnPaste: true,
-      }),
-      Markdown.configure({
-        transformPastedText: true,
-        transformCopiedText: true,
-        markedOptions: {
-          gfm: true,
-          breaks: false,
-        },
-      }),
-      CodeBlockLowlight.configure({
-        lowlight,
-        defaultLanguage: 'javascript',
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ],
-  })
-
-  const markdown = tempEditor.storage.markdown.getMarkdown()
-  tempEditor.destroy()
-  return markdown
-}
+// Text actions composable (shared logic for translate, future LLM actions, etc.)
+const {
+  pendingSourceText: translateSourceText,
+  isActionPending: isTranslateActionPending,
+  captureSelection: captureTranslateSelection,
+  applyResult: applyTranslateResult,
+  cancelAction: cancelTranslateAction,
+} = useEditorTextActions(editor)
 
 function openTranslateModal() {
-  if (!editor.value) return
-
-  const selection = editor.value.state.selection
-  if (selection.empty) return
-
-  translateSelectionRange.value = {
-    from: selection.from,
-    to: selection.to,
-  }
-
-  translateSourceText.value = getSelectionMarkdown()
+  const text = captureTranslateSelection()
+  if (!text) return
   isTranslateModalOpen.value = true
 }
 
 function handleTranslated(payload: { translatedText: string; provider: string; model?: string }) {
-  if (!editor.value || !translateSelectionRange.value) return
-
-  const { from, to } = translateSelectionRange.value
-
-  editor.value
-    .chain()
-    .focus()
-    .setTextSelection({ from, to })
-    .insertContent(payload.translatedText)
-    .run()
-
-  translateSelectionRange.value = null
+  applyTranslateResult(payload.translatedText)
+  isTranslateModalOpen.value = false
 }
+
+// Unlock editor when translate modal is closed without applying result
+watch(isTranslateModalOpen, (open) => {
+  if (!open && isTranslateActionPending.value) {
+    cancelTranslateAction()
+  }
+})
 
 const characterCount = computed(() => {
   return editor.value?.storage.characterCount.characters() || 0
@@ -686,6 +608,7 @@ const isMaxLengthReached = computed(() => {
     <ModalsTranslateModal
       v-model:open="isTranslateModalOpen"
       :source-text="translateSourceText"
+      :default-target-lang="defaultTargetLang"
       @translated="handleTranslated"
     />
   </div>
