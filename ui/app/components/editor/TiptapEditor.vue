@@ -53,6 +53,15 @@ const linkUrlInput = ref('')
 const isLinkMenuOpen = ref(false)
 const isSourceMode = ref(false)
 
+interface TextSelectionRange {
+  from: number
+  to: number
+}
+
+const isTranslateModalOpen = ref(false)
+const translateSourceText = ref('')
+const translateSelectionRange = ref<TextSelectionRange | null>(null)
+
 // STT Integration
 const { 
   isRecording, 
@@ -115,6 +124,8 @@ function buildExtensions(opts: { placeholder: string; maxLength?: number }) {
       },
     }),
     Markdown.configure({
+      transformPastedText: true,
+      transformCopiedText: true,
       markedOptions: {
         gfm: true,
         breaks: false,
@@ -147,6 +158,32 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class: 'tiptap focus:outline-none',
+    },
+    transformPastedHTML(html: string) {
+      const allowedTags = new Set([
+        'p', 'br', 'strong', 'b', 'em', 'i', 's', 'del',
+        'a', 'code', 'pre', 'blockquote',
+        'ul', 'ol', 'li',
+        'h1', 'h2', 'h3',
+        'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      ])
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      function clean(el: Element) {
+        for (const child of Array.from(el.children)) {
+          if (!allowedTags.has(child.tagName.toLowerCase())) {
+            child.replaceWith(...Array.from(child.childNodes))
+          } else {
+            for (const attr of Array.from(child.attributes)) {
+              if (!(child.tagName === 'A' && attr.name === 'href')) {
+                child.removeAttribute(attr.name)
+              }
+            }
+            clean(child)
+          }
+        }
+      }
+      clean(doc.body)
+      return doc.body.innerHTML
     },
   },
   onUpdate: ({ editor }) => {
@@ -216,6 +253,36 @@ function insertTable() {
   editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
 
+function openTranslateModal() {
+  if (!editor.value) return
+
+  const selection = editor.value.state.selection
+  if (selection.empty) return
+
+  translateSelectionRange.value = {
+    from: selection.from,
+    to: selection.to,
+  }
+
+  translateSourceText.value = editor.value.state.doc.textBetween(selection.from, selection.to, '\n')
+  isTranslateModalOpen.value = true
+}
+
+function handleTranslated(payload: { translatedText: string; provider: string; model?: string }) {
+  if (!editor.value || !translateSelectionRange.value) return
+
+  const { from, to } = translateSelectionRange.value
+
+  editor.value
+    .chain()
+    .focus()
+    .setTextSelection({ from, to })
+    .insertContent(payload.translatedText)
+    .run()
+
+  translateSelectionRange.value = null
+}
+
 const characterCount = computed(() => {
   return editor.value?.storage.characterCount.characters() || 0
 })
@@ -262,6 +329,28 @@ const isMaxLengthReached = computed(() => {
           variant="ghost"
           @click="removeLink"
         />
+      </div>
+    </BubbleMenu>
+
+    <!-- BubbleMenu for Text Selection (Translate) -->
+    <BubbleMenu
+      v-if="editor && !disabled"
+      :editor="editor"
+      :options="{ offset: 6, placement: 'top' }"
+      :should-show="({ editor: e }) => {
+        const { empty } = e.state.selection
+        return !empty && !isSourceMode && !isLinkMenuOpen && !e.isActive('link') && !e.isActive('table')
+      }"
+    >
+      <div class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+        <UTooltip :text="t('translate.translateButton', 'Translate')">
+          <UButton
+            size="xs"
+            variant="ghost"
+            icon="i-heroicons-language"
+            @click="openTranslateModal"
+          />
+        </UTooltip>
       </div>
     </BubbleMenu>
 
@@ -522,6 +611,12 @@ const isMaxLengthReached = computed(() => {
         </span>
       </div>
     </div>
+
+    <ModalsTranslateModal
+      v-model:open="isTranslateModalOpen"
+      :source-text="translateSourceText"
+      @translated="handleTranslated"
+    />
   </div>
 </template>
 
