@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
+import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -253,6 +254,43 @@ function insertTable() {
   editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
 
+function getSelectionMarkdown(): string {
+  if (!editor.value) return ''
+
+  const { state } = editor.value
+  const selection = state.selection
+  if (selection.empty) return ''
+
+  const slice = selection.content()
+  const fragment = slice.content
+
+  const schema = state.schema
+
+  const hasOnlyInline = (() => {
+    if (fragment.childCount === 0) return true
+    for (let i = 0; i < fragment.childCount; i += 1) {
+      const child = fragment.child(i)
+      if (!child.isInline) return false
+    }
+    return true
+  })()
+
+  const content = hasOnlyInline && schema.nodes.paragraph
+    ? [schema.nodes.paragraph.create(null, fragment)]
+    : fragment.toArray()
+
+  const doc = schema.nodes.doc.create(null, content)
+
+  const tempEditor = new Editor({
+    content: doc.toJSON(),
+    extensions: buildExtensions({ placeholder: resolvedPlaceholder.value, maxLength: props.maxLength }),
+  })
+
+  const markdown = tempEditor.getMarkdown()
+  tempEditor.destroy()
+  return markdown
+}
+
 function openTranslateModal() {
   if (!editor.value) return
 
@@ -264,7 +302,7 @@ function openTranslateModal() {
     to: selection.to,
   }
 
-  translateSourceText.value = editor.value.state.doc.textBetween(selection.from, selection.to, '\n')
+  translateSourceText.value = getSelectionMarkdown()
   isTranslateModalOpen.value = true
 }
 
