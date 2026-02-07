@@ -7,7 +7,6 @@ import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
 import Link from '@tiptap/extension-link'
-import Underline from '@tiptap/extension-underline'
 import { common, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { Table } from '@tiptap/extension-table'
@@ -38,7 +37,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
-  placeholder: 'Write something...',
+  placeholder: undefined,
   maxLength: undefined,
   disabled: false,
   minHeight: 200,
@@ -49,6 +48,7 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
 
+const resolvedPlaceholder = computed(() => props.placeholder ?? t('editor.placeholder', 'Write something...'))
 const linkUrlInput = ref('')
 const isLinkMenuOpen = ref(false)
 const isSourceMode = ref(false)
@@ -86,7 +86,7 @@ async function toggleRecording() {
   if (isRecording.value) {
     const text = await stopStt()
     if (text && editor.value) {
-      editor.value.commands.insertContent(' ' + text)
+      editor.value.commands.insertContent(' ' + text, { contentType: 'markdown' })
     }
   } else {
     await startStt()
@@ -99,48 +99,51 @@ const formattedDuration = computed(() => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 })
 
-// Extensions
-const extensions = [
-  StarterKit.configure({
-    heading: { levels: [1, 2, 3] },
-    codeBlock: false,
-  }),
-  Underline,
-  Link.configure({
-    openOnClick: false,
-    autolink: true,
-    linkOnPaste: true,
-    HTMLAttributes: {
-      class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
-    },
-  }),
-  Markdown.configure({
-    markedOptions: {
-      gfm: true,
-      breaks: false,
-    },
-  }),
-  Placeholder.configure({
-    placeholder: props.placeholder,
-  }),
-  CodeBlockLowlight.configure({
-    lowlight,
-    defaultLanguage: 'javascript',
-  }),
-  CharacterCount.configure({ 
-    limit: props.maxLength 
-  }),
-  Table.configure({
-    resizable: true,
-  }),
-  TableRow,
-  TableHeader,
-  TableCell,
-]
+// Build extensions reactively so watchers can update individual configs
+function buildExtensions(opts: { placeholder: string; maxLength?: number }) {
+  return [
+    StarterKit.configure({
+      heading: { levels: [1, 2, 3] },
+      codeBlock: false,
+    }),
+    Link.configure({
+      openOnClick: false,
+      autolink: true,
+      linkOnPaste: true,
+      HTMLAttributes: {
+        class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
+      },
+    }),
+    Markdown.configure({
+      markedOptions: {
+        gfm: true,
+        breaks: false,
+      },
+    }),
+    Placeholder.configure({
+      placeholder: opts.placeholder,
+    }),
+    CodeBlockLowlight.configure({
+      lowlight,
+      defaultLanguage: 'javascript',
+    }),
+    CharacterCount.configure({
+      limit: opts.maxLength,
+    }),
+    Table.configure({
+      resizable: true,
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+  ]
+}
 
 const editor = useEditor({
+  content: props.modelValue || '',
+  contentType: 'markdown',
   editable: !props.disabled,
-  extensions: extensions,
+  extensions: buildExtensions({ placeholder: resolvedPlaceholder.value, maxLength: props.maxLength }),
   editorProps: {
     attributes: {
       class: 'tiptap focus:outline-none',
@@ -150,11 +153,6 @@ const editor = useEditor({
     const markdown = editor.getMarkdown()
     if (markdown !== props.modelValue) {
       emit('update:modelValue', markdown)
-    }
-  },
-  onCreate: ({ editor }) => {
-    if (props.modelValue) {
-      editor.commands.setContent(props.modelValue, { emitUpdate: false, contentType: 'markdown' })
     }
   },
   onBlur: () => {
@@ -178,26 +176,12 @@ watch(
   }
 )
 
-// Watch for maxLength changes
+// Watch for maxLength or placeholder changes — rebuild extensions consistently
 watch(
-  () => props.maxLength,
-  (limit) => {
+  [() => props.maxLength, resolvedPlaceholder],
+  ([limit, placeholder]) => {
     editor.value?.setOptions({
-      extensions: extensions.map(ext =>
-        ext.name === 'characterCount' ? CharacterCount.configure({ limit }) : ext
-      ),
-    })
-  }
-)
-
-// Watch for placeholder changes
-watch(
-  () => props.placeholder,
-  (newPlaceholder) => {
-    editor.value?.setOptions({
-      extensions: extensions.map(ext =>
-        ext.name === 'placeholder' ? Placeholder.configure({ placeholder: newPlaceholder }) : ext
-      ),
+      extensions: buildExtensions({ placeholder, maxLength: limit }),
     })
   }
 )
@@ -261,9 +245,9 @@ const isMaxLengthReached = computed(() => {
     <!-- BubbleMenu for Links -->
     <BubbleMenu
       v-if="editor"
-      v-show="editor.isActive('link') || isLinkMenuOpen"
       :editor="editor"
       :options="{ offset: 6, placement: 'top' }"
+      :should-show="({ editor: e }) => e.isActive('link') || isLinkMenuOpen"
     >
       <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
         <UInput
@@ -319,13 +303,6 @@ const isMaxLengthReached = computed(() => {
           <UButton size="xs" variant="ghost" icon="i-heroicons-trash" color="error" @click="editor.chain().focus().deleteRow().run()" />
         </UTooltip>
         <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5"></div>
-        <UTooltip :text="t('editor.table.mergeCells', 'Merge cells')">
-          <UButton size="xs" variant="ghost" icon="i-heroicons-arrows-pointing-in" @click="editor.chain().focus().mergeCells().run()" />
-        </UTooltip>
-        <UTooltip :text="t('editor.table.splitCell', 'Split cell')">
-          <UButton size="xs" variant="ghost" icon="i-heroicons-arrows-pointing-out" @click="editor.chain().focus().splitCell().run()" />
-        </UTooltip>
-        <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5"></div>
         <UTooltip :text="t('editor.table.deleteTable', 'Delete table')">
           <UButton size="xs" variant="ghost" icon="i-heroicons-trash" color="error" @click="editor.chain().focus().deleteTable().run()" />
         </UTooltip>
@@ -375,14 +352,6 @@ const isMaxLengthReached = computed(() => {
           icon="i-heroicons-strikethrough"
           :disabled="!editor.can().chain().focus().toggleStrike().run()"
           @click="editor.chain().focus().toggleStrike().run()"
-        ></UButton>
-        <UButton
-          :color="editor.isActive('underline') ? 'primary' : 'neutral'"
-          :variant="editor.isActive('underline') ? 'solid' : 'ghost'"
-          size="xs"
-          icon="i-heroicons-underline"
-          :disabled="!editor.can().chain().focus().toggleUnderline().run()"
-          @click="editor.chain().focus().toggleUnderline().run()"
         ></UButton>
         <UButton
           :color="editor.isActive('code') ? 'primary' : 'neutral'"
@@ -539,7 +508,7 @@ const isMaxLengthReached = computed(() => {
       ></EditorContent>
       
       <textarea
-        v-if="isSourceMode"
+        v-show="isSourceMode"
         :value="modelValue"
         class="w-full h-full p-4 font-mono text-sm bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200"
         :style="{ minHeight: `${minHeight}px` }"

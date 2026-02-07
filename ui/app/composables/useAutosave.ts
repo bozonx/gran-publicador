@@ -281,13 +281,21 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   async function performSave(force = false) {
     if (!data.value) return;
 
-    // Check if data is dirty
-    if (!force && lastSavedState.value && isEqual(data.value, lastSavedState.value)) {
-      return;
-    }
-
     // Add to queue to ensure sequential execution
     saveQueue = saveQueue.then(async () => {
+      // Check equality inside the queue to avoid duplicate saves
+      // when multiple performSave calls pass the check before entering the queue
+      if (
+        !force &&
+        lastSavedState.value &&
+        data.value &&
+        isEqual(data.value, lastSavedState.value)
+      ) {
+        return;
+      }
+
+      if (!data.value) return;
+
       saveStatus.value = 'saving';
       saveError.value = null;
       clearRetryTimer();
@@ -431,16 +439,25 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         // If the previous object was dirty, we should try to save it before switching
         if (isDirty.value && oldValue) {
           // Use the old data to perform save (sequentially)
+          // Defer new-value baseline reset until after save completes
+          // so that errors from saving old data are properly surfaced
           saveQueue = saveQueue.then(async () => {
             try {
               saveStatus.value = 'saving';
               saveError.value = null;
               await saveFn(oldValue);
+              // Save succeeded — reset state for the new value
+              saveStatus.value = 'saved';
             } catch (err: any) {
               logger.error('Failed to save old state on reference change', err);
               saveStatus.value = 'error';
               saveError.value = t('common.saveError');
-              isDirty.value = true;
+
+              toast.add({
+                title: t('common.error'),
+                description: t('common.unsavedChanges'),
+                color: 'error',
+              });
             }
           });
         }

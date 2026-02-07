@@ -16,6 +16,12 @@ All notable changes to this project will be documented in this file.
 - Content Library tabs: folders and saved views with per-scope ordering.
 
 ### Fixed
+- TipTap editor: use native `content` + `contentType: 'markdown'` instead of `onCreate` workaround for initial content.
+- TipTap editor: STT `insertContent` now uses `contentType: 'markdown'` for consistent markdown-first approach.
+- TipTap editor: fixed extensions watchers losing changes by using `buildExtensions()` factory function.
+- TipTap editor: BubbleMenu for links now uses `shouldShow` prop instead of `v-show` for correct positioning.
+- TipTap editor: source mode textarea changed from `v-if` to `v-show` to avoid re-creation on toggle.
+- TipTap editor: default placeholder now uses i18n.
 - TipTap editor: removed duplicate `BubbleMenuExtension` from extensions array (already provided by `<BubbleMenu>` component).
 - TipTap editor: replaced deprecated `tippyOptions` with Floating UI `options` in BubbleMenu components.
 - TipTap editor: replaced undocumented `extensionManager.configure()` hacks with proper `editor.setOptions()` for dynamic placeholder/characterCount updates.
@@ -31,6 +37,10 @@ All notable changes to this project will be documented in this file.
 
 
 ### Changed
+- TipTap editor: removed `Underline` extension (not compatible with standard Markdown; raw `<u>` tags from Telegram preserved as-is).
+- TipTap editor: removed `mergeCells`/`splitCell` table buttons (not representable in Markdown format).
+- Unified Markdown parser: migrated from `markdown-it` to `marked` across the project (same parser used by `@tiptap/markdown`).
+- Removed `@tiptap/extension-underline`, `markdown-it`, `@types/markdown-it` dependencies; added `marked` as direct dependency.
 - Content Library schema refactor: replaced `ContentText` and `ContentItemMedia` with `ContentBlock` (optional `text`) and `ContentBlockMedia`.
 - Content Library API updated to manage blocks and block media via `/content-library/items/:id/blocks` and `/content-library/items/:id/blocks/:blockId/media`.
 - Required `publicationId` for all posts in the database.

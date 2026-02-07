@@ -42,7 +42,7 @@ const { t } = useI18n()
           />
         </template>
 
-        <template v-if="status === 'saved'">
+        <template v-else-if="status === 'saved'">
           <UIcon name="i-heroicons-check-circle" class="w-4 h-4 text-green-500" />
           <span class="text-gray-500 dark:text-gray-400 font-medium">
             {{ t('common.saved') || 'Сохранено' }}

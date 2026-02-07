@@ -6,31 +6,21 @@ import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import type { NewsItem } from '~/composables/useNews'
 import DOMPurify from 'isomorphic-dompurify'
-import MarkdownIt from 'markdown-it'
+import { marked, type Tokens } from 'marked'
 
-const md = new MarkdownIt({
-  html: true, // Allow HTML so we can strip it with DOMPurify
-  linkify: true,
-  typographer: true
+// Configure marked with GFM and target="_blank" on links
+const renderer = new marked.Renderer()
+const originalLinkRenderer = renderer.link.bind(renderer)
+renderer.link = function (token: Tokens.Link) {
+  const html = originalLinkRenderer(token)
+  return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ')
+}
+
+marked.setOptions({
+  gfm: true,
+  breaks: false,
+  renderer,
 })
-
-// Add target="_blank" to external links
-const defaultRender = md.renderer.rules.link_open || function (tokens, idx, options, env, self) {
-  return self.renderToken(tokens, idx, options)
-}
-md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
-  const token = tokens[idx]
-  if (token) {
-    const aIndex = token.attrIndex('target')
-    if (aIndex < 0) {
-      token.attrPush(['target', '_blank'])
-    } else if (token.attrs && token.attrs[aIndex]) {
-      const attr = token.attrs[aIndex]
-      if (attr) attr[1] = '_blank'
-    }
-  }
-  return defaultRender(tokens, idx, options, env, self)
-}
 
 const props = defineProps<{
   projectId?: string
@@ -80,7 +70,7 @@ const sanitizedContent = computed(() => {
   
   // 1. Render markdown to HTML. 
   // We allow HTML in the MD so that we can then strip it.
-  const html = md.render(scrapedData.value.body)
+  const html = marked.parse(scrapedData.value.body) as string
   
   // 2. Sanitize resulting HTML.
   // We ONLY allow tags that are safe and expected from Markdown.
