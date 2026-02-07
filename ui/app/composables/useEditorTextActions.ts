@@ -87,9 +87,21 @@ export function getSelectionMarkdown(editor: Editor): string {
     extensions: buildSerializationExtensions(),
   });
 
-  const markdown = tempEditor.storage.markdown.getMarkdown();
-  tempEditor.destroy();
-  return markdown;
+  try {
+    const anyEditor = tempEditor as any;
+    if (typeof anyEditor.getMarkdown === 'function') {
+      return anyEditor.getMarkdown();
+    }
+
+    const maybeMarkdownStorage = anyEditor.storage?.markdown;
+    if (maybeMarkdownStorage && typeof maybeMarkdownStorage.getMarkdown === 'function') {
+      return maybeMarkdownStorage.getMarkdown();
+    }
+
+    return '';
+  } finally {
+    tempEditor.destroy();
+  }
 }
 
 /**
@@ -160,13 +172,25 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
       to: selection.to,
     };
 
-    pendingSourceText.value = getSelectionMarkdown(editor);
-    isActionPending.value = true;
+    try {
+      pendingSourceText.value = getSelectionMarkdown(editor);
+      if (!pendingSourceText.value) {
+        pendingRange.value = null;
+        return '';
+      }
 
-    // Lock editor to prevent edits that would invalidate positions
-    editor.setEditable(false);
+      isActionPending.value = true;
 
-    return pendingSourceText.value;
+      // Lock editor to prevent edits that would invalidate positions
+      editor.setEditable(false);
+
+      return pendingSourceText.value;
+    } catch {
+      pendingRange.value = null;
+      pendingSourceText.value = '';
+      isActionPending.value = false;
+      return '';
+    }
   }
 
   /**
