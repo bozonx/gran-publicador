@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import type { SaveStatus } from '~/composables/useAutosave'
 
-defineProps<{
+const props = defineProps<{
   status: SaveStatus
   visible: boolean
   error?: string | null
+  showRetry?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'retry'): void
 }>()
 
 const { t } = useI18n()
@@ -22,6 +27,21 @@ const { t } = useI18n()
       mode="out-in"
     >
       <div v-if="visible" :key="status" class="flex items-center gap-2">
+        <template v-if="status === 'unsaved'">
+          <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-amber-500" />
+          <span class="text-gray-500 dark:text-gray-400 font-medium">
+            {{ t('common.unsavedChanges') || 'Unsaved changes' }}
+          </span>
+          <UButton
+            v-if="props.showRetry"
+            size="xs"
+            color="neutral"
+            variant="soft"
+            :label="t('common.retry') || 'Retry'"
+            @click.stop="emit('retry')"
+          />
+        </template>
+
         <template v-if="status === 'saved'">
           <UIcon name="i-heroicons-check-circle" class="w-4 h-4 text-green-500" />
           <span class="text-gray-500 dark:text-gray-400 font-medium">
@@ -43,6 +63,14 @@ const { t } = useI18n()
               {{ t('common.saveError') || 'Ошибка сохранения' }}
             </span>
           </UTooltip>
+          <UButton
+            v-if="props.showRetry"
+            size="xs"
+            color="neutral"
+            variant="soft"
+            :label="t('common.retry') || 'Retry'"
+            @click.stop="emit('retry')"
+          />
         </template>
       </div>
     </Transition>

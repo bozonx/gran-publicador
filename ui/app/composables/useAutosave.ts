@@ -4,6 +4,9 @@ import {
   AUTO_SAVE_DEBOUNCE_MS,
   AUTOSAVE_INDICATOR_DELAY_MS,
   AUTOSAVE_INDICATOR_DISPLAY_MS,
+  AUTOSAVE_RETRY_BASE_DELAY_MS,
+  AUTOSAVE_RETRY_MAX_ATTEMPTS,
+  AUTOSAVE_RETRY_MAX_DELAY_MS,
 } from '~/constants/autosave';
 import { logger } from '~/utils/logger';
 
@@ -32,7 +35,7 @@ function resolveUseToast(): null | (() => { add: (toast: unknown) => unknown }) 
   return null;
 }
 
-export type SaveStatus = 'saved' | 'saving' | 'error';
+export type SaveStatus = 'saved' | 'saving' | 'error' | 'unsaved';
 
 export interface AutosaveOptions<T> {
   // Function to save data
@@ -66,6 +69,7 @@ export interface AutosaveReturn {
   forceSave: () => Promise<void>;
   // Manual trigger that ignores isEqual check
   triggerSave: () => Promise<void>;
+  retrySave: () => Promise<void>;
   /**
    * Update the internal baseline to the current value without saving.
    * Useful after syncing state from server/props to avoid triggering autosave.
@@ -124,9 +128,45 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   let indicatorDisplayTimer: NodeJS.Timeout | null = null;
 
   // Retry logic
-  const RETRY_INTERVAL_MS = 3000;
   let retryTimer: NodeJS.Timeout | null = null;
+  let retryAttempts = 0;
   let errorToastShownForCycle = false;
+  let retryLimitToastShownForCycle = false;
+  let lastErrorStatus: number | null = null;
+  let lastErrorRetryable = false;
+  let authToastShownForCycle = false;
+
+  function getErrorStatus(err: unknown): number | null {
+    // useApi normalizes errors as { status, data }
+    // $fetch errors can have response.status
+    const anyErr = err as any;
+    const status =
+      anyErr?.status ??
+      anyErr?.response?.status ??
+      anyErr?.response?._data?.statusCode ??
+      anyErr?.data?.statusCode;
+    return typeof status === 'number' ? status : null;
+  }
+
+  function isRetryableStatus(status: number | null): boolean {
+    if (status === null) return false;
+    if (status === 0) return true;
+    if (status === 429) return true;
+    if (status >= 500) return true;
+    return false;
+  }
+
+  function isNetworkError(err: unknown): boolean {
+    const anyErr = err as any;
+    const message = String(anyErr?.message ?? '').toLowerCase();
+    if (!message) return false;
+    return (
+      message.includes('network') ||
+      message.includes('failed to fetch') ||
+      message.includes('fetch failed') ||
+      message.includes('econnreset')
+    );
+  }
 
   function clearIndicatorTimers() {
     if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
@@ -134,20 +174,73 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   }
 
   function clearRetryTimer() {
-    if (retryTimer) clearInterval(retryTimer);
+    if (retryTimer) clearTimeout(retryTimer);
     retryTimer = null;
   }
 
-  function ensureRetryTimer() {
-    if (retryTimer) return;
-    retryTimer = setInterval(() => {
-      if (!shouldRetry.value) {
-        clearRetryTimer();
-        return;
-      }
+  function computeRetryDelayMs(attempt: number): number {
+    const base = AUTOSAVE_RETRY_BASE_DELAY_MS;
+    const exp = base * 2 ** Math.max(0, attempt - 1);
+    const capped = Math.min(exp, AUTOSAVE_RETRY_MAX_DELAY_MS);
+    const jitter = 0.2;
+    const jitterFactor = 1 + (Math.random() * 2 - 1) * jitter;
+    return Math.max(0, Math.round(capped * jitterFactor));
+  }
 
+  function stopRetriesWithToast() {
+    clearRetryTimer();
+    if (!retryLimitToastShownForCycle) {
+      retryLimitToastShownForCycle = true;
+      toast.add({
+        title: t('common.error'),
+        description: t('common.unsavedChanges'),
+        color: 'error',
+      });
+    }
+  }
+
+  function stopRetriesWithAuthToast(status: 401 | 403) {
+    clearRetryTimer();
+    lastErrorRetryable = false;
+    if (authToastShownForCycle) return;
+    authToastShownForCycle = true;
+
+    const description =
+      status === 401 ? t('auth.sessionExpiredDescription') : t('common.accessDenied');
+
+    toast.add({
+      title: t('common.error'),
+      description,
+      color: 'error',
+    });
+  }
+
+  function scheduleRetry() {
+    if (!shouldRetry.value) {
+      clearRetryTimer();
+      return;
+    }
+
+    if (!lastErrorRetryable) {
+      clearRetryTimer();
+      return;
+    }
+
+    if (retryAttempts >= AUTOSAVE_RETRY_MAX_ATTEMPTS) {
+      stopRetriesWithToast();
+      return;
+    }
+
+    if (retryTimer) return;
+
+    const nextAttempt = retryAttempts + 1;
+    const delayMs = computeRetryDelayMs(nextAttempt);
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      if (!shouldRetry.value) return;
+      retryAttempts = nextAttempt;
       void performSave(true);
-    }, RETRY_INTERVAL_MS);
+    }, delayMs);
   }
 
   // Store last saved state for dirty checking
@@ -171,6 +264,11 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     saveStatus.value = 'saved';
     saveError.value = null;
     errorToastShownForCycle = false;
+    retryLimitToastShownForCycle = false;
+    retryAttempts = 0;
+    lastErrorStatus = null;
+    lastErrorRetryable = false;
+    authToastShownForCycle = false;
     isIndicatorVisible.value = false;
     clearIndicatorTimers();
     clearRetryTimer();
@@ -220,6 +318,11 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           lastSavedAt.value = new Date();
           isDirty.value = false;
           errorToastShownForCycle = false;
+          retryLimitToastShownForCycle = false;
+          retryAttempts = 0;
+          lastErrorStatus = null;
+          lastErrorRetryable = false;
+          authToastShownForCycle = false;
 
           // Clear delay timer if save finished before it fired
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
@@ -237,16 +340,24 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           }
         } else if (wasSkipped) {
           // If skipped (e.g. invalid state), we keep the dirty flag and previous status
-          saveStatus.value = 'saved';
+          saveStatus.value = isDirty.value ? 'unsaved' : 'saved';
 
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
-          isIndicatorVisible.value = false;
+          indicatorStatus.value = saveStatus.value;
+          isIndicatorVisible.value = saveStatus.value === 'unsaved';
           clearRetryTimer();
+          lastErrorStatus = null;
+          lastErrorRetryable = false;
         } else {
           // Failed to save according to result
           saveStatus.value = 'error';
           saveError.value = t('common.saveError');
           isDirty.value = true;
+
+          lastErrorStatus = null;
+          // If saveFn does not throw, we cannot reliably classify error.
+          // Do not retry automatically.
+          lastErrorRetryable = false;
 
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
           indicatorStatus.value = 'error';
@@ -260,7 +371,6 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
               color: 'error',
             });
           }
-          ensureRetryTimer();
         }
       } catch (err: any) {
         logger.error('Auto-save failed', err);
@@ -268,9 +378,18 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         saveError.value = t('common.saveError');
         isDirty.value = true;
 
+        lastErrorStatus = getErrorStatus(err);
+        lastErrorRetryable =
+          isRetryableStatus(lastErrorStatus) || (lastErrorStatus === null && isNetworkError(err));
+
         if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
         indicatorStatus.value = 'error';
         isIndicatorVisible.value = true;
+
+        if (lastErrorStatus === 401 || lastErrorStatus === 403) {
+          stopRetriesWithAuthToast(lastErrorStatus);
+          return;
+        }
 
         if (!errorToastShownForCycle) {
           errorToastShownForCycle = true;
@@ -281,7 +400,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           });
         }
 
-        ensureRetryTimer();
+        scheduleRetry();
       }
     });
 
@@ -340,6 +459,13 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
       // This is an actual data change - mark as dirty and trigger save
       isDirty.value = true;
       errorToastShownForCycle = false;
+      retryLimitToastShownForCycle = false;
+      authToastShownForCycle = false;
+      if (saveStatus.value !== 'saving') {
+        saveStatus.value = 'unsaved';
+      }
+      indicatorStatus.value = saveStatus.value;
+      isIndicatorVisible.value = true;
       debouncedSave();
     },
     { deep: true },
@@ -349,8 +475,12 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   // In unit tests or some runtimes there may be no active router context.
   try {
     onBeforeRouteLeave((to, from, next) => {
-      if (saveStatus.value === 'saving') {
-        const answer = window.confirm(t('common.savingInProgressConfirm'));
+      if (saveStatus.value === 'saving' || isDirty.value) {
+        const key =
+          saveStatus.value === 'saving'
+            ? 'common.savingInProgressConfirm'
+            : 'common.unsavedChangesConfirm';
+        const answer = window.confirm(t(key));
         if (answer) {
           next();
         } else {
@@ -366,7 +496,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
   // Browser unload guard - prevent closing tab while saving
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (saveStatus.value === 'saving') {
+    if (saveStatus.value === 'saving' || isDirty.value) {
       e.preventDefault();
       e.returnValue = '';
       return '';
@@ -392,6 +522,15 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     indicatorStatus,
     forceSave: () => performSave(true),
     triggerSave: () => performSave(true),
+    retrySave: async () => {
+      if (!data.value) return;
+      errorToastShownForCycle = false;
+      retryLimitToastShownForCycle = false;
+      retryAttempts = 0;
+      authToastShownForCycle = false;
+      clearRetryTimer();
+      await performSave(true);
+    },
     syncBaseline,
   };
 }

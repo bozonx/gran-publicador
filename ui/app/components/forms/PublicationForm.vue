@@ -156,7 +156,7 @@ onMounted(async () => {
 })
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave } = useAutosave({
   data: toRef(() => state),
   saveFn: async (data) => {
     if (!props.autosave || !isEditMode.value) return { saved: false, skipped: true }
@@ -637,6 +637,8 @@ function handleTranslated(result: { translatedText: string }) {
           :status="indicatorStatus" 
           :visible="isIndicatorVisible"
           :error="saveError" 
+          show-retry
+          @retry="retrySave"
         />
         <UiFormActions
           v-else

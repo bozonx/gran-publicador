@@ -509,7 +509,7 @@ function toggleSelection(itemId: string) {
 const hasMore = computed(() => items.value.length < total.value)
 
 // Auto-save setup
-const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: toRef(() => editForm.value),
   saveFn: async (data: any) => {
     if (!isEditModalOpen.value || !activeItem.value) return { saved: false, skipped: true }
@@ -1590,6 +1590,8 @@ const executeMoveToProject = async () => {
                   :status="indicatorStatus" 
                   :visible="isIndicatorVisible"
                   :error="saveError" 
+                  show-retry
+                  @retry="retrySave"
                 />
               </span>
             </span>

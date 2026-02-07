@@ -29,7 +29,7 @@ function startEditing() {
 }
 
 // Auto-save setup
-const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: localNote,
   saveFn: async (note) => {
     await updatePublication(props.publication.id, {
@@ -113,6 +113,8 @@ async function finishEditing() {
                 :status="indicatorStatus" 
                 :visible="isIndicatorVisible"
                 :error="saveError" 
+                show-retry
+                @retry="retrySave"
               />
           </div>
 

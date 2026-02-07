@@ -260,7 +260,7 @@ watch(selectedQueryId, async (newId) => {
 })
 
 // Auto-save setup using composable
-const { saveStatus, saveError, lastSavedAt, isDirty, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, lastSavedAt, isDirty, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: currentQuery,
   saveFn: async (query) => {
     if (!query) return { saved: false, skipped: true }
@@ -744,6 +744,8 @@ const sourcesTooltipText = computed(() => {
                   :status="indicatorStatus"
                   :visible="isIndicatorVisible"
                   :error="saveError"
+                  show-retry
+                  @retry="retrySave"
                 />
 
                 <UButton

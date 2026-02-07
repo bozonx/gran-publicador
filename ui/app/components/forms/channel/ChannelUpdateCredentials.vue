@@ -75,7 +75,7 @@ function prepareUpdateData(formData: any) {
 }
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
     if (!props.autosave) return { saved: false, skipped: true }
@@ -126,6 +126,8 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
         :status="indicatorStatus" 
         :visible="isIndicatorVisible"
         :error="saveError" 
+        show-retry
+        @retry="retrySave"
       />
       <UiFormActions
         v-else

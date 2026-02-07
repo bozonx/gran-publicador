@@ -20,6 +20,7 @@
     "loading": "Loading...",
     "save": "Save",
     "title": "Title",
+    "accessDenied": "Access denied",
     "createdAt": "Created date",
     "select": "Select",
     "cancel": "Cancel",

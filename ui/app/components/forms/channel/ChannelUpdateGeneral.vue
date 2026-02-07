@@ -77,7 +77,7 @@ async function performUpdate(data: any, silent: boolean = false) {
 }
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
     if (!props.autosave) return { saved: false, skipped: true }
@@ -147,6 +147,8 @@ const currentProjectName = computed(() => {
         :status="indicatorStatus" 
         :visible="isIndicatorVisible"
         :error="saveError" 
+        show-retry
+        @retry="retrySave"
       />
       <UiFormActions
         v-else

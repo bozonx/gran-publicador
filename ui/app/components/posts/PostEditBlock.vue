@@ -135,7 +135,7 @@ const saveOriginalState = () => dirtyState?.saveOriginalState()
 const resetToOriginal = () => dirtyState?.resetToOriginal()
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: computed(() => formData),
   saveFn: async (data) => {
     if (!props.autosave || props.isCreating) return { saved: false, skipped: true }
@@ -1125,6 +1125,8 @@ async function executePublish() {
               :status="indicatorStatus" 
               :visible="isIndicatorVisible"
               :error="saveError" 
+              show-retry
+              @retry="retrySave"
             />
             <UTooltip 
               v-if="!isCreating" 

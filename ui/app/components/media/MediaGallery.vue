@@ -172,6 +172,7 @@ const {
   saveStatus: mediaSaveStatus, 
   saveError: mediaSaveError, 
   forceSave: forceSaveMediaMeta,
+  retrySave: retrySaveMediaMeta,
   isIndicatorVisible: isMediaIndicatorVisible,
   indicatorStatus: mediaIndicatorStatus
 } = useAutosave({
@@ -1510,7 +1511,13 @@ const mediaValidation = computed(() => {
         v-if="editable"
         class="flex items-center justify-between gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800"
       >
-        <UiSaveStatusIndicator :status="mediaIndicatorStatus" :visible="isMediaIndicatorVisible" :error="mediaSaveError" />
+        <UiSaveStatusIndicator
+          :status="mediaIndicatorStatus" 
+          :visible="isMediaIndicatorVisible"
+          :error="mediaSaveError" 
+          show-retry
+          @retry="retrySaveMediaMeta"
+        />
 
         <UButton
           icon="i-heroicons-check"
