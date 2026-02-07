@@ -4,7 +4,7 @@ import yaml from 'js-yaml'
 import { VueDraggable } from 'vue-draggable-plus'
 import { type ContentLibraryTab, useContentLibraryTabs } from '~/composables/useContentLibraryTabs'
 import { useViewMode } from '~/composables/useViewMode'
-import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { sanitizeContentPreserveMarkdown, stripHtmlAndSpecialChars } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import AppModal from '~/components/ui/AppModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
@@ -342,7 +342,7 @@ const aggregateSelectedItemsToPublicationOrThrow = (selectedItems: any[]) => {
 
     const sortedBlocks = (item.blocks || []).slice().sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
     for (const block of sortedBlocks) {
-      const blockText = stripHtmlAndSpecialChars(block.text || '').trim()
+      const blockText = sanitizeContentPreserveMarkdown(block.text || '').trim()
       if (blockText) contentParts.push(blockText)
 
       const blockOrder = Number(block.order ?? 0)
@@ -994,7 +994,7 @@ const handleBulkAction = async (operation: 'ARCHIVE' | 'UNARCHIVE') => {
 
 const handleCreatePublication = (item: any) => {
   const texts = (item.blocks || [])
-    .map((b: any) => stripHtmlAndSpecialChars(b.text || '').trim())
+    .map((b: any) => sanitizeContentPreserveMarkdown(b.text || '').trim())
     .filter(Boolean)
 
   createPublicationModalProjectId.value = props.scope === 'project' ? props.projectId : undefined

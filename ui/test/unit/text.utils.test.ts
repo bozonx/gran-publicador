@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isTextContentEmpty, stripHtmlAndSpecialChars } from '../../app/utils/text';
+import {
+  isTextContentEmpty,
+  sanitizeContentPreserveMarkdown,
+  stripHtmlAndSpecialChars,
+} from '../../app/utils/text';
 
 describe('utils/text', () => {
   describe('stripHtmlAndSpecialChars', () => {
@@ -23,6 +27,29 @@ describe('utils/text', () => {
 
     it('collapses whitespace', () => {
       expect(stripHtmlAndSpecialChars('a\n\n\n b\t\t c')).toBe('a b c');
+    });
+  });
+
+  describe('sanitizeContentPreserveMarkdown', () => {
+    it('returns empty string for null/undefined/empty', () => {
+      expect(sanitizeContentPreserveMarkdown(null)).toBe('');
+      expect(sanitizeContentPreserveMarkdown(undefined)).toBe('');
+      expect(sanitizeContentPreserveMarkdown('')).toBe('');
+    });
+
+    it('preserves markdown and newlines while stripping html', () => {
+      const input = `# header\n\n**bold** _italic_\n\n> cite\n\n---\n\n[link](https://example.com)`;
+      expect(sanitizeContentPreserveMarkdown(input)).toBe(input);
+    });
+
+    it('handles basic html from editors', () => {
+      const input = '<p>hello <b>world</b></p><p>line2<br>line3</p>';
+      expect(sanitizeContentPreserveMarkdown(input)).toBe('hello world\n\nline2\nline3');
+    });
+
+    it('decodes basic html entities without collapsing newlines', () => {
+      const input = 'a&nbsp;b\n\n&lt;tag&gt; &amp; &quot;x&quot;';
+      expect(sanitizeContentPreserveMarkdown(input)).toBe('a b\n\n<tag> & "x"');
     });
   });
 
