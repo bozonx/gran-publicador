@@ -676,11 +676,16 @@ export class SocialPostingService {
     const timeout = (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (this.socialPostingConfig.apiToken) {
+        headers['Authorization'] = `Bearer ${this.socialPostingConfig.apiToken}`;
+      }
+
       const response = await request(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(body),
         headersTimeout: timeout,
         bodyTimeout: timeout,

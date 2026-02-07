@@ -16,6 +16,13 @@ export class LlmConfig {
   public serviceUrl!: string;
 
   /**
+   * API Token for Bearer authorization (optional).
+   */
+  @IsOptional()
+  @IsString()
+  public apiToken?: string;
+
+  /**
    * Default tags for model selection.
    * Defined by FREE_LLM_ROUTER_TAGS environment variable.
    * Example: fast,best-for-ru
@@ -105,6 +112,7 @@ export class LlmConfig {
 export default registerAs('llm', (): LlmConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.FREE_LLM_ROUTER_URL || 'http://localhost:8080/api/v1',
+    apiToken: process.env.FREE_LLM_ROUTER_API_TOKEN,
     defaultTags: process.env.FREE_LLM_ROUTER_TAGS?.split(',').map(t => t.trim()),
     defaultType: process.env.FREE_LLM_ROUTER_TYPE as 'fast' | 'reasoning' | undefined,
     maxModelSwitches: process.env.FREE_LLM_ROUTER_MAX_MODEL_SWITCHES

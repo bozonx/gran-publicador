@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, IsString, IsUrl } from 'class-validator';
+import { IsInt, Min, IsString, IsUrl, IsOptional } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -32,6 +32,13 @@ export class SocialPostingConfig {
   @IsString()
   @IsUrl({ require_tld: false })
   public serviceUrl!: string;
+
+  /**
+   * API Token for Bearer authorization (optional).
+   */
+  @IsOptional()
+  @IsString()
+  public apiToken?: string;
 }
 
 export default registerAs('socialPosting', (): SocialPostingConfig => {
@@ -39,6 +46,7 @@ export default registerAs('socialPosting', (): SocialPostingConfig => {
     requestTimeoutSecs: parseInt(process.env.SOCIAL_POSTING_REQUEST_TIMEOUT_SECS ?? '60', 10),
     idempotencyTtlMinutes: parseInt(process.env.SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES ?? '10', 10),
     serviceUrl: process.env.SOCIAL_POSTING_SERVICE_URL,
+    apiToken: process.env.SOCIAL_POSTING_SERVICE_API_TOKEN,
   });
 
   return config;

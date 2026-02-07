@@ -24,8 +24,14 @@ export class SourcesController {
     const url = `${baseUrl}/sources`;
 
     try {
+      const headers: Record<string, string> = {};
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
       const response = await request(url, {
         method: 'GET',
+        headers,
         query,
       });
 
@@ -53,8 +59,14 @@ export class SourcesController {
     const url = `${baseUrl}/source-tags`;
 
     try {
+      const headers: Record<string, string> = {};
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
       const response = await request(url, {
         method: 'GET',
+        headers,
         query,
       });
 
@@ -82,8 +94,14 @@ export class SourcesController {
     const url = `${baseUrl}/source-tags/categories`;
 
     try {
+      const headers: Record<string, string> = {};
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
       const response = await request(url, {
         method: 'GET',
+        headers,
       });
 
       if (response.statusCode >= 400) {

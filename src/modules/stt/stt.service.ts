@@ -80,6 +80,10 @@ export class SttService {
 
       // Get headers from form-data
       const formHeaders = form.getHeaders();
+      
+      if (config.apiToken) {
+        (formHeaders as any)['Authorization'] = `Bearer ${config.apiToken}`;
+      }
 
       this.logger.debug(`Starting upload to STT Gateway for ${filename}`);
 

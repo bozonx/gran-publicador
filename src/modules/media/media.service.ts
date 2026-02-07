@@ -371,8 +371,14 @@ export class MediaService {
     if (!config.serviceUrl) return;
 
     try {
+      const headers: Record<string, string> = {};
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
       const response = await request(`${config.serviceUrl}/files/${fileId}/confirm`, {
         method: 'POST',
+        headers,
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 
@@ -428,6 +434,7 @@ export class MediaService {
         body: formData,
         headers: {
           ...formHeaders,
+          ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
         },
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
@@ -488,7 +495,10 @@ export class MediaService {
 
       const response = await request(`${config.serviceUrl}/files/from-url`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
+        },
         body: JSON.stringify(body),
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
@@ -539,7 +549,10 @@ export class MediaService {
     try {
       const response = await request(`${config.serviceUrl}/files/${media.storagePath}/reprocess`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
+        },
         body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
@@ -582,6 +595,7 @@ export class MediaService {
     try {
       await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'DELETE',
+        headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
     } catch (error) {
@@ -597,6 +611,9 @@ export class MediaService {
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     const config = this.config;
     const reqHeaders: Record<string, string> = range ? { Range: range } : {};
+    if (config.apiToken) {
+      reqHeaders['Authorization'] = `Bearer ${config.apiToken}`;
+    }
 
     try {
       const response = await request(`${config.serviceUrl}/files/${fileId}/download`, {
@@ -646,6 +663,7 @@ export class MediaService {
         `${config.serviceUrl}/files/${fileId}/thumbnail?${params.toString()}`,
         {
           method: 'GET',
+          headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
           headersTimeout: (config.timeoutSecs || 60) * 1000,
         },
       );
@@ -673,6 +691,7 @@ export class MediaService {
     try {
       const response = await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'GET',
+        headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
         headersTimeout: (config.timeoutSecs || 60) * 1000,
       });
 

@@ -16,6 +16,13 @@ export class NewsConfig {
   public serviceUrl!: string;
 
   /**
+   * API Token for Bearer authorization (optional).
+   */
+  @IsOptional()
+  @IsString()
+  public apiToken?: string;
+
+  /**
    * Interval in minutes for checking news notifications.
    * Defined by NEWS_NOTIFICATION_INTERVAL_MINUTES environment variable.
    * Default: 10
@@ -58,6 +65,7 @@ export class NewsConfig {
 export default registerAs('news', (): NewsConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.NEWS_SERVICE_URL || 'http://news-microservice:8088',
+    apiToken: process.env.NEWS_SERVICE_API_TOKEN,
     notificationIntervalMinutes: process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES
       ? parseInt(process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES, 10)
       : 10,

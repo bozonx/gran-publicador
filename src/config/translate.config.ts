@@ -16,6 +16,13 @@ export class TranslateConfig {
   public serviceUrl!: string;
 
   /**
+   * API Token for Bearer authorization (optional).
+   */
+  @IsOptional()
+  @IsString()
+  public apiToken?: string;
+
+  /**
    * Default translation provider.
    * Defined by TRANSLATE_DEFAULT_PROVIDER environment variable.
    * Example: anylang, google, deepl, etc.
@@ -91,6 +98,7 @@ export class TranslateConfig {
 export default registerAs('translate', (): TranslateConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.TRANSLATE_SERVICE_URL || 'http://localhost:8081/api/v1',
+    apiToken: process.env.TRANSLATE_SERVICE_API_TOKEN,
     defaultProvider: process.env.TRANSLATE_DEFAULT_PROVIDER,
     defaultModel: process.env.TRANSLATE_DEFAULT_MODEL,
     timeoutSec: process.env.TRANSLATE_TIMEOUT_SEC

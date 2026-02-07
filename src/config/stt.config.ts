@@ -17,6 +17,13 @@ export class SttConfig {
   public serviceUrl?: string;
 
   /**
+   * API Token for Bearer authorization (optional).
+   */
+  @IsString()
+  @IsOptional()
+  public apiToken?: string;
+
+  /**
    * Request timeout in milliseconds.
    * Defined by STT_TIMEOUT_MS environment variable.
    */
@@ -39,6 +46,7 @@ export class SttConfig {
 export default registerAs('stt', (): SttConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.STT_SERVICE_URL,
+    apiToken: process.env.STT_SERVICE_API_TOKEN,
     timeoutMs: process.env.STT_TIMEOUT_MS ? parseInt(process.env.STT_TIMEOUT_MS, 10) : undefined,
     maxFileSize: process.env.STT_MAX_FILE_SIZE
       ? parseInt(process.env.STT_MAX_FILE_SIZE, 10)

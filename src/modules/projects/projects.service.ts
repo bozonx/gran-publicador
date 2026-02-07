@@ -692,8 +692,14 @@ export class ProjectsService {
       if (query.minScore !== undefined) searchParams.minScore = query.minScore;
       if (query.orderBy) searchParams.orderBy = query.orderBy;
 
+      const headers: Record<string, string> = {};
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
       const response = await request(url, {
         method: 'GET',
+        headers,
         query: searchParams,
         headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
@@ -748,15 +754,16 @@ export class ProjectsService {
         // We do not pass locale here, letting the microservice use the stored news item locale
         // to ensure consistency with the locale used during the initial crawling (listing).
 
-        response = await request(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fingerprint,
-            mode: config.refreshMode,
-          }),
+          response = await request(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
+            },
+            body: JSON.stringify({
+              fingerprint,
+              mode: config.refreshMode,
+            }),
           headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
           bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         });
@@ -768,8 +775,14 @@ export class ProjectsService {
         // We do not pass locale query param to avoid implicit translation;
         // we want the item as it exists in the DB (original language/state).
 
+        const headers: Record<string, string> = {};
+        if (config.apiToken) {
+          headers['Authorization'] = `Bearer ${config.apiToken}`;
+        }
+
         response = await request(url, {
           method: 'GET',
+          headers,
           headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
           bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         });

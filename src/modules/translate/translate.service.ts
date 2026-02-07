@@ -107,11 +107,17 @@ export class TranslateService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        if (this.config.apiToken) {
+          headers['Authorization'] = `Bearer ${this.config.apiToken}`;
+        }
+
         const response = await request(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(body),
           headersTimeout: timeoutMs,
           bodyTimeout: timeoutMs,

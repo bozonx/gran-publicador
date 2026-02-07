@@ -22,6 +22,13 @@ export class MediaConfig {
   public appId: string = 'gran-publicador';
 
   /**
+   * API Token for Bearer authorization (optional).
+   */
+  @IsString()
+  @IsOptional()
+  public apiToken?: string;
+
+  /**
    * Request timeout in seconds.
    */
   @IsOptional()
@@ -51,6 +58,7 @@ export default registerAs('media', (): MediaConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.MEDIA_STORAGE_SERVICE_URL,
     appId: process.env.MEDIA_STORAGE_APP_ID,
+    apiToken: process.env.MEDIA_STORAGE_API_TOKEN,
     timeoutSecs: process.env.MEDIA_STORAGE_TIMEOUT_SECS
       ? parseInt(process.env.MEDIA_STORAGE_TIMEOUT_SECS, 10)
       : undefined,

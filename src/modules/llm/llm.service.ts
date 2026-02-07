@@ -97,6 +97,7 @@ export class LlmService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
         },
         body: JSON.stringify(requestBody),
         headersTimeout: timeout,
@@ -178,6 +179,7 @@ export class LlmService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
         },
         body: JSON.stringify(requestBody),
         headersTimeout: timeout,
