@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, validateSync, IsString, IsOptional, Max, IsUrl } from 'class-validator';
+import { IsInt, Min, IsString, IsOptional, Max, IsUrl } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -71,15 +71,6 @@ export default registerAs('media', (): MediaConfig => {
   });
 
   const config = plainToClass(MediaConfig, rawConfig);
-
-  const errors = validateSync(config, {
-    skipMissingProperties: true,
-  });
-
-  if (errors.length > 0) {
-    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
-    throw new Error(`Media config validation error: ${errorMessages.join('; ')}`);
-  }
 
   return config;
 });

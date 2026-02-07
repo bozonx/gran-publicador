@@ -15,16 +15,18 @@ const { Pool } = pg;
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
+  private pool?: pg.Pool;
 
   constructor() {
     const url = getDatabaseUrl();
     const internalLogger = new Logger(PrismaService.name);
 
     const clientConfig: any = {};
+    let pool: pg.Pool | undefined;
 
     // Use @prisma/adapter-pg for PostgreSQL (required for Prisma 7 with config file)
     if (url.startsWith('postgresql://') || url.startsWith('postgres://')) {
-      const pool = new Pool({ connectionString: url });
+      pool = new Pool({ connectionString: url });
       const adapter = new PrismaPg(pool);
       clientConfig.adapter = adapter;
       internalLogger.log('🐘 Using PostgreSQL with @prisma/adapter-pg');
@@ -35,6 +37,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
 
     super(clientConfig);
+
+    this.pool = pool;
 
     this.logger.log(`🔌 Database connected via: ${url.split('@').pop()}`); // Log URL without credentials
   }
@@ -47,6 +51,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('Closing database connection...');
     try {
       await this.$disconnect();
+      await this.pool?.end();
       this.logger.log('✅ Database connection closed');
     } catch (error: any) {
       this.logger.error(`❌ Error closing database connection: ${error.message}`, error.stack);

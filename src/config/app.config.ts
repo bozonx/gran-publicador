@@ -9,7 +9,6 @@ import {
   Min,
   MinLength,
   ValidateIf,
-  validateSync,
 } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
@@ -215,22 +214,6 @@ export default registerAs('app', (): AppConfig => {
     ),
     timezone: process.env.TZ ?? 'UTC',
   });
-
-  // Perform synchronous validation of the configuration object
-  const errors = validateSync(config, {
-    skipMissingProperties: false,
-  });
-
-  if (errors.length > 0) {
-    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
-    throw new Error(`App config validation error: ${errorMessages.join('; ')}`);
-  }
-
-  if (config.telegramBotEnabled && !config.telegramBotToken) {
-    throw new Error(
-      'App config validation error: TELEGRAM_BOT_TOKEN is required when TELEGRAM_BOT_ENABLED is true',
-    );
-  }
 
   return config;
 });

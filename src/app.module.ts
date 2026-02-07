@@ -51,10 +51,38 @@ import { ContentLibraryModule } from './modules/content-library/content-library.
 import { PinoLogger } from 'nestjs-pino';
 import { GuardsModule } from './common/guards/guards.module.js';
 
+function validateEnvironment(config: Record<string, unknown>): Record<string, unknown> {
+  const databaseUrl = config.DATABASE_URL;
+  if (!databaseUrl || typeof databaseUrl !== 'string') {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+
+  const jwtSecret = config.JWT_SECRET;
+  if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.length < 32) {
+    throw new Error('JWT_SECRET must be set and be at least 32 characters long');
+  }
+
+  const socialPostingUrl = config.SOCIAL_POSTING_SERVICE_URL;
+  if (!socialPostingUrl || typeof socialPostingUrl !== 'string') {
+    throw new Error('SOCIAL_POSTING_SERVICE_URL environment variable is not set');
+  }
+
+  const telegramBotEnabled = config.TELEGRAM_BOT_ENABLED;
+  if (telegramBotEnabled === 'true') {
+    const telegramBotToken = config.TELEGRAM_BOT_TOKEN;
+    if (!telegramBotToken || typeof telegramBotToken !== 'string') {
+      throw new Error('TELEGRAM_BOT_TOKEN is required when TELEGRAM_BOT_ENABLED is true');
+    }
+  }
+
+  return config;
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnvironment,
       load: [
         appConfig,
         socialPostingConfig,

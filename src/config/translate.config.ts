@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, Max, validateSync, IsString, IsUrl, IsOptional } from 'class-validator';
+import { IsInt, Min, Max, IsString, IsUrl, IsOptional } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -119,15 +119,6 @@ export default registerAs('translate', (): TranslateConfig => {
   });
 
   const config = plainToClass(TranslateConfig, rawConfig);
-
-  const errors = validateSync(config, {
-    skipMissingProperties: false,
-  });
-
-  if (errors.length > 0) {
-    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
-    throw new Error(`Translate config validation error: ${errorMessages.join('; ')}`);
-  }
 
   return config;
 });

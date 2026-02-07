@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, IsOptional, IsString, validateSync, Min, Max } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 const DEFAULT_REDIS_TTL_MS = 3600000; // 1 hour
@@ -76,15 +76,6 @@ export default registerAs('redis', (): RedisConfig => {
     db: process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0,
     keyPrefix: process.env.REDIS_KEY_PREFIX || undefined,
   });
-
-  const errors = validateSync(config, {
-    skipMissingProperties: false,
-  });
-
-  if (errors.length > 0) {
-    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
-    throw new Error(`Redis config validation error: ${errorMessages.join('; ')}`);
-  }
 
   return config;
 });

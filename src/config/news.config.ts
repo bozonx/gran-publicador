@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsString, IsUrl, IsOptional, Min, validateSync } from 'class-validator';
+import { IsString, IsUrl, IsOptional, Min } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -72,15 +72,6 @@ export default registerAs('news', (): NewsConfig => {
   };
 
   const config = plainToClass(NewsConfig, rawConfig);
-
-  const errors = validateSync(config, {
-    skipMissingProperties: false,
-  });
-
-  if (errors.length > 0) {
-    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
-    throw new Error(`News config validation error: ${errorMessages.join('; ')}`);
-  }
 
   return config;
 });

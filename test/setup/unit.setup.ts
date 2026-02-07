@@ -18,9 +18,13 @@ import { beforeAll, afterEach, afterAll } from '@jest/globals';
 beforeAll(() => {
   // Set required environment variables for tests
   process.env.DATA_DIR = './test-data';
-  process.env.JWT_SECRET = 'test-secret';
+  process.env.DATABASE_URL =
+    process.env.DATABASE_URL ?? 'postgresql://test:test@localhost:5432/test?schema=public';
+  process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'unit-test-jwt-secret-minimum-32-characters';
   process.env.TELEGRAM_BOT_TOKEN = 'test-token';
   process.env.TELEGRAM_ADMIN_ID = '123456789';
+  process.env.SOCIAL_POSTING_SERVICE_URL =
+    process.env.SOCIAL_POSTING_SERVICE_URL ?? 'http://localhost:9999';
 
   nock.disableNetConnect();
   nock.enableNetConnect('127.0.0.1');

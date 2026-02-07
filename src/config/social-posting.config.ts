@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, validateSync, IsString, IsUrl } from 'class-validator';
+import { IsInt, Min, IsString, IsUrl } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -40,15 +40,6 @@ export default registerAs('socialPosting', (): SocialPostingConfig => {
     idempotencyTtlMinutes: parseInt(process.env.SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES ?? '10', 10),
     serviceUrl: process.env.SOCIAL_POSTING_SERVICE_URL,
   });
-
-  const errors = validateSync(config, {
-    skipMissingProperties: false,
-  });
-
-  if (errors.length > 0) {
-    const errorMessages = errors.map(err => Object.values(err.constraints ?? {}).join(', '));
-    throw new Error(`Social posting config validation error: ${errorMessages.join('; ')}`);
-  }
 
   return config;
 });
