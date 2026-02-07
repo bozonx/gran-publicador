@@ -366,6 +366,27 @@ export class MediaService {
     return this.prisma.media.delete({ where: { id } });
   }
 
+  private async confirmFileInStorage(fileId: string): Promise<void> {
+    const config = this.config;
+    if (!config.serviceUrl) return;
+
+    try {
+      const response = await request(`${config.serviceUrl}/files/${fileId}/confirm`, {
+        method: 'POST',
+        headersTimeout: (config.timeoutSecs || 60) * 1000,
+      });
+
+      if (response.statusCode >= 400) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        throw new BadGatewayException(
+          `Media Storage confirmation error: ${(errorBody as any).message || 'Microservice error'}`,
+        );
+      }
+    } catch (error) {
+      this.handleMicroserviceError(error, 'file confirmation');
+    }
+  }
+
   async uploadFileToStorage(
     fileStream: Readable,
     filename: string,
@@ -421,6 +442,10 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as any;
+
+      // Confirm the file to make it ready for download
+      await this.confirmFileInStorage(result.id);
+
       return {
         fileId: result.id,
         metadata: {
@@ -477,6 +502,10 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as any;
+
+      // Confirm the file to make it ready for download
+      await this.confirmFileInStorage(result.id);
+
       return {
         fileId: result.id,
         metadata: {
@@ -523,6 +552,10 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as any;
+
+      // Confirm the file to make it ready for download
+      await this.confirmFileInStorage(result.id);
+
       return {
         fileId: result.id,
         metadata: {
