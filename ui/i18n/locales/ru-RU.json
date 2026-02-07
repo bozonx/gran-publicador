@@ -616,7 +616,8 @@
     "type_story": "История",
     "inheritedScheduledAt": "Наследуется от публикации: {date}",
     "templateNotFound": "Шаблон не найден",
-    "createError": "Не удалось создать пост"
+    "createError": "Не удалось создать пост",
+    "translateTo": "Перевести на {lang}"
   },
   "publication": {
     "title": "Публикация",

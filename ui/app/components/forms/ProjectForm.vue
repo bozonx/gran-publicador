@@ -108,7 +108,7 @@ function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
 }
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
     if (!props.autosave) return { saved: false, skipped: true }
@@ -143,12 +143,17 @@ const schema = z.object({
 type Schema = z.output<typeof schema>
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state, {
-  enableNavigationGuard: !props.autosave,
-  enableBeforeUnload: !props.autosave
-})
+const dirtyState = props.autosave
+  ? null
+  : useFormDirtyState(state, {
+      enableNavigationGuard: true,
+      enableBeforeUnload: true,
+    })
 
-// Save original state when component mounts or project changes
+const isDirty = computed(() => dirtyState?.isDirty.value ?? false)
+const saveOriginalState = () => dirtyState?.saveOriginalState()
+const resetToOriginal = () => dirtyState?.resetToOriginal()
+
 // Save original state when component mounts or project changes
 watch(() => props.project, (newProject, oldProject) => {
   // Fix for race condition/overwrite:
@@ -185,6 +190,10 @@ watch(() => props.project, (newProject, oldProject) => {
     mediaOptimization: mediaOpt ?? state.preferences.mediaOptimization,
   }
   nextTick(() => {
+    if (props.autosave) {
+      syncBaseline()
+      return
+    }
     saveOriginalState()
   })
 }, { immediate: true })
@@ -198,7 +207,11 @@ async function handleSubmit(event: FormSubmitEvent<Schema>) {
     await emit('submit', updateData, { silent: false })
     formActionsRef.value?.showSuccess()
     // Update original state after successful save
-    saveOriginalState()
+    if (props.autosave) {
+      syncBaseline()
+    } else {
+      saveOriginalState()
+    }
   } catch (error) {
     formActionsRef.value?.showError()
     toast.add({

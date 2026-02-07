@@ -6,6 +6,8 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
+import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
 import { common, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { Table } from '@tiptap/extension-table'
@@ -102,14 +104,14 @@ const extensions = [
   StarterKit.configure({
     heading: { levels: [1, 2, 3] },
     codeBlock: false,
-    underline: {},
-    link: {
-      openOnClick: false,
-      autolink: true,
-      linkOnPaste: true,
-      HTMLAttributes: {
-        class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
-      },
+  }),
+  Underline,
+  Link.configure({
+    openOnClick: false,
+    autolink: true,
+    linkOnPaste: true,
+    HTMLAttributes: {
+      class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
     },
   }),
   Markdown.configure({
@@ -139,6 +141,11 @@ const extensions = [
 const editor = useEditor({
   editable: !props.disabled,
   extensions: extensions,
+  editorProps: {
+    attributes: {
+      class: 'tiptap focus:outline-none',
+    },
+  },
   onUpdate: ({ editor }) => {
     const markdown = editor.getMarkdown()
     if (markdown !== props.modelValue) {
@@ -567,6 +574,27 @@ const isMaxLengthReached = computed(() => {
     outline: none;
   }
 
+  p {
+    margin: 1rem 0;
+  }
+
+  h1, h2, h3 {
+    @apply font-bold mt-6 mb-2;
+    line-height: 1.25;
+  }
+
+  h1 { @apply text-2xl; }
+  h2 { @apply text-xl; }
+  h3 { @apply text-lg; }
+
+  > *:first-child {
+    margin-top: 0;
+  }
+
+  > *:last-child {
+    margin-bottom: 0;
+  }
+
   p.is-editor-empty:first-child::before {
     color: var(--ui-color-neutral-400);
     content: attr(data-placeholder);
@@ -639,11 +667,15 @@ const isMaxLengthReached = computed(() => {
   }
 
   ul {
-    @apply list-disc ml-4;
+    @apply list-disc ml-5 my-4;
   }
 
   ol {
-    @apply list-decimal ml-4;
+    @apply list-decimal ml-5 my-4;
+  }
+
+  li {
+    @apply mb-1;
   }
 
   blockquote {

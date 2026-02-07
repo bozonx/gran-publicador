@@ -24,7 +24,7 @@ const translateFormRef = ref()
 useModalAutoFocus({
   open: isOpen,
   root: modalRootRef,
-  candidates: [{ target: () => translateFormRef.value?.$el?.querySelector('button') }],
+  candidates: [{ target: () => translateFormRef.value?.languageSelectRef }],
 })
 
 async function handleTranslate() {

@@ -1,14 +1,14 @@
-import { ref, computed, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { registerDirtyForm, confirmLeaveDirtyForm } from './useDirtyFormsManager'
+import { ref, computed, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { registerDirtyForm, confirmLeaveDirtyForm } from './useDirtyFormsManager';
 
-// Global flag to ensure we only register one navigation guard
-let navigationGuardRegistered = false
+let navigationGuardUsers = 0;
+let unregisterNavigationGuard: (() => void) | null = null;
 
 /**
  * Composable for tracking form dirty state (unsaved changes)
- * 
+ *
  * @param formData - Reactive form data object
  * @param options - Configuration options
  * @returns Object with dirty state tracking utilities
@@ -17,48 +17,60 @@ export function useFormDirtyState<T extends Record<string, any>>(
   formData: T,
   options: {
     /** Enable browser warning when leaving page with unsaved changes */
-    enableBeforeUnload?: boolean
+    enableBeforeUnload?: boolean;
     /** Enable router navigation guard */
-    enableNavigationGuard?: boolean
+    enableNavigationGuard?: boolean;
     /** Custom comparison function for dirty state detection */
-    compareFn?: (original: T, current: T) => boolean
-  } = {}
+    compareFn?: (original: T, current: T) => boolean;
+  } = {},
 ) {
-  const { enableBeforeUnload = true, enableNavigationGuard = true, compareFn } = options
+  const { enableBeforeUnload = true, enableNavigationGuard = true, compareFn } = options;
 
-  const router = useRouter()
-  const { t } = useI18n()
+  const router = useRouter();
+  let t: (key: string, fallback?: string) => string = (_key, fallback) => fallback ?? '';
+  try {
+    const i18n = useI18n();
+    t = (key: string, fallback?: string) => {
+      if (typeof (i18n as any).te === 'function' && !(i18n as any).te(key)) {
+        return fallback ?? '';
+      }
+
+      return String(i18n.t(key));
+    };
+  } catch {
+    // ignore
+  }
 
   // Generate unique ID for this form instance
-  const formId = `form-${Math.random().toString(36).substr(2, 9)}`
+  const formId = `form-${Math.random().toString(36).substr(2, 9)}`;
 
   // Store original form data as JSON string for comparison
-  const originalDataJson = ref<string>('')
-  const isInitialized = ref(false)
+  const originalDataJson = ref<string>('');
+  const isInitialized = ref(false);
 
   /**
    * Save current form state as the "clean" baseline
    */
   function saveOriginalState() {
-    originalDataJson.value = JSON.stringify(formData)
-    isInitialized.value = true
+    originalDataJson.value = JSON.stringify(formData);
+    isInitialized.value = true;
   }
 
   /**
    * Reset form to original saved state
    */
   function resetToOriginal() {
-    if (!isInitialized.value) return
+    if (!isInitialized.value) return;
 
     try {
-      const original = JSON.parse(originalDataJson.value)
-      Object.keys(original).forEach((key) => {
+      const original = JSON.parse(originalDataJson.value);
+      Object.keys(original).forEach(key => {
         if (key in formData) {
-          ;(formData as any)[key] = original[key]
+          (formData as any)[key] = original[key];
         }
-      })
+      });
     } catch (error) {
-      console.error('Failed to reset form data:', error)
+      console.error('Failed to reset form data:', error);
     }
   }
 
@@ -66,69 +78,83 @@ export function useFormDirtyState<T extends Record<string, any>>(
    * Check if form has unsaved changes
    */
   const isDirty = computed(() => {
-    if (!isInitialized.value) return false
+    if (!isInitialized.value) return false;
 
     if (compareFn) {
       try {
-        const original = JSON.parse(originalDataJson.value)
-        return compareFn(original, formData)
+        const original = JSON.parse(originalDataJson.value);
+        return compareFn(original, formData);
       } catch {
-        return false
+        return false;
       }
     }
 
-    const currentJson = JSON.stringify(formData)
-    return currentJson !== originalDataJson.value
-  })
+    const currentJson = JSON.stringify(formData);
+    return currentJson !== originalDataJson.value;
+  });
 
   /**
    * Browser beforeunload handler to warn about unsaved changes
    */
   function handleBeforeUnload(e: BeforeUnloadEvent) {
     if (isDirty.value) {
-      e.preventDefault()
+      e.preventDefault();
       // Modern browsers ignore custom messages, but setting returnValue is required
-      e.returnValue = ''
-      return ''
+      e.returnValue = '';
+      return '';
     }
   }
 
   // Setup beforeunload listener
   if (enableBeforeUnload && typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('beforeunload', handleBeforeUnload);
   }
 
   // Register this form in the global manager
-  let unregisterForm: (() => void) | undefined
+  let unregisterForm: (() => void) | undefined;
+  let navigationGuardUserRegistered = false;
 
   if (enableNavigationGuard) {
-    const confirmMessage = t('form.resetConfirm', 'Are you sure you want to leave? You have unsaved changes.')
-    unregisterForm = registerDirtyForm(formId, () => isDirty.value, confirmMessage)
+    const confirmMessage = t(
+      'form.resetConfirm',
+      'Are you sure you want to leave? You have unsaved changes.',
+    );
+    unregisterForm = registerDirtyForm(formId, () => isDirty.value, confirmMessage);
 
-    // Register global navigation guard only once
-    if (!navigationGuardRegistered && router) {
-      navigationGuardRegistered = true
-      
-      router.beforeEach(async (to, from, next) => {
-        const canLeave = await confirmLeaveDirtyForm()
+    navigationGuardUsers += 1;
+    navigationGuardUserRegistered = true;
+
+    if (!unregisterNavigationGuard && router) {
+      const remove = router.beforeEach(async (to, from, next) => {
+        const canLeave = await confirmLeaveDirtyForm();
         if (canLeave) {
-          next()
+          next();
         } else {
-          next(false)
+          next(false);
         }
-      })
+      });
+
+      unregisterNavigationGuard = typeof remove === 'function' ? remove : null;
     }
   }
 
   // Cleanup on unmount
   onBeforeUnmount(() => {
     if (enableBeforeUnload && typeof window !== 'undefined') {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     }
     if (unregisterForm) {
-      unregisterForm()
+      unregisterForm();
     }
-  })
+
+    if (navigationGuardUserRegistered) {
+      navigationGuardUsers = Math.max(0, navigationGuardUsers - 1);
+      if (navigationGuardUsers === 0 && unregisterNavigationGuard) {
+        unregisterNavigationGuard();
+        unregisterNavigationGuard = null;
+      }
+    }
+  });
 
   return {
     /** Whether the form has unsaved changes */
@@ -139,5 +165,5 @@ export function useFormDirtyState<T extends Record<string, any>>(
     saveOriginalState,
     /** Reset form to last saved state */
     resetToOriginal,
-  }
+  };
 }

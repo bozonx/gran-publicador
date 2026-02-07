@@ -260,10 +260,10 @@ watch(selectedQueryId, async (newId) => {
 })
 
 // Auto-save setup using composable
-const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
+const { saveStatus, saveError, lastSavedAt, isDirty, isIndicatorVisible, indicatorStatus } = useAutosave({
   data: currentQuery,
   saveFn: async (query) => {
-    if (!query) return
+    if (!query) return { saved: false, skipped: true }
     
     await updateQuery(query.id, {
       q: query.q,
@@ -278,6 +278,7 @@ const { saveStatus, saveError, lastSavedAt, isDirty } = useAutosave({
       note: query.note,
       isNotificationEnabled: query.isNotificationEnabled
     })
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
@@ -739,33 +740,11 @@ const sourcesTooltipText = computed(() => {
               </div>
 
               <div class="flex items-center gap-3">
-                <!-- Auto-save status indicator -->
-                <div class="flex items-center gap-2 text-sm">
-                  <UIcon 
-                    v-if="saveStatus === 'saved'" 
-                    name="i-heroicons-check-circle" 
-                    class="w-4 h-4 text-green-500"
-                  />
-                  <UIcon 
-                    v-else-if="saveStatus === 'saving'" 
-                    name="i-heroicons-arrow-path" 
-                    class="w-4 h-4 text-blue-500 animate-spin"
-                  />
-                  <UIcon 
-                    v-else-if="saveStatus === 'error'" 
-                    name="i-heroicons-exclamation-circle" 
-                    class="w-4 h-4 text-red-500"
-                  />
-                  <span 
-                    :class="{
-                      'text-gray-500 dark:text-gray-400': saveStatus === 'saved',
-                      'text-blue-500': saveStatus === 'saving',
-                      'text-red-500': saveStatus === 'error'
-                    }"
-                  >
-                    {{ saveStatus === 'saved' ? t('common.saved') : saveStatus === 'saving' ? t('common.saving') : t('common.saveError') }}
-                  </span>
-                </div>
+                <UiSaveStatusIndicator
+                  :status="indicatorStatus"
+                  :visible="isIndicatorVisible"
+                  :error="saveError"
+                />
 
                 <UButton
                   color="neutral"

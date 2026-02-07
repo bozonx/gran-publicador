@@ -512,8 +512,9 @@ const hasMore = computed(() => items.value.length < total.value)
 const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus } = useAutosave({
   data: toRef(() => editForm.value),
   saveFn: async (data: any) => {
-    if (!isEditModalOpen.value || !activeItem.value) return
+    if (!isEditModalOpen.value || !activeItem.value) return { saved: false, skipped: true }
     await saveItem(data)
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,

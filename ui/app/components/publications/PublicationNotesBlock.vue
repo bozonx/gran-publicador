@@ -38,6 +38,8 @@ const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus } 
     
     // We don't emit update here to avoid re-rendering parent components while typing
     // But we might want to update local state if needed
+
+    return { saved: true }
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,

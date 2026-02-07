@@ -1,11 +1,36 @@
-import { ref, watch, type Ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch, type Ref, computed, onMounted, onUnmounted } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import {
   AUTO_SAVE_DEBOUNCE_MS,
   AUTOSAVE_INDICATOR_DELAY_MS,
   AUTOSAVE_INDICATOR_DISPLAY_MS,
 } from '~/constants/autosave';
 import { logger } from '~/utils/logger';
+
+function resolveUseI18n(): null | (() => { t: (key: string) => unknown }) {
+  // Nuxt auto-imports are available at runtime, but not in unit tests.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globalUseI18n = (globalThis as any).useI18n;
+  if (typeof globalUseI18n === 'function') return globalUseI18n;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const localUseI18n = (globalThis as any).__nuxt_useI18n;
+  if (typeof localUseI18n === 'function') return localUseI18n;
+
+  return null;
+}
+
+function resolveUseToast(): null | (() => { add: (toast: unknown) => unknown }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globalUseToast = (globalThis as any).useToast;
+  if (typeof globalUseToast === 'function') return globalUseToast;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const localUseToast = (globalThis as any).__nuxt_useToast;
+  if (typeof localUseToast === 'function') return localUseToast;
+
+  return null;
+}
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
 
@@ -41,6 +66,11 @@ export interface AutosaveReturn {
   forceSave: () => Promise<void>;
   // Manual trigger that ignores isEqual check
   triggerSave: () => Promise<void>;
+  /**
+   * Update the internal baseline to the current value without saving.
+   * Useful after syncing state from server/props to avoid triggering autosave.
+   */
+  syncBaseline: () => void;
 }
 
 /**
@@ -55,9 +85,30 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     isEqual = defaultIsEqual,
   } = options;
 
-  const router = useRouter();
-  const { t } = useI18n();
-  const toast = useToast();
+  let t: (key: string) => string = key => key;
+  try {
+    const useI18nFn = resolveUseI18n();
+    if (useI18nFn) {
+      const i18n = useI18nFn();
+      t = (key: string) => String(i18n.t(key));
+    }
+  } catch (error) {
+    logger.warn('useI18n is not available, falling back to identity translator', error);
+  }
+
+  // Nuxt UI toast has a richer type than we need here; keep it minimal.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let toast: any = {
+    add: () => undefined,
+  };
+  try {
+    const useToastFn = resolveUseToast();
+    if (useToastFn) {
+      toast = useToastFn();
+    }
+  } catch (error) {
+    logger.warn('useToast is not available, falling back to no-op toast', error);
+  }
 
   const saveStatus = ref<SaveStatus>('saved');
   const saveError = ref<string | null>(null);
@@ -95,18 +146,34 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         return;
       }
 
-      void triggerSave();
+      void performSave(true);
     }, RETRY_INTERVAL_MS);
   }
 
   // Store last saved state for dirty checking
   const lastSavedState = ref<T | null>(null);
+  let baselineInitialized = false;
 
   // Promise queue to ensure sequential saves
   let saveQueue = Promise.resolve();
 
   if (skipInitial && data.value) {
     lastSavedState.value = deepCloneOrNull(data.value);
+    baselineInitialized = true;
+  }
+
+  function syncBaseline() {
+    if (!data.value) return;
+
+    lastSavedState.value = deepCloneOrNull(data.value);
+    baselineInitialized = true;
+    isDirty.value = false;
+    saveStatus.value = 'saved';
+    saveError.value = null;
+    errorToastShownForCycle = false;
+    isIndicatorVisible.value = false;
+    clearIndicatorTimers();
+    clearRetryTimer();
   }
 
   /**
@@ -189,7 +256,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
             errorToastShownForCycle = true;
             toast.add({
               title: t('common.error'),
-              description: saveError.value,
+              description: saveError.value ?? undefined,
               color: 'error',
             });
           }
@@ -209,7 +276,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           errorToastShownForCycle = true;
           toast.add({
             title: t('common.error'),
-            description: saveError.value,
+            description: saveError.value ?? undefined,
             color: 'error',
           });
         }
@@ -230,8 +297,9 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     (newValue, oldValue) => {
       if (!newValue) return;
 
-      if (skipInitial && lastSavedState.value === null) {
+      if (skipInitial && !baselineInitialized) {
         lastSavedState.value = deepCloneOrNull(newValue);
+        baselineInitialized = true;
         return;
       }
 
@@ -260,6 +328,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
         // This is a tab switch or similar - update saved state without saving for the NEW value
         lastSavedState.value = deepCloneOrNull(newValue);
+        baselineInitialized = true;
         isDirty.value = false;
         isIndicatorVisible.value = false;
         clearIndicatorTimers();
@@ -277,18 +346,23 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   );
 
   // Navigation guard - prevent navigation while saving
-  onBeforeRouteLeave((to, from, next) => {
-    if (saveStatus.value === 'saving') {
-      const answer = window.confirm(t('common.savingInProgressConfirm'));
-      if (answer) {
-        next();
+  // In unit tests or some runtimes there may be no active router context.
+  try {
+    onBeforeRouteLeave((to, from, next) => {
+      if (saveStatus.value === 'saving') {
+        const answer = window.confirm(t('common.savingInProgressConfirm'));
+        if (answer) {
+          next();
+        } else {
+          next(false);
+        }
       } else {
-        next(false);
+        next();
       }
-    } else {
-      next();
-    }
-  });
+    });
+  } catch (error) {
+    logger.warn('Failed to register autosave route leave guard', error);
+  }
 
   // Browser unload guard - prevent closing tab while saving
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -318,6 +392,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     indicatorStatus,
     forceSave: () => performSave(true),
     triggerSave: () => performSave(true),
+    syncBaseline,
   };
 }
 
@@ -336,11 +411,17 @@ function defaultIsEqual<T>(a: T, b: T): boolean {
  * Deep clone using JSON serialization
  */
 function deepCloneOrNull<T>(obj: T): T | null {
-  try {
-    if (typeof structuredClone === 'function') {
+  if (typeof structuredClone === 'function') {
+    try {
       return structuredClone(obj);
+    } catch (error) {
+      // Vue reactive proxies and some complex objects can fail structuredClone.
+      // Fall back to JSON clone for plain data.
+      logger.warn('Failed to structuredClone autosave state, falling back to JSON clone', error);
     }
+  }
 
+  try {
     return JSON.parse(JSON.stringify(obj));
   } catch (error) {
     logger.warn('Failed to deep clone autosave state, falling back to null baseline', error);

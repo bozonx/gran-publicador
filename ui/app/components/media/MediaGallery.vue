@@ -193,7 +193,7 @@ const {
 
     emit('refresh')
 
-    if (!data.mediaLinkId) return
+    if (!data.mediaLinkId) return { saved: true, skipped: true }
 
     try {
       if (props.publicationId) {
@@ -1109,7 +1109,7 @@ const mediaValidation = computed(() => {
                  :key="idx"
                  class="flex items-center gap-2 pl-3 pr-1 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs group"
                >
-                 <span class="max-w-[150px] truncate">{{ file.name }}</span>
+                 <span class="max-w-37.5 truncate">{{ file.name }}</span>
                  <UButton
                    icon="i-heroicons-x-mark"
                    variant="ghost"
@@ -1407,29 +1407,29 @@ const mediaValidation = computed(() => {
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="space-y-1">
-              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.originalSize') }}</div>
+              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.originalSize') }}</div>
               <div class="text-sm font-mono">{{ compressionStats.originalSize }}</div>
             </div>
             <div class="space-y-1">
-              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.optimizedSize') }}</div>
+              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.optimizedSize') }}</div>
               <div class="text-sm font-mono text-primary-600 dark:text-primary-400">{{ compressionStats.optimizedSize }}</div>
             </div>
             <div class="space-y-1">
-              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.savedSpace') }}</div>
+              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.savedSpace') }}</div>
               <div class="text-sm font-mono text-green-600 dark:text-green-400 font-bold">
                 {{ compressionStats.savedPercent }}%
               </div>
             </div>
             <div class="space-y-1">
-              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Ratio</div>
+              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">Ratio</div>
               <div class="text-sm font-mono">{{ compressionStats.ratio }}x</div>
             </div>
             <div v-if="compressionStats.quality" class="space-y-1">
-              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.quality') }}</div>
+              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.quality') }}</div>
               <div class="text-sm font-mono">{{ compressionStats.quality }}%</div>
             </div>
             <div v-if="compressionStats.lossless !== undefined" class="space-y-1">
-              <div class="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{{ t('media.lossless') }}</div>
+              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.lossless') }}</div>
               <div class="text-sm font-mono flex items-center gap-1">
                 <UIcon :name="compressionStats.lossless ? 'i-heroicons-check' : 'i-heroicons-x-mark'" :class="compressionStats.lossless ? 'text-green-500' : 'text-gray-400'" class="w-4 h-4" />
                 <span>{{ compressionStats.lossless ? t('common.yes') : t('common.no') }}</span>

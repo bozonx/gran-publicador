@@ -616,7 +616,8 @@
     "inheritedScheduledAt": "Inherited from publication: {date}",
     "templateNotFound": "Template not found",
     "createError": "Failed to create post",
-    "overrideHint": "Override default settings for this post"
+    "overrideHint": "Override default settings for this post",
+    "translateTo": "Translate to {lang}"
   },
   "publication": {
     "title": "Publication",

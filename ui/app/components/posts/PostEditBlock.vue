@@ -20,6 +20,7 @@ import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import AuthorSignatureSelector from './AuthorSignatureSelector.vue'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { useTranslate } from '~/composables/useTranslate'
 
 interface Props {
   post?: PostWithRelations
@@ -42,6 +43,7 @@ const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
 const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
+const { translateText, isLoading: isTranslating } = useTranslate()
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -121,10 +123,16 @@ const formData = reactive({
 })
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(formData, {
-    enableNavigationGuard: !props.autosave,
-    enableBeforeUnload: !props.autosave
-})
+const dirtyState = props.autosave
+  ? null
+  : useFormDirtyState(formData, {
+      enableNavigationGuard: true,
+      enableBeforeUnload: true,
+    })
+
+const isDirty = computed(() => dirtyState?.isDirty.value ?? false)
+const saveOriginalState = () => dirtyState?.saveOriginalState()
+const resetToOriginal = () => dirtyState?.resetToOriginal()
 
 // Auto-save setup
 const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
@@ -194,6 +202,30 @@ const hasLanguageMismatch = computed(() => {
 function toggleCollapse() {
   if (props.isCreating) return
   isCollapsed.value = !isCollapsed.value
+}
+
+async function handleTranslate() {
+  const targetLang = channelLanguage.value
+  if (!targetLang) return
+  
+  const sourceText = isTextContentEmpty(formData.content) 
+    ? props.publication?.content 
+    : formData.content
+    
+  if (!sourceText || isTextContentEmpty(sourceText)) return
+
+  try {
+    const result = await translateText({
+      text: sourceText,
+      targetLang: targetLang,
+      splitter: 'markdown'
+    })
+    
+    formData.content = result.translatedText
+  } catch (error) {
+    // Error is handled by composable and potentially shown in UI if we added it, 
+    // but here we just catch to avoid unhandled rejection
+  }
 }
 
 const isDeleteModalOpen = ref(false)
@@ -989,16 +1021,29 @@ async function executePublish() {
        <div class="space-y-2">
             <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.content') }}</span>
-                <UButton 
-                    v-if="formData.content" 
-                    variant="ghost" 
-                    color="neutral" 
-                    size="xs" 
-                    icon="i-heroicons-x-mark"
-                    @click="formData.content = ''"
-                >
-                    {{ t('common.reset') }}
-                </UButton>
+                <div class="flex items-center gap-2">
+                    <UButton
+                        v-if="channelLanguage"
+                        variant="soft"
+                        color="primary"
+                        size="xs"
+                        icon="i-heroicons-language"
+                        :loading="isTranslating"
+                        @click="handleTranslate"
+                    >
+                        {{ t('post.translateTo', { lang: channelLanguage }) }}
+                    </UButton>
+                    <UButton 
+                        v-if="formData.content" 
+                        variant="ghost" 
+                        color="neutral" 
+                        size="xs" 
+                        icon="i-heroicons-x-mark"
+                        @click="formData.content = ''"
+                    >
+                        {{ t('common.reset') }}
+                    </UButton>
+                </div>
             </div>
             <TiptapEditor 
                 v-model="formData.content" 

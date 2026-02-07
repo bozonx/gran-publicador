@@ -41,11 +41,14 @@ async function submit() {
   }
 }
 
+const languageSelectRef = ref()
+
 defineExpose({
   submit,
   isLoading,
   targetLang,
-  error
+  error,
+  languageSelectRef
 })
 </script>
 
@@ -53,6 +56,7 @@ defineExpose({
   <div class="space-y-4">
     <UFormField :label="t('translate.targetLanguagePrecise')">
       <CommonLanguageSelect
+        ref="languageSelectRef"
         v-model="targetLang"
         mode="all"
         searchable

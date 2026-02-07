@@ -128,10 +128,16 @@ const isValid = computed(() => validationErrors.value.length === 0)
 
 
 // Dirty state tracking
-const { isDirty, saveOriginalState, resetToOriginal } = useFormDirtyState(state, {
-  enableNavigationGuard: !props.autosave,
-  enableBeforeUnload: !props.autosave
-})
+const dirtyState = props.autosave
+  ? null
+  : useFormDirtyState(state, {
+      enableNavigationGuard: true,
+      enableBeforeUnload: true,
+    })
+
+const isDirty = computed(() => dirtyState?.isDirty.value ?? false)
+const saveOriginalState = () => dirtyState?.saveOriginalState()
+const resetToOriginal = () => dirtyState?.resetToOriginal()
 
 // Initial load
 onMounted(async () => {
@@ -150,7 +156,7 @@ onMounted(async () => {
 })
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline } = useAutosave({
   data: toRef(() => state),
   saveFn: async (data) => {
     if (!props.autosave || !isEditMode.value) return { saved: false, skipped: true }
@@ -171,7 +177,6 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus } = useAutosa
 })
 
 // Watch for external publication updates (e.g. from modals)
-// Watch for external publication updates (e.g. from modals)
 watch(() => props.publication, (newPub, oldPub) => {
   if (newPub) {
     // Fix for race condition/overwrite:
@@ -184,8 +189,14 @@ watch(() => props.publication, (newPub, oldPub) => {
         // (status is managed externally via buttons on the edit page)
         if (newPub.status && newPub.status !== state.status) {
           state.status = newPub.status as PublicationStatus
-          // Reset dirty baseline so status sync doesn't trigger autosave
-          nextTick(() => saveOriginalState())
+          // Reset baseline so status sync doesn't trigger autosave
+          nextTick(() => {
+            if (props.autosave) {
+              syncBaseline()
+              return
+            }
+            saveOriginalState()
+          })
         }
         return
     }
@@ -204,8 +215,14 @@ watch(() => props.publication, (newPub, oldPub) => {
     state.translationGroupId = newPub.translationGroupId || undefined
     
     
-    // Reset baseline for dirty tracking AFTER updating state
-    nextTick(() => saveOriginalState())
+    // Reset baseline AFTER updating state
+    nextTick(() => {
+      if (props.autosave) {
+        syncBaseline()
+        return
+      }
+      saveOriginalState()
+    })
   }
 }, { deep: true, immediate: true })
 
