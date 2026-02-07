@@ -755,67 +755,120 @@ const isMaxLengthReached = computed(() => {
     }
   }
 
+  /*
+   * Code blocks
+   * Use explicit properties with !important to reliably override Tailwind Typography (.prose pre)
+   */
+  .ProseMirror pre,
   pre {
-    @apply bg-gray-900 text-gray-100 rounded-md p-4 my-4 font-mono text-sm overflow-x-auto;
-    
-    code {
-      @apply bg-transparent p-0 text-inherit rounded-none;
-    }
+    background-color: rgb(249 250 251) !important;
+    color: rgb(17 24 39) !important;
+    border-radius: 0.375rem !important;
+    padding: 1rem !important;
+    margin: 1rem 0 !important;
+    border: 1px solid rgb(229 231 235) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06) !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    overflow-x: auto !important;
+  }
 
-    /* Syntax highlighting */
-    .hljs-comment,
-    .hljs-quote {
-      @apply text-gray-500 italic;
-    }
+  :global(.dark) .tiptap .ProseMirror pre,
+  :global(.dark) .tiptap pre {
+    background-color: rgb(3 7 18) !important;
+    color: rgb(243 244 246) !important;
+    border-color: rgb(55 65 81) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.35) !important;
+  }
+  .ProseMirror pre code,
+  pre code {
+    background-color: transparent !important;
+    padding: 0 !important;
+    color: inherit !important;
+    border-radius: 0 !important;
+  }
 
-    .hljs-keyword,
-    .hljs-selector-tag,
-    .hljs-addition {
-      @apply text-purple-400;
-    }
+  /* Syntax highlighting (lowlight/hljs classes) */
+  .ProseMirror pre .hljs-comment,
+  pre .hljs-comment,
+  .ProseMirror pre .hljs-quote,
+  pre .hljs-quote {
+    @apply text-gray-500 italic;
+  }
 
-    .hljs-number,
-    .hljs-string,
-    .hljs-meta .hljs-meta-string,
-    .hljs-literal,
-    .hljs-doctag,
-    .hljs-regexp {
-      @apply text-green-400;
-    }
+  .ProseMirror pre .hljs-keyword,
+  pre .hljs-keyword,
+  .ProseMirror pre .hljs-selector-tag,
+  pre .hljs-selector-tag,
+  .ProseMirror pre .hljs-addition,
+  pre .hljs-addition {
+    @apply text-purple-400;
+  }
 
-    .hljs-attribute,
-    .hljs-attr,
-    .hljs-variable,
-    .hljs-template-variable,
-    .hljs-class .hljs-title,
-    .hljs-type {
-      @apply text-yellow-300;
-    }
+  .ProseMirror pre .hljs-number,
+  pre .hljs-number,
+  .ProseMirror pre .hljs-string,
+  pre .hljs-string,
+  .ProseMirror pre .hljs-meta .hljs-meta-string,
+  pre .hljs-meta .hljs-meta-string,
+  .ProseMirror pre .hljs-literal,
+  pre .hljs-literal,
+  .ProseMirror pre .hljs-doctag,
+  pre .hljs-doctag,
+  .ProseMirror pre .hljs-regexp,
+  pre .hljs-regexp {
+    @apply text-green-400;
+  }
 
-    .hljs-symbol,
-    .hljs-bullet,
-    .hljs-subst,
-    .hljs-meta,
-    .hljs-link {
-      @apply text-blue-400;
-    }
+  .ProseMirror pre .hljs-attribute,
+  pre .hljs-attribute,
+  .ProseMirror pre .hljs-attr,
+  pre .hljs-attr,
+  .ProseMirror pre .hljs-variable,
+  pre .hljs-variable,
+  .ProseMirror pre .hljs-template-variable,
+  pre .hljs-template-variable,
+  .ProseMirror pre .hljs-class .hljs-title,
+  pre .hljs-class .hljs-title,
+  .ProseMirror pre .hljs-type,
+  pre .hljs-type {
+    @apply text-yellow-300;
+  }
 
-    .hljs-built_in,
-    .hljs-deletion {
-      @apply text-red-400;
-    }
+  .ProseMirror pre .hljs-symbol,
+  pre .hljs-symbol,
+  .ProseMirror pre .hljs-bullet,
+  pre .hljs-bullet,
+  .ProseMirror pre .hljs-subst,
+  pre .hljs-subst,
+  .ProseMirror pre .hljs-meta,
+  pre .hljs-meta,
+  .ProseMirror pre .hljs-link,
+  pre .hljs-link {
+    @apply text-blue-400;
+  }
 
-    .hljs-formula {
-      @apply bg-gray-800 italic;
-    }
+  .ProseMirror pre .hljs-built_in,
+  pre .hljs-built_in,
+  .ProseMirror pre .hljs-deletion,
+  pre .hljs-deletion {
+    @apply text-red-400;
+  }
 
-    .hljs-emphasis {
-      @apply italic;
-    }
+  .ProseMirror pre .hljs-formula,
+  pre .hljs-formula {
+    @apply bg-gray-800 italic;
+  }
 
-    .hljs-strong {
-      @apply font-bold;
-    }
+  .ProseMirror pre .hljs-emphasis,
+  pre .hljs-emphasis {
+    @apply italic;
+  }
+
+  .ProseMirror pre .hljs-strong,
+  pre .hljs-strong {
+    @apply font-bold;
   }
 
   ul {
