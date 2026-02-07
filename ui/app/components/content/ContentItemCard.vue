@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { formatTagsCsv } from '~/utils/tags'
 import CommonThumb from '~/components/common/Thumb.vue'
 import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
@@ -63,9 +64,6 @@ const getItemTextBlocks = (item: any) => {
   return texts
 }
 
-const formatTags = (tags: string[]): string => {
-  return (tags ?? []).join(', ')
-}
 </script>
 
 <template>
@@ -191,7 +189,7 @@ const formatTags = (tags: string[]): string => {
       <!-- Tags if present -->
       <div v-if="item.tags && item.tags.length > 0" class="flex items-center gap-1 text-xs text-gray-400 italic">
         <UIcon name="i-heroicons-tag" class="w-3.5 h-3.5 shrink-0" />
-        <span class="truncate">{{ formatTags(item.tags) }}</span>
+        <span class="truncate">{{ formatTagsCsv(item.tags) }}</span>
       </div>
     </div>
   </div>

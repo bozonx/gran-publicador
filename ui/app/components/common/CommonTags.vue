@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BadgeProps } from '@nuxt/ui'
+import { parseTags } from '~/utils/tags'
 
 const props = withDefaults(defineProps<{
   tags: string | string[] | null | undefined
@@ -16,16 +17,7 @@ const props = withDefaults(defineProps<{
 })
 
 const normalizedTags = computed(() => {
-  if (!props.tags) return []
-
-  if (Array.isArray(props.tags)) {
-    return props.tags.map(t => t.trim()).filter(Boolean)
-  }
-
-  return props.tags
-    .split(',')
-    .map(t => t.trim())
-    .filter(Boolean)
+  return parseTags(props.tags)
 })
 </script>
 

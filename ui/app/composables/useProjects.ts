@@ -4,6 +4,7 @@ import { useProjectsStore } from '~/stores/projects';
 import type { Project, ProjectWithRole, ProjectMemberWithUser } from '~/stores/projects';
 import { ArchiveEntityType } from '~/types/archive.types';
 import { logger } from '~/utils/logger';
+import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
 export function useProjects() {
   const api = useApi();
@@ -21,9 +22,7 @@ export function useProjects() {
 
     try {
       const params: any = { limit: 100 };
-      if (includeArchived !== undefined) {
-        params.includeArchived = includeArchived;
-      }
+      applyArchiveQueryFlags(params, { includeArchived });
       const data = await api.get<ProjectWithRole[]>('/projects', { params });
       store.setProjects(data);
       return data;

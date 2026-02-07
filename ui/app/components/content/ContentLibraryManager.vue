@@ -5,6 +5,9 @@ import { VueDraggable } from 'vue-draggable-plus'
 import { type ContentLibraryTab, useContentLibraryTabs } from '~/composables/useContentLibraryTabs'
 import { useViewMode } from '~/composables/useViewMode'
 import { sanitizeContentPreserveMarkdown, stripHtmlAndSpecialChars } from '~/utils/text'
+import { getApiErrorMessage } from '~/utils/error'
+import { parseTags, formatTagsCsv } from '~/utils/tags'
+import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import AppModal from '~/components/ui/AppModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
@@ -283,121 +286,6 @@ const publicationData = ref({
   contentItemIds: [] as string[]
 })
 
-const PUBLICATION_SEPARATOR = '\n\n---\n\n'
-
-const normalizePublicationTags = (rawTags: string[]): string[] => {
-  const normalized = (rawTags ?? [])
-    .map(t => (t ?? '').toString().trim())
-    .filter(Boolean)
-    .map(t => t.toLowerCase())
-    .slice(0, VALIDATION_LIMITS.MAX_TAGS_COUNT)
-
-  const deduped = Array.from(new Set(normalized))
-  return deduped.slice(0, VALIDATION_LIMITS.MAX_TAGS_COUNT)
-}
-
-const joinPublicationTags = (tags: string[]): string => {
-  return tags.join(', ')
-}
-
-const isItemEmptyForPublication = (item: any): boolean => {
-  const hasAnyText = (item.blocks || [])
-    .some((b: any) => stripHtmlAndSpecialChars(b.text || '').trim().length > 0)
-  const hasAnyMedia = (item.blocks || [])
-    .some((b: any) => (b.media || []).some((m: any) => !!m.mediaId))
-  const hasAnyNote = stripHtmlAndSpecialChars(item.note || '').trim().length > 0
-  const hasAnyTitle = (item.title || '').toString().trim().length > 0
-
-  return !(hasAnyText || hasAnyMedia || hasAnyNote || hasAnyTitle)
-}
-
-const aggregateSelectedItemsToPublicationOrThrow = (selectedItems: any[]) => {
-  const itemsToUse = (selectedItems || []).filter(item => !isItemEmptyForPublication(item))
-  if (itemsToUse.length === 0) {
-    throw new Error('EMPTY_SELECTION')
-  }
-
-  const titleParts: string[] = []
-  const contentParts: string[] = []
-  const noteParts: string[] = []
-  const allTags: string[] = []
-
-  // mediaId -> chosen media input (chosen from the latest block.order)
-  const mediaPick = new Map<string, { input: { id: string; hasSpoiler?: boolean }; blockOrder: number }>()
-
-  const projectIds = new Set<string>()
-
-  for (const item of itemsToUse) {
-    if (item.projectId) projectIds.add(item.projectId)
-
-    const title = (item.title || '').toString().trim()
-    if (title) titleParts.push(title)
-
-    const note = (item.note || '').toString().trim()
-    if (note) noteParts.push(note)
-
-    for (const tag of (item.tags || [])) {
-      if (typeof tag === 'string') allTags.push(tag)
-    }
-
-    const sortedBlocks = (item.blocks || []).slice().sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-    for (const block of sortedBlocks) {
-      const blockText = sanitizeContentPreserveMarkdown(block.text || '').trim()
-      if (blockText) contentParts.push(blockText)
-
-      const blockOrder = Number(block.order ?? 0)
-      const sortedMedia = (block.media || []).slice().sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-      for (const link of sortedMedia) {
-        const mediaId = link?.mediaId
-        if (!mediaId) continue
-
-        const candidate = { id: mediaId, hasSpoiler: link.hasSpoiler ? true : undefined }
-        const prev = mediaPick.get(mediaId)
-        if (!prev || blockOrder >= prev.blockOrder) {
-          mediaPick.set(mediaId, { input: candidate, blockOrder })
-        }
-      }
-    }
-  }
-
-  const title = titleParts.join(' | ')
-  const content = contentParts.join(PUBLICATION_SEPARATOR)
-  const note = Array.from(new Set(noteParts)).join(PUBLICATION_SEPARATOR)
-
-  const tags = joinPublicationTags(normalizePublicationTags(allTags))
-
-  const media = Array.from(mediaPick.values())
-    .sort((a, b) => a.blockOrder - b.blockOrder)
-    .map(x => x.input)
-
-  if (title.length > VALIDATION_LIMITS.MAX_TITLE_LENGTH) {
-    throw new Error('LIMIT_TITLE')
-  }
-  if (content.length > VALIDATION_LIMITS.MAX_PUBLICATION_CONTENT_LENGTH) {
-    throw new Error('LIMIT_CONTENT')
-  }
-  if (note.length > VALIDATION_LIMITS.MAX_NOTE_LENGTH) {
-    throw new Error('LIMIT_NOTE')
-  }
-  if (tags.length > VALIDATION_LIMITS.MAX_TAGS_LENGTH) {
-    throw new Error('LIMIT_TAGS')
-  }
-  if (media.length > VALIDATION_LIMITS.MAX_REORDER_MEDIA) {
-    throw new Error('LIMIT_MEDIA')
-  }
-
-  return {
-    title,
-    content,
-    note,
-    tags,
-    media,
-    projectId: projectIds.size === 1 ? Array.from(projectIds)[0] : undefined,
-    allowProjectSelection: projectIds.size !== 1,
-    contentItemIds: itemsToUse.map(i => i.id),
-  }
-}
-
 // Tab Management
 const contentLibraryTabsRef = ref<any>(null)
 const isRenameTabModalOpen = ref(false)
@@ -520,25 +408,8 @@ const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, r
   skipInitial: true,
 })
 
-const parseTags = (raw: string): string[] => {
-  return raw
-    .split(/[,\s]+/)
-    .map(t => t.trim())
-    .filter(Boolean)
-}
-
 const formatTags = (tags: string[]): string => {
-  return (tags ?? []).join(', ')
-}
-
-const getApiErrorMessage = (e: any, fallback: string) => {
-  return (
-    e?.data?.message ||
-    e?.data?.error?.message ||
-    e?.response?._data?.message ||
-    e?.message ||
-    fallback
-  )
+  return formatTagsCsv(tags)
 }
 
 const fetchItems = async (opts?: { reset?: boolean }) => {
@@ -1017,7 +888,7 @@ const handleCreatePublicationFromSelection = () => {
   const selectedItems = items.value.filter(i => selectedIds.value.includes(i.id))
 
   try {
-    const aggregated = aggregateSelectedItemsToPublicationOrThrow(selectedItems)
+    const aggregated = aggregateSelectedItemsToPublicationOrThrow(selectedItems, VALIDATION_LIMITS)
 
     createPublicationModalProjectId.value = aggregated.projectId
     createPublicationModalAllowProjectSelection.value = aggregated.allowProjectSelection

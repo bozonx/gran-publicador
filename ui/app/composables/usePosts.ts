@@ -10,6 +10,7 @@ import {
   getPostTypeDisplayName,
 } from '~/utils/posts';
 import { logger } from '~/utils/logger';
+import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
 export interface Post {
   id: string;
@@ -133,7 +134,9 @@ export function usePosts() {
       if (filter.value.createdBy) params.createdBy = filter.value.createdBy;
       if (filter.value.limit) params.limit = filter.value.limit;
       if (filter.value.page) params.page = filter.value.page;
-      if (filter.value.includeArchived) params.includeArchived = true;
+      applyArchiveQueryFlags(params, {
+        includeArchived: filter.value.includeArchived,
+      });
       if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
 
       const data = await api.get<PostWithRelations[]>('/posts', { params });

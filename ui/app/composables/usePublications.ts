@@ -3,6 +3,7 @@ import { ArchiveEntityType } from '~/types/archive.types';
 import { logger } from '~/utils/logger';
 import type { PublicationStatus } from '~/types/posts';
 import { getStatusIcon } from '~/utils/publications';
+import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
 export interface Publication {
   id: string;
@@ -161,8 +162,10 @@ export function usePublications() {
       }
       if (filters.limit) params.limit = filters.limit;
       if (filters.offset) params.offset = filters.offset;
-      if (filters.includeArchived) params.includeArchived = true;
-      if (filters.archivedOnly) params.archivedOnly = true;
+      applyArchiveQueryFlags(params, {
+        includeArchived: filters.includeArchived,
+        archivedOnly: filters.archivedOnly,
+      });
       if (filters.sortBy) params.sortBy = filters.sortBy;
       if (filters.sortOrder) params.sortOrder = filters.sortOrder;
       if (filters.search) params.search = filters.search;
@@ -206,8 +209,10 @@ export function usePublications() {
       if (filters.projectId) params.projectId = filters.projectId;
       if (filters.limit) params.limit = filters.limit;
       if (filters.offset) params.offset = filters.offset;
-      if (filters.includeArchived) params.includeArchived = true;
-      if (filters.archivedOnly) params.archivedOnly = true;
+      applyArchiveQueryFlags(params, {
+        includeArchived: filters.includeArchived,
+        archivedOnly: filters.archivedOnly,
+      });
       if (filters.sortBy) params.sortBy = filters.sortBy;
       if (filters.sortOrder) params.sortOrder = filters.sortOrder;
       if (filters.search) params.search = filters.search;
