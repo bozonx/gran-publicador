@@ -26,14 +26,7 @@ function handleProjectCreated(projectId: string) {
 // Projects data
 const { projects, fetchProjects, isLoading: projectsLoading } = useProjects()
 
-// Drafts data (all projects)
-const {
-  publications: draftPublications,
-  fetchUserPublications: fetchDrafts,
-  totalCount: draftsCount,
-  isLoading: draftsLoading,
-  deletePublication
-} = usePublications()
+
 
 // Scheduled data
 const { 
@@ -65,7 +58,7 @@ onMounted(async () => {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     await Promise.all([
       fetchProjects(),
-      fetchDrafts({ status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+
       fetchRecentPublished({ 
         status: 'PUBLISHED', 
         publishedAfter: yesterday,
@@ -139,30 +132,7 @@ function goToPublication(pub: PublicationWithRelations) {
     }
 }
 
-// Delete Publication (Drafts)
-const showDeletePublicationModal = ref(false)
-const publicationToDelete = ref<PublicationWithRelations | null>(null)
-const isDeletingPublication = ref(false)
 
-function confirmDeletePublication(pub: PublicationWithRelations) {
-  publicationToDelete.value = pub
-  showDeletePublicationModal.value = true
-}
-
-async function handleDeletePublication() {
-  if (!publicationToDelete.value) return
-  isDeletingPublication.value = true
-  
-  // Delete publication from project
-  const success = await deletePublication(publicationToDelete.value.id)
-    
-  isDeletingPublication.value = false
-  if (success) {
-    showDeletePublicationModal.value = false
-    publicationToDelete.value = null
-    fetchDrafts({ status: 'DRAFT', limit: 5, sortBy: 'createdAt', sortOrder: 'desc' })
-  }
-}
 </script>
 
 <template>
@@ -181,18 +151,7 @@ async function handleDeletePublication() {
       <!-- Recent Content Widget -->
       <DashboardRecentContentWidget />
 
-      <!-- Combined Drafts -->
-      <PublicationsDraftsSection
-        v-if="draftsCount > 0 || draftsLoading"
-        :publications="draftPublications"
-        :total-count="draftsCount"
-        :loading="draftsLoading"
-        view-all-to="/publications?status=DRAFT"
-        :title="t('dashboard.your_recent_drafts')"
-        show-project-info
-        :show-toggle="false"
-        @delete="confirmDeletePublication"
-      />
+
 
       <!-- 2. Scheduled and Problems Columns -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -382,16 +341,6 @@ async function handleDeletePublication() {
         v-model:open="isCreateModalOpen"
         @created="handleProjectCreated"
       />
-    <UiConfirmModal
-      v-if="showDeletePublicationModal"
-      v-model:open="showDeletePublicationModal"
-      :title="t('publication.deleteConfirm')"
-      :description="t('publication.deleteCascadeWarning')"
-      :confirm-text="t('common.delete')"
-      color="error"
-      icon="i-heroicons-exclamation-triangle"
-      :loading="isDeletingPublication"
-      @confirm="handleDeletePublication"
-    />
+
   </div>
 </template>

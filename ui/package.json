@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "eslint \"**/*.{js,ts,vue}\"",
     "lint:fix": "eslint \"**/*.{js,ts,vue}\" --fix",
+    "lint:strict": "ESLINT_STRICT=1 eslint \"**/*.{js,ts,vue}\" --max-warnings=0",
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
