@@ -11,7 +11,8 @@ const { loginWithTelegram, loginWithTelegramWidget, loginWithDev, isLoading, err
 const config = useRuntimeConfig()
 const router = useRouter()
 
-const isDev = config.public.devMode === 'true'
+const devModeRaw = config.public.devMode
+const isDev = ['true', '1', 'yes', 'on'].includes(String(devModeRaw))
 const isTelegramContent = ref(true)
 const widgetContainer = ref<HTMLElement | null>(null)
 

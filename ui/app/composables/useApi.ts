@@ -70,7 +70,10 @@ export const useApi = () => {
   let refreshPromise: Promise<void> | null = null;
 
   // Base path for API, matching NestJS global prefix
-  const rawApiBase = config.public.apiBase || '';
+  const devModeRaw = config.public.devMode;
+  const isDevMode = ['true', '1', 'yes', 'on'].includes(String(devModeRaw));
+
+  const rawApiBase = config.public.apiBase || (isDevMode ? 'http://localhost:8080' : '');
   const cleanApiBase = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
   const apiBase = cleanApiBase ? `${cleanApiBase}/api/v1` : '/api/v1';
 
