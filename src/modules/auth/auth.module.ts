@@ -20,7 +20,6 @@ import { JwtStrategy } from './jwt.strategy.js';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('app.jwtSecret'),
-        signOptions: { expiresIn: '7d' },
       }),
     }),
     PassportModule,

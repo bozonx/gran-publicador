@@ -128,6 +128,11 @@ async function bootstrap() {
   await app.register(multipart, {
     limits: {
       fileSize: appConfig.media.maxFileSize,
+      files: 1,
+      fields: 20,
+      parts: 25,
+      fieldSize: 1024 * 1024,
+      headerPairs: 2000,
     },
   });
 
@@ -150,7 +155,14 @@ async function bootstrap() {
   logger.log(`📝 Log level: ${appConfig.logLevel}`, 'Bootstrap');
 
   // Setup explicit graceful shutdown handlers
-  const gracefulShutdown = async (signal: string) => {
+  let isTerminating = false;
+
+  const gracefulShutdown = async (signal: string, exitCode: number) => {
+    if (isTerminating) {
+      return;
+    }
+    isTerminating = true;
+
     logger.log(`Received ${signal}, starting graceful shutdown...`, 'Bootstrap');
 
     try {
@@ -158,7 +170,7 @@ async function bootstrap() {
       // This will trigger OnModuleDestroy, beforeApplicationShutdown and OnApplicationShutdown hooks
       await app.close();
       logger.log('✅ Application closed successfully', 'Bootstrap');
-      process.exit(0);
+      process.exit(exitCode);
     } catch (error: any) {
       logger.error(`❌ Error during shutdown: ${error.message}`, error.stack, 'Bootstrap');
       process.exit(1);
@@ -167,18 +179,19 @@ async function bootstrap() {
 
   // Handle shutdown signals
   // Use once to ensure we only try to shutdown once
-  process.once('SIGTERM', () => void gracefulShutdown('SIGTERM'));
-  process.once('SIGINT', () => void gracefulShutdown('SIGINT'));
+  process.once('SIGTERM', () => void gracefulShutdown('SIGTERM', 0));
+  process.once('SIGINT', () => void gracefulShutdown('SIGINT', 0));
 
-  // Handle uncaught errors during shutdown
   process.on('uncaughtException', error => {
-    logger.error('Uncaught Exception:', error.stack, 'Bootstrap');
-    process.exit(1);
+    logger.error(`Uncaught Exception: ${error.message}`, error.stack, 'Bootstrap');
+    void gracefulShutdown('uncaughtException', 1);
   });
 
-  process.on('unhandledRejection', (reason, promise) => {
-    logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`, 'Bootstrap');
-    process.exit(1);
+  process.on('unhandledRejection', reason => {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    const stack = reason instanceof Error ? reason.stack : undefined;
+    logger.error(`Unhandled Rejection: ${message}`, stack, 'Bootstrap');
+    void gracefulShutdown('unhandledRejection', 1);
   });
 }
 

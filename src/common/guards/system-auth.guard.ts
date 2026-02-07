@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyRequest } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
 import { AppConfig } from '../../config/app.config.js';
 
 /**
@@ -35,11 +36,26 @@ export class SystemAuthGuard implements CanActivate {
       throw new UnauthorizedException('System token is missing');
     }
 
-    if (token !== systemSecret) {
+    const tokenValue = Array.isArray(token) ? token[0] : token;
+    if (typeof tokenValue !== 'string') {
+      throw new UnauthorizedException('System token is missing');
+    }
+
+    if (!this.safeEquals(tokenValue, systemSecret)) {
       this.logger.warn(`Invalid system token attempt from IP: ${request.ip}`);
       throw new UnauthorizedException('Invalid system token');
     }
 
     return true;
+  }
+
+  private safeEquals(a: string, b: string): boolean {
+    const aBuf = Buffer.from(a);
+    const bBuf = Buffer.from(b);
+    if (aBuf.length !== bBuf.length) {
+      return false;
+    }
+
+    return timingSafeEqual(aBuf, bBuf);
   }
 }
