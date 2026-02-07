@@ -528,6 +528,7 @@ function handleTranslated(result: { translatedText: string }) {
           v-model="state.content"
           :placeholder="t('post.contentPlaceholder')"
           :min-height="250"
+          :default-target-lang="state.language"
         />
       </UFormField>
 
