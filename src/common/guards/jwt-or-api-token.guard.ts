@@ -49,8 +49,7 @@ export class JwtOrApiTokenGuard implements CanActivate {
       return true;
     }
 
-    // Try to get token from query if not in headers (for images)
-    if (!request.headers['authorization']) {
+    if (!request.headers['authorization'] && this.isQueryTokenAllowed(request)) {
       const queryToken = (request.query as any)?.token;
       if (queryToken && typeof queryToken === 'string') {
         request.headers['authorization'] = `Bearer ${queryToken}`;
@@ -77,6 +76,16 @@ export class JwtOrApiTokenGuard implements CanActivate {
     };
 
     return true;
+  }
+
+  private isQueryTokenAllowed(request: FastifyRequest): boolean {
+    if (request.method !== 'GET') {
+      return false;
+    }
+
+    const url = request.url ?? '';
+    const path = url.split('?')[0] ?? '';
+    return path.includes('/media/') && (path.endsWith('/file') || path.endsWith('/thumbnail'));
   }
 
   private extractApiToken(request: FastifyRequest): string | undefined {
