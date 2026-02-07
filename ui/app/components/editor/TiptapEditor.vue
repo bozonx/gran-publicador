@@ -3,8 +3,6 @@ import { ref, computed, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
-import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { Markdown } from '@tiptap/markdown'
@@ -104,20 +102,20 @@ const extensions = [
   StarterKit.configure({
     heading: { levels: [1, 2, 3] },
     codeBlock: false,
+    underline: {},
+    link: {
+      openOnClick: false,
+      autolink: true,
+      linkOnPaste: true,
+      HTMLAttributes: {
+        class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
+      },
+    },
   }),
   Markdown.configure({
     markedOptions: {
       gfm: true,
       breaks: false,
-    },
-  }),
-  Underline,
-  Link.configure({
-    openOnClick: false,
-    autolink: true,
-    linkOnPaste: true,
-    HTMLAttributes: {
-      class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
     },
   }),
   Placeholder.configure({
