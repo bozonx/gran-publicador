@@ -275,18 +275,51 @@ function getSelectionMarkdown(): string {
     return true
   })()
 
-  const content = hasOnlyInline && schema.nodes.paragraph
-    ? [schema.nodes.paragraph.create(null, fragment)]
-    : fragment.toArray()
+  const docType = schema.nodes.doc
+  const paragraphType = schema.nodes.paragraph
 
-  const doc = schema.nodes.doc.create(null, content)
+  if (!docType || !paragraphType) return ''
 
+  const doc = hasOnlyInline
+    ? docType.create(null, [paragraphType.create(null, fragment)])
+    : docType.create(null, fragment)
+
+  // Create a temporary editor specifically for serialization
+  // We EXCLUDE Placeholder and CharacterCount to avoid "localsInner" i18n errors
   const tempEditor = new Editor({
     content: doc.toJSON(),
-    extensions: buildExtensions({ placeholder: resolvedPlaceholder.value, maxLength: props.maxLength }),
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        codeBlock: false,
+      }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+      }),
+      Markdown.configure({
+        transformPastedText: true,
+        transformCopiedText: true,
+        markedOptions: {
+          gfm: true,
+          breaks: false,
+        },
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: 'javascript',
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
   })
 
-  const markdown = tempEditor.getMarkdown()
+  const markdown = tempEditor.storage.markdown.getMarkdown()
   tempEditor.destroy()
   return markdown
 }
@@ -679,6 +712,18 @@ const isMaxLengthReached = computed(() => {
   h2 { @apply text-xl; }
   h3 { @apply text-lg; }
 
+  strong {
+    @apply font-bold;
+  }
+
+  em {
+    @apply italic;
+  }
+
+  s {
+    @apply line-through;
+  }
+
   > *:first-child {
     margin-top: 0;
   }
@@ -695,11 +740,26 @@ const isMaxLengthReached = computed(() => {
     pointer-events: none;
   }
 
+  /* Inline code */
+  :not(pre) > code {
+    @apply bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400 rounded px-1.5 py-0.5 text-sm font-mono;
+  }
+
+  /* Links */
+  a {
+    @apply text-primary-600 dark:text-primary-400 underline cursor-pointer;
+    transition: opacity 0.15s;
+
+    &:hover {
+      @apply opacity-75;
+    }
+  }
+
   pre {
     @apply bg-gray-900 text-gray-100 rounded-md p-4 my-4 font-mono text-sm overflow-x-auto;
     
     code {
-      @apply bg-transparent p-0 text-inherit;
+      @apply bg-transparent p-0 text-inherit rounded-none;
     }
 
     /* Syntax highlighting */
@@ -760,18 +820,43 @@ const isMaxLengthReached = computed(() => {
 
   ul {
     @apply list-disc ml-5 my-4;
+
+    ul {
+      @apply list-[circle] my-1;
+    }
+
+    ul ul {
+      @apply list-[square];
+    }
   }
 
   ol {
     @apply list-decimal ml-5 my-4;
+
+    ol {
+      @apply list-[lower-alpha] my-1;
+    }
+
+    ol ol {
+      @apply list-[lower-roman];
+    }
   }
 
   li {
     @apply mb-1;
+
+    > ul,
+    > ol {
+      @apply mt-1;
+    }
   }
 
   blockquote {
-    @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4;
+    @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4 text-gray-600 dark:text-gray-400;
+
+    blockquote {
+      @apply mt-2;
+    }
   }
 
   hr {
