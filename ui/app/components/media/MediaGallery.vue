@@ -205,8 +205,10 @@ const {
         await props.onUpdateLink(data.mediaLinkId, { hasSpoiler: data.hasSpoiler })
       }
     } catch (error: any) {
+      // Media metadata was already saved successfully above.
+      // Log the spoiler update failure but do not fail the whole save,
+      // otherwise the user would see an error even though metadata is persisted.
       console.error('Failed to update media spoiler', error)
-      return { saved: false }
     }
 
     return { saved: true }

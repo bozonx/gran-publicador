@@ -16,6 +16,12 @@ All notable changes to this project will be documented in this file.
 - Content Library tabs: folders and saved views with per-scope ordering.
 
 ### Fixed
+- Autosave: fixed `SaveStatusIndicator` `v-if`/`v-else-if` chain rendering multiple status blocks simultaneously.
+- Autosave: moved `isEqual` check inside the save queue to prevent duplicate API requests on rapid changes.
+- Autosave: reference change (tab switch) now shows error toast if saving old dirty data fails, instead of silently losing changes.
+- Autosave: fixed `@blur` on `PublicationNotesBlock` textarea closing edit mode when clicking Retry button inside `SaveStatusIndicator`.
+- Autosave: added `enableNavigationGuards` option to prevent duplicate navigation guards when `useFormDirtyState` is also active.
+- Autosave: `MediaGallery` saveFn no longer reports failure when media metadata saved but spoiler link update fails (partial save).
 - TipTap editor: use native `content` + `contentType: 'markdown'` instead of `onCreate` workaround for initial content.
 - TipTap editor: STT `insertContent` now uses `contentType: 'markdown'` for consistent markdown-first approach.
 - TipTap editor: fixed extensions watchers losing changes by using `buildExtensions()` factory function.

@@ -174,6 +174,7 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
+  enableNavigationGuards: props.autosave,
 })
 
 // Watch for external publication updates (e.g. from modals)

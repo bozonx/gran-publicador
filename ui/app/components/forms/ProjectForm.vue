@@ -122,6 +122,7 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
+  enableNavigationGuards: props.autosave,
 })
 
 // Validation Schema

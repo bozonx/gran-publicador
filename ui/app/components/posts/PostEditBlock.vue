@@ -154,6 +154,7 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } 
   },
   debounceMs: AUTO_SAVE_DEBOUNCE_MS,
   skipInitial: true,
+  enableNavigationGuards: props.autosave,
 })
 
 const channelOptions = computed(() => {

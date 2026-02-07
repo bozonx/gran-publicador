@@ -52,6 +52,10 @@ export interface AutosaveOptions<T> {
 
   // Custom equality check function
   isEqual?: (a: T, b: T) => boolean;
+
+  // Enable navigation guards (route leave + beforeunload). Disable when
+  // another mechanism (e.g. useFormDirtyState) already handles guards.
+  enableNavigationGuards?: boolean;
 }
 
 export interface SaveResult {
@@ -87,6 +91,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     debounceMs = AUTO_SAVE_DEBOUNCE_MS,
     skipInitial = true,
     isEqual = defaultIsEqual,
+    enableNavigationGuards = true,
   } = options;
 
   let t: (key: string) => string = key => key;
@@ -490,25 +495,27 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
   // Navigation guard - prevent navigation while saving
   // In unit tests or some runtimes there may be no active router context.
-  try {
-    onBeforeRouteLeave((to, from, next) => {
-      if (saveStatus.value === 'saving' || isDirty.value) {
-        const key =
-          saveStatus.value === 'saving'
-            ? 'common.savingInProgressConfirm'
-            : 'common.unsavedChangesConfirm';
-        const answer = window.confirm(t(key));
-        if (answer) {
-          next();
+  if (enableNavigationGuards) {
+    try {
+      onBeforeRouteLeave((to, from, next) => {
+        if (saveStatus.value === 'saving' || isDirty.value) {
+          const key =
+            saveStatus.value === 'saving'
+              ? 'common.savingInProgressConfirm'
+              : 'common.unsavedChangesConfirm';
+          const answer = window.confirm(t(key));
+          if (answer) {
+            next();
+          } else {
+            next(false);
+          }
         } else {
-          next(false);
+          next();
         }
-      } else {
-        next();
-      }
-    });
-  } catch (error) {
-    logger.warn('Failed to register autosave route leave guard', error);
+      });
+    } catch (error) {
+      logger.warn('Failed to register autosave route leave guard', error);
+    }
   }
 
   // Browser unload guard - prevent closing tab while saving
@@ -520,12 +527,16 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     }
   };
 
-  onMounted(() => {
-    window.addEventListener('beforeunload', handleBeforeUnload);
-  });
+  if (enableNavigationGuards) {
+    onMounted(() => {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    });
+  }
 
   onUnmounted(() => {
-    window.removeEventListener('beforeunload', handleBeforeUnload);
+    if (enableNavigationGuards) {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
     clearIndicatorTimers();
     clearRetryTimer();
   });

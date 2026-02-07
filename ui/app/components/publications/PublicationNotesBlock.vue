@@ -45,6 +45,18 @@ const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, r
   skipInitial: true,
 })
 
+const editContainerRef = ref<HTMLElement | null>(null)
+
+function handleBlur(event: FocusEvent) {
+    // If focus moves to another element inside the edit container (e.g. Retry button),
+    // do not finish editing — let the user interact with the controls
+    const related = event.relatedTarget as HTMLElement | null
+    if (related && editContainerRef.value?.contains(related)) {
+        return
+    }
+    finishEditing()
+}
+
 async function finishEditing() {
     // Ensure everything is saved
     if (saveStatus.value === 'saving' || saveStatus.value === 'error' || localNote.value !== props.publication.note) {
@@ -59,9 +71,6 @@ async function finishEditing() {
     isEditing.value = false
     emit('update')
 }
-
-// Watch for clicks outside to close? 
-// For now, let's keep it explicit with "Done" button to avoid accidental closures while thinking
 </script>
 
 <template>
@@ -101,7 +110,7 @@ async function finishEditing() {
       </div>
 
       <!-- Mode: Edit -->
-      <div v-else class="p-6 bg-gray-50/50 dark:bg-gray-900/20 space-y-4">
+      <div v-else ref="editContainerRef" class="p-6 bg-gray-50/50 dark:bg-gray-900/20 space-y-4">
           <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2">
                   <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-primary-500" />
@@ -128,7 +137,7 @@ async function finishEditing() {
               variant="outline"
               size="lg"
               autofocus
-              @blur="finishEditing"
+              @blur="handleBlur"
           />
       </div>
   </div>
