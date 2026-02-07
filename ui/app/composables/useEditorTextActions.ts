@@ -6,6 +6,29 @@ export interface TextSelectionRange {
   to: number;
 }
 
+function replaceSelectionWithInlineMarkdown(
+  editor: Editor,
+  range: TextSelectionRange,
+  markdown: string,
+): void {
+  const manager = getMarkdownManager(editor);
+  if (!manager) return;
+
+  const docJson = manager.parse(markdown);
+  if (!docJson?.content?.length) return;
+
+  // Prefer inline content of the first paragraph when possible.
+  let contentToInsert: any[] = docJson.content;
+
+  if (docJson.content.length === 1 && docJson.content[0]?.type === 'paragraph') {
+    contentToInsert = Array.isArray(docJson.content[0]?.content) ? docJson.content[0].content : [];
+  }
+
+  if (contentToInsert.length === 0) return;
+
+  editor.chain().focus().insertContentAt({ from: range.from, to: range.to }, contentToInsert).run();
+}
+
 const LIST_NODE_TYPES = new Set(['bulletList', 'orderedList']);
 
 function isMeaningfulText(text: string): boolean {
@@ -77,9 +100,36 @@ function getMarkdownManager(editor: Editor): any {
   return (editor as any).storage?.markdown?.manager ?? null;
 }
 
-function getSelectedPlainText(editor: Editor, range: TextSelectionRange): string {
-  return editor.state.doc
-    .textBetween(range.from, range.to, ' ')
+function fragmentToJsonArray(fragment: any): any[] {
+  const out: any[] = [];
+  if (!fragment) return out;
+  fragment.forEach((node: any) => {
+    out.push(node.toJSON());
+  });
+  return out;
+}
+
+function getSelectedInlineMarkdown(editor: Editor, range: TextSelectionRange): string {
+  const manager = getMarkdownManager(editor);
+  if (!manager) return '';
+
+  const slice = editor.state.doc.slice(range.from, range.to);
+  const inlineContent = fragmentToJsonArray(slice.content);
+  if (inlineContent.length === 0) return '';
+
+  // Wrap inline selection into a paragraph to keep marks serialization stable.
+  const docJson = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: inlineContent,
+      },
+    ],
+  };
+
+  // Markdown serializer usually adds a trailing newline for paragraphs.
+  return String(manager.serialize(docJson))
     .replace(/\u00a0/g, ' ')
     .trim();
 }
@@ -215,7 +265,7 @@ export function getSelectionMarkdown(editor: Editor, range?: TextSelectionRange)
   const kind = getSelectionKind(editor);
 
   if (kind === 'inline') {
-    return getSelectedPlainText(editor, effectiveRange);
+    return getSelectedInlineMarkdown(editor, effectiveRange);
   }
 
   return getSelectedBlocksMarkdown(editor, effectiveRange);
@@ -335,13 +385,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     editor.setEditable(true);
 
     if (pendingKind.value === 'inline') {
-      editor
-        .chain()
-        .focus()
-        .setTextSelection({ from: pendingRange.value.from, to: pendingRange.value.to })
-        .deleteSelection()
-        .insertContent(String(markdown))
-        .run();
+      replaceSelectionWithInlineMarkdown(editor, pendingRange.value, markdown);
     } else {
       replaceSelectionWithMarkdown(editor, pendingRange.value, markdown);
     }
