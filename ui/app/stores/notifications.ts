@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from './auth';
+import { logger } from '~/utils/logger';
 
 export enum NotificationType {
   PUBLICATION_FAILED = 'PUBLICATION_FAILED',
@@ -58,7 +59,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       await fetchUnreadCount();
       return response;
     } catch (error) {
-      console.error('Failed to fetch notifications', error);
+      logger.error('Failed to fetch notifications', error);
       return { items: [], total: 0 };
     } finally {
       isLoading.value = false;
@@ -73,7 +74,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       const response = await api.get<{ count: number }>('/notifications/unread-count');
       unreadCount.value = response.count;
     } catch (error) {
-      console.error('Failed to fetch unread count', error);
+      logger.error('Failed to fetch unread count', error);
     }
   }
 
@@ -89,7 +90,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
         unreadCount.value = Math.max(0, unreadCount.value - 1);
       }
     } catch (error) {
-      console.error('Failed to mark notification as read', error);
+      logger.error('Failed to mark notification as read', error);
     }
   }
 
@@ -97,7 +98,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
    * Mark all notifications as read
    */
   async function markAllAsRead() {
-    const previousUnread = unreadCount.value;
     try {
       await api.patch('/notifications/read-all');
       items.value.forEach(item => {
@@ -107,7 +107,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       });
       unreadCount.value = 0;
     } catch (error) {
-      console.error('Failed to mark all notifications as read', error);
+      logger.error('Failed to mark all notifications as read', error);
       // Rollback if error (optional)
       // unreadCount.value = previousUnread;
     }
@@ -169,7 +169,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     socket.value.on('disconnect', () => {});
 
     socket.value.on('connect_error', error => {
-      console.error('WebSocket connection error', error);
+      logger.error('WebSocket connection error', error);
     });
   }
 

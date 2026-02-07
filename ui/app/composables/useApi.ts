@@ -3,6 +3,7 @@ import { logger } from '~/utils/logger';
 export interface ApiOptions {
   headers?: Record<string, string>;
   onUploadProgress?: (progress: number) => void;
+  timeoutMs?: number;
   [key: string]: any;
 }
 
@@ -10,6 +11,8 @@ interface NormalizedApiError extends Error {
   status?: number;
   data?: unknown;
 }
+
+const DEFAULT_TIMEOUT_MS = 20_000;
 
 const toMessage = (value: unknown): string => {
   if (typeof value === 'string') return value;
@@ -39,6 +42,25 @@ const normalizeFetchError = (error: any): NormalizedApiError => {
         : undefined;
 
   return createApiError(messageFromData || toMessage(error), { status, data });
+};
+
+const isAbortError = (error: any): boolean => {
+  return (
+    error?.name === 'AbortError' ||
+    error?.message === 'AbortError' ||
+    String(error?.message || '')
+      .toLowerCase()
+      .includes('aborted')
+  );
+};
+
+const isTimeoutError = (error: any): boolean => {
+  return (
+    error?.code === 'ETIMEDOUT' ||
+    String(error?.message || '')
+      .toLowerCase()
+      .includes('timeout')
+  );
 };
 
 export const useApi = () => {
@@ -93,6 +115,16 @@ export const useApi = () => {
     return status === 401;
   };
 
+  const notifySessionExpired = (): void => {
+    if (!import.meta.client) return;
+
+    try {
+      window.dispatchEvent(new CustomEvent('auth:session-expired'));
+    } catch {
+      // noop
+    }
+  };
+
   // XMLHttpRequest-based upload with progress tracking
   const uploadWithProgress = async <T>(
     url: string,
@@ -102,6 +134,11 @@ export const useApi = () => {
   ): Promise<T> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+
+      const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+      if (timeoutMs > 0) {
+        xhr.timeout = timeoutMs;
+      }
 
       // Track upload progress
       if (options.onUploadProgress) {
@@ -154,6 +191,10 @@ export const useApi = () => {
         reject(new Error('Network error'));
       });
 
+      xhr.addEventListener('timeout', () => {
+        reject(createApiError('Request timeout', { status: 0 }));
+      });
+
       xhr.addEventListener('abort', () => {
         reject(new Error('Upload aborted'));
       });
@@ -192,22 +233,36 @@ export const useApi = () => {
       headers.Authorization = `Bearer ${accessToken.value}`;
     }
 
+    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const controller = import.meta.client ? new AbortController() : undefined;
+    const timeoutId =
+      import.meta.client && controller && timeoutMs > 0
+        ? window.setTimeout(() => controller.abort(), timeoutMs)
+        : undefined;
+
     try {
       return await $fetch<T>(`${apiBase}${url}`, {
         ...options,
         headers,
+        signal: controller?.signal,
       });
     } catch (error: any) {
+      if (isAbortError(error) || isTimeoutError(error)) {
+        throw createApiError('Request timeout', { status: 0 });
+      }
+
       if (isUnauthorizedError(error)) {
         if (attempt >= 1) {
           accessToken.value = null;
           refreshToken.value = null;
+          notifySessionExpired();
           throw normalizeFetchError(error);
         }
 
         try {
           await refreshTokens();
         } catch {
+          notifySessionExpired();
           throw normalizeFetchError(error);
         }
 
@@ -215,6 +270,10 @@ export const useApi = () => {
       }
 
       throw normalizeFetchError(error);
+    } finally {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
     }
   };
 

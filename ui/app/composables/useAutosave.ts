@@ -1,6 +1,7 @@
 import { ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave';
+import { logger } from '~/utils/logger';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
 
@@ -85,9 +86,10 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
       try {
         const result = await saveFn(data.value!);
-        
+
         // Handle both simple void return and SaveResult object
-        const wasSaved = result === undefined || (typeof result === 'object' && result.saved === true);
+        const wasSaved =
+          result === undefined || (typeof result === 'object' && result.saved === true);
         const wasSkipped = typeof result === 'object' && result.skipped === true;
 
         if (wasSaved) {
@@ -106,7 +108,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           isDirty.value = true;
         }
       } catch (err: any) {
-        console.error('Auto-save failed:', err);
+        logger.error('Auto-save failed', err);
         saveStatus.value = 'error';
         saveError.value = t('common.saveError');
         isDirty.value = true;
@@ -138,9 +140,19 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
       if (isReferenceChange) {
         // If the previous object was dirty, we should try to save it before switching
         if (isDirty.value && oldValue) {
-          // Use the old data to perform save
-          console.log('Forcing save of old state before reference change');
-          saveFn(oldValue).catch(err => console.error('Failed to save old state on switch:', err));
+          // Use the old data to perform save (sequentially)
+          saveQueue = saveQueue.then(async () => {
+            try {
+              saveStatus.value = 'saving';
+              saveError.value = null;
+              await saveFn(oldValue);
+            } catch (err: any) {
+              logger.error('Failed to save old state on reference change', err);
+              saveStatus.value = 'error';
+              saveError.value = t('common.saveError');
+              isDirty.value = true;
+            }
+          });
         }
 
         // This is a tab switch or similar - update saved state without saving for the NEW value
@@ -159,9 +171,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   // Navigation guard - prevent navigation while saving
   onBeforeRouteLeave((to, from, next) => {
     if (saveStatus.value === 'saving') {
-      const answer = window.confirm(
-        'Данные еще сохраняются. Вы уверены, что хотите покинуть страницу?',
-      );
+      const answer = window.confirm(t('common.savingInProgressConfirm'));
       if (answer) {
         next();
       } else {

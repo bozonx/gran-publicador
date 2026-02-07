@@ -59,7 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
       return response;
     } catch (err: any) {
       error.value = err.message;
-      console.error('Login failed', err);
+      logger.error('Login failed', err);
       throw err;
     } finally {
       isLoading.value = false;
@@ -80,7 +80,7 @@ export const useAuthStore = defineStore('auth', () => {
       return response;
     } catch (err: any) {
       error.value = err.message;
-      console.error('Widget login failed', err);
+      logger.error('Widget login failed', err);
       throw err;
     } finally {
       isLoading.value = false;

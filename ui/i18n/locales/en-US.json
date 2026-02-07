@@ -110,6 +110,9 @@
     "done": "Done",
     "more": "More",
     "inlineMarkdownHelp": "Only inline markdown is allowed (bold, italic, links). Block elements like headings or lists are not supported here."
+    ,
+    "unexpectedError": "Unexpected error. Please try again.",
+    "savingInProgressConfirm": "Data is still being saved. Are you sure you want to leave this page?"
   },
   "actions": {
     "translate": "Translate"
@@ -169,7 +172,8 @@
     "viewOriginal": "View Original",
     "noQueriesTitle": "No news collections created yet",
     "noQueriesDescription": "Create your first news collection to start tracking news for this project.",
-    "createFirstQuery": "Create collection"
+    "createFirstQuery": "Create collection",
+    "searchErrorTitle": "News search error"
   },
   "auth": {
     "login": "Log in",
@@ -189,7 +193,9 @@
     "accountDeletedSuccess": "Account deleted successfully",
     "deleteAccountError": "Failed to delete account",
     "status": "Authentication Status",
-    "delete_warning": "Warning: Deleting your account is irreversible."
+    "delete_warning": "Warning: Deleting your account is irreversible.",
+    "sessionExpiredTitle": "Session expired",
+    "sessionExpiredDescription": "Please sign in again."
   },
   "user": {
     "username": "Username",

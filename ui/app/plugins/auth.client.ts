@@ -20,7 +20,6 @@ export default defineNuxtPlugin(async () => {
   }
 
   if (authMode.value === 'miniApp') {
-    // @ts-ignore
     const tg = window.Telegram?.WebApp;
     if (!tg?.initData) return;
 

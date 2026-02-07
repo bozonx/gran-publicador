@@ -1,7 +1,6 @@
 import { ref, computed } from 'vue';
-import { useApi } from './useApi';
-import { useAuth } from './useAuth';
 import { ArchiveEntityType } from '~/types/archive.types';
+import { logger } from '~/utils/logger';
 import type { PublicationStatus } from '~/types/posts';
 import { getStatusIcon } from '~/utils/publications';
 
@@ -29,6 +28,26 @@ export interface Publication {
   scheduledAt?: string | null;
   postScheduledAt?: string | null;
 }
+
+export interface PublicationCreateInput {
+  projectId?: string | null;
+  title?: string | null;
+  description?: string | null;
+  content?: string | null;
+  tags?: string | null;
+  language?: string | null;
+  postType?: string | null;
+  postDate?: string | null;
+  translationGroupId?: string | null;
+  newsItemId?: string | null;
+  authorComment?: string | null;
+  note?: string | null;
+  scheduledAt?: string | null;
+  status?: PublicationStatus | null;
+  meta?: string | null;
+}
+
+export interface PublicationUpdateInput extends Partial<PublicationCreateInput> {}
 
 export interface PublicationWithRelations extends Publication {
   creator?: {
@@ -159,7 +178,7 @@ export function usePublications() {
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return data;
     } catch (err: any) {
-      console.error('[usePublications] fetchPublicationsByProject error:', err);
+      logger.error('[usePublications] fetchPublicationsByProject error', err);
       error.value = err.message || 'Failed to fetch publications';
       publications.value = [];
       totalCount.value = 0;
@@ -204,7 +223,7 @@ export function usePublications() {
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return data;
     } catch (err: any) {
-      console.error('[usePublications] fetchUserPublications error:', err);
+      logger.error('[usePublications] fetchUserPublications error', err);
       error.value = err.message || 'Failed to fetch publications';
       publications.value = [];
       totalCount.value = 0;
@@ -226,7 +245,7 @@ export function usePublications() {
       currentPublication.value = data;
       return data;
     } catch (err: any) {
-      console.error('[usePublications] fetchPublication error:', err);
+      logger.error('[usePublications] fetchPublication error', err);
       error.value = err.message || 'Failed to fetch publication';
       return null;
     } finally {
@@ -263,7 +282,7 @@ export function usePublications() {
       publications.value.unshift(result);
       return result;
     } catch (err: any) {
-      console.error('[usePublications] createPublication error:', err);
+      logger.error('[usePublications] createPublication error', err);
       error.value = err.message || 'Failed to create publication';
       throw err;
     } finally {
@@ -283,7 +302,7 @@ export function usePublications() {
 
     try {
       const result = await api.patch<PublicationWithRelations>(`/publications/${id}`, data);
-      const index = publications.value.findIndex(p => p.id === id);
+      const index = publications.value.findIndex((p: PublicationWithRelations) => p.id === id);
       if (index !== -1) {
         publications.value[index] = result;
       }
@@ -292,7 +311,7 @@ export function usePublications() {
       }
       return result;
     } catch (err: any) {
-      console.error('[usePublications] updatePublication error:', err);
+      logger.error('[usePublications] updatePublication error', err);
       error.value = err.message || 'Failed to update publication';
       throw err;
     } finally {
@@ -308,7 +327,7 @@ export function usePublications() {
 
     try {
       await api.delete(`/publications/${id}`);
-      publications.value = publications.value.filter(p => p.id !== id);
+      publications.value = publications.value.filter((p: PublicationWithRelations) => p.id !== id);
       if (currentPublication.value?.id === id) {
         currentPublication.value = null;
       }
@@ -319,7 +338,7 @@ export function usePublications() {
       });
       return true;
     } catch (err: any) {
-      console.error('[usePublications] deletePublication error:', err);
+      logger.error('[usePublications] deletePublication error', err);
       error.value = err.message || 'Failed to delete publication';
       toast.add({
         title: t('common.error'),
@@ -344,8 +363,13 @@ export function usePublications() {
     try {
       const payload = { ids, operation, status, targetProjectId };
       // Remove undefined/null values to avoid issues with whitelist: true, forbidNonWhitelisted: true
-      Object.keys(payload).forEach(key => (payload[key as keyof typeof payload] === undefined || payload[key as keyof typeof payload] === null) && delete payload[key as keyof typeof payload]);
-      
+      Object.keys(payload).forEach(
+        key =>
+          (payload[key as keyof typeof payload] === undefined ||
+            payload[key as keyof typeof payload] === null) &&
+          delete payload[key as keyof typeof payload],
+      );
+
       await api.post('/publications/bulk', payload);
 
       toast.add({
@@ -355,7 +379,7 @@ export function usePublications() {
       });
       return true;
     } catch (err: any) {
-      console.error('[usePublications] bulkOperation error:', err);
+      logger.error('[usePublications] bulkOperation error', err);
       error.value = err.message || 'Bulk operation failed';
       toast.add({
         title: t('common.error'),
@@ -383,7 +407,7 @@ export function usePublications() {
       });
       return result;
     } catch (err: any) {
-      console.error('[usePublications] createPostsFromPublication error:', err);
+      logger.error('[usePublications] createPostsFromPublication error', err);
       error.value = err.message || 'Failed to create posts';
       throw err;
     } finally {
@@ -407,7 +431,9 @@ export function usePublications() {
         // Re-fetch is safest for now as we don't know filtering context perfectly
         // access projectId from current view? We don't have it here.
         // But we can check if the publication is in the `publications` list
-        const idx = publications.value.findIndex(p => p.id === publicationId);
+        const idx = publications.value.findIndex(
+          (p: PublicationWithRelations) => p.id === publicationId,
+        );
         if (idx !== -1) {
           const pub = publications.value[idx];
           if (pub && pub.projectId) {
@@ -491,7 +517,7 @@ export function usePublications() {
       const result = await api.post<PublicationWithRelations>(`/publications/${id}/copy`, payload);
       return result;
     } catch (err: any) {
-      console.error('[usePublications] copyPublication error:', err);
+      logger.error('[usePublications] copyPublication error', err);
       error.value = err.message || 'Failed to copy publication';
       throw err;
     } finally {
