@@ -2,8 +2,12 @@ import { logger } from '~/utils/logger';
 
 export default defineNuxtPlugin(nuxtApp => {
   const toast = useToast();
-  const { t } = useI18n();
   const authStore = useAuthStore();
+
+  const t = (key: string, params?: Record<string, unknown>) => {
+    const i18n = (nuxtApp as unknown as { $i18n?: { t?: (k: string, p?: any) => string } }).$i18n;
+    return i18n?.t?.(key, params) ?? key;
+  };
 
   const handleFatalError = (error: unknown, context: string) => {
     logger.error(context, error);
