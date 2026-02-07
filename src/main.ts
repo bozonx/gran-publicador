@@ -1,19 +1,14 @@
 import 'reflect-metadata';
 
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import fastifyStatic from '@fastify/static';
 import multipart from '@fastify/multipart';
 import fastifyHelmet from '@fastify/helmet';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
-import { SpaFallbackFilter } from './common/filters/spa-fallback.filter.js';
 import { BigIntInterceptor } from './common/interceptors/bigint.interceptor.js';
 import type { AppConfig } from './config/app.config.js';
 
@@ -65,18 +60,8 @@ async function bootstrap() {
   const globalPrefix = appConfig.basePath ? `${appConfig.basePath}/api/v1` : 'api/v1';
   app.setGlobalPrefix(globalPrefix);
 
-  // Register SPA fallback filter to serve index.html for non-API 404s
-  app.useGlobalFilters(new SpaFallbackFilter(globalPrefix));
-
   // Register BigInt interceptor to handle serialization
   app.useGlobalInterceptors(new BigIntInterceptor());
-
-  // Serve static assets from ui/dist (Nuxt static build)
-  // We resolve the path relative to the current file location
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const staticRoot = path.resolve(__dirname, '..', '..', 'ui', '.output', 'public');
-  logger.log(`Serving static files from: ${staticRoot}`, 'Bootstrap');
 
   // Register helmet for security headers
   // We configure CSP to allow Telegram widgets and Nuxt scripts
@@ -107,13 +92,6 @@ async function bootstrap() {
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     xFrameOptions: false,
-  });
-
-  // Register the fastify-static plugin to serve the frontend files
-  await app.register(fastifyStatic, {
-    root: staticRoot,
-    prefix: '/',
-    wildcard: false, // Disable wildcard, we handle SPA fallback via exception filter
   });
 
   // Register multipart support for file uploads

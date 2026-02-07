@@ -107,7 +107,7 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
           process.cwd(),
           process.env.NODE_ENV === 'production' ? 'dist/src/i18n' : 'src/i18n',
         ),
-        watch: true,
+        watch: process.env.NODE_ENV !== 'production',
       },
       resolvers: [
         { use: QueryResolver, options: ['lang'] },

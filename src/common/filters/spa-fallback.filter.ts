@@ -26,7 +26,10 @@ export class SpaFallbackFilter implements ExceptionFilter {
       return;
     }
 
-    // For all other routes, serve the SPA fallback
-    void reply.sendFile('index.html');
+    void reply.code(404).send({
+      statusCode: 404,
+      message: exception.message ?? 'Not Found',
+      error: 'Not Found',
+    });
   }
 }

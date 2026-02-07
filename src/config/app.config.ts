@@ -182,7 +182,7 @@ export class AppConfig {
 export default registerAs('app', (): AppConfig => {
   // Transform environment variables to a typed configuration object
   const config = plainToClass(AppConfig, {
-    port: parseInt(process.env.LISTEN_PORT ?? '8080', 10),
+    port: parseInt(process.env.PORT ?? process.env.LISTEN_PORT ?? '8080', 10),
     host: process.env.LISTEN_HOST ?? '0.0.0.0',
     basePath: (process.env.SERVER_BASE_PATH ?? '').replace(/^\/+|\/+$/g, ''),
     nodeEnv: process.env.NODE_ENV ?? 'production',

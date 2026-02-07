@@ -142,6 +142,13 @@ describe('MediaService (unit)', () => {
           url: 'http://storage/file',
         });
 
+      client
+        .intercept({
+          path: '/api/v1/files/storage-id-123/confirm',
+          method: 'POST',
+        })
+        .reply(200, {});
+
       const result = await service.uploadFileToStorage(stream, filename, mimetype);
       expect(result.fileId).toBe('storage-id-123');
       expect(result.metadata.checksum).toBe('hash');
@@ -181,6 +188,13 @@ describe('MediaService (unit)', () => {
           checksum: 'hash123',
           url: 'http://storage/file',
         });
+
+      client
+        .intercept({
+          path: '/api/v1/files/storage-id-456/confirm',
+          method: 'POST',
+        })
+        .reply(200, {});
 
       const result = await service.uploadFileFromUrl(url, filename);
       expect(result.fileId).toBe('storage-id-456');
@@ -242,6 +256,13 @@ describe('MediaService (unit)', () => {
           checksum: 'hash',
           url: 'http://storage/file',
         });
+
+      client
+        .intercept({
+          path: `/api/v1/files/${newStoragePath}/confirm`,
+          method: 'POST',
+        })
+        .reply(200, {});
 
       client
         .intercept({

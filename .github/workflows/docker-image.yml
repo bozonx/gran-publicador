@@ -50,16 +50,6 @@ jobs:
       - name: Run unit tests
         run: pnpm test:unit
 
-      - name: Build backend
-        run: pnpm build
-
-      - name: Build frontend
-        working-directory: ui
-        run: pnpm generate
-        env:
-          NUXT_APP_BASE_URL: ${{ vars.NUXT_APP_BASE_URL || '/' }}
-
-
       - name: Build the Docker image
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')

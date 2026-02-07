@@ -12,13 +12,8 @@ services:
     volumes:
       - gran_p_postgres_data:/var/lib/postgresql/data
     user: '1000:1000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      # redis:
-      #   condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U gran -d gran_db" ]
+      test: ['CMD-SHELL', 'pg_isready -U gran -d gran_db']
       interval: 10s
       timeout: 5s
       retries: 5

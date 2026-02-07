@@ -12,7 +12,7 @@
 
 ## Общая архитектура
 
-Gran Publicador построен по принципу **монолитной архитектуры** с разделением на Backend (NestJS) и Frontend (Nuxt), работающих как единое приложение.
+Gran Publicador построен по принципу **монолитной архитектуры** с разделением на Backend (NestJS) и Frontend (Nuxt), разворачиваемых как отдельные приложения.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -80,7 +80,7 @@ src/
 │   │   └── roles.decorator.ts   # @Roles('ADMIN')
 │   ├── filters/                 # Exception filters
 │   │   ├── all-exceptions.filter.ts    # Глобальный обработчик ошибок
-│   │   └── spa-fallback.filter.ts      # SPA fallback для 404
+│   │   
 │   ├── guards/                  # Guards для защиты эндпоинтов
 │   │   ├── jwt-or-api-token.guard.ts   # JWT или API токен
 │   │   ├── jwt-auth.guard.ts           # Только JWT
