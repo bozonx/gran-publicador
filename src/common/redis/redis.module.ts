@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { RedisConfig } from '../../config/redis.config.js';
@@ -13,6 +13,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const config = configService.get<RedisConfig>('redis')!;
+        const logger = new Logger(RedisModule.name);
 
         if (!config.enabled) {
           return null;
@@ -29,7 +30,9 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
             maxRetriesPerRequest: 0, // Fail fast if redis is down
           });
         } catch (error) {
-          console.error('Failed to create Redis client:', error);
+          const message = error instanceof Error ? error.message : String(error);
+          const stack = error instanceof Error ? error.stack : undefined;
+          logger.error(`Failed to create Redis client: ${message}`, stack);
           return null;
         }
       },

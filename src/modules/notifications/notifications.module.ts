@@ -9,7 +9,6 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
 import { TelegramBotModule } from '../telegram-bot/telegram-bot.module.js';
 import { UsersModule } from '../users/users.module.js';
-import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 
 @Global()
 @Module({
@@ -29,12 +28,7 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
     }),
   ],
   controllers: [NotificationsController],
-  providers: [
-    NotificationsService,
-    NotificationsGateway,
-    NotificationsScheduler,
-    JwtOrApiTokenGuard,
-  ],
+  providers: [NotificationsService, NotificationsGateway, NotificationsScheduler],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

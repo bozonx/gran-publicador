@@ -4,13 +4,12 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import type { FastifyRequest } from 'fastify';
 
-import { JWT_STRATEGY } from '../constants/auth.constants.js';
 import type { JwtPayload } from '../types/jwt-payload.interface.js';
 import type { UnifiedAuthRequest } from '../types/unified-auth-request.interface.js';
 import { ApiTokenGuard } from './api-token.guard.js';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
 
 /**
  * Combined authentication guard that supports both JWT and API token authentication.
@@ -20,7 +19,10 @@ import { ApiTokenGuard } from './api-token.guard.js';
  */
 @Injectable()
 export class JwtOrApiTokenGuard implements CanActivate {
-  constructor(private apiTokenGuard: ApiTokenGuard) {}
+  constructor(
+    private readonly apiTokenGuard: ApiTokenGuard,
+    private readonly jwtAuthGuard: JwtAuthGuard,
+  ) {}
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
@@ -57,8 +59,7 @@ export class JwtOrApiTokenGuard implements CanActivate {
     }
 
     // Use JWT authentication
-    const jwtGuard = new (AuthGuard(JWT_STRATEGY))();
-    const isValid = await jwtGuard.canActivate(context);
+    const isValid = await this.jwtAuthGuard.canActivate(context);
     if (!isValid) {
       throw new UnauthorizedException('Authentication required');
     }

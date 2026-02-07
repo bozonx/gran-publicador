@@ -45,7 +45,6 @@ export class ShutdownService implements OnApplicationShutdown {
     } catch (error: any) {
       if (timeoutId!) clearTimeout(timeoutId);
       this.logger.error(`❌ Shutdown error: ${error.message}`, error.stack);
-      process.exit(1);
     }
   }
 

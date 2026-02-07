@@ -24,6 +24,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<FastifyReply>();
     const request = ctx.getRequest<FastifyRequest>();
 
+    const requestPath = (request.url ?? '').split('?')[0] ?? '';
+
     // Preserve statusCode from non-HttpException errors (e.g., Fastify plugins)
     const status =
       exception instanceof HttpException
@@ -35,23 +37,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const message = this.extractMessage(exception);
     const errorResponse = this.buildErrorResponse(exception);
 
+    const safeClientMessage = status >= 500 ? 'Internal server error' : message;
+    const safeErrorResponse = status >= 500 ? 'InternalServerError' : errorResponse;
+
     // Log error for internal tracking
     if (status >= 500) {
       this.logger.error(
-        `${request.method} ${request.url} - ${status} - ${message}`,
+        `${request.method} ${requestPath} - ${status} - ${message}`,
         exception instanceof Error ? exception.stack : undefined,
       );
     } else {
-      this.logger.warn(`${request.method} ${request.url} - ${status} - ${message}`);
+      this.logger.warn(`${request.method} ${requestPath} - ${status} - ${message}`);
     }
 
     void response.status(status).send({
       statusCode: status,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: requestPath,
       method: request.method,
-      message,
-      error: errorResponse,
+      message: safeClientMessage,
+      error: safeErrorResponse,
     });
   }
 

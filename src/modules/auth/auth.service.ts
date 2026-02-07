@@ -263,10 +263,6 @@ export class AuthService {
    * Development login to bypass Telegram validation.
    * Only works in development environment.
    */
-  /**
-   * Development login to bypass Telegram validation.
-   * Only works in development environment.
-   */
   public async loginDev(telegramId: number): Promise<AuthResponseDto> {
     const user = await this.usersService.findOrCreateTelegramUser({
       telegramId: BigInt(telegramId),
@@ -299,7 +295,7 @@ export class AuthService {
   public async refreshTokens(refreshToken: string): Promise<AuthResponseDto> {
     const secret = this.configService.get<string>('app.jwtSecret');
     if (!secret) {
-      throw new Error('JWT secret is not configured');
+      throw new UnauthorizedException('JWT secret is not configured');
     }
 
     let userId: string;

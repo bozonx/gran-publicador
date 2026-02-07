@@ -56,6 +56,10 @@ async function bootstrap() {
   // Use Pino logger for the entire application
   app.useLogger(app.get(Logger));
 
+  // Let NestJS handle SIGTERM/SIGINT via shutdown hooks.
+  // This avoids duplicated signal handling across the app.
+  app.enableShutdownHooks();
+
   const configService = app.get(ConfigService);
   const logger = app.get(Logger);
 
@@ -154,44 +158,42 @@ async function bootstrap() {
   logger.log(`📊 Environment: ${appConfig.nodeEnv}`, 'Bootstrap');
   logger.log(`📝 Log level: ${appConfig.logLevel}`, 'Bootstrap');
 
-  // Setup explicit graceful shutdown handlers
-  let isTerminating = false;
-
-  const gracefulShutdown = async (signal: string, exitCode: number) => {
-    if (isTerminating) {
-      return;
-    }
-    isTerminating = true;
-
-    logger.log(`Received ${signal}, starting graceful shutdown...`, 'Bootstrap');
-
-    try {
-      // Close the application gracefully
-      // This will trigger OnModuleDestroy, beforeApplicationShutdown and OnApplicationShutdown hooks
-      await app.close();
-      logger.log('✅ Application closed successfully', 'Bootstrap');
-      process.exit(exitCode);
-    } catch (error: any) {
-      logger.error(`❌ Error during shutdown: ${error.message}`, error.stack, 'Bootstrap');
-      process.exit(1);
-    }
-  };
-
-  // Handle shutdown signals
-  // Use once to ensure we only try to shutdown once
-  process.once('SIGTERM', () => void gracefulShutdown('SIGTERM', 0));
-  process.once('SIGINT', () => void gracefulShutdown('SIGINT', 0));
-
   process.on('uncaughtException', error => {
     logger.error(`Uncaught Exception: ${error.message}`, error.stack, 'Bootstrap');
-    void gracefulShutdown('uncaughtException', 1);
+    void app
+      .close()
+      .catch(closeError => {
+        const message = closeError instanceof Error ? closeError.message : String(closeError);
+        const stack = closeError instanceof Error ? closeError.stack : undefined;
+        logger.error(
+          `Error during shutdown after uncaughtException: ${message}`,
+          stack,
+          'Bootstrap',
+        );
+      })
+      .finally(() => {
+        process.exit(1);
+      });
   });
 
   process.on('unhandledRejection', reason => {
     const message = reason instanceof Error ? reason.message : String(reason);
     const stack = reason instanceof Error ? reason.stack : undefined;
     logger.error(`Unhandled Rejection: ${message}`, stack, 'Bootstrap');
-    void gracefulShutdown('unhandledRejection', 1);
+    void app
+      .close()
+      .catch(closeError => {
+        const closeMessage = closeError instanceof Error ? closeError.message : String(closeError);
+        const closeStack = closeError instanceof Error ? closeError.stack : undefined;
+        logger.error(
+          `Error during shutdown after unhandledRejection: ${closeMessage}`,
+          closeStack,
+          'Bootstrap',
+        );
+      })
+      .finally(() => {
+        process.exit(1);
+      });
   });
 }
 

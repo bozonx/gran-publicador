@@ -50,7 +50,8 @@ describe('ApiTokenGuard (unit)', () => {
       const validToken = 'test-token';
       mockApiTokensService.validateToken.mockResolvedValue({
         userId: 'user-1',
-        scopeProjectIds: [] as string[],
+        allProjects: false,
+        projectIds: [] as string[],
         tokenId: 'token-1',
       });
 
@@ -68,7 +69,8 @@ describe('ApiTokenGuard (unit)', () => {
       const validToken = 'test-token';
       mockApiTokensService.validateToken.mockResolvedValue({
         userId: 'user-1',
-        scopeProjectIds: [] as string[],
+        allProjects: false,
+        projectIds: [] as string[],
         tokenId: 'token-1',
       });
 

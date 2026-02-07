@@ -48,6 +48,8 @@ import { NewsQueriesModule } from './modules/news-queries/news-queries.module.js
 import { SourcesModule } from './modules/sources/sources.module.js';
 import { SystemModule } from './modules/system/system.module.js';
 import { ContentLibraryModule } from './modules/content-library/content-library.module.js';
+import { PinoLogger } from 'nestjs-pino';
+import { GuardsModule } from './common/guards/guards.module.js';
 
 @Module({
   imports: [
@@ -163,8 +165,8 @@ import { ContentLibraryModule } from './modules/content-library/content-library.
     }),
     CacheModule.registerAsync({
       isGlobal: true,
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
+      inject: [ConfigService, PinoLogger],
+      useFactory: async (configService: ConfigService, logger: PinoLogger) => {
         const config = configService.get<RedisConfig>('redis')!;
         const appConfig = configService.get<AppConfig>('app')!;
 
@@ -192,7 +194,7 @@ import { ContentLibraryModule } from './modules/content-library/content-library.
             store,
           };
         } catch (error: any) {
-          console.warn(`Redis connection failed: ${error.message}. Falling back to memory store.`);
+          logger.warn(`Redis connection failed: ${error.message}. Falling back to memory store.`);
           return {
             store: 'memory',
             ttl: config.ttlMs,
@@ -200,6 +202,7 @@ import { ContentLibraryModule } from './modules/content-library/content-library.
         }
       },
     }),
+    GuardsModule,
     RedisModule,
     ScheduleModule.forRoot(),
     ShutdownModule,
