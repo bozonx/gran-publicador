@@ -64,32 +64,29 @@ const internalValue = computed({
 
 <template>
   <USelectMenu
+    v-bind="$attrs"
     v-model="internalValue"
     :items="options"
     value-key="value"
     label-key="label"
     :disabled="disabled"
-    :variant="variant"
+    :variant="variant || 'outline'"
     :size="size"
     :searchable="searchable"
     class="w-full"
-    :placeholder="placeholder"
+    :placeholder="placeholder || t('common.language')"
   >
-    <template #default="{ open }">
-      <UButton
-        v-bind="$attrs"
-        color="neutral"
-        :variant="variant || 'outline'"
-        :size="size"
-        :disabled="disabled"
-        class="w-full justify-between"
-        :icon="options.find(o => o.value === internalValue)?.icon || 'i-heroicons-language'"
-        :trailing-icon="open ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-      >
-        <span class="truncate">
-          {{ options.find(o => o.value === internalValue)?.label || placeholder || t('common.language') }}
-        </span>
-      </UButton>
+    <template #leading="{ modelValue, ui }">
+      <UIcon 
+        v-if="modelValue?.icon" 
+        :name="modelValue.icon" 
+        class="w-5 h-5 text-gray-400 dark:text-gray-500" 
+      />
+      <UIcon 
+        v-else 
+        name="i-heroicons-language" 
+        class="w-5 h-5 text-gray-400 dark:text-gray-500" 
+      />
     </template>
   </USelectMenu>
 </template>
