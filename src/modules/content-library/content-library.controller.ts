@@ -31,6 +31,8 @@ import {
   ReorderContentBlocksDto,
   UpdateContentItemDto,
   UpdateContentBlockDto,
+  SyncContentBlocksDto,
+  SyncContentItemDto,
 } from './dto/index.js';
 
 @Controller('content-library')
@@ -416,6 +418,16 @@ export class ContentLibraryController {
     return this.contentLibraryService.detachBlock(contentItemId, blockId, req.user.userId);
   }
 
+  @Post('items/:id/blocks/sync')
+  public async syncBlocks(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Body() dto: SyncContentBlocksDto,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.contentLibraryService.syncBlocks(contentItemId, dto, req.user.userId);
+  }
+
   @Post('items/:id/blocks/:blockId/media/:mediaLinkId/copy-to-item')
   public async copyMediaToItem(
     @Request() req: UnifiedAuthRequest,
@@ -430,5 +442,15 @@ export class ContentLibraryController {
       mediaLinkId,
       req.user.userId,
     );
+  }
+
+  @Post('items/:id/sync')
+  public async sync(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Body() dto: SyncContentItemDto,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.contentLibraryService.sync(contentItemId, dto, req.user.userId);
   }
 }

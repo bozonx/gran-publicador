@@ -21,6 +21,8 @@ import {
   UpdateContentItemDto,
   UpdateContentBlockDto,
   BulkOperationType,
+  SyncContentBlocksDto,
+  SyncContentItemDto,
 } from './dto/index.js';
 
 @Injectable()
@@ -1040,6 +1042,119 @@ export class ContentLibraryService {
     });
   }
 
+  public async sync(contentItemId: string, dto: SyncContentItemDto, userId: string) {
+    await this.assertContentItemAccess(contentItemId, userId, false);
+    await this.assertContentItemMutationAllowed(contentItemId, userId);
+
+    return this.prisma.$transaction(async tx => {
+      // 1. Update item metadata
+      await tx.contentItem.update({
+        where: { id: contentItemId },
+        data: {
+          title: dto.title,
+          tags: dto.tags ? this.normalizeTags(dto.tags) : undefined,
+          note: dto.note,
+        },
+      });
+
+      // 2. Sync blocks
+      const results = await this.performBlocksSync(tx, contentItemId, dto.blocks);
+
+      return results;
+    });
+  }
+
+  public async syncBlocks(contentItemId: string, dto: SyncContentBlocksDto, userId: string) {
+    await this.assertContentItemAccess(contentItemId, userId, false);
+    await this.assertContentItemMutationAllowed(contentItemId, userId);
+
+    return this.prisma.$transaction(async tx => {
+      return this.performBlocksSync(tx, contentItemId, dto.blocks);
+    });
+  }
+
+  private async performBlocksSync(tx: any, contentItemId: string, blocks: any[]) {
+    const existingBlocks = await tx.contentBlock.findMany({
+      where: { contentItemId },
+      select: { id: true },
+    });
+
+    const existingIds = new Set(existingBlocks.map((b: { id: string }) => b.id));
+    const incomingIds = new Set(blocks.map((b: any) => b.id).filter(Boolean));
+
+    // Delete blocks that are no longer present
+    const toDelete = existingBlocks
+      .filter((b: { id: string }) => !incomingIds.has(b.id))
+      .map((b: { id: string }) => b.id);
+    if (toDelete.length > 0) {
+      await tx.contentBlock.deleteMany({
+        where: { id: { in: toDelete } },
+      });
+    }
+
+    const results = [];
+
+    for (const b of blocks) {
+      const blockData = {
+        text: b.text,
+        order: b.order,
+        meta: (b.meta ?? {}) as any,
+      };
+
+      let blockId = b.id;
+      let syncResult;
+
+      if (blockId && existingIds.has(blockId)) {
+        // Update existing block
+        syncResult = await tx.contentBlock.update({
+          where: { id: blockId },
+          data: blockData,
+          include: {
+            media: { select: { id: true, mediaId: true } },
+          },
+        });
+      } else {
+        // Create new block
+        syncResult = await tx.contentBlock.create({
+          data: {
+            ...blockData,
+            contentItemId,
+          },
+          include: {
+            media: { select: { id: true, mediaId: true } },
+          },
+        });
+        blockId = syncResult.id;
+      }
+
+      // Sync block media if provided
+      if (b.mediaIds) {
+        const existingMediaLinks = syncResult.media;
+        const incomingMediaIds = b.mediaIds;
+
+        // Simple sync: delete all and recreate or match by mediaId
+        // To be safe and simple, let's delete existing and recreate in order
+        await tx.contentBlockMedia.deleteMany({
+          where: { contentBlockId: blockId },
+        });
+
+        if (incomingMediaIds.length > 0) {
+          await tx.contentBlockMedia.createMany({
+            data: incomingMediaIds.map((mediaId: string, idx: number) => ({
+              contentBlockId: blockId,
+              mediaId,
+              order: idx,
+            })),
+          });
+        }
+      }
+
+      results.push(syncResult);
+    }
+
+    return results;
+  }
+
   public async getAvailableTags(
     scope: 'project' | 'personal',
     projectId: string | undefined,
@@ -1087,7 +1202,7 @@ export class ContentLibraryService {
       where.projectId = query.projectId;
     }
 
-    return (this.prisma as any).contentLibraryTab.findMany({
+    return this.prisma.contentLibraryTab.findMany({
       where,
       orderBy: { order: 'asc' },
     });
@@ -1116,14 +1231,14 @@ export class ContentLibraryService {
     return this.withSerializableRetry('createTab', () =>
       this.prisma.$transaction(
         async tx => {
-          const maxOrder = await (tx as any).contentLibraryTab.aggregate({
+          const maxOrder = await tx.contentLibraryTab.aggregate({
             where: scopeWhere,
             _max: { order: true },
           });
 
           const nextOrder = (maxOrder?._max?.order ?? -1) + 1;
 
-          return (tx as any).contentLibraryTab.create({
+          return tx.contentLibraryTab.create({
             data: {
               type: dto.type,
               title: dto.title,
@@ -1152,7 +1267,7 @@ export class ContentLibraryService {
       requireMutationPermission: true,
     });
 
-    return (this.prisma as any).contentLibraryTab.update({
+    return this.prisma.contentLibraryTab.update({
       where: { id: tab.id },
       data: {
         title: dto.title,
@@ -1174,7 +1289,7 @@ export class ContentLibraryService {
       requireMutationPermission: true,
     });
 
-    return (this.prisma as any).contentLibraryTab.delete({ where: { id: tabId } });
+    return this.prisma.contentLibraryTab.delete({ where: { id: tabId } });
   }
 
   public async reorderTabs(
@@ -1191,7 +1306,7 @@ export class ContentLibraryService {
     const where: any =
       dto.scope === 'personal' ? { userId, projectId: null } : { projectId: dto.projectId };
 
-    const existing = await (this.prisma as any).contentLibraryTab.findMany({
+    const existing = await this.prisma.contentLibraryTab.findMany({
       where,
       select: { id: true },
     });
@@ -1205,7 +1320,7 @@ export class ContentLibraryService {
 
     await this.prisma.$transaction(
       dto.ids.map((id, idx) =>
-        (this.prisma as any).contentLibraryTab.update({
+        this.prisma.contentLibraryTab.update({
           where: { id },
           data: { order: idx },
         }),

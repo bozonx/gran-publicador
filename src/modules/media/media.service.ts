@@ -919,10 +919,31 @@ export class MediaService {
         publicationMedia: {
           include: { publication: { select: { projectId: true, createdBy: true } } },
         },
+        contentBlockMedia: {
+          include: {
+            contentBlock: {
+              include: {
+                contentItem: { select: { projectId: true, userId: true } },
+              },
+            },
+          },
+        },
       },
     });
+
     if (!media) throw new NotFoundException('Media not found');
-    if (!media.publicationMedia || media.publicationMedia.length === 0) return;
+
+    // If media is not attached to anything, it might be a temporary upload by this user.
+    // However, we don't track the uploader in the Media table currently (TODO: consider adding ownerId to Media).
+    // For now, if it's not attached to anything, we allow access if the user is authenticated (which they are if they reached here).
+    if (
+      (!media.publicationMedia || media.publicationMedia.length === 0) &&
+      (!media.contentBlockMedia || media.contentBlockMedia.length === 0)
+    ) {
+      return;
+    }
+
+    // Check publication associations
     for (const pm of media.publicationMedia) {
       const projectId = pm.publication.projectId;
       if (!projectId) {
@@ -933,12 +954,26 @@ export class MediaService {
         await this.permissions.checkProjectAccess(projectId, userId);
         return;
       } catch (error) {
-        this.logger.debug(
-          `User ${userId} does not have access to project ${projectId}: ${(error as Error).message}`,
-        );
         continue;
       }
     }
+
+    // Check content library associations
+    for (const cbm of media.contentBlockMedia) {
+      const item = cbm.contentBlock.contentItem;
+      if (item.projectId) {
+        try {
+          await this.permissions.checkProjectAccess(item.projectId, userId);
+          return;
+        } catch (error) {
+          continue;
+        }
+      }
+      if (item.userId === userId) {
+        return;
+      }
+    }
+
     throw new ForbiddenException('You do not have access to this media');
   }
 

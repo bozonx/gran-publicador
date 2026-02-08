@@ -14,3 +14,5 @@ export * from './find-content-library-tabs-query.dto.js';
 export * from './create-content-library-tab.dto.js';
 export * from './update-content-library-tab.dto.js';
 export * from './reorder-content-library-tabs.dto.js';
+export * from './sync-content-blocks.dto.js';
+export * from './sync-content-item.dto.js';
