@@ -51,37 +51,34 @@ const emit = defineEmits<{
 
       <!-- Right side: Create button and User avatar -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <template v-if="mobileBack.visible">
-          <CommonGlobalSearch :disable-shortcut="true" variant="icon" class="touch-target" />
-          <CommonNotificationsNotificationBell class="touch-target" />
-        </template>
+        <CommonGlobalCreateButton class="hidden lg:block" />
 
-        <template v-else>
-          <CommonGlobalCreateButton class="hidden lg:block" />
+        <CommonGlobalSearch
+          :disable-shortcut="true"
+          variant="icon"
+          class="lg:hidden touch-target"
+        />
 
-          <CommonGlobalSearch :disable-shortcut="true" variant="icon" class="lg:hidden touch-target" />
+        <CommonNotificationsNotificationBell class="touch-target" />
 
-          <CommonNotificationsNotificationBell class="touch-target" />
-
-          <UTooltip :text="t('navigation.settings')">
-            <UButton
-              to="/settings"
-              variant="ghost"
-              color="neutral"
-              class="p-0.5 rounded-full touch-target"
-            >
-              <UAvatar
-                :src="user?.avatarUrl || undefined"
-                :alt="displayName"
-                size="sm"
-                :ui="{
-                  fallback:
-                    'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300',
-                }"
-              />
-            </UButton>
-          </UTooltip>
-        </template>
+        <UTooltip :text="t('navigation.settings')">
+          <UButton
+            to="/settings"
+            variant="ghost"
+            color="neutral"
+            class="p-0.5 rounded-full touch-target"
+          >
+            <UAvatar
+              :src="user?.avatarUrl || undefined"
+              :alt="displayName"
+              size="sm"
+              :ui="{
+                fallback:
+                  'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300',
+              }"
+            />
+          </UButton>
+        </UTooltip>
       </div>
     </div>
 
