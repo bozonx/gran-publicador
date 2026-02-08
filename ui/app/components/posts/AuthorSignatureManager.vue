@@ -299,13 +299,7 @@ async function handleDragEnd() {
               </div>
             </div>
           </div>
-          <UButton
-            icon="i-heroicons-trash"
-            size="xs"
-            variant="ghost"
-            color="error"
-            @click.stop="handleDelete(sig.id)"
-          />
+
         </div>
       </VueDraggable>
     </template>
@@ -375,17 +369,33 @@ async function handleDragEnd() {
       </div>
 
       <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="primary"
-          :loading="isLoading"
-          :disabled="!localVariants.some(v => v.content.trim())"
-          @click="handleSave"
-        >
-          {{ t('common.save') }}
-        </UButton>
+        <div class="flex items-center justify-between w-full">
+          <div>
+            <UButton
+              v-if="editingSignature"
+              icon="i-heroicons-trash"
+              size="xs"
+              variant="ghost"
+              color="error"
+              @click="handleDelete(editingSignature.id); isModalOpen = false"
+            >
+              {{ t('common.delete') }}
+            </UButton>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton
+              color="primary"
+              :loading="isLoading"
+              :disabled="!localVariants.some(v => v.content.trim())"
+              @click="handleSave"
+            >
+              {{ t('common.save') }}
+            </UButton>
+          </div>
+        </div>
       </template>
     </UiAppModal>
   </div>
