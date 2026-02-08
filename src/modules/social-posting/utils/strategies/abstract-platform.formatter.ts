@@ -10,6 +10,7 @@ export interface FormatterParams {
   mediaStorageUrl: string; // Media Storage microservice URL
   publicMediaBaseUrl?: string; // Public API URL for proxying
   mediaService?: any; // MediaService for signing
+  projectTemplates?: any[]; // Project templates for the channel's project
 }
 
 export abstract class AbstractPlatformFormatter {

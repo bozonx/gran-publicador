@@ -49,6 +49,7 @@ import { SourcesModule } from './modules/sources/sources.module.js';
 import { SystemModule } from './modules/system/system.module.js';
 import { ContentLibraryModule } from './modules/content-library/content-library.module.js';
 import { PublicationRelationsModule } from './modules/publication-relations/publication-relations.module.js';
+import { ProjectTemplatesModule } from './modules/project-templates/project-templates.module.js';
 import { PinoLogger } from 'nestjs-pino';
 import { GuardsModule } from './common/guards/guards.module.js';
 
@@ -259,6 +260,7 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
     SystemModule,
     ContentLibraryModule,
     PublicationRelationsModule,
+    ProjectTemplatesModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],

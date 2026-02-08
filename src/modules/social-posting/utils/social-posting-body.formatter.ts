@@ -7,25 +7,29 @@ export interface TemplateBlock {
   before: string;
   after: string;
   tagCase?: TagCase;
-  footerId?: string | null;
   content?: string;
 }
 
-export interface ChannelFooter {
-  id: string;
-  name: string;
-  content: string;
-  isDefault: boolean;
+/**
+ * Overrides for a single block type in a channel variation.
+ */
+export interface BlockOverride {
+  before?: string;
+  after?: string;
+  content?: string;
+  tagCase?: TagCase;
 }
 
-export interface ChannelPostTemplate {
+/**
+ * Channel template variation linked to a project template.
+ */
+export interface ChannelTemplateVariation {
   id: string;
   name: string;
   order: number;
-  postType: PostType | null;
-  language: string | null;
-  template: TemplateBlock[];
   isDefault?: boolean;
+  projectTemplateId: string;
+  overrides?: Record<string, BlockOverride>;
 }
 
 export interface PublicationData {
@@ -38,15 +42,21 @@ export interface PublicationData {
   authorSignature?: string | null;
 }
 
+/**
+ * Project template structure (matches DB model).
+ */
+export interface ProjectTemplateData {
+  id: string;
+  name: string;
+  postType: PostType | null;
+  isDefault?: boolean;
+  order: number;
+  template: TemplateBlock[];
+}
+
 export class SocialPostingBodyFormatter {
   /**
-   * Default template blocks as defined in the requirements and UI.
-   * - Title: disabled by default
-   * - Content: enabled
-   * - Author Comment: enabled
-   * - Tags: enabled (snake_case)
-   * - Custom: enabled (empty)
-   * - Footer: enabled (default footer)
+   * Default template blocks used when no template is selected.
    */
   private static getDefaultBlocks(): TemplateBlock[] {
     return [
@@ -61,30 +71,81 @@ export class SocialPostingBodyFormatter {
   }
 
   /**
-   * Formats the body text based on channel templates or default template.
+   * Build effective blocks by applying channel variation overrides on top of project template blocks.
+   */
+  static buildEffectiveBlocks(
+    projectBlocks: TemplateBlock[],
+    overrides?: Record<string, BlockOverride>,
+  ): TemplateBlock[] {
+    if (!overrides) return projectBlocks;
+
+    return projectBlocks.map(block => {
+      const override = overrides[block.insert];
+      if (!override) return block;
+
+      return {
+        ...block,
+        before: override.before !== undefined ? override.before : block.before,
+        after: override.after !== undefined ? override.after : block.after,
+        content: override.content !== undefined ? override.content : block.content,
+        tagCase: override.tagCase !== undefined ? override.tagCase : block.tagCase,
+      };
+    });
+  }
+
+  /**
+   * Formats the body text based on project templates + channel variations.
+   *
+   * Resolution order:
+   * 1. Explicit templateOverride.id → find matching channel variation
+   * 2. Channel default variation (isDefault)
+   * 3. Hardcoded default blocks
+   *
+   * For each variation found, the effective blocks are built by merging
+   * the project template's blocks with the variation's overrides.
    */
   static format(
     data: PublicationData,
     channel: { language: string; preferences?: any },
     templateOverride?: { id: string } | null,
-    footerOverride?: string | null,
+    projectTemplates?: ProjectTemplateData[],
   ): string {
-    const templates: ChannelPostTemplate[] = channel.preferences?.templates || [];
+    const variations: ChannelTemplateVariation[] = channel.preferences?.templates || [];
 
-    let template: ChannelPostTemplate | null | undefined = null;
+    let variation: ChannelTemplateVariation | null | undefined = null;
 
     // 1. Explicit selection (Highest Priority)
     if (templateOverride?.id) {
-      template = templates.find(t => t.id === templateOverride.id);
+      variation = variations.find(t => t.id === templateOverride.id);
     }
 
     // 2. Channel Default
-    if (!template) {
-      template = templates.find(t => t.isDefault);
+    if (!variation) {
+      variation = variations.find(t => t.isDefault);
     }
 
-    const blocks = template ? template.template : this.getDefaultBlocks();
+    let blocks: TemplateBlock[];
 
+    if (variation && projectTemplates) {
+      // Find the linked project template
+      const projectTemplate = projectTemplates.find(pt => pt.id === variation!.projectTemplateId);
+      if (projectTemplate) {
+        blocks = this.buildEffectiveBlocks(projectTemplate.template, variation.overrides);
+      } else {
+        // Project template was deleted or not found — fallback to defaults
+        blocks = this.getDefaultBlocks();
+      }
+    } else {
+      blocks = this.getDefaultBlocks();
+    }
+
+    return this.renderBlocks(data, blocks);
+  }
+
+  /**
+   * Render template blocks into formatted text.
+   */
+  private static renderBlocks(data: PublicationData, blocks: TemplateBlock[]): string {
     const formattedBlocks: string[] = [];
 
     for (const block of blocks) {
@@ -112,40 +173,9 @@ export class SocialPostingBodyFormatter {
         case 'custom':
           value = block.content || '';
           break;
-        case 'footer': {
-          const footers: ChannelFooter[] = channel.preferences?.footers || [];
-          let footerObj: ChannelFooter | undefined;
-
-          // Priority 1: Post-level footer override
-          if (footerOverride !== undefined && footerOverride !== null) {
-            if (footerOverride === 'none') {
-              value = '';
-              break;
-            }
-            footerObj = footers.find(f => f.id === footerOverride);
-            // If explicit override is problematic (deleted), we skip footer
-            if (!footerObj) {
-              value = '';
-              break;
-            }
-          }
-          // Priority 2: Template block's footerId
-          else if (block.footerId) {
-            footerObj = footers.find(f => f.id === block.footerId);
-            // If template references deleted footer, skip footer entirely
-            if (!footerObj) {
-              value = '';
-              break;
-            }
-          }
-          // Priority 3: Default footer
-          else {
-            footerObj = footers.find(f => f.isDefault);
-          }
-
-          value = footerObj?.content || '';
+        case 'footer':
+          value = block.content || '';
           break;
-        }
       }
 
       const trimmedValue = value.trim();

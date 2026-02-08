@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick } from 'vue'
-import { VueDraggable } from 'vue-draggable-plus'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 
-import type { 
-  ChannelWithProject, 
-  ChannelPostTemplate, 
-  TemplateBlock 
+import type {
+  ChannelWithProject,
+  ChannelTemplateVariation,
+  ProjectTemplate,
+  TemplateBlock,
+  BlockOverride,
 } from '~/types/channels'
 import { containsBlockMarkdown } from '~/utils/markdown-validation'
 
@@ -17,36 +18,11 @@ const { channel } = defineProps<Props>()
 const { t } = useI18n()
 const toast = useToast()
 const { updateChannel } = useChannels()
-const { languageOptions } = useLanguages()
 
-// Post type options (hardcoded based on PostType enum in prisma)
-const postTypeOptions = [
-  { value: null, label: t('common.all', 'All') },
-  { value: 'POST', label: t('post.type_post', 'Post') },
-  { value: 'ARTICLE', label: t('post.type_article', 'Article') },
-  { value: 'NEWS', label: t('post.type_news', 'News') },
-  { value: 'VIDEO', label: t('post.type_video', 'Video') },
-  { value: 'SHORT', label: t('post.type_short', 'Short') },
-  { value: 'STORY', label: t('post.type_story', 'Story') },
-]
-
-const languageSelectOptions = computed(() => [
-  { value: null, label: t('common.all', 'All') },
-  ...languageOptions
-])
-
-const footerOptions = computed(() => {
-  const footers = channel.preferences?.footers || []
-  const defaultFooter = footers.find(f => f.isDefault)
-  const defaultLabel = defaultFooter 
-    ? `${t('channel.footerDefault')} (${defaultFooter.content.split('\n')[0].slice(0, 50)})`
-    : t('channel.footerDefault')
-    
-  return [
-    { value: null, label: defaultLabel },
-    ...footers.map(f => ({ value: f.id, label: f.content.split('\n')[0].slice(0, 50) }))
-  ]
-})
+const {
+  templates: projectTemplates,
+  fetchProjectTemplates,
+} = useProjectTemplates()
 
 const insertOptions = [
   { value: 'title', label: t('channel.templateInsertTitle') },
@@ -70,201 +46,172 @@ const tagCaseOptions = [
   { value: 'upper_case', label: t('channel.tagCaseOptions.upper_case') },
 ]
 
-const getDefaultBlocks = (): TemplateBlock[] => [
-  { enabled: false, insert: 'title', before: '', after: '' },
-  { enabled: true, insert: 'content', before: '', after: '' },
-  { enabled: true, insert: 'authorComment', before: '', after: '' },
-  { enabled: true, insert: 'authorSignature', before: '', after: '' },
-  { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
-  { enabled: false, insert: 'custom', before: '', after: '', content: '' },
-  { enabled: true, insert: 'footer', before: '', after: '', footerId: null },
-]
+const variations = ref<ChannelTemplateVariation[]>(channel.preferences?.templates || [])
 
-const templates = ref<ChannelPostTemplate[]>(channel.preferences?.templates || [])
-
-const isModalOpen = ref(false)
-const editingTemplate = ref<ChannelPostTemplate | null>(null)
-const templateForm = reactive({
-  id: '',
-  name: '',
-  postType: null as string | null,
-  language: null as string | null,
-  isDefault: false,
-  template: [] as TemplateBlock[]
+onMounted(() => {
+  if (channel.projectId) {
+    fetchProjectTemplates(channel.projectId)
+  }
 })
 
-function openAddTemplate() {
-  editingTemplate.value = null
-  templateForm.id = crypto.randomUUID()
-  templateForm.name = ''
-  templateForm.postType = null
-  templateForm.language = null
-  templateForm.isDefault = templates.value.length === 0
-  templateForm.template = getDefaultBlocks()
+// Project templates available for creating new variations
+const availableProjectTemplates = computed(() => {
+  const existingPtIds = new Set(variations.value.map(v => v.projectTemplateId))
+  return projectTemplates.value.filter(pt => !existingPtIds.has(pt.id))
+})
+
+const projectTemplateSelectOptions = computed(() =>
+  availableProjectTemplates.value.map(pt => ({
+    value: pt.id,
+    label: pt.name + (pt.postType ? ` (${pt.postType})` : ''),
+  }))
+)
+
+// Find project template by id
+function getProjectTemplate(id: string): ProjectTemplate | undefined {
+  return projectTemplates.value.find(pt => pt.id === id)
+}
+
+// Modal state
+const isModalOpen = ref(false)
+const editingVariation = ref<ChannelTemplateVariation | null>(null)
+
+const variationForm = reactive({
+  id: '',
+  name: '',
+  isDefault: false,
+  projectTemplateId: '',
+  overrides: {} as Record<string, BlockOverride>,
+})
+
+function openAddVariation() {
+  editingVariation.value = null
+  variationForm.id = crypto.randomUUID()
+  variationForm.name = ''
+  variationForm.isDefault = variations.value.length === 0
+  variationForm.projectTemplateId = ''
+  variationForm.overrides = {}
   isModalOpen.value = true
 }
 
-function openEditTemplate(template: ChannelPostTemplate) {
-  editingTemplate.value = template
-  templateForm.id = template.id
-  templateForm.name = template.name
-  templateForm.postType = template.postType || null
-  templateForm.language = template.language || null
-  templateForm.isDefault = !!template.isDefault
-  templateForm.template = JSON.parse(JSON.stringify(template.template))
+function openEditVariation(variation: ChannelTemplateVariation) {
+  editingVariation.value = variation
+  variationForm.id = variation.id
+  variationForm.name = variation.name
+  variationForm.isDefault = !!variation.isDefault
+  variationForm.projectTemplateId = variation.projectTemplateId
+  variationForm.overrides = JSON.parse(JSON.stringify(variation.overrides || {}))
   isModalOpen.value = true
 }
 
-async function saveTemplates() {
+// Get effective block value (project template value merged with override)
+function getOverrideValue(blockInsert: string, field: keyof BlockOverride): string {
+  return (variationForm.overrides[blockInsert]?.[field] as string) ?? ''
+}
+
+function setOverrideValue(blockInsert: string, field: keyof BlockOverride, value: string) {
+  if (!variationForm.overrides[blockInsert]) {
+    variationForm.overrides[blockInsert] = {}
+  }
+  if (value === '') {
+    delete variationForm.overrides[blockInsert]![field]
+    // Clean up empty override objects
+    if (Object.keys(variationForm.overrides[blockInsert]!).length === 0) {
+      delete variationForm.overrides[blockInsert]
+    }
+  } else {
+    (variationForm.overrides[blockInsert] as any)[field] = value
+  }
+}
+
+// Blocks from the selected project template (read-only structure)
+const selectedProjectTemplateBlocks = computed((): TemplateBlock[] => {
+  if (!variationForm.projectTemplateId) return []
+  const pt = getProjectTemplate(variationForm.projectTemplateId)
+  return pt?.template || []
+})
+
+async function saveVariations() {
   const currentPreferences = channel.preferences || {}
   await updateChannel(channel.id, {
     preferences: {
       ...currentPreferences,
-      templates: templates.value
-    }
+      templates: variations.value,
+    },
   })
 }
 
-function handleSaveTemplate() {
-  if (!templateForm.name) return
+function handleSaveVariation() {
+  if (!variationForm.name || !variationForm.projectTemplateId) return
 
-  // Validate block markdown
-  for (const block of templateForm.template) {
-    if (block.enabled) {
-      if (containsBlockMarkdown(block.before || '') || 
-          containsBlockMarkdown(block.after || '') || 
-          (block.insert === 'custom' && containsBlockMarkdown(block.content || ''))) {
-        toast.add({
-          title: t('common.error'),
-          description: t('validation.inlineMarkdownOnly'),
-          color: 'error'
-        })
-        return
-      }
+  // Validate override text fields
+  for (const [, override] of Object.entries(variationForm.overrides)) {
+    if (containsBlockMarkdown(override.before || '') ||
+        containsBlockMarkdown(override.after || '') ||
+        containsBlockMarkdown(override.content || '')) {
+      toast.add({
+        title: t('common.error'),
+        description: t('validation.inlineMarkdownOnly'),
+        color: 'error',
+      })
+      return
     }
   }
 
-  if (editingTemplate.value) {
-    const index = templates.value.findIndex(t => t.id === templateForm.id)
-    if (index !== -1 && templates.value[index]) {
-      templates.value[index] = {
-        id: templateForm.id || '',
-        name: templateForm.name || '',
-        order: templates.value[index].order,
-        postType: templateForm.postType || null,
-        language: templateForm.language || null,
-        isDefault: !!templateForm.isDefault,
-        template: JSON.parse(JSON.stringify(templateForm.template))
+  if (editingVariation.value) {
+    const index = variations.value.findIndex(v => v.id === variationForm.id)
+    if (index !== -1) {
+      variations.value[index] = {
+        id: variationForm.id,
+        name: variationForm.name,
+        order: variations.value[index]!.order,
+        isDefault: variationForm.isDefault,
+        projectTemplateId: variationForm.projectTemplateId,
+        overrides: JSON.parse(JSON.stringify(variationForm.overrides)),
       }
     }
   } else {
-    templates.value.push({
-      id: templateForm.id,
-      name: templateForm.name,
-      order: templates.value.length,
-      postType: templateForm.postType,
-      language: templateForm.language,
-      isDefault: templateForm.isDefault,
-      template: JSON.parse(JSON.stringify(templateForm.template))
+    variations.value.push({
+      id: variationForm.id,
+      name: variationForm.name,
+      order: variations.value.length,
+      isDefault: variationForm.isDefault,
+      projectTemplateId: variationForm.projectTemplateId,
+      overrides: JSON.parse(JSON.stringify(variationForm.overrides)),
     })
   }
 
-  // If this template is set as default, reset others
-  if (templateForm.isDefault) {
-     templates.value.forEach(t => {
-         if (t.id !== templateForm.id) {
-             t.isDefault = false
-         }
-     })
+  // If this variation is set as default, reset others
+  if (variationForm.isDefault) {
+    variations.value.forEach(v => {
+      if (v.id !== variationForm.id) v.isDefault = false
+    })
   }
 
-  saveTemplates()
+  saveVariations()
   isModalOpen.value = false
 }
 
-const isDeleteWarningModalOpen = ref(false)
-const templateToDeleteId = ref<string | null>(null)
-const affectedPostsCount = ref(0)
-const isCheckingUsage = ref(false)
+const isDeleteModalOpen = ref(false)
+const variationToDeleteId = ref<string | null>(null)
 
-async function checkTemplateUsage(id: string): Promise<number> {
-    const api = useApi()
-    try {
-        // Fetch posts for this channel that might need this template
-        // We only care about posts that are waiting to be published (PENDING) 
-        // and belong to a publication that is SCHEDULED.
-        // It's hard to filter deeply via simple API params unless we have a specific endpoint or deep filter support.
-        // Let's assume we can fetch PENDING posts for this channel and filter client side for now.
-        // Or better: Assume the user doesn't have thousands of pending posts per channel.
-        const posts = await api.get<any[]>('/posts', { 
-            params: { 
-                channelId: channel.id, 
-                status: 'PENDING',
-                limit: 100 // Limit check to 100 recent pending posts to avoid heavy load
-            } 
-        })
-        
-        // Filter those where publication is scheduled and template matches
-        const affected = posts.filter(p => {
-             // We need publication status. If 'posts' endpoint returns relations, we are good.
-             // Based on PostWithRelations it does.
-             if (p.publication?.status !== 'SCHEDULED') return false
-             
-             // Check if post uses this template explicitly
-             // p.template is the JSON field.
-             const templateData = typeof p.template === 'string' ? JSON.parse(p.template) : p.template
-             return templateData?.id === id
-        })
-        
-        return affected.length
-    } catch (e) {
-        console.error('Failed to check template usage', e)
-        return 0
-    }
+function handleDeleteRequest(id: string) {
+  variationToDeleteId.value = id
+  isDeleteModalOpen.value = true
 }
 
-const deletedTemplates = ref<ChannelPostTemplate[]>([])
-const showDeleted = ref(false)
-
-async function handleDeleteRequest(id: string) {
-    templateToDeleteId.value = id
-    isCheckingUsage.value = true
-    
-    const count = await checkTemplateUsage(id)
-    affectedPostsCount.value = count
-    isCheckingUsage.value = false
-    
-    isDeleteWarningModalOpen.value = true
-}
-
-function confirmDeleteTemplate() {
-  if (!templateToDeleteId.value) return
-  
-  const template = templates.value.find(t => t.id === templateToDeleteId.value)
-  if (template) {
-      deletedTemplates.value.push({ ...template })
-  }
-  
-  templates.value = templates.value.filter(t => t.id !== templateToDeleteId.value)
-  saveTemplates()
-  isDeleteWarningModalOpen.value = false
-  templateToDeleteId.value = null
-}
-
-function restoreTemplate(template: ChannelPostTemplate) {
-  templates.value.push({ ...template })
-  deletedTemplates.value = deletedTemplates.value.filter(t => t.id !== template.id)
-  saveTemplates()
-}
-
-function resetBlocks() {
-  templateForm.template = getDefaultBlocks()
+function confirmDelete() {
+  if (!variationToDeleteId.value) return
+  variations.value = variations.value.filter(v => v.id !== variationToDeleteId.value)
+  saveVariations()
+  isDeleteModalOpen.value = false
+  variationToDeleteId.value = null
 }
 
 // Watch for external changes to channel
 watch(() => channel.preferences?.templates, (newTemplates) => {
   if (newTemplates) {
-    templates.value = newTemplates
+    variations.value = newTemplates
   }
 }, { deep: true })
 </script>
@@ -277,7 +224,7 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
           {{ t('channel.templates') }}
         </h3>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('channel.templateSectionDesc') }}
+          {{ t('channel.variationSectionDesc', 'Channel-specific variations of project templates. Override text fields for localization.') }}
         </p>
       </div>
       <UButton
@@ -285,25 +232,34 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
         size="sm"
         color="primary"
         variant="soft"
-        @click="openAddTemplate"
+        :disabled="availableProjectTemplates.length === 0 && !editingVariation"
+        @click="openAddVariation"
       >
-        {{ t('channel.addTemplate') }}
+        {{ t('channel.addVariation', 'Add Variation') }}
       </UButton>
     </div>
 
-    <div v-if="templates.length === 0" class="text-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+    <!-- No project templates warning -->
+    <div v-if="projectTemplates.length === 0" class="text-center py-8 border-2 border-dashed border-amber-200 dark:border-amber-700 rounded-xl bg-amber-50/50 dark:bg-amber-900/10">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 mx-auto text-amber-500 mb-2" />
+      <p class="text-sm text-amber-700 dark:text-amber-400 max-w-xs mx-auto">
+        {{ t('channel.noProjectTemplates', 'No project templates found. Create templates in project settings first.') }}
+      </p>
+    </div>
+
+    <div v-else-if="variations.length === 0" class="text-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
       <UIcon name="i-heroicons-document-text" class="w-10 h-10 mx-auto text-gray-400 mb-3" />
       <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-        {{ t('channel.noTemplates') }}
+        {{ t('channel.noVariations', 'No template variations yet. Create one to customize how project templates appear in this channel.') }}
       </p>
     </div>
 
     <div v-else class="space-y-3">
       <div
-        v-for="template in templates"
-        :key="template.id"
-        class="group flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
-        @click="openEditTemplate(template)"
+        v-for="variation in variations"
+        :key="variation.id"
+        class="group flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer"
+        @click="openEditVariation(variation)"
       >
         <div class="flex items-center gap-3 overflow-hidden">
           <div class="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors">
@@ -311,287 +267,186 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
           </div>
           <div class="min-w-0">
             <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-              {{ template.name }}
+              {{ variation.name }}
             </h4>
             <div class="flex items-center gap-2 mt-0.5">
-              <UBadge v-if="template.postType" size="xs" color="neutral" variant="subtle">
-                {{ postTypeOptions.find(o => o.value === template.postType)?.label }}
+              <UBadge size="xs" color="neutral" variant="subtle">
+                {{ getProjectTemplate(variation.projectTemplateId)?.name || t('common.unknown') }}
               </UBadge>
-              <UBadge v-if="template.language" size="xs" color="neutral" variant="subtle">
-                {{ languageOptions.find(o => o.value === template.language)?.label }}
-              </UBadge>
-              <span v-if="!template.postType && !template.language" class="text-xs text-gray-400 italic">
-                {{ t('common.all') }}
+              <span v-if="variation.overrides && Object.keys(variation.overrides).length > 0" class="text-xs text-gray-400">
+                {{ Object.keys(variation.overrides).length }} {{ t('channel.overrides', 'overrides') }}
               </span>
             </div>
           </div>
         </div>
-        
+
         <div class="flex items-center gap-1">
-          <UIcon 
-            v-if="template.isDefault" 
-            name="i-heroicons-star-20-solid" 
-            class="w-4 h-4 text-primary-500 mr-2" 
+          <UIcon
+            v-if="variation.isDefault"
+            name="i-heroicons-star-20-solid"
+            class="w-4 h-4 text-primary-500 mr-2"
           />
-          <div v-else class="w-4 h-4 mr-2"></div>
+          <div v-else class="w-4 h-4 mr-2" />
 
           <UButton
             icon="i-heroicons-trash"
             size="xs"
             variant="ghost"
             color="error"
-            @click.stop="handleDeleteRequest(template.id)"
+            @click.stop="handleDeleteRequest(variation.id)"
           />
-        </div>
-      </div>
-
-      <!-- Deleted Templates (Session only) -->
-      <div v-if="deletedTemplates.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <UButton
-          color="neutral"
-          variant="ghost"
-          size="xs"
-          :icon="showDeleted ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-          @click="showDeleted = !showDeleted"
-        >
-          {{ t('channel.deletedTemplates', { count: deletedTemplates.length }) }}
-        </UButton>
-        
-        <div v-if="showDeleted" class="mt-2 space-y-2">
-          <div
-            v-for="template in deletedTemplates"
-            :key="template.id"
-            class="flex items-center justify-between py-1.5 px-3 bg-gray-50/30 dark:bg-gray-800/20 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50 hover:opacity-80 transition-opacity"
-          >
-            <div class="flex items-center gap-3">
-              <UIcon name="i-heroicons-trash" class="w-3.5 h-3.5 text-gray-400" />
-              <div class="text-xs truncate max-w-[200px]">
-                <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ template.name }}</span>
-              </div>
-            </div>
-            <UButton
-              icon="i-heroicons-arrow-path"
-              size="xs"
-              variant="ghost"
-              color="primary"
-              class="scale-90"
-              @click="restoreTemplate(template)"
-            >
-              {{ t('common.restore', 'Restore') }}
-            </UButton>
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- Template Edit Modal -->
-    <UiAppModal 
+    <!-- Variation Edit Modal -->
+    <UiAppModal
       v-model:open="isModalOpen"
-      :title="editingTemplate ? t('channel.templateSettings') : t('channel.addTemplate')"
+      :title="editingVariation ? t('channel.editVariation', 'Edit Variation') : t('channel.addVariation', 'Add Variation')"
     >
+      <div class="space-y-6 max-h-[70vh] overflow-y-auto">
+        <!-- Basic info -->
+        <UFormField :label="t('channel.templateName')" required>
+          <UInput
+            v-model="variationForm.name"
+            :placeholder="t('channel.variationNamePlaceholder', 'e.g. English version, Short format...')"
+            class="w-full"
+          />
+        </UFormField>
 
-          <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-            <!-- Basic info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UFormField :label="t('channel.templateName')" required class="md:col-span-2">
-                <UInput
-                  v-model="templateForm.name"
-                  :placeholder="t('channel.templateNamePlaceholder')"
-                  class="w-full"
-                />
-              </UFormField>
+        <UFormField :label="t('channel.projectTemplate', 'Project Template')" required>
+          <USelectMenu
+            v-model="variationForm.projectTemplateId"
+            :items="editingVariation
+              ? projectTemplates.map(pt => ({ value: pt.id, label: pt.name + (pt.postType ? ` (${pt.postType})` : '') }))
+              : projectTemplateSelectOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            :disabled="!!editingVariation"
+          />
+        </UFormField>
 
-              <UFormField :label="t('channel.templatePostType')">
-                <USelectMenu
-                  v-model="templateForm.postType"
-                  :items="postTypeOptions"
-                  value-key="value"
-                  label-key="label"
-                  class="w-full"
-                />
-              </UFormField>
-
-              <UFormField :label="t('channel.templateLanguage')">
-                <CommonLanguageSelect
-                  v-model="templateForm.language"
-                  mode="all"
-                  allow-all
-                />
-              </UFormField>
-
-
-
-              <div class="md:col-span-2">
-                 <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50">
-                    <USwitch v-model="templateForm.isDefault" size="md" />
-                    <div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                            {{ t('channel.templateIsDefault') }}
-                        </div>
-                        <div class="text-xs text-gray-500">
-                             {{ t('channel.templateIsDefaultHelp') }}
-                        </div>
-                    </div>
-                 </div>
-              </div>
+        <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50">
+          <USwitch v-model="variationForm.isDefault" size="md" />
+          <div>
+            <div class="text-sm font-medium text-gray-900 dark:text-white">
+              {{ t('channel.templateIsDefault') }}
             </div>
-
-            <!-- Blocks Editor -->
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <h4 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <span>{{ t('channel.templateBlocks') }}</span>
-                  <CommonInfoTooltip :text="t('channel.templateBlocksTooltip')" />
-                </h4>
-                <UButton
-                  size="xs"
-                  variant="ghost"
-                  color="neutral"
-                  icon="i-heroicons-arrow-path"
-                  @click="resetBlocks"
-                >
-                  {{ t('channel.templateReset') }}
-                </UButton>
-              </div>
-
-              <VueDraggable
-                v-model="templateForm.template"
-                handle=".drag-handle"
-                class="space-y-3"
-              >
-                <div 
-                  v-for="(block, index) in templateForm.template" 
-                  :key="index"
-                  class="flex flex-col gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl relative"
-                  :class="{ 'opacity-50': !block.enabled }"
-                >
-                  <div class="flex items-center gap-4">
-                    <div class="drag-handle cursor-move p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                      <UIcon name="i-heroicons-bars-2" class="w-5 h-5" />
-                    </div>
-
-                    <USwitch v-model="block.enabled" size="sm" />
-
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
-                      {{ insertOptions.find(o => o.value === block.insert)?.label }}
-                    </span>
-
-                    <div class="flex-1"></div>
-                  </div>
-
-                  <div v-if="block.enabled" class="space-y-4 pt-2">
-                    <template v-if="block.insert !== 'custom'">
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <UFormField class="w-full">
-                          <template #label>
-                            <span class="inline-flex items-center">
-                              {{ t('channel.templateBefore') }}
-                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
-                            </span>
-                          </template>
-                          <UTextarea
-                            v-model="block.before"
-                            :rows="2"
-                            class="font-mono text-xs w-full"
-                            autoresize
-                          />
-                          <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
-                            <CommonWhitespaceVisualizer :text="block.before || ''" />
-                            <span v-if="containsBlockMarkdown(block.before || '')" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
-                          </div>
-                        </UFormField>
-                        <UFormField class="w-full">
-                          <template #label>
-                            <span class="inline-flex items-center">
-                              {{ t('channel.templateAfter') }}
-                              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
-                            </span>
-                          </template>
-                          <UTextarea
-                            v-model="block.after"
-                            :rows="2"
-                            class="font-mono text-xs w-full"
-                            autoresize
-                          />
-                          <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
-                             <CommonWhitespaceVisualizer :text="block.after || ''" />
-                             <span v-if="containsBlockMarkdown(block.after || '')" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
-                          </div>
-                        </UFormField>
-                      </div>
-                    </template>
-
-                    <template v-if="block.insert === 'tags'">
-                      <UFormField :label="t('channel.templateTagCase')" class="w-full">
-                        <USelectMenu
-                          v-model="block.tagCase"
-                          :items="tagCaseOptions"
-                          value-key="value"
-                          label-key="label"
-                          class="w-full"
-                        />
-                      </UFormField>
-                    </template>
-
-                    <template v-if="block.insert === 'footer'">
-                      <UFormField :label="t('channel.footers')" class="w-full">
-                        <USelectMenu
-                          v-model="block.footerId"
-                          :items="footerOptions"
-                          value-key="value"
-                          label-key="label"
-                          class="w-full"
-                        />
-                      </UFormField>
-                    </template>
-
-                    <template v-if="block.insert === 'custom'">
-                      <UFormField class="w-full">
-                        <template #label>
-                          <span class="inline-flex items-center">
-                            {{ t('channel.templateInsertCustom') }}
-                            <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
-                          </span>
-                        </template>
-                          <UTextarea
-                            v-model="block.content"
-                            :rows="4"
-                            class="font-mono text-xs w-full"
-                            :placeholder="t('channel.templateInsertCustomPlaceholder')"
-                            autoresize
-                          />
-                          <div class="mt-1 flex justify-between items-center text-[10px] text-gray-400">
-                            <CommonWhitespaceVisualizer :text="block.content || ''" />
-                            <span v-if="containsBlockMarkdown(block.content || '')" class="text-error-500">{{ t('validation.inlineMarkdownOnly') }}</span>
-                          </div>
-                      </UFormField>
-                    </template>
-                  </div>
-                </div>
-              </VueDraggable>
+            <div class="text-xs text-gray-500">
+              {{ t('channel.templateIsDefaultHelp') }}
             </div>
           </div>
+        </div>
 
-          <template #footer>
-            <div class="flex justify-end gap-3">
-              <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
-                {{ t('common.cancel') }}
-              </UButton>
-              <UButton color="primary" :disabled="!templateForm.name" @click="handleSaveTemplate">
-                {{ t('common.save') }}
-              </UButton>
+        <!-- Overrides Editor -->
+        <div v-if="selectedProjectTemplateBlocks.length > 0" class="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <h4 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
+            {{ t('channel.textOverrides', 'Text Overrides') }}
+          </h4>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {{ t('channel.textOverridesHelp', 'Override text fields from the project template for this channel. Leave empty to use the project template value.') }}
+          </p>
+
+          <div
+            v-for="block in selectedProjectTemplateBlocks"
+            :key="block.insert"
+            class="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
+            :class="{ 'opacity-50': !block.enabled }"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ insertOptions.find(o => o.value === block.insert)?.label }}
+              </span>
+              <UBadge v-if="!block.enabled" size="xs" color="neutral" variant="subtle">
+                {{ t('common.disabled') }}
+              </UBadge>
             </div>
-          </template>
+
+            <div v-if="block.enabled" class="space-y-2">
+              <!-- Before/After overrides for non-custom blocks -->
+              <template v-if="block.insert !== 'custom'">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <UFormField :label="t('channel.templateBefore')" class="w-full">
+                    <UTextarea
+                      :model-value="getOverrideValue(block.insert, 'before')"
+                      :rows="1"
+                      class="font-mono text-xs w-full"
+                      :placeholder="block.before || t('channel.noOverride', '(no override)')"
+                      autoresize
+                      @update:model-value="(v: string) => setOverrideValue(block.insert, 'before', v)"
+                    />
+                  </UFormField>
+                  <UFormField :label="t('channel.templateAfter')" class="w-full">
+                    <UTextarea
+                      :model-value="getOverrideValue(block.insert, 'after')"
+                      :rows="1"
+                      class="font-mono text-xs w-full"
+                      :placeholder="block.after || t('channel.noOverride', '(no override)')"
+                      autoresize
+                      @update:model-value="(v: string) => setOverrideValue(block.insert, 'after', v)"
+                    />
+                  </UFormField>
+                </div>
+              </template>
+
+              <!-- Tag case override -->
+              <template v-if="block.insert === 'tags'">
+                <UFormField :label="t('channel.templateTagCase')" class="w-full">
+                  <USelectMenu
+                    :model-value="getOverrideValue(block.insert, 'tagCase') || block.tagCase || 'none'"
+                    :items="tagCaseOptions"
+                    value-key="value"
+                    label-key="label"
+                    class="w-full"
+                    @update:model-value="(v: string) => setOverrideValue(block.insert, 'tagCase', v === (block.tagCase || 'none') ? '' : v)"
+                  />
+                </UFormField>
+              </template>
+
+              <!-- Content override for custom/footer blocks -->
+              <template v-if="block.insert === 'custom' || block.insert === 'footer'">
+                <UFormField :label="block.insert === 'footer' ? t('projectTemplates.footerContent', 'Footer text') : t('channel.templateInsertCustom')" class="w-full">
+                  <UTextarea
+                    :model-value="getOverrideValue(block.insert, 'content')"
+                    :rows="2"
+                    class="font-mono text-xs w-full"
+                    :placeholder="block.content || t('channel.noOverride', '(no override)')"
+                    autoresize
+                    @update:model-value="(v: string) => setOverrideValue(block.insert, 'content', v)"
+                  />
+                </UFormField>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
+            {{ t('common.cancel') }}
+          </UButton>
+          <UButton
+            color="primary"
+            :disabled="!variationForm.name || !variationForm.projectTemplateId"
+            @click="handleSaveVariation"
+          >
+            {{ t('common.save') }}
+          </UButton>
+        </div>
+      </template>
     </UiAppModal>
 
-    <!-- Delete Warning Modal -->
+    <!-- Delete Confirmation -->
     <UiConfirmModal
-      v-model:open="isDeleteWarningModalOpen"
-      :title="t('channel.templateUpdateWarning')"
-      :description="affectedPostsCount > 0 ? t('channel.templateInUseWarning', { count: affectedPostsCount }, `This template is used in ${affectedPostsCount} scheduled posts. Deleting it will cause these posts to use the default template.`) + '\n\n' + t('common.areYouSure') : t('channel.templateDeleteConfirm')"
-      color="warning"
+      v-model:open="isDeleteModalOpen"
+      :title="t('channel.templateDeleteConfirm', 'Delete Variation')"
+      :description="t('channel.variationDeleteDesc', 'Are you sure you want to delete this channel variation?')"
+      :confirm-text="t('common.delete')"
+      color="error"
       icon="i-heroicons-exclamation-triangle"
-      @confirm="confirmDeleteTemplate"
+      @confirm="confirmDelete"
     />
   </div>
 </template>

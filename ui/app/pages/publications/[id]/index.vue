@@ -82,7 +82,6 @@ async function showPostPreview(post: any) {
     },
     post.channel || post,
     post.template,
-    post.footerId
   )
   
   isPreviewModalOpen.value = true

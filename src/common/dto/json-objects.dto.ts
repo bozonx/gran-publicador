@@ -210,27 +210,6 @@ export class ProjectPreferencesDto {
 }
 
 /**
- * DTO for Channel Footer.
- */
-export class ChannelFooterDto {
-  @IsString()
-  id!: string;
-
-  @IsString()
-  name!: string;
-
-  @IsString()
-  content!: string;
-
-  @IsBoolean()
-  isDefault!: boolean;
-}
-
-/**
- * DTO for Channel preferences.
- */
-
-/**
  * DTO for Template Block.
  */
 export class TemplateBlockDto {
@@ -255,17 +234,13 @@ export class TemplateBlockDto {
 
   @IsOptional()
   @IsString()
-  footerId?: string;
-
-  @IsOptional()
-  @IsString()
   content?: string;
 }
 
 /**
- * DTO for Channel Post Template.
+ * DTO for Channel Template Variation (linked to a project template).
  */
-export class ChannelPostTemplateDto {
+export class ChannelTemplateVariationDto {
   @IsString()
   id!: string;
 
@@ -276,21 +251,15 @@ export class ChannelPostTemplateDto {
   order!: number;
 
   @IsOptional()
-  @IsString()
-  postType?: string;
-
-  @IsOptional()
-  @IsString()
-  language?: string;
-
-  @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TemplateBlockDto)
-  template!: TemplateBlockDto[];
+  @IsString()
+  projectTemplateId!: string;
+
+  @IsOptional()
+  @IsObject()
+  overrides?: Record<string, any>;
 }
 
 /**
@@ -312,14 +281,8 @@ export class ChannelPreferencesDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => ChannelFooterDto)
-  footers?: ChannelFooterDto[];
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ChannelPostTemplateDto)
-  templates?: ChannelPostTemplateDto[];
+  @Type(() => ChannelTemplateVariationDto)
+  templates?: ChannelTemplateVariationDto[];
 }
 
 /**

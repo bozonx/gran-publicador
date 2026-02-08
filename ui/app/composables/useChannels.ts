@@ -13,7 +13,6 @@ import type {
   ChannelCreateInput,
   ChannelUpdateInput,
   ChannelsFilter,
-  ChannelFooter,
 } from '~/types/channels';
 import { useI18n } from 'vue-i18n';
 import {
@@ -24,14 +23,7 @@ import {
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
 export type { SocialMedia };
-export type {
-  Channel,
-  ChannelWithProject,
-  ChannelCreateInput,
-  ChannelUpdateInput,
-  ChannelsFilter,
-  ChannelFooter,
-};
+export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter };
 
 export function useChannels() {
   const api = useApi();

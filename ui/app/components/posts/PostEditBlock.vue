@@ -11,7 +11,7 @@ import {
     getPostType,
     getPostLanguage 
 } from '~/composables/usePosts'
-import type { ChannelPostTemplate } from '~/types/channels'
+import type { ChannelTemplateVariation } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 
@@ -117,7 +117,6 @@ const formData = reactive({
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
   template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null,
-  footerId: props.post?.footerId || null,
   authorSignature: props.post?.authorSignature || '',
   platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
 })
@@ -258,7 +257,6 @@ async function performSave() {
             content: normalizedContent,
             meta: formData.meta,
             template: formData.template,
-            footerId: formData.footerId,
             authorSignature: formData.authorSignature || null,
             platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
@@ -281,7 +279,6 @@ async function performSave() {
           content: normalizedContent,
           meta: formData.meta,
           template: formData.template,
-          footerId: formData.footerId,
           authorSignature: formData.authorSignature || null,
           platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
@@ -406,16 +403,7 @@ const availableTemplates = computed(() => {
     // If template post type is null, it applies to all
     const publicationPostType = displayType.value
     
-    const list = (preferences.templates || []).filter((t: any) => {
-        // Filter by Post Type
-        if (t.postType && t.postType !== publicationPostType) return false
-        
-        // Filter by Language? Usually not strictly enforced but good to consider
-        // If template has specific language, maybe valid only if channel language matches?
-        // For now, let's stick to post type filtering as primary
-        
-        return true
-    }).map((template: any) => ({
+    const list = (preferences.templates || []).map((template: any) => ({
         value: { id: template.id },
         label: template.name + (template.isDefault ? ` (${t('channel.templateIsDefault', 'Default')})` : '')
     }))
@@ -469,54 +457,11 @@ watch(availableTemplates, (newTemplates, oldTemplates) => {
     // So we don't automatically reset formData.template = null anymore
 })
 
-const availableFooters = computed(() => {
-    const channel = selectedChannel.value
-    const preferences = getChannelPreferences(channel)
-    const footers = preferences?.footers || []
-    
-    // 1. Map existing footers
-    const list = footers.map((f: any) => ({
-        value: f.id,
-        label: f.content.split('\n')[0].slice(0, 50) + (f.isDefault ? ` (${t('channel.footerDefault', 'Default')})` : '')
-    }))
-
-    // 2. Determine "Default" label based on template or channel default
-    let effectiveDefaultLabel = t('channel.footerDefault', 'Default (Auto)')
-    
-    const currentTemplate = (preferences?.templates || []).find((t: any) => t.id === formData.template?.id)
-    const footerBlock = currentTemplate?.template?.find((b: any) => b.enabled && b.insert === 'footer')
-    
-    if (footerBlock?.footerId) {
-        const templateFooter = footers.find((f: any) => f.id === footerBlock.footerId)
-        if (templateFooter) {
-            effectiveDefaultLabel = `${t('channel.footerDefault', 'Default')} (Template: '${templateFooter.content.split('\n')[0].slice(0, 30)}...')`
-        }
-    } else {
-        const defaultFooter = footers.find((f: any) => f.isDefault)
-        if (defaultFooter) {
-            effectiveDefaultLabel = `${t('channel.footerDefault', 'Default')} (Channel: '${defaultFooter.content.split('\n')[0].slice(0, 30)}...')`
-        }
-    }
-
-    return [
-        { value: null, label: effectiveDefaultLabel },
-        { value: 'none', label: t('post.noneFooter', 'No footer') },
-        ...list
-    ]
-})
-
 const isTemplateMissing = computed(() => {
     if (!formData.template?.id) return false
     const preferences = getChannelPreferences(selectedChannel.value)
     if (!preferences?.templates) return true
     return !preferences.templates.some((t: any) => t.id === formData.template!.id)
-})
-
-const isFooterMissing = computed(() => {
-    if (!formData.footerId || formData.footerId === 'none') return false
-    const preferences = getChannelPreferences(selectedChannel.value)
-    if (!preferences?.footers) return true
-    return !preferences.footers.some((f: any) => f.id === formData.footerId)
 })
 
 // Watchers for external updates
@@ -535,7 +480,6 @@ watch(() => props.post, (newPost, oldPost) => {
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
     formData.template = (newPost.template && typeof newPost.template === 'string' ? JSON.parse(newPost.template) : (newPost.template || null))
-    formData.footerId = newPost.footerId || null
     formData.authorSignature = newPost.authorSignature || ''
     formData.platformOptions = (newPost.platformOptions && typeof newPost.platformOptions === 'string' ? JSON.parse(newPost.platformOptions) : (newPost.platformOptions || {}))
     
@@ -981,24 +925,6 @@ async function executePublish() {
                             class="w-full"
                             :placeholder="t('post.selectTemplate', 'Select template...')"
                             :color="isTemplateMissing ? 'warning' : 'neutral'"
-                        >
-                        </USelectMenu>
-                    </UFormField>
-
-                    <!-- Footer Selector -->
-                    <UFormField 
-                        v-if="availableFooters.length > 1"
-                        :label="t('channel.footers', 'Footers')" 
-                        :error="isFooterMissing ? t('post.errorFooterDeleted', 'Selected footer was deleted, it will be skipped') : undefined"
-                    >
-                        <USelectMenu
-                            v-model="formData.footerId"
-                            :items="availableFooters"
-                            value-key="value"
-                            label-key="label"
-                            class="w-full"
-                            :placeholder="t('post.selectFooter', 'Select footer...')"
-                            :color="isFooterMissing ? 'warning' : 'neutral'"
                         >
                         </USelectMenu>
                     </UFormField>

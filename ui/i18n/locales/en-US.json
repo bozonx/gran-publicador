@@ -716,6 +716,22 @@
     "view_project": "Go to Project",
     "view_publication": "View publication"
   },
+  "projectTemplates": {
+    "title": "Publication Templates",
+    "description": "Define templates that control how publications are formatted when posted to channels.",
+    "add": "Add Template",
+    "edit": "Edit Template",
+    "empty": "No templates yet. Create one to control how publications are formatted.",
+    "created": "Template created",
+    "updated": "Template updated",
+    "deleted": "Template deleted",
+    "deleteTitle": "Delete Template",
+    "deleteWarning": "This will also remove all channel variations linked to this template. Are you sure?",
+    "namePlaceholder": "e.g. Default, News Format...",
+    "setAsDefault": "Set as default template",
+    "activeBlocks": "active blocks",
+    "footerContent": "Footer text"
+  },
   "post": {
     "authorComment": "Author comment",
     "authorCommentHint": "This comment will be published in the post below the main news text.",

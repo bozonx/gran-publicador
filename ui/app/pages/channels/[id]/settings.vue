@@ -32,9 +32,7 @@ const isTogglingActive = ref(false)
 const isDeleting = ref(false)
 const showDeleteModal = ref(false)
 const isSavingPreferencesSection = ref(false)
-const isSavingFootersSection = ref(false)
-
-const anyPreferencesSaving = computed(() => isSavingPreferencesSection.value || isSavingFootersSection.value)
+const anyPreferencesSaving = computed(() => isSavingPreferencesSection.value)
 
 // Fetch channel on mount
 onMounted(async () => {
@@ -197,23 +195,7 @@ async function handleDelete() {
           <PostsAuthorSignatureManager :channel-id="channelId" />
         </UiAppCard>
 
-        <!-- Footers -->
-        <UiAppCard
-          v-if="canEdit(channel)"
-          :title="t('channel.footers', 'Footers')"
-          :description="t('channel.footers_desc', 'Manage text footers that can be automatically added to your posts')"
-        >
-          <template #actions>
-            <div id="channel-footers-actions"></div>
-          </template>
-          
-          <FormsChannelPartsChannelFootersManager
-            :channel="channel"
-            @update="() => fetchChannel(channelId)"
-          />
-        </UiAppCard>
-
-        <!-- Post Templates -->
+        <!-- Channel Template Variations -->
         <UiAppCard v-if="canEdit(channel)">
           <FormsChannelTemplatesEditor :channel="channel" />
         </UiAppCard>

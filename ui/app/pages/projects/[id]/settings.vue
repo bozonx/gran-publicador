@@ -246,6 +246,18 @@ async function handleTransfer() {
           />
         </UiAppCard>
 
+        <!-- Publication Templates -->
+        <UiAppCard
+          v-if="canEdit(currentProject)"
+          :title="t('projectTemplates.title', 'Publication Templates')"
+          :description="t('projectTemplates.description', 'Define templates that control how publications are formatted when posted to channels.')"
+        >
+          <FormsProjectTemplatesEditor
+            :project-id="currentProject.id"
+            :readonly="!!currentProject.archivedAt"
+          />
+        </UiAppCard>
+
         <!-- LLM Prompt Templates -->
         <SettingsLlmPromptTemplates
           v-if="canEdit(currentProject)"

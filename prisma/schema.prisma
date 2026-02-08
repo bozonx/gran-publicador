@@ -106,6 +106,7 @@ model Project {
   roles        Role[]
   contentLibraryTabs ContentLibraryTab[]
   relationGroups PublicationRelationGroup[]
+  projectTemplates ProjectTemplate[]
 
   @@map("projects")
 }
@@ -403,8 +404,6 @@ model Post {
   // Data received after publication (usually url or message id). Not editable by user.
   meta          Json
   template      Json?
-  // Footer ID reference (optional override for template's footer)
-  footerId      String? @map("footer_id")
   // Overwrite of publication content for this specific post
   content       String?
   // Platform-specific options (e.g., disableNotification for Telegram)
@@ -667,4 +666,22 @@ enum MediaType {
 enum StorageType {
   FS       // File system (local or mounted S3)
   TELEGRAM // Telegram servers (not stored locally)
+}
+
+model ProjectTemplate {
+  id        String    @id @default(uuid())
+  projectId String    @map("project_id")
+  name      String
+  postType  PostType? @map("post_type")
+  isDefault Boolean   @default(false) @map("is_default")
+  order     Int       @default(0)
+  // Array of TemplateBlock objects
+  template  Json
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_templates")
 }

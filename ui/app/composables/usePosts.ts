@@ -25,7 +25,6 @@ export interface Post {
   meta: any;
   template: any; // Store template selection { id: string } or null
   content: string | null;
-  footerId: string | null;
   authorSignature: string | null;
   platformOptions: any;
   createdAt: string;
@@ -68,7 +67,6 @@ export interface PostCreateInput {
   content?: string | null;
   meta?: any; // Additional metadata
   template?: any;
-  footerId?: string | null;
   authorSignature?: string | null;
   platformOptions?: any;
 }
@@ -81,7 +79,6 @@ export interface PostUpdateInput {
   content?: string | null;
   meta?: any; // Update metadata
   template?: any;
-  footerId?: string | null;
   authorSignature?: string | null;
   platformOptions?: any;
 }

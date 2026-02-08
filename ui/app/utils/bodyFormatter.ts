@@ -1,12 +1,12 @@
-export type TagCase = 
-  | 'camelCase' 
-  | 'pascalCase' 
-  | 'snake_case' 
-  | 'SNAKE_CASE' 
-  | 'kebab-case' 
-  | 'KEBAB-CASE' 
-  | 'lower_case' 
-  | 'upper_case' 
+export type TagCase =
+  | 'camelCase'
+  | 'pascalCase'
+  | 'snake_case'
+  | 'SNAKE_CASE'
+  | 'kebab-case'
+  | 'KEBAB-CASE'
+  | 'lower_case'
+  | 'upper_case'
   | 'none';
 
 export interface TagFormatOptions {
@@ -17,17 +17,21 @@ export class TagsFormatter {
   static format(tags: string | null | undefined, options: TagFormatOptions = {}): string {
     if (!tags) return '';
     const tagCase = options.tagCase || 'none';
-    const chunks = tags.split(',').map(c => c.trim()).filter(c => c.length > 0);
+    const chunks = tags
+      .split(',')
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
     const individualTags: string[] = [];
 
     for (const chunk of chunks) {
       if (tagCase !== 'none') {
         individualTags.push(chunk.startsWith('#') ? chunk.slice(1) : chunk);
       } else {
-        const subTags = chunk.split(/\s+/)
+        const subTags = chunk
+          .split(/\s+/)
           .map(t => t.trim())
           .filter(t => t.length > 0)
-          .map(t => t.startsWith('#') ? t.slice(1) : t);
+          .map(t => (t.startsWith('#') ? t.slice(1) : t));
         individualTags.push(...subTags);
       }
     }
@@ -57,7 +61,13 @@ export class TagsFormatter {
 
     switch (targetCase) {
       case 'camelCase':
-        return words[0] + words.slice(1).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+        return (
+          words[0] +
+          words
+            .slice(1)
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+            .join('')
+        );
       case 'pascalCase':
         return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
       case 'snake_case':
@@ -78,7 +88,12 @@ export class TagsFormatter {
   }
 }
 
-import type { TemplateBlock, ChannelFooter, ChannelPostTemplate } from '~/types/channels';
+import type {
+  TemplateBlock,
+  ChannelTemplateVariation,
+  ProjectTemplate,
+  BlockOverride,
+} from '~/types/channels';
 
 export interface PublicationDataForFormatting {
   title?: string | null;
@@ -103,26 +118,71 @@ export class SocialPostingBodyFormatter {
     ];
   }
 
+  /**
+   * Build effective blocks by applying channel variation overrides on top of project template blocks.
+   */
+  static buildEffectiveBlocks(
+    projectBlocks: TemplateBlock[],
+    overrides?: Record<string, BlockOverride>,
+  ): TemplateBlock[] {
+    if (!overrides) return projectBlocks;
+
+    return projectBlocks.map(block => {
+      const override = overrides[block.insert];
+      if (!override) return block;
+
+      return {
+        ...block,
+        before: override.before !== undefined ? override.before : block.before,
+        after: override.after !== undefined ? override.after : block.after,
+        content: override.content !== undefined ? override.content : block.content,
+        tagCase:
+          override.tagCase !== undefined
+            ? (override.tagCase as TemplateBlock['tagCase'])
+            : block.tagCase,
+      };
+    });
+  }
+
   static format(
-    data: PublicationDataForFormatting, 
+    data: PublicationDataForFormatting,
     channel: { preferences?: any },
     templateOverride?: { id: string } | null,
-    footerOverride?: string | null
+    projectTemplates?: ProjectTemplate[],
   ): string {
-    const preferences = typeof channel.preferences === 'string' ? JSON.parse(channel.preferences) : channel.preferences;
-    const templates: ChannelPostTemplate[] = preferences?.templates || [];
-    
-    let template: ChannelPostTemplate | null | undefined = null;
+    const preferences =
+      typeof channel.preferences === 'string'
+        ? JSON.parse(channel.preferences)
+        : channel.preferences;
+    const variations: ChannelTemplateVariation[] = preferences?.templates || [];
+
+    let variation: ChannelTemplateVariation | null | undefined = null;
 
     if (templateOverride?.id) {
-      template = templates.find(t => t.id === templateOverride.id);
+      variation = variations.find(t => t.id === templateOverride.id);
     }
 
-    if (!template) {
-      template = templates.find(t => t.isDefault);
+    if (!variation) {
+      variation = variations.find(t => t.isDefault);
     }
 
-    const blocks = template ? template.template : this.getDefaultBlocks();
+    let blocks: TemplateBlock[];
+
+    if (variation && projectTemplates) {
+      const projectTemplate = projectTemplates.find(pt => pt.id === variation!.projectTemplateId);
+      if (projectTemplate) {
+        blocks = this.buildEffectiveBlocks(projectTemplate.template, variation.overrides);
+      } else {
+        blocks = this.getDefaultBlocks();
+      }
+    } else {
+      blocks = this.getDefaultBlocks();
+    }
+
+    return this.renderBlocks(data, blocks);
+  }
+
+  private static renderBlocks(data: PublicationDataForFormatting, blocks: TemplateBlock[]): string {
     const formattedBlocks: string[] = [];
 
     for (const block of blocks) {
@@ -150,49 +210,14 @@ export class SocialPostingBodyFormatter {
         case 'custom':
           value = block.content || '';
           break;
-        case 'footer': {
-          const footers: ChannelFooter[] = preferences?.footers || [];
-          let footerObj: ChannelFooter | undefined;
-          
-          // Priority 1: Post-level footer override
-          if (footerOverride !== undefined && footerOverride !== null) {
-            if (footerOverride === 'none') {
-              value = '';
-              break;
-            }
-            footerObj = footers.find((f) => f.id === footerOverride);
-            // If override specified but not found, skip footer entirely
-            if (!footerObj) {
-              value = '';
-              break;
-            }
-          }
-          // Priority 2: Template block's footerId
-          else if (block.footerId) {
-            footerObj = footers.find((f) => f.id === block.footerId);
-            // If template references deleted footer, skip footer entirely
-            if (!footerObj) {
-              value = '';
-              break;
-            }
-          }
-          // Priority 3: Default footer
-          else {
-            footerObj = footers.find((f) => f.isDefault);
-          }
-          
-          value = footerObj?.content || '';
+        case 'footer':
+          value = block.content || '';
           break;
-        }
       }
 
       const trimmedValue = value.trim();
       if (trimmedValue) {
-        const blockParts = [
-          block.before || '',
-          trimmedValue,
-          block.after || '',
-        ];
+        const blockParts = [block.before || '', trimmedValue, block.after || ''];
 
         formattedBlocks.push(blockParts.join(''));
       }

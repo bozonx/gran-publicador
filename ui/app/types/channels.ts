@@ -1,105 +1,121 @@
-import type { SocialMedia } from './socialMedia'
-
-export interface ChannelFooter {
-    id: string
-    name: string
-    content: string
-    isDefault: boolean
-}
+import type { SocialMedia } from './socialMedia';
 
 export interface TemplateBlock {
-    enabled: boolean
-    before?: string
-    insert: 'title' | 'content' | 'tags' | 'authorComment' | 'authorSignature' | 'footer' | 'custom'
-    after?: string
-    tagCase?: 'camelCase' | 'pascalCase' | 'snake_case' | 'SNAKE_CASE' | 'kebab-case' | 'KEBAB-CASE' | 'lower_case' | 'upper_case' | 'none'
-    footerId?: string | null
-    content?: string
+  enabled: boolean;
+  before?: string;
+  insert: 'title' | 'content' | 'tags' | 'authorComment' | 'authorSignature' | 'footer' | 'custom';
+  after?: string;
+  tagCase?:
+    | 'camelCase'
+    | 'pascalCase'
+    | 'snake_case'
+    | 'SNAKE_CASE'
+    | 'kebab-case'
+    | 'KEBAB-CASE'
+    | 'lower_case'
+    | 'upper_case'
+    | 'none';
+  content?: string;
 }
 
-export interface ChannelPostTemplate {
-    id: string
-    name: string
-    order: number
-    postType?: string | null
-    language?: string | null
-    isDefault?: boolean
-    template: TemplateBlock[]
+export interface BlockOverride {
+  before?: string;
+  after?: string;
+  content?: string;
+  tagCase?: string;
+}
+
+export interface ChannelTemplateVariation {
+  id: string;
+  name: string;
+  order: number;
+  isDefault?: boolean;
+  projectTemplateId: string;
+  overrides?: Record<string, BlockOverride>;
+}
+
+export interface ProjectTemplate {
+  id: string;
+  projectId: string;
+  name: string;
+  postType?: string | null;
+  isDefault?: boolean;
+  order: number;
+  template: TemplateBlock[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Channel {
-    id: string
-    projectId: string
-    socialMedia: SocialMedia
-    name: string
-    description?: string | null
-    channelIdentifier: string
-    language: string
-    preferences?: {
-        staleChannelsDays?: number
-        footers?: ChannelFooter[]
-        templates?: ChannelPostTemplate[]
-    }
-    coordinates?: string
-    credentials?: Record<string, any>
-    isActive: boolean
-    archivedAt?: string | null
-    createdAt: string
-    updatedAt: string
-    tags?: string | null
+  id: string;
+  projectId: string;
+  socialMedia: SocialMedia;
+  name: string;
+  description?: string | null;
+  channelIdentifier: string;
+  language: string;
+  preferences?: {
+    staleChannelsDays?: number;
+    templates?: ChannelTemplateVariation[];
+  };
+  coordinates?: string;
+  credentials?: Record<string, any>;
+  isActive: boolean;
+  archivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  tags?: string | null;
 }
 
 export interface ChannelWithProject extends Channel {
-    project?: {
-        id: string
-        name: string
-        archivedAt?: string | null
-        ownerId?: string
-    } | null
-    role?: string
-    isStale?: boolean
-    postsCount?: number
-    failedPostsCount?: number
-    lastPostAt?: string
-    lastPostId?: string | null
-    lastPublicationId?: string | null
+  project?: {
+    id: string;
+    name: string;
+    archivedAt?: string | null;
+    ownerId?: string;
+  } | null;
+  role?: string;
+  isStale?: boolean;
+  postsCount?: number;
+  failedPostsCount?: number;
+  lastPostAt?: string;
+  lastPostId?: string | null;
+  lastPublicationId?: string | null;
 }
 
 export interface ChannelCreateInput {
-    projectId: string
-    name: string
-    description?: string | null
-    socialMedia: SocialMedia
-    channelIdentifier: string
-    language: string
-    isActive?: boolean
-    credentials?: Record<string, any>
-    preferences?: {
-        staleChannelsDays?: number
-        footers?: ChannelFooter[]
-        templates?: ChannelPostTemplate[]
-    }
-    tags?: string | null
+  projectId: string;
+  name: string;
+  description?: string | null;
+  socialMedia: SocialMedia;
+  channelIdentifier: string;
+  language: string;
+  isActive?: boolean;
+  credentials?: Record<string, any>;
+  preferences?: {
+    staleChannelsDays?: number;
+    templates?: ChannelTemplateVariation[];
+  };
+  tags?: string | null;
 }
 
 export interface ChannelUpdateInput {
-    name?: string
-    description?: string | null
-    channelIdentifier?: string
-    credentials?: Record<string, any>
-    preferences?: {
-        staleChannelsDays?: number
-        footers?: ChannelFooter[]
-        templates?: ChannelPostTemplate[]
-    }
-    isActive?: boolean
-    tags?: string | null
+  name?: string;
+  description?: string | null;
+  channelIdentifier?: string;
+  credentials?: Record<string, any>;
+  preferences?: {
+    staleChannelsDays?: number;
+    templates?: ChannelTemplateVariation[];
+  };
+  isActive?: boolean;
+  tags?: string | null;
 }
 
 export interface ChannelsFilter {
-    projectId?: string
-    socialMedia?: SocialMedia | null
-    isActive?: boolean | null
-    search?: string
-    includeArchived?: boolean
+  projectId?: string;
+  socialMedia?: SocialMedia | null;
+  isActive?: boolean | null;
+  search?: string;
+  includeArchived?: boolean;
 }

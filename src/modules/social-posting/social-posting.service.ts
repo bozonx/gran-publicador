@@ -557,6 +557,12 @@ export class SocialPostingService {
       // Author signature is already stored as text in the post
       const authorSignatureContent = post.authorSignature || '';
 
+      // Load project templates for the channel's project
+      const projectTemplates = await this.prisma.projectTemplate.findMany({
+        where: { projectId: channel.projectId },
+        orderBy: { order: 'asc' },
+      });
+
       const request = SocialPostingRequestFormatter.prepareRequest({
         post: { ...post, authorSignature: authorSignatureContent },
         channel,
@@ -566,6 +572,7 @@ export class SocialPostingService {
         mediaStorageUrl: this.mediaStorageUrl,
         publicMediaBaseUrl: this.frontendUrl ? `${this.frontendUrl}/api/v1` : undefined,
         mediaService: this.mediaService,
+        projectTemplates,
       });
 
       this.logger.log(`${logPrefix} Sending request to microservice...`);
@@ -673,7 +680,8 @@ export class SocialPostingService {
     const url = `${baseUrl}/${endpoint}`;
 
     const appConfig = this.configService.get<AppConfig>('app')!;
-    const timeout = (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
+    const timeout =
+      (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
 
     try {
       const headers: Record<string, string> = {

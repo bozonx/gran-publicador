@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Project-level Publication Templates: templates are now defined at the project level instead of per-channel.
+  - New DB table: `ProjectTemplate` with `name`, `postType`, `isDefault`, `order`, `template` (JSON blocks).
+  - Backend module: `project-templates` with service, controller, DTOs.
+  - API endpoints: `GET/POST /projects/:id/templates`, `GET/PATCH/DELETE /projects/:id/templates/:templateId`, `PATCH /projects/:id/templates/reorder`.
+  - Channel templates are now "variations" — lightweight overrides (before/after/content/tagCase) linked to a project template via `projectTemplateId`.
+  - UI: `ProjectTemplatesEditor` component in project settings, rewritten `ChannelTemplatesEditor` for variations.
+  - Composable: `useProjectTemplates` for frontend API integration.
+  - `SocialPostingBodyFormatter` (backend + UI) rewritten to merge project template blocks with channel variation overrides.
+  - Deleting a project template cascades to all linked channel variations.
+
+### Removed
+- Footer entities (`ChannelFooter`, `footerId`) removed from templates, posts, DTOs, and UI.
+  - Footers are now plain text content in the `footer` block of project templates.
+  - `ChannelFootersManager` component removed from channel settings.
+  - `footerId` removed from `Post` model, `CreatePostDto`, `UpdatePostDto`, and `PostEditBlock`.
+- Channel-only templates (legacy `ChannelPostTemplate` with full block definitions) replaced by project template variations.
+
+### Added
 - Publication Relations: new generic linking system replacing old "Link as Translation" feature.
   - Two relation types: `SERIES` (sequential parts) and `LOCALIZATION` (multi-language versions).
   - New DB tables: `publication_relation_groups`, `publication_relation_items`.

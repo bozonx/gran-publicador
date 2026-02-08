@@ -19,8 +19,8 @@ export class TelegramFormatter extends AbstractPlatformFormatter {
         authorSignature: post.authorSignature,
       },
       channel,
-      post.template, // Pass the template override
-      post.footerId, // Pass the footer override
+      post.template,
+      params.projectTemplates,
     );
 
     const mediaMapping = this.mapMedia(
