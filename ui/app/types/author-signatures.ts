@@ -24,6 +24,7 @@ export interface ProjectAuthorSignature {
 
 export interface CreateAuthorSignatureInput {
   content: string;
+  language?: string;
 }
 
 export interface UpdateAuthorSignatureInput {

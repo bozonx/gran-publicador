@@ -28,29 +28,12 @@ const signatures = ref<ProjectAuthorSignature[]>([])
 const isModalOpen = ref(false)
 const editingSignature = ref<ProjectAuthorSignature | null>(null)
 
-// Form: map of language → content for variants
-const variantForms = reactive<Record<string, string>>({})
-const newVariantLanguage = ref('')
-
-// Languages that should have variant fields shown
-const activeLanguages = computed(() => {
-  const langs = new Set<string>()
-
-  // Always include user language
-  if (user.value?.language) langs.add(user.value.language)
-
-  // Include channel languages from the project
-  if (props.channelLanguages) {
-    props.channelLanguages.forEach(l => langs.add(l))
-  }
-
-  // Include languages from existing variants when editing
-  if (editingSignature.value) {
-    editingSignature.value.variants.forEach(v => langs.add(v.language))
-  }
-
-  return Array.from(langs).sort()
-})
+// Form: list of language variants
+interface LocalVariant {
+  language: string
+  content: string
+}
+const localVariants = ref<LocalVariant[]>([])
 
 // Display content: show variant in user's language
 function getDisplayContent(sig: ProjectAuthorSignature): string {
@@ -86,69 +69,68 @@ onMounted(loadSignatures)
 
 function openAdd() {
   editingSignature.value = null
-
-  // Reset variant forms
-  Object.keys(variantForms).forEach(k => delete variantForms[k])
-
-  // Pre-fill user language field
+  
   const userLang = user.value?.language || 'en-US'
-  variantForms[userLang] = ''
+  localVariants.value = [{ language: userLang, content: '' }]
 
-  // Pre-fill channel languages
+  // Add channel languages as empty fields if they don't exist
   if (props.channelLanguages) {
     props.channelLanguages.forEach(l => {
-      if (!variantForms[l]) variantForms[l] = ''
+      if (!localVariants.value.some(v => v.language === l)) {
+        localVariants.value.push({ language: l, content: '' })
+      }
     })
   }
 
-  newVariantLanguage.value = ''
   isModalOpen.value = true
 }
 
 function openEdit(sig: ProjectAuthorSignature) {
   editingSignature.value = sig
-
-  // Reset and populate variant forms
-  Object.keys(variantForms).forEach(k => delete variantForms[k])
-
-  for (const v of sig.variants) {
-    variantForms[v.language] = v.content
-  }
+  localVariants.value = sig.variants.map(v => ({ language: v.language, content: v.content }))
 
   // Ensure all channel languages have a field
   if (props.channelLanguages) {
     props.channelLanguages.forEach(l => {
-      if (variantForms[l] === undefined) variantForms[l] = ''
+      if (!localVariants.value.some(v => v.language === l)) {
+        localVariants.value.push({ language: l, content: '' })
+      }
     })
   }
 
-  // Ensure user language has a field
-  const userLang = user.value?.language || 'en-US'
-  if (variantForms[userLang] === undefined) variantForms[userLang] = ''
-
-  newVariantLanguage.value = ''
   isModalOpen.value = true
 }
 
-function addVariantLanguage() {
-  const lang = newVariantLanguage.value.trim()
-  if (!lang || variantForms[lang] !== undefined) return
-  variantForms[lang] = ''
-  newVariantLanguage.value = ''
+function addVariant() {
+  localVariants.value.push({ language: 'en-US', content: '' })
+}
+
+function removeVariant(index: number) {
+  localVariants.value.splice(index, 1)
 }
 
 async function handleSave() {
-  // At least one variant must have content
-  const filledVariants = Object.entries(variantForms).filter(([, content]) => content.trim())
+  const filledVariants = localVariants.value.filter(v => v.content.trim())
 
   if (filledVariants.length === 0) return
 
+  // Validate unique languages
+  const langs = filledVariants.map(v => v.language)
+  if (new Set(langs).size !== langs.length) {
+    toast.add({
+      title: t('common.error'),
+      description: t('authorSignature.duplicateLanguages', 'Duplicate languages are not allowed'),
+      color: 'error',
+    })
+    return
+  }
+
   // Validate inline markdown
-  for (const [lang, content] of filledVariants) {
-    if (containsBlockMarkdown(content)) {
+  for (const variant of filledVariants) {
+    if (containsBlockMarkdown(variant.content)) {
       toast.add({
         title: t('common.error'),
-        description: `${lang}: ${t('validation.inlineMarkdownOnly')}`,
+        description: `${variant.language}: ${t('validation.inlineMarkdownOnly')}`,
         color: 'error',
       })
       return
@@ -157,38 +139,41 @@ async function handleSave() {
 
   try {
     if (editingSignature.value) {
-      // Update existing: upsert each variant, delete removed ones
+      // Update existing
       const existingLangs = new Set(editingSignature.value.variants.map(v => v.language))
+      const newLangs = new Set(filledVariants.map(v => v.language))
 
-      for (const [lang, content] of Object.entries(variantForms)) {
-        if (content.trim()) {
-          await upsertVariant(editingSignature.value.id, lang, { content: content.trim() })
-        } else if (existingLangs.has(lang)) {
+      // Upsert current ones
+      for (const variant of filledVariants) {
+        await upsertVariant(editingSignature.value.id, variant.language, { content: variant.content.trim() })
+      }
+
+      // Delete removed ones
+      for (const lang of existingLangs) {
+        if (!newLangs.has(lang)) {
           await deleteVariant(editingSignature.value.id, lang)
         }
       }
     } else {
-      // Create new: first variant uses user language
+      // Create new
       const userLang = user.value?.language || 'en-US'
-      const primaryContent = variantForms[userLang]?.trim()
-
-      if (!primaryContent) {
-        toast.add({
-          title: t('common.error'),
-          description: t('authorSignature.primaryLanguageRequired', 'Content in your language is required'),
-          color: 'error',
-        })
-        return
-      }
-
-      const created = await create(props.projectId, { content: primaryContent })
+      
+      // Try to find a variant with user's language as primary
+      let primaryIndex = filledVariants.findIndex(v => v.language === userLang)
+      if (primaryIndex === -1) primaryIndex = 0
+      
+      const primary = filledVariants[primaryIndex]!
+      const created = await create(props.projectId, { 
+        content: primary.content.trim(),
+        language: primary.language
+      })
 
       if (created) {
         // Create additional variants
-        for (const [lang, content] of Object.entries(variantForms)) {
-          if (lang !== userLang && content.trim()) {
-            await upsertVariant(created.id, lang, { content: content.trim() })
-          }
+        for (let i = 0; i < filledVariants.length; i++) {
+          if (i === primaryIndex) continue
+          const v = filledVariants[i]!
+          await upsertVariant(created.id, v.language, { content: v.content.trim() })
         }
       }
     }
@@ -326,45 +311,38 @@ async function handleDragEnd() {
       v-model:open="isModalOpen"
       :title="editingSignature ? t('common.edit') : t('common.add')"
     >
-      <div class="space-y-4">
-        <UFormField
-          v-for="lang in activeLanguages"
-          :key="lang"
-        >
-          <template #label>
-            <span class="inline-flex items-center">
-              {{ lang }}
-              <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
-            </span>
-          </template>
+      <div class="space-y-6">
+        <div v-for="(v, index) in localVariants" :key="index" class="space-y-2 pb-4 border-b border-gray-100 dark:border-gray-800 last:border-0 last:pb-0">
+          <div class="flex items-center justify-between gap-4">
+            <div class="w-48">
+              <CommonLanguageSelect v-model="v.language" size="sm" searchable />
+            </div>
+            <UButton
+              v-if="localVariants.length > 1"
+              icon="i-heroicons-x-mark"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              @click="removeVariant(index)"
+            />
+          </div>
           <UTextarea
-            v-model="variantForms[lang]"
+            v-model="v.content"
             placeholder="[Click here](https://example.com)"
             :rows="3"
             class="w-full"
           />
-        </UFormField>
-
-        <!-- Add another language -->
-        <div class="flex items-center gap-2">
-          <UInput
-            v-model="newVariantLanguage"
-            :placeholder="t('authorSignature.addLanguagePlaceholder', 'e.g. de-DE')"
-            size="sm"
-            class="flex-1"
-            @keyup.enter="addVariantLanguage"
-          />
-          <UButton
-            icon="i-heroicons-plus"
-            size="sm"
-            color="neutral"
-            variant="outline"
-            :disabled="!newVariantLanguage.trim()"
-            @click="addVariantLanguage"
-          >
-            {{ t('authorSignature.addLanguage', 'Add language') }}
-          </UButton>
         </div>
+
+        <UButton
+          icon="i-heroicons-plus"
+          size="sm"
+          variant="ghost"
+          block
+          @click="addVariant"
+        >
+          {{ t('authorSignature.addVariant', 'Add another language') }}
+        </UButton>
       </div>
 
       <template #footer>
@@ -374,7 +352,7 @@ async function handleDragEnd() {
         <UButton
           color="primary"
           :loading="isLoading"
-          :disabled="!Object.values(variantForms).some(v => v.trim())"
+          :disabled="!localVariants.some(v => v.content.trim())"
           @click="handleSave"
         >
           {{ t('common.save') }}

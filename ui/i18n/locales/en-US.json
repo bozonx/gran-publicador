@@ -108,7 +108,10 @@
       "title": "Preset Signatures"
     },
     "select": "Select signature",
-    "user_defined": "Custom Signatures"
+    "user_defined": "Custom Signatures",
+    "addVariant": "Add another language",
+    "duplicateLanguages": "Duplicate languages are not allowed",
+    "primaryLanguageRequired": "Content in your language is required"
   },
   "channel": {
     "activate": "Activate",

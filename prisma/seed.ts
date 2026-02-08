@@ -52,7 +52,8 @@ async function main() {
 
   await prisma.media.deleteMany({});
   await prisma.publication.deleteMany({});
-  await prisma.authorSignature.deleteMany({});
+  await prisma.projectAuthorSignatureVariant.deleteMany({});
+  await prisma.projectAuthorSignature.deleteMany({});
   await prisma.channel.deleteMany({});
   await prisma.projectNewsQuery.deleteMany({});
   await prisma.projectMember.deleteMany({});
@@ -481,6 +482,17 @@ async function main() {
       credentials: { telegramBotToken: '123:abc', telegramChannelId: '-100129' },
       preferences: {},
     },
+    {
+      id: '22222222-2222-4222-8222-222222222233',
+      projectId: projectData[0].id,
+      socialMedia: SocialMedia.SITE,
+      name: 'Official Blog',
+      channelIdentifier: 'https://blog.example.com',
+      language: 'en-US',
+      isActive: true,
+      credentials: { apiKey: 'site-key' },
+      preferences: {},
+    },
   ];
 
   for (const c of channelData) {
@@ -491,33 +503,89 @@ async function main() {
     });
   }
 
+  // 5.0 PROJECT TEMPLATES
+  console.log('  Generating project templates...');
+  const projectTemplates = [
+    {
+      id: 'pt-00000000-0000-4000-8000-000000000001',
+      projectId: projectData[0].id,
+      name: 'Standard Tech Article',
+      postType: PostType.ARTICLE,
+      isDefault: true,
+      order: 0,
+      template: [
+        { type: 'header', content: 'Mastering {{topic}}' },
+        { type: 'text', content: 'In this article, we will explore {{topic}} in depth.' },
+        { type: 'footer', content: 'Thanks for reading!' },
+      ],
+    },
+    {
+      id: 'pt-00000000-0000-4000-8000-000000000002',
+      projectId: projectData[0].id,
+      name: 'Quick News Post',
+      postType: PostType.NEWS,
+      isDefault: false,
+      order: 1,
+      template: [
+        { type: 'text', content: '🚀 {{headline}}\n\nCheck out more at {{url}}' },
+      ],
+    },
+  ];
+
+  for (const pt of projectTemplates) {
+    await prisma.projectTemplate.upsert({
+      where: { id: pt.id },
+      update: pt,
+      create: pt,
+    });
+  }
+
   // 5.1 AUTHOR SIGNATURES
   console.log('  Generating author signatures...');
   const authorSignatures = [
     {
       id: 'eee11111-1111-4111-8111-111111111111',
+      projectId: projectData[0].id,
       userId: devUser.id,
-      channelId: channelData[0].id, // Tech Main
-      name: 'Standard Signature',
-      content: '\n---\n*Sent via Gran Publicador*',
-      isDefault: true,
       order: 0,
+      variants: {
+        create: [
+          {
+            language: 'ru-RU',
+            content: '\n---\n*Отправлено через Gran Publicador*',
+          },
+          {
+            language: 'en-US',
+            content: '\n---\n*Sent via Gran Publicador*',
+          },
+        ],
+      },
     },
     {
       id: 'eee11112-1111-4111-8111-111111111111',
+      projectId: projectData[0].id,
       userId: devUser.id,
-      channelId: channelData[0].id,
-      name: 'Follow us',
-      content: "\n---\n**Don't forget to subscribe!**",
-      isDefault: false,
       order: 1,
+      variants: {
+        create: [
+          {
+            language: 'ru-RU',
+            content: '\n---\n**Не забудьте подписаться!**',
+          },
+          {
+            language: 'en-US',
+            content: "\n---\n**Don't forget to subscribe!**",
+          },
+        ],
+      },
     },
   ];
 
   for (const sig of authorSignatures) {
-    await prisma.authorSignature.upsert({
+    const { variants, ...sigData } = sig;
+    await prisma.projectAuthorSignature.upsert({
       where: { id: sig.id },
-      update: sig,
+      update: sigData,
       create: sig,
     });
   }
@@ -620,6 +688,30 @@ async function main() {
       language: 'ru-RU',
       newsItemId: 'news-item-123456789',
       meta: { originalUrl: 'https://example.com/news/123' },
+      createdAt: new Date(),
+    },
+    {
+      id: '44444444-4444-4444-8444-444444444491',
+      projectId: projectData[0].id,
+      createdBy: devUser.id,
+      title: 'New Product Showcase',
+      content: 'Check out our new AI features!',
+      status: PublicationStatus.PUBLISHED,
+      postType: PostType.STORY,
+      language: 'en-US',
+      meta: {},
+      createdAt: new Date(),
+    },
+    {
+      id: '44444444-4444-4444-8444-444444444492',
+      projectId: projectData[0].id,
+      createdBy: devUser.id,
+      title: 'Tech Talk #1',
+      content: 'Deep dive into Rust performance.',
+      status: PublicationStatus.READY,
+      postType: PostType.VIDEO,
+      language: 'en-US',
+      meta: { duration: 1200 },
       createdAt: new Date(),
     },
   ];

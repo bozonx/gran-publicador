@@ -108,7 +108,10 @@
       "title": "Готовые подписи"
     },
     "select": "Выберите подпись",
-    "user_defined": "Собственные подписи"
+    "user_defined": "Собственные подписи",
+    "addVariant": "Добавить еще один язык",
+    "duplicateLanguages": "Дубликаты языков не допускаются",
+    "primaryLanguageRequired": "Требуется контент на вашем языке"
   },
   "channel": {
     "activate": "Активировать",

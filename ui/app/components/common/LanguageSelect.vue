@@ -75,8 +75,21 @@ const internalValue = computed({
     class="w-full"
     :placeholder="placeholder"
   >
-    <template #leading>
-      <UIcon name="i-heroicons-language" class="w-4 h-4 text-gray-400" />
-    </template>
+    <UButton
+      v-bind="$attrs"
+      :color="variant === 'ghost' ? 'neutral' : 'neutral'"
+      :variant="variant || 'outline'"
+      :size="size"
+      :disabled="disabled"
+      class="w-full justify-between"
+    >
+      <div class="flex items-center gap-2 truncate">
+        <UIcon name="i-heroicons-language" class="w-4 h-4 text-gray-400" />
+        <span class="truncate">
+          {{ options.find(o => o.value === internalValue)?.label || placeholder || t('common.language') }}
+        </span>
+      </div>
+      <UIcon name="i-heroicons-chevron-down" class="w-4 h-4 text-gray-400" />
+    </UButton>
   </USelectMenu>
 </template>

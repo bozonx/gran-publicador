@@ -44,7 +44,7 @@ export class AuthorSignaturesService {
         userId,
         variants: {
           create: {
-            language: user.language,
+            language: dto.language || user.language,
             content: dto.content,
           },
         },
