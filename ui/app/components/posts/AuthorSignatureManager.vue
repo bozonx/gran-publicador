@@ -312,25 +312,37 @@ async function handleDragEnd() {
       :title="editingSignature ? t('common.edit') : t('common.add')"
     >
       <div class="space-y-6">
-        <div v-for="(v, index) in localVariants" :key="index" class="space-y-2 pb-4 border-b border-gray-100 dark:border-gray-800 last:border-0 last:pb-0">
+        <div
+          v-for="(v, index) in localVariants"
+          :key="index"
+          class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50 space-y-4 relative group/variant"
+        >
           <div class="flex items-center justify-between gap-4">
-            <div class="w-48">
-              <CommonLanguageSelect v-model="v.language" size="sm" searchable />
+            <div class="flex-1 max-w-[200px]">
+              <CommonLanguageSelect
+                v-model="v.language"
+                size="sm"
+                searchable
+                variant="subtle"
+              />
             </div>
             <UButton
               v-if="localVariants.length > 1"
-              icon="i-heroicons-x-mark"
+              icon="i-heroicons-trash"
               size="xs"
               variant="ghost"
-              color="neutral"
+              color="error"
+              class="opacity-0 group-hover/variant:opacity-100 transition-opacity"
               @click="removeVariant(index)"
             />
           </div>
           <UTextarea
             v-model="v.content"
-            placeholder="[Click here](https://example.com)"
+            :placeholder="t('post.authorSignaturePlaceholder')"
             :rows="3"
-            class="w-full"
+            variant="outline"
+            class="w-full bg-white dark:bg-gray-900"
+            autoresize
           />
         </div>
 

@@ -180,9 +180,19 @@ function resetBlocks() {
 
     <div v-else-if="templates.length === 0" class="text-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
       <UIcon name="i-heroicons-document-text" class="w-10 h-10 mx-auto text-gray-400 mb-3" />
-      <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+      <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-4">
         {{ t('projectTemplates.empty', 'No templates yet. Create one to control how publications are formatted.') }}
       </p>
+      <UButton
+        v-if="!readonly"
+        icon="i-heroicons-plus"
+        size="sm"
+        color="primary"
+        variant="soft"
+        @click="openAddTemplate"
+      >
+        {{ t('projectTemplates.add', 'Add Template') }}
+      </UButton>
     </div>
 
     <div v-else>
