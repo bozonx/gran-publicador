@@ -28,7 +28,7 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
   >
     <!-- Header with icon and name -->
     <div class="flex items-start gap-3 mb-3">
-      <SocialIcon 
+      <CommonSocialIcon 
         :platform="channel.socialMedia" 
         show-background 
       />

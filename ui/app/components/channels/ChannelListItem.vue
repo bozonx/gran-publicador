@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ChannelWithProject } from '~/composables/useChannels'
 import { getSocialMediaDisplayName } from '~/utils/socialMedia'
-import SocialIcon from '~/components/common/SocialIcon.vue'
+
 import { isChannelCredentialsEmpty } from '~/utils/channels'
 
 const props = defineProps<{
@@ -37,7 +37,7 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
       <div class="flex-1 min-w-0">
         <!-- Header: Name + Social Media + Status -->
         <div class="flex items-center gap-3 mb-2 flex-wrap">
-          <SocialIcon 
+          <CommonSocialIcon 
             :platform="channel.socialMedia" 
             show-background 
           />

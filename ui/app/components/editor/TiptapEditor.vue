@@ -110,6 +110,7 @@ function buildExtensions(opts: { placeholder: string; maxLength?: number }) {
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
       codeBlock: false,
+      link: false,
     }),
     Link.configure({
       openOnClick: false,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { GRID_LAYOUTS } from '~/utils/design-tokens'
-import SocialIcon from '~/components/common/SocialIcon.vue'
+
 
 interface Props {
   modelValue: string[]
@@ -90,7 +90,7 @@ function toggleChannel(channelId: string) {
         </UTooltip>
         
         <UTooltip :text="channel.socialMedia">
-          <SocialIcon :platform="channel.socialMedia" size="sm" />
+          <CommonSocialIcon :platform="channel.socialMedia" size="sm" />
         </UTooltip>
       </div>
     </div>

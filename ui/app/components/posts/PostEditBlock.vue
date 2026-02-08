@@ -14,7 +14,7 @@ import {
 import type { ChannelPostTemplate } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
-import SocialIcon from '~/components/common/SocialIcon.vue'
+
 import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
@@ -723,7 +723,7 @@ async function executePublish() {
       <div class="flex items-start gap-3">
         <!-- Icon -->
         <div class="mt-0.5 shrink-0">
-             <SocialIcon 
+             <CommonSocialIcon 
               v-if="selectedChannel?.socialMedia" 
               :platform="selectedChannel.socialMedia" 
             />
@@ -860,7 +860,7 @@ async function executePublish() {
             >
                 <template #item="{ item }">
                     <div class="flex items-center gap-2 w-full">
-                        <SocialIcon 
+                        <CommonSocialIcon 
                             :platform="item.socialMedia" 
                             size="xs" 
                             :problem-level="item.problemLevel"
