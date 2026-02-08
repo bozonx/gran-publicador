@@ -5,6 +5,7 @@ import {
   PostStatus,
   PublicationStatus,
   NotificationType,
+  RelationGroupType,
   LlmPromptTemplateCategory,
   ContentLibraryTabType,
 } from '../src/generated/prisma/index.js';
@@ -522,7 +523,6 @@ async function main() {
   }
 
   // 6. PUBLICATIONS
-  const translationGroup1 = '55555555-5555-4555-8555-555555555551';
   const publications = [
     {
       id: '44444444-4444-4444-8444-444444444441',
@@ -537,7 +537,6 @@ async function main() {
       postType: PostType.ARTICLE,
       postDate: new Date(2025, 0, 1),
       language: 'ru-RU',
-      translationGroupId: translationGroup1,
       meta: {},
     },
     {
@@ -550,7 +549,6 @@ async function main() {
       status: PublicationStatus.PUBLISHED,
       postType: PostType.ARTICLE,
       language: 'en-US',
-      translationGroupId: translationGroup1,
       meta: {},
     },
     {
@@ -637,6 +635,48 @@ async function main() {
       create: pubData,
     });
   }
+
+  // 6.1 PUBLICATION LOCALIZATION GROUP
+  await prisma.publicationRelationGroup.upsert({
+    where: { id: '55555555-5555-4555-8555-555555555551' },
+    update: {},
+    create: {
+      id: '55555555-5555-4555-8555-555555555551',
+      projectId: projectData[0].id,
+      type: RelationGroupType.LOCALIZATION,
+      createdBy: devUser.id,
+    },
+  });
+
+  await prisma.publicationRelationItem.upsert({
+    where: {
+      groupId_publicationId: {
+        groupId: '55555555-5555-4555-8555-555555555551',
+        publicationId: publications[0].id,
+      },
+    },
+    update: { position: 0 },
+    create: {
+      groupId: '55555555-5555-4555-8555-555555555551',
+      publicationId: publications[0].id,
+      position: 0,
+    },
+  });
+
+  await prisma.publicationRelationItem.upsert({
+    where: {
+      groupId_publicationId: {
+        groupId: '55555555-5555-4555-8555-555555555551',
+        publicationId: publications[1].id,
+      },
+    },
+    update: { position: 1 },
+    create: {
+      groupId: '55555555-5555-4555-8555-555555555551',
+      publicationId: publications[1].id,
+      position: 1,
+    },
+  });
 
   // 7. POSTS
   const posts = [
