@@ -159,6 +159,7 @@ async function confirmDelete() {
   await deleteProjectTemplate(props.projectId, templateToDeleteId.value)
   showDeleteModal.value = false
   templateToDeleteId.value = null
+  isModalOpen.value = false
 }
 
 async function handleDragEnd() {
@@ -173,27 +174,6 @@ function resetBlocks() {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ t('projectTemplates.title', 'Publication Templates') }}
-        </h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('projectTemplates.description', 'Define templates that control how publications are formatted when posted to channels.') }}
-        </p>
-      </div>
-      <UButton
-        v-if="!readonly"
-        icon="i-heroicons-plus"
-        size="sm"
-        color="primary"
-        variant="soft"
-        @click="openAddTemplate"
-      >
-        {{ t('projectTemplates.add', 'Add Template') }}
-      </UButton>
-    </div>
-
     <div v-if="isLoading && templates.length === 0" class="flex justify-center py-8">
       <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
     </div>
@@ -205,13 +185,26 @@ function resetBlocks() {
       </p>
     </div>
 
-    <VueDraggable
-      v-else
-      v-model="templates"
-      :disabled="!!readonly"
-      handle=".drag-handle"
-      @end="handleDragEnd"
-    >
+    <div v-else>
+      <div class="flex justify-end mb-4">
+        <UButton
+          v-if="!readonly"
+          icon="i-heroicons-plus"
+          size="sm"
+          color="primary"
+          variant="soft"
+          @click="openAddTemplate"
+        >
+          {{ t('projectTemplates.add', 'Add Template') }}
+        </UButton>
+      </div>
+
+      <VueDraggable
+        v-model="templates"
+        :disabled="!!readonly"
+        handle=".drag-handle"
+        @end="handleDragEnd"
+      >
       <div
         v-for="tpl in templates"
         :key="tpl.id"
@@ -239,14 +232,15 @@ function resetBlocks() {
           </p>
         </div>
       </div>
-    </VueDraggable>
+      </VueDraggable>
+    </div>
 
     <!-- Template Edit Modal -->
     <UiAppModal 
       v-model:open="isModalOpen" 
       :title="editingTemplate ? t('projectTemplates.edit', 'Edit Template') : t('projectTemplates.add', 'Add Template')"
     >
-      <div class="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
+      <div class="space-y-6">
         <div class="space-y-4">
           <UFormField :label="t('channel.templateName')" required>
             <UInput 
@@ -256,24 +250,29 @@ function resetBlocks() {
             />
           </UFormField>
 
-          <UFormField :label="t('post.postType')">
-            <USelectMenu
-              v-model="templateForm.postType"
-              :items="postTypeOptions"
-              value-key="value"
-              label-key="label"
-              class="w-full"
-            />
-          </UFormField>
+          <div class="grid grid-cols-[1fr_2fr] gap-4">
+            <UFormField :label="t('post.postType')">
+              <USelectMenu
+                v-model="templateForm.postType"
+                :items="postTypeOptions"
+                value-key="value"
+                label-key="label"
+                class="w-full"
+              />
+            </UFormField>
 
-          <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50">
-            <UCheckbox v-model="templateForm.isDefault" />
-            <div class="flex-1">
-              <div class="text-sm font-medium text-gray-900 dark:text-white">
-                {{ t('channel.templateIsDefault', 'Default Template') }}
-              </div>
-              <div class="text-xs text-gray-500">
-                {{ t('channel.templateIsDefaultHelp', 'This template will be automatically selected') }}
+            <div 
+              class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors self-end"
+              @click="templateForm.isDefault = !templateForm.isDefault"
+            >
+              <UCheckbox v-model="templateForm.isDefault" @click.stop />
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-medium text-gray-900 dark:text-white truncate">
+                  {{ t('channel.templateIsDefault', 'Default Template') }}
+                </div>
+                <div class="text-[10px] text-gray-500 truncate">
+                  {{ t('channel.templateIsDefaultHelp', 'Auto-select this') }}
+                </div>
               </div>
             </div>
           </div>
