@@ -76,15 +76,9 @@ const internalValue = computed({
     class="w-full"
     :placeholder="placeholder || t('common.language')"
   >
-    <template #leading="{ modelValue, ui }">
+    <template #leading>
       <UIcon 
-        v-if="modelValue?.icon" 
-        :name="modelValue.icon" 
-        class="w-5 h-5 text-gray-400 dark:text-gray-500" 
-      />
-      <UIcon 
-        v-else 
-        name="i-heroicons-language" 
+        :name="options.find(o => o.value === internalValue)?.icon || 'i-heroicons-language'" 
         class="w-5 h-5 text-gray-400 dark:text-gray-500" 
       />
     </template>

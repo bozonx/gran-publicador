@@ -4,6 +4,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import { containsBlockMarkdown } from '~/utils/markdown-validation'
+import { useLanguages } from '~/composables/useLanguages'
 
 const props = defineProps<{
   projectId: string
@@ -21,6 +22,8 @@ const {
   remove,
   isLoading,
 } = useAuthorSignatures()
+
+const { getLanguageLabel } = useLanguages()
 
 const toast = useToast()
 
@@ -41,6 +44,12 @@ function getDisplayContent(sig: ProjectAuthorSignature): string {
   const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
   return variant?.content || ''
 }
+
+const availableLanguages = computed(() => {
+  if (!props.channelLanguages) return []
+  const currentLangs = new Set(localVariants.value.map(v => v.language))
+  return props.channelLanguages.filter(lang => !currentLangs.has(lang))
+})
 
 // Warnings for missing channel language variants
 const missingLanguageWarnings = computed(() => {
@@ -73,15 +82,6 @@ function openAdd() {
   const userLang = user.value?.language || 'en-US'
   localVariants.value = [{ language: userLang, content: '' }]
 
-  // Add channel languages as empty fields if they don't exist
-  if (props.channelLanguages) {
-    props.channelLanguages.forEach(l => {
-      if (!localVariants.value.some(v => v.language === l)) {
-        localVariants.value.push({ language: l, content: '' })
-      }
-    })
-  }
-
   isModalOpen.value = true
 }
 
@@ -89,20 +89,11 @@ function openEdit(sig: ProjectAuthorSignature) {
   editingSignature.value = sig
   localVariants.value = sig.variants.map(v => ({ language: v.language, content: v.content }))
 
-  // Ensure all channel languages have a field
-  if (props.channelLanguages) {
-    props.channelLanguages.forEach(l => {
-      if (!localVariants.value.some(v => v.language === l)) {
-        localVariants.value.push({ language: l, content: '' })
-      }
-    })
-  }
-
   isModalOpen.value = true
 }
 
-function addVariant() {
-  localVariants.value.push({ language: 'en-US', content: '' })
+function addVariant(language?: string) {
+  localVariants.value.push({ language: language || 'en-US', content: '' })
 }
 
 function removeVariant(index: number) {
@@ -318,12 +309,12 @@ async function handleDragEnd() {
           class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50 space-y-4 relative group/variant"
         >
           <div class="flex items-center justify-between gap-4">
-            <div class="flex-1 max-w-[200px]">
+            <div class="flex-1 max-w-[220px]">
               <CommonLanguageSelect
                 v-model="v.language"
                 size="sm"
                 searchable
-                variant="subtle"
+                variant="outline"
               />
             </div>
             <UButton
@@ -346,15 +337,28 @@ async function handleDragEnd() {
           />
         </div>
 
-        <UButton
-          icon="i-heroicons-plus"
-          size="sm"
-          variant="ghost"
-          block
-          @click="addVariant"
-        >
-          {{ t('authorSignature.addVariant', 'Add another language') }}
-        </UButton>
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-for="lang in availableLanguages"
+            :key="lang"
+            icon="i-heroicons-plus"
+            size="xs"
+            color="primary"
+            variant="soft"
+            @click="addVariant(lang)"
+          >
+            {{ getLanguageLabel(lang) }}
+          </UButton>
+
+          <UButton
+            icon="i-heroicons-plus"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            :title="t('authorSignature.addVariant', 'Add another language')"
+            @click="addVariant()"
+          />
+        </div>
       </div>
 
       <template #footer>
