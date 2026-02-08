@@ -252,9 +252,6 @@ const isBulkUploadModalOpen = ref(false)
 const isPurgeConfirmModalOpen = ref(false)
 const isPurging = ref(false)
 
-const isArchiveModalOpen = ref(false)
-const itemToArchive = ref<ContentItem | null>(null)
-
 const editForm = ref({
   id: '',
   title: '',
@@ -779,22 +776,19 @@ const handleCloseModal = async () => {
   await fetchItems({ reset: true })
 }
 
-const openArchiveModal = (item: ContentItem) => {
-  itemToArchive.value = item
-  isArchiveModalOpen.value = true
-}
-
-const confirmArchive = async () => {
-  if (!itemToArchive.value) return
-  
-  const itemId = itemToArchive.value.id
+const archiveItem = async (item: ContentItem) => {
+  const itemId = item.id
   isArchivingId.value = itemId
   
   try {
     await api.post(`/content-library/items/${itemId}/archive`)
     await fetchItems({ reset: true })
-    isArchiveModalOpen.value = false
-    itemToArchive.value = null
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.actions.moveToTrashSuccess', 'Moved to trash'),
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
   } catch (e: any) {
     toast.add({
       title: t('common.error', 'Error'),
@@ -1257,7 +1251,7 @@ const executeMoveToProject = async () => {
             :is-restoring="isRestoringId === item.id"
             @click="openEditModal(item)"
             @toggle-selection="toggleSelection"
-            @archive="openArchiveModal"
+            @archive="archiveItem"
             @restore="restoreItem"
             @create-publication="handleCreatePublication"
           />
@@ -1282,18 +1276,6 @@ const executeMoveToProject = async () => {
     </div>
 
     <!-- Modals -->
-    <UiConfirmModal
-      v-if="isArchiveModalOpen"
-      v-model:open="isArchiveModalOpen"
-      :title="t('contentLibrary.actions.deleteConfirmTitle')"
-      :description="t('contentLibrary.actions.deleteConfirmDescription')"
-      :confirm-text="t('contentLibrary.actions.moveToTrash')"
-      color="warning"
-      icon="i-heroicons-trash"
-      :loading="!!isArchivingId"
-      @confirm="confirmArchive"
-    />
-
     <UiConfirmModal
       v-if="isPurgeConfirmModalOpen"
       v-model:open="isPurgeConfirmModalOpen"
