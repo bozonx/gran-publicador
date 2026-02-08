@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useProjects } from '~/composables/useProjects'
+import { useChannels } from '~/composables/useChannels'
+import type { ChannelWithProject } from '~/types/channels'
 import { ArchiveEntityType } from '~/types/archive.types'
 import RolesList from '~/components/roles/RolesList.vue'
 
@@ -29,6 +31,9 @@ const {
   fetchMembers,
 } = useProjects()
 
+const { fetchChannels } = useChannels()
+const projectChannels = ref<ChannelWithProject[]>([])
+
 const isInviteModalOpen = ref(false)
 
 const projectId = computed(() => route.params.id as string)
@@ -43,7 +48,24 @@ const isSaving = ref(false)
 onMounted(async () => {
   if (projectId.value) {
     await fetchProject(projectId.value)
+    projectChannels.value = await fetchChannels({ projectId: projectId.value })
   }
+})
+
+const projectLanguages = computed(() => {
+  const languages = new Set<string>()
+  
+  if (currentProject.value?.languages) {
+    currentProject.value.languages.forEach(l => languages.add(l))
+  }
+  
+  projectChannels.value.forEach(channel => {
+    if (channel.language) {
+      languages.add(channel.language)
+    }
+  })
+  
+  return Array.from(languages)
 })
 
 const isProjectEmpty = computed(() => {
@@ -254,7 +276,7 @@ async function handleTransfer() {
         >
           <PostsAuthorSignatureManager
             :project-id="currentProject.id"
-            :channel-languages="currentProject.languages"
+            :channel-languages="projectLanguages"
           />
         </UiAppCard>
 
