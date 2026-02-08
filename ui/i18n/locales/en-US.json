@@ -101,17 +101,25 @@
     "widgetHint": "Use the official Telegram widget to authorize in your browser"
   },
   "authorSignature": {
+    "addVariant": "Add another language",
+    "deleteTitle": "Delete Signature",
+    "deleteWarning": "Are you sure you want to delete this signature?",
+    "duplicateLanguages": "Duplicate languages are not allowed",
     "is_default": "Default",
-    "none": "No signature",
+    "missingVariantsLanguages": "Missing translations for: {languages}",
+    "missingVariantsWarning": "Some signatures are missing language variants",
+    "none": "No author signatures found",
     "presets": {
       "button": "Preset",
       "title": "Preset Signatures"
     },
+    "primaryLanguageRequired": "Content in your language is required",
+    "projectDescription": "Manage author signatures with language variants. Signatures are selected when creating publications and copied to posts.",
     "select": "Select signature",
-    "user_defined": "Custom Signatures",
-    "addVariant": "Add another language",
-    "duplicateLanguages": "Duplicate languages are not allowed",
-    "primaryLanguageRequired": "Content in your language is required"
+    "selectHelp": "Signature content will be copied to each post by channel language",
+    "selectTooltip": "Select a project signature. The appropriate language variant will be used for each channel.",
+    "title": "Author Signatures",
+    "user_defined": "Custom Signatures"
   },
   "channel": {
     "activate": "Activate",

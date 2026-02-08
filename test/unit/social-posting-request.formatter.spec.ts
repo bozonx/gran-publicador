@@ -1,12 +1,13 @@
 import { SocialPostingRequestFormatter } from '../../src/modules/social-posting/utils/social-posting-request.formatter.js';
-import { PostType, SocialMedia, MediaType, StorageType } from '../../src/generated/prisma/index.js';
+import { PostType, SocialMedia } from '../../src/generated/prisma/index.js';
+import type { PostingSnapshot } from '../../src/modules/social-posting/interfaces/posting-snapshot.interface.js';
 
 describe('SocialPostingRequestFormatter', () => {
   const mockPost = {
     id: 'post-123',
     updatedAt: new Date('2024-01-01T10:00:00Z'),
     content: null,
-    tags: null,
+    tags: 'tag1',
     language: 'ru-RU',
   };
 
@@ -26,6 +27,12 @@ describe('SocialPostingRequestFormatter', () => {
     media: [],
   };
 
+  const mockSnapshot: PostingSnapshot = {
+    version: 1,
+    body: 'Rendered body with #tag1',
+    media: [],
+  };
+
   const params = {
     post: mockPost,
     channel: mockChannel,
@@ -33,9 +40,10 @@ describe('SocialPostingRequestFormatter', () => {
     apiKey: 'secret-token',
     targetChannelId: '@test_channel',
     mediaStorageUrl: 'http://media-storage/api/v1',
+    snapshot: mockSnapshot,
   };
 
-  it('should format request correctly for Telegram', () => {
+  it('should format request correctly for Telegram using snapshot body', () => {
     const request = SocialPostingRequestFormatter.prepareRequest(params);
 
     expect(request.platform).toBe('telegram');
@@ -43,8 +51,7 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.title).toBeUndefined();
     expect(request.description).toBeUndefined();
     expect((request as any).tags).toBeUndefined();
-    expect(request.body).toContain('Pub Content');
-    expect(request.body).toContain('#tag1');
+    expect(request.body).toBe('Rendered body with #tag1');
     expect(request.idempotencyKey).toBeDefined();
     expect(request.postLanguage).toBe('ru-RU');
   });
@@ -74,18 +81,20 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.disableNotification).toBe(true);
   });
 
-  it('should handle single media mapping', () => {
+  it('should handle single snapshot media mapping', () => {
     const paramsWithMedia = {
       ...params,
-      publication: {
-        ...mockPublication,
+      snapshot: {
+        ...mockSnapshot,
         media: [
           {
-            media: {
-              type: MediaType.IMAGE,
-              storageType: StorageType.TELEGRAM,
-              storagePath: 'file_id_123',
-            },
+            mediaId: 'media-1',
+            type: 'IMAGE',
+            storageType: 'TELEGRAM',
+            storagePath: 'file_id_123',
+            order: 0,
+            hasSpoiler: false,
+            meta: {},
           },
         ],
       },
@@ -96,18 +105,20 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.media).toBeUndefined();
   });
 
-  it('should handle single FS media mapping with URL generation', () => {
+  it('should handle single FS snapshot media mapping with URL generation', () => {
     const paramsWithMedia = {
       ...params,
-      publication: {
-        ...mockPublication,
+      snapshot: {
+        ...mockSnapshot,
         media: [
           {
-            media: {
-              type: MediaType.IMAGE,
-              storageType: StorageType.FS,
-              storagePath: 'file-123',
-            },
+            mediaId: 'media-1',
+            type: 'IMAGE',
+            storageType: 'FS',
+            storagePath: 'file-123',
+            order: 0,
+            hasSpoiler: false,
+            meta: {},
           },
         ],
       },
@@ -120,25 +131,29 @@ describe('SocialPostingRequestFormatter', () => {
     });
   });
 
-  it('should handle multiple media mapping', () => {
+  it('should handle multiple snapshot media mapping', () => {
     const paramsWithMultiMedia = {
       ...params,
-      publication: {
-        ...mockPublication,
+      snapshot: {
+        ...mockSnapshot,
         media: [
           {
-            media: {
-              type: MediaType.IMAGE,
-              storageType: StorageType.TELEGRAM,
-              storagePath: 'file_id_1',
-            },
+            mediaId: 'media-1',
+            type: 'IMAGE',
+            storageType: 'TELEGRAM',
+            storagePath: 'file_id_1',
+            order: 0,
+            hasSpoiler: false,
+            meta: {},
           },
           {
-            media: {
-              type: MediaType.VIDEO,
-              storageType: StorageType.FS,
-              storagePath: 'file-abc',
-            },
+            mediaId: 'media-2',
+            type: 'VIDEO',
+            storageType: 'FS',
+            storagePath: 'file-abc',
+            order: 1,
+            hasSpoiler: false,
+            meta: {},
           },
         ],
       },

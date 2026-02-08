@@ -1,31 +1,17 @@
 import { AbstractPlatformFormatter, type FormatterParams } from './abstract-platform.formatter.js';
 import type { PostRequestDto } from '../../dto/social-posting.dto.js';
-import { SocialPostingBodyFormatter } from '../social-posting-body.formatter.js';
 import { TagsFormatter } from '../tags.formatter.js';
 
 export class DefaultFormatter extends AbstractPlatformFormatter {
   format(params: FormatterParams): PostRequestDto {
-    const { post, channel, publication, apiKey, targetChannelId, mediaStorageUrl } = params;
+    const { post, channel, publication, apiKey, targetChannelId, snapshot } = params;
 
-    // Generate body using templates
-    const body = SocialPostingBodyFormatter.format(
-      {
-        title: publication.title,
-        content: post.content || publication.content,
-        tags: post.tags || publication.tags,
-        authorComment: publication.authorComment,
-        postType: publication.postType,
-        language: post.language || publication.language,
-        authorSignature: post.authorSignature,
-      },
-      channel,
-      post.template,
-      params.projectTemplates,
-    );
+    // Body is already rendered in the snapshot
+    const body = snapshot.body;
 
-    const mediaMapping = this.mapMedia(
-      publication.media,
-      mediaStorageUrl,
+    const mediaMapping = this.mapSnapshotMedia(
+      snapshot.media,
+      params.mediaStorageUrl,
       params.publicMediaBaseUrl,
       params.mediaService,
     );
@@ -37,7 +23,7 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
         apiKey,
       },
       body,
-      bodyFormat: 'html', // Default for now
+      bodyFormat: 'html',
       idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,

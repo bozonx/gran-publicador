@@ -410,6 +410,10 @@ model Post {
   platformOptions Json? @map("platform_options")
   // Author signature content (markdown text copied from signature template at post creation)
   authorSignature String? @map("author_signature") @db.Text
+  // Frozen snapshot of everything needed for publishing (body, media, version)
+  postingSnapshot     Json?      @map("posting_snapshot")
+  // Timestamp when the posting snapshot was created
+  postingSnapshotCreatedAt DateTime? @map("posting_snapshot_created_at")
 
   // Overwrite of publication scheduledAt
   scheduledAt   DateTime? @map("scheduled_at")

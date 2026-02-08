@@ -1,37 +1,19 @@
 import { AbstractPlatformFormatter, type FormatterParams } from './abstract-platform.formatter.js';
 import type { PostRequestDto } from '../../dto/social-posting.dto.js';
-import { SocialPostingBodyFormatter } from '../social-posting-body.formatter.js';
-import { ContentConverter } from '../../../../common/utils/content-converter.util.js';
 
 export class TelegramFormatter extends AbstractPlatformFormatter {
   format(params: FormatterParams): PostRequestDto {
-    const { post, channel, publication, apiKey, targetChannelId, mediaStorageUrl } = params;
+    const { post, channel, publication, apiKey, targetChannelId, snapshot } = params;
 
-    // Generate body using templates
-    let body = SocialPostingBodyFormatter.format(
-      {
-        title: publication.title,
-        content: post.content || publication.content,
-        tags: post.tags || publication.tags,
-        authorComment: publication.authorComment,
-        postType: publication.postType,
-        language: post.language || publication.language,
-        authorSignature: post.authorSignature,
-      },
-      channel,
-      post.template,
-      params.projectTemplates,
-    );
+    // Body is already rendered and converted to HTML in the snapshot
+    const body = snapshot.body;
 
-    const mediaMapping = this.mapMedia(
-      publication.media,
-      mediaStorageUrl,
+    const mediaMapping = this.mapSnapshotMedia(
+      snapshot.media,
+      params.mediaStorageUrl,
       params.publicMediaBaseUrl,
       params.mediaService,
     );
-
-    // Telegram specific: Convert MD to HTML
-    body = ContentConverter.mdToTelegramHtml(body);
 
     const request: PostRequestDto = {
       platform: channel.socialMedia.toLowerCase(),

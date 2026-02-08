@@ -28,6 +28,7 @@ import type { BulkOperationDto } from './dto/bulk-operation.dto.js';
 import { PublicationMediaInputDto } from './dto/publication-media-input.dto.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { MediaService } from '../media/media.service.js';
+import { PostSnapshotBuilderService } from '../social-posting/post-snapshot-builder.service.js';
 
 @Injectable()
 export class PublicationsService {
@@ -37,6 +38,7 @@ export class PublicationsService {
     private prisma: PrismaService,
     private permissions: PermissionsService,
     private mediaService: MediaService,
+    private snapshotBuilder: PostSnapshotBuilderService,
   ) {}
 
   private readonly PUBLICATION_WITH_RELATIONS_INCLUDE = {
@@ -585,6 +587,7 @@ export class PublicationsService {
    */
   public async update(id: string, userId: string, data: UpdatePublicationDto) {
     const publication = await this.findOne(id, userId);
+    const previousStatus = publication.status;
 
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
@@ -860,6 +863,24 @@ export class PublicationsService {
 
     if (data.scheduledAt !== undefined || data.status !== undefined) {
       await this.refreshPublicationEffectiveAt(id);
+    }
+
+    // Posting snapshot lifecycle based on status transitions
+    const newStatus = updated.status;
+    if (newStatus !== previousStatus) {
+      const isFromDraft = previousStatus === PublicationStatus.DRAFT;
+      const isToFinalized =
+        newStatus === PublicationStatus.READY || newStatus === PublicationStatus.SCHEDULED;
+      const isToDraft = newStatus === PublicationStatus.DRAFT;
+
+      if (isFromDraft && isToFinalized) {
+        // DRAFT -> READY or DRAFT -> SCHEDULED: build snapshot
+        await this.snapshotBuilder.buildForPublication(id);
+      } else if (isToDraft) {
+        // * -> DRAFT: clear snapshot
+        await this.snapshotBuilder.clearForPublication(id);
+      }
+      // SCHEDULED -> READY: do NOT rebuild snapshot (intentional)
     }
 
     return {

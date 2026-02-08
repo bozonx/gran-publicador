@@ -1,5 +1,6 @@
 import type { PostRequestDto } from '../../dto/social-posting.dto.js';
 import { MediaType, StorageType } from '../../../../generated/prisma/index.js';
+import type { PostingSnapshot } from '../../interfaces/posting-snapshot.interface.js';
 
 export interface FormatterParams {
   post: any; // Post with relations or simplified
@@ -10,49 +11,11 @@ export interface FormatterParams {
   mediaStorageUrl: string; // Media Storage microservice URL
   publicMediaBaseUrl?: string; // Public API URL for proxying
   mediaService?: any; // MediaService for signing
-  projectTemplates?: any[]; // Project templates for the channel's project
+  snapshot: PostingSnapshot; // Frozen posting snapshot (body + media)
 }
 
 export abstract class AbstractPlatformFormatter {
   abstract format(params: FormatterParams): PostRequestDto;
-
-  protected mapMedia(
-    publicationMedia: any[],
-    mediaStorageUrl: string,
-    publicMediaBaseUrl?: string,
-    mediaService?: any,
-  ): Partial<PostRequestDto> {
-    if (!publicationMedia || publicationMedia.length === 0) return {};
-
-    if (publicationMedia.length === 1) {
-      const pm = publicationMedia[0];
-      const item = pm.media;
-      const src = this.getMediaSrc(item, mediaStorageUrl, publicMediaBaseUrl, mediaService);
-      const hasSpoiler = pm.hasSpoiler ?? item.meta?.telegram?.hasSpoiler ?? false;
-
-      switch (item.type) {
-        case MediaType.IMAGE:
-          return { cover: { src, hasSpoiler } };
-        case MediaType.VIDEO:
-          return { video: { src, hasSpoiler } };
-        case MediaType.AUDIO:
-          return { audio: { src } };
-        case MediaType.DOCUMENT:
-          return { document: { src } };
-        default:
-          return { cover: { src, hasSpoiler } };
-      }
-    }
-
-    // Multiple media items
-    return {
-      media: publicationMedia.map(pm => ({
-        src: this.getMediaSrc(pm.media, mediaStorageUrl, publicMediaBaseUrl, mediaService),
-        type: this.mapMediaTypeToLibrary(pm.media.type),
-        hasSpoiler: pm.hasSpoiler ?? pm.media.meta?.telegram?.hasSpoiler ?? false,
-      })),
-    };
-  }
 
   protected getMediaSrc(
     media: any,
@@ -103,6 +66,65 @@ export abstract class AbstractPlatformFormatter {
       default:
         return 'image';
     }
+  }
+
+  /**
+   * Map snapshot media items to PostRequestDto media fields.
+   * Resolves URLs at send time from frozen media metadata.
+   */
+  protected mapSnapshotMedia(
+    snapshotMedia: Array<{
+      mediaId: string;
+      type: string;
+      storageType: string;
+      storagePath: string;
+      order: number;
+      hasSpoiler: boolean;
+      meta: Record<string, any>;
+    }>,
+    mediaStorageUrl: string,
+    publicMediaBaseUrl?: string,
+    mediaService?: any,
+  ): Partial<PostRequestDto> {
+    if (!snapshotMedia || snapshotMedia.length === 0) return {};
+
+    // Adapt snapshot items to the shape expected by getMediaSrc (id, storagePath, storageType)
+    const toMediaLike = (item: (typeof snapshotMedia)[0]) => ({
+      id: item.mediaId,
+      storagePath: item.storagePath,
+      storageType: item.storageType,
+    });
+
+    if (snapshotMedia.length === 1) {
+      const item = snapshotMedia[0];
+      const src = this.getMediaSrc(
+        toMediaLike(item),
+        mediaStorageUrl,
+        publicMediaBaseUrl,
+        mediaService,
+      );
+
+      switch (item.type) {
+        case 'IMAGE':
+          return { cover: { src, hasSpoiler: item.hasSpoiler } };
+        case 'VIDEO':
+          return { video: { src, hasSpoiler: item.hasSpoiler } };
+        case 'AUDIO':
+          return { audio: { src } };
+        case 'DOCUMENT':
+          return { document: { src } };
+        default:
+          return { cover: { src, hasSpoiler: item.hasSpoiler } };
+      }
+    }
+
+    return {
+      media: snapshotMedia.map(item => ({
+        src: this.getMediaSrc(toMediaLike(item), mediaStorageUrl, publicMediaBaseUrl, mediaService),
+        type: this.mapMediaTypeToLibrary(item.type as MediaType),
+        hasSpoiler: item.hasSpoiler,
+      })),
+    };
   }
 
   protected applyCommonOptions(request: PostRequestDto, post: any): void {

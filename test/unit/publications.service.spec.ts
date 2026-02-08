@@ -13,6 +13,7 @@ import {
 } from '../../src/generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../../src/modules/publications/dto/index.js';
 import { MediaService } from '../../src/modules/media/media.service.js';
+import { PostSnapshotBuilderService } from '../../src/modules/social-posting/post-snapshot-builder.service.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -61,6 +62,11 @@ describe('PublicationsService (unit)', () => {
     uploadFileFromUrl: jest.fn() as any,
   };
 
+  const mockSnapshotBuilder = {
+    buildForPublication: jest.fn() as any,
+    clearForPublication: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -76,6 +82,10 @@ describe('PublicationsService (unit)', () => {
         {
           provide: MediaService,
           useValue: mockMediaService,
+        },
+        {
+          provide: PostSnapshotBuilderService,
+          useValue: mockSnapshotBuilder,
         },
       ],
     }).compile();

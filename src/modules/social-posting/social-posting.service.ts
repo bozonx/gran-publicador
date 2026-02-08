@@ -553,17 +553,18 @@ export class SocialPostingService {
       } = await this.prepareChannelForPosting(channel, { ignoreState: options.force });
       if (prepError) throw new Error(prepError);
 
-      // Author signature is already stored as text in the post
-      const authorSignatureContent = post.authorSignature || '';
-
-      // Load project templates for the channel's project
-      const projectTemplates = await this.prisma.projectTemplate.findMany({
-        where: { projectId: channel.projectId },
-        orderBy: { order: 'asc' },
-      });
+      // Posting snapshot must exist — it is built when publication moves to READY/SCHEDULED
+      const snapshot = post.postingSnapshot as
+        | import('./interfaces/posting-snapshot.interface.js').PostingSnapshot
+        | null;
+      if (!snapshot) {
+        throw new Error(
+          `Post ${post.id} has no posting snapshot. Cannot publish without a frozen snapshot.`,
+        );
+      }
 
       const request = SocialPostingRequestFormatter.prepareRequest({
-        post: { ...post, authorSignature: authorSignatureContent },
+        post,
         channel,
         publication,
         apiKey,
@@ -571,7 +572,7 @@ export class SocialPostingService {
         mediaStorageUrl: this.mediaStorageUrl,
         publicMediaBaseUrl: this.frontendUrl ? `${this.frontendUrl}/api/v1` : undefined,
         mediaService: this.mediaService,
-        projectTemplates,
+        snapshot,
       });
 
       this.logger.log(`${logPrefix} Sending request to microservice...`);

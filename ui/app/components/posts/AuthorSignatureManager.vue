@@ -30,6 +30,8 @@ const toast = useToast()
 const signatures = ref<ProjectAuthorSignature[]>([])
 const isModalOpen = ref(false)
 const editingSignature = ref<ProjectAuthorSignature | null>(null)
+const showDeleteModal = ref(false)
+const signatureToDeleteId = ref<string | null>(null)
 
 // Form: list of language variants
 interface LocalVariant {
@@ -181,6 +183,21 @@ async function handleSave() {
     console.error('Failed to save signature', error)
   }
 }
+
+function onRequestDelete(id: string) {
+  signatureToDeleteId.value = id
+  showDeleteModal.value = true
+}
+
+async function onConfirmDelete() {
+  if (signatureToDeleteId.value) {
+    await handleDelete(signatureToDeleteId.value)
+    showDeleteModal.value = false
+    isModalOpen.value = false
+    signatureToDeleteId.value = null
+  }
+}
+
 
 async function handleDelete(id: string) {
   const index = signatures.value.findIndex(sig => sig.id === id)
@@ -377,7 +394,7 @@ async function handleDragEnd() {
               size="xs"
               variant="ghost"
               color="error"
-              @click="handleDelete(editingSignature.id); isModalOpen = false"
+              @click="onRequestDelete(editingSignature.id)"
             >
               {{ t('common.delete') }}
             </UButton>
@@ -398,5 +415,15 @@ async function handleDragEnd() {
         </div>
       </template>
     </UiAppModal>
+
+    <UiConfirmModal
+      v-model:open="showDeleteModal"
+      :title="t('authorSignature.deleteTitle', 'Delete Signature')"
+      :description="t('authorSignature.deleteWarning', 'Are you sure you want to delete this signature?')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      @confirm="onConfirmDelete"
+    />
   </div>
 </template>

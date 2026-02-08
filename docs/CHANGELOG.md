@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Posting Snapshot mechanism for posts.
+  - New DB fields: `posting_snapshot` (JSONB) and `posting_snapshot_created_at` on `posts` table.
+  - `PostSnapshotBuilderService`: builds frozen snapshots (body, media, version) when publication transitions from DRAFT to READY/SCHEDULED.
+  - Snapshots are cleared when publication returns to DRAFT; not rebuilt on SCHEDULED→READY.
+  - `SocialPostingService.publishSinglePost()` now uses the snapshot as the sole source of truth instead of dynamically loading templates.
+  - Platform formatters (`TelegramFormatter`, `DefaultFormatter`) refactored to consume snapshot body and media directly.
+  - `PostingSnapshot` interface with versioning (`POSTING_SNAPSHOT_VERSION = 1`).
+
 - Project-level Author Signatures with language variants.
   - New DB tables: `project_author_signatures`, `project_author_signature_variants`.
   - Backend module: `author-signatures` rewritten for project-level CRUD with variant management.

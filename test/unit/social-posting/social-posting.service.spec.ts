@@ -151,6 +151,11 @@ describe('SocialPostingService', () => {
         status: PostStatus.PENDING,
         publicationId: 'pub-1',
         channelId: 'chan-1',
+        postingSnapshot: {
+          version: 1,
+          body: 'Test body content',
+          media: [],
+        },
         publication: {
           id: 'pub-1',
           meta: {},
