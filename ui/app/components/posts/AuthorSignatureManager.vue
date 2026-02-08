@@ -70,6 +70,12 @@ const missingLanguageWarnings = computed(() => {
   return [...new Set(warnings)]
 })
 
+function getMissingLanguages(sig: ProjectAuthorSignature): string[] {
+  if (!props.channelLanguages) return []
+  const variantLangs = new Set(sig.variants.map(v => v.language))
+  return props.channelLanguages.filter(lang => !variantLangs.has(lang))
+}
+
 async function loadSignatures() {
   signatures.value = await fetchByProject(props.projectId)
 }
@@ -278,6 +284,13 @@ async function handleDragEnd() {
                   class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                 >
                   {{ v.language }}
+                </span>
+                <span
+                  v-for="lang in getMissingLanguages(sig)"
+                  :key="lang"
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-dashed border-yellow-400 dark:border-yellow-600"
+                >
+                  {{ lang }}
                 </span>
                 <span v-if="sig.user && sig.userId !== user?.id" class="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 ml-1">
                   <UIcon name="i-heroicons-user" class="w-3 h-3" />
