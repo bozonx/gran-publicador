@@ -34,6 +34,8 @@ async function main() {
   // 1. CLEAR OLD DATA
   console.log('  Cleaning up old data...');
   // Delete in order to respect FK constraints
+  await prisma.publicationRelationItem.deleteMany({});
+  await prisma.publicationRelationGroup.deleteMany({});
   await prisma.apiTokenProject.deleteMany({});
   await prisma.apiToken.deleteMany({});
   await prisma.notification.deleteMany({});
@@ -55,6 +57,8 @@ async function main() {
   await prisma.projectMember.deleteMany({});
   await prisma.role.deleteMany({});
   await prisma.llmPromptTemplate.deleteMany({});
+  await prisma.llmSystemPromptOverride.deleteMany({});
+  await prisma.projectTemplate.deleteMany({});
   await prisma.project.deleteMany({});
   await prisma.user.deleteMany({});
 
@@ -649,7 +653,7 @@ async function main() {
     {
       id: '33333333-3333-4333-8333-333333333360',
       publicationId: publications[4].id,
-      channelId: channelData[7].id,
+      channelId: channelData[8].id,
       socialMedia: 'TELEGRAM',
       status: PostStatus.PUBLISHED,
       publishedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
@@ -686,7 +690,7 @@ async function main() {
   // 8. PAGINATION
   console.log('  Generating 30 publications...');
   const pagProjectId = projectData[5].id;
-  const pagChannelId = channelData[6].id;
+  const pagChannelId = channelData[7].id;
   for (let i = 1; i <= 30; i++) {
     const pubId = `77777777-7777-4777-8777-${i.toString().padStart(12, '0')}`;
     const postId = `66666666-6666-4666-8666-${i.toString().padStart(12, '0')}`;
