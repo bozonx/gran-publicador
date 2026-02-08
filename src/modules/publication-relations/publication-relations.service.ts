@@ -1,13 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  RelationGroupType,
-  PublicationStatus,
-} from '../../generated/prisma/index.js';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { RelationGroupType, PublicationStatus } from '../../generated/prisma/index.js';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -142,7 +134,7 @@ export class PublicationRelationsService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async tx => {
       let groupId: string;
       let nextPosition: number;
 
@@ -184,9 +176,7 @@ export class PublicationRelationsService {
         },
       });
 
-      this.logger.log(
-        `Linked publication ${publicationId} to group ${groupId} (type=${dto.type})`,
-      );
+      this.logger.log(`Linked publication ${publicationId} to group ${groupId} (type=${dto.type})`);
 
       return { groupId };
     });
@@ -211,7 +201,7 @@ export class PublicationRelationsService {
       throw new NotFoundException('Publication is not a member of this group');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async tx => {
       // Remove the item
       await tx.publicationRelationItem.delete({
         where: { id: item.id },
@@ -286,7 +276,7 @@ export class PublicationRelationsService {
     // Use a two-phase approach to avoid unique constraint violations:
     // Phase 1: Set all positions to negative temporary values
     // Phase 2: Set to final values
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async tx => {
       for (const item of dto.items) {
         const existing = group.items.find(i => i.publicationId === item.publicationId);
         if (existing) {
@@ -336,14 +326,6 @@ export class PublicationRelationsService {
       include: { group: { include: { items: true } } },
     });
 
-    if (dto.type === RelationGroupType.SERIES && sourceExistingItem) {
-      throw new BadRequestException('Publication already belongs to a SERIES group. Link the new publication to the existing group instead.');
-    }
-
-    if (dto.type === RelationGroupType.LOCALIZATION && sourceExistingItem) {
-      throw new BadRequestException('Publication already belongs to a LOCALIZATION group. Link the new publication to the existing group instead.');
-    }
-
     const language = dto.language || source.language;
 
     // For LOCALIZATION: validate language uniqueness
@@ -356,7 +338,7 @@ export class PublicationRelationsService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async tx => {
       // Create the new publication as a copy
       const newPublication = await tx.publication.create({
         data: {
@@ -376,7 +358,27 @@ export class PublicationRelationsService {
         },
       });
 
-      // Create group
+      // If the source already belongs to a group of this type, append to that group.
+      if (sourceExistingItem) {
+        const nextPosition =
+          sourceExistingItem.group.items.reduce((max, i) => Math.max(max, i.position), -1) + 1;
+
+        await tx.publicationRelationItem.create({
+          data: {
+            groupId: sourceExistingItem.groupId,
+            publicationId: newPublication.id,
+            position: nextPosition,
+          },
+        });
+
+        this.logger.log(
+          `Created related publication ${newPublication.id} from ${publicationId} in existing group ${sourceExistingItem.groupId} (type=${dto.type})`,
+        );
+
+        return { publicationId: newPublication.id, groupId: sourceExistingItem.groupId };
+      }
+
+      // Otherwise create a new group with the source + new publication.
       const group = await tx.publicationRelationGroup.create({
         data: {
           projectId: source.projectId,
@@ -385,7 +387,6 @@ export class PublicationRelationsService {
         },
       });
 
-      // Add both publications
       await tx.publicationRelationItem.createMany({
         data: [
           { groupId: group.id, publicationId, position: 0 },
@@ -394,7 +395,7 @@ export class PublicationRelationsService {
       });
 
       this.logger.log(
-        `Created related publication ${newPublication.id} from ${publicationId} in group ${group.id} (type=${dto.type})`,
+        `Created related publication ${newPublication.id} from ${publicationId} in new group ${group.id} (type=${dto.type})`,
       );
 
       return { publicationId: newPublication.id, groupId: group.id };
