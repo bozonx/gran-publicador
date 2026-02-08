@@ -16,6 +16,8 @@ import { usePosts } from '~/composables/usePosts'
 import { useLanguages } from '~/composables/useLanguages'
 import { isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
+import type { ProjectAuthorSignature } from '~/types/author-signatures'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -54,6 +56,8 @@ const { typeOptions } = usePosts()
 const { languageOptions } = useLanguages()
 const { schema } = usePublicationFormValidation(t)
 const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
+const { fetchByProject: fetchSignatures } = useAuthorSignatures()
+const projectSignatures = ref<ProjectAuthorSignature[]>([])
 
 const languageParam = route.query.language as string | undefined
 const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
@@ -70,9 +74,22 @@ watch(currentProjectId, async (newId) => {
     if (newId) {
         await Promise.all([
             fetchChannels({ projectId: newId }),
-            fetchPublicationsByProject(newId, { limit: 50 })
+            fetchPublicationsByProject(newId, { limit: 50 }),
+            fetchSignatures(newId).then(sigs => { projectSignatures.value = sigs }),
         ])
     }
+})
+
+// Signature selector options
+const signatureOptions = computed(() => {
+  const userLang = user.value?.language || 'en-US'
+  return projectSignatures.value.map(sig => {
+    const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
+    return {
+      value: sig.id,
+      label: variant?.content || sig.id,
+    }
+  })
 })
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
@@ -143,7 +160,8 @@ onMounted(async () => {
     if (currentProjectId.value) {
         await Promise.all([
             fetchChannels({ projectId: currentProjectId.value }),
-            fetchPublicationsByProject(currentProjectId.value, { limit: 50 })
+            fetchPublicationsByProject(currentProjectId.value, { limit: 50 }),
+            fetchSignatures(currentProjectId.value).then(sigs => { projectSignatures.value = sigs }),
         ])
     }
     
@@ -271,11 +289,12 @@ async function performSubmit(data: PublicationFormData) {
       const newChannelIds = state.channelIds.filter(id => !originalChannelIds.includes(id))
       
       if (newChannelIds.length > 0) {
-          await createPostsFromPublication(
-              publicationId, 
-              newChannelIds, 
-              data.status === 'SCHEDULED' ? data.scheduledAt : undefined
-          )
+          await createPostsFromPublication({
+              id: publicationId,
+              channelIds: newChannelIds,
+              scheduledAt: data.status === 'SCHEDULED' ? data.scheduledAt : undefined,
+              authorSignatureId: state.authorSignatureId || undefined,
+          })
       }
     } else {
       const createData = {
@@ -289,11 +308,12 @@ async function performSubmit(data: PublicationFormData) {
       publicationId = pub.id
 
       if (state.channelIds.length > 0) {
-        await createPostsFromPublication(
-          publicationId, 
-          state.channelIds, 
-          data.status === 'SCHEDULED' ? data.scheduledAt : undefined
-        )
+        await createPostsFromPublication({
+          id: publicationId,
+          channelIds: state.channelIds,
+          scheduledAt: data.status === 'SCHEDULED' ? data.scheduledAt : undefined,
+          authorSignatureId: state.authorSignatureId || undefined,
+        })
       }
     }
 
@@ -521,6 +541,28 @@ function handleTranslated(result: { translatedText: string }) {
           color="neutral"
           variant="outline"
           class="w-full"
+        />
+      </UFormField>
+
+      <!-- Author Signature Selection (only when creating and channels are selected) -->
+      <UFormField
+        v-if="!isEditMode && signatureOptions.length > 0"
+        name="authorSignatureId"
+        :help="t('authorSignature.selectHelp', 'Signature content will be copied to each post by channel language')"
+      >
+        <template #label>
+          <div class="flex items-center gap-1.5">
+            <span>{{ t('authorSignature.title', 'Author Signature') }}</span>
+            <CommonInfoTooltip :text="t('authorSignature.selectTooltip', 'Select a project signature. The appropriate language variant will be used for each channel.')" />
+          </div>
+        </template>
+        <USelectMenu
+          v-model="state.authorSignatureId"
+          :items="[{ value: '', label: t('common.none', 'None') }, ...signatureOptions]"
+          value-key="value"
+          label-key="label"
+          class="w-full"
+          icon="i-heroicons-pencil-square"
         />
       </UFormField>
 

@@ -1,15 +1,9 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { AuthorSignaturesService } from '../author-signatures.service.js';
 
 /**
- * Guard to verify that the current user has access to a signature.
- * Accessible to the creator, project owner, or project admin.
+ * Guard to verify that the current user has write access to a signature.
+ * Accessible to: signature owner, project owner, project ADMIN, system admin.
  */
 @Injectable()
 export class SignatureAccessGuard implements CanActivate {

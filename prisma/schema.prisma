@@ -51,7 +51,7 @@ model User {
   notifications  Notification[]
   llmPromptTemplates LlmPromptTemplate[]
   llmSystemPromptOverrides LlmSystemPromptOverride[]
-  authorSignatures AuthorSignature[]
+  authorSignatures ProjectAuthorSignature[]
   contentLibraryTabs ContentLibraryTab[]
 
   @@index([telegramUsername])
@@ -107,6 +107,7 @@ model Project {
   contentLibraryTabs ContentLibraryTab[]
   relationGroups PublicationRelationGroup[]
   projectTemplates ProjectTemplate[]
+  authorSignatures ProjectAuthorSignature[]
 
   @@map("projects")
 }
@@ -243,7 +244,6 @@ model Channel {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   posts   Post[]
-  authorSignatures AuthorSignature[]
 
   @@index([projectId])
   @@map("channels")
@@ -427,30 +427,40 @@ model Post {
   @@map("posts")
 }
 
-model AuthorSignature {
+model ProjectAuthorSignature {
   id        String   @id @default(uuid())
+  projectId String   @map("project_id")
   userId    String   @map("user_id")
-  channelId String   @map("channel_id")
-  
-  // Name of the signature for UI selection
-  name      String
-  // Markdown content of the signature
-  content   String
-  // Is this the default signature for the user on this channel
-  isDefault Boolean  @default(false) @map("is_default")
-  // Display order
-  order       Int      @default(0)
-  
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, channelId, name])
-  @@index([userId, channelId])
-  @@index([channelId])
-  @@map("author_signatures")
+  // Display order set by user
+  order     Int      @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variants ProjectAuthorSignatureVariant[]
+
+  @@index([projectId, userId])
+  @@index([projectId, order])
+  @@map("project_author_signatures")
+}
+
+model ProjectAuthorSignatureVariant {
+  id          String @id @default(uuid())
+  signatureId String @map("signature_id")
+  // Language code (e.g., ru-RU, en-US)
+  language    String
+  // Inline markdown content of the signature
+  content     String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  signature ProjectAuthorSignature @relation(fields: [signatureId], references: [id], onDelete: Cascade)
+
+  @@unique([signatureId, language])
+  @@map("project_author_signature_variants")
 }
 
 model Media {

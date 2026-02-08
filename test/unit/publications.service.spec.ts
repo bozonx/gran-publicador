@@ -44,8 +44,8 @@ describe('PublicationsService (unit)', () => {
       findMany: jest.fn() as any,
       aggregate: jest.fn() as any,
     },
-    authorSignature: {
-      findFirst: jest.fn() as any,
+    projectAuthorSignatureVariant: {
+      findMany: jest.fn() as any,
     },
   };
 
@@ -504,9 +504,9 @@ describe('PublicationsService (unit)', () => {
         scheduledAt,
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe(PostStatus.PENDING);
-      expect(result[0].scheduledAt).toEqual(scheduledAt);
+      expect(result.posts).toHaveLength(1);
+      expect(result.posts[0].status).toBe(PostStatus.PENDING);
+      expect(result.posts[0].scheduledAt).toEqual(scheduledAt);
     });
 
     it('should inherit scheduledAt from publication if not provided explicitly', async () => {
@@ -539,8 +539,8 @@ describe('PublicationsService (unit)', () => {
         undefined, // Explicitly undefined to test inheritance
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].scheduledAt).toEqual(pubScheduledAt);
+      expect(result.posts).toHaveLength(1);
+      expect(result.posts[0].scheduledAt).toEqual(pubScheduledAt);
     });
 
     it('should throw NotFoundException if some channels missing', async () => {

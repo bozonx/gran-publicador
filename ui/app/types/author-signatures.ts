@@ -1,37 +1,35 @@
-export interface AuthorSignature {
-  id: string
-  userId: string
-  channelId: string
-  name: string
-  content: string
-  isDefault: boolean
-  order: number
-  createdAt: string
-  updatedAt: string
-  user?: {
-    id: string
-    fullName?: string
-    telegramUsername?: string
-  }
+export interface ProjectAuthorSignatureVariant {
+  id: string;
+  signatureId: string;
+  language: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface PresetSignature {
-  id: string
-  nameKey: string
-  contentKey: string
-  order: number
+export interface ProjectAuthorSignature {
+  id: string;
+  projectId: string;
+  userId: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+  variants: ProjectAuthorSignatureVariant[];
+  user?: {
+    id: string;
+    fullName?: string;
+    telegramUsername?: string;
+  };
 }
 
 export interface CreateAuthorSignatureInput {
-  channelId: string
-  name: string
-  content: string
-  isDefault?: boolean
+  content: string;
 }
 
 export interface UpdateAuthorSignatureInput {
-  name?: string
-  content?: string
-  isDefault?: boolean
-  order?: number
+  order?: number;
+}
+
+export interface UpsertVariantInput {
+  content: string;
 }

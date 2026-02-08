@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Project-level Author Signatures with language variants.
+  - New DB tables: `project_author_signatures`, `project_author_signature_variants`.
+  - Backend module: `author-signatures` rewritten for project-level CRUD with variant management.
+  - API endpoints: `GET/POST /projects/:projectId/author-signatures`, `PATCH/DELETE /author-signatures/:id`, `PUT/DELETE /author-signatures/:id/variants/:language`.
+  - Signature resolution at publication level: when creating posts, the backend resolves the correct language variant per channel, with per-channel override support.
+  - UI: `AuthorSignatureManager` moved to project settings with multi-language variant editing.
+  - UI: Signature selector added to publication creation form.
+  - Warnings for missing language variants displayed in project settings.
+
+### Removed
+- Channel-level author signatures (`AuthorSignature` model tied to `channelId`).
+- `isDefault` signature logic and auto-selection in `PostsService.create`.
+- `AuthorSignatureSelector` component from `PostEditBlock` (replaced with plain text field).
+- Preset signatures (`preset-signatures.constants.ts` backend + `preset-signatures.ts` UI).
+- Author signature management section from channel settings page.
+
+### Added
 - Project-level Publication Templates: templates are now defined at the project level instead of per-channel.
   - New DB table: `ProjectTemplate` with `name`, `postType`, `isDefault`, `order`, `template` (JSON blocks).
   - Backend module: `project-templates` with service, controller, DTOs.

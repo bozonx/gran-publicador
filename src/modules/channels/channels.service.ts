@@ -163,7 +163,7 @@ export class ChannelsService {
         }
       }
 
-      // 5. Delete the channel itself (Posts and AuthorSignatures will be deleted via cascade in DB schema)
+      // 5. Delete the channel itself (Posts will be deleted via cascade in DB schema)
       return tx.channel.delete({ where: { id } });
     });
   }

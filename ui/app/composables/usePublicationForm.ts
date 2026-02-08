@@ -97,6 +97,7 @@ export function usePublicationFormState(
     postDate: publication?.postDate
       ? new Date(publication.postDate).toISOString().slice(0, 16)
       : '',
+    authorSignatureId: '' as string,
   });
 
   return state;

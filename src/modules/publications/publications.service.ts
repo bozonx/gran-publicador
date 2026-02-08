@@ -261,7 +261,9 @@ export class PublicationsService {
         publication.id,
         data.channelIds,
         userId,
-        undefined, // no scheduled time by default
+        undefined,
+        data.authorSignatureId,
+        data.authorSignatureOverrides,
       );
       this.logger.log(`Created ${data.channelIds.length} posts for publication ${publication.id}`);
     }
@@ -1043,6 +1045,8 @@ export class PublicationsService {
     channelIds: string[],
     userId?: string,
     scheduledAt?: Date,
+    authorSignatureId?: string,
+    authorSignatureOverrides?: Record<string, string>,
   ) {
     // Validate channelIds is not empty
     if (!channelIds || channelIds.length === 0) {
@@ -1075,19 +1079,35 @@ export class PublicationsService {
       throw new NotFoundException('Some channels not found or do not belong to this project');
     }
 
+    // Pre-fetch signature variants if authorSignatureId is provided
+    let signatureVariantsMap: Map<string, string> | undefined;
+
+    if (authorSignatureId) {
+      const variants = await this.prisma.projectAuthorSignatureVariant.findMany({
+        where: { signatureId: authorSignatureId },
+      });
+      signatureVariantsMap = new Map(variants.map(v => [v.language, v.content]));
+    }
+
+    const warnings: string[] = [];
+
     // Create posts for each channel (content comes from publication via relation)
     const posts = await Promise.all(
       channels.map(async channel => {
-        // Find default signature for this user and channel
-        // Resolve author signature content
-        let authorSignature = undefined;
-        if (userId) {
-          const defaultSignature = await this.prisma.authorSignature.findFirst({
-            where: { userId, channelId: channel.id, isDefault: true },
-            select: { content: true },
-          });
-          if (defaultSignature) {
-            authorSignature = defaultSignature.content;
+        // Resolve author signature: override > signatureId variant > empty
+        let authorSignature: string | undefined;
+
+        if (authorSignatureOverrides?.[channel.id]) {
+          authorSignature = authorSignatureOverrides[channel.id];
+        } else if (signatureVariantsMap) {
+          const variantContent = signatureVariantsMap.get(channel.language);
+
+          if (variantContent) {
+            authorSignature = variantContent;
+          } else {
+            warnings.push(
+              `No signature variant for language "${channel.language}" (channel "${channel.name}")`,
+            );
           }
         }
 
@@ -1099,17 +1119,21 @@ export class PublicationsService {
             status: PostStatus.PENDING,
             scheduledAt: scheduledAt ?? publication.scheduledAt,
             meta: {},
-            authorSignature,
+            authorSignature: authorSignature || undefined,
           },
           include: {
             channel: true,
-            publication: true, // Include full publication with content
+            publication: true,
           },
         });
       }),
     );
 
-    return posts;
+    if (warnings.length > 0) {
+      this.logger.warn(`createPostsFromPublication ${publicationId}: ${warnings.join('; ')}`);
+    }
+
+    return { posts, warnings };
   }
 
   /**

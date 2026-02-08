@@ -14,7 +14,6 @@ import { PostRequestDto, PostResponseDto, PreviewResponseDto } from './dto/socia
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { NotificationType } from '../../generated/prisma/index.js';
 import { I18nService } from 'nestjs-i18n';
-import { PRESET_SIGNATURES } from '../author-signatures/constants/preset-signatures.constants.js';
 import { request } from 'undici';
 import { MediaService } from '../media/media.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';

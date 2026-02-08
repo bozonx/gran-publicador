@@ -246,6 +246,18 @@ async function handleTransfer() {
           />
         </UiAppCard>
 
+        <!-- Author Signatures -->
+        <UiAppCard
+          v-if="canEdit(currentProject)"
+          :title="t('authorSignature.title', 'Author Signatures')"
+          :description="t('authorSignature.projectDescription', 'Manage author signatures with language variants. Signatures are selected when creating publications and copied to posts.')"
+        >
+          <PostsAuthorSignatureManager
+            :project-id="currentProject.id"
+            :channel-languages="currentProject.languages"
+          />
+        </UiAppCard>
+
         <!-- Publication Templates -->
         <UiAppCard
           v-if="canEdit(currentProject)"

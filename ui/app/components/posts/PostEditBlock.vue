@@ -18,7 +18,6 @@ import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation
 import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
-import AuthorSignatureSelector from './AuthorSignatureSelector.vue'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useTranslate } from '~/composables/useTranslate'
 
@@ -489,23 +488,6 @@ watch(() => props.post, (newPost, oldPost) => {
     })
 }, { deep: true, immediate: true })
 
-// Auto-select default signature when channel is selected (only in creation mode)
-watch(() => formData.channelId, async (newChannelId) => {
-  if (props.isCreating && newChannelId && !formData.authorSignature) {
-    const { fetchByChannel } = useAuthorSignatures()
-    try {
-      const signatures = await fetchByChannel(newChannelId)
-      const defaultSig = signatures.find(s => s.isDefault)
-      if (defaultSig) {
-        formData.authorSignature = defaultSig.content
-      }
-    } catch (error) {
-      // Silently fail - not critical
-      console.warn('Failed to load default signature:', error)
-    }
-  }
-})
-
 onMounted(() => {
     if (props.isCreating) {
         const channels = props.availableChannels
@@ -887,18 +869,7 @@ async function executePublish() {
                     </UFormField>
 
                     <!-- Author Signature Editor -->
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                              {{ t('post.authorSignature', 'Author Signature') }}
-                            </label>
-                            <AuthorSignatureSelector
-                                :channel-id="formData.channelId || props.post?.channelId || null"
-                                :disabled="isLoading"
-                                minimal
-                                @select="(content) => formData.authorSignature = content"
-                            />
-                        </div>
+                    <UFormField :label="t('post.authorSignature', 'Author Signature')">
                         <UTextarea
                             v-model="formData.authorSignature"
                             :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
@@ -906,7 +877,7 @@ async function executePublish() {
                             :rows="3"
                             class="w-full"
                         />
-                    </div>
+                    </UFormField>
                 </div>
 
                 <!-- Column 2 (40%) -->

@@ -420,19 +420,19 @@ export function usePublications() {
     }
   }
 
-  async function createPostsFromPublication(
-    id: string,
-    channelIds: string[],
-    scheduledAt?: string,
-  ): Promise<any> {
+  async function createPostsFromPublication(params: {
+    id: string;
+    channelIds: string[];
+    scheduledAt?: string;
+    authorSignatureId?: string;
+    authorSignatureOverrides?: Record<string, string>;
+  }): Promise<any> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const result = await api.post(`/publications/${id}/posts`, {
-        channelIds,
-        scheduledAt,
-      });
+      const { id, ...body } = params;
+      const result = await api.post(`/publications/${id}/posts`, body);
       return result;
     } catch (err: any) {
       logger.error('[usePublications] createPostsFromPublication error', err);

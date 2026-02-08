@@ -144,4 +144,14 @@ export class CreatePublicationDto {
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_CONTENT_ITEMS)
   public contentItemIds?: string[];
+
+  // Project author signature ID to resolve variant content by channel language
+  @IsUUID()
+  @IsOptional()
+  public authorSignatureId?: string;
+
+  // Per-channel signature text overrides (channelId → content string)
+  @IsObject()
+  @IsOptional()
+  public authorSignatureOverrides?: Record<string, string>;
 }

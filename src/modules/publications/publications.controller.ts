@@ -207,6 +207,8 @@ export class PublicationsController {
       createPostsDto.channelIds,
       req.user.userId,
       createPostsDto.scheduledAt,
+      createPostsDto.authorSignatureId,
+      createPostsDto.authorSignatureOverrides,
     );
   }
 

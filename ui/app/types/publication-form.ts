@@ -17,6 +17,7 @@ export interface PublicationFormData {
   postDate: string | null;
   scheduledAt?: string;
   channelIds: string[];
+  authorSignatureId?: string;
 }
 
 /**

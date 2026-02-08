@@ -2,112 +2,197 @@
 import { ref, onMounted, reactive, computed } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
-import type { AuthorSignature, CreateAuthorSignatureInput, UpdateAuthorSignatureInput } from '~/types/author-signatures'
-import { PRESET_SIGNATURES } from '~/constants/preset-signatures'
+import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import { containsBlockMarkdown } from '~/utils/markdown-validation'
 
 const props = defineProps<{
-  channelId: string
+  projectId: string
+  channelLanguages?: string[]
 }>()
 
 const { t } = useI18n()
 const { user } = useAuth()
 const {
-  fetchByChannel,
+  fetchByProject,
   create,
   update,
+  upsertVariant,
+  deleteVariant,
   remove,
-  setDefault,
-  isLoading
+  isLoading,
 } = useAuthorSignatures()
 
 const toast = useToast()
 
-const signatures = ref<AuthorSignature[]>([])
+const signatures = ref<ProjectAuthorSignature[]>([])
 const isModalOpen = ref(false)
-const isPresetModalOpen = ref(false)
-const isDeleting = ref(false)
-const editingSignature = ref<AuthorSignature | null>(null)
-const deletedSignatures = ref<AuthorSignature[]>([])
-const showDeleted = ref(false)
+const editingSignature = ref<ProjectAuthorSignature | null>(null)
 
-const form = reactive({
-  name: '',
-  content: '',
-  isDefault: false
+// Form: map of language → content for variants
+const variantForms = reactive<Record<string, string>>({})
+const newVariantLanguage = ref('')
+
+// Languages that should have variant fields shown
+const activeLanguages = computed(() => {
+  const langs = new Set<string>()
+
+  // Always include user language
+  if (user.value?.language) langs.add(user.value.language)
+
+  // Include channel languages from the project
+  if (props.channelLanguages) {
+    props.channelLanguages.forEach(l => langs.add(l))
+  }
+
+  // Include languages from existing variants when editing
+  if (editingSignature.value) {
+    editingSignature.value.variants.forEach(v => langs.add(v.language))
+  }
+
+  return Array.from(langs).sort()
+})
+
+// Display content: show variant in user's language
+function getDisplayContent(sig: ProjectAuthorSignature): string {
+  const userLang = user.value?.language || 'en-US'
+  const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
+  return variant?.content || ''
+}
+
+// Warnings for missing channel language variants
+const missingLanguageWarnings = computed(() => {
+  if (!props.channelLanguages || props.channelLanguages.length <= 1) return []
+
+  const warnings: string[] = []
+
+  for (const sig of signatures.value) {
+    const variantLangs = new Set(sig.variants.map(v => v.language))
+
+    for (const lang of props.channelLanguages) {
+      if (!variantLangs.has(lang)) {
+        warnings.push(lang)
+      }
+    }
+  }
+
+  return [...new Set(warnings)]
 })
 
 async function loadSignatures() {
-  signatures.value = await fetchByChannel(props.channelId)
+  signatures.value = await fetchByProject(props.projectId)
 }
 
 onMounted(loadSignatures)
 
 function openAdd() {
   editingSignature.value = null
-  form.name = ''
-  form.content = ''
-  form.isDefault = signatures.value.length === 0
-  isModalOpen.value = true
-}
 
-const presetItems = computed(() => {
-  return [
-    PRESET_SIGNATURES.map(p => ({
-      label: t(p.contentKey),
-      icon: 'i-heroicons-sparkles',
-      onSelect: () => handlePresetSelect(p)
-    }))
-  ]
-})
+  // Reset variant forms
+  Object.keys(variantForms).forEach(k => delete variantForms[k])
 
-function handlePresetSelect(preset: typeof PRESET_SIGNATURES[0]) {
-  const content = t(preset.contentKey)
-  if (form.content && !form.content.endsWith('\n')) {
-    form.content += '\n'
+  // Pre-fill user language field
+  const userLang = user.value?.language || 'en-US'
+  variantForms[userLang] = ''
+
+  // Pre-fill channel languages
+  if (props.channelLanguages) {
+    props.channelLanguages.forEach(l => {
+      if (!variantForms[l]) variantForms[l] = ''
+    })
   }
-  form.content += content
+
+  newVariantLanguage.value = ''
+  isModalOpen.value = true
 }
 
-function openEdit(signature: AuthorSignature) {
-  editingSignature.value = signature
-  form.content = signature.content
-  form.isDefault = signature.isDefault
+function openEdit(sig: ProjectAuthorSignature) {
+  editingSignature.value = sig
+
+  // Reset and populate variant forms
+  Object.keys(variantForms).forEach(k => delete variantForms[k])
+
+  for (const v of sig.variants) {
+    variantForms[v.language] = v.content
+  }
+
+  // Ensure all channel languages have a field
+  if (props.channelLanguages) {
+    props.channelLanguages.forEach(l => {
+      if (variantForms[l] === undefined) variantForms[l] = ''
+    })
+  }
+
+  // Ensure user language has a field
+  const userLang = user.value?.language || 'en-US'
+  if (variantForms[userLang] === undefined) variantForms[userLang] = ''
+
+  newVariantLanguage.value = ''
   isModalOpen.value = true
+}
+
+function addVariantLanguage() {
+  const lang = newVariantLanguage.value.trim()
+  if (!lang || variantForms[lang] !== undefined) return
+  variantForms[lang] = ''
+  newVariantLanguage.value = ''
 }
 
 async function handleSave() {
-  if (!form.content) return
+  // At least one variant must have content
+  const filledVariants = Object.entries(variantForms).filter(([, content]) => content.trim())
 
-  if (containsBlockMarkdown(form.content)) {
-    toast.add({
-      title: t('common.error'),
-      description: t('validation.inlineMarkdownOnly'),
-      color: 'error'
-    })
-    return
+  if (filledVariants.length === 0) return
+
+  // Validate inline markdown
+  for (const [lang, content] of filledVariants) {
+    if (containsBlockMarkdown(content)) {
+      toast.add({
+        title: t('common.error'),
+        description: `${lang}: ${t('validation.inlineMarkdownOnly')}`,
+        color: 'error',
+      })
+      return
+    }
   }
-
-  // Automatically set name from content for backend compatibility
-  form.name = form.content.split('\n')[0]?.slice(0, 50) || 'Signature'
 
   try {
     if (editingSignature.value) {
-      const input: UpdateAuthorSignatureInput = {
-        name: form.name,
-        content: form.content,
-        isDefault: form.isDefault
+      // Update existing: upsert each variant, delete removed ones
+      const existingLangs = new Set(editingSignature.value.variants.map(v => v.language))
+
+      for (const [lang, content] of Object.entries(variantForms)) {
+        if (content.trim()) {
+          await upsertVariant(editingSignature.value.id, lang, { content: content.trim() })
+        } else if (existingLangs.has(lang)) {
+          await deleteVariant(editingSignature.value.id, lang)
+        }
       }
-      await update(editingSignature.value.id, input)
     } else {
-      const input: CreateAuthorSignatureInput = {
-        channelId: props.channelId,
-        name: form.name,
-        content: form.content,
-        isDefault: form.isDefault
+      // Create new: first variant uses user language
+      const userLang = user.value?.language || 'en-US'
+      const primaryContent = variantForms[userLang]?.trim()
+
+      if (!primaryContent) {
+        toast.add({
+          title: t('common.error'),
+          description: t('authorSignature.primaryLanguageRequired', 'Content in your language is required'),
+          color: 'error',
+        })
+        return
       }
-      await create(input)
+
+      const created = await create(props.projectId, { content: primaryContent })
+
+      if (created) {
+        // Create additional variants
+        for (const [lang, content] of Object.entries(variantForms)) {
+          if (lang !== userLang && content.trim()) {
+            await upsertVariant(created.id, lang, { content: content.trim() })
+          }
+        }
+      }
     }
+
     isModalOpen.value = false
     await loadSignatures()
   } catch (error) {
@@ -118,16 +203,8 @@ async function handleSave() {
 async function handleDelete(id: string) {
   const index = signatures.value.findIndex(sig => sig.id === id)
   if (index !== -1) {
-    const signature = signatures.value[index]
-    
-    // Add to session-only deleted list
-    if (signature) {
-      deletedSignatures.value.push(signature)
-    }
-    
-    // Optimistically remove from main list
     signatures.value.splice(index, 1)
-    
+
     try {
       await remove(id)
     } catch (error) {
@@ -137,29 +214,7 @@ async function handleDelete(id: string) {
   }
 }
 
-async function restoreSignature(signature: AuthorSignature) {
-  try {
-    const input: CreateAuthorSignatureInput = {
-      channelId: props.channelId,
-      name: signature.name,
-      content: signature.content,
-      isDefault: false // Don't force default on restore
-    }
-    await create(input)
-    deletedSignatures.value = deletedSignatures.value.filter(sig => sig.id !== signature.id)
-    await loadSignatures()
-  } catch (error) {
-    console.error('Failed to restore signature', error)
-  }
-}
-
-async function handleSetDefault(id: string) {
-  await setDefault(id)
-  await loadSignatures()
-}
-
 async function handleDragEnd() {
-  // Update order for all signatures
   try {
     let order = 0
     for (const sig of signatures.value) {
@@ -170,24 +225,18 @@ async function handleDragEnd() {
     await loadSignatures()
   }
 }
-
 </script>
 
 <template>
   <div class="space-y-4">
-    <Teleport v-if="channelId" defer to="#channel-signatures-actions">
-      <div class="flex gap-2">
-        <UButton
-          icon="i-heroicons-plus"
-          size="xs"
-          color="primary"
-          variant="soft"
-          @click="openAdd"
-        >
-          {{ t('common.add') }}
-        </UButton>
-      </div>
-    </Teleport>
+    <!-- Missing language warnings -->
+    <UAlert
+      v-if="missingLanguageWarnings.length > 0"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      :title="t('authorSignature.missingVariantsWarning', 'Some signatures are missing language variants')"
+      :description="t('authorSignature.missingVariantsLanguages', { languages: missingLanguageWarnings.join(', ') })"
+    />
 
     <div v-if="isLoading && signatures.length === 0" class="flex justify-center py-8">
       <UiLoadingSpinner size="md" />
@@ -209,45 +258,58 @@ async function handleDragEnd() {
       </UButton>
     </div>
 
-    <VueDraggable
-      v-else
-      v-model="signatures"
-      :animation="150"
-      handle=".drag-handle"
-      class="space-y-3"
-      @end="handleDragEnd"
-    >
-      <div
-        v-for="sig in signatures"
-        :key="sig.id"
-        class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
-        @click="openEdit(sig)"
+    <template v-else>
+      <div class="flex justify-end mb-2">
+        <UButton
+          icon="i-heroicons-plus"
+          size="xs"
+          color="primary"
+          variant="soft"
+          @click="openAdd"
+        >
+          {{ t('common.add') }}
+        </UButton>
+      </div>
+
+      <VueDraggable
+        v-model="signatures"
+        :animation="150"
+        handle=".drag-handle"
+        class="space-y-3"
+        @end="handleDragEnd"
       >
-        <div class="flex items-center gap-3 overflow-hidden">
-          <div 
-            class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 -ml-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-            @click.stop
-          >
-            <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
-              {{ sig.content }}
+        <div
+          v-for="sig in signatures"
+          :key="sig.id"
+          class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
+          @click="openEdit(sig)"
+        >
+          <div class="flex items-center gap-3 overflow-hidden">
+            <div
+              class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 -ml-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+              @click.stop
+            >
+              <UIcon name="i-heroicons-bars-3" class="w-5 h-5" />
             </div>
-            <div v-if="sig.user && sig.userId !== user?.id" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
-              <UIcon name="i-heroicons-user" class="w-3 h-3" />
-              <span>{{ sig.user.fullName || sig.user.telegramUsername || sig.userId }}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
+                {{ getDisplayContent(sig) }}
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span
+                  v-for="v in sig.variants"
+                  :key="v.language"
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                >
+                  {{ v.language }}
+                </span>
+                <span v-if="sig.user && sig.userId !== user?.id" class="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 ml-1">
+                  <UIcon name="i-heroicons-user" class="w-3 h-3" />
+                  {{ sig.user.fullName || sig.user.telegramUsername || sig.userId }}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="flex items-center gap-1">
-          <UIcon 
-            v-if="sig.isDefault" 
-            name="i-heroicons-star-20-solid" 
-            class="w-4 h-4 text-primary-500 mr-2" 
-          />
-          <div v-else class="w-4 h-4 mr-2"></div>
-          
           <UButton
             icon="i-heroicons-trash"
             size="xs"
@@ -256,101 +318,68 @@ async function handleDragEnd() {
             @click.stop="handleDelete(sig.id)"
           />
         </div>
-      </div>
-    </VueDraggable>
+      </VueDraggable>
+    </template>
 
-    <!-- Deleted Signatures (Session only) -->
-    <div v-if="deletedSignatures.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-      <UButton
-        color="neutral"
-        variant="ghost"
-        size="xs"
-        :icon="showDeleted ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-        @click="showDeleted = !showDeleted"
-      >
-        {{ t('channel.deletedTemplates', { count: deletedSignatures.length }) }}
-      </UButton>
-      
-      <div v-if="showDeleted" class="mt-2 space-y-2">
-        <div
-          v-for="sig in deletedSignatures"
-          :key="sig.id"
-          class="flex items-center justify-between py-1.5 px-3 bg-gray-50/30 dark:bg-gray-800/20 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50 hover:opacity-80 transition-opacity"
-        >
-          <div class="flex items-center gap-2">
-            <UIcon name="i-heroicons-trash" class="w-3.5 h-3.5 text-gray-400" />
-            <div class="text-xs truncate max-w-[200px]">
-              <span class="text-gray-500 dark:text-gray-400 italic line-through mr-2">{{ sig.content }}</span>
-            </div>
-          </div>
-          <UButton
-            icon="i-heroicons-arrow-path"
-            size="xs"
-            variant="ghost"
-            color="primary"
-            class="scale-90"
-            @click="restoreSignature(sig)"
-          >
-            {{ t('common.restore', 'Restore') }}
-          </UButton>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Modal -->
+    <!-- Edit/Create Modal -->
     <UiAppModal
       v-model:open="isModalOpen"
       :title="editingSignature ? t('common.edit') : t('common.add')"
     >
       <div class="space-y-4">
-        <div class="flex justify-end">
-          <UDropdownMenu
-            :items="presetItems"
-            :popper="{ placement: 'bottom-end' }"
-          >
-            <UButton
-              color="neutral"
-              variant="outline"
-              size="xs"
-              icon="i-heroicons-sparkles"
-              trailing-icon="i-heroicons-chevron-down-20-solid"
-            >
-              {{ t('authorSignature.presets.button', 'Preset') }}
-            </UButton>
-          </UDropdownMenu>
-        </div>
-
-        <UFormField>
+        <UFormField
+          v-for="lang in activeLanguages"
+          :key="lang"
+        >
           <template #label>
             <span class="inline-flex items-center">
-              {{ t('post.contentLabel') }}
-              <span class="text-red-500 ml-0.5">*</span>
+              {{ lang }}
               <CommonInfoTooltip :text="t('common.inlineMarkdownHelp')" class="ml-1.5" />
             </span>
           </template>
           <UTextarea
-            v-model="form.content"
+            v-model="variantForms[lang]"
             placeholder="[Click here](https://example.com)"
-            :rows="4"
+            :rows="3"
             class="w-full"
           />
         </UFormField>
 
-        <UCheckbox
-          v-model="form.isDefault"
-          :label="t('authorSignature.is_default')"
-        />
+        <!-- Add another language -->
+        <div class="flex items-center gap-2">
+          <UInput
+            v-model="newVariantLanguage"
+            :placeholder="t('authorSignature.addLanguagePlaceholder', 'e.g. de-DE')"
+            size="sm"
+            class="flex-1"
+            @keyup.enter="addVariantLanguage"
+          />
+          <UButton
+            icon="i-heroicons-plus"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            :disabled="!newVariantLanguage.trim()"
+            @click="addVariantLanguage"
+          >
+            {{ t('authorSignature.addLanguage', 'Add language') }}
+          </UButton>
+        </div>
       </div>
 
       <template #footer>
         <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton color="primary" :loading="isLoading" :disabled="!form.content" @click="handleSave">
+        <UButton
+          color="primary"
+          :loading="isLoading"
+          :disabled="!Object.values(variantForms).some(v => v.trim())"
+          @click="handleSave"
+        >
           {{ t('common.save') }}
         </UButton>
       </template>
     </UiAppModal>
-
   </div>
 </template>

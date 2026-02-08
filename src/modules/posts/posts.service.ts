@@ -160,19 +160,8 @@ export class PostsService {
       );
     }
 
-    // Author Signature logic - resolve content and store as text
-    let authorSignature: string | undefined = undefined;
-    if (data.authorSignature !== undefined) {
-      // User explicitly provided signature content
-      authorSignature = data.authorSignature || undefined;
-    } else {
-      // Auto-select default signature
-      const defaultSignature = await this.prisma.authorSignature.findFirst({
-        where: { userId, channelId, isDefault: true },
-        select: { content: true },
-      });
-      authorSignature = defaultSignature?.content || undefined;
-    }
+    // Author Signature - use explicitly provided content or leave empty
+    const authorSignature: string | undefined = data.authorSignature || undefined;
 
     const post = await this.prisma.post.create({
       data: {

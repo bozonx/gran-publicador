@@ -1,53 +1,165 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
+import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { CreateAuthorSignatureDto } from './dto/create-author-signature.dto.js';
 import { UpdateAuthorSignatureDto } from './dto/update-author-signature.dto.js';
+import { UpsertVariantDto } from './dto/upsert-variant.dto.js';
 
 @Injectable()
 export class AuthorSignaturesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
-  async create(userId: string, dto: CreateAuthorSignatureDto) {
-    // Verify channel access
-    await this.verifyChannelAccess(dto.channelId, userId);
+  /**
+   * List all signatures for a project.
+   * VIEWER role cannot see signatures.
+   */
+  async findAllByProject(projectId: string, userId: string) {
+    await this.assertNotViewer(projectId, userId);
 
-    if (dto.isDefault) {
-      // Unset other defaults for this user and channel
-      await this.prisma.authorSignature.updateMany({
-        where: { userId, channelId: dto.channelId, isDefault: true },
-        data: { isDefault: false },
-      });
+    return this.prisma.projectAuthorSignature.findMany({
+      where: { projectId },
+      include: {
+        variants: true,
+        user: { select: { id: true, fullName: true, telegramUsername: true } },
+      },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  /**
+   * Create a new signature with the first variant in the caller's language.
+   */
+  async create(projectId: string, userId: string, dto: CreateAuthorSignatureDto) {
+    await this.assertNotViewer(projectId, userId);
+
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+
+    return this.prisma.projectAuthorSignature.create({
+      data: {
+        projectId,
+        userId,
+        variants: {
+          create: {
+            language: user.language,
+            content: dto.content,
+          },
+        },
+      },
+      include: {
+        variants: true,
+        user: { select: { id: true, fullName: true, telegramUsername: true } },
+      },
+    });
+  }
+
+  /**
+   * Update signature metadata (order).
+   */
+  async update(signatureId: string, userId: string, dto: UpdateAuthorSignatureDto) {
+    await this.assertWriteAccess(signatureId, userId);
+
+    return this.prisma.projectAuthorSignature.update({
+      where: { id: signatureId },
+      data: dto,
+      include: {
+        variants: true,
+        user: { select: { id: true, fullName: true, telegramUsername: true } },
+      },
+    });
+  }
+
+  /**
+   * Upsert a language variant for a signature.
+   */
+  async upsertVariant(
+    signatureId: string,
+    language: string,
+    userId: string,
+    dto: UpsertVariantDto,
+  ) {
+    await this.assertWriteAccess(signatureId, userId);
+
+    return this.prisma.projectAuthorSignatureVariant.upsert({
+      where: { signatureId_language: { signatureId, language } },
+      create: { signatureId, language, content: dto.content },
+      update: { content: dto.content },
+    });
+  }
+
+  /**
+   * Delete a language variant.
+   */
+  async deleteVariant(signatureId: string, language: string, userId: string) {
+    await this.assertWriteAccess(signatureId, userId);
+
+    const variant = await this.prisma.projectAuthorSignatureVariant.findUnique({
+      where: { signatureId_language: { signatureId, language } },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Variant not found');
     }
 
-    return this.prisma.authorSignature.create({
-      data: {
-        ...dto,
-        userId,
-      },
+    return this.prisma.projectAuthorSignatureVariant.delete({
+      where: { id: variant.id },
     });
   }
 
-  async findAllByUser(userId: string, channelId?: string) {
-    return this.prisma.authorSignature.findMany({
-      where: {
-        userId,
-        channelId,
-      },
-      orderBy: { order: 'asc' },
+  /**
+   * Delete a signature and all its variants (cascade).
+   */
+  async delete(signatureId: string, userId: string) {
+    await this.assertWriteAccess(signatureId, userId);
+
+    return this.prisma.projectAuthorSignature.delete({
+      where: { id: signatureId },
     });
   }
 
-  async findAllByChannel(channelId: string, currentUserId: string) {
-    // We need to find all signatures for the channel that the current user has access to.
-    // According to the plan: signatures are visible to the creator, project admin, and project owner.
+  /**
+   * Resolve signature variant content by language.
+   * Returns the content string or null if no variant exists for the language.
+   */
+  async resolveVariantContent(signatureId: string, language: string): Promise<string | null> {
+    const variant = await this.prisma.projectAuthorSignatureVariant.findUnique({
+      where: { signatureId_language: { signatureId, language } },
+    });
 
-    const channel = await this.prisma.channel.findUnique({
-      where: { id: channelId },
+    return variant?.content ?? null;
+  }
+
+  /**
+   * Delete all signatures belonging to a project (used when transferring project ownership).
+   */
+  async deleteAllByProject(projectId: string) {
+    return this.prisma.projectAuthorSignature.deleteMany({
+      where: { projectId },
+    });
+  }
+
+  /**
+   * Check if user has write access to a signature.
+   * Accessible to: signature owner, project owner, project ADMIN, system admin.
+   */
+  async checkAccess(signatureId: string, userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true },
+    });
+
+    if (user?.isAdmin) return true;
+
+    const signature = await this.prisma.projectAuthorSignature.findUnique({
+      where: { id: signatureId },
       include: {
         project: {
           include: {
             members: {
-              where: { userId: currentUserId },
+              where: { userId },
               include: { role: true },
             },
           },
@@ -55,163 +167,57 @@ export class AuthorSignaturesService {
       },
     });
 
-    if (!channel) {
-      throw new NotFoundException('Channel not found');
-    }
+    if (!signature) return false;
+    if (signature.userId === userId) return true;
+    if (signature.project.ownerId === userId) return true;
 
-    const isProjectOwner = channel.project.ownerId === currentUserId;
-    const projectMember = channel.project.members[0];
-    const isProjectAdmin = projectMember?.role?.systemType === 'ADMIN';
-
-    if (isProjectOwner || isProjectAdmin) {
-      // Project owner and admin see all signatures
-      return this.prisma.authorSignature.findMany({
-        where: { channelId },
-        include: { user: true },
-        orderBy: [{ userId: 'asc' }, { order: 'asc' }],
-      });
-    }
-
-    // Regular members only see their own signatures
-    return this.prisma.authorSignature.findMany({
-      where: { channelId, userId: currentUserId },
-      include: { user: true },
-      orderBy: { order: 'asc' },
-    });
-  }
-
-  async findOne(id: string) {
-    const signature = await this.prisma.authorSignature.findUnique({
-      where: { id },
-    });
-
-    if (!signature) {
-      throw new NotFoundException('Signature not found');
-    }
-
-    return signature;
-  }
-
-  async update(id: string, userId: string, dto: UpdateAuthorSignatureDto) {
-    const signature = await this.findOne(id);
-    const hasAccess = await this.checkAccess(id, userId);
-
-    if (!hasAccess) {
-      throw new ForbiddenException('You do not have permission to update this signature');
-    }
-
-    if (dto.isDefault) {
-      // Unset other defaults for this user and channel
-      await this.prisma.authorSignature.updateMany({
-        where: { userId, channelId: signature.channelId, isDefault: true },
-        data: { isDefault: false },
-      });
-    }
-
-    return this.prisma.authorSignature.update({
-      where: { id },
-      data: dto,
-    });
-  }
-
-  async setDefault(id: string, userId: string) {
-    const signature = await this.findOne(id);
-
-    if (signature.userId !== userId) {
-      throw new ForbiddenException('You can only set your own signatures as default');
-    }
-
-    // Unset other defaults
-    await this.prisma.authorSignature.updateMany({
-      where: { userId, channelId: signature.channelId, isDefault: true },
-      data: { isDefault: false },
-    });
-
-    return this.prisma.authorSignature.update({
-      where: { id },
-      data: { isDefault: true },
-    });
-  }
-
-  async delete(id: string, userId: string) {
-    const hasAccess = await this.checkAccess(id, userId);
-
-    if (!hasAccess) {
-      throw new ForbiddenException('You do not have permission to delete this signature');
-    }
-
-    return this.prisma.authorSignature.delete({
-      where: { id },
-    });
-  }
-
-  async findDefault(userId: string, channelId: string) {
-    return this.prisma.authorSignature.findFirst({
-      where: { userId, channelId, isDefault: true },
-    });
+    const member = signature.project.members[0];
+    return member?.role?.systemType === SystemRoleType.ADMIN;
   }
 
   /**
-   * Checks if user has access to the signature.
-   * Signature is accessible to the creator, project owner, or project admin.
+   * Assert that the user is not a VIEWER in the project.
    */
-  async checkAccess(signatureId: string, userId: string): Promise<boolean> {
-    const signature = await this.prisma.authorSignature.findUnique({
-      where: { id: signatureId },
+  private async assertNotViewer(projectId: string, userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true },
+    });
+
+    if (user?.isAdmin) return;
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
       include: {
-        channel: {
-          include: {
-            project: {
-              include: {
-                members: {
-                  where: { userId },
-                  include: { role: true },
-                },
-              },
-            },
-          },
+        members: {
+          where: { userId },
+          include: { role: true },
         },
       },
     });
 
-    if (!signature) {
-      return false;
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId === userId) return;
+
+    const member = project.members[0];
+
+    if (!member) {
+      throw new ForbiddenException('You do not have access to this project');
     }
 
-    if (signature.userId === userId) {
-      return true;
+    if (member.role?.systemType === SystemRoleType.VIEWER) {
+      throw new ForbiddenException('Viewers cannot access author signatures');
     }
-
-    const isProjectOwner = signature.channel.project.ownerId === userId;
-    const projectMember = signature.channel.project.members[0];
-    const isProjectAdmin = projectMember?.role?.systemType === 'ADMIN';
-
-    return isProjectOwner || isProjectAdmin;
   }
 
-  private async verifyChannelAccess(channelId: string, userId: string) {
-    const channel = await this.prisma.channel.findUnique({
-      where: { id: channelId },
-      include: {
-        project: {
-          include: {
-            members: {
-              where: { userId },
-            },
-          },
-        },
-      },
-    });
+  /**
+   * Assert that the user has write access to a signature. Throws if not.
+   */
+  private async assertWriteAccess(signatureId: string, userId: string): Promise<void> {
+    const hasAccess = await this.checkAccess(signatureId, userId);
 
-    if (!channel) {
-      throw new NotFoundException('Channel not found');
-    }
-
-    const isProjectOwner = channel.project.ownerId === userId;
-    const isMember = channel.project.members.length > 0;
-
-    if (!isProjectOwner && !isMember) {
-      throw new ForbiddenException('You do not have access to this channel');
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have permission to modify this signature');
     }
   }
 }

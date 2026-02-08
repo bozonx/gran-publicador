@@ -1,90 +1,121 @@
-import { ref } from 'vue'
-import type { 
-  AuthorSignature, 
-  PresetSignature, 
-  CreateAuthorSignatureInput, 
-  UpdateAuthorSignatureInput 
-} from '~/types/author-signatures'
+import { ref } from 'vue';
+import type {
+  ProjectAuthorSignature,
+  ProjectAuthorSignatureVariant,
+  CreateAuthorSignatureInput,
+  UpdateAuthorSignatureInput,
+  UpsertVariantInput,
+} from '~/types/author-signatures';
 
 export function useAuthorSignatures() {
-  const api = useApi()
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
+  const api = useApi();
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
 
-  async function fetchByChannel(channelId: string): Promise<AuthorSignature[]> {
-    isLoading.value = true
-    error.value = null
+  async function fetchByProject(projectId: string): Promise<ProjectAuthorSignature[]> {
+    isLoading.value = true;
+    error.value = null;
     try {
-      return await api.get<AuthorSignature[]>(`/author-signatures/channel/${channelId}`)
+      return await api.get<ProjectAuthorSignature[]>(`/projects/${projectId}/author-signatures`);
     } catch (err: any) {
-      error.value = err.message || 'Failed to fetch signatures'
-      return []
+      error.value = err.message || 'Failed to fetch signatures';
+      return [];
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
 
-  async function create(data: CreateAuthorSignatureInput): Promise<AuthorSignature | null> {
-    isLoading.value = true
-    error.value = null
+  async function create(
+    projectId: string,
+    data: CreateAuthorSignatureInput,
+  ): Promise<ProjectAuthorSignature | null> {
+    isLoading.value = true;
+    error.value = null;
     try {
-      return await api.post<AuthorSignature>('/author-signatures', data)
+      return await api.post<ProjectAuthorSignature>(
+        `/projects/${projectId}/author-signatures`,
+        data,
+      );
     } catch (err: any) {
-      error.value = err.message || 'Failed to create signature'
-      return null
+      error.value = err.message || 'Failed to create signature';
+      return null;
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
 
-  async function update(id: string, data: UpdateAuthorSignatureInput): Promise<AuthorSignature | null> {
-    isLoading.value = true
-    error.value = null
+  async function update(
+    id: string,
+    data: UpdateAuthorSignatureInput,
+  ): Promise<ProjectAuthorSignature | null> {
+    isLoading.value = true;
+    error.value = null;
     try {
-      return await api.patch<AuthorSignature>(`/author-signatures/${id}`, data)
+      return await api.patch<ProjectAuthorSignature>(`/author-signatures/${id}`, data);
     } catch (err: any) {
-      error.value = err.message || 'Failed to update signature'
-      return null
+      error.value = err.message || 'Failed to update signature';
+      return null;
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
+    }
+  }
+
+  async function upsertVariant(
+    signatureId: string,
+    language: string,
+    data: UpsertVariantInput,
+  ): Promise<ProjectAuthorSignatureVariant | null> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      return await api.put<ProjectAuthorSignatureVariant>(
+        `/author-signatures/${signatureId}/variants/${language}`,
+        data,
+      );
+    } catch (err: any) {
+      error.value = err.message || 'Failed to save variant';
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function deleteVariant(signatureId: string, language: string): Promise<boolean> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      await api.delete(`/author-signatures/${signatureId}/variants/${language}`);
+      return true;
+    } catch (err: any) {
+      error.value = err.message || 'Failed to delete variant';
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
   async function remove(id: string): Promise<boolean> {
-    isLoading.value = true
-    error.value = null
+    isLoading.value = true;
+    error.value = null;
     try {
-      await api.delete(`/author-signatures/${id}`)
-      return true
+      await api.delete(`/author-signatures/${id}`);
+      return true;
     } catch (err: any) {
-      error.value = err.message || 'Failed to delete signature'
-      return false
+      error.value = err.message || 'Failed to delete signature';
+      return false;
     } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function setDefault(id: string): Promise<boolean> {
-    isLoading.value = true
-    error.value = null
-    try {
-      await api.patch(`/author-signatures/${id}/set-default`, {})
-      return true
-    } catch (err: any) {
-      error.value = err.message || 'Failed to set default signature'
-      return false
-    } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
 
   return {
     isLoading,
     error,
-    fetchByChannel,
+    fetchByProject,
     create,
     update,
+    upsertVariant,
+    deleteVariant,
     remove,
-    setDefault
-  }
+  };
 }

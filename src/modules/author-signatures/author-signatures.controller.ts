@@ -1,86 +1,76 @@
 import {
   Controller,
-  ForbiddenException,
   Get,
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   UseGuards,
   Request,
-  Query,
 } from '@nestjs/common';
 import { AuthorSignaturesService } from './author-signatures.service.js';
 import { CreateAuthorSignatureDto } from './dto/create-author-signature.dto.js';
 import { UpdateAuthorSignatureDto } from './dto/update-author-signature.dto.js';
+import { UpsertVariantDto } from './dto/upsert-variant.dto.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import { SignatureAccessGuard } from './guards/signature-access.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
-import { UsersService } from '../users/users.service.js';
 
-@Controller('author-signatures')
+@Controller()
 @UseGuards(JwtOrApiTokenGuard)
 export class AuthorSignaturesController {
-  constructor(
-    private readonly authorSignaturesService: AuthorSignaturesService,
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly authorSignaturesService: AuthorSignaturesService) {}
 
-  @Post()
-  create(@Body() createDto: CreateAuthorSignatureDto, @Request() req: UnifiedAuthRequest) {
-    return this.authorSignaturesService.create(req.user.id, createDto);
+  @Get('projects/:projectId/author-signatures')
+  findAllByProject(@Param('projectId') projectId: string, @Request() req: UnifiedAuthRequest) {
+    return this.authorSignaturesService.findAllByProject(projectId, req.user.id);
   }
 
-  @Get('user/:userId')
-  public async findAllByUser(
-    @Request() req: UnifiedAuthRequest,
-    @Param('userId') userId: string,
-    @Query('channelId') channelId?: string,
-  ) {
-    // User can only see their own signatures unless they are admin
-    if (req.user.id !== userId) {
-      const currentUser = await this.usersService.findById(req.user.id);
-      if (!currentUser?.isAdmin) {
-        throw new ForbiddenException('Unauthorized access to user signatures');
-      }
-    }
-    return this.authorSignaturesService.findAllByUser(userId, channelId);
-  }
-
-  @Get('channel/:channelId')
-  public async findAllByChannel(
-    @Param('channelId') channelId: string,
+  @Post('projects/:projectId/author-signatures')
+  create(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateAuthorSignatureDto,
     @Request() req: UnifiedAuthRequest,
   ) {
-    return this.authorSignaturesService.findAllByChannel(channelId, req.user.id);
+    return this.authorSignaturesService.create(projectId, req.user.id, dto);
   }
 
-  @Get(':id')
+  @Patch('author-signatures/:id')
   @UseGuards(SignatureAccessGuard)
-  public async findOne(@Param('id') id: string) {
-    return this.authorSignaturesService.findOne(id);
-  }
-
-  @Patch(':id')
-  @UseGuards(SignatureAccessGuard)
-  public async update(
+  update(
     @Param('id') id: string,
-    @Body() updateDto: UpdateAuthorSignatureDto,
+    @Body() dto: UpdateAuthorSignatureDto,
     @Request() req: UnifiedAuthRequest,
   ) {
-    return this.authorSignaturesService.update(id, req.user.id, updateDto);
+    return this.authorSignaturesService.update(id, req.user.id, dto);
   }
 
-  @Patch(':id/set-default')
+  @Put('author-signatures/:id/variants/:language')
   @UseGuards(SignatureAccessGuard)
-  public async setDefault(@Param('id') id: string, @Request() req: UnifiedAuthRequest) {
-    return this.authorSignaturesService.setDefault(id, req.user.id);
+  upsertVariant(
+    @Param('id') id: string,
+    @Param('language') language: string,
+    @Body() dto: UpsertVariantDto,
+    @Request() req: UnifiedAuthRequest,
+  ) {
+    return this.authorSignaturesService.upsertVariant(id, language, req.user.id, dto);
   }
 
-  @Delete(':id')
+  @Delete('author-signatures/:id/variants/:language')
   @UseGuards(SignatureAccessGuard)
-  public async remove(@Param('id') id: string, @Request() req: UnifiedAuthRequest) {
+  deleteVariant(
+    @Param('id') id: string,
+    @Param('language') language: string,
+    @Request() req: UnifiedAuthRequest,
+  ) {
+    return this.authorSignaturesService.deleteVariant(id, language, req.user.id);
+  }
+
+  @Delete('author-signatures/:id')
+  @UseGuards(SignatureAccessGuard)
+  remove(@Param('id') id: string, @Request() req: UnifiedAuthRequest) {
     return this.authorSignaturesService.delete(id, req.user.id);
   }
 }

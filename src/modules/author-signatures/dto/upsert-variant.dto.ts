@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
-export class CreateAuthorSignatureDto {
+export class UpsertVariantDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
