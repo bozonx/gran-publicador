@@ -116,7 +116,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
         </div>
       </dl>
       
-      <UDivider class="my-6" />
+      <USeparator class="my-6" />
     </div>
 
     <!-- Create Mode Fields -->

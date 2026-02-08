@@ -47,7 +47,7 @@ interface ContentBlockMedia {
     storagePath: string
     mimeType?: string | null
     filename?: string | null
-    meta?: Record<string, any>
+    meta?: Record<string, unknown>
   }
 }
 
@@ -55,7 +55,7 @@ interface ContentBlock {
   id?: string
   text?: string | null
   order: number
-  meta?: any
+  meta?: Record<string, unknown>
   media?: ContentBlockMedia[]
 }
 
@@ -280,14 +280,18 @@ const createPublicationModalAllowProjectSelection = ref(false)
 const publicationData = ref({
   title: '',
   content: '',
-  mediaIds: [] as any[],
+  mediaIds: [] as Array<{ id: string }>,
   tags: '',
   note: '',
   contentItemIds: [] as string[]
 })
 
 // Tab Management
-const contentLibraryTabsRef = ref<any>(null)
+interface ContentLibraryTabsExposed {
+  fetchTabs: () => void | Promise<void>
+}
+
+const contentLibraryTabsRef = ref<ContentLibraryTabsExposed | null>(null)
 const isRenameTabModalOpen = ref(false)
 const tabToRename = ref<ContentLibraryTab | null>(null)
 const newTabTitle = ref('')

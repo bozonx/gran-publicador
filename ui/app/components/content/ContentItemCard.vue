@@ -2,11 +2,36 @@
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { formatTagsCsv } from '~/utils/tags'
 import CommonThumb from '~/components/common/Thumb.vue'
-import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
+import { getMediaLinksThumbDataLoose, type MediaItemLike } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
 
+type MediaItemLikeLoose = Omit<MediaItemLike, 'filename' | 'mimeType'> & {
+  filename?: string | null
+  mimeType?: string | null
+}
+
+interface ContentItemMediaLink {
+  media?: MediaItemLikeLoose
+  order: number
+}
+
+interface ContentBlock {
+  text?: string | null
+  media?: Array<{ media?: MediaItemLikeLoose }>
+}
+
+interface ContentItem {
+  id: string
+  title?: string | null
+  note?: string | null
+  tags?: string[]
+  createdAt: string
+  archivedAt?: string | null
+  blocks?: ContentBlock[]
+}
+
 const props = defineProps<{
-  item: any
+  item: ContentItem
   selected?: boolean
   isArchiving?: boolean
   isRestoring?: boolean
@@ -15,19 +40,19 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'click', item: any): void
+  (e: 'click', item: ContentItem): void
   (e: 'toggleSelection', itemId: string): void
-  (e: 'archive', item: any): void
+  (e: 'archive', item: ContentItem): void
   (e: 'restore', itemId: string): void
-  (e: 'create-publication', item: any): void
+  (e: 'create-publication', item: ContentItem): void
 }>()
 
 const { t } = useI18n()
 const { formatDateShort, truncateContent } = useFormatters()
 const authStore = useAuthStore()
 
-const getAllItemMedia = (item: any) => {
-  const mediaLinks: Array<{ media?: any; order: number }> = []
+const getAllItemMedia = (item: ContentItem): ContentItemMediaLink[] => {
+  const mediaLinks: ContentItemMediaLink[] = []
   let order = 0
   
   for (const block of (item.blocks || [])) {
@@ -42,18 +67,29 @@ const getAllItemMedia = (item: any) => {
   return mediaLinks
 }
 
+function toMediaItemLike(media?: MediaItemLikeLoose): MediaItemLike | undefined {
+  if (!media) return undefined
+
+  return {
+    ...media,
+    filename: media.filename ?? undefined,
+    mimeType: media.mimeType ?? undefined,
+  }
+}
+
 const thumbData = computed(() => {
-  const links = getAllItemMedia(props.item)
-  if (links.length === 0) {
+  const rawLinks = getAllItemMedia(props.item)
+  if (rawLinks.length === 0) {
     return { first: null, totalCount: 0 }
   }
 
-  return getMediaLinksThumbDataLoose(links as any, authStore.accessToken || undefined)
+  const links = rawLinks.map(l => ({ order: l.order, media: toMediaItemLike(l.media) }))
+  return getMediaLinksThumbDataLoose(links, authStore.accessToken || undefined)
 })
 
-const getItemTextBlocks = (item: any) => {
+const getItemTextBlocks = (item: ContentItem): string[] => {
   const texts = (item.blocks || [])
-    .map((b: any) => stripHtmlAndSpecialChars(b.text).trim())
+    .map(b => stripHtmlAndSpecialChars(b.text).trim())
     .filter(Boolean)
     
   if (texts.length === 0 && item.note) {

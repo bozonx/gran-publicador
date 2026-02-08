@@ -4,7 +4,9 @@ export interface NormalizeTagsOptions {
   limit?: number;
 }
 
-export function parseTags(raw: string | string[] | null | undefined): string[] {
+export type TagsInput = string | string[] | null | undefined;
+
+export function parseTags(raw: TagsInput): string[] {
   if (!raw) return [];
 
   if (Array.isArray(raw)) {

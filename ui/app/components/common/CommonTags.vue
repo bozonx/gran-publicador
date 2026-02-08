@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { BadgeProps } from '@nuxt/ui'
-import { parseTags } from '~/utils/tags'
+import { parseTags, type TagsInput } from '~/utils/tags'
 
 const props = withDefaults(defineProps<{
-  tags: string | string[] | null | undefined
+  tags: TagsInput
   color?: BadgeProps['color']
   variant?: BadgeProps['variant']
   size?: BadgeProps['size']
