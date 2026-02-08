@@ -360,7 +360,6 @@ function mapPostToPublication(post: PostWithRelations): PublicationWithRelations
      description: null,
      authorComment: null,
      postDate: null,
-     translationGroupId: null,
      note: null
   }
 

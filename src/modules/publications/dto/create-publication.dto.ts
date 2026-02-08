@@ -112,11 +112,6 @@ export class CreatePublicationDto {
   @IsLocale()
   public language!: string;
 
-  @IsString()
-  @IsOptional()
-  @IsUUID()
-  public translationGroupId?: string;
-
   @Type(() => Date)
   @IsDate()
   @IsOptional()
@@ -125,11 +120,6 @@ export class CreatePublicationDto {
   @IsEnum(PostType)
   @IsOptional()
   public postType?: PostType;
-
-  @IsString()
-  @IsOptional()
-  @IsUUID()
-  public linkToPublicationId?: string;
 
   @IsArray()
   @IsString({ each: true })

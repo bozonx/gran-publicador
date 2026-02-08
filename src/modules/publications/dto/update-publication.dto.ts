@@ -100,12 +100,6 @@ export class UpdatePublicationDto {
   @IsLocale()
   public language?: string;
 
-  @IsString()
-  @IsUUID()
-  @ValidateIf(o => o.translationGroupId !== null)
-  @IsOptional()
-  public translationGroupId?: string | null;
-
   @Type(() => Date)
   @IsDate()
   @IsOptional()
@@ -114,9 +108,4 @@ export class UpdatePublicationDto {
   @IsEnum(PostType)
   @IsOptional()
   public postType?: PostType;
-
-  @IsString()
-  @IsOptional()
-  @IsUUID()
-  public linkToPublicationId?: string;
 }

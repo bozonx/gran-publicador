@@ -17,7 +17,6 @@ export interface Publication {
   meta: string;
   language: string;
   postType: string;
-  translationGroupId?: string | null;
   newsItemId?: string | null;
   postDate: string | null;
   createdAt: string;
@@ -39,7 +38,6 @@ export interface PublicationCreateInput {
   language?: string | null;
   postType?: string | null;
   postDate?: string | null;
-  translationGroupId?: string | null;
   newsItemId?: string | null;
   authorComment?: string | null;
   note?: string | null;
@@ -62,7 +60,32 @@ export interface PublicationWithRelations extends Publication {
     name: string;
   } | null;
   posts?: any[];
-  translations?: { id: string; language: string; postType: string; title: string | null }[];
+  relations?: Array<{
+    id: string;
+    type: string;
+    projectId: string;
+    items: Array<{
+      id: string;
+      position: number;
+      publication: {
+        id: string;
+        title: string | null;
+        language: string;
+        postType: string;
+        status: string;
+        archivedAt: string | null;
+        posts?: Array<{
+          channel: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            archivedAt: string | null;
+            project: { id: string; archivedAt: string | null };
+          };
+        }>;
+      };
+    }>;
+  }>;
   media?: Array<{
     id: string;
     order: number;

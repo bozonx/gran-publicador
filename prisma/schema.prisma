@@ -105,6 +105,7 @@ model Project {
   apiTokens    ApiTokenProject[]
   roles        Role[]
   contentLibraryTabs ContentLibraryTab[]
+  relationGroups PublicationRelationGroup[]
 
   @@map("projects")
 }
@@ -250,8 +251,6 @@ model Channel {
 model Publication {
   id                 String  @id @default(uuid())
   projectId          String  @map("project_id")
-  // ID for linking translations of the same content
-  translationGroupId String? @map("translation_group_id")
   // ID of the news item from microservice if this publication was created from news
   newsItemId         String? @map("news_item_id")
 
@@ -297,8 +296,8 @@ model Publication {
   posts   Post[]
   media   PublicationMedia[]
   contentItems PublicationContentItem[]
+  relationItems PublicationRelationItem[]
 
-  @@index([translationGroupId])
   @@index([projectId, status])
   @@index([projectId, createdAt])
   @@index([projectId, scheduledAt])
@@ -613,6 +612,41 @@ enum PostStatus {
   PENDING    // Post has not yet been attempted to publish
   FAILED     // Publication failed
   PUBLISHED  // Post was successfully published to the channel
+}
+
+enum RelationGroupType {
+  SERIES
+  LOCALIZATION
+}
+
+model PublicationRelationGroup {
+  id        String             @id @default(uuid())
+  projectId String             @map("project_id")
+  type      RelationGroupType
+  createdBy String?            @map("created_by")
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  project Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   PublicationRelationItem[]
+
+  @@index([projectId, type])
+  @@map("publication_relation_groups")
+}
+
+model PublicationRelationItem {
+  id            String   @id @default(uuid())
+  groupId       String   @map("group_id")
+  publicationId String   @map("publication_id")
+  position      Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  group       PublicationRelationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, publicationId])
+  @@unique([groupId, position])
+  @@index([publicationId])
+  @@map("publication_relation_items")
 }
 
 enum NotificationType {

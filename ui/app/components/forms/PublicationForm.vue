@@ -77,7 +77,6 @@ watch(currentProjectId, async (newId) => {
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const showAdvancedFields = ref(false)
-const linkedPublicationId = ref<string | undefined>(undefined)
 const showValidationWarning = ref(false)
 const pendingSubmitData = ref<PublicationFormData | null>(null)
 const isLoading = ref(false)
@@ -213,8 +212,6 @@ watch(() => props.publication, (newPub, oldPub) => {
     state.note = newPub.note || ''
     state.scheduledAt = newPub.scheduledAt ? new Date(newPub.scheduledAt).toISOString().slice(0, 16) : ''
     state.postDate = newPub.postDate ? new Date(newPub.postDate).toISOString().slice(0, 16) : ''
-    state.translationGroupId = newPub.translationGroupId || undefined
-    
     
     // Reset baseline AFTER updating state
     nextTick(() => {
@@ -226,26 +223,6 @@ watch(() => props.publication, (newPub, oldPub) => {
     })
   }
 }, { deep: true, immediate: true })
-
-// Linking logic
-const availablePublications = computed(() => {
-    return publications.value
-        .filter(p => p.id !== props.publication?.id && p.postType === state.postType)
-        .map(p => ({
-            value: p.id,
-            label: p.title ? `${p.title} (${p.language})` : `Untitled (${p.language}) - ${new Date(p.createdAt).toLocaleDateString()}`,
-        }))
-})
-
-function handleTranslationLink(publicationId: string) {
-    linkedPublicationId.value = publicationId
-    state.translationGroupId = undefined
-}
-
-function handleUnlink() {
-    state.translationGroupId = null
-    linkedPublicationId.value = undefined
-}
 
 /**
  * Handle form submission
@@ -288,8 +265,6 @@ async function performSubmit(data: PublicationFormData) {
         // Status is managed by separate actions in edit mode, don't send it back 
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,
-        linkToPublicationId: linkedPublicationId.value || undefined,
-        translationGroupId: state.translationGroupId === null ? null : undefined,
       })
       
       const originalChannelIds = props.publication?.posts?.map((p: any) => p.channelId) || []
@@ -307,7 +282,6 @@ async function performSubmit(data: PublicationFormData) {
         ...commonData,
         projectId: currentProjectId.value!,
         status: data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : data.status,
-        linkToPublicationId: linkedPublicationId.value || undefined,
       }
 
       const pub = await createPublication(createData)
@@ -553,56 +527,6 @@ function handleTranslated(result: { translatedText: string }) {
       <!-- Post Date for ARTICLE -->
       <UFormField v-if="state.postType === 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
         <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
-      </UFormField>
-
-      <!-- Linking Section -->
-      <UFormField name="translationGroupId" :help="t('publication.linkTranslationHelp')">
-        <template #label>
-          <div class="flex items-center gap-1.5">
-            <span>{{ t('publication.linkTranslation') }}</span>
-            <CommonInfoTooltip :text="t('publication.linkTranslationTooltip')" />
-          </div>
-        </template>
-        <div class="flex gap-2">
-            <USelectMenu
-                :model-value="linkedPublicationId"
-                :items="availablePublications"
-                value-key="value"
-                label-key="label"
-                searchable
-                :placeholder="state.translationGroupId ? t('publication.linked') : t('publication.selectToLink')"
-                class="flex-1"
-                @update:model-value="handleTranslationLink"
-            />
-            <UTooltip v-if="state.translationGroupId || linkedPublicationId" :text="t('publication.unlink')">
-              <UButton
-                icon="i-heroicons-link-slash"
-                color="neutral"
-                variant="soft"
-                @click="handleUnlink"
-              />
-            </UTooltip>
-        </div>
-        
-        <!-- Display Current Group Info -->
-        <div v-if="publication?.translations?.length" class="mt-2 text-sm text-gray-500">
-            <span class="font-medium mr-1">{{ t('publication.currentTranslations') }}</span>
-            <div class="flex flex-wrap gap-1 mt-1">
-                <UBadge 
-                  v-for="trans in publication.translations" 
-                  :key="trans.id"
-                  variant="soft" 
-                  color="neutral"
-                  size="sm"
-                  class="font-mono"
-                >
-                  {{ trans.language }} <span v-if="trans.title" class="ml-1 opacity-70">- {{ trans.title }}</span>
-                </UBadge>
-                <UBadge variant="soft" color="primary" size="sm" class="font-mono">
-                  {{ state.language }} ({{ t('common.current') }})
-                </UBadge>
-            </div>
-        </div>
       </UFormField>
 
       <!-- Advanced Configuration Section -->

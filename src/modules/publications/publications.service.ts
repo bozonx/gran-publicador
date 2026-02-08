@@ -14,7 +14,6 @@ import {
   MediaType,
   StorageType,
 } from '../../generated/prisma/index.js';
-import { randomUUID } from 'node:crypto';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -156,71 +155,6 @@ export class PublicationsService {
       );
     }
 
-    let translationGroupId = data.translationGroupId;
-
-    // Handle linking to an existing publication
-    if (data.linkToPublicationId) {
-      // 1. Fetch target publication
-      const targetPub = await this.prisma.publication.findUnique({
-        where: { id: data.linkToPublicationId },
-      });
-
-      if (!targetPub) {
-        throw new NotFoundException(`Target publication for linking not found`);
-      }
-
-      // 2. Validate Access (if user context provided)
-      if (userId && targetPub.projectId) {
-        await this.permissions.checkProjectAccess(targetPub.projectId, userId);
-      }
-
-      // 3. Validate Project Scope (Issue 2)
-      if (targetPub.projectId !== data.projectId) {
-        throw new BadRequestException(
-          'Cannot link publications from different projects or contexts',
-        );
-      }
-
-      // 4. Validate Post Type Compatibility (User Request)
-      if (data.postType && targetPub.postType !== data.postType) {
-        throw new BadRequestException(
-          `Cannot link publication of type ${data.postType} with ${targetPub.postType}`,
-        );
-      }
-
-      // Determine Group ID
-      if (targetPub.translationGroupId) {
-        translationGroupId = targetPub.translationGroupId;
-      } else {
-        // Create new group and assign to target
-        translationGroupId = randomUUID();
-        await this.prisma.publication.update({
-          where: { id: targetPub.id },
-          data: { translationGroupId },
-        });
-        this.logger.log(
-          `Created new translation group ${translationGroupId} for publication ${targetPub.id}`,
-        );
-      }
-    }
-
-    // 5. Validate Language Uniqueness in Group (Issue 1)
-    if (translationGroupId) {
-      const existingTranslation = await this.prisma.publication.findFirst({
-        where: {
-          translationGroupId,
-          language: data.language,
-          // No need to exclude current ID as we are creating
-        },
-      });
-
-      if (existingTranslation) {
-        throw new BadRequestException(
-          `A publication with language ${data.language} already exists in this translation group`,
-        );
-      }
-    }
-
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
@@ -295,7 +229,6 @@ export class PublicationsService {
         tags: data.tags,
         status: data.status ?? PublicationStatus.DRAFT,
         language: data.language,
-        translationGroupId,
         postType: data.postType ?? PostType.POST,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
@@ -574,26 +507,51 @@ export class PublicationsService {
 
     await this.permissions.checkProjectAccess(publication.projectId, userId);
 
-    // Fetch other publications in the same translation group
-    let translations: any[] = [];
-    if (publication.translationGroupId) {
-      translations = await this.prisma.publication.findMany({
-        where: {
-          translationGroupId: publication.translationGroupId,
-          id: { not: id },
-          archivedAt: null,
+    // Fetch relation groups for this publication
+    const relationItems = await this.prisma.publicationRelationItem.findMany({
+      where: { publicationId: id },
+      include: {
+        group: {
+          include: {
+            items: {
+              include: {
+                publication: {
+                  select: {
+                    id: true,
+                    title: true,
+                    language: true,
+                    postType: true,
+                    status: true,
+                    archivedAt: true,
+                    posts: {
+                      select: {
+                        channel: {
+                          select: {
+                            id: true,
+                            name: true,
+                            isActive: true,
+                            archivedAt: true,
+                            project: {
+                              select: {
+                                id: true,
+                                archivedAt: true,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: { position: 'asc' as const },
+            },
+          },
         },
-        select: {
-          id: true,
-          language: true,
-          postType: true,
-          title: true,
-        },
-        orderBy: {
-          language: 'asc',
-        },
-      });
-    }
+      },
+    });
+
+    const relations = relationItems.map(ri => ri.group);
 
     // Parse meta JSON for media items
     const parsedMedia = publication.media?.map(pm => {
@@ -610,7 +568,7 @@ export class PublicationsService {
     return {
       ...publication,
       media: parsedMedia,
-      translations,
+      relations,
       meta: this.parseMetaJson(publication.meta),
     };
   }
@@ -638,83 +596,6 @@ export class PublicationsService {
         userId,
         PermissionKey.PUBLICATIONS_UPDATE_ALL,
       );
-    }
-
-    let translationGroupId = data.translationGroupId;
-
-    // Handle Unlinking: if explicit null is passed, we accept it.
-    // If undefined, we keep current (handled by 'const translationGroupId = data.translationGroupId' -> undefined)
-    // BUT we must check if user wants to change logic.
-    // Prisma update: undefined means "do nothing", null means "set to NULL".
-
-    if (data.linkToPublicationId) {
-      // 1. Self-linking check (Issue 9)
-      if (data.linkToPublicationId === id) {
-        throw new BadRequestException('Cannot link publication to itself');
-      }
-
-      // 2. Fetch target
-      const targetPub = await this.prisma.publication.findUnique({
-        where: { id: data.linkToPublicationId },
-      });
-
-      if (!targetPub) {
-        throw new NotFoundException(`Target publication for linking not found`);
-      }
-
-      // 3. Access Check
-      await this.permissions.checkProjectAccess(targetPub.projectId, userId);
-
-      if (targetPub.projectId !== publication.projectId) {
-        // Assuming project doesn't change on update
-        throw new BadRequestException('Cannot link publications from different projects');
-      }
-
-      // 5. Post Type Compatibility
-      const newPostType = data.postType || publication.postType;
-      if (targetPub.postType !== newPostType) {
-        throw new BadRequestException(
-          `Cannot link publication of type ${newPostType} with ${targetPub.postType}`,
-        );
-      }
-
-      if (targetPub.translationGroupId) {
-        translationGroupId = targetPub.translationGroupId;
-      } else {
-        translationGroupId = randomUUID();
-        await this.prisma.publication.update({
-          where: { id: targetPub.id },
-          data: { translationGroupId },
-        });
-        this.logger.log(
-          `Created new translation group ${translationGroupId} for publication ${targetPub.id}`,
-        );
-      }
-    }
-
-    // 6. Validate Language Uniqueness in Group (Issue 1)
-    // Only check if we are setting a NEW group ID or changing language
-    // If translationGroupId is undefined, we use current publication's group (if we are checking language change)
-    // Actually, if we update language OR update group, we must check.
-
-    const effectiveGroupId =
-      translationGroupId !== undefined ? translationGroupId : publication.translationGroupId;
-    const effectiveLanguage = data.language || publication.language;
-
-    if (effectiveGroupId) {
-      const existingTranslation = await this.prisma.publication.findFirst({
-        where: {
-          translationGroupId: effectiveGroupId,
-          language: effectiveLanguage,
-          id: { not: id }, // Exclude self
-        },
-      });
-
-      if (existingTranslation) {
-        throw new BadRequestException(
-          `A publication with language ${effectiveLanguage} already exists in this translation group`,
-        );
-      }
     }
 
     // Business Rule: When status changes to DRAFT or READY
@@ -967,7 +848,6 @@ export class PublicationsService {
         tags: data.tags,
         status: data.status,
         language: data.language,
-        translationGroupId,
         postType: data.postType,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
@@ -1121,7 +1001,12 @@ export class PublicationsService {
           where: { publicationId: { in: authorizedIds } },
         });
 
-        // 2. Update publications: change project, reset status to DRAFT, clear scheduledAt
+        // 2. Break all relation links for moved publications (relations are project-scoped)
+        await this.prisma.publicationRelationItem.deleteMany({
+          where: { publicationId: { in: authorizedIds } },
+        });
+
+        // 3. Update publications: change project, reset status to DRAFT, clear scheduledAt
         const moveResult = await this.prisma.publication.updateMany({
           where: { id: { in: authorizedIds } },
           data: {

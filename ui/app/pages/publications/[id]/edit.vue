@@ -366,6 +366,7 @@ const isUpdatingProject = ref(false)
 const isCopyModalOpen = ref(false)
 const copyProjectId = ref<string | undefined>(undefined)
 const isCopying = ref(false)
+const isRelationsModalOpen = ref(false)
 
 function openCopyModal() {
     if (!currentPublication.value) return
@@ -1073,6 +1074,46 @@ async function executePublish(force: boolean) {
                                 />
                             </div>
                         </div>
+
+                        <!-- Relations -->
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                {{ t('publication.relations.title') }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <UIcon name="i-heroicons-link" class="w-5 h-5 text-gray-400" />
+                                <template v-if="currentPublication?.relations?.length">
+                                    <UBadge
+                                        v-for="rel in currentPublication.relations"
+                                        :key="rel.id"
+                                        :color="rel.type === 'SERIES' ? 'primary' : 'info'"
+                                        variant="soft"
+                                        size="sm"
+                                    >
+                                        {{ rel.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeLocalization') }}
+                                        ({{ rel.items.length }})
+                                    </UBadge>
+                                    <UButton
+                                        icon="i-heroicons-pencil-square"
+                                        variant="ghost"
+                                        color="neutral"
+                                        size="xs"
+                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                        @click="isRelationsModalOpen = true"
+                                    />
+                                </template>
+                                <template v-else>
+                                    <UButton
+                                        icon="i-heroicons-plus"
+                                        variant="soft"
+                                        color="primary"
+                                        size="xs"
+                                        :label="t('publication.relations.add')"
+                                        @click="isRelationsModalOpen = true"
+                                    />
+                                </template>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Zone 2: Channels & Scheduler (60%) -->
@@ -1189,28 +1230,6 @@ async function executePublish(force: boolean) {
                           container-class="mt-2"
                         />
 
-                        <!-- Translation Info -->
-                         <div v-if="currentPublication.translations && currentPublication.translations.length > 0" class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
-                             <UIcon name="i-heroicons-language" class="w-3.5 h-3.5 text-gray-400" />
-                             <span class="text-xs text-gray-500">{{ t('publication.linked') }}:</span>
-                             <div class="flex gap-1.5">
-                                 <NuxtLink 
-                                    v-for="trans in currentPublication.translations" 
-                                    :key="trans.id"
-                                    :to="`/publications/${trans.id}`"
-                                    class="hover:opacity-80 transition-opacity"
-                                 >
-                                     <UBadge 
-                                        color="neutral"
-                                        variant="soft"
-                                        size="sm"
-                                        class="uppercase font-mono text-xxs cursor-pointer"
-                                     >
-                                        {{ trans.language }}
-                                     </UBadge>
-                                 </NuxtLink>
-                             </div>
-                        </div>
                     </div>
 
                     <!-- Expand/Collapse Button -->
@@ -1279,6 +1298,15 @@ async function executePublish(force: boolean) {
       :content="currentPublication.content || undefined"
       :project-id="projectId || undefined"
       @apply="handleApplyLlm"
+    />
+
+    <!-- Publication Relations Modal -->
+    <ModalsPublicationRelationsModal
+      v-if="currentPublication && projectId"
+      v-model:open="isRelationsModalOpen"
+      :publication="currentPublication"
+      :project-id="projectId"
+      @updated="() => fetchPublication(publicationId)"
     />
   </div>
 </template>
