@@ -1,12 +1,34 @@
 <script setup lang="ts">
 import ContentItemCard from '~/components/content/ContentItemCard.vue'
+import ContentItemEditor from '~/components/content/ContentItemEditor.vue'
+import AppModal from '~/components/ui/AppModal.vue'
+import { sanitizeContentPreserveMarkdown } from '~/utils/text'
+import { getApiErrorMessage } from '~/utils/error'
+import { formatTagsCsv } from '~/utils/tags'
 
 const { t } = useI18n()
 const api = useApi()
 const router = useRouter()
+const toast = useToast()
 
 const items = ref<any[]>([])
 const isLoading = ref(false)
+
+const isEditModalOpen = ref(false)
+const activeItem = ref<any | null>(null)
+const editorRef = ref<InstanceType<typeof ContentItemEditor> | null>(null)
+
+const isCreatePublicationModalOpen = ref(false)
+const createPublicationModalProjectId = ref<string | undefined>(undefined)
+const createPublicationModalAllowProjectSelection = ref(false)
+const publicationData = ref({
+  title: '',
+  content: '',
+  mediaIds: [] as Array<{ id: string }>,
+  tags: '',
+  note: '',
+  contentItemIds: [] as string[]
+})
 
 async function fetchRecentContent() {
   isLoading.value = true
@@ -26,10 +48,62 @@ async function fetchRecentContent() {
   }
 }
 
-function handleCardClick(item: any) {
-  // Navigate to personal content library with search or id focus if supported
-  // For now just navigate to content library
-  router.push('/content-library')
+function openEditModal(item: any) {
+  activeItem.value = item
+  isEditModalOpen.value = true
+}
+
+async function handleCloseEditModal() {
+  if (editorRef.value) {
+    await editorRef.value.forceSave()
+  }
+  isEditModalOpen.value = false
+  activeItem.value = null
+  await fetchRecentContent()
+}
+
+const isArchivingId = ref<string | null>(null)
+async function handleArchive(item: any) {
+  isArchivingId.value = item.id
+  try {
+    await api.post(`/content-library/items/${item.id}/archive`)
+    await fetchRecentContent()
+    toast.add({ 
+      title: t('common.success'), 
+      description: t('contentLibrary.actions.moveToTrashSuccess'), 
+      color: 'success' 
+    })
+  } catch (e: any) {
+    toast.add({ 
+      title: t('common.error'), 
+      description: getApiErrorMessage(e, 'Failed to archive'), 
+      color: 'error' 
+    })
+  } finally {
+    isArchivingId.value = null
+  }
+}
+
+function handleCreatePublication(item: any) {
+  const texts = (item.blocks || [])
+    .map((b: any) => sanitizeContentPreserveMarkdown(b.text || '').trim())
+    .filter(Boolean)
+  
+  createPublicationModalProjectId.value = undefined
+  createPublicationModalAllowProjectSelection.value = true
+  
+  publicationData.value = {
+    title: (item.title || '').toString().trim(),
+    content: texts.join('\n\n'),
+    mediaIds: (item.blocks || [])
+      .flatMap((b: any) => (b.media || [])
+      .map((m: any) => ({ id: m.mediaId })))
+      .filter((m: any) => !!m.id),
+    tags: formatTagsCsv(item.tags || []),
+    note: item.note || '',
+    contentItemIds: [item.id]
+  }
+  isCreatePublicationModalOpen.value = true
 }
 
 onMounted(() => {
@@ -74,13 +148,65 @@ onMounted(() => {
           <ContentItemCard
             :item="item"
             hide-checkbox
-            hide-actions
+            :is-archiving="isArchivingId === item.id"
             class="h-full! shadow-sm"
-            @click="handleCardClick"
+            @click="openEditModal(item)"
+            @archive="handleArchive"
+            @create-publication="handleCreatePublication"
           />
         </div>
       </div>
     </div>
+
+    <!-- Modals -->
+    <AppModal
+      v-model:open="isEditModalOpen"
+      :title="t('contentLibrary.editTitle', 'Edit content item')"
+      :ui="{ content: 'w-[90vw] max-w-5xl' }"
+      @close="handleCloseEditModal"
+    >
+      <ContentItemEditor
+        v-if="activeItem"
+        ref="editorRef"
+        :item="activeItem"
+        @refresh="fetchRecentContent"
+      />
+      
+      <template #footer>
+        <div class="flex justify-between items-center w-full">
+           <div class="text-xs text-gray-500 flex gap-2">
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-paper-airplane"
+                @click="handleCreatePublication(activeItem)"
+              >
+                {{ t('contentLibrary.actions.createPublication') }}
+              </UButton>
+           </div>
+           <UButton 
+            color="primary" 
+            @click="handleCloseEditModal"
+          >
+            {{ t('common.done', 'Done') }}
+          </UButton>
+        </div>
+      </template>
+    </AppModal>
+
+    <ModalsCreatePublicationModal
+      v-if="isCreatePublicationModalOpen"
+      v-model:open="isCreatePublicationModalOpen"
+      :project-id="createPublicationModalProjectId"
+      :allow-project-selection="createPublicationModalAllowProjectSelection"
+      :prefilled-title="publicationData.title"
+      :prefilled-content="publicationData.content"
+      :prefilled-media-ids="publicationData.mediaIds"
+      :prefilled-tags="publicationData.tags"
+      :prefilled-note="publicationData.note"
+      :prefilled-content-item-ids="publicationData.contentItemIds"
+    />
   </div>
 </template>
 
