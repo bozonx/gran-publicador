@@ -6,7 +6,6 @@ import {
   PublicationStatus,
   NotificationType,
   RelationGroupType,
-  LlmPromptTemplateCategory,
   ContentLibraryTabType,
 } from '../src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -59,7 +58,7 @@ async function main() {
   await prisma.projectMember.deleteMany({});
   await prisma.role.deleteMany({});
   await prisma.llmPromptTemplate.deleteMany({});
-  await prisma.llmSystemPromptOverride.deleteMany({});
+  await prisma.llmSystemPromptHidden.deleteMany({});
   await prisma.projectTemplate.deleteMany({});
   await prisma.project.deleteMany({});
   await prisma.user.deleteMany({});
@@ -526,9 +525,7 @@ async function main() {
       postType: PostType.NEWS,
       isDefault: false,
       order: 1,
-      template: [
-        { type: 'text', content: '🚀 {{headline}}\n\nCheck out more at {{url}}' },
-      ],
+      template: [{ type: 'text', content: '🚀 {{headline}}\n\nCheck out more at {{url}}' }],
     },
   ];
 
@@ -971,7 +968,7 @@ async function main() {
       projectId: null,
       name: 'Summarize for Telegram',
       description: 'Creates a short summary for Telegram posts',
-      category: LlmPromptTemplateCategory.CONTENT,
+      category: 'Content',
       prompt:
         'Summarize the following text for a Telegram post. Keep it under 500 characters. Use emojis.',
       order: 0,
@@ -983,7 +980,7 @@ async function main() {
       projectId: projectData[0].id,
       name: 'Technical Tone Rewriter',
       description: 'Rewrites text in a technical tone',
-      category: LlmPromptTemplateCategory.EDITING,
+      category: 'Editing',
       prompt:
         'Rewrite the following text to sound more technical and professional. Use appropriate terminology.',
       order: 0,
