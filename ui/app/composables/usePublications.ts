@@ -269,6 +269,11 @@ export function usePublications() {
   }
 
   async function fetchPublication(id: string): Promise<PublicationWithRelations | null> {
+    // Clear current publication if ID is different to prevent state leakage
+    if (currentPublication.value?.id !== id) {
+      currentPublication.value = null;
+    }
+    
     isLoading.value = true;
     error.value = null;
 

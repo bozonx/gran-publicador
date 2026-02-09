@@ -210,14 +210,15 @@ const majoritySchedule = computed(() => {
 watch(
     () => [currentPublication.value, route.query.openLlm],
     async ([pub, openLlm]) => {
-        if (pub && openLlm === 'true') {
+        // Ensure the publication is loaded AND it's the correct one for the current route
+        if (pub && pub.id === publicationId.value && openLlm === 'true') {
             // Wait for both publication data and route query to be stable
             await nextTick()
             
             // Re-check after tick
-            if (currentPublication.value && route.query.openLlm === 'true') {
+            if (currentPublication.value?.id === publicationId.value && route.query.openLlm === 'true') {
                 // Remove query parameter from URL without reloading
-                const { openLlm, ...restQuery } = route.query
+                const { openLlm: _, ...restQuery } = route.query
                 router.replace({ query: restQuery })
                 
                 // Small delay to ensure the component is fully mounted and ready
@@ -225,7 +226,6 @@ watch(
                     showLlmModal.value = true
                 }, 100)
             }
-
         }
     },
     { immediate: true }
