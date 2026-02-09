@@ -1333,6 +1333,7 @@ async function executePublish(force: boolean) {
       :media="(currentPublication.media || []) as unknown as MediaItem[]"
       :project-id="projectId || undefined"
       :publication-meta="normalizedPublicationMeta"
+      :post-type="currentPublication.postType || undefined"
       @apply="handleApplyLlm"
       @save-meta="handleSaveLlmMeta"
     />

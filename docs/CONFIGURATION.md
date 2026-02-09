@@ -30,3 +30,8 @@ This document lists key production configuration options.
 
 - `SOCIAL_POSTING_SERVICE_URL` (required)
 - `MEDIA_STORAGE_SERVICE_URL` (optional, but required for media upload endpoints)
+
+## UI / LLM
+
+- `NUXT_PUBLIC_LLM_CONTEXT_LIMIT_DEFAULT` (optional, default: `10000`) - max context size (characters) for non-article publications in UI prompt builder
+- `NUXT_PUBLIC_LLM_CONTEXT_LIMIT_ARTICLE` (optional, default: `100000`) - max context size (characters) for article publications in UI prompt builder

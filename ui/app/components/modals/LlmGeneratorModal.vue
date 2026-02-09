@@ -16,9 +16,10 @@ interface Props {
   media?: MediaItem[]
   projectId?: string
   publicationMeta?: Record<string, any>
+  postType?: string
 }
 
-const { content, media, projectId, publicationMeta } = defineProps<Props>()
+const { content, media, projectId, publicationMeta, postType } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
@@ -42,6 +43,7 @@ const step = ref(1) // 1: AI Chat, 2: Parameter Generation
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  contextTagIds?: string[]
 }
 const chatMessages = ref<ChatMessage[]>([])
 const prompt = ref('')
@@ -118,17 +120,65 @@ interface LlmContextTag {
 
 const contextTags = ref<LlmContextTag[]>([])
 
+const runtimeConfig = useRuntimeConfig()
+
+const contextLimit = computed(() => {
+  const isArticle = postType === 'ARTICLE'
+  const raw = isArticle
+    ? runtimeConfig.public.llmContextLimitArticle
+    : runtimeConfig.public.llmContextLimitDefault
+  const parsed = Number.parseInt(String(raw), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : (isArticle ? 100000 : 10000)
+})
+
+function truncateText(text: string, maxChars: number): string {
+  if (maxChars <= 0) return ''
+  if (text.length <= maxChars) return text
+  return text.slice(0, maxChars)
+}
+
 function makeContextPromptBlock(tags: LlmContextTag[]): string {
-  const parts = tags
+  const rawParts = tags
     .map((t) => t.promptText?.trim())
     .filter((x): x is string => Boolean(x))
 
+  if (rawParts.length === 0) return ''
+
+  const limit = contextLimit.value
+  let remaining = limit
+
+  const parts: string[] = []
+  for (const part of rawParts) {
+    if (remaining <= 0) break
+
+    const trimmed = part.trim()
+    if (!trimmed) continue
+
+    const next = truncateText(trimmed, remaining)
+    if (!next.trim()) continue
+
+    parts.push(next)
+    remaining -= next.length
+  }
+
   if (parts.length === 0) return ''
-  return `\n\nContext:\n${parts.join('\n')}`
+  return `\n\n${parts.join('\n')}`
 }
 
 function removeContextTag(id: string) {
   contextTags.value = contextTags.value.filter(t => t.id !== id)
+}
+
+const contextTagById = computed(() => {
+  return new Map(contextTags.value.map(t => [t.id, t] as const))
+})
+
+function getContextTagsForMessage(message: ChatMessage): LlmContextTag[] {
+  const ids = message.contextTagIds || []
+  if (ids.length === 0) return []
+
+  const map = contextTagById.value
+  return ids.map(id => map.get(id)).filter((x): x is LlmContextTag => Boolean(x))
 }
 
 // Metadata from last generation
@@ -170,7 +220,7 @@ watch(isOpen, async (open) => {
       nextTags.push({
         id: 'content:1',
         label: 'Контент',
-        promptText: `Content:\n${content.trim()}`,
+        promptText: `<source_content>\n${content.trim()}\n</source_content>`,
         kind: 'content',
       })
     }
@@ -182,7 +232,7 @@ watch(isOpen, async (open) => {
       nextTags.push({
         id: `media:${item.id}`,
         label: text,
-        promptText: `Image description: ${text}`,
+        promptText: `<image_description>${text}</image_description>`,
         kind: 'media',
       })
     }
@@ -242,10 +292,15 @@ async function handleGenerate() {
     return;
   }
 
-  // Add user message to chat
-  const currentPrompt = prompt.value + makeContextPromptBlock(contextTags.value)
-  chatMessages.value.push({ role: 'user', content: currentPrompt });
-  prompt.value = ''; // clear input
+  const userText = prompt.value.trim()
+  const currentPrompt = userText + makeContextPromptBlock(contextTags.value)
+
+  chatMessages.value.push({
+    role: 'user',
+    content: userText,
+    contextTagIds: contextTags.value.map(t => t.id),
+  });
+  prompt.value = '';
 
   const response = await generateContent(currentPrompt, {
     temperature: temperature.value,
@@ -525,6 +580,21 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
                 : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 rounded-tl-none shadow-sm'"
             >
               <div class="whitespace-pre-wrap">{{ msg.content }}</div>
+
+              <div v-if="msg.role === 'user' && getContextTagsForMessage(msg).length > 0" class="mt-2">
+                <div class="flex flex-wrap gap-1.5">
+                  <UButton
+                    v-for="ctx in getContextTagsForMessage(msg)"
+                    :key="ctx.id"
+                    size="xs"
+                    color="neutral"
+                    variant="soft"
+                    class="rounded-full! px-2 py-0.5 h-auto max-w-full"
+                  >
+                    <span class="truncate max-w-105">{{ ctx.label }}</span>
+                  </UButton>
+                </div>
+              </div>
             </div>
             <span class="text-[10px] text-gray-400 mt-1 uppercase font-medium tracking-tight">
               {{ msg.role === 'user' ? t('common.user') : t('common.assistant') }}
