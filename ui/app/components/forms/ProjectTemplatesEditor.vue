@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import type { ProjectTemplate, TemplateBlock } from '~/types/channels'
 import { containsBlockMarkdown } from '~/utils/markdown-validation'
+import CommonInfoTooltip from '~/components/common/CommonInfoTooltip.vue'
 
 interface Props {
   projectId: string
@@ -280,7 +281,7 @@ function resetBlocks() {
                 <div class="text-xs font-medium text-gray-900 dark:text-white truncate">
                   {{ t('channel.templateIsDefault', 'Default Template') }}
                 </div>
-                <div class="text-[10px] text-gray-500 truncate">
+                <div class="text-xxs text-gray-500 truncate">
                   {{ t('channel.templateIsDefaultHelp', 'Auto-select this') }}
                 </div>
               </div>
@@ -291,7 +292,20 @@ function resetBlocks() {
         <!-- Template Blocks -->
         <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
           <div class="flex items-center justify-between mb-3">
-            <h4 class="font-medium text-gray-900 dark:text-white">{{ t('channel.templateBlocks') }}</h4>
+            <div class="flex items-center gap-2">
+              <h4 class="font-medium text-gray-900 dark:text-white">{{ t('channel.templateBlocks') }}</h4>
+              <CommonInfoTooltip
+                :text="t(
+                  'validation.inlineMarkdownOnly',
+                  'Only inline markdown is allowed.',
+                ) +
+                  '\n\n' +
+                  'Allowed examples: **bold**, _italic_, `code`, [link](https://example.com)'+
+                  '\n' +
+                  'Not allowed: headers (#), lists (-, 1.), blockquotes (>), code blocks (```), tables, HTML blocks.'"
+                placement="bottom"
+              />
+            </div>
             <UButton size="xs" variant="ghost" color="neutral" @click="resetBlocks">
               {{ t('channel.templateReset') }}
             </UButton>
@@ -313,12 +327,26 @@ function resetBlocks() {
               </div>
 
               <div v-show="block.enabled" class="space-y-4 pt-2 border-t border-gray-100 dark:border-gray-700/50 mt-2">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div v-if="block.insert !== 'custom' && block.insert !== 'footer'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <UFormField :label="t('channel.templateBefore')">
-                    <UInput v-model="block.before" :placeholder="t('channel.templateBefore')" size="sm" class="font-mono text-xs" />
+                    <UTextarea
+                      v-model="block.before"
+                      :placeholder="t('channel.templateBefore')"
+                      :rows="2"
+                      size="sm"
+                      class="font-mono text-xs w-full"
+                      autoresize
+                    />
                   </UFormField>
                   <UFormField :label="t('channel.templateAfter')">
-                    <UInput v-model="block.after" :placeholder="t('channel.templateAfter')" size="sm" class="font-mono text-xs" />
+                    <UTextarea
+                      v-model="block.after"
+                      :placeholder="t('channel.templateAfter')"
+                      :rows="2"
+                      size="sm"
+                      class="font-mono text-xs w-full"
+                      autoresize
+                    />
                   </UFormField>
                 </div>
 
