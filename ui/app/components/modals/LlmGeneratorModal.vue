@@ -7,6 +7,7 @@ import type { MediaItem } from '~/composables/useMedia'
 
 interface Emits {
   (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> }): void
+  (e: 'save-meta', meta: Record<string, any>): void
   (e: 'close'): void
 }
 
@@ -14,9 +15,10 @@ interface Props {
   content?: string
   media?: MediaItem[]
   projectId?: string
+  publicationMeta?: Record<string, any>
 }
 
-const { content, media, projectId } = defineProps<Props>()
+const { content, media, projectId, publicationMeta } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
@@ -132,6 +134,21 @@ function removeContextTag(id: string) {
 // Metadata from last generation
 const metadata = ref<any>(null)
 
+function buildChatMetaPayload() {
+  return {
+    llmPublicationContentGenerationChat: {
+      messages: chatMessages.value,
+      model: metadata.value,
+      savedAt: new Date().toISOString(),
+    },
+  }
+}
+
+function persistChatMeta() {
+  if (chatMessages.value.length === 0) return
+  emit('save-meta', buildChatMetaPayload())
+}
+
 // Token counter with debounce
 const estimatedTokens = computed(() => {
   return estimateTokens(prompt.value + makeContextPromptBlock(contextTags.value))
@@ -171,6 +188,13 @@ watch(isOpen, async (open) => {
     }
 
     contextTags.value = nextTags
+
+    const savedChat = publicationMeta?.llmPublicationContentGenerationChat
+    const savedMessages = savedChat?.messages
+    if (Array.isArray(savedMessages) && savedMessages.length > 0) {
+      chatMessages.value = savedMessages
+      metadata.value = savedChat?.model || null
+    }
   } else {
     // Reset form when modal closes
     step.value = 1
@@ -231,6 +255,7 @@ async function handleGenerate() {
   if (response) {
     chatMessages.value.push({ role: 'assistant', content: response.content });
     metadata.value = response.metadata || null;
+    persistChatMeta()
   } else {
     // Error handling already in useLlm, but we can add toast for better UX
     const errorDescription = t('llm.errorMessage');
@@ -403,13 +428,7 @@ async function handleInsert() {
   if (selectedFields.content && extractionResult.value.content) data.content = extractionResult.value.content
 
   if (chatMessages.value.length > 0) {
-    data.meta = {
-      llmPublicationContentGenerationChat: {
-        messages: chatMessages.value,
-        model: metadata.value,
-        savedAt: new Date().toISOString(),
-      },
-    }
+    data.meta = buildChatMetaPayload()
   }
   
   isApplying.value = true

@@ -77,6 +77,39 @@ const publicationProblems = computed(() => {
   return problems
 })
 
+async function handleSaveLlmMeta(meta: Record<string, any>) {
+  if (!currentPublication.value) return
+
+  try {
+    await updatePublication(
+      currentPublication.value.id,
+      {
+        meta,
+      },
+      { silent: true },
+    )
+  } catch {
+    // Intentionally ignore: meta autosave should not block user flow
+  }
+}
+
+const normalizedPublicationMeta = computed<Record<string, any>>(() => {
+  const meta = (currentPublication.value as any)?.meta
+
+  if (typeof meta === 'object' && meta !== null) return meta
+
+  if (typeof meta === 'string' && meta.trim()) {
+    try {
+      const parsed = JSON.parse(meta)
+      return typeof parsed === 'object' && parsed !== null ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+
+  return {}
+})
+
 const hasMediaValidationErrors = computed(() => {
     return publicationProblems.value.some(p => p.key === 'mediaValidation')
 })
@@ -1299,7 +1332,9 @@ async function executePublish(force: boolean) {
       :content="currentPublication.content || undefined"
       :media="(currentPublication.media || []) as unknown as MediaItem[]"
       :project-id="projectId || undefined"
+      :publication-meta="normalizedPublicationMeta"
       @apply="handleApplyLlm"
+      @save-meta="handleSaveLlmMeta"
     />
 
     <!-- Publication Relations Modal -->
