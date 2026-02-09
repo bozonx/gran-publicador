@@ -21,6 +21,11 @@ const textareaRef = ref<any>(null)
 watch(() => props.publication.note, (newNote) => {
     if (!isEditing.value) {
         localNote.value = newNote || ''
+        if (props.publication && props.publication.id) {
+            nextTick(() => {
+                syncBaseline()
+            })
+        }
     }
 })
 
@@ -29,7 +34,7 @@ function startEditing() {
 }
 
 // Auto-save setup
-const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
+const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave } = useAutosave({
   data: localNote,
   saveFn: async (note) => {
     await updatePublication(props.publication.id, {

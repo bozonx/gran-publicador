@@ -133,7 +133,7 @@ const saveOriginalState = () => dirtyState?.saveOriginalState()
 const resetToOriginal = () => dirtyState?.resetToOriginal()
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave } = useAutosave({
   data: computed(() => formData),
   saveFn: async (data) => {
     if (!props.autosave || props.isCreating) return { saved: false, skipped: true }
@@ -485,6 +485,9 @@ watch(() => props.post, (newPost, oldPost) => {
     // Save original state after update
     nextTick(() => {
         saveOriginalState()
+        if (props.autosave) {
+            syncBaseline()
+        }
     })
 }, { deep: true, immediate: true })
 

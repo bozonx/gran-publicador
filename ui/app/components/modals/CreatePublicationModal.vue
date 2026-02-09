@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { PostType } from '~/types/posts'
+import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
+import { useProjectTemplates } from '~/composables/useProjectTemplates'
+import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 
 interface Props {
@@ -33,6 +36,9 @@ const { projects, fetchProjects } = useProjects()
 const { createPublication, isLoading } = usePublications()
 const { typeOptions } = usePosts()
 const { user } = useAuth()
+const { fetchByProject: fetchSignatures } = useAuthorSignatures()
+const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
+const projectSignatures = ref<ProjectAuthorSignature[]>([])
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
@@ -78,6 +84,8 @@ const formData = reactive({
   language: props.preselectedLanguage || user.value?.language || locale.value,
   postType: props.preselectedPostType || 'POST' as PostType,
   channelIds: props.preselectedChannelIds || [] as string[],
+  authorSignatureId: '',
+  projectTemplateId: '',
 })
 
 const lastAppliedProjectId = ref<string | null>(props.projectId || null)
@@ -131,7 +139,27 @@ const activeProjects = computed(() => {
 // Watch for project ID to load channels
 watch(() => formData.projectId, async (newProjectId) => {
   if (newProjectId) {
-    await fetchChannels({ projectId: newProjectId })
+    await Promise.all([
+      fetchChannels({ projectId: newProjectId }),
+      fetchSignatures(newProjectId).then(sigs => { 
+        projectSignatures.value = sigs 
+        // Auto-select signature
+        const project = projects.value.find(p => p.id === newProjectId)
+        const userId = user.value?.id
+        const userPrefs = project?.preferences as any
+        if (userId && userPrefs?.defaultSignatures?.[userId]) {
+            formData.authorSignatureId = userPrefs.defaultSignatures[userId]
+        } else if (sigs.length > 0) {
+            const userSigs = sigs.filter(s => s.userId === userId)
+            if (userSigs.length > 0) formData.authorSignatureId = userSigs[0].id
+        }
+      }),
+      fetchProjectTemplates(newProjectId).then(tpls => {
+        // Auto-select default template
+        const def = tpls.find(t => t.isDefault)
+        if (def) formData.projectTemplateId = def.id
+      }),
+    ])
 
     if (!props.preselectedChannelId) {
       if (!props.preselectedChannelIds?.length && formData.channelIds.length === 0) {
@@ -231,6 +259,31 @@ const channelOptions = computed(() => {
   }))
 })
 
+// Signature selector options
+const signatureOptions = computed(() => {
+  const userLang = user.value?.language || 'en-US'
+  const userId = user.value?.id
+  
+  // Filter by current user
+  const userSigs = projectSignatures.value.filter(sig => sig.userId === userId)
+  
+  return userSigs.map(sig => {
+    const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
+    return {
+      value: sig.id,
+      label: variant?.content || sig.id,
+    }
+  })
+})
+
+// Template selector options
+const templateOptions = computed(() => {
+  return projectTemplates.value.map(tpl => ({
+    value: tpl.id,
+    label: tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : ''),
+  }))
+})
+
 // Toggle channel selection
 function toggleChannel(channelId: string) {
   const index = formData.channelIds.indexOf(channelId)
@@ -255,6 +308,8 @@ async function handleCreate() {
       tags: props.prefilledTags || '',
       note: props.prefilledNote || '',
       contentItemIds: props.prefilledContentItemIds || [],
+      authorSignatureId: formData.authorSignatureId || undefined,
+      projectTemplateId: formData.projectTemplateId || undefined,
     }
 
     const publication = await createPublication(createData)
@@ -338,6 +393,39 @@ function handleClose() {
           class="w-full"
         />
       </UFormField>
+
+      <!-- Advanced Configuration (Templates & Signatures) -->
+      <div v-if="formData.projectId && (templateOptions.length > 0 || signatureOptions.length > 0)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Publication Template Selection -->
+        <UFormField
+          v-if="templateOptions.length > 0"
+          :label="t('projectTemplates.title', 'Publication Template')"
+        >
+          <USelectMenu
+            v-model="formData.projectTemplateId"
+            :items="[{ value: null, label: t('common.none', 'None') }, ...templateOptions]"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-squares-plus"
+          />
+        </UFormField>
+
+        <!-- Author Signature Selection -->
+        <UFormField
+          v-if="signatureOptions.length > 0"
+          :label="t('authorSignature.title', 'Author Signature')"
+        >
+          <USelectMenu
+            v-model="formData.authorSignatureId"
+            :items="[{ value: null, label: t('common.none', 'None') }, ...signatureOptions]"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-pencil-square"
+          />
+        </UFormField>
+      </div>
 
       <!-- Channels (only if project selected) -->
       <UFormField

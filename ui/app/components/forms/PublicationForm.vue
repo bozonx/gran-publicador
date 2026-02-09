@@ -268,6 +268,9 @@ watch(() => props.publication, (newPub, oldPub) => {
             saveOriginalState()
           })
         }
+        if (props.autosave) {
+          syncBaseline()
+        }
         return
     }
 
@@ -336,7 +339,7 @@ async function performSubmit(data: PublicationFormData) {
         // Status is managed by separate actions in edit mode, don't send it back 
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,
-      })
+      }, { silent: props.autosave })
       
       const originalChannelIds = props.publication?.posts?.map((p: any) => p.channelId) || []
       const newChannelIds = state.channelIds.filter(id => !originalChannelIds.includes(id))
@@ -610,7 +613,7 @@ function handleTranslated(result: { translatedText: string }) {
         >
           <USelectMenu
             v-model="state.projectTemplateId"
-            :items="[{ value: '', label: t('common.none', 'None') }, ...templateOptions]"
+            :items="[{ value: null, label: t('common.none', 'None') }, ...templateOptions]"
             value-key="value"
             label-key="label"
             class="w-full"
@@ -626,7 +629,7 @@ function handleTranslated(result: { translatedText: string }) {
         >
           <USelectMenu
             v-model="state.authorSignatureId"
-            :items="[{ value: '', label: t('common.none', 'None') }, ...signatureOptions]"
+            :items="[{ value: null, label: t('common.none', 'None') }, ...signatureOptions]"
             value-key="value"
             label-key="label"
             class="w-full"
