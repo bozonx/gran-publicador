@@ -1296,6 +1296,7 @@ async function executePublish(force: boolean) {
       ref="llmModalRef"
       v-model:open="showLlmModal"
       :content="currentPublication.content || undefined"
+      :media="currentPublication.media || []"
       :project-id="projectId || undefined"
       @apply="handleApplyLlm"
     />

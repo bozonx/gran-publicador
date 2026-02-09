@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
+import { FORM_SPACING } from '~/utils/design-tokens'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
+import type { MediaItem } from '~/composables/useMedia'
 
 interface Emits {
   (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string }): void
@@ -11,14 +12,15 @@ interface Emits {
 
 interface Props {
   content?: string
+  media?: MediaItem[]
   projectId?: string
 }
 
-const { content, projectId } = defineProps<Props>()
+const { content, media, projectId } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, error, estimateTokens } = useLlm()
+const { generateContent, isGenerating, estimateTokens } = useLlm()
 const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
@@ -105,15 +107,26 @@ const maxTokens = ref(2000)
 // Template selection
 const isTemplatePickerOpen = ref(false)
 
-// Context selection state
-const useContent = ref(false)
+interface LlmContextTag {
+  id: string
+  label: string
+  promptText: string
+  kind: 'content' | 'media'
+}
 
-function truncateText(text: string, length = 120) {
-  if (!text) return ''
-  // Remove newlines and extra spaces
-  const singleLine = text.replace(/[\r\n]+/g, ' ').trim()
-  if (singleLine.length <= length) return singleLine
-  return singleLine.substring(0, length) + '...'
+const contextTags = ref<LlmContextTag[]>([])
+
+function makeContextPromptBlock(tags: LlmContextTag[]): string {
+  const parts = tags
+    .map((t) => t.promptText?.trim())
+    .filter((x): x is string => Boolean(x))
+
+  if (parts.length === 0) return ''
+  return `\n\nContext:\n${parts.join('\n')}`
+}
+
+function removeContextTag(id: string) {
+  contextTags.value = contextTags.value.filter(t => t.id !== id)
 }
 
 // Metadata from last generation
@@ -121,13 +134,7 @@ const metadata = ref<any>(null)
 
 // Token counter with debounce
 const estimatedTokens = computed(() => {
-  let total = estimateTokens(prompt.value)
-  
-  if (useContent.value && content) {
-    total += estimateTokens(content)
-  }
-  
-  return total
+  return estimateTokens(prompt.value + makeContextPromptBlock(contextTags.value))
 })
 
 // Track if there are unsaved changes
@@ -140,9 +147,30 @@ const hasUnsavedChanges = computed(() => {
 // Load templates when modal opens
 watch(isOpen, async (open) => {
   if (open) {
-    if (content) {
-      useContent.value = true
+    const nextTags: LlmContextTag[] = []
+
+    if (content?.trim()) {
+      nextTags.push({
+        id: 'content:1',
+        label: '[Контент 1]',
+        promptText: `Content:\n${content.trim()}`,
+        kind: 'content',
+      })
     }
+
+    const mediaItems = (media || []).filter(m => m?.type === 'IMAGE')
+    for (const item of mediaItems) {
+      const text = (item.description || item.alt || '').trim()
+      if (!text) continue
+      nextTags.push({
+        id: `media:${item.id}`,
+        label: text,
+        promptText: `Image description: ${text}`,
+        kind: 'media',
+      })
+    }
+
+    contextTags.value = nextTags
   } else {
     // Reset form when modal closes
     step.value = 1
@@ -151,7 +179,7 @@ watch(isOpen, async (open) => {
     extractionResult.value = null
     metadata.value = null
     showAdvanced.value = false
-    useContent.value = false
+    contextTags.value = []
     isTemplatePickerOpen.value = false
     selectedFields.content = false
     isApplying.value = false
@@ -191,15 +219,13 @@ async function handleGenerate() {
   }
 
   // Add user message to chat
-  chatMessages.value.push({ role: 'user', content: prompt.value });
-  const currentPrompt = prompt.value;
+  const currentPrompt = prompt.value + makeContextPromptBlock(contextTags.value)
+  chatMessages.value.push({ role: 'user', content: currentPrompt });
   prompt.value = ''; // clear input
 
   const response = await generateContent(currentPrompt, {
     temperature: temperature.value,
     max_tokens: maxTokens.value,
-    content: content,
-    useContent: useContent.value,
   });
 
   if (response) {
@@ -428,38 +454,24 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
       <!-- STEP 1: CHAT -->
       <template v-if="step === 1">
 
-        <!-- Context Block (Compact) -->
-        <UCollapsible v-if="content" class="mb-4">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            class="w-full justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50"
-          >
-            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
-              {{ t('llm.context') }}
-              <span v-if="useContent" class="text-xs font-normal text-primary">
-                ({{ useContent ? 1 : 0 }} {{ t('common.selected') }})
-              </span>
+        <div v-if="contextTags.length > 0" class="mb-4">
+          <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+            <div class="flex flex-wrap gap-1.5">
+              <UButton
+                v-for="ctx in contextTags"
+                :key="ctx.id"
+                size="xs"
+                color="neutral"
+                variant="soft"
+                class="rounded-full! px-2 py-0.5 h-auto max-w-full"
+                @click="removeContextTag(ctx.id)"
+              >
+                <span class="truncate max-w-105">{{ ctx.label }}</span>
+                <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100 shrink-0" />
+              </UButton>
             </div>
-            <template #trailing>
-               <UIcon name="i-heroicons-chevron-down" class="w-4 h-4 transition-transform group-data-[state=open]:rotate-180" />
-            </template>
-          </UButton>
-          
-          <template #content>
-            <div class="mt-2 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50 space-y-2">
-              <!-- Content context -->
-              <div v-if="content" class="flex items-center gap-2">
-                <UCheckbox v-model="useContent" :label="t('llm.useContent')" />
-                <span class="text-xs text-gray-500 truncate flex-1">
-                  {{ truncateText(content) }}
-                </span>
-              </div>
-            </div>
-          </template>
-        </UCollapsible>
+          </div>
+        </div>
 
         <!-- Chat Area -->
         <div 
