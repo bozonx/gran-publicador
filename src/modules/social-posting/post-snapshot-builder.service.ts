@@ -97,12 +97,7 @@ export class PostSnapshotBuilderService {
    * Build the final body text for a single post using templates + channel variations.
    * Applies platform-specific conversions (e.g., MD→HTML for Telegram).
    */
-  private buildBody(
-    post: any,
-    channel: any,
-    publication: any,
-    projectTemplates: any[],
-  ): string {
+  private buildBody(post: any, channel: any, publication: any, projectTemplates: any[]): string {
     let body = SocialPostingBodyFormatter.format(
       {
         title: publication.title,

@@ -1,12 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsInt,
-  IsOptional,
-  IsString,
-  IsUUID,
-  ValidateNested,
-} from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
 
 class SyncContentBlockItemDto {
   @IsOptional()

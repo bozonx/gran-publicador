@@ -77,29 +77,32 @@ export class ProjectTemplatesService {
     });
     const nextOrder = (maxOrder._max.order ?? -1) + 1;
 
-    return this.prisma.$transaction(async tx => {
-      // If setting as default, unset other defaults
-      if (data.isDefault) {
-        await tx.projectTemplate.updateMany({
-          where: { projectId, isDefault: true },
-          data: { isDefault: false },
-        });
-      }
+    return this.prisma.$transaction(
+      async tx => {
+        // If setting as default, unset other defaults
+        if (data.isDefault) {
+          await tx.projectTemplate.updateMany({
+            where: { projectId, isDefault: true },
+            data: { isDefault: false },
+          });
+        }
 
-      return tx.projectTemplate.create({
-        data: {
-          projectId,
-          name: data.name,
-          postType: data.postType ?? null,
-          isDefault: data.isDefault ?? false,
-          order: nextOrder,
-          template: data.template as any,
-        },
-      });
-    }, {
-      maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
-      timeout: TRANSACTION_TIMEOUT.TIMEOUT,
-    });
+        return tx.projectTemplate.create({
+          data: {
+            projectId,
+            name: data.name,
+            postType: data.postType ?? null,
+            isDefault: data.isDefault ?? false,
+            order: nextOrder,
+            template: data.template as any,
+          },
+        });
+      },
+      {
+        maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
+        timeout: TRANSACTION_TIMEOUT.TIMEOUT,
+      },
+    );
   }
 
   /**
@@ -119,28 +122,31 @@ export class ProjectTemplatesService {
     });
     if (!existing) throw new NotFoundException('Project template not found');
 
-    return this.prisma.$transaction(async tx => {
-      // If setting as default, unset other defaults
-      if (data.isDefault) {
-        await tx.projectTemplate.updateMany({
-          where: { projectId, isDefault: true, id: { not: templateId } },
-          data: { isDefault: false },
-        });
-      }
+    return this.prisma.$transaction(
+      async tx => {
+        // If setting as default, unset other defaults
+        if (data.isDefault) {
+          await tx.projectTemplate.updateMany({
+            where: { projectId, isDefault: true, id: { not: templateId } },
+            data: { isDefault: false },
+          });
+        }
 
-      return tx.projectTemplate.update({
-        where: { id: templateId },
-        data: {
-          name: data.name,
-          postType: data.postType !== undefined ? data.postType : undefined,
-          isDefault: data.isDefault,
-          template: data.template ? (data.template as any) : undefined,
-        },
-      });
-    }, {
-      maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
-      timeout: TRANSACTION_TIMEOUT.TIMEOUT,
-    });
+        return tx.projectTemplate.update({
+          where: { id: templateId },
+          data: {
+            name: data.name,
+            postType: data.postType !== undefined ? data.postType : undefined,
+            isDefault: data.isDefault,
+            template: data.template ? (data.template as any) : undefined,
+          },
+        });
+      },
+      {
+        maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
+        timeout: TRANSACTION_TIMEOUT.TIMEOUT,
+      },
+    );
   }
 
   /**
@@ -155,42 +161,41 @@ export class ProjectTemplatesService {
     });
     if (!existing) throw new NotFoundException('Project template not found');
 
-    return this.prisma.$transaction(async tx => {
-      // Delete the project template
-      await tx.projectTemplate.delete({ where: { id: templateId } });
+    return this.prisma.$transaction(
+      async tx => {
+        // Delete the project template
+        await tx.projectTemplate.delete({ where: { id: templateId } });
 
-      // Remove channel variations referencing this template
-      const channels = await tx.channel.findMany({
-        where: { projectId },
-        select: { id: true, preferences: true },
-      });
+        // Remove channel variations referencing this template
+        const channels = await tx.channel.findMany({
+          where: { projectId },
+          select: { id: true, preferences: true },
+        });
 
-      for (const channel of channels) {
-        const prefs = (channel.preferences as any) || {};
-        const templates = prefs.templates as any[] | undefined;
-        if (!templates || !Array.isArray(templates)) continue;
+        for (const channel of channels) {
+          const prefs = (channel.preferences as any) || {};
+          const templates = prefs.templates as any[] | undefined;
+          if (!templates || !Array.isArray(templates)) continue;
 
-        const filtered = templates.filter(
-          (t: any) => t.projectTemplateId !== templateId,
-        );
+          const filtered = templates.filter((t: any) => t.projectTemplateId !== templateId);
 
-        if (filtered.length !== templates.length) {
-          await tx.channel.update({
-            where: { id: channel.id },
-            data: {
-              preferences: { ...prefs, templates: filtered },
-            },
-          });
+          if (filtered.length !== templates.length) {
+            await tx.channel.update({
+              where: { id: channel.id },
+              data: {
+                preferences: { ...prefs, templates: filtered },
+              },
+            });
+          }
         }
-      }
 
-      this.logger.log(
-        `Deleted project template ${templateId} and cleaned up channel variations`,
-      );
-    }, {
-      maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
-      timeout: TRANSACTION_TIMEOUT.TIMEOUT,
-    });
+        this.logger.log(`Deleted project template ${templateId} and cleaned up channel variations`);
+      },
+      {
+        maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
+        timeout: TRANSACTION_TIMEOUT.TIMEOUT,
+      },
+    );
   }
 
   /**
@@ -200,16 +205,19 @@ export class ProjectTemplatesService {
     await this.getProjectOrThrow(projectId);
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
-    return this.prisma.$transaction(async tx => {
-      for (let i = 0; i < data.ids.length; i++) {
-        await tx.projectTemplate.updateMany({
-          where: { id: data.ids[i], projectId },
-          data: { order: i },
-        });
-      }
-    }, {
-      maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
-      timeout: TRANSACTION_TIMEOUT.TIMEOUT,
-    });
+    return this.prisma.$transaction(
+      async tx => {
+        for (let i = 0; i < data.ids.length; i++) {
+          await tx.projectTemplate.updateMany({
+            where: { id: data.ids[i], projectId },
+            data: { order: i },
+          });
+        }
+      },
+      {
+        maxWait: TRANSACTION_TIMEOUT.MAX_WAIT,
+        timeout: TRANSACTION_TIMEOUT.TIMEOUT,
+      },
+    );
   }
 }

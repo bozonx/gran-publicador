@@ -20,6 +20,67 @@ export class LlmPromptTemplatesService {
     private readonly permissionsService: PermissionsService,
   ) {}
 
+  private getPreferencePath() {
+    return {
+      rootKey: 'llmPromptTemplates',
+      availableOrderByProjectIdKey: 'availableOrderByProjectId',
+    };
+  }
+
+  private async getAvailableOrderFromPreferences(params: {
+    userId: string;
+    projectId: string;
+  }): Promise<string[]> {
+    const { userId, projectId } = params;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+
+    const prefs = (user?.preferences as any) || {};
+    const { rootKey, availableOrderByProjectIdKey } = this.getPreferencePath();
+
+    const order = prefs?.[rootKey]?.[availableOrderByProjectIdKey]?.[projectId];
+    if (!Array.isArray(order)) return [];
+
+    return order.filter((id: unknown): id is string => typeof id === 'string');
+  }
+
+  private async setAvailableOrderToPreferences(params: {
+    userId: string;
+    projectId: string;
+    ids: string[];
+  }): Promise<void> {
+    const { userId, projectId, ids } = params;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+
+    const currentPreferences = (user?.preferences as any) || {};
+    const { rootKey, availableOrderByProjectIdKey } = this.getPreferencePath();
+
+    const nextPreferences = {
+      ...currentPreferences,
+      [rootKey]: {
+        ...(currentPreferences?.[rootKey] || {}),
+        [availableOrderByProjectIdKey]: {
+          ...(currentPreferences?.[rootKey]?.[availableOrderByProjectIdKey] || {}),
+          [projectId]: ids,
+        },
+      },
+    };
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: JSON.parse(JSON.stringify(nextPreferences)),
+      },
+    });
+  }
+
   // ─── System templates ───────────────────────────────────────────────
 
   /**
@@ -99,16 +160,32 @@ export class LlmPromptTemplatesService {
     ]);
 
     let projectTemplates: Awaited<ReturnType<typeof this.findAllByProject>> = [];
+    let order: string[] = [];
     if (projectId) {
       await this.permissionsService.checkProjectAccess(projectId, userId);
       projectTemplates = await this.findAllByProject(projectId, false);
+      order = await this.getAvailableOrderFromPreferences({ userId, projectId });
     }
 
     return {
       system: systemTemplates,
       user: userTemplates,
       project: projectTemplates,
+      order,
     };
+  }
+
+  async setAvailableOrder(params: { userId: string; projectId: string; ids: string[] }) {
+    const { userId, projectId, ids } = params;
+
+    await this.permissionsService.checkProjectAccess(projectId, userId);
+
+    const uniqueIds = [
+      ...new Set(ids.filter(id => typeof id === 'string' && id.trim().length > 0)),
+    ];
+    await this.setAvailableOrderToPreferences({ userId, projectId, ids: uniqueIds });
+
+    return { success: true };
   }
 
   // ─── CRUD for user/project templates ────────────────────────────────

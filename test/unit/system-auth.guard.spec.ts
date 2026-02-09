@@ -9,7 +9,10 @@ describe('SystemAuthGuard (unit)', () => {
   let guard: SystemAuthGuard;
   let moduleRef: TestingModule;
 
-  const createMockExecutionContext = (headers: Record<string, any>, ip = '127.0.0.1'): ExecutionContext => {
+  const createMockExecutionContext = (
+    headers: Record<string, any>,
+    ip = '127.0.0.1',
+  ): ExecutionContext => {
     return {
       switchToHttp: () => ({
         getRequest: () => ({

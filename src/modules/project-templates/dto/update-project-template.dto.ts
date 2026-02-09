@@ -1,4 +1,12 @@
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { PostType } from '../../../generated/prisma/index.js';
 import { TemplateBlockDto } from '../../../common/dto/json-objects.dto.js';

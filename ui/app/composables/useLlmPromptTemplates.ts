@@ -15,6 +15,7 @@ export function useLlmPromptTemplates() {
     system: LlmPromptTemplate[];
     user: LlmPromptTemplate[];
     project: LlmPromptTemplate[];
+    order: string[];
   }> {
     isLoading.value = true;
     error.value = null;
@@ -24,6 +25,7 @@ export function useLlmPromptTemplates() {
         system: LlmPromptTemplate[];
         user: LlmPromptTemplate[];
         project: LlmPromptTemplate[];
+        order: string[];
       }>('/llm-prompt-templates/available', { params });
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch templates';
@@ -32,7 +34,28 @@ export function useLlmPromptTemplates() {
         description: error.value || 'Failed to fetch templates',
         color: 'error',
       });
-      return { system: [], user: [], project: [] };
+      return { system: [], user: [], project: [], order: [] };
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function setAvailableOrder(data: { projectId: string; ids: string[] }): Promise<boolean> {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      await $api.post('/llm-prompt-templates/available/order', data);
+      toast.add({ title: t('common.saveSuccess'), color: 'success' });
+      return true;
+    } catch (err: any) {
+      error.value = err.message || 'Failed to save templates order';
+      toast.add({
+        title: t('common.error'),
+        description: error.value || 'Failed to save templates order',
+        color: 'error',
+      });
+      return false;
     } finally {
       isLoading.value = false;
     }
@@ -318,6 +341,7 @@ export function useLlmPromptTemplates() {
     isLoading,
     error,
     fetchAvailableTemplates,
+    setAvailableOrder,
     fetchSystemTemplates,
     fetchUserTemplates,
     fetchProjectTemplates,

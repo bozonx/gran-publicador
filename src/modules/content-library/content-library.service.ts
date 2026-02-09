@@ -1098,7 +1098,7 @@ export class ContentLibraryService {
       const blockData = {
         text: b.text,
         order: b.order,
-        meta: (b.meta ?? {}) as any,
+        meta: b.meta ?? {},
       };
 
       let blockId = b.id;

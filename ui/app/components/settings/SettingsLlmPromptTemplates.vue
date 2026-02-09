@@ -13,10 +13,11 @@ const {
   fetchSystemTemplates,
   fetchUserTemplates,
   fetchProjectTemplates,
+  fetchAvailableTemplates,
+  setAvailableOrder,
   createTemplate,
   updateTemplate,
   deleteTemplate,
-  reorderTemplates,
   hideSystemTemplate,
   unhideSystemTemplate,
   hideTemplate,
@@ -46,6 +47,8 @@ const systemTemplates = ref<LlmPromptTemplate[]>([])
 const userTemplates = ref<LlmPromptTemplate[]>([])
 const projectTemplates = ref<LlmPromptTemplate[]>([])
 const showHiddenOnly = ref(false)
+
+const availableOrder = ref<string[]>([])
 
 // Edit/Create modal
 const isModalOpen = ref(false)
@@ -97,6 +100,29 @@ const currentTemplates = computed<LlmPromptTemplate[]>(() => {
   return [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value]
 })
 
+const orderMap = computed(() => {
+  const map = new Map<string, number>()
+  availableOrder.value.forEach((id, idx) => {
+    map.set(id, idx)
+  })
+  return map
+})
+
+function applyAvailableOrder(list: LlmPromptTemplate[]) {
+  const map = orderMap.value
+  if (!props.projectId) return list
+  if (!map.size) return list
+
+  return [...list].sort((a, b) => {
+    const ai = map.get(a.id)
+    const bi = map.get(b.id)
+    if (ai === undefined && bi === undefined) return 0
+    if (ai === undefined) return 1
+    if (bi === undefined) return -1
+    return ai - bi
+  })
+}
+
 // ─── Filtered templates ─────────────────────────────────────────────
 const filteredTemplates = computed(() => {
   const query = debouncedSearch.value.trim().toLowerCase()
@@ -112,6 +138,14 @@ const filteredTemplates = computed(() => {
       tpl.prompt.toLowerCase().includes(query)
     )
   })
+})
+
+const orderedFilteredTemplates = computed(() => {
+  if (sourceFilter.value !== 'all') return filteredTemplates.value
+  if (!props.projectId) return filteredTemplates.value
+  if (showHiddenOnly.value) return filteredTemplates.value
+  if (searchQuery.value) return filteredTemplates.value
+  return applyAvailableOrder(filteredTemplates.value)
 })
 
 // Validation
@@ -135,6 +169,19 @@ const loadTemplates = async () => {
     projectTemplates.value = await fetchProjectTemplates(props.projectId, includeHidden)
   } else {
     projectTemplates.value = []
+  }
+
+  if (props.projectId) {
+    const available = await fetchAvailableTemplates({ projectId: props.projectId })
+    if (available.order?.length) {
+      availableOrder.value = available.order
+    } else {
+      availableOrder.value = [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value]
+        .filter(tpl => !tpl.isHidden)
+        .map(tpl => tpl.id)
+    }
+  } else {
+    availableOrder.value = []
   }
 }
 
@@ -293,9 +340,8 @@ const copyTargetOptions = computed(() => {
 })
 
 // ─── Reorder ────────────────────────────────────────────────────────
-const isCustomTab = computed(() => sourceFilter.value === 'personal' || sourceFilter.value === 'project')
 const canReorder = computed(() => {
-  return isCustomTab.value && !showHiddenOnly.value && !searchQuery.value
+  return !!props.projectId && sourceFilter.value === 'all' && !showHiddenOnly.value && !searchQuery.value
 })
 
 const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : t('llm.userTemplates_desc'))
@@ -304,7 +350,7 @@ type GroupedTemplates = Array<{ category: string; items: LlmPromptTemplate[] }>
 
 const groupedTemplates = computed<GroupedTemplates>(() => {
   const groups = new Map<string, LlmPromptTemplate[]>()
-  filteredTemplates.value.forEach((tpl) => {
+  orderedFilteredTemplates.value.forEach((tpl) => {
     const key = tpl.category || 'General'
     const list = groups.get(key) || []
     list.push(tpl)
@@ -323,8 +369,9 @@ function rebuildReorderableGroups() {
     return
   }
 
-  const base = sourceFilter.value === 'project' ? projectTemplates.value : userTemplates.value
-  const active = base.filter(tpl => !tpl.isHidden)
+  const active = applyAvailableOrder(
+    [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value].filter(tpl => !tpl.isHidden),
+  )
 
   const groups = new Map<string, LlmPromptTemplate[]>()
   active.forEach((tpl) => {
@@ -339,39 +386,35 @@ function rebuildReorderableGroups() {
     .map(([category, items]) => ({ category, items }))
 }
 
-watch([sourceFilter, showHiddenOnly, searchQuery, userTemplates, projectTemplates], () => {
+watch([sourceFilter, showHiddenOnly, searchQuery, userTemplates, projectTemplates, systemTemplates, availableOrder], () => {
   rebuildReorderableGroups()
 }, { deep: true })
 
+function getNextAvailableOrderFromReorderableGroups(): string[] {
+  const ids: string[] = []
+  reorderableGroups.value.forEach((group) => {
+    group.items.forEach((tpl) => {
+      if (!tpl.isHidden) ids.push(tpl.id)
+    })
+  })
+  return ids
+}
+
 async function handleReorder() {
-  const base = sourceFilter.value === 'project' ? projectTemplates.value : userTemplates.value
-  const ids = base.filter(t => !t.isHidden).map((tpl: LlmPromptTemplate) => tpl.id)
-  await reorderTemplates(ids)
+  if (!props.projectId) return
+  const ids = getNextAvailableOrderFromReorderableGroups()
+  const success = await setAvailableOrder({ projectId: props.projectId, ids })
+  if (success) {
+    availableOrder.value = ids
+  }
 }
 
 function applyCategoryReorder(category: string, orderedItems: LlmPromptTemplate[]) {
-  const baseRef = sourceFilter.value === 'project' ? projectTemplates : userTemplates
-
-  const base = baseRef.value
-  const hidden = base.filter(t => t.isHidden)
-  const active = base.filter(t => !t.isHidden)
-
-  const orderedById = new Map(orderedItems.map(i => [i.id, i]))
-  const nextOrdered: LlmPromptTemplate[] = orderedItems
-    .map(i => orderedById.get(i.id))
-    .filter((v): v is LlmPromptTemplate => !!v)
-
-  let idx = 0
-  const updatedActive = active.map((tpl) => {
-    const tplCategory = tpl.category || 'General'
-    if (tplCategory !== category) return tpl
-
-    const replacement = nextOrdered[idx]
-    idx += 1
-    return replacement || tpl
+  const groups = reorderableGroups.value.map((g) => {
+    if (g.category !== category) return g
+    return { ...g, items: orderedItems }
   })
-
-  baseRef.value = [...updatedActive, ...hidden]
+  reorderableGroups.value = groups
 }
 
 function handleTemplateClick(tpl: LlmPromptTemplate) {

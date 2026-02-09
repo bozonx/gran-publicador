@@ -76,7 +76,7 @@ describe('LlmPromptTemplatesService', () => {
 
       const visibleTemplates = await service.getSystemTemplates('user-1', false);
       expect(visibleTemplates.every(t => !t.isHidden)).toBe(true);
-      expect(visibleTemplates.length).toBe(allTemplates.length - 1);
+      expect(visibleTemplates).toHaveLength(allTemplates.length - 1);
     });
   });
 

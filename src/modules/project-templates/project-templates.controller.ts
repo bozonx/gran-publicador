@@ -23,15 +23,10 @@ import { ReorderProjectTemplatesDto } from './dto/reorder-project-templates.dto.
 @Controller('projects/:projectId/templates')
 @UseGuards(JwtOrApiTokenGuard)
 export class ProjectTemplatesController {
-  constructor(
-    private readonly templatesService: ProjectTemplatesService,
-  ) {}
+  constructor(private readonly templatesService: ProjectTemplatesService) {}
 
   @Get()
-  public async findAll(
-    @Request() req: UnifiedAuthRequest,
-    @Param('projectId') projectId: string,
-  ) {
+  public async findAll(@Request() req: UnifiedAuthRequest, @Param('projectId') projectId: string) {
     return this.templatesService.findAll(projectId, req.user.userId);
   }
 

@@ -24,18 +24,13 @@ import { CreateRelatedPublicationDto } from './dto/create-related-publication.dt
 @Controller('publications')
 @UseGuards(JwtOrApiTokenGuard)
 export class PublicationRelationsController {
-  constructor(
-    private readonly relationsService: PublicationRelationsService,
-  ) {}
+  constructor(private readonly relationsService: PublicationRelationsService) {}
 
   /**
    * Get all relation groups for a publication.
    */
   @Get(':id/relations')
-  public async getRelations(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') id: string,
-  ) {
+  public async getRelations(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     return this.relationsService.getRelations(id, req.user.userId);
   }
 

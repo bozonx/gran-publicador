@@ -107,7 +107,27 @@ const selectedTemplateId = ref<string | null>(null)
 const systemTemplates = ref<LlmPromptTemplate[]>([])
 const userTemplates = ref<LlmPromptTemplate[]>([])
 const projectTemplates = ref<LlmPromptTemplate[]>([])
+const templatesOrder = ref<string[]>([])
 const isLoadingTemplates = ref(false)
+
+const orderedTemplates = computed(() => {
+  const allTemplates = [...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value]
+  if (!projectId || templatesOrder.value.length === 0) return allTemplates
+
+  const byId = new Map(allTemplates.map(t => [t.id, t]))
+  const ordered: LlmPromptTemplate[] = []
+
+  templatesOrder.value.forEach((id) => {
+    const tpl = byId.get(id)
+    if (tpl) ordered.push(tpl)
+  })
+
+  allTemplates.forEach((tpl) => {
+    if (!templatesOrder.value.includes(tpl.id)) ordered.push(tpl)
+  })
+
+  return ordered
+})
 
 // Context selection state
 const useContent = ref(false)
@@ -151,6 +171,7 @@ watch(isOpen, async (open) => {
       systemTemplates.value = templates.system
       userTemplates.value = templates.user
       projectTemplates.value = templates.project
+      templatesOrder.value = templates.order || []
     } finally {
       isLoadingTemplates.value = false
     }
@@ -168,6 +189,7 @@ watch(isOpen, async (open) => {
     showAdvanced.value = false
     useContent.value = false
     selectedTemplateId.value = null
+    templatesOrder.value = []
     selectedFields.content = false
     isApplying.value = false
   }
@@ -194,27 +216,10 @@ const templateOptions = computed(() => {
   const options: Array<{ label: string; value: string | null; disabled?: boolean }> = [
     { label: t('llm.noTemplate'), value: null }
   ]
-  
-  if (systemTemplates.value.length > 0) {
-    options.push({ label: t('llm.systemTemplates'), value: 'system-header', disabled: true })
-    systemTemplates.value.forEach(template => {
-      options.push({ label: `  ${template.name}`, value: template.id })
-    })
-  }
-  
-  if (userTemplates.value.length > 0) {
-    options.push({ label: t('llm.personalTemplates'), value: 'personal-header', disabled: true })
-    userTemplates.value.forEach(template => {
-      options.push({ label: `  ${template.name}`, value: template.id })
-    })
-  }
-  
-  if (projectTemplates.value.length > 0) {
-    options.push({ label: t('llm.projectTemplates'), value: 'project-header', disabled: true })
-    projectTemplates.value.forEach(template => {
-      options.push({ label: `  ${template.name}`, value: template.id })
-    })
-  }
+
+  orderedTemplates.value.forEach((template) => {
+    options.push({ label: template.name, value: template.id })
+  })
   
   return options
 })

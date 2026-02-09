@@ -10,7 +10,10 @@ import {
 } from '../../generated/prisma/index.js';
 
 import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.js';
-import { DEFAULT_STALE_CHANNELS_DAYS, DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
+import {
+  DEFAULT_STALE_CHANNELS_DAYS,
+  DEFAULT_MICROSERVICE_TIMEOUT_MS,
+} from '../../common/constants/global.constants.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -754,16 +757,16 @@ export class ProjectsService {
         // We do not pass locale here, letting the microservice use the stored news item locale
         // to ensure consistency with the locale used during the initial crawling (listing).
 
-          response = await request(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
-            },
-            body: JSON.stringify({
-              fingerprint,
-              mode: config.refreshMode,
-            }),
+        response = await request(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
+          },
+          body: JSON.stringify({
+            fingerprint,
+            mode: config.refreshMode,
+          }),
           headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
           bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         });

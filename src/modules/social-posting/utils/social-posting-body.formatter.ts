@@ -128,7 +128,7 @@ export class SocialPostingBodyFormatter {
 
     if (variation && projectTemplates) {
       // Find the linked project template
-      const projectTemplate = projectTemplates.find(pt => pt.id === variation!.projectTemplateId);
+      const projectTemplate = projectTemplates.find(pt => pt.id === variation.projectTemplateId);
       if (projectTemplate) {
         blocks = this.buildEffectiveBlocks(projectTemplate.template, variation.overrides);
       } else {

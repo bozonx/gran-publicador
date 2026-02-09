@@ -15,6 +15,7 @@ import { LlmPromptTemplatesService } from './llm-prompt-templates.service.js';
 import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
 import { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto.js';
+import { SetAvailableLlmPromptTemplatesOrderDto } from './dto/set-available-llm-prompt-templates-order.dto.js';
 import { AvailableLlmPromptTemplatesQueryDto } from './dto/available-llm-prompt-templates-query.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { TemplateOwnershipGuard } from './guards/template-ownership.guard.js';
@@ -124,5 +125,14 @@ export class LlmPromptTemplatesController {
   @Post('reorder')
   reorder(@Body() reorderDto: ReorderLlmPromptTemplatesDto, @Request() req: any) {
     return this.llmPromptTemplatesService.reorder(reorderDto.ids, req.user.id);
+  }
+
+  @Post('available/order')
+  setAvailableOrder(@Body() dto: SetAvailableLlmPromptTemplatesOrderDto, @Request() req: any) {
+    return this.llmPromptTemplatesService.setAvailableOrder({
+      userId: req.user.id,
+      projectId: dto.projectId,
+      ids: dto.ids,
+    });
   }
 }
