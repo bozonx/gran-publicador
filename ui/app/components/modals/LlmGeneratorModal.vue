@@ -2,6 +2,7 @@
 import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
+import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
 
 interface Emits {
   (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string }): void
@@ -26,7 +27,6 @@ const {
   startRecording,
   stopRecording,
 } = useVoiceRecorder()
-const { fetchAvailableTemplates } = useLlmPromptTemplates()
 const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
@@ -103,31 +103,7 @@ const temperature = ref(0.7)
 const maxTokens = ref(2000)
 
 // Template selection
-const selectedTemplateId = ref<string | null>(null)
-const systemTemplates = ref<LlmPromptTemplate[]>([])
-const userTemplates = ref<LlmPromptTemplate[]>([])
-const projectTemplates = ref<LlmPromptTemplate[]>([])
-const templatesOrder = ref<string[]>([])
-const isLoadingTemplates = ref(false)
-
-const orderedTemplates = computed(() => {
-  const allTemplates = [...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value]
-  if (!projectId || templatesOrder.value.length === 0) return allTemplates
-
-  const byId = new Map(allTemplates.map(t => [t.id, t]))
-  const ordered: LlmPromptTemplate[] = []
-
-  templatesOrder.value.forEach((id) => {
-    const tpl = byId.get(id)
-    if (tpl) ordered.push(tpl)
-  })
-
-  allTemplates.forEach((tpl) => {
-    if (!templatesOrder.value.includes(tpl.id)) ordered.push(tpl)
-  })
-
-  return ordered
-})
+const isTemplatePickerOpen = ref(false)
 
 // Context selection state
 const useContent = ref(false)
@@ -164,18 +140,6 @@ const hasUnsavedChanges = computed(() => {
 // Load templates when modal opens
 watch(isOpen, async (open) => {
   if (open) {
-    // Load templates
-    isLoadingTemplates.value = true
-    try {
-      const templates = await fetchAvailableTemplates({ projectId })
-      systemTemplates.value = templates.system
-      userTemplates.value = templates.user
-      projectTemplates.value = templates.project
-      templatesOrder.value = templates.order || []
-    } finally {
-      isLoadingTemplates.value = false
-    }
-
     if (content) {
       useContent.value = true
     }
@@ -188,41 +152,21 @@ watch(isOpen, async (open) => {
     metadata.value = null
     showAdvanced.value = false
     useContent.value = false
-    selectedTemplateId.value = null
-    templatesOrder.value = []
+    isTemplatePickerOpen.value = false
     selectedFields.content = false
     isApplying.value = false
   }
 })
 
-// Watch template selection and add template text to prompt
-watch(selectedTemplateId, (templateId) => {
-  if (!templateId) return
-  
-  const allTemplates = [...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value]
-  const template = allTemplates.find(t => t.id === templateId)
-  
-  if (template) {
-    // Append template prompt with blank line separator
-    if (prompt.value.trim()) {
-      prompt.value = prompt.value.trimEnd() + '\n\n'
-    }
-    prompt.value += template.prompt
+function handleTemplateSelected(template: LlmPromptTemplate) {
+  if (!template?.prompt?.trim()) return
+
+  if (prompt.value.trim()) {
+    prompt.value = prompt.value.trimEnd() + '\n\n'
   }
-})
 
-// Computed options for template select
-const templateOptions = computed(() => {
-  const options: Array<{ label: string; value: string | null; disabled?: boolean }> = [
-    { label: t('llm.noTemplate'), value: null }
-  ]
-
-  orderedTemplates.value.forEach((template) => {
-    options.push({ label: template.name, value: template.id })
-  })
-  
-  return options
-})
+  prompt.value += template.prompt
+}
 
 // Watch for voice recording errors
 watch(voiceError, (err) => {
@@ -558,17 +502,23 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
           </div>
         </div>
 
-        <!-- Template Selector -->
-        <div v-if="templateOptions.length > 1" class="mb-4">
-          <USelectMenu
-            v-model="selectedTemplateId"
-            :items="templateOptions"
-            value-key="value"
-            label-key="label"
-            :loading="isLoadingTemplates"
+        <!-- Template Picker -->
+        <div class="mb-4">
+          <UButton
+            block
+            color="neutral"
+            variant="soft"
+            icon="i-heroicons-squares-2x2"
             :disabled="isGenerating"
-            :placeholder="t('llm.selectTemplate')"
-            class="w-full"
+            @click="isTemplatePickerOpen = true"
+          >
+            {{ t('llm.selectTemplate') }}
+          </UButton>
+
+          <LlmPromptTemplatePickerModal
+            v-model:open="isTemplatePickerOpen"
+            :project-id="projectId"
+            @select="handleTemplateSelected"
           />
         </div>
 
