@@ -430,6 +430,12 @@ function handleTranslated(result: { translatedText: string }) {
     state.content = result.translatedText
 }
 
+const isQuickGenModalOpen = ref(false)
+
+function handleLlmGenerated(text: string) {
+    state.content = text
+}
+
 </script>
 
 <template>
@@ -543,14 +549,22 @@ function handleTranslated(result: { translatedText: string }) {
               <span>{{ t('post.content') }}</span>
               <CommonInfoTooltip :text="t('post.contentTooltip')" />
             </div>
-            <UButton
-                icon="i-heroicons-language"
-                color="primary"
-                variant="ghost"
-                size="xs"
-                :label="$t('actions.translate')"
-                @click="() => handleOpenTranslateModal()"
-            />
+                <UButton
+                    icon="i-heroicons-sparkles"
+                    color="primary"
+                    variant="ghost"
+                    size="xs"
+                    :label="t('llm.generate')"
+                    @click="isQuickGenModalOpen = true"
+                />
+                <UButton
+                    icon="i-heroicons-language"
+                    color="primary"
+                    variant="ghost"
+                    size="xs"
+                    :label="$t('actions.translate')"
+                    @click="() => handleOpenTranslateModal()"
+                />
           </div>
         </template>
         
@@ -706,6 +720,14 @@ function handleTranslated(result: { translatedText: string }) {
       :source-text="translationSourceText"
       :default-target-lang="state.language"
       @translated="(res) => handleTranslated(res)"
+    />
+
+    <ModalsLlmQuickGeneratorModal
+      v-model:open="isQuickGenModalOpen"
+      :content="state.content"
+      :media="(publication?.media?.map(m => m.media).filter(m => !!m) as any)"
+      :project-id="currentProjectId"
+      @apply="handleLlmGenerated"
     />
 
 </template>

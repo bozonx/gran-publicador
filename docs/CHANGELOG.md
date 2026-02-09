@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **TiptapEditor Link**: Fixed multiple issues with the link function.
+  - Added `defaultProtocol: 'https'` so URLs without protocol are handled correctly.
+  - Fixed BubbleMenu flicker: link menu no longer re-opens on every cursor move within a link.
+  - `setLink()` now validates that text is selected or cursor is inside an existing link before opening.
+  - Added `normalizeUrl()` with XSS protection (blocks `javascript:`, `data:`, `vbscript:` protocols).
+  - Auto-prepends `https://` to URLs without a protocol; allows `mailto:` and `tel:`.
+
 ### Changed
 - **LLM Publication Fields Generation**: Reworked AI generation modal to produce structured output.
   - Publication block: title, tags, description, content — generated in the publication's language.

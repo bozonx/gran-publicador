@@ -11,6 +11,7 @@ import {
     getPostType,
     getPostLanguage 
 } from '~/composables/usePosts'
+import type { PostStatus } from '~/types/posts'
 import type { ChannelTemplateVariation } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
@@ -43,6 +44,18 @@ const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
 const { translateText, isLoading: isTranslating } = useTranslate()
+const { generateContent, extractParameters, isGenerating: isLlmGenerating } = useLlm()
+
+const isQuickGenModalOpen = ref(false)
+
+function handleLlmGenerated(text: string) {
+  formData.content = text
+}
+
+const publicationContent = computed(() => props.publication?.content ?? '')
+const publicationMedia = computed(() => props.publication?.media?.map(m => m.media).filter(Boolean) ?? [])
+
+const projectId = computed(() => props.publication?.projectId ?? props.post?.channel?.projectId ?? '')
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -924,6 +937,16 @@ async function executePublish() {
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.content') }}</span>
                 <div class="flex items-center gap-2">
                     <UButton
+                        v-if="formData.content || publicationContent"
+                        variant="soft"
+                        color="primary"
+                        size="xs"
+                        icon="i-heroicons-sparkles"
+                        @click="isQuickGenModalOpen = true"
+                    >
+                        {{ t('llm.generate') }}
+                    </UButton>
+                    <UButton
                         v-if="channelLanguage"
                         variant="soft"
                         color="primary"
@@ -1074,6 +1097,14 @@ async function executePublish() {
       </div>
 
     </div>
+
+    <ModalsLlmQuickGeneratorModal
+      v-model:open="isQuickGenModalOpen"
+      :content="formData.content || publicationContent"
+      :media="(publicationMedia as any)"
+      :project-id="projectId"
+      @apply="handleLlmGenerated"
+    />
   </div>
 </template>
 

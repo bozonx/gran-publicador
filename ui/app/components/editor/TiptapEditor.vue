@@ -58,6 +58,7 @@ const isLinkMenuOpen = ref(false)
 const linkMenuAnchor = ref<{ from: number; to: number } | null>(null)
 const isSourceMode = ref(false)
 const isTranslateModalOpen = ref(false)
+const isQuickGenModalOpen = ref(false)
 
 // STT Integration
 const { 
@@ -342,6 +343,32 @@ watch(isTranslateModalOpen, (open) => {
   }
 })
 
+// LLM Text Actions
+const {
+  pendingSourceText: llmSourceText,
+  captureSelection: captureLlmSelection,
+  applyResult: applyLlmResult,
+  cancelAction: cancelLlmAction,
+  isActionPending: isLlmActionPending,
+} = useEditorTextActions(editor)
+
+function openQuickGenModal() {
+  const text = captureLlmSelection()
+  if (!text) return
+  isQuickGenModalOpen.value = true
+}
+
+function handleLlmGenerated(text: string) {
+  applyLlmResult(text)
+  isQuickGenModalOpen.value = false
+}
+
+watch(isQuickGenModalOpen, (open) => {
+  if (!open && isLlmActionPending.value) {
+    cancelLlmAction()
+  }
+})
+
 const characterCount = computed(() => {
   return editor.value?.storage.characterCount.characters() || 0
 })
@@ -449,6 +476,14 @@ function getLinkHrefNearCursor(editor: any): string | null {
         v-else
         class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl"
       >
+        <UTooltip :text="t('llm.quickGenerate')">
+            <UButton
+                size="xs"
+                variant="ghost"
+                icon="i-heroicons-sparkles"
+                @click="openQuickGenModal"
+            />
+        </UTooltip>
         <UTooltip :text="t('translate.translateButton', 'Translate')">
           <UButton
             size="xs"
@@ -726,6 +761,12 @@ function getLinkHrefNearCursor(editor: any): string | null {
       :default-target-lang="defaultTargetLang"
       :splitter="translateSplitter"
       @translated="handleTranslated"
+    />
+
+    <ModalsLlmQuickGeneratorModal
+      v-model:open="isQuickGenModalOpen"
+      :selection-text="llmSourceText"
+      @apply="handleLlmGenerated"
     />
   </div>
 </template>
