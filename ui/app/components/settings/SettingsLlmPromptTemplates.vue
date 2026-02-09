@@ -99,8 +99,12 @@ const filteredTemplates = computed(() => {
   const query = debouncedSearch.value.trim().toLowerCase()
 
   return currentTemplateList.value.filter((tpl) => {
+    // Show hidden logic: if not showHidden, hide items that are isHidden
     if (!showHidden.value && tpl.isHidden) return false
-    if (showHidden.value && activeTab.value !== 'system' && !tpl.isHidden) return false
+    
+    // Logic was: if showHidden, hide items that are NOT isHidden (for non-system tabs).
+    // This made it a "Switch to hidden only" toggle.
+    // We remove this to make it a "Include hidden" toggle, consistent with system tab.
 
     const matchesCategory =
       categoryFilter.value === 'ALL' || tpl.category === categoryFilter.value
@@ -281,7 +285,20 @@ const handleReorder = async () => {
 const displayTemplates = computed({
   get: () => filteredTemplates.value,
   set: (value) => {
-    templates.value = value
+    if (showHidden.value || searchQuery.value || categoryFilter.value !== 'ALL') {
+      // If we are showing a filtered/inclusive list, we need to be careful.
+      // If inclusive (showHidden=true), value likely contains all/most items.
+      // For simplicity, if showHidden is true and no other filters, value is the full list.
+      if (showHidden.value && !searchQuery.value && categoryFilter.value === 'ALL') {
+        templates.value = value
+      }
+      // Otherwise reordering is disabled anyway by :disabled prop on VueDraggable
+    } else {
+      // Normal view: value contains only non-hidden templates.
+      // Preserve hidden ones from the original templates.value.
+      const hidden = templates.value.filter(t => t.isHidden)
+      templates.value = [...value, ...hidden]
+    }
   }
 })
 
@@ -341,7 +358,7 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
         />
 
         <div class="flex items-center gap-2">
-          <UToggle v-model="showHidden" />
+          <USwitch v-model="showHidden" />
           <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('llm.showHidden') }}</span>
         </div>
       </div>
@@ -438,29 +455,39 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
       </div>
     </div>
 
-    <!-- User/Project templates list (draggable) -->
+    <!-- User/Project templates list (draggable if not searching/filtering) -->
     <VueDraggable
-      v-else-if="filteredTemplates.length > 0 && !showHidden"
+      v-else-if="isCustomTab && filteredTemplates.length > 0"
       v-model="displayTemplates"
       handle=".drag-handle"
       class="space-y-3"
-      :disabled="searchQuery.length > 0 || categoryFilter !== 'ALL'"
+      :disabled="searchQuery.length > 0 || categoryFilter !== 'ALL' || showHidden"
       @end="handleReorder"
     >
       <div
         v-for="tpl in displayTemplates"
         :key="tpl.id"
         class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group"
+        :class="{ 'opacity-60': tpl.isHidden }"
       >
-        <div class="drag-handle mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+        <div 
+          v-if="!tpl.isHidden && !searchQuery && categoryFilter === 'ALL' && !showHidden"
+          class="drag-handle mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        >
           <UIcon name="i-heroicons-bars-2" class="w-5 h-5" />
         </div>
+        <!-- Align content if no drag handle -->
+        <div v-else class="w-5 mt-1" />
 
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
             <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
               {{ tpl.name }}
             </h4>
+
+            <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle">
+              {{ t('common.hidden') }}
+            </UBadge>
 
             <UBadge size="xs" color="neutral" variant="subtle">
               {{ tpl.category }}
@@ -484,6 +511,7 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
             @click.stop="openCopyModal(tpl)"
           />
           <UButton
+            v-if="!tpl.isHidden"
             icon="i-heroicons-pencil"
             color="neutral"
             variant="ghost"
@@ -492,6 +520,16 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
             @click.stop="openEditModal(tpl)"
           />
           <UButton
+            v-if="tpl.isHidden"
+            icon="i-heroicons-eye"
+            color="primary"
+            variant="ghost"
+            size="xs"
+            :title="t('llm.unhide')"
+            @click.stop="handleUnhide(tpl)"
+          />
+          <UButton
+            v-else
             icon="i-heroicons-eye-slash"
             color="neutral"
             variant="ghost"
@@ -510,51 +548,6 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
         </div>
       </div>
     </VueDraggable>
-
-    <!-- Hidden custom templates list (no drag, show unhide + delete) -->
-    <div v-else-if="showHidden && filteredTemplates.length > 0" class="space-y-3">
-      <div
-        v-for="tpl in filteredTemplates"
-        :key="tpl.id"
-        class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg group opacity-60"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-              {{ tpl.name }}
-            </h4>
-            <UBadge size="xs" color="neutral" variant="subtle">
-              {{ t('common.hidden') }}
-            </UBadge>
-            <UBadge size="xs" color="neutral" variant="subtle">
-              {{ tpl.category }}
-            </UBadge>
-          </div>
-          <p v-if="tpl.description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {{ tpl.description }}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <UButton
-            icon="i-heroicons-eye"
-            color="primary"
-            variant="ghost"
-            size="xs"
-            :title="t('llm.unhide')"
-            @click.stop="handleUnhide(tpl)"
-          />
-          <UButton
-            icon="i-heroicons-trash"
-            color="error"
-            variant="ghost"
-            size="xs"
-            :title="t('common.delete')"
-            @click.stop="handleDelete(tpl)"
-          />
-        </div>
-      </div>
-    </div>
 
     <!-- Create/Edit Modal -->
     <UiAppModal
