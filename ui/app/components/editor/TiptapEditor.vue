@@ -31,6 +31,8 @@ interface Props {
   minHeight?: number
   /** Default target language for translation modal */
   defaultTargetLang?: string
+  /** Project ID for LLM context and templates */
+  projectId?: string
 }
 
 interface Emits {
@@ -45,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   minHeight: 200,
   defaultTargetLang: undefined,
+  projectId: undefined,
 })
 
 const emit = defineEmits<Emits>()
@@ -311,63 +314,47 @@ function insertTable() {
   editor.value?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
 
-// Text actions composable (shared logic for translate, future LLM actions, etc.)
 const {
-  pendingSourceText: translateSourceText,
-  pendingKind: translatePendingKind,
-  isActionPending: isTranslateActionPending,
-  captureSelection: captureTranslateSelection,
-  applyResult: applyTranslateResult,
-  cancelAction: cancelTranslateAction,
+  pendingSourceText: actionSourceText,
+  pendingKind: actionPendingKind,
+  isActionPending: isActionPending,
+  captureSelection: captureEditorSelection,
+  applyResult: applyEditorResult,
+  cancelAction: cancelEditorAction,
 } = useEditorTextActions(editor)
 
-const translateSplitter = computed(() => {
-  return translatePendingKind.value === 'inline' ? 'off' : 'markdown'
+const actionSplitter = computed(() => {
+  return actionPendingKind.value === 'inline' ? 'off' : 'markdown'
 })
 
 function openTranslateModal() {
-  const text = captureTranslateSelection()
+  const text = captureEditorSelection()
   if (!text) return
   isTranslateModalOpen.value = true
 }
 
 function handleTranslated(payload: { translatedText: string; provider: string; model?: string }) {
-  applyTranslateResult(payload.translatedText)
+  applyEditorResult(payload.translatedText)
   isTranslateModalOpen.value = false
 }
 
-// Unlock editor when translate modal is closed without applying result
-watch(isTranslateModalOpen, (open) => {
-  if (!open && isTranslateActionPending.value) {
-    cancelTranslateAction()
+// Unlock editor when action modal is closed without applying result
+watch([isTranslateModalOpen, isQuickGenModalOpen], ([translateOpen, quickGenOpen]) => {
+  if (!translateOpen && !quickGenOpen && isActionPending.value) {
+    cancelEditorAction()
   }
 })
 
-// LLM Text Actions
-const {
-  pendingSourceText: llmSourceText,
-  captureSelection: captureLlmSelection,
-  applyResult: applyLlmResult,
-  cancelAction: cancelLlmAction,
-  isActionPending: isLlmActionPending,
-} = useEditorTextActions(editor)
-
 function openQuickGenModal() {
-  const text = captureLlmSelection()
+  const text = captureEditorSelection()
   if (!text) return
   isQuickGenModalOpen.value = true
 }
 
 function handleLlmGenerated(text: string) {
-  applyLlmResult(text)
+  applyEditorResult(text)
   isQuickGenModalOpen.value = false
 }
-
-watch(isQuickGenModalOpen, (open) => {
-  if (!open && isLlmActionPending.value) {
-    cancelLlmAction()
-  }
-})
 
 const characterCount = computed(() => {
   return editor.value?.storage.characterCount.characters() || 0
@@ -419,7 +406,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
       v-if="editor"
       :editor="editor"
       plugin-key="contextualBubbleMenu"
-      :options="{ offset: 6, placement: 'top', duration: [200, 0] }"
+      :options="{ offset: 6, placement: 'top' }"
       :should-show="({ editor: e }) => {
         if (isSourceMode) return false
         
@@ -481,6 +468,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
                 size="xs"
                 variant="ghost"
                 icon="i-heroicons-sparkles"
+                @mousedown.prevent
                 @click="openQuickGenModal"
             />
         </UTooltip>
@@ -489,6 +477,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
             size="xs"
             variant="ghost"
             icon="i-heroicons-language"
+            @mousedown.prevent
             @click="openTranslateModal"
           />
         </UTooltip>
@@ -757,15 +746,16 @@ function getLinkHrefNearCursor(editor: any): string | null {
 
     <ModalsTranslateModal
       v-model:open="isTranslateModalOpen"
-      :source-text="translateSourceText"
+      :source-text="actionSourceText"
       :default-target-lang="defaultTargetLang"
-      :splitter="translateSplitter"
+      :splitter="actionSplitter"
       @translated="handleTranslated"
     />
 
     <ModalsLlmQuickGeneratorModal
       v-model:open="isQuickGenModalOpen"
-      :selection-text="llmSourceText"
+      :selection-text="actionSourceText"
+      :project-id="props.projectId"
       @apply="handleLlmGenerated"
     />
   </div>

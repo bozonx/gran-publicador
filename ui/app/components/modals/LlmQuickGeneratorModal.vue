@@ -235,7 +235,7 @@ async function handleGenerate() {
 
           <LlmPromptTemplatePickerModal
             v-model:open="isTemplatePickerOpen"
-            :project-id="projectId"
+            :project-id="props.projectId"
             @select="handleTemplateSelected"
           />
         </div>

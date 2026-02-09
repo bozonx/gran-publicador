@@ -974,6 +974,7 @@ async function executePublish() {
                 :placeholder="t('post.contentOverridePlaceholder')"
                 :min-height="150"
                 :default-target-lang="channelLanguage"
+                :project-id="projectId"
             />
             <div class="flex justify-between items-start text-xs text-gray-500 dark:text-gray-400">
                <span v-if="!formData.content" class="italic">

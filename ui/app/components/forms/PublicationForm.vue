@@ -596,6 +596,7 @@ function handleLlmGenerated(text: string) {
           :placeholder="t('post.contentPlaceholder')"
           :min-height="250"
           :default-target-lang="state.language"
+          :project-id="currentProjectId"
         />
       </UFormField>
 
