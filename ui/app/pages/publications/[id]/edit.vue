@@ -88,7 +88,13 @@ async function handleSaveLlmMeta(meta: Record<string, any>) {
       },
       { silent: true },
     )
-  } catch {
+  } catch (e: any) {
+    // Non-blocking diagnostics: meta autosave should not interrupt user flow
+    // but we still want to know why it failed (e.g., 413 payload too large).
+    console.warn('[LLM] Failed to autosave publication meta', {
+      publicationId: currentPublication.value.id,
+      error: e,
+    })
     // Intentionally ignore: meta autosave should not block user flow
   }
 }

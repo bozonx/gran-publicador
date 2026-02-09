@@ -24,6 +24,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       logger: false, // Disable Fastify's default logger in favor of NestJS/Pino logger
+      bodyLimit: 5 * 1024 * 1024,
       trustProxy: true,
     }),
     {
