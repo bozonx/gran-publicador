@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -55,6 +55,7 @@ const toast = useToast()
 const resolvedPlaceholder = computed(() => props.placeholder ?? t('editor.placeholder', 'Write something...'))
 const linkUrlInput = ref('')
 const isLinkMenuOpen = ref(false)
+const linkMenuAnchor = ref<{ from: number; to: number } | null>(null)
 const isSourceMode = ref(false)
 const isTranslateModalOpen = ref(false)
 
@@ -189,6 +190,41 @@ const editor = useEditor({
       emit('update:modelValue', markdown)
     }
   },
+  onSelectionUpdate: ({ editor }) => {
+    if (isSourceMode.value) return
+
+    const { from, to, empty } = editor.state.selection
+    const isInLink = editor.isActive('link')
+
+    // Auto-open link editor when the cursor is inside a link.
+    if (empty && isInLink) {
+      const href = editor.getAttributes('link').href
+      if (typeof href === 'string') {
+        linkUrlInput.value = href
+      } else {
+        linkUrlInput.value = ''
+      }
+      isLinkMenuOpen.value = true
+      linkMenuAnchor.value = { from, to }
+      return
+    }
+
+    // Prevent sticky behavior: close when leaving a link or when selection changes.
+    if (!isLinkMenuOpen.value) return
+
+    if (!isInLink) {
+      isLinkMenuOpen.value = false
+      linkMenuAnchor.value = null
+      return
+    }
+
+    const anchor = linkMenuAnchor.value
+    if (!anchor) return
+    if (anchor.from !== from || anchor.to !== to) {
+      isLinkMenuOpen.value = false
+      linkMenuAnchor.value = null
+    }
+  },
   onBlur: () => {
     emit('blur')
   },
@@ -225,6 +261,10 @@ function setLink() {
   const previousUrl = editor.value?.getAttributes('link').href
   linkUrlInput.value = previousUrl || ''
   isLinkMenuOpen.value = true
+  if (editor.value) {
+    const { from, to } = editor.value.state.selection
+    linkMenuAnchor.value = { from, to }
+  }
   
   // Ensure the editor has focus so the BubbleMenu is positioned correctly
   nextTick(() => {
@@ -235,6 +275,7 @@ function setLink() {
 function cancelLink() {
   isLinkMenuOpen.value = false
   linkUrlInput.value = ''
+  linkMenuAnchor.value = null
   editor.value?.commands.focus()
 }
 
@@ -245,11 +286,13 @@ function applyLink() {
     editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
   }
   isLinkMenuOpen.value = false
+  linkMenuAnchor.value = null
 }
 
 function removeLink() {
   editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
   isLinkMenuOpen.value = false
+  linkMenuAnchor.value = null
 }
 
 function insertTable() {
