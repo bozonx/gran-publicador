@@ -12,7 +12,7 @@ const props = defineProps<{
   projectPreferences?: any
 }>()
 
-const { update: updateProject } = useProjects()
+const { updateProject } = useProjects()
 const { t } = useI18n()
 const { user } = useAuth()
 const {
@@ -352,6 +352,8 @@ async function handleDragEnd() {
                 >
                   {{ lang }}
                 </span>
+                <span v-if="sig.user && sig.userId !== user?.id" class="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 ml-1">
+                  <UIcon name="i-heroicons-user" class="w-3 h-3" />
                   {{ sig.user.fullName || sig.user.telegramUsername || sig.userId }}
                 </span>
                 <span v-if="projectPreferences?.defaultSignatures?.[user?.id || ''] === sig.id" class="text-[10px] text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 ml-1">
