@@ -44,6 +44,7 @@ export interface LlmResponse {
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly config: LlmConfig;
+  private readonly defaultRequestTimeoutSecs: number;
 
   /**
    * Initializes the LlmService.
@@ -51,6 +52,8 @@ export class LlmService {
    */
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<LlmConfig>('llm')!;
+    this.defaultRequestTimeoutSecs =
+      this.configService.get<number>('app.microserviceRequestTimeoutSeconds') ?? 30;
   }
 
   /**
@@ -92,7 +95,7 @@ export class LlmService {
     this.logger.debug(`Sending request to LLM Router: ${url}`);
 
     try {
-      const timeout = (this.config.timeoutSecs || 120) * 1000;
+      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
       const response = await request(url, {
         method: 'POST',
         headers: {
@@ -174,7 +177,7 @@ export class LlmService {
     this.logger.debug(`Sending extraction request to LLM Router: ${url}`);
 
     try {
-      const timeout = (this.config.timeoutSecs || 120) * 1000;
+      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
       const response = await request(url, {
         method: 'POST',
         headers: {

@@ -3,7 +3,6 @@ import { logger } from '~/utils/logger';
 export interface ApiOptions {
   headers?: Record<string, string>;
   onUploadProgress?: (progress: number) => void;
-  timeoutMs?: number;
   [key: string]: any;
 }
 
@@ -11,8 +10,6 @@ interface NormalizedApiError extends Error {
   status?: number;
   data?: unknown;
 }
-
-const DEFAULT_TIMEOUT_MS = 20_000;
 
 const toMessage = (value: unknown): string => {
   if (typeof value === 'string') return value;
@@ -138,11 +135,6 @@ export const useApi = () => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-      if (timeoutMs > 0) {
-        xhr.timeout = timeoutMs;
-      }
-
       // Track upload progress
       if (options.onUploadProgress) {
         xhr.upload.addEventListener('progress', event => {
@@ -236,21 +228,13 @@ export const useApi = () => {
       headers.Authorization = `Bearer ${accessToken.value}`;
     }
 
-    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const controller = import.meta.client ? new AbortController() : undefined;
-    const timeoutId =
-      import.meta.client && controller && timeoutMs > 0
-        ? window.setTimeout(() => controller.abort(), timeoutMs)
-        : undefined;
-
     try {
       return await $fetch<T>(`${apiBase}${url}`, {
         ...options,
         headers,
-        signal: controller?.signal,
       });
     } catch (error: any) {
-      if (isAbortError(error) || isTimeoutError(error)) {
+      if (isTimeoutError(error)) {
         throw createApiError('Request timeout', { status: 0 });
       }
 
@@ -273,10 +257,6 @@ export const useApi = () => {
       }
 
       throw normalizeFetchError(error);
-    } finally {
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
-      }
     }
   };
 
