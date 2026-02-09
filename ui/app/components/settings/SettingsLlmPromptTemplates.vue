@@ -442,7 +442,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
   <UiAppCard :title="t('llm.manageTemplates')" :description="title">
     <template #actions>
       <UButton
-        v-if="sourceFilter === 'personal' || sourceFilter === 'project'"
+        v-if="sourceFilter !== 'system'"
         icon="i-heroicons-plus"
         color="primary"
         variant="soft"
@@ -545,11 +545,11 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
           <div
             v-for="tpl in group.items"
             :key="tpl.id"
-            class="flex items-start gap-3 p-4 rounded-lg group cursor-pointer border transition-colors relative"
+            class="flex items-start gap-3 p-4 rounded-lg group border transition-colors relative"
             :class="[
               tpl.isSystem 
-                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50' 
-                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800',
+                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50 cursor-default' 
+                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:border-gray-700 cursor-pointer',
               { 'opacity-60': tpl.isHidden }
             ]"
             @click="handleTemplateClick(tpl)"
@@ -613,8 +613,8 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
             class="flex items-start gap-3 p-4 rounded-lg group border transition-colors relative"
             :class="[
               tpl.isSystem 
-                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50' 
-                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800',
+                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50 cursor-default' 
+                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:border-gray-700',
               { 'opacity-60': tpl.isHidden }
             ]"
             @click="handleTemplateClick(tpl)"
