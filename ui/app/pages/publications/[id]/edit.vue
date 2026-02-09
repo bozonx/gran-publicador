@@ -325,26 +325,54 @@ async function handleDelete() {
     }
 }
 
-async function handleApplyLlm(data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> }) {
+async function handleApplyLlm(data: {
+  publication?: { title?: string; description?: string; tags?: string; content?: string }
+  posts?: Array<{ channelId: string; content?: string; tags?: string }>
+  meta?: Record<string, any>
+}) {
   if (!currentPublication.value) return
   
   try {
-    const result = await updatePublication(currentPublication.value.id, data)
-    if (result) {
-      toast.add({
-        title: t('llm.applySuccess'),
-        color: 'success'
-      })
-      // Notify modal of success
-      llmModalRef.value?.onApplySuccess()
+    // Update publication fields
+    if (data.publication && Object.keys(data.publication).length > 0) {
+      const pubPayload: Record<string, any> = { ...data.publication }
+      if (data.meta) pubPayload.meta = data.meta
+      await updatePublication(currentPublication.value.id, pubPayload)
+    } else if (data.meta) {
+      await updatePublication(currentPublication.value.id, { meta: data.meta })
     }
+
+    // Update post fields
+    if (data.posts && data.posts.length > 0) {
+      const postMap = new Map(
+        (currentPublication.value.posts || []).map((p: any) => [p.channelId, p.id])
+      )
+      for (const postData of data.posts) {
+        const postId = postMap.get(postData.channelId)
+        if (!postId) continue
+        const postPayload: Record<string, any> = {}
+        if (postData.content !== undefined) postPayload.content = postData.content
+        if (postData.tags !== undefined) postPayload.tags = postData.tags
+        if (Object.keys(postPayload).length > 0) {
+          await updatePost(postId, postPayload, { silent: true })
+        }
+      }
+    }
+
+    // Refresh publication to reflect all changes
+    await fetchPublication(currentPublication.value.id)
+
+    toast.add({
+      title: t('llm.applySuccess'),
+      color: 'success'
+    })
+    llmModalRef.value?.onApplySuccess()
   } catch (e: any) {
     toast.add({
       title: t('llm.applyError'),
       description: t('common.saveError'),
       color: 'error'
     })
-    // Notify modal of error so it can stay open
     llmModalRef.value?.onApplyError()
   }
 }
@@ -1340,6 +1368,14 @@ async function executePublish(force: boolean) {
       :project-id="projectId || undefined"
       :publication-meta="normalizedPublicationMeta"
       :post-type="currentPublication.postType || undefined"
+      :publication-language="currentPublication.language || undefined"
+      :post-channels="(currentPublication.posts || []).map((p: any) => ({
+        channelId: p.channelId,
+        channelName: p.channel?.name || '',
+        language: p.channel?.language || currentPublication!.language,
+        tags: p.channel?.tags ? p.channel.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+        socialMedia: p.channel?.socialMedia,
+      }))"
       @apply="handleApplyLlm"
       @save-meta="handleSaveLlmMeta"
     />

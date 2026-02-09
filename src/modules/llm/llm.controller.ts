@@ -2,6 +2,7 @@ import { Body, Controller, Post, UseGuards, Logger } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { LlmService } from './llm.service.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
+import { GeneratePublicationFieldsDto } from './dto/generate-publication-fields.dto.js';
 
 /**
  * Controller for LLM content generation endpoints.
@@ -16,6 +17,7 @@ export class LlmController {
   /**
    * Extract publication parameters using LLM.
    * POST /api/v1/llm/extract-parameters
+   * @deprecated Use generate-publication-fields instead.
    */
   @Post('extract-parameters')
   async extractParameters(@Body() dto: GenerateContentDto) {
@@ -30,7 +32,6 @@ export class LlmController {
       parsed = JSON.parse(cleanJson);
     } catch (e: any) {
       this.logger.error(`Failed to parse LLM JSON response: ${e.message}`);
-      // If parsing fails, we could return raw content in one of the fields but better to throw error or return empty
     }
 
     return {
@@ -38,6 +39,22 @@ export class LlmController {
       description: parsed.description || '',
       tags: parsed.tags || '',
       content: parsed.content || '',
+      metadata: response._router,
+      usage: response.usage,
+    };
+  }
+
+  /**
+   * Generate publication fields and per-channel post fields using LLM.
+   * POST /api/v1/llm/generate-publication-fields
+   */
+  @Post('generate-publication-fields')
+  async generatePublicationFields(@Body() dto: GeneratePublicationFieldsDto) {
+    const response = await this.llmService.generatePublicationFields(dto);
+    const parsed = this.llmService.parsePublicationFieldsResponse(response);
+
+    return {
+      ...parsed,
       metadata: response._router,
       usage: response.usage,
     };

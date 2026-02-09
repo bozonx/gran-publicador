@@ -120,4 +120,262 @@ describe('LlmService', () => {
       expect(service.extractContent(response)).toBe('Test content');
     });
   });
+
+  describe('parsePublicationFieldsResponse', () => {
+    it('should parse valid publication fields JSON', () => {
+      const response: any = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                publication: {
+                  title: 'Test Title',
+                  description: 'Test Description',
+                  content: 'Test Content',
+                  tags: ['tag1', 'tag2', 'tag3'],
+                },
+                posts: [
+                  {
+                    channelId: 'ch-1',
+                    content: 'Translated content',
+                    tags: ['тег1', 'тег2'],
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.publication.title).toBe('Test Title');
+      expect(result.publication.description).toBe('Test Description');
+      expect(result.publication.content).toBe('Test Content');
+      expect(result.publication.tags).toEqual(['tag1', 'tag2', 'tag3']);
+      expect(result.posts).toHaveLength(1);
+      expect(result.posts[0].channelId).toBe('ch-1');
+      expect(result.posts[0].content).toBe('Translated content');
+      expect(result.posts[0].tags).toEqual(['тег1', 'тег2']);
+    });
+
+    it('should handle empty posts array', () => {
+      const response: any = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                publication: {
+                  title: 'Title',
+                  description: '',
+                  content: 'Content',
+                  tags: [],
+                },
+                posts: [],
+              }),
+            },
+          },
+        ],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.publication.title).toBe('Title');
+      expect(result.publication.tags).toEqual([]);
+      expect(result.posts).toEqual([]);
+    });
+
+    it('should handle missing publication fields gracefully', () => {
+      const response: any = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                publication: {},
+                posts: [],
+              }),
+            },
+          },
+        ],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.publication.title).toBe('');
+      expect(result.publication.description).toBe('');
+      expect(result.publication.content).toBe('');
+      expect(result.publication.tags).toEqual([]);
+    });
+
+    it('should handle invalid JSON gracefully', () => {
+      const response: any = {
+        choices: [{ message: { content: 'not valid json' } }],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.publication.title).toBe('');
+      expect(result.publication.tags).toEqual([]);
+      expect(result.posts).toEqual([]);
+    });
+
+    it('should handle JSON wrapped in markdown code blocks', () => {
+      const json = JSON.stringify({
+        publication: { title: 'T', description: 'D', content: 'C', tags: ['a'] },
+        posts: [],
+      });
+      const response: any = {
+        choices: [{ message: { content: '```json\n' + json + '\n```' } }],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.publication.title).toBe('T');
+      expect(result.publication.tags).toEqual(['a']);
+    });
+
+    it('should convert non-string tags to strings', () => {
+      const response: any = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                publication: { title: '', description: '', content: '', tags: [1, 2, 'three'] },
+                posts: [{ channelId: 'ch-1', content: '', tags: [true, 'tag'] }],
+              }),
+            },
+          },
+        ],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.publication.tags).toEqual(['1', '2', 'three']);
+      expect(result.posts[0].tags).toEqual(['true', 'tag']);
+    });
+
+    it('should handle multiple post blocks', () => {
+      const response: any = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                publication: { title: 'T', description: 'D', content: 'C', tags: ['pub-tag'] },
+                posts: [
+                  { channelId: 'ch-1', content: '', tags: ['ch1-tag'] },
+                  { channelId: 'ch-2', content: 'Translated', tags: ['ch2-tag1', 'ch2-tag2'] },
+                  { channelId: 'ch-3', content: '', tags: [] },
+                ],
+              }),
+            },
+          },
+        ],
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+
+      expect(result.posts).toHaveLength(3);
+      expect(result.posts[0].channelId).toBe('ch-1');
+      expect(result.posts[1].content).toBe('Translated');
+      expect(result.posts[2].tags).toEqual([]);
+    });
+  });
+
+  describe('generatePublicationFields', () => {
+    it('should send correct request structure to LLM Router', async () => {
+      const dto = {
+        prompt: 'Source text for generation',
+        publicationLanguage: 'ru-RU',
+        channels: [
+          {
+            channelId: 'ch-1',
+            channelName: 'Channel EN',
+            language: 'en-US',
+            tags: ['tech', 'news'],
+          },
+          { channelId: 'ch-2', channelName: 'Channel RU', language: 'ru-RU', tags: [] },
+        ],
+      };
+
+      const mockResponse = {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-4',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: JSON.stringify({
+                publication: { title: 'T', description: 'D', content: 'C', tags: ['t1'] },
+                posts: [{ channelId: 'ch-1', content: 'EN content', tags: ['tech'] }],
+              }),
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      };
+
+      const client = mockAgent.get('http://localhost:8080');
+      client
+        .intercept({
+          path: '/api/v1/chat/completions',
+          method: 'POST',
+        })
+        .reply(200, mockResponse);
+
+      const result = await service.generatePublicationFields(dto);
+
+      expect(result.choices[0].message.content).toBeTruthy();
+    });
+
+    it('should mark same-language channels as generateContent=false', async () => {
+      const dto = {
+        prompt: 'Source text',
+        publicationLanguage: 'ru-RU',
+        channels: [
+          { channelId: 'ch-same', channelName: 'Same Lang', language: 'ru-RU' },
+          { channelId: 'ch-diff', channelName: 'Diff Lang', language: 'en-US' },
+        ],
+      };
+
+      let capturedBody: any;
+      const client = mockAgent.get('http://localhost:8080');
+      client
+        .intercept({
+          path: '/api/v1/chat/completions',
+          method: 'POST',
+        })
+        .reply(200, opts => {
+          capturedBody = JSON.parse(opts.body as string);
+          return {
+            id: 'id',
+            object: 'chat.completion',
+            created: Date.now(),
+            model: 'test',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: '{"publication":{},"posts":[]}' },
+                finish_reason: 'stop',
+              },
+            ],
+          };
+        });
+
+      await service.generatePublicationFields(dto);
+
+      const userMsg = capturedBody.messages.find((m: any) => m.role === 'user');
+      const instruction = JSON.parse(
+        userMsg.content.split('=== SOURCE TEXT ===')[0].replace('=== INSTRUCTION ===\n', '').trim(),
+      );
+
+      const sameLangChannel = instruction.channels.find((c: any) => c.channelId === 'ch-same');
+      const diffLangChannel = instruction.channels.find((c: any) => c.channelId === 'ch-diff');
+
+      expect(sameLangChannel.generateContent).toBe(false);
+      expect(diffLangChannel.generateContent).toBe(true);
+    });
+  });
 });

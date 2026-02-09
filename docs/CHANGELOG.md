@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **LLM Publication Fields Generation**: Reworked AI generation modal to produce structured output.
+  - Publication block: title, tags, description, content — generated in the publication's language.
+  - Per-channel post blocks: content (only if channel language differs) and tags (with exact channel tag matching).
+  - New backend endpoint `POST /llm/generate-publication-fields` with dedicated DTO and system prompt.
+  - New `PUBLICATION_FIELDS_SYSTEM_PROMPT` constant for multilingual structured generation.
+  - Removed "Regenerate" button from Step 2.
+  - Skip button now disabled when no context is available.
+  - Channel tags matching: LLM uses channel's predefined tags letter-for-letter when relevant.
+
 - **LLM Prompt Templates**: Major refactor of the template system.
   - Three template sources: System (immutable), Personal (per-user), Project (per-project).
   - Categories are now free-form strings instead of a fixed enum (e.g. "General", "SEO", "Hooks").

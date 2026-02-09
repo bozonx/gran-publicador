@@ -4,9 +4,34 @@ import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
 import type { MediaItem } from '~/composables/useMedia'
+import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
+import { DialogTitle, DialogDescription } from 'reka-ui'
+
+interface PostChannelInfo {
+  channelId: string
+  channelName: string
+  language: string
+  tags?: string[]
+  socialMedia?: string
+}
+
+interface ApplyData {
+  publication?: {
+    title?: string
+    description?: string
+    tags?: string
+    content?: string
+  }
+  posts?: Array<{
+    channelId: string
+    content?: string
+    tags?: string
+  }>
+  meta?: Record<string, any>
+}
 
 interface Emits {
-  (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> }): void
+  (e: 'apply', data: ApplyData): void
   (e: 'save-meta', meta: Record<string, any>): void
   (e: 'close'): void
 }
@@ -17,13 +42,15 @@ interface Props {
   projectId?: string
   publicationMeta?: Record<string, any>
   postType?: string
+  publicationLanguage?: string
+  postChannels?: PostChannelInfo[]
 }
 
-const { content, media, projectId, publicationMeta, postType } = defineProps<Props>()
+const { content, media, projectId, publicationMeta, postType, publicationLanguage, postChannels } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, estimateTokens } = useLlm()
+const { generateContent, isGenerating, estimateTokens, generatePublicationFields } = useLlm()
 const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
@@ -52,44 +79,30 @@ const modalDescription = computed(() => {
   return step.value === 1 ? t('llm.step1Description') : t('llm.step2Description')
 })
 
-// Step 2: Extraction state
-const extractionResult = ref<LlmExtractResponse | null>(null)
-const selectedFields = reactive({
+// Step 2: Fields generation state
+const fieldsResult = ref<LlmPublicationFieldsResult | null>(null)
+const pubSelectedFields = reactive({
   title: true,
   description: true,
   tags: true,
-  content: false // Default to false if not from Step 1 next, will be updated logic-wise
+  content: false,
 })
+
+interface PostSelectedFields {
+  content: boolean
+  tags: boolean
+}
+const postSelectedFields = ref<Record<string, PostSelectedFields>>({})
+
 const isExtracting = ref(false)
 const isApplying = ref(false)
 
 const modalRootRef = ref<HTMLElement | null>(null)
-
 const promptInputRef = ref()
 const step2TitleInputRef = ref()
-const step2DescriptionTextareaRef = ref()
-const step2ContentTextareaRef = ref()
 
 const isStep1Open = computed(() => isOpen.value && step.value === 1)
 const isStep2Open = computed(() => isOpen.value && step.value === 2)
-
-const step2FocusCandidates = computed(() => {
-  const candidates: Array<{ target: any }> = []
-
-  if (selectedFields.title) {
-    candidates.push({ target: step2TitleInputRef })
-  }
-
-  if (selectedFields.description) {
-    candidates.push({ target: step2DescriptionTextareaRef })
-  }
-
-  if (selectedFields.content) {
-    candidates.push({ target: step2ContentTextareaRef })
-  }
-
-  return candidates
-})
 
 useModalAutoFocus({
   open: isStep1Open,
@@ -100,13 +113,13 @@ useModalAutoFocus({
 useModalAutoFocus({
   open: isStep2Open,
   root: modalRootRef,
-  candidates: step2FocusCandidates,
+  candidates: [{ target: step2TitleInputRef }],
 })
 
 // Form common state
 const showAdvanced = ref(false)
 const temperature = ref(0.7)
-const maxTokens = ref(2000)
+const maxTokens = ref(4000)
 
 // Template selection
 const isTemplatePickerOpen = ref(false)
@@ -139,7 +152,6 @@ function truncateText(text: string, maxChars: number): string {
 
 function getCleanedContextText(ctx: LlmContextTag): string {
   if (!ctx.promptText) return ctx.label
-  // Remove XML tags and return cleaned text
   return ctx.promptText
     .replace(/<[^>]*>/g, '')
     .trim()
@@ -189,6 +201,8 @@ function getContextTagsForMessage(message: ChatMessage): LlmContextTag[] {
   return ids.map(id => map.get(id)).filter((x): x is LlmContextTag => Boolean(x))
 }
 
+const hasContext = computed(() => contextTags.value.length > 0)
+
 // Metadata from last generation
 const metadata = ref<any>(null)
 
@@ -215,9 +229,38 @@ const estimatedTokens = computed(() => {
 // Track if there are unsaved changes
 const hasUnsavedChanges = computed(() => {
   if (step.value === 1 && chatMessages.value.length > 0) return true
-  if (step.value === 2 && extractionResult.value) return true
+  if (step.value === 2 && fieldsResult.value) return true
   return false
 })
+
+// Helper: get channel info for a post result
+function getChannelInfo(channelId: string): PostChannelInfo | undefined {
+  return postChannels?.find(ch => ch.channelId === channelId)
+}
+
+// Helper: check if channel has same language as publication
+function isSameLanguage(channelLang: string): boolean {
+  if (!publicationLanguage || !channelLang) return true
+  const normalize = (l: string) => l.toLowerCase().replace(/[-_]/g, '').trim()
+  return normalize(publicationLanguage) === normalize(channelLang)
+}
+
+// Channels that have posts (for Step 2 display)
+const channelsWithPosts = computed(() => postChannels || [])
+
+// Initialize post selected fields when fieldsResult changes
+function initPostSelectedFields() {
+  const fields: Record<string, PostSelectedFields> = {}
+  for (const ch of channelsWithPosts.value) {
+    const sameLanguage = isSameLanguage(ch.language)
+    const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0
+    fields[ch.channelId] = {
+      content: !sameLanguage,
+      tags: hasChannelTags || !sameLanguage,
+    }
+  }
+  postSelectedFields.value = fields
+}
 
 // Load templates when modal opens
 watch(isOpen, async (open) => {
@@ -258,13 +301,14 @@ watch(isOpen, async (open) => {
     step.value = 1
     chatMessages.value = []
     prompt.value = ''
-    extractionResult.value = null
+    fieldsResult.value = null
     metadata.value = null
     showAdvanced.value = false
     contextTags.value = []
     isTemplatePickerOpen.value = false
-    selectedFields.content = false
+    pubSelectedFields.content = false
     isApplying.value = false
+    postSelectedFields.value = {}
   }
 })
 
@@ -288,8 +332,6 @@ watch(voiceError, (err) => {
     })
   }
 })
-
-const { extractParameters } = useLlm()
 
 async function handleGenerate() {
   if (!prompt.value.trim()) {
@@ -320,27 +362,23 @@ async function handleGenerate() {
     metadata.value = response.metadata || null;
     persistChatMeta()
   } else {
-    // Error handling already in useLlm, but we can add toast for better UX
-    const errorDescription = t('llm.errorMessage');
     toast.add({
       title: t('llm.error'),
-      description: errorDescription,
+      description: t('llm.errorMessage'),
       color: 'error',
     });
   }
 }
 
 function handleSkip() {
-  // Skip chat and go directly to Step 2 with current content
+  // Skip chat — use context as source text
+  const contextText = makeContextPromptBlock(contextTags.value).trim()
+  if (!contextText) return
+
   step.value = 2
-  selectedFields.content = false // Don't generate content if skipped
-  // Don't call LLM - user explicitly skipped
-  extractionResult.value = {
-    title: '',
-    description: '',
-    tags: '',
-    content: content || ''
-  }
+  pubSelectedFields.content = false
+  initPostSelectedFields()
+  handleFieldsGeneration(contextText)
 }
 
 function handleNext() {
@@ -356,23 +394,35 @@ function handleNext() {
   }
   
   step.value = 2
-  selectedFields.content = true // Generate content if coming from chat
-  handleGenerationStep2(lastAssistantMessage.content)
+  pubSelectedFields.content = true
+  initPostSelectedFields()
+  handleFieldsGeneration(lastAssistantMessage.content)
 }
 
-async function handleGenerationStep2(contentSource: string) {
+async function handleFieldsGeneration(sourceText: string) {
   isExtracting.value = true
-  extractionResult.value = null
+  fieldsResult.value = null
   
   try {
-    const response = await extractParameters(contentSource, {
-      temperature: temperature.value, // Use user's temperature setting
-      max_tokens: maxTokens.value,
-    })
+    const channelsForApi: ChannelInfoForLlm[] = channelsWithPosts.value.map(ch => ({
+      channelId: ch.channelId,
+      channelName: ch.channelName,
+      language: ch.language,
+      tags: ch.tags,
+    }))
+
+    const response = await generatePublicationFields(
+      sourceText,
+      publicationLanguage || 'en-US',
+      channelsForApi,
+      {
+        temperature: temperature.value,
+        max_tokens: maxTokens.value,
+      }
+    )
     
     if (response) {
-      // Validate that we got some data
-      const hasData = response.title || response.description || response.tags || response.content
+      const hasData = response.publication.title || response.publication.description || response.publication.tags.length > 0 || response.publication.content
       
       if (!hasData) {
         toast.add({
@@ -382,7 +432,7 @@ async function handleGenerationStep2(contentSource: string) {
         })
       }
       
-      extractionResult.value = response
+      fieldsResult.value = response
     } else {
        toast.add({
         title: t('llm.error'),
@@ -397,7 +447,6 @@ async function handleGenerationStep2(contentSource: string) {
 
 async function handleVoiceRecording() {
   if (isRecording.value) {
-    // Stop recording
     const audioBlob = await stopRecording()
     
     if (!audioBlob) {
@@ -408,11 +457,9 @@ async function handleVoiceRecording() {
       return
     }
 
-    // Transcribe audio
     const text = await transcribeAudio(audioBlob, user.value?.language)
     
     if (text) {
-      // Append to existing prompt instead of replacing
       if (prompt.value && !prompt.value.endsWith('\n')) {
         prompt.value += '\n\n'
       }
@@ -430,7 +477,6 @@ async function handleVoiceRecording() {
       })
     }
   } else {
-    // Start recording
     const success = await startRecording()
     
     if (!success) {
@@ -460,22 +506,35 @@ watch(() => chatMessages.value.length, async () => {
   }
 })
 
-function removeTag(tagToRemove: string) {
-  if (!extractionResult.value || !extractionResult.value.tags) return
-  
-  const tags = extractionResult.value.tags.split(',').map(t => t.trim())
-  const newTags = tags.filter(t => t !== tagToRemove.trim())
-  extractionResult.value.tags = newTags.join(', ')
+// Tag management for publication
+function removePubTag(tagToRemove: string) {
+  if (!fieldsResult.value) return
+  fieldsResult.value.publication.tags = fieldsResult.value.publication.tags.filter(t => t !== tagToRemove)
+}
+
+// Tag management for posts
+function removePostTag(channelId: string, tagToRemove: string) {
+  if (!fieldsResult.value) return
+  const post = fieldsResult.value.posts.find(p => p.channelId === channelId)
+  if (post) {
+    post.tags = post.tags.filter(t => t !== tagToRemove)
+  }
+}
+
+// Get post result for a channel
+function getPostResult(channelId: string): LlmPublicationFieldsPostResult | undefined {
+  return fieldsResult.value?.posts.find(p => p.channelId === channelId)
 }
 
 async function handleInsert() {
-  if (!extractionResult.value) return
+  if (!fieldsResult.value) return
   
   // Check if at least one field is selected
-  const hasSelection = selectedFields.title || selectedFields.description || 
-                       selectedFields.tags || selectedFields.content
+  const hasPubSelection = pubSelectedFields.title || pubSelectedFields.description || 
+                           pubSelectedFields.tags || pubSelectedFields.content
+  const hasPostSelection = Object.values(postSelectedFields.value).some(f => f.content || f.tags)
   
-  if (!hasSelection) {
+  if (!hasPubSelection && !hasPostSelection) {
     toast.add({
       title: t('llm.error'),
       description: t('llm.noFieldsSelected'),
@@ -484,11 +543,47 @@ async function handleInsert() {
     return
   }
   
-  const data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> } = {}
-  if (selectedFields.title && extractionResult.value.title) data.title = extractionResult.value.title
-  if (selectedFields.description && extractionResult.value.description) data.description = extractionResult.value.description
-  if (selectedFields.tags && extractionResult.value.tags) data.tags = extractionResult.value.tags
-  if (selectedFields.content && extractionResult.value.content) data.content = extractionResult.value.content
+  const data: ApplyData = {}
+
+  // Publication fields
+  if (hasPubSelection) {
+    const pub: ApplyData['publication'] = {}
+    if (pubSelectedFields.title && fieldsResult.value.publication.title) {
+      pub.title = fieldsResult.value.publication.title
+    }
+    if (pubSelectedFields.description && fieldsResult.value.publication.description) {
+      pub.description = fieldsResult.value.publication.description
+    }
+    if (pubSelectedFields.tags && fieldsResult.value.publication.tags.length > 0) {
+      pub.tags = fieldsResult.value.publication.tags.join(', ')
+    }
+    if (pubSelectedFields.content && fieldsResult.value.publication.content) {
+      pub.content = fieldsResult.value.publication.content
+    }
+    data.publication = pub
+  }
+
+  // Post fields
+  if (hasPostSelection) {
+    const posts: ApplyData['posts'] = []
+    for (const [channelId, fields] of Object.entries(postSelectedFields.value)) {
+      if (!fields.content && !fields.tags) continue
+      const postResult = getPostResult(channelId)
+      if (!postResult) continue
+
+      const postData: { channelId: string; content?: string; tags?: string } = { channelId }
+      if (fields.content && postResult.content) {
+        postData.content = postResult.content
+      }
+      if (fields.tags && postResult.tags.length > 0) {
+        postData.tags = postResult.tags.join(', ')
+      }
+      posts.push(postData)
+    }
+    if (posts.length > 0) {
+      data.posts = posts
+    }
+  }
 
   if (chatMessages.value.length > 0) {
     data.meta = buildChatMetaPayload()
@@ -496,11 +591,9 @@ async function handleInsert() {
   
   isApplying.value = true
   emit('apply', data)
-  // Don't close immediately - let parent handle success/error
 }
 
 function handleClose() {
-  // Check for unsaved changes
   if (hasUnsavedChanges.value) {
     const confirmed = confirm(t('llm.unsavedChangesMessage'))
     if (!confirmed) return
@@ -521,12 +614,10 @@ function onApplyError() {
   isApplying.value = false
 }
 
-// Expose methods for parent component
 defineExpose({
   onApplySuccess,
   onApplyError
 })
-import { DialogTitle, DialogDescription } from 'reka-ui'
 </script>
 
 <template>
@@ -731,78 +822,123 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
         </div>
       </template>
 
-      <!-- STEP 2: PARAMETERS -->
+      <!-- STEP 2: FIELDS GENERATION -->
       <template v-else-if="step === 2">
 
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
            <UiLoadingSpinner size="lg" color="primary" :label="t('llm.processingParameters')" centered />
         </div>
         
-        <div v-else-if="extractionResult" class="space-y-6">
-           <p class="text-sm text-gray-500 mb-4 hidden">{{ t('llm.selectFieldsToApply') }}</p>
-           
-           <!-- Title -->
-           <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <UCheckbox v-model="selectedFields.title" :label="t('post.title')" />
-              </div>
-              <UInput v-if="selectedFields.title" ref="step2TitleInputRef" v-model="extractionResult.title" class="bg-white dark:bg-gray-800 w-full" />
+        <div v-else-if="fieldsResult" class="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+
+           <!-- PUBLICATION BLOCK -->
+           <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden">
+             <div class="px-4 py-3 bg-primary-50 dark:bg-primary-900/20 border-b border-gray-200 dark:border-gray-700/50">
+               <div class="flex items-center gap-2">
+                 <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary" />
+                 <span class="font-semibold text-sm text-gray-900 dark:text-white">{{ t('llm.publicationBlock') }}</span>
+                 <UBadge v-if="publicationLanguage" variant="subtle" color="neutral" size="xs" class="font-mono ml-auto">
+                   {{ publicationLanguage }}
+                 </UBadge>
+               </div>
+             </div>
+             <div class="p-4 space-y-4">
+               <!-- Title -->
+               <div class="space-y-1.5">
+                 <UCheckbox v-model="pubSelectedFields.title" :label="t('post.title')" />
+                 <UInput v-if="pubSelectedFields.title" ref="step2TitleInputRef" v-model="fieldsResult.publication.title" class="bg-white dark:bg-gray-800 w-full" />
+               </div>
+
+               <!-- Tags -->
+               <div class="space-y-1.5">
+                 <UCheckbox v-model="pubSelectedFields.tags" :label="t('post.tags')" />
+                 <div v-if="pubSelectedFields.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-9">
+                   <template v-if="fieldsResult.publication.tags.length > 0">
+                     <UButton
+                       v-for="tag in fieldsResult.publication.tags"
+                       :key="tag"
+                       size="xs"
+                       color="neutral"
+                       variant="soft"
+                       class="rounded-full! px-2 py-0.5 h-auto"
+                       @click="removePubTag(tag)"
+                     >
+                       #{{ tag }}
+                       <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100" />
+                     </UButton>
+                   </template>
+                   <span v-else class="text-xs text-gray-400 italic">{{ t('common.none') }}</span>
+                 </div>
+               </div>
+
+               <!-- Description -->
+               <div class="space-y-1.5">
+                 <UCheckbox v-model="pubSelectedFields.description" :label="t('post.description')" />
+                 <UTextarea v-if="pubSelectedFields.description" v-model="fieldsResult.publication.description" autoresize :rows="2" class="w-full" />
+               </div>
+
+               <!-- Content -->
+               <div class="space-y-1.5">
+                 <UCheckbox v-model="pubSelectedFields.content" :label="t('post.contentLabel')" />
+                 <UTextarea v-if="pubSelectedFields.content" v-model="fieldsResult.publication.content" autoresize :rows="4" class="font-mono text-xs w-full" />
+               </div>
+             </div>
            </div>
 
-           <!-- Description -->
-           <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <UCheckbox v-model="selectedFields.description" :label="t('post.description')" />
-              </div>
-              <UTextarea v-if="selectedFields.description" ref="step2DescriptionTextareaRef" v-model="extractionResult.description" autoresize :rows="2" class="w-full" />
-           </div>
+           <!-- POST BLOCKS (per channel) -->
+           <template v-for="ch in channelsWithPosts" :key="ch.channelId">
+             <div
+               v-if="postSelectedFields[ch.channelId] && (getPostResult(ch.channelId)?.content || (getPostResult(ch.channelId)?.tags?.length ?? 0) > 0)"
+               class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden"
+             >
+               <div class="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700/50">
+                 <div class="flex items-center gap-2">
+                   <CommonSocialIcon v-if="ch.socialMedia" :platform="ch.socialMedia" size="xs" />
+                   <UIcon v-else name="i-heroicons-megaphone" class="w-4 h-4 text-gray-400" />
+                   <span class="font-semibold text-sm text-gray-900 dark:text-white truncate">{{ ch.channelName }}</span>
+                   <UBadge variant="subtle" color="neutral" size="xs" class="font-mono ml-auto">
+                     {{ ch.language }}
+                   </UBadge>
+                   <UBadge v-if="!isSameLanguage(ch.language)" variant="subtle" color="warning" size="xs">
+                     {{ t('llm.differentLanguage') }}
+                   </UBadge>
+                 </div>
+               </div>
+               <div class="p-4 space-y-4">
+                 <!-- Post Content (only if language differs) -->
+                 <div v-if="getPostResult(ch.channelId)?.content" class="space-y-1.5">
+                   <UCheckbox v-model="postSelectedFields[ch.channelId].content" :label="t('post.contentLabel')" />
+                   <UTextarea
+                     v-if="postSelectedFields[ch.channelId].content"
+                     v-model="getPostResult(ch.channelId)!.content"
+                     autoresize
+                     :rows="3"
+                     class="font-mono text-xs w-full"
+                   />
+                 </div>
 
-           <!-- Tags -->
-           <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <UCheckbox v-model="selectedFields.tags" :label="t('post.tags')" />
-              </div>
-              <div v-if="selectedFields.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-[40px]">
-                 <template v-if="extractionResult.tags">
-                    <UButton
-                      v-for="tag in extractionResult.tags.split(',')"
-                      :key="tag"
-                      size="xs"
-                      color="neutral"
-                      variant="soft"
-                      class="rounded-full! px-2 py-0.5 h-auto"
-                      @click="removeTag(tag)"
-                    >
-                      #{{ tag.trim() }}
-                      <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100" />
-                    </UButton>
-                 </template>
-                 <span v-else class="text-xs text-gray-400 italic">{{ t('common.none') }}</span>
-              </div>
-           </div>
+                 <!-- Post Tags -->
+                 <div v-if="(getPostResult(ch.channelId)?.tags?.length ?? 0) > 0" class="space-y-1.5">
+                   <UCheckbox v-model="postSelectedFields[ch.channelId].tags" :label="t('post.tags')" />
+                   <div v-if="postSelectedFields[ch.channelId].tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-9">
+                     <UButton
+                       v-for="tag in getPostResult(ch.channelId)!.tags"
+                       :key="tag"
+                       size="xs"
+                       :color="(ch.tags || []).includes(tag) ? 'primary' : 'neutral'"
+                       variant="soft"
+                       class="rounded-full! px-2 py-0.5 h-auto"
+                       @click="removePostTag(ch.channelId, tag)"
+                     >
+                       #{{ tag }}
+                       <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100" />
+                     </UButton>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </template>
 
-           <!-- Content -->
-           <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <UCheckbox v-model="selectedFields.content" :label="t('post.contentLabel')" />
-              </div>
-              <UTextarea v-if="selectedFields.content" ref="step2ContentTextareaRef" v-model="extractionResult.content" autoresize :rows="5" class="font-mono text-xs w-full" />
-           </div>
-           
-           <!-- Regenerate Button for Step 2 -->
-           <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
-               <UButton 
-                  block 
-                  size="sm" 
-                  variant="soft"
-                  color="neutral"
-                  icon="i-heroicons-arrow-path"
-                  :disabled="isExtracting"
-                  @click="handleGenerationStep2(chatMessages.length > 0 ? chatMessages[chatMessages.length-1]?.content || '' : (content || ''))"
-                >
-                    {{ t('llm.regenerate') }}
-                </UButton>
-           </div>
         </div>
       </template>
     </div>
@@ -810,10 +946,11 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
     <template #footer>
       <div v-if="step === 1" class="flex justify-between w-full">
         <div class="flex gap-2 ml-auto">
-           <UTooltip :text="t('llm.skipDescription')">
+           <UTooltip :text="hasContext ? t('llm.skipDescription') : t('llm.skipDisabledNoContext')">
              <UButton
               color="neutral"
               variant="soft"
+              :disabled="!hasContext"
               @click="handleSkip"
             >
               {{ t('common.skip') }}
@@ -844,7 +981,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
         <UButton
           color="primary"
           class="min-w-[120px]"
-          :disabled="isExtracting || !extractionResult"
+          :disabled="isExtracting || !fieldsResult"
           :loading="isApplying"
           icon="i-heroicons-check"
           @click="handleInsert"

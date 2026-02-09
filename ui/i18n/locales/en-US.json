@@ -594,7 +594,10 @@
     "templateCategoryPlaceholder": "e.g. Content, SEO, Chat...",
     "system": "System",
     "project": "Project",
-    "personal": "Personal"
+    "personal": "Personal",
+    "publicationBlock": "Publication",
+    "differentLanguage": "Different language",
+    "skipDisabledNoContext": "Add context to skip chat"
   },
   "media": {
     "add": "Add Media",

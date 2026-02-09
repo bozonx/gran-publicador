@@ -594,7 +594,10 @@
     "templateCategoryPlaceholder": "напр. Контент, SEO, Чат...",
     "system": "Системный",
     "project": "Проектный",
-    "personal": "Личный"
+    "personal": "Личный",
+    "publicationBlock": "Публикация",
+    "differentLanguage": "Другой язык",
+    "skipDisabledNoContext": "Добавьте контекст, чтобы пропустить чат"
   },
   "media": {
     "add": "Добавить медиа",

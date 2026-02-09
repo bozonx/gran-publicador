@@ -11,6 +11,9 @@ describe('LlmController', () => {
   const mockLlmService = {
     generateContent: jest.fn() as any,
     extractContent: jest.fn() as any,
+    extractParameters: jest.fn() as any,
+    generatePublicationFields: jest.fn() as any,
+    parsePublicationFieldsResponse: jest.fn() as any,
   };
 
   beforeEach(async () => {
@@ -92,6 +95,61 @@ describe('LlmController', () => {
       mockLlmService.generateContent.mockRejectedValue(new Error('Service error'));
 
       await expect(controller.generate(dto)).rejects.toThrow('Service error');
+    });
+  });
+
+  describe('generatePublicationFields', () => {
+    it('should call service and return parsed publication fields with metadata', async () => {
+      const dto = {
+        prompt: 'Source text',
+        publicationLanguage: 'ru-RU',
+        channels: [
+          { channelId: 'ch-1', channelName: 'EN Channel', language: 'en-US', tags: ['tech'] },
+        ],
+      } as any;
+
+      const mockResponse = {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-4',
+        choices: [
+          { index: 0, message: { role: 'assistant', content: '{}' }, finish_reason: 'stop' },
+        ],
+        usage: { prompt_tokens: 100, completion_tokens: 200, total_tokens: 300 },
+        _router: { provider: 'openai', model_name: 'gpt-4', attempts: 1, fallback_used: false },
+      };
+
+      const mockParsed = {
+        publication: { title: 'Title', description: 'Desc', content: 'Content', tags: ['tag1'] },
+        posts: [{ channelId: 'ch-1', content: 'EN Content', tags: ['tech'] }],
+      };
+
+      mockLlmService.generatePublicationFields.mockResolvedValue(mockResponse);
+      mockLlmService.parsePublicationFieldsResponse.mockReturnValue(mockParsed);
+
+      const result = await controller.generatePublicationFields(dto);
+
+      expect(mockLlmService.generatePublicationFields).toHaveBeenCalledWith(dto);
+      expect(mockLlmService.parsePublicationFieldsResponse).toHaveBeenCalledWith(mockResponse);
+      expect(result).toEqual({
+        publication: mockParsed.publication,
+        posts: mockParsed.posts,
+        metadata: mockResponse._router,
+        usage: mockResponse.usage,
+      });
+    });
+
+    it('should handle service errors', async () => {
+      const dto = {
+        prompt: 'Source text',
+        publicationLanguage: 'en-US',
+        channels: [],
+      } as any;
+
+      mockLlmService.generatePublicationFields.mockRejectedValue(new Error('LLM error'));
+
+      await expect(controller.generatePublicationFields(dto)).rejects.toThrow('LLM error');
     });
   });
 });
