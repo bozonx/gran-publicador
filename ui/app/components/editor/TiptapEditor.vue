@@ -117,6 +117,7 @@ function buildExtensions(opts: { placeholder: string; maxLength?: number }) {
       openOnClick: false,
       autolink: true,
       linkOnPaste: true,
+      defaultProtocol: 'https',
       HTMLAttributes: {
         class: 'text-primary-600 dark:text-primary-400 underline cursor-pointer',
       },
@@ -197,28 +198,18 @@ const editor = useEditor({
     const hrefNearCursor = getLinkHrefNearCursor(editor)
     const isInLink = editor.isActive('link') || hrefNearCursor !== null
 
-    // Auto-open link editor when the cursor is inside a link.
-    if (empty && isInLink) {
-      linkUrlInput.value = hrefNearCursor ?? ''
-      isLinkMenuOpen.value = true
-      linkMenuAnchor.value = { from, to }
-      return
-    }
-
-    // Prevent sticky behavior: close when leaving a link or when selection changes.
-    if (!isLinkMenuOpen.value) return
-
-    if (!isInLink) {
+    // Close link menu when cursor leaves the link
+    if (isLinkMenuOpen.value && !isInLink) {
       isLinkMenuOpen.value = false
+      linkUrlInput.value = ''
       linkMenuAnchor.value = null
       return
     }
 
-    const anchor = linkMenuAnchor.value
-    if (!anchor) return
-    if (anchor.from !== from || anchor.to !== to) {
-      isLinkMenuOpen.value = false
-      linkMenuAnchor.value = null
+    // Update href display when cursor moves within a link (but don't re-open)
+    if (isLinkMenuOpen.value && isInLink) {
+      linkUrlInput.value = hrefNearCursor ?? linkUrlInput.value
+      return
     }
   },
   onBlur: () => {
@@ -254,15 +245,26 @@ watch(
  * Commands
  */
 function setLink() {
-  const previousUrl = editor.value?.getAttributes('link').href
+  if (!editor.value) return
+
+  const { from, to, empty } = editor.value.state.selection
+  const previousUrl = editor.value.getAttributes('link').href
+  const isInLink = editor.value.isActive('link') || getLinkHrefNearCursor(editor.value) !== null
+
+  // Require either a text selection or cursor inside an existing link
+  if (empty && !isInLink) {
+    toast.add({
+      title: t('common.info', 'Info'),
+      description: t('editor.selectTextForLink', 'Select text to create a link'),
+      color: 'info',
+    })
+    return
+  }
+
   linkUrlInput.value = previousUrl || ''
   isLinkMenuOpen.value = true
-  if (editor.value) {
-    const { from, to } = editor.value.state.selection
-    linkMenuAnchor.value = { from, to }
-  }
-  
-  // Ensure the editor has focus so the BubbleMenu is positioned correctly
+  linkMenuAnchor.value = { from, to }
+
   nextTick(() => {
     editor.value?.commands.focus()
   })
@@ -275,9 +277,22 @@ function cancelLink() {
   editor.value?.commands.focus()
 }
 
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  // Allow mailto: and tel: protocols as-is
+  if (/^(mailto:|tel:)/i.test(trimmed)) return trimmed
+  // Block dangerous protocols
+  if (/^(javascript|data|vbscript):/i.test(trimmed)) return ''
+  // Add https:// if no protocol specified
+  if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`
+  return trimmed
+}
+
 function applyLink() {
-  if (linkUrlInput.value) {
-    editor.value?.chain().focus().extendMarkRange('link').setLink({ href: linkUrlInput.value }).run()
+  const href = normalizeUrl(linkUrlInput.value)
+  if (href) {
+    editor.value?.chain().focus().extendMarkRange('link').setLink({ href }).run()
   } else {
     editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
   }
