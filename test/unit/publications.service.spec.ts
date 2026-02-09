@@ -293,6 +293,57 @@ describe('PublicationsService (unit)', () => {
       expect(result).toBeDefined();
     });
 
+    it('should merge and save meta when updating publication', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+
+      const mockPublication = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        status: PublicationStatus.DRAFT,
+        content: 'Test content',
+        meta: {
+          keep: 'yes',
+          nested: { a: 1 },
+        },
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+
+      const updateDto = {
+        meta: {
+          llmPublicationContentGenerationChat: { messages: [] },
+          nested: { b: 2 },
+        },
+      } as any;
+
+      mockPrismaService.publication.update.mockResolvedValue({
+        ...mockPublication,
+        meta: {
+          keep: 'yes',
+          llmPublicationContentGenerationChat: { messages: [] },
+          nested: { b: 2 },
+        },
+      });
+
+      await service.update(publicationId, userId, updateDto);
+
+      expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: publicationId },
+          data: expect.objectContaining({
+            meta: {
+              keep: 'yes',
+              llmPublicationContentGenerationChat: { messages: [] },
+              nested: { b: 2 },
+            },
+          }),
+        }),
+      );
+    });
+
     it('should allow admin to update others publication', async () => {
       const userId = 'admin-user';
       mockPrismaService.publication.findUnique.mockResolvedValue({

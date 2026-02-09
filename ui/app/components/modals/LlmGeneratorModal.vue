@@ -6,7 +6,7 @@ import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplateP
 import type { MediaItem } from '~/composables/useMedia'
 
 interface Emits {
-  (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string }): void
+  (e: 'apply', data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> }): void
   (e: 'close'): void
 }
 
@@ -152,7 +152,7 @@ watch(isOpen, async (open) => {
     if (content?.trim()) {
       nextTags.push({
         id: 'content:1',
-        label: '[Контент 1]',
+        label: 'Контент',
         promptText: `Content:\n${content.trim()}`,
         kind: 'content',
       })
@@ -396,11 +396,21 @@ async function handleInsert() {
     return
   }
   
-  const data: { title?: string; description?: string; tags?: string; content?: string } = {}
+  const data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> } = {}
   if (selectedFields.title && extractionResult.value.title) data.title = extractionResult.value.title
   if (selectedFields.description && extractionResult.value.description) data.description = extractionResult.value.description
   if (selectedFields.tags && extractionResult.value.tags) data.tags = extractionResult.value.tags
   if (selectedFields.content && extractionResult.value.content) data.content = extractionResult.value.content
+
+  if (chatMessages.value.length > 0) {
+    data.meta = {
+      llmPublicationContentGenerationChat: {
+        messages: chatMessages.value,
+        model: metadata.value,
+        savedAt: new Date().toISOString(),
+      },
+    }
+  }
   
   isApplying.value = true
   emit('apply', data)
@@ -682,14 +692,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
 
     <template #footer>
       <div v-if="step === 1" class="flex justify-between w-full">
-         <UButton
-          color="neutral"
-          variant="ghost"
-          @click="handleClose"
-        >
-          {{ t('common.cancel') }}
-        </UButton>
-        <div class="flex gap-2">
+        <div class="flex gap-2 ml-auto">
            <UTooltip :text="t('llm.skipDescription')">
              <UButton
               color="neutral"

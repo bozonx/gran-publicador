@@ -590,6 +590,14 @@ export class PublicationsService {
     const publication = await this.findOne(id, userId);
     const previousStatus = publication.status;
 
+    const mergedMeta =
+      data.meta !== undefined
+        ? {
+            ...this.parseMetaJson((publication as any).meta),
+            ...this.parseMetaJson(data.meta),
+          }
+        : undefined;
+
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
         publication.projectId,
@@ -825,6 +833,7 @@ export class PublicationsService {
         description: data.description,
         content: data.content,
         authorComment: data.authorComment,
+        meta: mergedMeta,
         // Update Media: Replace all existing with new list if any media field is provided
         // Logic: if any media DTO field is present, we assume full replace.
         // If all are undefined, we touch nothing.

@@ -10,6 +10,7 @@ import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 import { getUserSelectableStatuses, getStatusColor, getStatusClass, getStatusIcon } from '~/utils/publications'
+import type { MediaItem } from '~/composables/useMedia'
 
 
 definePageMeta({
@@ -285,7 +286,7 @@ async function handleDelete() {
     }
 }
 
-async function handleApplyLlm(data: { title?: string; description?: string; tags?: string; content?: string }) {
+async function handleApplyLlm(data: { title?: string; description?: string; tags?: string; content?: string; meta?: Record<string, any> }) {
   if (!currentPublication.value) return
   
   try {
@@ -1296,7 +1297,7 @@ async function executePublish(force: boolean) {
       ref="llmModalRef"
       v-model:open="showLlmModal"
       :content="currentPublication.content || undefined"
-      :media="currentPublication.media || []"
+      :media="(currentPublication.media || []) as unknown as MediaItem[]"
       :project-id="projectId || undefined"
       @apply="handleApplyLlm"
     />
