@@ -106,7 +106,7 @@ const filteredTemplates = computed<LlmPromptTemplate[]>(() => {
 
   return activeTemplates.value.filter((tpl) => {
     return (
-      tpl.name.toLowerCase().includes(query) ||
+      (tpl.name?.toLowerCase() || '').includes(query) ||
       tpl.prompt.toLowerCase().includes(query)
     )
   })
@@ -246,7 +246,7 @@ function handleClose() {
             >
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap mb-1">
-                  <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <h4 v-if="tpl.name" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {{ tpl.name }}
                   </h4>
 

@@ -222,14 +222,20 @@ watch(
  * Commands
  */
 function setLink() {
-  if (editor.value?.isActive('link')) {
-    editor.value.chain().focus().unsetLink().run()
-    return
-  }
-  
   const previousUrl = editor.value?.getAttributes('link').href
   linkUrlInput.value = previousUrl || ''
   isLinkMenuOpen.value = true
+  
+  // Ensure the editor has focus so the BubbleMenu is positioned correctly
+  nextTick(() => {
+    editor.value?.commands.focus()
+  })
+}
+
+function cancelLink() {
+  isLinkMenuOpen.value = false
+  linkUrlInput.value = ''
+  editor.value?.commands.focus()
 }
 
 function applyLink() {
@@ -298,20 +304,37 @@ const isMaxLengthReached = computed(() => {
 <template>
   <div class="tiptap-editor border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col relative">
     
-    <!-- BubbleMenu for Links -->
+    <!-- Contextual BubbleMenu (Links & Text Selection) -->
     <BubbleMenu
       v-if="editor"
       :editor="editor"
-      :options="{ offset: 6, placement: 'top' }"
-      :should-show="({ editor: e }) => e.isActive('link') || isLinkMenuOpen"
+      plugin-key="contextualBubbleMenu"
+      :options="{ offset: 6, placement: 'top', duration: [200, 0] }"
+      :should-show="({ editor: e }) => {
+        if (isSourceMode) return false
+        
+        // Show only if manual link edit mode is active
+        if (isLinkMenuOpen) return true
+        
+        // Show selection tools (Translate) if text is selected
+        const { empty } = e.state.selection
+        if (!empty && !disabled && !e.isActive('table')) return true
+        
+        return false
+      }"
     >
-      <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+      <!-- Link Input UI -->
+      <div 
+        v-if="isLinkMenuOpen"
+        class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl"
+      >
         <UInput
           v-model="linkUrlInput"
           size="xs"
           placeholder="https://..."
           class="w-48"
           @keydown.enter="applyLink"
+          @keydown.esc="cancelLink"
         />
         <UButton
           size="xs"
@@ -328,20 +351,21 @@ const isMaxLengthReached = computed(() => {
           variant="ghost"
           @click="removeLink"
         />
+        <UButton
+          v-else
+          size="xs"
+          icon="i-heroicons-x-mark"
+          color="neutral"
+          variant="ghost"
+          @click="cancelLink"
+        />
       </div>
-    </BubbleMenu>
 
-    <!-- BubbleMenu for Text Selection (Translate) -->
-    <BubbleMenu
-      v-if="editor && !disabled"
-      :editor="editor"
-      :options="{ offset: 6, placement: 'top' }"
-      :should-show="({ editor: e }) => {
-        const { empty } = e.state.selection
-        return !empty && !isSourceMode && !isLinkMenuOpen && !e.isActive('link') && !e.isActive('table')
-      }"
-    >
-      <div class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+      <!-- Selection Tools (Translate) -->
+      <div 
+        v-else
+        class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl"
+      >
         <UTooltip :text="t('translate.translateButton', 'Translate')">
           <UButton
             size="xs"
@@ -357,6 +381,7 @@ const isMaxLengthReached = computed(() => {
     <BubbleMenu
       v-if="editor"
       :editor="editor"
+      plugin-key="tableBubbleMenu"
       :options="{ offset: 6, placement: 'bottom' }"
       :should-show="({ editor }) => editor.isActive('table')"
     >
@@ -523,10 +548,11 @@ const isMaxLengthReached = computed(() => {
       <!-- Link & Tools -->
       <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
-          :color="editor.isActive('link') ? 'primary' : 'neutral'"
-          :variant="editor.isActive('link') ? 'solid' : 'ghost'"
+          :color="(editor.isActive('link') || isLinkMenuOpen) ? 'primary' : 'neutral'"
+          :variant="(editor.isActive('link') || isLinkMenuOpen) ? 'solid' : 'ghost'"
           size="xs"
           icon="i-heroicons-link"
+          @mousedown.prevent
           @click="setLink"
         ></UButton>
         

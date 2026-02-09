@@ -134,7 +134,7 @@ const filteredTemplates = computed(() => {
     if (!query) return true
 
     return (
-      tpl.name.toLowerCase().includes(query) ||
+      (tpl.name?.toLowerCase() || '').includes(query) ||
       tpl.prompt.toLowerCase().includes(query)
     )
   })
@@ -150,7 +150,7 @@ const orderedFilteredTemplates = computed(() => {
 
 // Validation
 const canSubmit = computed(() => {
-  return formData.name.trim().length > 0 && formData.prompt.trim().length > 0
+  return formData.prompt.trim().length > 0
 })
 
 // ─── Data loading ───────────────────────────────────────────────────
@@ -208,7 +208,7 @@ const openCreateModal = () => {
 const openEditModal = (template: LlmPromptTemplate) => {
   modalMode.value = 'edit'
   editingTemplate.value = template
-  formData.name = template.name
+  formData.name = template.name || ''
   const existingCategories = categoryOptions.value.map(o => o.value)
   const templateCategory = template.category || 'General'
   if (existingCategories.includes(templateCategory)) {
@@ -235,7 +235,7 @@ const handleSubmit = async () => {
   try {
     if (modalMode.value === 'create') {
       await createTemplate({
-        name: formData.name,
+        name: formData.name.trim() || undefined,
         category,
         prompt: formData.prompt,
         userId: props.projectId ? undefined : user.value?.id,
@@ -243,7 +243,7 @@ const handleSubmit = async () => {
       })
     } else if (editingTemplate.value) {
       await updateTemplate(editingTemplate.value.id, {
-        name: formData.name,
+        name: formData.name.trim() || undefined,
         category,
         prompt: formData.prompt,
       })
@@ -308,7 +308,7 @@ const handleCopy = async () => {
   isCopying.value = true
   try {
     const data: any = {
-      name: copySource.value.name,
+      name: copySource.value.name || undefined,
       category: copySource.value.category,
       prompt: copySource.value.prompt,
     }
@@ -563,7 +563,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
 
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap mb-1">
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                <h4 v-if="tpl.name" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ tpl.name }}
                 </h4>
                 
@@ -623,7 +623,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
           >
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap mb-1">
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                <h4 v-if="tpl.name" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ tpl.name }}
                 </h4>
 
@@ -687,7 +687,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
       :title="modalMode === 'create' ? t('llm.addTemplate') : t('llm.editTemplate')"
     >
       <form class="space-y-4" @submit.prevent="handleSubmit">
-        <UFormField :label="t('llm.templateName')" required class="w-full">
+        <UFormField :label="t('llm.templateName')" class="w-full">
           <UInput
             v-model="formData.name"
             :placeholder="t('llm.templateNamePlaceholder')"
@@ -766,7 +766,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
     >
       <div class="space-y-4">
         <p class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('llm.copyTemplateDescription', { name: copySource?.name }) }}
+          {{ t('llm.copyTemplateDescription', { name: copySource?.name || t('common.untitled', 'Untitled') }) }}
         </p>
 
         <UFormField :label="t('llm.copyTarget')" class="w-full">

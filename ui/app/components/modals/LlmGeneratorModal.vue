@@ -71,6 +71,12 @@ interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   contextTagIds?: string[]
+  contextSnapshot?: Array<{
+    id: string
+    label: string
+    promptText: string
+    kind: 'content' | 'media'
+  }>
 }
 const chatMessages = ref<ChatMessage[]>([])
 const prompt = ref('')
@@ -194,6 +200,12 @@ const contextTagById = computed(() => {
 })
 
 function getContextTagsForMessage(message: ChatMessage): LlmContextTag[] {
+  // If we have a snapshot, use it (historical accuracy)
+  if (message.contextSnapshot && message.contextSnapshot.length > 0) {
+    return message.contextSnapshot
+  }
+
+  // Fallback to current tags (for older saved messages without snapshots)
   const ids = message.contextTagIds || []
   if (ids.length === 0) return []
 
@@ -349,6 +361,7 @@ async function handleGenerate() {
     role: 'user',
     content: userText,
     contextTagIds: contextTags.value.map(t => t.id),
+    contextSnapshot: contextTags.value.map(t => ({ ...t })),
   });
   prompt.value = '';
 

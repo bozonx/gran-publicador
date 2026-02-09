@@ -179,7 +179,7 @@ export function useLlmPromptTemplates() {
   // ─── CRUD ──────────────────────────────────────────────────────────
 
   async function createTemplate(data: {
-    name: string;
+    name?: string;
     description?: string;
     category?: string;
     prompt: string;
@@ -190,8 +190,14 @@ export function useLlmPromptTemplates() {
     isLoading.value = true;
     error.value = null;
 
+    const sanitizedData = {
+      ...data,
+      name: data.name?.trim() || undefined,
+      description: data.description?.trim() || undefined,
+    };
+
     try {
-      const response = await $api.post<LlmPromptTemplate>('/llm-prompt-templates', data);
+      const response = await $api.post<LlmPromptTemplate>('/llm-prompt-templates', sanitizedData);
       toast.add({ title: t('llm.createTemplateSuccess'), color: 'success' });
       return response;
     } catch (err: any) {
@@ -220,8 +226,14 @@ export function useLlmPromptTemplates() {
     isLoading.value = true;
     error.value = null;
 
+    const sanitizedData = {
+      ...data,
+      name: data.name?.trim() || undefined,
+      description: data.description?.trim() || undefined,
+    };
+
     try {
-      const response = await $api.patch<LlmPromptTemplate>(`/llm-prompt-templates/${id}`, data);
+      const response = await $api.patch<LlmPromptTemplate>(`/llm-prompt-templates/${id}`, sanitizedData);
       toast.add({ title: t('llm.updateTemplateSuccess'), color: 'success' });
       return response;
     } catch (err: any) {

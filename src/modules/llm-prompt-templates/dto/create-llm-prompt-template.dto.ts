@@ -12,9 +12,9 @@ import { VALIDATION_LIMITS } from '../../../common/constants/validation.constant
 
 export class CreateLlmPromptTemplateDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_NAME_LENGTH)
-  name!: string;
+  name?: string;
 
   @IsString()
   @IsOptional()

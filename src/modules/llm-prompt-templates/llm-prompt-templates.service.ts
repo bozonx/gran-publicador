@@ -229,6 +229,7 @@ export class LlmPromptTemplatesService {
     return this.prisma.llmPromptTemplate.create({
       data: {
         ...createDto,
+        name: createDto.name?.trim() || null,
         order,
       },
     });
@@ -292,7 +293,10 @@ export class LlmPromptTemplatesService {
 
     return this.prisma.llmPromptTemplate.update({
       where: { id },
-      data: updateDto,
+      data: {
+        ...updateDto,
+        name: updateDto.name !== undefined ? (updateDto.name?.trim() || null) : undefined,
+      },
     });
   }
 

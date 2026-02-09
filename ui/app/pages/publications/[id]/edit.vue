@@ -81,10 +81,13 @@ async function handleSaveLlmMeta(meta: Record<string, any>) {
   if (!currentPublication.value) return
 
   try {
+    const existingMeta = normalizedPublicationMeta.value
+    const mergedMeta = { ...existingMeta, ...meta }
+
     await updatePublication(
       currentPublication.value.id,
       {
-        meta,
+        meta: mergedMeta,
       },
       { silent: true },
     )
@@ -336,10 +339,14 @@ async function handleApplyLlm(data: {
     // Update publication fields
     if (data.publication && Object.keys(data.publication).length > 0) {
       const pubPayload: Record<string, any> = { ...data.publication }
-      if (data.meta) pubPayload.meta = data.meta
+      if (data.meta) {
+        const existingMeta = normalizedPublicationMeta.value
+        pubPayload.meta = { ...existingMeta, ...data.meta }
+      }
       await updatePublication(currentPublication.value.id, pubPayload)
     } else if (data.meta) {
-      await updatePublication(currentPublication.value.id, { meta: data.meta })
+      const existingMeta = normalizedPublicationMeta.value
+      await updatePublication(currentPublication.value.id, { meta: { ...existingMeta, ...data.meta } })
     }
 
     // Update post fields
@@ -1364,7 +1371,7 @@ async function executePublish(force: boolean) {
       ref="llmModalRef"
       v-model:open="showLlmModal"
       :content="currentPublication.content || undefined"
-      :media="(currentPublication.media || []) as unknown as MediaItem[]"
+      :media="(currentPublication.media || []).map(m => m.media).filter(Boolean) as unknown as MediaItem[]"
       :project-id="projectId || undefined"
       :publication-meta="normalizedPublicationMeta"
       :post-type="currentPublication.postType || undefined"

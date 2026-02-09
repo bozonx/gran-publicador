@@ -4,7 +4,7 @@ export interface LlmPromptTemplate {
   isHidden?: boolean;
   userId?: string;
   projectId?: string;
-  name: string;
+  name?: string;
   description?: string;
   category: string;
   prompt: string;

@@ -185,6 +185,29 @@ describe('LlmPromptTemplatesService', () => {
       expect(result.order).toBe(0);
     });
 
+    it('should create a template without a name', async () => {
+      const dto: CreateLlmPromptTemplateDto = {
+        userId: 'user-1',
+        prompt: 'No name prompt',
+      };
+
+      mockPrismaService.llmPromptTemplate.aggregate.mockResolvedValue({
+        _max: { order: 0 },
+      });
+
+      mockPrismaService.llmPromptTemplate.create.mockResolvedValue({
+        id: 'template-none',
+        userId: dto.userId,
+        prompt: dto.prompt,
+        order: 1,
+      });
+
+      const result = await service.create(dto);
+
+      expect(result.name).toBeUndefined();
+      expect(result.prompt).toBe('No name prompt');
+    });
+
     it('should throw error when both userId and projectId are provided', async () => {
       const dto: any = {
         userId: 'user-1',

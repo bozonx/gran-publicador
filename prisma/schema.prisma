@@ -532,7 +532,7 @@ model LlmPromptTemplate {
   // Project ID for project templates, null for personal templates
   projectId   String?  @map("project_id")
   
-  name        String
+  name        String?
   description String?
   // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
   category    String   @default("General")

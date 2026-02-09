@@ -136,6 +136,26 @@ describe('LlmPromptTemplatesController', () => {
       expect(mockService.create).toHaveBeenCalledWith(dto);
       expect(result).toEqual(created);
     });
+
+    it('should create a template without a name', async () => {
+      const dto: CreateLlmPromptTemplateDto = {
+        userId: 'user-1',
+        prompt: 'No name prompt',
+      };
+
+      const created = {
+        id: 'template-none',
+        userId: dto.userId,
+        prompt: dto.prompt,
+        order: 0,
+      };
+      mockService.create.mockResolvedValue(created);
+
+      const result = await controller.create(dto);
+
+      expect(mockService.create).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(created);
+    });
   });
 
   describe('findAllByUser', () => {
