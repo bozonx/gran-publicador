@@ -592,6 +592,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
                 variant="ghost"
                 size="xs"
                 :title="t('common.copy')"
+                class="cursor-pointer"
                 @click.stop="openCopyModal(tpl)"
               />
               <UButton
@@ -600,6 +601,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
                 variant="ghost"
                 size="xs"
                 :title="t('llm.hide')"
+                class="cursor-pointer"
                 @click.stop="handleHide(tpl)"
               />
             </div>
@@ -650,6 +652,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
                 variant="ghost"
                 size="xs"
                 :title="t('common.copy')"
+                class="cursor-pointer"
                 @click.stop="openCopyModal(tpl)"
               />
               <UButton
@@ -659,6 +662,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
                 variant="ghost"
                 size="xs"
                 :title="t('llm.unhide')"
+                class="cursor-pointer"
                 @click.stop="handleUnhide(tpl)"
               />
               <UButton
@@ -668,6 +672,7 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
                 variant="ghost"
                 size="xs"
                 :title="t('llm.hide')"
+                class="cursor-pointer"
                 @click.stop="handleHide(tpl)"
               />
             </div>
