@@ -137,6 +137,14 @@ function truncateText(text: string, maxChars: number): string {
   return text.slice(0, maxChars)
 }
 
+function getCleanedContextText(ctx: LlmContextTag): string {
+  if (!ctx.promptText) return ctx.label
+  // Remove XML tags and return cleaned text
+  return ctx.promptText
+    .replace(/<[^>]*>/g, '')
+    .trim()
+}
+
 function makeContextPromptBlock(tags: LlmContextTag[]): string {
   const rawParts = tags
     .map((t) => t.promptText?.trim())
@@ -541,18 +549,28 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
         <div v-if="contextTags.length > 0" class="mb-4">
           <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
             <div class="flex flex-wrap gap-1.5">
-              <UButton
+              <UPopover
                 v-for="ctx in contextTags"
                 :key="ctx.id"
-                size="xs"
-                color="neutral"
-                variant="soft"
-                class="rounded-full! px-2 py-0.5 h-auto max-w-full"
-                @click="removeContextTag(ctx.id)"
+                mode="hover"
+                :popper="{ placement: 'top' }"
               >
-                <span class="truncate max-w-105">{{ ctx.label }}</span>
-                <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100 shrink-0" />
-              </UButton>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
+                  class="rounded-full! px-2 py-0.5 h-auto max-w-full"
+                  @click="removeContextTag(ctx.id)"
+                >
+                  <span class="truncate max-w-105">{{ ctx.label }}</span>
+                  <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100 shrink-0" />
+                </UButton>
+                <template #content>
+                  <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
+                    {{ getCleanedContextText(ctx) }}
+                  </div>
+                </template>
+              </UPopover>
             </div>
           </div>
         </div>
@@ -560,7 +578,7 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
         <!-- Chat Area -->
         <div 
           ref="chatContainer"
-          class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/30 dark:bg-gray-900/10 p-4 space-y-4"
+          class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/50 dark:bg-gray-950 p-4 space-y-4"
         >
           <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 opacity-60">
              <UIcon name="i-heroicons-chat-bubble-left-right" class="w-12 h-12 mb-2" />
@@ -576,23 +594,33 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
             <div 
               class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
               :class="msg.role === 'user' 
-                ? 'bg-primary text-white rounded-tr-none' 
-                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 rounded-tl-none shadow-sm'"
+                ? 'bg-primary text-white dark:bg-primary-600 rounded-tr-none' 
+                : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 rounded-tl-none shadow-sm'"
             >
               <div class="whitespace-pre-wrap">{{ msg.content }}</div>
 
               <div v-if="msg.role === 'user' && getContextTagsForMessage(msg).length > 0" class="mt-2">
                 <div class="flex flex-wrap gap-1.5">
-                  <UButton
+                  <UPopover
                     v-for="ctx in getContextTagsForMessage(msg)"
                     :key="ctx.id"
-                    size="xs"
-                    color="neutral"
-                    variant="soft"
-                    class="rounded-full! px-2 py-0.5 h-auto max-w-full"
+                    mode="hover"
+                    :popper="{ placement: 'top' }"
                   >
-                    <span class="truncate max-w-105">{{ ctx.label }}</span>
-                  </UButton>
+                    <UButton
+                      size="xs"
+                      color="neutral"
+                      variant="soft"
+                      class="rounded-full! px-2 py-0.5 h-auto max-w-full"
+                    >
+                      <span class="truncate max-w-105">{{ ctx.label }}</span>
+                    </UButton>
+                    <template #content>
+                      <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
+                        {{ getCleanedContextText(ctx) }}
+                      </div>
+                    </template>
+                  </UPopover>
                 </div>
               </div>
             </div>
