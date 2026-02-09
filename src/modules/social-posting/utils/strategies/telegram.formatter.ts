@@ -7,6 +7,7 @@ export class TelegramFormatter extends AbstractPlatformFormatter {
 
     // Body is already rendered and converted to HTML in the snapshot
     const body = snapshot.body;
+    const bodyFormat = snapshot.bodyFormat ?? 'html';
 
     const mediaMapping = this.mapSnapshotMedia(
       snapshot.media,
@@ -22,7 +23,7 @@ export class TelegramFormatter extends AbstractPlatformFormatter {
         apiKey,
       },
       body,
-      bodyFormat: 'html',
+      bodyFormat,
       idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,

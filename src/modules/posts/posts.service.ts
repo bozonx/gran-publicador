@@ -129,6 +129,15 @@ export class PostsService {
       throw new NotFoundException('Publication not found or does not belong to this project');
     }
 
+    if (
+      publication.status === PublicationStatus.READY ||
+      publication.status === PublicationStatus.SCHEDULED
+    ) {
+      throw new BadRequestException(
+        'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify posts.',
+      );
+    }
+
     // Validation: Check content limits
     const { validatePostContent } =
       await import('../../common/validators/social-media-validation.validator.js');
@@ -449,6 +458,16 @@ export class PostsService {
   ) {
     const post = await this.findOne(id, userId);
 
+    const publicationStatus = post.publication?.status;
+    if (
+      publicationStatus === PublicationStatus.READY ||
+      publicationStatus === PublicationStatus.SCHEDULED
+    ) {
+      throw new BadRequestException(
+        'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify posts.',
+      );
+    }
+
     const prevPublishedAt = post.publishedAt;
     const prevStatus = post.status;
 
@@ -583,6 +602,16 @@ export class PostsService {
    */
   public async remove(id: string, userId: string) {
     const post = await this.findOne(id, userId);
+
+    const publicationStatus = post.publication?.status;
+    if (
+      publicationStatus === PublicationStatus.READY ||
+      publicationStatus === PublicationStatus.SCHEDULED
+    ) {
+      throw new BadRequestException(
+        'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify posts.',
+      );
+    }
 
     // Permission: Only publication author or admin/owner of the project can delete
     if (post.publication?.createdBy !== userId) {

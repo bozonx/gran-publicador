@@ -597,6 +597,18 @@ export class PublicationsService {
     const publication = await this.findOne(id, userId);
     const previousStatus = publication.status;
 
+    const isReadOnly =
+      previousStatus === PublicationStatus.READY || previousStatus === PublicationStatus.SCHEDULED;
+    if (isReadOnly) {
+      const keys = Object.keys(data);
+      const isOnlyStatusChange = keys.length === 1 && keys[0] === 'status';
+      if (data.status !== PublicationStatus.DRAFT || !isOnlyStatusChange) {
+        throw new BadRequestException(
+          'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify it.',
+        );
+      }
+    }
+
     const mergedMeta =
       data.meta !== undefined
         ? {

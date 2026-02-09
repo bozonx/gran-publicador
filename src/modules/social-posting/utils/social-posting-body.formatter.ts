@@ -54,6 +54,18 @@ export interface ProjectTemplateData {
   template: TemplateBlock[];
 }
 
+export interface TemplateResolutionMeta {
+  overrideVariationId?: string | null;
+  resolvedVariationId?: string | null;
+  resolvedProjectTemplateId?: string | null;
+  resolution:
+    | 'override'
+    | 'channel_default'
+    | 'fallback_default_blocks'
+    | 'missing_project_template_fallback';
+  hasOverrides?: boolean;
+}
+
 export class SocialPostingBodyFormatter {
   /**
    * Default template blocks used when no template is selected.
@@ -110,36 +122,62 @@ export class SocialPostingBodyFormatter {
     templateOverride?: { id: string } | null,
     projectTemplates?: ProjectTemplateData[],
   ): string {
+    return this.formatWithMeta(data, channel, templateOverride, projectTemplates).body;
+  }
+
+  static formatWithMeta(
+    data: PublicationData,
+    channel: { language: string; preferences?: any },
+    templateOverride?: { id: string } | null,
+    projectTemplates?: ProjectTemplateData[],
+  ): { body: string; template: TemplateResolutionMeta } {
     const variations: ChannelTemplateVariation[] = channel.preferences?.templates || [];
 
     let variation: ChannelTemplateVariation | null | undefined = null;
+    let resolution: TemplateResolutionMeta['resolution'] = 'fallback_default_blocks';
 
     // 1. Explicit selection (Highest Priority)
     if (templateOverride?.id) {
       variation = variations.find(t => t.id === templateOverride.id);
+      if (variation) {
+        resolution = 'override';
+      }
     }
 
     // 2. Channel Default
     if (!variation) {
       variation = variations.find(t => t.isDefault);
+      if (variation) {
+        resolution = 'channel_default';
+      }
     }
 
     let blocks: TemplateBlock[];
+    let resolvedProjectTemplateId: string | null | undefined = null;
 
     if (variation && projectTemplates) {
-      // Find the linked project template
       const projectTemplate = projectTemplates.find(pt => pt.id === variation.projectTemplateId);
       if (projectTemplate) {
+        resolvedProjectTemplateId = projectTemplate.id;
         blocks = this.buildEffectiveBlocks(projectTemplate.template, variation.overrides);
       } else {
-        // Project template was deleted or not found — fallback to defaults
+        resolution = 'missing_project_template_fallback';
         blocks = this.getDefaultBlocks();
       }
     } else {
       blocks = this.getDefaultBlocks();
     }
 
-    return this.renderBlocks(data, blocks);
+    return {
+      body: this.renderBlocks(data, blocks),
+      template: {
+        overrideVariationId: templateOverride?.id ?? null,
+        resolvedVariationId: variation?.id ?? null,
+        resolvedProjectTemplateId,
+        resolution,
+        hasOverrides: variation?.overrides ? Object.keys(variation.overrides).length > 0 : false,
+      },
+    };
   }
 
   /**

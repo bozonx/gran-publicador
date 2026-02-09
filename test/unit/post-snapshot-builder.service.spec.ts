@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { jest } from '@jest/globals';
+import { expect } from '@jest/globals';
 import { PostSnapshotBuilderService } from '../../src/modules/social-posting/post-snapshot-builder.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { POSTING_SNAPSHOT_VERSION } from '../../src/modules/social-posting/interfaces/posting-snapshot.interface.js';
@@ -107,6 +108,7 @@ describe('PostSnapshotBuilderService', () => {
       expect(snapshot1.version).toBe(POSTING_SNAPSHOT_VERSION);
       expect(typeof snapshot1.body).toBe('string');
       expect(snapshot1.body.length).toBeGreaterThan(0);
+      expect(snapshot1.bodyFormat).toBeDefined();
       expect(snapshot1.media).toHaveLength(1);
       expect(snapshot1.media[0]).toEqual({
         mediaId: 'media-1',
@@ -117,6 +119,19 @@ describe('PostSnapshotBuilderService', () => {
         hasSpoiler: false,
         meta: {},
       });
+      expect(snapshot1.meta).toEqual(
+        expect.objectContaining({
+          publicationId,
+          postId: 'post-1',
+          platform: 'TELEGRAM',
+          inputs: expect.objectContaining({
+            content: 'Test content',
+          }),
+          template: expect.objectContaining({
+            resolution: expect.any(String),
+          }),
+        }),
+      );
       expect(firstCall[0].data.postingSnapshotCreatedAt).toBeInstanceOf(Date);
 
       // Verify second post snapshot
@@ -125,6 +140,14 @@ describe('PostSnapshotBuilderService', () => {
       const snapshot2 = secondCall[0].data.postingSnapshot;
       expect(snapshot2.version).toBe(POSTING_SNAPSHOT_VERSION);
       expect(snapshot2.body).toContain('Override content');
+      expect(snapshot2.meta).toEqual(
+        expect.objectContaining({
+          postId: 'post-2',
+          inputs: expect.objectContaining({
+            content: 'Override content',
+          }),
+        }),
+      );
     });
 
     it('should skip if publication not found', async () => {
@@ -216,6 +239,7 @@ describe('PostSnapshotBuilderService', () => {
       const snapshot = mockPrismaService.post.update.mock.calls[0][0].data.postingSnapshot;
       // Telegram body should be HTML-converted (bold -> <b>)
       expect(snapshot.body).toContain('<b>');
+      expect(snapshot.bodyFormat).toBe('html');
     });
 
     it('should NOT apply Telegram HTML conversion for non-Telegram channels', async () => {
@@ -251,6 +275,7 @@ describe('PostSnapshotBuilderService', () => {
       // Non-Telegram body should keep markdown as-is
       expect(snapshot.body).not.toContain('<b>');
       expect(snapshot.body).toContain('**bold text**');
+      expect(snapshot.bodyFormat).toBe('markdown');
     });
   });
 

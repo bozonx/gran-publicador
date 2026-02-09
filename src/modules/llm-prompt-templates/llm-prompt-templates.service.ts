@@ -164,7 +164,12 @@ export class LlmPromptTemplatesService {
     if (projectId) {
       await this.permissionsService.checkProjectAccess(projectId, userId);
       projectTemplates = await this.findAllByProject(projectId, false);
-      order = await this.getAvailableOrderFromPreferences({ userId, projectId });
+
+      const rawOrder = await this.getAvailableOrderFromPreferences({ userId, projectId });
+      const availableIds = new Set(
+        [...systemTemplates, ...userTemplates, ...projectTemplates].map(t => String(t.id)),
+      );
+      order = rawOrder.filter(id => availableIds.has(id));
     }
 
     return {
@@ -183,7 +188,14 @@ export class LlmPromptTemplatesService {
     const uniqueIds = [
       ...new Set(ids.filter(id => typeof id === 'string' && id.trim().length > 0)),
     ];
-    await this.setAvailableOrderToPreferences({ userId, projectId, ids: uniqueIds });
+
+    // Keep only ids that are actually available for this user/project (defensive against stale UI state)
+    const available = await this.getAvailableTemplatesForUser({ userId, projectId });
+    const availableIds = new Set(
+      [...available.system, ...available.user, ...available.project].map(t => String(t.id)),
+    );
+    const normalizedIds = uniqueIds.filter(id => availableIds.has(id));
+    await this.setAvailableOrderToPreferences({ userId, projectId, ids: normalizedIds });
 
     return { success: true };
   }

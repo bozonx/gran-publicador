@@ -8,6 +8,7 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
 
     // Body is already rendered in the snapshot
     const body = snapshot.body;
+    const bodyFormat = snapshot.bodyFormat ?? 'markdown';
 
     const mediaMapping = this.mapSnapshotMedia(
       snapshot.media,
@@ -23,7 +24,7 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
         apiKey,
       },
       body,
-      bodyFormat: 'html',
+      bodyFormat,
       idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,

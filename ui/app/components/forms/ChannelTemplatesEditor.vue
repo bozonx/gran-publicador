@@ -19,6 +19,8 @@ const { t } = useI18n()
 const toast = useToast()
 const { updateChannel } = useChannels()
 
+const isSaving = ref(false)
+
 const {
   templates: projectTemplates,
   fetchProjectTemplates,
@@ -84,6 +86,26 @@ const variationForm = reactive({
   overrides: {} as Record<string, BlockOverride>,
 })
 
+const dirtyState = useFormDirtyState(variationForm, {
+  enableNavigationGuard: false,
+  enableBeforeUnload: false,
+})
+
+const isDirty = computed(() => dirtyState.isDirty.value)
+
+function openModal() {
+  isModalOpen.value = true
+  dirtyState.saveOriginalState()
+}
+
+function closeModal() {
+  if (isDirty.value) {
+    const shouldClose = confirm(t('form.resetConfirm', 'Are you sure you want to leave? You have unsaved changes.'))
+    if (!shouldClose) return
+  }
+  isModalOpen.value = false
+}
+
 function openAddVariation() {
   editingVariation.value = null
   variationForm.id = crypto.randomUUID()
@@ -91,7 +113,7 @@ function openAddVariation() {
   variationForm.isDefault = variations.value.length === 0
   variationForm.projectTemplateId = ''
   variationForm.overrides = {}
-  isModalOpen.value = true
+  openModal()
 }
 
 function openEditVariation(variation: ChannelTemplateVariation) {
@@ -101,7 +123,7 @@ function openEditVariation(variation: ChannelTemplateVariation) {
   variationForm.isDefault = !!variation.isDefault
   variationForm.projectTemplateId = variation.projectTemplateId
   variationForm.overrides = JSON.parse(JSON.stringify(variation.overrides || {}))
-  isModalOpen.value = true
+  openModal()
 }
 
 // Get effective block value (project template value merged with override)
@@ -133,25 +155,45 @@ const selectedProjectTemplateBlocks = computed((): TemplateBlock[] => {
 
 async function saveVariations() {
   const currentPreferences = channel.preferences || {}
-  await updateChannel(channel.id, {
-    preferences: {
-      ...currentPreferences,
-      templates: variations.value,
-    },
-  })
+  isSaving.value = true
+  try {
+    await updateChannel(channel.id, {
+      preferences: {
+        ...currentPreferences,
+        templates: variations.value,
+      },
+    })
+    toast.add({
+      title: t('common.saveSuccess', 'Saved'),
+      color: 'success',
+    })
+    dirtyState.saveOriginalState()
+  } catch (err: any) {
+    toast.add({
+      title: t('common.error'),
+      description: err?.message || t('common.saveError', 'Failed to save'),
+      color: 'error',
+    })
+    throw err
+  } finally {
+    isSaving.value = false
+  }
 }
 
-function handleSaveVariation() {
+async function handleSaveVariation() {
   if (!variationForm.name || !variationForm.projectTemplateId) return
 
   // Validate override text fields
-  for (const [, override] of Object.entries(variationForm.overrides)) {
-    if (containsBlockMarkdown(override.before || '') ||
-        containsBlockMarkdown(override.after || '') ||
-        containsBlockMarkdown(override.content || '')) {
+  for (const [blockInsert, override] of Object.entries(variationForm.overrides)) {
+    const beforeInvalid = containsBlockMarkdown(override.before || '')
+    const afterInvalid = containsBlockMarkdown(override.after || '')
+    const contentInvalid = containsBlockMarkdown(override.content || '')
+
+    if (beforeInvalid || afterInvalid || contentInvalid) {
+      const part = beforeInvalid ? 'before' : afterInvalid ? 'after' : 'content'
       toast.add({
         title: t('common.error'),
-        description: t('validation.inlineMarkdownOnly'),
+        description: `${t('validation.inlineMarkdownOnly')} (${blockInsert}.${part})`,
         color: 'error',
       })
       return
@@ -188,8 +230,12 @@ function handleSaveVariation() {
     })
   }
 
-  saveVariations()
-  isModalOpen.value = false
+  try {
+    await saveVariations()
+    closeModal()
+  } catch {
+    // keep modal open
+  }
 }
 
 const isDeleteModalOpen = ref(false)
@@ -203,7 +249,9 @@ function handleDeleteRequest(id: string) {
 function confirmDelete() {
   if (!variationToDeleteId.value) return
   variations.value = variations.value.filter(v => v.id !== variationToDeleteId.value)
-  saveVariations()
+  saveVariations().catch(() => {
+    // keep delete modal open; user can retry by confirming again
+  })
   isDeleteModalOpen.value = false
   variationToDeleteId.value = null
 }
@@ -214,6 +262,11 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
     variations.value = newTemplates
   }
 }, { deep: true })
+
+watch(isModalOpen, (open) => {
+  if (!open) return
+  dirtyState.saveOriginalState()
+})
 </script>
 
 <template>
@@ -424,12 +477,13 @@ watch(() => channel.preferences?.templates, (newTemplates) => {
 
       <template #footer>
         <div class="flex justify-end gap-3">
-          <UButton color="neutral" variant="ghost" @click="isModalOpen = false">
+          <UButton color="neutral" variant="ghost" :disabled="isSaving" @click="closeModal">
             {{ t('common.cancel') }}
           </UButton>
           <UButton
             color="primary"
             :disabled="!variationForm.name || !variationForm.projectTemplateId"
+            :loading="isSaving"
             @click="handleSaveVariation"
           >
             {{ t('common.save') }}

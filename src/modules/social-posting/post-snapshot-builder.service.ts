@@ -54,14 +54,38 @@ export class PostSnapshotBuilderService {
 
     const snapshotMedia = this.buildMediaSnapshot(publication.media);
     const now = new Date();
+    const nowIso = now.toISOString();
 
     for (const post of posts) {
-      const body = this.buildBody(post, post.channel, publication, projectTemplates);
+      const { body, bodyFormat, template } = this.buildBody(
+        post,
+        post.channel,
+        publication,
+        projectTemplates,
+      );
 
       const snapshot: PostingSnapshot = {
         version: POSTING_SNAPSHOT_VERSION,
         body,
+        bodyFormat,
         media: snapshotMedia,
+        meta: {
+          createdAt: nowIso,
+          publicationId: publication.id,
+          postId: post.id,
+          channelId: post.channelId,
+          platform: post.channel?.socialMedia,
+          inputs: {
+            title: publication.title,
+            content: post.content || publication.content,
+            tags: post.tags || publication.tags,
+            authorComment: publication.authorComment,
+            postType: publication.postType,
+            language: publication.language,
+            authorSignature: post.authorSignature,
+          },
+          template,
+        },
       };
 
       await this.prisma.post.update({
@@ -97,15 +121,24 @@ export class PostSnapshotBuilderService {
    * Build the final body text for a single post using templates + channel variations.
    * Applies platform-specific conversions (e.g., MD→HTML for Telegram).
    */
-  private buildBody(post: any, channel: any, publication: any, projectTemplates: any[]): string {
-    let body = SocialPostingBodyFormatter.format(
+  private buildBody(
+    post: any,
+    channel: any,
+    publication: any,
+    projectTemplates: any[],
+  ): {
+    body: string;
+    bodyFormat: PostingSnapshot['bodyFormat'];
+    template: NonNullable<PostingSnapshot['meta']>['template'];
+  } {
+    const formatted = SocialPostingBodyFormatter.formatWithMeta(
       {
         title: publication.title,
         content: post.content || publication.content,
         tags: post.tags || publication.tags,
         authorComment: publication.authorComment,
         postType: publication.postType,
-        language: post.language || publication.language,
+        language: publication.language,
         authorSignature: post.authorSignature,
       },
       channel,
@@ -113,13 +146,17 @@ export class PostSnapshotBuilderService {
       projectTemplates,
     );
 
+    let body = formatted.body;
+    let bodyFormat: PostingSnapshot['bodyFormat'] = 'markdown';
+
     // Apply platform-specific body conversion
     const platform = channel.socialMedia?.toLowerCase();
     if (platform === 'telegram') {
       body = ContentConverter.mdToTelegramHtml(body);
+      bodyFormat = 'html';
     }
 
-    return body;
+    return { body, bodyFormat, template: formatted.template };
   }
 
   /**

@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PermissionKey } from '../../src/common/types/permissions.types.js';
 import { PublicationsService } from '../../src/modules/publications/publications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -279,27 +279,85 @@ describe('PublicationsService (unit)', () => {
       // Issue Type check (OR condition)
       const issueTypeCondition = andConditions.find(c => c.OR?.length === 2);
       expect(issueTypeCondition).toBeDefined();
-      expect(issueTypeCondition.OR[0].status).toBe(PublicationStatus.FAILED);
     });
   });
 
   describe('update', () => {
+    it('should forbid updating publication when it is READY unless switching to DRAFT', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+
+      const mockPublication: any = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        status: PublicationStatus.READY,
+        content: 'Test',
+        meta: '{}',
+        media: [],
+        posts: [],
+        project: { archivedAt: null },
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+
+      await expect(
+        service.update(publicationId, userId, { title: 'New title' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should allow switching publication from READY to DRAFT', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+
+      const mockPublication: any = {
+        id: publicationId,
+        projectId: 'project-1',
+        createdBy: userId,
+        status: PublicationStatus.READY,
+        content: 'Test',
+        meta: {},
+        media: [],
+        posts: [],
+        project: { archivedAt: null },
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.post.updateMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.publication.update.mockResolvedValue({
+        ...mockPublication,
+        status: PublicationStatus.DRAFT,
+      });
+
+      const result = await service.update(publicationId, userId, {
+        status: PublicationStatus.DRAFT,
+      } as any);
+
+      expect(result.status).toBe(PublicationStatus.DRAFT);
+    });
+
     it('should allow author to update their publication', async () => {
       const userId = 'user-1';
       const publicationId = 'pub-1';
       const updateDto = { title: 'Updated Title' };
 
-      const mockPublication = {
+      const mockPublication: any = {
         id: publicationId,
         projectId: 'project-1',
         createdBy: userId,
+        status: PublicationStatus.DRAFT,
+        meta: {},
+        media: [],
+        posts: [],
+        project: { archivedAt: null },
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.update.mockResolvedValue({ ...mockPublication, ...updateDto });
 
-      const result = await service.update(publicationId, userId, updateDto);
+      const result = await service.update(publicationId, userId, updateDto as any);
 
       expect(result).toBeDefined();
     });

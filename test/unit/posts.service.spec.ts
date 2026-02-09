@@ -4,8 +4,8 @@ import { PostsService } from '../../src/modules/posts/posts.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ChannelsService } from '../../src/modules/channels/channels.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
-import { jest } from '@jest/globals';
-import { PostStatus, SocialMedia } from '../../src/generated/prisma/index.js';
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { PostStatus, SocialMedia, PublicationStatus } from '../../src/generated/prisma/index.js';
 
 describe('PostsService (unit)', () => {
   let service: PostsService;
@@ -77,6 +77,42 @@ describe('PostsService (unit)', () => {
   });
 
   describe('update', () => {
+    it('should forbid updating post when publication is READY', async () => {
+      const userId = 'user-1';
+      const postId = 'post-1';
+
+      const mockPost = {
+        id: postId,
+        channelId: 'channel-1',
+        publicationId: 'pub-1',
+        publication: { createdBy: userId, status: PublicationStatus.READY },
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+
+      await expect(
+        service.update(postId, userId, { status: PostStatus.PUBLISHED }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should forbid updating post when publication is SCHEDULED', async () => {
+      const userId = 'user-1';
+      const postId = 'post-1';
+
+      const mockPost = {
+        id: postId,
+        channelId: 'channel-1',
+        publicationId: 'pub-1',
+        publication: { createdBy: userId, status: PublicationStatus.SCHEDULED },
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+
+      await expect(
+        service.update(postId, userId, { status: PostStatus.PUBLISHED }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should allow author to update post', async () => {
       const userId = 'user-1';
       const postId = 'post-1';
@@ -86,7 +122,7 @@ describe('PostsService (unit)', () => {
         id: postId,
         channelId: 'channel-1',
         publicationId: 'pub-1',
-        publication: { createdBy: userId },
+        publication: { createdBy: userId, status: PublicationStatus.DRAFT },
       };
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
@@ -107,7 +143,7 @@ describe('PostsService (unit)', () => {
         id: postId,
         channelId: 'channel-1',
         publicationId: 'pub-1',
-        publication: { createdBy: userId, content: 'base' },
+        publication: { createdBy: userId, content: 'base', status: PublicationStatus.DRAFT },
       };
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
@@ -134,7 +170,7 @@ describe('PostsService (unit)', () => {
         id: postId,
         channelId: 'channel-1',
         publicationId: 'pub-1',
-        publication: { createdBy: 'other-user' },
+        publication: { createdBy: 'other-user', status: PublicationStatus.DRAFT },
       };
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
@@ -213,7 +249,7 @@ describe('PostsService (unit)', () => {
         id: postId,
         channelId: 'channel-1',
         publicationId: 'pub-1',
-        publication: { createdBy: userId },
+        publication: { createdBy: userId, status: PublicationStatus.DRAFT },
         status: PostStatus.FAILED,
         errorMessage: 'Some error',
       };
