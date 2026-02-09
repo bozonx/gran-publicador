@@ -83,6 +83,13 @@ export class PublicationsService {
     },
   };
 
+  private normalizeAuthorSignatureContent(value: string): string {
+    return value
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   /**
    * Return meta object, ensuring it's an object.
    */
@@ -1115,10 +1122,53 @@ export class PublicationsService {
     let signatureVariantsMap: Map<string, string> | undefined;
 
     if (authorSignatureId) {
+      const signature = await this.prisma.projectAuthorSignature.findUnique({
+        where: { id: authorSignatureId },
+        select: {
+          id: true,
+          projectId: true,
+          userId: true,
+          project: {
+            select: {
+              ownerId: true,
+              members: {
+                where: { userId: userId ?? '' },
+                select: { role: { select: { systemType: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (!signature || signature.projectId !== publication.projectId) {
+        throw new ForbiddenException('You do not have permission to use this signature');
+      }
+
+      if (userId) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { isAdmin: true },
+        });
+
+        const member = signature.project.members[0];
+        const isProjectAdmin = member?.role?.systemType === 'ADMIN';
+        const hasAccess =
+          !!user?.isAdmin ||
+          signature.userId === userId ||
+          signature.project.ownerId === userId ||
+          isProjectAdmin;
+
+        if (!hasAccess) {
+          throw new ForbiddenException('You do not have permission to use this signature');
+        }
+      }
+
       const variants = await this.prisma.projectAuthorSignatureVariant.findMany({
         where: { signatureId: authorSignatureId },
       });
-      signatureVariantsMap = new Map(variants.map(v => [v.language, v.content]));
+      signatureVariantsMap = new Map(
+        variants.map(v => [v.language, this.normalizeAuthorSignatureContent(v.content)]),
+      );
     }
 
     // Pre-fetch project template if projectTemplateId is provided
@@ -1138,7 +1188,9 @@ export class PublicationsService {
         let authorSignature: string | undefined;
 
         if (authorSignatureOverrides?.[channel.id]) {
-          authorSignature = authorSignatureOverrides[channel.id];
+          authorSignature = this.normalizeAuthorSignatureContent(
+            authorSignatureOverrides[channel.id],
+          );
         } else if (signatureVariantsMap) {
           const variantContent = signatureVariantsMap.get(channel.language);
 

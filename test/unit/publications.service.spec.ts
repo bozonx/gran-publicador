@@ -4,7 +4,7 @@ import { PermissionKey } from '../../src/common/types/permissions.types.js';
 import { PublicationsService } from '../../src/modules/publications/publications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach, afterAll } from '@jest/globals';
 import {
   PostStatus,
   PublicationStatus,
@@ -28,6 +28,9 @@ describe('PublicationsService (unit)', () => {
       delete: jest.fn() as any,
       count: jest.fn() as any,
     },
+    publicationRelationItem: {
+      findMany: jest.fn() as any,
+    },
     projectMember: {
       findUnique: jest.fn() as any,
       findMany: jest.fn() as any,
@@ -44,6 +47,12 @@ describe('PublicationsService (unit)', () => {
       updateMany: jest.fn() as any,
       findMany: jest.fn() as any,
       aggregate: jest.fn() as any,
+    },
+    user: {
+      findUnique: jest.fn() as any,
+    },
+    projectAuthorSignature: {
+      findUnique: jest.fn() as any,
     },
     projectAuthorSignatureVariant: {
       findMany: jest.fn() as any,
@@ -103,6 +112,8 @@ describe('PublicationsService (unit)', () => {
     mockPrismaService.post.aggregate.mockResolvedValue({
       _max: { publishedAt: null },
     });
+
+    mockPrismaService.publicationRelationItem.findMany.mockResolvedValue([]);
   });
 
   describe('create', () => {
@@ -611,6 +622,146 @@ describe('PublicationsService (unit)', () => {
       await expect(service.createPostsFromPublication('p1', ['c1'], 'u')).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('should forbid using signature from another project', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const channelIds = ['channel-1'];
+      const authorSignatureId = 'sig-foreign';
+
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: publicationId,
+        projectId: 'project-1',
+        content: 'Test',
+        meta: '{}',
+      });
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        {
+          id: 'channel-1',
+          projectId: 'project-1',
+          language: 'en-US',
+          name: 'Channel',
+          socialMedia: SocialMedia.TELEGRAM,
+        },
+      ]);
+
+      mockPrismaService.projectAuthorSignature.findUnique.mockResolvedValue({
+        id: authorSignatureId,
+        projectId: 'other-project',
+        userId: 'owner-foreign',
+        project: {
+          ownerId: 'owner-foreign',
+          members: [],
+        },
+      });
+
+      await expect(
+        service.createPostsFromPublication(
+          publicationId,
+          channelIds,
+          userId,
+          undefined,
+          authorSignatureId,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should forbid using signature when user has no access', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const channelIds = ['channel-1'];
+      const authorSignatureId = 'sig-1';
+
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: publicationId,
+        projectId: 'project-1',
+        content: 'Test',
+        meta: '{}',
+      });
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        {
+          id: 'channel-1',
+          projectId: 'project-1',
+          language: 'en-US',
+          name: 'Channel',
+          socialMedia: SocialMedia.TELEGRAM,
+        },
+      ]);
+
+      mockPrismaService.projectAuthorSignature.findUnique.mockResolvedValue({
+        id: authorSignatureId,
+        projectId: 'project-1',
+        userId: 'signature-owner',
+        project: {
+          ownerId: 'project-owner',
+          members: [
+            {
+              role: {
+                systemType: 'VIEWER',
+              },
+            },
+          ],
+        },
+      });
+
+      mockPrismaService.user.findUnique.mockResolvedValue({ isAdmin: false });
+
+      await expect(
+        service.createPostsFromPublication(
+          publicationId,
+          channelIds,
+          userId,
+          undefined,
+          authorSignatureId,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should normalize per-channel signature overrides before persisting', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const channelIds = ['channel-1'];
+      const overrides = {
+        'channel-1': 'Line 1\nLine 2',
+      };
+
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: publicationId,
+        projectId: 'project-1',
+        content: 'Test',
+        meta: '{}',
+      });
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        {
+          id: 'channel-1',
+          projectId: 'project-1',
+          language: 'en-US',
+          name: 'Channel',
+          socialMedia: SocialMedia.TELEGRAM,
+        },
+      ]);
+
+      mockPrismaService.post.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: 'p1', ...data }),
+      );
+
+      await service.createPostsFromPublication(
+        publicationId,
+        channelIds,
+        userId,
+        undefined,
+        undefined,
+        overrides,
+      );
+
+      const call = mockPrismaService.post.create.mock.calls[0][0];
+      expect(call.data.authorSignature).toBe('Line 1 Line 2');
     });
   });
 

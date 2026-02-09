@@ -13,6 +13,13 @@ export class AuthorSignaturesService {
     private readonly permissions: PermissionsService,
   ) {}
 
+  private normalizeSignatureContent(value: string): string {
+    return value
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   /**
    * List all signatures for a project.
    * VIEWER role cannot see signatures.
@@ -45,7 +52,7 @@ export class AuthorSignaturesService {
         variants: {
           create: {
             language: dto.language || user.language,
-            content: dto.content,
+            content: this.normalizeSignatureContent(dto.content),
           },
         },
       },
@@ -85,8 +92,8 @@ export class AuthorSignaturesService {
 
     return this.prisma.projectAuthorSignatureVariant.upsert({
       where: { signatureId_language: { signatureId, language } },
-      create: { signatureId, language, content: dto.content },
-      update: { content: dto.content },
+      create: { signatureId, language, content: this.normalizeSignatureContent(dto.content) },
+      update: { content: this.normalizeSignatureContent(dto.content) },
     });
   }
 

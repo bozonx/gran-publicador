@@ -3,7 +3,6 @@ import { ref, onMounted, reactive, computed } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
-import { containsBlockMarkdown } from '~/utils/markdown-validation'
 import { useLanguages } from '~/composables/useLanguages'
 
 const props = defineProps<{
@@ -42,6 +41,16 @@ interface LocalVariant {
   content: string
 }
 const localVariants = ref<LocalVariant[]>([])
+
+function hasLineBreak(value: string): boolean {
+  return /[\r\n]/.test(value)
+}
+
+function getVariantError(value: string): string | undefined {
+  if (!value.trim()) return undefined
+  if (hasLineBreak(value)) return t('authorSignature.noLineBreaks', 'Line breaks are not allowed')
+  return undefined
+}
 
 // Display content: show variant in user's language
 function getDisplayContent(sig: ProjectAuthorSignature): string {
@@ -134,12 +143,12 @@ async function handleSave() {
     return
   }
 
-  // Validate inline markdown
+  // Validate line breaks
   for (const variant of filledVariants) {
-    if (containsBlockMarkdown(variant.content)) {
+    if (hasLineBreak(variant.content)) {
       toast.add({
         title: t('common.error'),
-        description: `${variant.language}: ${t('validation.inlineMarkdownOnly')}`,
+        description: `${variant.language}: ${t('authorSignature.noLineBreaks', 'Line breaks are not allowed')}`,
         color: 'error',
       })
       return
@@ -221,8 +230,19 @@ async function handleSave() {
     isModalOpen.value = false
     await loadSignatures()
     emit('update:preferences')
+
+    toast.add({
+      title: t('common.success', 'Success'),
+      description: t('authorSignature.saved', 'Signature saved'),
+      color: 'success',
+    })
   } catch (error) {
     console.error('Failed to save signature', error)
+    toast.add({
+      title: t('common.error'),
+      description: t('authorSignature.saveError', 'Failed to save signature'),
+      color: 'error',
+    })
   }
 }
 
@@ -248,8 +268,19 @@ async function handleDelete(id: string) {
 
     try {
       await remove(id)
+
+      toast.add({
+        title: t('common.success', 'Success'),
+        description: t('authorSignature.deleted', 'Signature deleted'),
+        color: 'success',
+      })
     } catch (error) {
       console.error('Failed to delete signature', error)
+      toast.add({
+        title: t('common.error'),
+        description: t('authorSignature.deleteError', 'Failed to delete signature'),
+        color: 'error',
+      })
       await loadSignatures()
     }
   }
@@ -261,8 +292,19 @@ async function handleDragEnd() {
     for (const sig of signatures.value) {
       await update(sig.id, { order: order++ })
     }
+
+    toast.add({
+      title: t('common.success', 'Success'),
+      description: t('authorSignature.orderUpdated', 'Order updated'),
+      color: 'success',
+    })
   } catch (error) {
     console.error('Failed to update order', error)
+    toast.add({
+      title: t('common.error'),
+      description: t('authorSignature.orderError', 'Failed to update order'),
+      color: 'error',
+    })
     await loadSignatures()
   }
 }
@@ -406,6 +448,9 @@ async function handleDragEnd() {
             class="w-full bg-white dark:bg-gray-900"
             autoresize
           />
+          <div v-if="getVariantError(v.content)" class="text-xs text-red-600 dark:text-red-400">
+            {{ getVariantError(v.content) }}
+          </div>
         </div>
 
         <div class="flex flex-wrap gap-2">
