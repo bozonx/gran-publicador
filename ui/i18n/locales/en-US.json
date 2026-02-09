@@ -518,7 +518,6 @@
   },
   "llm": {
     "addTemplate": "Add Template",
-    "advancedSettings": "Advanced Settings",
     "applyError": "Error applying changes",
     "applySuccess": "Changes applied successfully",
     "applying": "Applying changes...",
@@ -545,7 +544,6 @@
     "generate": "Generate with AI",
     "lastMessageEmpty": "Last AI message is empty. Try generating content first.",
     "manageTemplates": "Manage Prompt Templates",
-    "maxTokens": "Max tokens",
     "nextDescription": "Use the last AI message to extract fields",
     "noFieldsSelected": "Select at least one field to apply",
     "noTemplate": "No template",
@@ -568,7 +566,6 @@
     "step1Description": "Chat with AI to generate or refine your text. Optionally, include the current publication as context.",
     "step2Description": "Review extracted fields and choose what to apply. You can edit values before applying.",
     "systemTemplates": "System",
-    "temperature": "Temperature",
     "templateCategory": "Category",
     "templateDescription": "Description",
     "templateDescriptionPlaceholder": "Short description of the template",

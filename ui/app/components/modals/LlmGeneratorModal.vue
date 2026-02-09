@@ -123,10 +123,6 @@ useModalAutoFocus({
 })
 
 // Form common state
-const showAdvanced = ref(false)
-const temperature = ref(0.7)
-const maxTokens = ref(4000)
-
 // Template selection
 const isTemplatePickerOpen = ref(false)
 
@@ -315,7 +311,6 @@ watch(isOpen, async (open) => {
     prompt.value = ''
     fieldsResult.value = null
     metadata.value = null
-    showAdvanced.value = false
     contextTags.value = []
     isTemplatePickerOpen.value = false
     pubSelectedFields.content = false
@@ -365,10 +360,7 @@ async function handleGenerate() {
   });
   prompt.value = '';
 
-  const response = await generateContent(currentPrompt, {
-    temperature: temperature.value,
-    max_tokens: maxTokens.value,
-  });
+  const response = await generateContent(currentPrompt);
 
   if (response) {
     chatMessages.value.push({ role: 'assistant', content: response.content });
@@ -424,15 +416,11 @@ async function handleFieldsGeneration(sourceText: string) {
       tags: ch.tags,
     }))
 
-    const response = await generatePublicationFields(
-      sourceText,
-      publicationLanguage || 'en-US',
-      channelsForApi,
-      {
-        temperature: temperature.value,
-        max_tokens: maxTokens.value,
-      }
-    )
+      const response = await generatePublicationFields(
+        sourceText,
+        publicationLanguage || 'en-US',
+        channelsForApi
+      )
     
     if (response) {
       const hasData = response.publication.title || response.publication.description || response.publication.tags.length > 0 || response.publication.content
@@ -799,29 +787,6 @@ defineExpose({
               @click="handleGenerate"
             />
           </div>
-        </div>
-
-        <!-- Advanced Settings (Step 1) -->
-        <div class="pt-2">
-            <UButton
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              :icon="showAdvanced ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-              class="mb-2"
-              @click="showAdvanced = !showAdvanced"
-            >
-              {{ t('llm.advancedSettings') }}
-            </UButton>
-
-            <div v-show="showAdvanced" class="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <UFormField :label="t('llm.temperature')">
-                    <UInput v-model.number="temperature" type="number" step="0.1" min="0" max="2" size="sm" class="w-full" />
-                </UFormField>
-                <UFormField :label="t('llm.maxTokens')">
-                    <UInput v-model.number="maxTokens" type="number" min="100" max="8000" size="sm" class="w-full" />
-                </UFormField>
-            </div>
         </div>
 
         <!-- Metadata & Stats (Chat) -->

@@ -107,6 +107,24 @@ export class LlmConfig {
   @IsInt()
   @Min(1)
   public minMaxOutputTokens?: number;
+
+  /**
+   * Default temperature for generation.
+   * Defined by FREE_LLM_ROUTER_TEMPERATURE environment variable.
+   */
+  @IsOptional()
+  @Max(2)
+  @Min(0)
+  public temperature?: number;
+
+  /**
+   * Default max tokens for generation.
+   * Defined by FREE_LLM_ROUTER_MAX_TOKENS environment variable.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  public maxTokens?: number;
 }
 
 export default registerAs('llm', (): LlmConfig => {
@@ -134,6 +152,12 @@ export default registerAs('llm', (): LlmConfig => {
       : undefined,
     minMaxOutputTokens: process.env.FREE_LLM_ROUTER_MIN_MAX_OUTPUT_TOKENS
       ? parseInt(process.env.FREE_LLM_ROUTER_MIN_MAX_OUTPUT_TOKENS, 10)
+      : undefined,
+    temperature: process.env.FREE_LLM_ROUTER_TEMPERATURE
+      ? parseFloat(process.env.FREE_LLM_ROUTER_TEMPERATURE)
+      : undefined,
+    maxTokens: process.env.FREE_LLM_ROUTER_MAX_TOKENS
+      ? parseInt(process.env.FREE_LLM_ROUTER_MAX_TOKENS, 10)
       : undefined,
   };
 

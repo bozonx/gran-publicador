@@ -194,16 +194,12 @@ const editor = useEditor({
     if (isSourceMode.value) return
 
     const { from, to, empty } = editor.state.selection
-    const isInLink = editor.isActive('link')
+    const hrefNearCursor = getLinkHrefNearCursor(editor)
+    const isInLink = editor.isActive('link') || hrefNearCursor !== null
 
     // Auto-open link editor when the cursor is inside a link.
     if (empty && isInLink) {
-      const href = editor.getAttributes('link').href
-      if (typeof href === 'string') {
-        linkUrlInput.value = href
-      } else {
-        linkUrlInput.value = ''
-      }
+      linkUrlInput.value = hrefNearCursor ?? ''
       isLinkMenuOpen.value = true
       linkMenuAnchor.value = { from, to }
       return
@@ -342,6 +338,35 @@ const wordCount = computed(() => {
 const isMaxLengthReached = computed(() => {
   return props.maxLength ? characterCount.value >= props.maxLength : false
 })
+
+function getLinkHrefNearCursor(editor: any): string | null {
+  const directHref = editor.getAttributes('link')?.href
+  if (typeof directHref === 'string' && directHref.length > 0) return directHref
+
+  const linkMark = editor.state.schema.marks.link
+  if (!linkMark) return null
+
+  const { from, empty } = editor.state.selection
+  if (!empty) return null
+
+  const docSize = editor.state.doc.content.size
+
+  const positionsToCheck = new Set<number>([
+    from,
+    Math.max(0, from - 1),
+    Math.min(docSize, from + 1),
+  ])
+
+  for (const pos of positionsToCheck) {
+    if (pos < 0 || pos > docSize) continue
+    const $pos = editor.state.doc.resolve(pos)
+    const mark = $pos.marks().find((m: any) => m.type === linkMark)
+    const href = mark?.attrs?.href
+    if (typeof href === 'string' && href.length > 0) return href
+  }
+
+  return null
+}
 </script>
 
 <template>
