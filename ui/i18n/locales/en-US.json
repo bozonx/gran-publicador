@@ -588,7 +588,10 @@
     "copyTarget": "Copy to",
     "copyTemplateDescription": "Copy template \"{name}\" to another scope",
     "noHiddenTemplates": "No hidden templates",
-    "templateCategoryPlaceholder": "e.g. Content, SEO, Chat..."
+    "templateCategoryPlaceholder": "e.g. Content, SEO, Chat...",
+    "system": "System",
+    "project": "Project",
+    "personal": "Personal"
   },
   "media": {
     "add": "Add Media",

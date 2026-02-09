@@ -382,6 +382,17 @@ function handleTemplateClick(tpl: LlmPromptTemplate) {
 function toggleHiddenOnly() {
   showHiddenOnly.value = !showHiddenOnly.value
 }
+
+function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info' | 'primary' | 'success' } {
+  if (tpl.isSystem) {
+    return { label: t('llm.system'), color: 'info' }
+  }
+  if (tpl.projectId) {
+    return { label: t('llm.project'), color: 'primary' }
+  }
+  return { label: t('llm.personal'), color: 'success' }
+}
+
 </script>
 
 <template>
@@ -491,7 +502,13 @@ function toggleHiddenOnly() {
           <div
             v-for="tpl in group.items"
             :key="tpl.id"
-            class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+            class="flex items-start gap-3 p-4 rounded-lg group cursor-pointer border transition-colors relative"
+            :class="[
+              tpl.isSystem 
+                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50' 
+                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800',
+              { 'opacity-60': tpl.isHidden }
+            ]"
             @click="handleTemplateClick(tpl)"
           >
             <div
@@ -502,12 +519,25 @@ function toggleHiddenOnly() {
             </div>
 
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap mb-1">
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ tpl.name }}
                 </h4>
+                
+                <UBadge 
+                  :color="getTemplateBadge(tpl).color" 
+                  variant="subtle" 
+                  size="xs"
+                  class="ml-1"
+                >
+                  {{ getTemplateBadge(tpl).label }}
+                </UBadge>
+
+                <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle" class="ml-1">
+                  {{ t('common.hidden') }}
+                </UBadge>
               </div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-gray-50 dark:bg-gray-800 p-1.5 rounded">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2 font-mono bg-white/50 dark:bg-black/20 p-2 rounded border border-gray-100 dark:border-gray-800/50">
                 {{ tpl.prompt }}
               </p>
             </div>
@@ -537,21 +567,35 @@ function toggleHiddenOnly() {
           <div
             v-for="tpl in group.items"
             :key="tpl.id"
-            class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group"
-            :class="{ 'opacity-60': tpl.isHidden, 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors': !tpl.isSystem }"
+            class="flex items-start gap-3 p-4 rounded-lg group border transition-colors relative"
+            :class="[
+              tpl.isSystem 
+                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50' 
+                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800',
+              { 'opacity-60': tpl.isHidden }
+            ]"
             @click="handleTemplateClick(tpl)"
           >
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap mb-1">
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ tpl.name }}
                 </h4>
 
-                <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle">
+                <UBadge 
+                  :color="getTemplateBadge(tpl).color" 
+                  variant="subtle" 
+                  size="xs"
+                  class="ml-1"
+                >
+                  {{ getTemplateBadge(tpl).label }}
+                </UBadge>
+
+                <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle" class="ml-1">
                   {{ t('common.hidden') }}
                 </UBadge>
               </div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-gray-50 dark:bg-gray-800 p-1.5 rounded">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2 font-mono bg-white/50 dark:bg-black/20 p-2 rounded border border-gray-100 dark:border-gray-800/50">
                 {{ tpl.prompt }}
               </p>
             </div>

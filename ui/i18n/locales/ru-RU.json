@@ -588,7 +588,10 @@
     "copyTarget": "Копировать в",
     "copyTemplateDescription": "Копировать шаблон «{name}» в другую область",
     "noHiddenTemplates": "Нет скрытых шаблонов",
-    "templateCategoryPlaceholder": "напр. Контент, SEO, Чат..."
+    "templateCategoryPlaceholder": "напр. Контент, SEO, Чат...",
+    "system": "Системный",
+    "project": "Проектный",
+    "personal": "Личный"
   },
   "media": {
     "add": "Добавить медиа",
