@@ -154,11 +154,14 @@ const hasContent = computed(() => {
     <!-- View Mode -->
     <div 
       v-if="!isEditing"
-      class="bg-gray-100 dark:bg-gray-800 rounded-md p-4 overflow-x-auto border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80 transition-colors group relative"
-      :class="{ 'min-h-[60px] flex items-center justify-center': !hasContent }"
-      @click="startEditing"
+      class="bg-gray-100 dark:bg-gray-800 rounded-md p-4 overflow-x-auto border border-gray-200 dark:border-gray-700 transition-colors group relative"
+      :class="{ 
+        'min-h-[60px] flex items-center justify-center': !hasContent,
+        'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/80': !disabled 
+      }"
+      @click="!disabled && startEditing()"
     >
-      <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div v-if="!disabled" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <UIcon name="i-heroicons-pencil" class="w-4 h-4 text-gray-500" />
       </div>
       <pre 

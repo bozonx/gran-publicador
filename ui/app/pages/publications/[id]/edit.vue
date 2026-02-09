@@ -123,6 +123,8 @@ const hasMediaValidationErrors = computed(() => {
     return publicationProblems.value.some(p => p.key === 'mediaValidation')
 })
 
+const isLocked = computed(() => currentPublication.value?.status === 'READY')
+
 
 const isFormCollapsed = ref(false)
 const isDeleteModalOpen = ref(false)
@@ -998,6 +1000,7 @@ async function executePublish(force: boolean) {
                               color="primary"
                               variant="soft"
                               size="sm"
+                              :disabled="isLocked"
                               @click="showLlmModal = true"
                           />
                         </UTooltip>
@@ -1025,6 +1028,7 @@ async function executePublish(force: boolean) {
                             variant="soft"
                             size="sm"
                             color="error"
+                            :disabled="isLocked"
                             @click="isDeleteModalOpen = true"
                         ></UButton>
                     </div>
@@ -1087,6 +1091,7 @@ async function executePublish(force: boolean) {
                                     {{ currentPublication.project?.name || t('publication.personal_draft') }}
                                 </span>
                                 <UButton
+                                    v-if="!isLocked"
                                     icon="i-heroicons-pencil-square"
                                     variant="ghost"
                                     color="neutral"
@@ -1097,6 +1102,7 @@ async function executePublish(force: boolean) {
                             </div>
                             <div v-else>
                                 <UButton
+                                    v-if="!isLocked"
                                     icon="i-heroicons-folder"
                                     variant="soft"
                                     color="primary"
@@ -1119,6 +1125,7 @@ async function executePublish(force: boolean) {
                                     {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
                                 </span>
                                 <UButton
+                                    v-if="!isLocked"
                                     icon="i-heroicons-pencil-square"
                                     variant="ghost"
                                     color="neutral"
@@ -1140,6 +1147,7 @@ async function executePublish(force: boolean) {
                                     {{ typeOptions.find(t => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
                                 </span>
                                 <UButton
+                                    v-if="!isLocked"
                                     icon="i-heroicons-pencil-square"
                                     variant="ghost"
                                     color="neutral"
@@ -1169,6 +1177,7 @@ async function executePublish(force: boolean) {
                                         ({{ rel.items.length }})
                                     </UBadge>
                                     <UButton
+                                        v-if="!isLocked"
                                         icon="i-heroicons-pencil-square"
                                         variant="ghost"
                                         color="neutral"
@@ -1179,6 +1188,7 @@ async function executePublish(force: boolean) {
                                 </template>
                                 <template v-else>
                                     <UButton
+                                        v-if="!isLocked"
                                         icon="i-heroicons-plus"
                                         variant="soft"
                                         color="primary"
@@ -1198,6 +1208,7 @@ async function executePublish(force: boolean) {
                           v-if="currentPublication"
                           :publication="currentPublication"
                           :channels="channels || []"
+                          :disabled="isLocked"
                           @refresh="() => fetchPublication(publicationId)"
                         />
 
@@ -1267,7 +1278,7 @@ async function executePublish(force: boolean) {
           v-if="currentPublication"
           :media="currentPublication.media || []"
           :publication-id="currentPublication.id"
-          :editable="true"
+          :editable="!isLocked"
           :post-type="currentPublication.postType"
           :social-media="linkedSocialMedia"
           @refresh="() => fetchPublication(publicationId)"

@@ -517,6 +517,7 @@ onMounted(() => {
 })
 
 const isSaveDisabled = computed(() => {
+    if (isLocked.value) return true
     if (props.isCreating) return !formData.channelId
     return false
 })
@@ -941,32 +942,35 @@ async function executePublish() {
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.content') }}</span>
                 <div class="flex items-center gap-2">
                     <UButton
-                        v-if="(formData.content || publicationContent) && !isLocked"
+                        v-if="formData.content || publicationContent"
                         variant="soft"
                         color="primary"
                         size="xs"
                         icon="i-heroicons-sparkles"
+                        :disabled="isLocked"
                         @click="isQuickGenModalOpen = true"
                     >
                         {{ t('llm.generate') }}
                     </UButton>
                     <UButton
-                        v-if="channelLanguage && !isLocked"
+                        v-if="channelLanguage"
                         variant="soft"
                         color="primary"
                         size="xs"
                         icon="i-heroicons-language"
                         :loading="isTranslating"
+                        :disabled="isLocked"
                         @click="handleTranslate"
                     >
                         {{ t('post.translateTo', { lang: channelLanguage }) }}
                     </UButton>
                     <UButton 
-                        v-if="formData.content && !isLocked" 
+                        v-if="formData.content" 
                         variant="ghost" 
                         color="neutral" 
                         size="xs" 
                         icon="i-heroicons-x-mark"
+                        :disabled="isLocked"
                         @click="formData.content = ''"
                     >
                         {{ t('common.reset') }}

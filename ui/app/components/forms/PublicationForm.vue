@@ -552,21 +552,21 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('post.contentTooltip')" />
             </div>
                 <UButton
-                    v-if="!isLocked"
                     icon="i-heroicons-sparkles"
                     color="primary"
                     variant="ghost"
                     size="xs"
                     :label="t('llm.generate')"
+                    :disabled="isLocked"
                     @click="isQuickGenModalOpen = true"
                 />
                 <UButton
-                    v-if="!isLocked"
                     icon="i-heroicons-language"
                     color="primary"
                     variant="ghost"
                     size="xs"
                     :label="$t('actions.translate')"
+                    :disabled="isLocked"
                     @click="() => handleOpenTranslateModal()"
                 />
           </div>
@@ -708,6 +708,7 @@ function handleLlmGenerated(text: string) {
           :is-dirty="isDirty"
           :save-label="isEditMode ? t('common.save') : t('common.create')"
           hide-cancel
+          :disabled="isLocked"
           @reset="handleReset"
         />
       </div>

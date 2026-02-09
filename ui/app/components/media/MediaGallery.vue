@@ -1485,12 +1485,13 @@ const mediaValidation = computed(() => {
           </UFormField>
         </div>
 
-        <div class="mt-4">
-           <CommonMetadataEditor
-              v-model="editableMetadata"
-              :rows="8"
-           />
-        </div>
+         <div class="mt-4">
+            <CommonMetadataEditor
+               v-model="editableMetadata"
+               :rows="8"
+               :disabled="!editable"
+            />
+         </div>
 
         <!-- EXIF Data Display -->
         <div v-if="exifData" class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">

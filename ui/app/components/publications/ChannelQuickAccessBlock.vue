@@ -8,6 +8,7 @@ import { usePosts } from '~/composables/usePosts'
 interface Props {
   publication: PublicationWithRelations
   channels: ChannelWithProject[]
+  disabled?: boolean
 }
 
 const props = defineProps<Props>()
@@ -179,7 +180,7 @@ async function createPostForChannel(channelId: string, channelName: string) {
                   ? 'border-gray-400 bg-gray-100 dark:bg-gray-700' 
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               ]"
-              :disabled="!!isCreating"
+              :disabled="!!isCreating || disabled"
               @click="createPostForChannel(item.channelId, item.channelName)"
             >
               <UIcon 
