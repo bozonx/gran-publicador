@@ -25,12 +25,13 @@ const {
   isLoading
 } = useLlmPromptTemplates()
 
-// ─── Source tab ──────────────────────────────────────────────────────
-type SourceTab = 'system' | 'project' | 'personal'
-const activeTab = ref<SourceTab>(props.projectId ? 'project' : 'personal')
+// ─── Source filter ───────────────────────────────────────────────────
+type SourceFilter = 'all' | 'system' | 'project' | 'personal'
+const sourceFilter = ref<SourceFilter>('all')
 
-const tabItems = computed(() => {
-  const items: Array<{ value: SourceTab; label: string }> = [
+const sourceOptions = computed(() => {
+  const items: Array<{ value: SourceFilter; label: string }> = [
+    { value: 'all', label: t('common.all', 'All') },
     { value: 'system', label: t('llm.systemTemplates') },
   ]
   if (props.projectId) {
@@ -42,8 +43,9 @@ const tabItems = computed(() => {
 
 // ─── State ──────────────────────────────────────────────────────────
 const systemTemplates = ref<LlmPromptTemplate[]>([])
-const templates = ref<LlmPromptTemplate[]>([])
-const showHidden = ref(false)
+const userTemplates = ref<LlmPromptTemplate[]>([])
+const projectTemplates = ref<LlmPromptTemplate[]>([])
+const showHiddenOnly = ref(false)
 
 // Edit/Create modal
 const isModalOpen = ref(false)
@@ -65,28 +67,22 @@ const isCopying = ref(false)
 // Form state
 const formData = reactive({
   name: '',
-  description: '',
   category: 'General',
+  customCategory: '',
   prompt: ''
 })
 
-// ─── Category filter (dynamic from data) ────────────────────────────
-const categoryFilter = ref('ALL')
-
-const currentTemplateList = computed(() => {
-  if (activeTab.value === 'system') return systemTemplates.value
-  return templates.value
-})
+const CUSTOM_CATEGORY_VALUE = '__custom__'
 
 const categoryOptions = computed(() => {
   const categories = new Set<string>()
-  currentTemplateList.value.forEach(tpl => {
+  ;[...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value].forEach((tpl) => {
     if (tpl.category) categories.add(tpl.category)
   })
   const sorted = [...categories].sort()
   return [
-    { value: 'ALL', label: t('common.all') },
     ...sorted.map(c => ({ value: c, label: c })),
+    { value: CUSTOM_CATEGORY_VALUE, label: t('common.custom', 'Custom') },
   ]
 })
 
@@ -94,27 +90,25 @@ const categoryOptions = computed(() => {
 const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
+const currentTemplates = computed<LlmPromptTemplate[]>(() => {
+  if (sourceFilter.value === 'system') return systemTemplates.value
+  if (sourceFilter.value === 'personal') return userTemplates.value
+  if (sourceFilter.value === 'project') return projectTemplates.value
+  return [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value]
+})
+
 // ─── Filtered templates ─────────────────────────────────────────────
 const filteredTemplates = computed(() => {
   const query = debouncedSearch.value.trim().toLowerCase()
 
-  return currentTemplateList.value.filter((tpl) => {
-    // Show hidden logic: if not showHidden, hide items that are isHidden
-    if (!showHidden.value && tpl.isHidden) return false
-    
-    // Logic was: if showHidden, hide items that are NOT isHidden (for non-system tabs).
-    // This made it a "Switch to hidden only" toggle.
-    // We remove this to make it a "Include hidden" toggle, consistent with system tab.
+  return currentTemplates.value.filter((tpl) => {
+    if (showHiddenOnly.value && !tpl.isHidden) return false
+    if (!showHiddenOnly.value && tpl.isHidden) return false
 
-    const matchesCategory =
-      categoryFilter.value === 'ALL' || tpl.category === categoryFilter.value
-
-    if (!matchesCategory) return false
     if (!query) return true
 
     return (
       tpl.name.toLowerCase().includes(query) ||
-      (tpl.description && tpl.description.toLowerCase().includes(query)) ||
       tpl.prompt.toLowerCase().includes(query)
     )
   })
@@ -129,20 +123,24 @@ const canSubmit = computed(() => {
 const loadTemplates = async () => {
   const includeHidden = true
 
-  if (activeTab.value === 'system') {
-    systemTemplates.value = await fetchSystemTemplates(includeHidden)
-  } else if (activeTab.value === 'project' && props.projectId) {
-    templates.value = await fetchProjectTemplates(props.projectId, includeHidden)
-  } else if (user.value?.id) {
-    templates.value = await fetchUserTemplates(user.value.id, includeHidden)
+  systemTemplates.value = await fetchSystemTemplates(includeHidden)
+
+  if (user.value?.id) {
+    userTemplates.value = await fetchUserTemplates(user.value.id, includeHidden)
+  } else {
+    userTemplates.value = []
+  }
+
+  if (props.projectId) {
+    projectTemplates.value = await fetchProjectTemplates(props.projectId, includeHidden)
+  } else {
+    projectTemplates.value = []
   }
 }
 
-watch(activeTab, () => {
-  categoryFilter.value = 'ALL'
+watch(sourceFilter, () => {
   searchQuery.value = ''
-  showHidden.value = false
-  loadTemplates()
+  showHiddenOnly.value = false
 })
 
 onMounted(() => {
@@ -154,8 +152,8 @@ const openCreateModal = () => {
   modalMode.value = 'create'
   editingTemplate.value = null
   formData.name = ''
-  formData.description = ''
-  formData.category = 'General'
+  formData.category = categoryOptions.value[0]?.value || 'General'
+  formData.customCategory = ''
   formData.prompt = ''
   isModalOpen.value = true
 }
@@ -164,8 +162,15 @@ const openEditModal = (template: LlmPromptTemplate) => {
   modalMode.value = 'edit'
   editingTemplate.value = template
   formData.name = template.name
-  formData.description = template.description || ''
-  formData.category = template.category || 'General'
+  const existingCategories = categoryOptions.value.map(o => o.value)
+  const templateCategory = template.category || 'General'
+  if (existingCategories.includes(templateCategory)) {
+    formData.category = templateCategory
+    formData.customCategory = ''
+  } else {
+    formData.category = CUSTOM_CATEGORY_VALUE
+    formData.customCategory = templateCategory
+  }
   formData.prompt = template.prompt
   isModalOpen.value = true
 }
@@ -173,16 +178,28 @@ const openEditModal = (template: LlmPromptTemplate) => {
 const handleSubmit = async () => {
   if (!canSubmit.value) return
 
+  const category = formData.category === CUSTOM_CATEGORY_VALUE
+    ? formData.customCategory.trim()
+    : formData.category
+
+  if (!category) return
+
   isSubmitting.value = true
   try {
     if (modalMode.value === 'create') {
       await createTemplate({
-        ...formData,
+        name: formData.name,
+        category,
+        prompt: formData.prompt,
         userId: props.projectId ? undefined : user.value?.id,
         projectId: props.projectId
       })
     } else if (editingTemplate.value) {
-      await updateTemplate(editingTemplate.value.id, formData)
+      await updateTemplate(editingTemplate.value.id, {
+        name: formData.name,
+        category,
+        prompt: formData.prompt,
+      })
     }
 
     await loadTemplates()
@@ -245,7 +262,6 @@ const handleCopy = async () => {
   try {
     const data: any = {
       name: copySource.value.name,
-      description: copySource.value.description,
       category: copySource.value.category,
       prompt: copySource.value.prompt,
     }
@@ -277,40 +293,102 @@ const copyTargetOptions = computed(() => {
 })
 
 // ─── Reorder ────────────────────────────────────────────────────────
-const handleReorder = async () => {
-  const ids = templates.value.filter(t => !t.isHidden).map((tpl: LlmPromptTemplate) => tpl.id)
+const isCustomTab = computed(() => sourceFilter.value === 'personal' || sourceFilter.value === 'project')
+const canReorder = computed(() => {
+  return isCustomTab.value && !showHiddenOnly.value && !searchQuery.value
+})
+
+const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : t('llm.userTemplates_desc'))
+
+type GroupedTemplates = Array<{ category: string; items: LlmPromptTemplate[] }>
+
+const groupedTemplates = computed<GroupedTemplates>(() => {
+  const groups = new Map<string, LlmPromptTemplate[]>()
+  filteredTemplates.value.forEach((tpl) => {
+    const key = tpl.category || 'General'
+    const list = groups.get(key) || []
+    list.push(tpl)
+    groups.set(key, list)
+  })
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([category, items]) => ({ category, items }))
+})
+
+const reorderableGroups = ref<GroupedTemplates>([])
+
+function rebuildReorderableGroups() {
+  if (!canReorder.value) {
+    reorderableGroups.value = []
+    return
+  }
+
+  const base = sourceFilter.value === 'project' ? projectTemplates.value : userTemplates.value
+  const active = base.filter(tpl => !tpl.isHidden)
+
+  const groups = new Map<string, LlmPromptTemplate[]>()
+  active.forEach((tpl) => {
+    const key = tpl.category || 'General'
+    const list = groups.get(key) || []
+    list.push(tpl)
+    groups.set(key, list)
+  })
+
+  reorderableGroups.value = [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([category, items]) => ({ category, items }))
+}
+
+watch([sourceFilter, showHiddenOnly, searchQuery, userTemplates, projectTemplates], () => {
+  rebuildReorderableGroups()
+}, { deep: true })
+
+async function handleReorder() {
+  const base = sourceFilter.value === 'project' ? projectTemplates.value : userTemplates.value
+  const ids = base.filter(t => !t.isHidden).map((tpl: LlmPromptTemplate) => tpl.id)
   await reorderTemplates(ids)
 }
 
-const displayTemplates = computed({
-  get: () => filteredTemplates.value,
-  set: (value) => {
-    if (showHidden.value || searchQuery.value || categoryFilter.value !== 'ALL') {
-      // If we are showing a filtered/inclusive list, we need to be careful.
-      // If inclusive (showHidden=true), value likely contains all/most items.
-      // For simplicity, if showHidden is true and no other filters, value is the full list.
-      if (showHidden.value && !searchQuery.value && categoryFilter.value === 'ALL') {
-        templates.value = value
-      }
-      // Otherwise reordering is disabled anyway by :disabled prop on VueDraggable
-    } else {
-      // Normal view: value contains only non-hidden templates.
-      // Preserve hidden ones from the original templates.value.
-      const hidden = templates.value.filter(t => t.isHidden)
-      templates.value = [...value, ...hidden]
-    }
-  }
-})
+function applyCategoryReorder(category: string, orderedItems: LlmPromptTemplate[]) {
+  const baseRef = sourceFilter.value === 'project' ? projectTemplates : userTemplates
 
-const isCustomTab = computed(() => activeTab.value === 'personal' || activeTab.value === 'project')
-const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : t('llm.userTemplates_desc'))
+  const base = baseRef.value
+  const hidden = base.filter(t => t.isHidden)
+  const active = base.filter(t => !t.isHidden)
+
+  const orderedById = new Map(orderedItems.map(i => [i.id, i]))
+  const nextOrdered: LlmPromptTemplate[] = orderedItems
+    .map(i => orderedById.get(i.id))
+    .filter((v): v is LlmPromptTemplate => !!v)
+
+  let idx = 0
+  const updatedActive = active.map((tpl) => {
+    const tplCategory = tpl.category || 'General'
+    if (tplCategory !== category) return tpl
+
+    const replacement = nextOrdered[idx]
+    idx += 1
+    return replacement || tpl
+  })
+
+  baseRef.value = [...updatedActive, ...hidden]
+}
+
+function handleTemplateClick(tpl: LlmPromptTemplate) {
+  if (tpl.isSystem) return
+  openEditModal(tpl)
+}
+
+function toggleHiddenOnly() {
+  showHiddenOnly.value = !showHiddenOnly.value
+}
 </script>
 
 <template>
   <UiAppCard :title="t('llm.manageTemplates')" :description="title">
     <template #actions>
       <UButton
-        v-if="isCustomTab"
+        v-if="sourceFilter === 'personal' || sourceFilter === 'project'"
         icon="i-heroicons-plus"
         color="primary"
         variant="soft"
@@ -320,15 +398,6 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
         {{ t('llm.addTemplate') }}
       </UButton>
     </template>
-
-    <!-- Source Tabs -->
-    <div class="mb-4">
-      <UTabs
-        :items="tabItems"
-        :model-value="activeTab"
-        @update:model-value="activeTab = $event as SourceTab"
-      />
-    </div>
 
     <!-- Filters -->
     <div class="mb-4">
@@ -350,16 +419,23 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
         </UInput>
 
         <USelectMenu
-          v-model="categoryFilter"
-          :items="categoryOptions"
+          v-model="sourceFilter"
+          :items="sourceOptions"
           value-key="value"
           label-key="label"
           class="w-full"
         />
 
         <div class="flex items-center gap-2">
-          <USwitch v-model="showHidden" />
-          <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('llm.showHidden') }}</span>
+          <UButton
+            color="neutral"
+            variant="soft"
+            size="sm"
+            :icon="showHiddenOnly ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-eye-slash'"
+            @click="toggleHiddenOnly"
+          >
+            {{ showHiddenOnly ? t('common.active', 'Active') : t('common.hidden', 'Hidden') }}
+          </UButton>
         </div>
       </div>
     </div>
@@ -370,7 +446,7 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="filteredTemplates.length === 0 && !showHidden" class="text-center py-12 px-4">
+    <div v-else-if="filteredTemplates.length === 0 && !showHiddenOnly" class="text-center py-12 px-4">
       <div class="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
         <UIcon name="i-heroicons-document-text" class="w-8 h-8 text-gray-400" />
       </div>
@@ -381,7 +457,7 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
         {{ t('llm.noTemplatesDescription') }}
       </p>
       <UButton
-        v-if="isCustomTab"
+        v-if="sourceFilter === 'personal' || sourceFilter === 'project'"
         icon="i-heroicons-plus"
         color="primary"
         @click="openCreateModal"
@@ -390,164 +466,128 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
       </UButton>
     </div>
 
-    <div v-else-if="filteredTemplates.length === 0 && showHidden" class="text-center py-8 text-gray-500 dark:text-gray-400">
+    <div v-else-if="filteredTemplates.length === 0 && showHiddenOnly" class="text-center py-8 text-gray-500 dark:text-gray-400">
       {{ t('llm.noHiddenTemplates') }}
     </div>
 
-    <!-- System templates list (no drag) -->
-    <div v-else-if="activeTab === 'system'" class="space-y-3">
+    <!-- Grouped list -->
+    <div v-else class="space-y-5">
       <div
-        v-for="tpl in filteredTemplates"
-        :key="tpl.id"
-        class="flex items-start gap-3 p-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-lg group"
-        :class="{ 'opacity-60': tpl.isHidden }"
+        v-for="group in (canReorder ? reorderableGroups : groupedTemplates)"
+        :key="group.category"
+        class="space-y-2"
       >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-              {{ tpl.name }}
-            </h4>
-
-            <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle">
-              {{ t('common.hidden') }}
-            </UBadge>
-
-            <UBadge size="xs" color="neutral" variant="subtle">
-              {{ tpl.category }}
-            </UBadge>
-          </div>
-          <p v-if="tpl.description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {{ tpl.description }}
-          </p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-white/50 dark:bg-gray-900/50 p-1.5 rounded">
-            {{ tpl.prompt }}
-          </p>
+        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          {{ group.category }}
         </div>
 
-        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <UButton
-            icon="i-heroicons-document-duplicate"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :title="t('common.copy')"
-            @click.stop="openCopyModal(tpl)"
-          />
-          <UButton
-            v-if="tpl.isHidden"
-            icon="i-heroicons-eye"
-            color="primary"
-            variant="ghost"
-            size="xs"
-            :title="t('llm.unhide')"
-            @click.stop="handleUnhide(tpl)"
-          />
-          <UButton
-            v-else
-            icon="i-heroicons-eye-slash"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :title="t('llm.hide')"
-            @click.stop="handleHide(tpl)"
-          />
+        <VueDraggable
+          v-if="canReorder"
+          v-model="group.items"
+          handle=".drag-handle"
+          class="space-y-3"
+          @end="() => { applyCategoryReorder(group.category, group.items); handleReorder() }"
+        >
+          <div
+            v-for="tpl in group.items"
+            :key="tpl.id"
+            class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+            @click="handleTemplateClick(tpl)"
+          >
+            <div
+              class="drag-handle mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              @click.stop
+            >
+              <UIcon name="i-heroicons-bars-2" class="w-5 h-5" />
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {{ tpl.name }}
+                </h4>
+              </div>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-gray-50 dark:bg-gray-800 p-1.5 rounded">
+                {{ tpl.prompt }}
+              </p>
+            </div>
+
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <UButton
+                icon="i-heroicons-document-duplicate"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :title="t('common.copy')"
+                @click.stop="openCopyModal(tpl)"
+              />
+              <UButton
+                icon="i-heroicons-eye-slash"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :title="t('llm.hide')"
+                @click.stop="handleHide(tpl)"
+              />
+            </div>
+          </div>
+        </VueDraggable>
+
+        <div v-else class="space-y-3">
+          <div
+            v-for="tpl in group.items"
+            :key="tpl.id"
+            class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group"
+            :class="{ 'opacity-60': tpl.isHidden, 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors': !tpl.isSystem }"
+            @click="handleTemplateClick(tpl)"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {{ tpl.name }}
+                </h4>
+
+                <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle">
+                  {{ t('common.hidden') }}
+                </UBadge>
+              </div>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-gray-50 dark:bg-gray-800 p-1.5 rounded">
+                {{ tpl.prompt }}
+              </p>
+            </div>
+
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <UButton
+                icon="i-heroicons-document-duplicate"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :title="t('common.copy')"
+                @click.stop="openCopyModal(tpl)"
+              />
+              <UButton
+                v-if="tpl.isHidden"
+                icon="i-heroicons-eye"
+                color="primary"
+                variant="ghost"
+                size="xs"
+                :title="t('llm.unhide')"
+                @click.stop="handleUnhide(tpl)"
+              />
+              <UButton
+                v-else
+                icon="i-heroicons-eye-slash"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :title="t('llm.hide')"
+                @click.stop="handleHide(tpl)"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- User/Project templates list (draggable if not searching/filtering) -->
-    <VueDraggable
-      v-else-if="isCustomTab && filteredTemplates.length > 0"
-      v-model="displayTemplates"
-      handle=".drag-handle"
-      class="space-y-3"
-      :disabled="searchQuery.length > 0 || categoryFilter !== 'ALL' || showHidden"
-      @end="handleReorder"
-    >
-      <div
-        v-for="tpl in displayTemplates"
-        :key="tpl.id"
-        class="flex items-start gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg group"
-        :class="{ 'opacity-60': tpl.isHidden }"
-      >
-        <div 
-          v-if="!tpl.isHidden && !searchQuery && categoryFilter === 'ALL' && !showHidden"
-          class="drag-handle mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-        >
-          <UIcon name="i-heroicons-bars-2" class="w-5 h-5" />
-        </div>
-        <!-- Align content if no drag handle -->
-        <div v-else class="w-5 mt-1" />
-
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-              {{ tpl.name }}
-            </h4>
-
-            <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle">
-              {{ t('common.hidden') }}
-            </UBadge>
-
-            <UBadge size="xs" color="neutral" variant="subtle">
-              {{ tpl.category }}
-            </UBadge>
-          </div>
-          <p v-if="tpl.description" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {{ tpl.description }}
-          </p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 font-mono bg-gray-50 dark:bg-gray-800 p-1.5 rounded">
-            {{ tpl.prompt }}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <UButton
-            icon="i-heroicons-document-duplicate"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :title="t('common.copy')"
-            @click.stop="openCopyModal(tpl)"
-          />
-          <UButton
-            v-if="!tpl.isHidden"
-            icon="i-heroicons-pencil"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :title="t('common.edit')"
-            @click.stop="openEditModal(tpl)"
-          />
-          <UButton
-            v-if="tpl.isHidden"
-            icon="i-heroicons-eye"
-            color="primary"
-            variant="ghost"
-            size="xs"
-            :title="t('llm.unhide')"
-            @click.stop="handleUnhide(tpl)"
-          />
-          <UButton
-            v-else
-            icon="i-heroicons-eye-slash"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :title="t('llm.hide')"
-            @click.stop="handleHide(tpl)"
-          />
-          <UButton
-            icon="i-heroicons-trash"
-            color="error"
-            variant="ghost"
-            size="xs"
-            :title="t('common.delete')"
-            @click.stop="handleDelete(tpl)"
-          />
-        </div>
-      </div>
-    </VueDraggable>
 
     <!-- Create/Edit Modal -->
     <UiAppModal
@@ -565,8 +605,18 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
         </UFormField>
 
         <UFormField :label="t('llm.templateCategory')" class="w-full">
-          <UInput
+          <USelectMenu
             v-model="formData.category"
+            :items="categoryOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField v-if="formData.category === CUSTOM_CATEGORY_VALUE" :label="t('llm.templateCategory')" class="w-full">
+          <UInput
+            v-model="formData.customCategory"
             :placeholder="t('llm.templateCategoryPlaceholder')"
             class="w-full"
           />
@@ -581,34 +631,39 @@ const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : 
             class="font-mono text-sm w-full"
           />
         </UFormField>
-
-        <UFormField :label="t('llm.templateDescription')" class="w-full">
-          <UTextarea
-            v-model="formData.description"
-            :placeholder="t('llm.templateDescriptionPlaceholder')"
-            :rows="3"
-            autoresize
-            class="w-full"
-          />
-        </UFormField>
       </form>
 
       <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          @click="isModalOpen = false"
-        >
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="primary"
-          :loading="isSubmitting"
-          :disabled="!canSubmit"
-          @click="handleSubmit"
-        >
-          {{ modalMode === 'create' ? t('common.create') : t('common.save') }}
-        </UButton>
+        <div class="flex items-center justify-between w-full">
+          <div>
+            <UButton
+              v-if="modalMode === 'edit' && editingTemplate && !editingTemplate.isSystem"
+              color="error"
+              variant="ghost"
+              icon="i-heroicons-trash"
+              @click="handleDelete(editingTemplate)"
+            >
+              {{ t('common.delete') }}
+            </UButton>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="isModalOpen = false"
+            >
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton
+              color="primary"
+              :loading="isSubmitting"
+              :disabled="!canSubmit"
+              @click="handleSubmit"
+            >
+              {{ modalMode === 'create' ? t('common.create') : t('common.save') }}
+            </UButton>
+          </div>
+        </div>
       </template>
     </UiAppModal>
 
