@@ -277,6 +277,8 @@ async function handleTransfer() {
           <PostsAuthorSignatureManager
             :project-id="currentProject.id"
             :channel-languages="projectLanguages"
+            :project-preferences="currentProject.preferences"
+            @update:preferences="fetchProject(projectId)"
           />
         </UiAppCard>
 

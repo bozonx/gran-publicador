@@ -154,4 +154,8 @@ export class CreatePublicationDto {
   @IsObject()
   @IsOptional()
   public authorSignatureOverrides?: Record<string, string>;
+
+  @IsUUID()
+  @IsOptional()
+  public projectTemplateId?: string;
 }

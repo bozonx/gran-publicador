@@ -97,7 +97,8 @@ export function usePublicationFormState(
     postDate: publication?.postDate
       ? new Date(publication.postDate).toISOString().slice(0, 16)
       : '',
-    authorSignatureId: '' as string,
+    authorSignatureId: publication?.authorSignatureId || '' as string,
+    projectTemplateId: publication?.projectTemplateId || '' as string,
   });
 
   return state;

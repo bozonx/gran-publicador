@@ -17,7 +17,9 @@ import { useLanguages } from '~/composables/useLanguages'
 import { isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
+import { useProjectTemplates } from '~/composables/useProjectTemplates'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
+import type { ProjectTemplate } from '~/types/channels'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -57,6 +59,7 @@ const { languageOptions } = useLanguages()
 const { schema } = usePublicationFormValidation(t)
 const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
 const { fetchByProject: fetchSignatures } = useAuthorSignatures()
+const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
 const projectSignatures = ref<ProjectAuthorSignature[]>([])
 
 const languageParam = route.query.language as string | undefined
@@ -76,20 +79,49 @@ watch(currentProjectId, async (newId) => {
             fetchChannels({ projectId: newId }),
             fetchPublicationsByProject(newId, { limit: 50 }),
             fetchSignatures(newId).then(sigs => { projectSignatures.value = sigs }),
+            fetchProjectTemplates(newId),
         ])
+        
+        // Auto-select signature if creating new
+        if (!isEditMode.value) {
+            const project = projects.value.find(p => p.id === newId)
+            const userId = user.value?.id
+            if (userId && project?.preferences?.defaultSignatures?.[userId]) {
+                state.authorSignatureId = project.preferences.defaultSignatures[userId]
+            } else if (projectSignatures.value.length > 0) {
+                // Fallback to first one if no default set
+                const userSigs = projectSignatures.value.filter(s => s.userId === userId)
+                if (userSigs.length > 0) {
+                    state.authorSignatureId = userSigs[0].id
+                }
+            }
+        }
     }
 })
 
 // Signature selector options
 const signatureOptions = computed(() => {
   const userLang = user.value?.language || 'en-US'
-  return projectSignatures.value.map(sig => {
+  const userId = user.value?.id
+  
+  // Filter by current user
+  const userSigs = projectSignatures.value.filter(sig => sig.userId === userId)
+  
+  return userSigs.map(sig => {
     const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
     return {
       value: sig.id,
       label: variant?.content || sig.id,
     }
   })
+})
+
+// Template selector options
+const templateOptions = computed(() => {
+  return projectTemplates.value.map(tpl => ({
+    value: tpl.id,
+    label: tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : ''),
+  }))
 })
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
@@ -161,7 +193,27 @@ onMounted(async () => {
         await Promise.all([
             fetchChannels({ projectId: currentProjectId.value }),
             fetchPublicationsByProject(currentProjectId.value, { limit: 50 }),
-            fetchSignatures(currentProjectId.value).then(sigs => { projectSignatures.value = sigs }),
+            fetchSignatures(currentProjectId.value).then(sigs => { 
+                projectSignatures.value = sigs 
+                // Auto-select signature if creating new post
+                if (!isEditMode.value && state.authorSignatureId === '') {
+                    const project = projects.value.find(p => p.id === currentProjectId.value)
+                    const userId = user.value?.id
+                    if (userId && project?.preferences?.defaultSignatures?.[userId]) {
+                        state.authorSignatureId = project.preferences.defaultSignatures[userId]
+                    } else {
+                        const userSigs = sigs.filter(s => s.userId === userId)
+                        if (userSigs.length > 0) state.authorSignatureId = userSigs[0].id
+                    }
+                }
+            }),
+            fetchProjectTemplates(currentProjectId.value).then(tpls => {
+                // Auto-select default template if creating new post
+                if (!isEditMode.value && state.projectTemplateId === '') {
+                    const def = tpls.find(t => t.isDefault)
+                    if (def) state.projectTemplateId = def.id
+                }
+            }),
         ])
     }
     
@@ -280,6 +332,7 @@ async function performSubmit(data: PublicationFormData) {
     if (isEditMode.value && publicationId) {
       await updatePublication(publicationId, {
         ...commonData,
+        projectTemplateId: data.projectTemplateId || null,
         // Status is managed by separate actions in edit mode, don't send it back 
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,
@@ -294,6 +347,7 @@ async function performSubmit(data: PublicationFormData) {
               channelIds: newChannelIds,
               scheduledAt: data.status === 'SCHEDULED' ? data.scheduledAt : undefined,
               authorSignatureId: state.authorSignatureId || undefined,
+              projectTemplateId: state.projectTemplateId || undefined,
           })
       }
     } else {
@@ -301,6 +355,7 @@ async function performSubmit(data: PublicationFormData) {
         ...commonData,
         projectId: currentProjectId.value!,
         status: data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : data.status,
+        projectTemplateId: data.projectTemplateId || null,
       }
 
       const pub = await createPublication(createData)
@@ -313,6 +368,7 @@ async function performSubmit(data: PublicationFormData) {
           channelIds: state.channelIds,
           scheduledAt: data.status === 'SCHEDULED' ? data.scheduledAt : undefined,
           authorSignatureId: state.authorSignatureId || undefined,
+          projectTemplateId: state.projectTemplateId || undefined,
         })
       }
     }
@@ -544,27 +600,40 @@ function handleTranslated(result: { translatedText: string }) {
         />
       </UFormField>
 
-      <!-- Author Signature Selection (only when creating and channels are selected) -->
-      <UFormField
-        v-if="!isEditMode && signatureOptions.length > 0"
-        name="authorSignatureId"
-        :help="t('authorSignature.selectHelp', 'Signature content will be copied to each post by channel language')"
-      >
-        <template #label>
-          <div class="flex items-center gap-1.5">
-            <span>{{ t('authorSignature.title', 'Author Signature') }}</span>
-            <CommonInfoTooltip :text="t('authorSignature.selectTooltip', 'Select a project signature. The appropriate language variant will be used for each channel.')" />
-          </div>
-        </template>
-        <USelectMenu
-          v-model="state.authorSignatureId"
-          :items="[{ value: '', label: t('common.none', 'None') }, ...signatureOptions]"
-          value-key="value"
-          label-key="label"
-          class="w-full"
-          icon="i-heroicons-pencil-square"
-        />
-      </UFormField>
+      <!-- Project Configuration Section (Templates & Signatures) -->
+      <div v-if="!isEditMode && (templateOptions.length > 0 || signatureOptions.length > 0)" :class="GRID_LAYOUTS.twoColumn">
+        <!-- Publication Template Selection -->
+        <UFormField
+          v-if="templateOptions.length > 0"
+          name="projectTemplateId"
+          :label="t('projectTemplates.title', 'Publication Template')"
+        >
+          <USelectMenu
+            v-model="state.projectTemplateId"
+            :items="[{ value: '', label: t('common.none', 'None') }, ...templateOptions]"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-squares-plus"
+          />
+        </UFormField>
+
+        <!-- Author Signature Selection -->
+        <UFormField
+          v-if="signatureOptions.length > 0"
+          name="authorSignatureId"
+          :label="t('authorSignature.title', 'Author Signature')"
+        >
+          <USelectMenu
+            v-model="state.authorSignatureId"
+            :items="[{ value: '', label: t('common.none', 'None') }, ...signatureOptions]"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-pencil-square"
+          />
+        </UFormField>
+      </div>
 
       <!-- Post Date for ARTICLE -->
       <UFormField v-if="state.postType === 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">

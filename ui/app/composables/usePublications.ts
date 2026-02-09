@@ -27,6 +27,8 @@ export interface Publication {
   archivedAt?: string | null;
   scheduledAt?: string | null;
   postScheduledAt?: string | null;
+  authorSignatureId?: string | null;
+  projectTemplateId?: string | null;
 }
 
 export interface PublicationCreateInput {
@@ -44,6 +46,8 @@ export interface PublicationCreateInput {
   scheduledAt?: string | null;
   status?: PublicationStatus | null;
   meta?: string | null;
+  authorSignatureId?: string | null;
+  projectTemplateId?: string | null;
 }
 
 export interface PublicationUpdateInput extends Partial<PublicationCreateInput> {}
@@ -426,6 +430,7 @@ export function usePublications() {
     scheduledAt?: string;
     authorSignatureId?: string;
     authorSignatureOverrides?: Record<string, string>;
+    projectTemplateId?: string;
   }): Promise<any> {
     isLoading.value = true;
     error.value = null;

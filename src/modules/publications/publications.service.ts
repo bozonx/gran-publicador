@@ -266,6 +266,7 @@ export class PublicationsService {
         undefined,
         data.authorSignatureId,
         data.authorSignatureOverrides,
+        data.projectTemplateId,
       );
       this.logger.log(`Created ${data.channelIds.length} posts for publication ${publication.id}`);
     }
@@ -1068,6 +1069,7 @@ export class PublicationsService {
     scheduledAt?: Date,
     authorSignatureId?: string,
     authorSignatureOverrides?: Record<string, string>,
+    projectTemplateId?: string,
   ) {
     // Validate channelIds is not empty
     if (!channelIds || channelIds.length === 0) {
@@ -1110,6 +1112,14 @@ export class PublicationsService {
       signatureVariantsMap = new Map(variants.map(v => [v.language, v.content]));
     }
 
+    // Pre-fetch project template if projectTemplateId is provided
+    let projectTemplate: any | undefined;
+    if (projectTemplateId) {
+      projectTemplate = await this.prisma.projectTemplate.findUnique({
+        where: { id: projectTemplateId },
+      });
+    }
+
     const warnings: string[] = [];
 
     // Create posts for each channel (content comes from publication via relation)
@@ -1140,6 +1150,7 @@ export class PublicationsService {
             status: PostStatus.PENDING,
             scheduledAt: scheduledAt ?? publication.scheduledAt,
             meta: {},
+            template: projectTemplate?.template || undefined,
             authorSignature: authorSignature || undefined,
           },
           include: {

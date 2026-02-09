@@ -108,4 +108,8 @@ export class UpdatePublicationDto {
   @IsEnum(PostType)
   @IsOptional()
   public postType?: PostType;
+
+  @IsUUID()
+  @IsOptional()
+  public projectTemplateId?: string;
 }
