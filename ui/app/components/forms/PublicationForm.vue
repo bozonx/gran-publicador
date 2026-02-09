@@ -131,6 +131,7 @@ const pendingSubmitData = ref<PublicationFormData | null>(null)
 const isLoading = ref(false)
 
 const isEditMode = computed(() => !!props.publication?.id)
+const isLocked = computed(() => state.status === 'READY')
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
 const isContentMissing = computed(() => {
     // Only show content/media requirement for non-DRAFT statuses
@@ -527,6 +528,7 @@ function handleLlmGenerated(text: string) {
           v-model="state.title"
           :placeholder="t('post.titlePlaceholder')"
           :size="FORM_STYLES.inputSizeLarge"
+          :disabled="isLocked"
           class="w-full"
         />
       </UFormField>
@@ -539,7 +541,7 @@ function handleLlmGenerated(text: string) {
             <CommonInfoTooltip :text="t('post.descriptionTooltip')" />
           </div>
         </template>
-        <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
+        <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize :disabled="isLocked" class="w-full" />
       </UFormField>
 
       <UFormField name="content">
@@ -550,6 +552,7 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('post.contentTooltip')" />
             </div>
                 <UButton
+                    v-if="!isLocked"
                     icon="i-heroicons-sparkles"
                     color="primary"
                     variant="ghost"
@@ -558,6 +561,7 @@ function handleLlmGenerated(text: string) {
                     @click="isQuickGenModalOpen = true"
                 />
                 <UButton
+                    v-if="!isLocked"
                     icon="i-heroicons-language"
                     color="primary"
                     variant="ghost"
@@ -597,12 +601,13 @@ function handleLlmGenerated(text: string) {
           :min-height="250"
           :default-target-lang="state.language"
           :project-id="currentProjectId"
+          :disabled="isLocked"
         />
       </UFormField>
 
       <!-- Author Comment for NEWS -->
       <UFormField v-if="state.postType === 'NEWS'" name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
-        <UTextarea v-model="state.authorComment" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.authorCommentPlaceholder')" />
+        <UTextarea v-model="state.authorComment" :rows="FORM_STYLES.textareaRows" autoresize :disabled="isLocked" class="w-full" :placeholder="t('post.authorCommentPlaceholder')" />
       </UFormField>
 
       <!-- Source Texts Section -->
@@ -614,6 +619,7 @@ function handleLlmGenerated(text: string) {
           :placeholder="t('post.tagsPlaceholder')"
           color="neutral"
           variant="outline"
+          :disabled="isLocked"
           class="w-full"
         />
       </UFormField>
@@ -667,11 +673,11 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('post.descriptionTooltip')" />
             </div>
           </template>
-          <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" />
+          <UTextarea v-model="state.description" :rows="FORM_STYLES.textareaRows" autoresize :disabled="isLocked" class="w-full" />
         </UFormField>
 
         <UFormField v-if="state.postType !== 'NEWS'" name="authorComment" :label="t('post.authorComment')" :help="t('post.authorCommentHint')">
-          <UTextarea v-model="state.authorComment" :rows="FORM_STYLES.textareaRows" autoresize class="w-full" :placeholder="t('post.authorCommentPlaceholder')" />
+          <UTextarea v-model="state.authorComment" :rows="FORM_STYLES.textareaRows" autoresize :disabled="isLocked" class="w-full" :placeholder="t('post.authorCommentPlaceholder')" />
         </UFormField>
 
         <UFormField v-if="state.postType !== 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
@@ -679,10 +685,10 @@ function handleLlmGenerated(text: string) {
         </UFormField>
         
         <UFormField name="note" :label="t('post.note')" :help="t('post.noteHint')">
-          <UTextarea v-model="state.note" :rows="4" autoresize class="w-full" :placeholder="t('post.notePlaceholder')" />
+          <UTextarea v-model="state.note" :rows="4" autoresize :disabled="isLocked" class="w-full" :placeholder="t('post.notePlaceholder')" />
         </UFormField>
 
-        <CommonMetadataEditor v-model="state.meta" :label="t('common.meta')" :rows="8" />
+        <CommonMetadataEditor v-model="state.meta" :label="t('common.meta')" :rows="8" :disabled="isLocked" />
 
       </UiFormAdvancedSection>
 

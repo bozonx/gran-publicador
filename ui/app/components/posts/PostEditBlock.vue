@@ -142,6 +142,7 @@ const dirtyState = props.autosave
     })
 
 const isDirty = computed(() => dirtyState?.isDirty.value ?? false)
+const isLocked = computed(() => props.publication?.status === 'READY')
 const saveOriginalState = () => dirtyState?.saveOriginalState()
 const resetToOriginal = () => dirtyState?.resetToOriginal()
 
@@ -880,6 +881,7 @@ async function executePublish() {
                           :placeholder="t('post.tagsPlaceholder')"
                           color="neutral"
                           variant="outline"
+                          :disabled="isLocked"
                           class="w-full"
                         />
                     </UFormField>
@@ -889,7 +891,7 @@ async function executePublish() {
                         <UTextarea
                             v-model="formData.authorSignature"
                             :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
-                            :disabled="isLoading"
+                            :disabled="isLoading || isLocked"
                             :rows="3"
                             class="w-full"
                         />
@@ -912,6 +914,7 @@ async function executePublish() {
                             class="w-full"
                             :placeholder="t('post.selectTemplate', 'Select template...')"
                             :color="isTemplateMissing ? 'warning' : 'neutral'"
+                            :disabled="isLocked"
                         >
                         </USelectMenu>
                     </UFormField>
@@ -923,6 +926,7 @@ async function executePublish() {
                                 <UCheckbox 
                                 v-model="formData.platformOptions.disableNotification" 
                                 :label="t('post.options.disableNotification')" 
+                                :disabled="isLocked"
                                 />
                             </div>
                         </UFormField>
@@ -937,7 +941,7 @@ async function executePublish() {
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.content') }}</span>
                 <div class="flex items-center gap-2">
                     <UButton
-                        v-if="formData.content || publicationContent"
+                        v-if="(formData.content || publicationContent) && !isLocked"
                         variant="soft"
                         color="primary"
                         size="xs"
@@ -947,7 +951,7 @@ async function executePublish() {
                         {{ t('llm.generate') }}
                     </UButton>
                     <UButton
-                        v-if="channelLanguage"
+                        v-if="channelLanguage && !isLocked"
                         variant="soft"
                         color="primary"
                         size="xs"
@@ -958,7 +962,7 @@ async function executePublish() {
                         {{ t('post.translateTo', { lang: channelLanguage }) }}
                     </UButton>
                     <UButton 
-                        v-if="formData.content" 
+                        v-if="formData.content && !isLocked" 
                         variant="ghost" 
                         color="neutral" 
                         size="xs" 
@@ -975,6 +979,7 @@ async function executePublish() {
                 :min-height="150"
                 :default-target-lang="channelLanguage"
                 :project-id="projectId"
+                :disabled="isLocked"
             />
             <div class="flex justify-between items-start text-xs text-gray-500 dark:text-gray-400">
                <span v-if="!formData.content" class="italic">
@@ -1003,6 +1008,7 @@ async function executePublish() {
               color="error"
               variant="outline"
               :loading="isDeleting"
+              :disabled="isLocked"
               icon="i-heroicons-trash"
               @click="handleDelete"
             >
@@ -1093,7 +1099,7 @@ async function executePublish() {
         <MetadataEditor 
           v-model="formData.meta"
           :label="t('post.metadata', 'Metadata')"
-          :disabled="isDeleting"
+          :disabled="isDeleting || isLocked"
         />
       </div>
 
