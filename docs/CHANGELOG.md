@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **LLM Prompt Templates**: Major refactor of the template system.
+  - Three template sources: System (immutable), Personal (per-user), Project (per-project).
+  - Categories are now free-form strings instead of a fixed enum (e.g. "General", "SEO", "Hooks").
+  - Hide/unhide mechanism replaces the old override/trash system for both system and custom templates.
+  - System templates are immutable; users can hide them per-user or copy to personal/project scope.
+  - Copy modal with target selection (personal or any project with `project.update` permission).
+  - UI: source tabs (System/Project/Personal), dynamic category filter, show-hidden toggle.
+  - Template insertion in LLM modal now always uses `\n\n` separator.
+  - New Prisma model `LlmSystemPromptHidden` for per-user hidden state of system templates.
+  - New `isHidden` field on `LlmPromptTemplate` for custom template visibility.
+  - New API endpoints: `POST system/:id/hide`, `POST system/:id/unhide`, `POST :id/hide`, `POST :id/unhide`, `GET copy-targets`.
+  - `includeHidden` query parameter on list endpoints.
+
+### Removed
+- `LlmSystemPromptOverride` model and all override-related logic (backend, frontend, DTOs).
+- `LlmPromptTemplateCategory` and `LlmSystemPromptOverrideAction` enums from Prisma schema.
+- `upsert-system-llm-prompt-override.dto.ts` DTO file.
+- Override/restore endpoints from the controller.
+
 ### Added
 - Posting Snapshot mechanism for posts.
   - New DB fields: `posting_snapshot` (JSONB) and `posting_snapshot_created_at` on `posts` table.

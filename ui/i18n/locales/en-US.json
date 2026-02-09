@@ -580,7 +580,15 @@
     "updateTemplateSuccess": "Template updated successfully",
     "useContent": "Use current content",
     "userTemplates_desc": "Your personal prompt templates available in all projects",
-    "voiceInputAppend": "Append voice input to text"
+    "voiceInputAppend": "Append voice input to text",
+    "showHidden": "Show hidden",
+    "hide": "Hide",
+    "unhide": "Show",
+    "copyTemplate": "Copy Template",
+    "copyTarget": "Copy to",
+    "copyTemplateDescription": "Copy template \"{name}\" to another scope",
+    "noHiddenTemplates": "No hidden templates",
+    "templateCategoryPlaceholder": "e.g. Content, SEO, Chat..."
   },
   "media": {
     "add": "Add Media",

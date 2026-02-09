@@ -16,7 +16,6 @@ import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
 import { ReorderLlmPromptTemplatesDto } from './dto/reorder-llm-prompt-templates.dto.js';
 import { AvailableLlmPromptTemplatesQueryDto } from './dto/available-llm-prompt-templates-query.dto.js';
-import { UpsertSystemLlmPromptOverrideDto } from './dto/upsert-system-llm-prompt-override.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { TemplateOwnershipGuard } from './guards/template-ownership.guard.js';
 
@@ -24,6 +23,8 @@ import { TemplateOwnershipGuard } from './guards/template-ownership.guard.js';
 @UseGuards(JwtAuthGuard)
 export class LlmPromptTemplatesController {
   constructor(private readonly llmPromptTemplatesService: LlmPromptTemplatesService) {}
+
+  // ─── Aggregated available templates ─────────────────────────────────
 
   @Get('available')
   getAvailable(@Query() query: AvailableLlmPromptTemplatesQueryDto, @Request() req: any) {
@@ -33,68 +34,57 @@ export class LlmPromptTemplatesController {
     });
   }
 
+  // ─── System templates ───────────────────────────────────────────────
+
   @Get('system')
-  getSystem(@Request() req: any) {
-    return this.llmPromptTemplatesService.getSystemTemplatesForUser(req.user.id);
+  getSystem(@Query('includeHidden') includeHidden: string, @Request() req: any) {
+    return this.llmPromptTemplatesService.getSystemTemplates(req.user.id, includeHidden === 'true');
   }
 
-  @Patch('system/:systemKey')
-  overrideSystem(
-    @Param('systemKey') systemKey: string,
-    @Body() dto: UpsertSystemLlmPromptOverrideDto,
-    @Request() req: any,
-  ) {
-    return this.llmPromptTemplatesService.upsertSystemPromptOverride({
-      userId: req.user.id,
-      systemKey,
-      data: dto,
-    });
+  @Post('system/:systemId/hide')
+  hideSystem(@Param('systemId') systemId: string, @Request() req: any) {
+    return this.llmPromptTemplatesService.hideSystemTemplate(req.user.id, systemId);
   }
 
-  @Post('system/:systemKey/hide')
-  hideSystem(@Param('systemKey') systemKey: string, @Request() req: any) {
-    return this.llmPromptTemplatesService.hideSystemPrompt({
-      userId: req.user.id,
-      systemKey,
-    });
+  @Post('system/:systemId/unhide')
+  unhideSystem(@Param('systemId') systemId: string, @Request() req: any) {
+    return this.llmPromptTemplatesService.unhideSystemTemplate(req.user.id, systemId);
   }
 
-  @Delete('system/:systemKey')
-  restoreSystem(@Param('systemKey') systemKey: string, @Request() req: any) {
-    return this.llmPromptTemplatesService.restoreSystemPrompt({
-      userId: req.user.id,
-      systemKey,
-    });
+  // ─── Copy target projects ──────────────────────────────────────────
+
+  @Get('copy-targets')
+  getCopyTargets(@Request() req: any) {
+    return this.llmPromptTemplatesService.getCopyTargetProjects(req.user.id);
   }
+
+  // ─── CRUD ──────────────────────────────────────────────────────────
 
   @Post()
   create(@Body() createDto: CreateLlmPromptTemplateDto) {
     return this.llmPromptTemplatesService.create(createDto);
   }
 
-  /**
-   * Get all templates for a specific user.
-   * Only the user themselves can access their templates.
-   */
   @Get('user/:userId')
-  findAllByUser(@Param('userId') userId: string, @Request() req: any) {
-    // Verify that the user is requesting their own templates
+  findAllByUser(
+    @Param('userId') userId: string,
+    @Query('includeHidden') includeHidden: string,
+    @Request() req: any,
+  ) {
     if (req.user.id !== userId) {
       throw new ForbiddenException('You can only access your own templates');
     }
 
-    return this.llmPromptTemplatesService.findAllByUser(userId);
+    return this.llmPromptTemplatesService.findAllByUser(userId, includeHidden === 'true');
   }
 
-  /**
-   * Get all templates for a specific project.
-   * User must be a member or owner of the project.
-   */
   @Get('project/:projectId')
-  async findAllByProject(@Param('projectId') projectId: string, @Request() req: any) {
-    // Note: Project membership check is done in the service layer
-    // through the Prisma query that includes project members
-    return this.llmPromptTemplatesService.findAllByProject(projectId);
+  async findAllByProject(
+    @Param('projectId') projectId: string,
+    @Query('includeHidden') includeHidden: string,
+    @Request() req: any,
+  ) {
+    return this.llmPromptTemplatesService.findAllByProject(projectId, includeHidden === 'true');
   }
 
   @Get(':id')
@@ -115,10 +105,22 @@ export class LlmPromptTemplatesController {
     return this.llmPromptTemplatesService.remove(id);
   }
 
-  /**
-   * Reorder templates.
-   * Ownership validation is done in the service layer.
-   */
+  // ─── Hide / Unhide ─────────────────────────────────────────────────
+
+  @Post(':id/hide')
+  @UseGuards(TemplateOwnershipGuard)
+  hide(@Param('id') id: string) {
+    return this.llmPromptTemplatesService.hideTemplate(id);
+  }
+
+  @Post(':id/unhide')
+  @UseGuards(TemplateOwnershipGuard)
+  unhide(@Param('id') id: string) {
+    return this.llmPromptTemplatesService.unhideTemplate(id);
+  }
+
+  // ─── Reorder ───────────────────────────────────────────────────────
+
   @Post('reorder')
   reorder(@Body() reorderDto: ReorderLlmPromptTemplatesDto, @Request() req: any) {
     return this.llmPromptTemplatesService.reorder(reorderDto.ids, req.user.id);

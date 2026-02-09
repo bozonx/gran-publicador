@@ -580,7 +580,15 @@
     "updateTemplateSuccess": "Шаблон успешно обновлен",
     "useContent": "Использовать контент",
     "userTemplates_desc": "Ваши личные шаблоны промптов, доступные во всех проектах",
-    "voiceInputAppend": "Добавить голосовой ввод к тексту"
+    "voiceInputAppend": "Добавить голосовой ввод к тексту",
+    "showHidden": "Показать скрытые",
+    "hide": "Скрыть",
+    "unhide": "Показать",
+    "copyTemplate": "Копировать шаблон",
+    "copyTarget": "Копировать в",
+    "copyTemplateDescription": "Копировать шаблон «{name}» в другую область",
+    "noHiddenTemplates": "Нет скрытых шаблонов",
+    "templateCategoryPlaceholder": "напр. Контент, SEO, Чат..."
   },
   "media": {
     "add": "Добавить медиа",

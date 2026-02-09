@@ -50,7 +50,7 @@ model User {
   apiTokens      ApiToken[]
   notifications  Notification[]
   llmPromptTemplates LlmPromptTemplate[]
-  llmSystemPromptOverrides LlmSystemPromptOverride[]
+  llmSystemPromptHidden LlmSystemPromptHidden[]
   authorSignatures ProjectAuthorSignature[]
   contentLibraryTabs ContentLibraryTab[]
 
@@ -534,11 +534,14 @@ model LlmPromptTemplate {
   
   name        String
   description String?
-  category    LlmPromptTemplateCategory @default(GENERAL)
+  // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
+  category    String   @default("General")
   // The actual prompt template text
   prompt      String
   // Display order for UI
   order       Int      @default(0)
+  // Whether the template is hidden from the main list
+  isHidden    Boolean  @default(false) @map("is_hidden")
   
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -551,38 +554,20 @@ model LlmPromptTemplate {
   @@map("llm_prompt_templates")
 }
 
-model LlmSystemPromptOverride {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  systemKey String   @map("system_key")
-  action    LlmSystemPromptOverrideAction
-
-  name        String?
-  description String?
-  prompt      String?
-  category    LlmPromptTemplateCategory?
+// Tracks which system prompt templates a user has hidden (per-user state)
+model LlmSystemPromptHidden {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  // Stable ID of the system template from the constants
+  systemTemplateId String  @map("system_template_id")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, systemKey])
+  @@unique([userId, systemTemplateId])
   @@index([userId])
-  @@map("llm_system_prompt_overrides")
-}
-
-enum LlmSystemPromptOverrideAction {
-  OVERRIDE
-  HIDE
-}
-
-enum LlmPromptTemplateCategory {
-  GENERAL
-  CHAT
-  CONTENT
-  EDITING
-  METADATA
+  @@map("llm_system_prompt_hidden")
 }
 
 

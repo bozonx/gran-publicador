@@ -20,6 +20,13 @@ describe('LlmPromptTemplatesController', () => {
     update: jest.fn() as any,
     remove: jest.fn() as any,
     reorder: jest.fn() as any,
+    getSystemTemplates: jest.fn() as any,
+    hideSystemTemplate: jest.fn() as any,
+    unhideSystemTemplate: jest.fn() as any,
+    hideTemplate: jest.fn() as any,
+    unhideTemplate: jest.fn() as any,
+    getAvailableTemplatesForUser: jest.fn() as any,
+    getCopyTargetProjects: jest.fn() as any,
   };
 
   const mockPrismaService = {};
@@ -51,6 +58,60 @@ describe('LlmPromptTemplatesController', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('getSystem', () => {
+    it('should return system templates', async () => {
+      const templates = [{ id: 'sys-1', name: 'System Template', isSystem: true }];
+      mockService.getSystemTemplates.mockResolvedValue(templates);
+
+      const result = await controller.getSystem('false', mockRequest);
+
+      expect(mockService.getSystemTemplates).toHaveBeenCalledWith('user-1', false);
+      expect(result).toEqual(templates);
+    });
+
+    it('should pass includeHidden=true when query param is "true"', async () => {
+      mockService.getSystemTemplates.mockResolvedValue([]);
+
+      await controller.getSystem('true', mockRequest);
+
+      expect(mockService.getSystemTemplates).toHaveBeenCalledWith('user-1', true);
+    });
+  });
+
+  describe('hideSystem', () => {
+    it('should hide a system template', async () => {
+      mockService.hideSystemTemplate.mockResolvedValue({ success: true });
+
+      const result = await controller.hideSystem('sys-1', mockRequest);
+
+      expect(mockService.hideSystemTemplate).toHaveBeenCalledWith('user-1', 'sys-1');
+      expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe('unhideSystem', () => {
+    it('should unhide a system template', async () => {
+      mockService.unhideSystemTemplate.mockResolvedValue({ success: true });
+
+      const result = await controller.unhideSystem('sys-1', mockRequest);
+
+      expect(mockService.unhideSystemTemplate).toHaveBeenCalledWith('user-1', 'sys-1');
+      expect(result).toEqual({ success: true });
+    });
+  });
+
+  describe('getCopyTargets', () => {
+    it('should return copy target projects', async () => {
+      const projects = [{ id: 'p-1', name: 'Project 1' }];
+      mockService.getCopyTargetProjects.mockResolvedValue(projects);
+
+      const result = await controller.getCopyTargets(mockRequest);
+
+      expect(mockService.getCopyTargetProjects).toHaveBeenCalledWith('user-1');
+      expect(result).toEqual(projects);
+    });
   });
 
   describe('create', () => {
@@ -86,14 +147,16 @@ describe('LlmPromptTemplatesController', () => {
 
       mockService.findAllByUser.mockResolvedValue(templates);
 
-      const result = await controller.findAllByUser('user-1', mockRequest);
+      const result = await controller.findAllByUser('user-1', 'false', mockRequest);
 
-      expect(mockService.findAllByUser).toHaveBeenCalledWith('user-1');
+      expect(mockService.findAllByUser).toHaveBeenCalledWith('user-1', false);
       expect(result).toEqual(templates);
     });
 
     it('should throw ForbiddenException when user requests other user templates', () => {
-      expect(() => controller.findAllByUser('other-user', mockRequest)).toThrow(ForbiddenException);
+      expect(() => controller.findAllByUser('other-user', 'false', mockRequest)).toThrow(
+        ForbiddenException,
+      );
 
       expect(mockService.findAllByUser).not.toHaveBeenCalled();
     });
@@ -108,9 +171,9 @@ describe('LlmPromptTemplatesController', () => {
 
       mockService.findAllByProject.mockResolvedValue(templates);
 
-      const result = await controller.findAllByProject('project-1', mockRequest);
+      const result = await controller.findAllByProject('project-1', 'false', mockRequest);
 
-      expect(mockService.findAllByProject).toHaveBeenCalledWith('project-1');
+      expect(mockService.findAllByProject).toHaveBeenCalledWith('project-1', false);
       expect(result).toEqual(templates);
     });
   });
@@ -153,6 +216,28 @@ describe('LlmPromptTemplatesController', () => {
 
       expect(mockService.remove).toHaveBeenCalledWith('template-1');
       expect(result).toEqual(deleted);
+    });
+  });
+
+  describe('hide', () => {
+    it('should hide a custom template', async () => {
+      mockService.hideTemplate.mockResolvedValue({ id: 'template-1', isHidden: true });
+
+      const result = await controller.hide('template-1');
+
+      expect(mockService.hideTemplate).toHaveBeenCalledWith('template-1');
+      expect(result.isHidden).toBe(true);
+    });
+  });
+
+  describe('unhide', () => {
+    it('should unhide a custom template', async () => {
+      mockService.unhideTemplate.mockResolvedValue({ id: 'template-1', isHidden: false });
+
+      const result = await controller.unhide('template-1');
+
+      expect(mockService.unhideTemplate).toHaveBeenCalledWith('template-1');
+      expect(result.isHidden).toBe(false);
     });
   });
 

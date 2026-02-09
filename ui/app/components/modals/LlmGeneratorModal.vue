@@ -181,9 +181,9 @@ watch(selectedTemplateId, (templateId) => {
   const template = allTemplates.find(t => t.id === templateId)
   
   if (template) {
-    // Add template prompt to existing prompt (don't replace)
-    if (prompt.value && !prompt.value.endsWith('\n')) {
-      prompt.value += '\n\n'
+    // Append template prompt with blank line separator
+    if (prompt.value.trim()) {
+      prompt.value = prompt.value.trimEnd() + '\n\n'
     }
     prompt.value += template.prompt
   }

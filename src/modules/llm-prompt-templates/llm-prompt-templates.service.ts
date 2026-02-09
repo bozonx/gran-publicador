@@ -5,240 +5,118 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
-import {
-  LlmSystemPromptOverrideAction,
-  type LlmPromptTemplate,
-} from '../../generated/prisma/index.js';
-import { SYSTEM_LLM_PROMPT_TEMPLATES, type SystemLlmPromptTemplate } from './system-prompts.js';
-import type { UpsertSystemLlmPromptOverrideDto } from './dto/upsert-system-llm-prompt-override.dto.js';
+import { SYSTEM_LLM_PROMPT_TEMPLATES } from './system-prompts.js';
 
 const MAX_PROMPT_LENGTH = 5000;
 
 @Injectable()
 export class LlmPromptTemplatesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
-  private mapSystemTemplateToApiTemplate(systemTpl: SystemLlmPromptTemplate) {
-    return {
-      id: `system:${systemTpl.key}`,
-      systemKey: systemTpl.key,
-      isSystem: true,
-      userId: undefined,
-      projectId: undefined,
-      name: systemTpl.name,
-      description: systemTpl.description,
-      prompt: systemTpl.prompt,
-      category: systemTpl.category,
-      order: 0,
-      createdAt: new Date(0),
-      updatedAt: new Date(0),
-    };
-  }
+  // ─── System templates ───────────────────────────────────────────────
 
-  private async verifyProjectAccess(projectId: string, userId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        id: true,
-        ownerId: true,
-        members: {
-          where: { userId },
-          select: { id: true },
-        },
-      },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    const isOwner = project.ownerId === userId;
-    const isMember = project.members.length > 0;
-
-    if (!isOwner && !isMember) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
-  }
-
-  private applyOverride(
-    systemTpl: SystemLlmPromptTemplate,
-    override:
-      | {
-          action: LlmSystemPromptOverrideAction;
-          name: string | null;
-          description: string | null;
-          prompt: string | null;
-          category: any | null;
-        }
-      | undefined,
-  ) {
-    if (!override) {
-      return {
-        ...this.mapSystemTemplateToApiTemplate(systemTpl),
-        isHidden: false,
-        isOverridden: false,
-      };
-    }
-
-    if (override.action === LlmSystemPromptOverrideAction.HIDE) {
-      return {
-        ...this.mapSystemTemplateToApiTemplate(systemTpl),
-        isHidden: true,
-        isOverridden: false,
-      };
-    }
-
-    return {
-      ...this.mapSystemTemplateToApiTemplate(systemTpl),
-      name: override.name ?? systemTpl.name,
-      description: override.description ?? systemTpl.description,
-      prompt: override.prompt ?? systemTpl.prompt,
-      category: override.category ?? systemTpl.category,
-      isHidden: false,
-      isOverridden: true,
-    };
-  }
-
-  async getSystemTemplatesForUser(userId: string) {
-    const overrides = await this.prisma.llmSystemPromptOverride.findMany({
+  /**
+   * Returns all system templates with hidden state for the given user.
+   */
+  async getSystemTemplates(userId: string, includeHidden = false) {
+    const hiddenRecords = await this.prisma.llmSystemPromptHidden.findMany({
       where: { userId },
-      select: {
-        systemKey: true,
-        action: true,
-        name: true,
-        description: true,
-        prompt: true,
-        category: true,
-      },
+      select: { systemTemplateId: true },
     });
 
-    const overrideByKey = new Map(overrides.map(o => [o.systemKey, o]));
+    const hiddenIds = new Set(hiddenRecords.map(r => r.systemTemplateId));
 
-    return SYSTEM_LLM_PROMPT_TEMPLATES.map(tpl =>
-      this.applyOverride(tpl, overrideByKey.get(tpl.key)),
-    );
+    return SYSTEM_LLM_PROMPT_TEMPLATES.map(tpl => ({
+      id: tpl.id,
+      isSystem: true,
+      isHidden: hiddenIds.has(tpl.id),
+      name: tpl.name,
+      description: tpl.description,
+      prompt: tpl.prompt,
+      category: tpl.category,
+    })).filter(tpl => includeHidden || !tpl.isHidden);
   }
 
-  async getAvailableTemplatesForUser(params: { userId: string; projectId?: string }) {
-    const { userId, projectId } = params;
-
-    const [systemTemplates, userTemplates] = await Promise.all([
-      this.getSystemTemplatesForUser(userId),
-      this.findAllByUser(userId),
-    ]);
-
-    const visibleSystemTemplates = systemTemplates.filter(t => !t.isHidden);
-
-    let projectTemplates: LlmPromptTemplate[] = [];
-    if (projectId) {
-      await this.verifyProjectAccess(projectId, userId);
-      projectTemplates = await this.findAllByProject(projectId);
-    }
-
-    return {
-      system: visibleSystemTemplates,
-      user: userTemplates,
-      project: projectTemplates,
-    };
-  }
-
-  async upsertSystemPromptOverride(params: {
-    userId: string;
-    systemKey: string;
-    data: UpsertSystemLlmPromptOverrideDto;
-  }) {
-    const { userId, systemKey, data } = params;
-
-    const systemExists = SYSTEM_LLM_PROMPT_TEMPLATES.some(t => t.key === systemKey);
-    if (!systemExists) {
+  /**
+   * Hides a system template for the given user (per-user state).
+   */
+  async hideSystemTemplate(userId: string, systemTemplateId: string) {
+    const exists = SYSTEM_LLM_PROMPT_TEMPLATES.some(t => t.id === systemTemplateId);
+    if (!exists) {
       throw new NotFoundException('System template not found');
     }
 
-    return this.prisma.llmSystemPromptOverride.upsert({
+    await this.prisma.llmSystemPromptHidden.upsert({
       where: {
-        userId_systemKey: {
-          userId,
-          systemKey,
-        },
+        userId_systemTemplateId: { userId, systemTemplateId },
       },
       create: {
         id: crypto.randomUUID(),
         userId,
-        systemKey,
-        action: LlmSystemPromptOverrideAction.OVERRIDE,
-        name: data.name,
-        description: data.description,
-        prompt: data.prompt,
-        category: data.category,
+        systemTemplateId,
       },
-      update: {
-        action: LlmSystemPromptOverrideAction.OVERRIDE,
-        name: data.name,
-        description: data.description,
-        prompt: data.prompt,
-        category: data.category,
-      },
-    });
-  }
-
-  async hideSystemPrompt(params: { userId: string; systemKey: string }) {
-    const { userId, systemKey } = params;
-
-    const systemExists = SYSTEM_LLM_PROMPT_TEMPLATES.some(t => t.key === systemKey);
-    if (!systemExists) {
-      throw new NotFoundException('System template not found');
-    }
-
-    return this.prisma.llmSystemPromptOverride.upsert({
-      where: {
-        userId_systemKey: {
-          userId,
-          systemKey,
-        },
-      },
-      create: {
-        id: crypto.randomUUID(),
-        userId,
-        systemKey,
-        action: LlmSystemPromptOverrideAction.HIDE,
-      },
-      update: {
-        action: LlmSystemPromptOverrideAction.HIDE,
-        name: null,
-        description: null,
-        prompt: null,
-        category: null,
-      },
-    });
-  }
-
-  async restoreSystemPrompt(params: { userId: string; systemKey: string }) {
-    const { userId, systemKey } = params;
-
-    await this.prisma.llmSystemPromptOverride.delete({
-      where: {
-        userId_systemKey: {
-          userId,
-          systemKey,
-        },
-      },
+      update: {},
     });
 
     return { success: true };
   }
 
   /**
+   * Unhides a system template for the given user.
+   */
+  async unhideSystemTemplate(userId: string, systemTemplateId: string) {
+    const exists = SYSTEM_LLM_PROMPT_TEMPLATES.some(t => t.id === systemTemplateId);
+    if (!exists) {
+      throw new NotFoundException('System template not found');
+    }
+
+    await this.prisma.llmSystemPromptHidden.deleteMany({
+      where: { userId, systemTemplateId },
+    });
+
+    return { success: true };
+  }
+
+  // ─── Available templates (aggregated) ───────────────────────────────
+
+  /**
+   * Returns all available templates for the user grouped by source.
+   * System templates exclude hidden ones. User/project templates exclude hidden ones.
+   */
+  async getAvailableTemplatesForUser(params: { userId: string; projectId?: string }) {
+    const { userId, projectId } = params;
+
+    const [systemTemplates, userTemplates] = await Promise.all([
+      this.getSystemTemplates(userId, false),
+      this.findAllByUser(userId, false),
+    ]);
+
+    let projectTemplates: Awaited<ReturnType<typeof this.findAllByProject>> = [];
+    if (projectId) {
+      await this.permissionsService.checkProjectAccess(projectId, userId);
+      projectTemplates = await this.findAllByProject(projectId, false);
+    }
+
+    return {
+      system: systemTemplates,
+      user: userTemplates,
+      project: projectTemplates,
+    };
+  }
+
+  // ─── CRUD for user/project templates ────────────────────────────────
+
+  /**
    * Creates a new LLM prompt template for either a user or a project.
-   *
-   * @param createDto - Data for creating the template (name, description, prompt, userId/projectId).
-   * @returns The newly created template record.
-   * @throws BadRequestException if both OR neither userId and projectId are provided.
-   * @throws BadRequestException if prompt exceeds the character limit.
    */
   async create(createDto: CreateLlmPromptTemplateDto) {
-    // Validate that either userId or projectId is provided, but not both
     if (createDto.userId && createDto.projectId) {
       throw new BadRequestException('Cannot specify both userId and projectId');
     }
@@ -247,14 +125,12 @@ export class LlmPromptTemplatesService {
       throw new BadRequestException('Must specify either userId or projectId');
     }
 
-    // Validate prompt length
     if (createDto.prompt.length > MAX_PROMPT_LENGTH) {
       throw new BadRequestException(
         `Prompt is too long. Maximum length is ${MAX_PROMPT_LENGTH} characters`,
       );
     }
 
-    // Auto-calculate order if not provided
     let order = createDto.order ?? 0;
     if (order === 0) {
       const maxOrder = await this.getMaxOrder(createDto.userId, createDto.projectId);
@@ -269,14 +145,6 @@ export class LlmPromptTemplatesService {
     });
   }
 
-  /**
-   * Retrieves the maximum order value among existing templates for the given owner.
-   *
-   * @param userId - Optional user ID for personal templates.
-   * @param projectId - Optional project ID for project templates.
-   * @returns The maximum order value found, or -1 if no templates exist.
-   * @private
-   */
   private async getMaxOrder(userId?: string, projectId?: string): Promise<number> {
     const result = await this.prisma.llmPromptTemplate.aggregate({
       where: userId ? { userId } : { projectId },
@@ -288,37 +156,30 @@ export class LlmPromptTemplatesService {
 
   /**
    * Retrieves all personal templates for a specific user.
-   *
-   * @param userId - ID of the user whose templates to retrieve.
-   * @returns Array of prompt templates ordered by display order.
    */
-  async findAllByUser(userId: string) {
+  async findAllByUser(userId: string, includeHidden = false) {
     return this.prisma.llmPromptTemplate.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(includeHidden ? {} : { isHidden: false }),
+      },
       orderBy: { order: 'asc' },
     });
   }
 
   /**
    * Retrieves all project-specific templates for a specific project.
-   *
-   * @param projectId - ID of the project whose templates to retrieve.
-   * @returns Array of prompt templates ordered by display order.
    */
-  async findAllByProject(projectId: string) {
+  async findAllByProject(projectId: string, includeHidden = false) {
     return this.prisma.llmPromptTemplate.findMany({
-      where: { projectId },
+      where: {
+        projectId,
+        ...(includeHidden ? {} : { isHidden: false }),
+      },
       orderBy: { order: 'asc' },
     });
   }
 
-  /**
-   * Retrieves a single template by its unique ID.
-   *
-   * @param id - The UUID of the template.
-   * @returns The template record.
-   * @throws NotFoundException if the template does not exist.
-   */
   async findOne(id: string) {
     const template = await this.prisma.llmPromptTemplate.findUnique({
       where: { id },
@@ -331,19 +192,9 @@ export class LlmPromptTemplatesService {
     return template;
   }
 
-  /**
-   * Updates an existing template.
-   *
-   * @param id - The UUID of the template to update.
-   * @param updateDto - The fields to update.
-   * @returns The updated template record.
-   * @throws NotFoundException if the template does not exist.
-   * @throws BadRequestException if the new prompt exceeds character limit.
-   */
   async update(id: string, updateDto: UpdateLlmPromptTemplateDto) {
     await this.findOne(id);
 
-    // Validate prompt length if being updated
     if (updateDto.prompt && updateDto.prompt.length > MAX_PROMPT_LENGTH) {
       throw new BadRequestException(
         `Prompt is too long. Maximum length is ${MAX_PROMPT_LENGTH} characters`,
@@ -356,13 +207,6 @@ export class LlmPromptTemplatesService {
     });
   }
 
-  /**
-   * Permanently deletes a template.
-   *
-   * @param id - The UUID of the template to delete.
-   * @returns The deleted template record.
-   * @throws NotFoundException if the template does not exist.
-   */
   async remove(id: string) {
     await this.findOne(id);
 
@@ -371,23 +215,33 @@ export class LlmPromptTemplatesService {
     });
   }
 
-  /**
-   * Updates the display order of multiple templates simultaneously.
-   * All templates in the list must belong to the same scope (same user or same project).
-   *
-   * @param ids - Ordered list of template UUIDs.
-   * @param userId - ID of the user performing the reorder (for permission verification).
-   * @returns Success status indicator.
-   * @throws NotFoundException if any of the IDs do not exist.
-   * @throws BadRequestException if templates from different scopes are mixed.
-   * @throws ForbiddenException if user lacks permission for any of the templates.
-   */
+  // ─── Hide / Unhide for user/project templates ──────────────────────
+
+  async hideTemplate(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.llmPromptTemplate.update({
+      where: { id },
+      data: { isHidden: true },
+    });
+  }
+
+  async unhideTemplate(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.llmPromptTemplate.update({
+      where: { id },
+      data: { isHidden: false },
+    });
+  }
+
+  // ─── Reorder ────────────────────────────────────────────────────────
+
   async reorder(ids: string[], userId: string) {
     if (ids.length === 0) {
       return { success: true };
     }
 
-    // Fetch all templates to validate ownership and scope
     const templates = await this.prisma.llmPromptTemplate.findMany({
       where: { id: { in: ids } },
       include: {
@@ -405,7 +259,6 @@ export class LlmPromptTemplatesService {
       throw new NotFoundException('One or more templates not found');
     }
 
-    // Validate that all templates belong to the same scope
     const firstTemplate = templates[0];
     const isUserScope = !!firstTemplate.userId;
     const scopeId = isUserScope ? firstTemplate.userId : firstTemplate.projectId;
@@ -417,13 +270,11 @@ export class LlmPromptTemplatesService {
         throw new BadRequestException('Cannot reorder templates from different scopes');
       }
 
-      // Verify ownership
       if (isUserScope) {
         if (template.userId !== userId) {
           throw new ForbiddenException('You do not have permission to reorder these templates');
         }
       } else {
-        // Project template - check membership
         const isMember = template.project?.members && template.project.members.length > 0;
         const isOwner = template.project?.ownerId === userId;
 
@@ -433,7 +284,6 @@ export class LlmPromptTemplatesService {
       }
     }
 
-    // Update order for each template
     const updates = ids.map((id, index) =>
       this.prisma.llmPromptTemplate.update({
         where: { id },
@@ -446,15 +296,8 @@ export class LlmPromptTemplatesService {
     return { success: true };
   }
 
-  /**
-   * Verifies that a specific user has access to a specific template.
-   * For personal templates: user must be the owner (userId matches).
-   * For project templates: user must be a member or the owner of the project.
-   *
-   * @param templateId - ID of the template to check.
-   * @param userId - ID of the user to verify access for.
-   * @returns True if access is granted, False otherwise.
-   */
+  // ─── Ownership verification ─────────────────────────────────────────
+
   async verifyOwnership(templateId: string, userId: string): Promise<boolean> {
     const template = await this.prisma.llmPromptTemplate.findUnique({
       where: { id: templateId },
@@ -473,12 +316,10 @@ export class LlmPromptTemplatesService {
       return false;
     }
 
-    // Check personal template ownership
     if (template.userId === userId) {
       return true;
     }
 
-    // Check project template access
     if (template.projectId) {
       const isMember = template.project?.members && template.project.members.length > 0;
       const isOwner = template.project?.ownerId === userId;
@@ -486,5 +327,39 @@ export class LlmPromptTemplatesService {
     }
 
     return false;
+  }
+
+  // ─── Copy projects list for UI ──────────────────────────────────────
+
+  /**
+   * Returns projects where the user can manage prompt templates (owner or has project.update permission).
+   */
+  async getCopyTargetProjects(userId: string) {
+    const projects = await this.prisma.project.findMany({
+      where: {
+        archivedAt: null,
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+      },
+      select: {
+        id: true,
+        name: true,
+        ownerId: true,
+        members: {
+          where: { userId },
+          include: { role: true },
+        },
+      },
+    });
+
+    // Filter to only projects where user has project.update permission
+    return projects
+      .filter(project => {
+        if (project.ownerId === userId) return true;
+        const member = project.members[0];
+        if (!member) return false;
+        const permissions = member.role.permissions as any;
+        return permissions?.project?.update === true;
+      })
+      .map(p => ({ id: p.id, name: p.name }));
   }
 }

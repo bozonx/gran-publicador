@@ -7,10 +7,8 @@ import {
   Max,
   MaxLength,
   ValidateIf,
-  IsEnum,
 } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
-import { LlmPromptTemplateCategory } from '../../../generated/prisma/index.js';
 
 export class CreateLlmPromptTemplateDto {
   @IsString()
@@ -28,9 +26,10 @@ export class CreateLlmPromptTemplateDto {
   @MaxLength(VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_PROMPT_LENGTH)
   prompt!: string;
 
-  @IsEnum(LlmPromptTemplateCategory)
+  @IsString()
   @IsOptional()
-  category?: LlmPromptTemplateCategory;
+  @MaxLength(VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_NAME_LENGTH)
+  category?: string;
 
   @IsInt()
   @Min(VALIDATION_LIMITS.MIN_ORDER)

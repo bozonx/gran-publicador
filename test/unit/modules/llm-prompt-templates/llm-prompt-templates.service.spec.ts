@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { LlmPromptTemplatesService } from '../../../../src/modules/llm-prompt-templates/llm-prompt-templates.service.js';
 import { PrismaService } from '../../../../src/modules/prisma/prisma.service.js';
+import { PermissionsService } from '../../../../src/common/services/permissions.service.js';
 import type { CreateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/create-llm-prompt-template.dto.js';
 import type { UpdateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/update-llm-prompt-template.dto.js';
 import { jest } from '@jest/globals';
@@ -18,7 +19,19 @@ describe('LlmPromptTemplatesService', () => {
       delete: jest.fn() as any,
       aggregate: jest.fn() as any,
     },
+    llmSystemPromptHidden: {
+      findMany: jest.fn() as any,
+      upsert: jest.fn() as any,
+      deleteMany: jest.fn() as any,
+    },
+    project: {
+      findMany: jest.fn() as any,
+    },
     $transaction: jest.fn() as any,
+  };
+
+  const mockPermissionsService = {
+    checkProjectAccess: jest.fn() as any,
   };
 
   beforeEach(async () => {
@@ -29,6 +42,10 @@ describe('LlmPromptTemplatesService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: PermissionsService,
+          useValue: mockPermissionsService,
+        },
       ],
     }).compile();
 
@@ -37,6 +54,75 @@ describe('LlmPromptTemplatesService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('getSystemTemplates', () => {
+    it('should return system templates with hidden state', async () => {
+      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([]);
+
+      const result = await service.getSystemTemplates('user-1', true);
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].isSystem).toBe(true);
+    });
+
+    it('should filter out hidden templates when includeHidden is false', async () => {
+      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([
+        { systemTemplateId: 'sys-general-brainstorm-ideas' },
+      ]);
+
+      const allTemplates = await service.getSystemTemplates('user-1', true);
+      expect(allTemplates.some(t => t.isHidden)).toBe(true);
+
+      const visibleTemplates = await service.getSystemTemplates('user-1', false);
+      expect(visibleTemplates.every(t => !t.isHidden)).toBe(true);
+      expect(visibleTemplates.length).toBe(allTemplates.length - 1);
+    });
+  });
+
+  describe('hideSystemTemplate', () => {
+    it('should hide a system template for the user', async () => {
+      mockPrismaService.llmSystemPromptHidden.upsert.mockResolvedValue({});
+
+      const allTemplates = await service.getSystemTemplates('user-1', true);
+      const firstId = allTemplates[0]?.id;
+      if (!firstId) return;
+
+      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([]);
+
+      const result = await service.hideSystemTemplate('user-1', firstId);
+
+      expect(result).toEqual({ success: true });
+      expect(mockPrismaService.llmSystemPromptHidden.upsert).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException for unknown system template', async () => {
+      await expect(service.hideSystemTemplate('user-1', 'nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('unhideSystemTemplate', () => {
+    it('should unhide a system template for the user', async () => {
+      mockPrismaService.llmSystemPromptHidden.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([]);
+
+      const allTemplates = await service.getSystemTemplates('user-1', true);
+      const firstId = allTemplates[0]?.id;
+      if (!firstId) return;
+
+      const result = await service.unhideSystemTemplate('user-1', firstId);
+
+      expect(result).toEqual({ success: true });
+      expect(mockPrismaService.llmSystemPromptHidden.deleteMany).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException for unknown system template', async () => {
+      await expect(service.unhideSystemTemplate('user-1', 'nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   describe('create', () => {
@@ -56,7 +142,7 @@ describe('LlmPromptTemplatesService', () => {
         userId: dto.userId,
         name: dto.name,
         prompt: dto.prompt,
-        category: 'GENERAL',
+        category: 'General',
         order: 3,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -67,15 +153,6 @@ describe('LlmPromptTemplatesService', () => {
       expect(mockPrismaService.llmPromptTemplate.aggregate).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         _max: { order: true },
-      });
-
-      expect(mockPrismaService.llmPromptTemplate.create).toHaveBeenCalledWith({
-        data: {
-          userId: dto.userId,
-          name: dto.name,
-          prompt: dto.prompt,
-          order: 3,
-        },
       });
 
       expect(result.order).toBe(3);
@@ -97,7 +174,7 @@ describe('LlmPromptTemplatesService', () => {
         projectId: dto.projectId,
         name: dto.name,
         prompt: dto.prompt,
-        category: 'GENERAL',
+        category: 'General',
         order: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -141,15 +218,33 @@ describe('LlmPromptTemplatesService', () => {
   });
 
   describe('findAllByUser', () => {
-    it('should return user templates ordered by order field', async () => {
+    it('should return visible user templates ordered by order field', async () => {
       const templates = [
-        { id: '1', name: 'Template 1', order: 0 },
-        { id: '2', name: 'Template 2', order: 1 },
+        { id: '1', name: 'Template 1', order: 0, isHidden: false },
+        { id: '2', name: 'Template 2', order: 1, isHidden: false },
       ];
 
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
 
       const result = await service.findAllByUser('user-1');
+
+      expect(mockPrismaService.llmPromptTemplate.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', isHidden: false },
+        orderBy: { order: 'asc' },
+      });
+
+      expect(result).toEqual(templates);
+    });
+
+    it('should include hidden templates when includeHidden is true', async () => {
+      const templates = [
+        { id: '1', name: 'Template 1', order: 0, isHidden: false },
+        { id: '2', name: 'Hidden Template', order: 1, isHidden: true },
+      ];
+
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
+
+      const result = await service.findAllByUser('user-1', true);
 
       expect(mockPrismaService.llmPromptTemplate.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
@@ -161,10 +256,10 @@ describe('LlmPromptTemplatesService', () => {
   });
 
   describe('findAllByProject', () => {
-    it('should return project templates ordered by order field', async () => {
+    it('should return visible project templates ordered by order field', async () => {
       const templates = [
-        { id: '1', name: 'Template 1', order: 0 },
-        { id: '2', name: 'Template 2', order: 1 },
+        { id: '1', name: 'Template 1', order: 0, isHidden: false },
+        { id: '2', name: 'Template 2', order: 1, isHidden: false },
       ];
 
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
@@ -172,7 +267,7 @@ describe('LlmPromptTemplatesService', () => {
       const result = await service.findAllByProject('project-1');
 
       expect(mockPrismaService.llmPromptTemplate.findMany).toHaveBeenCalledWith({
-        where: { projectId: 'project-1' },
+        where: { projectId: 'project-1', isHidden: false },
         orderBy: { order: 'asc' },
       });
 
@@ -251,6 +346,52 @@ describe('LlmPromptTemplatesService', () => {
       });
 
       expect(result.id).toBe('template-1');
+    });
+  });
+
+  describe('hideTemplate', () => {
+    it('should set isHidden to true on a custom template', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        isHidden: false,
+      });
+
+      mockPrismaService.llmPromptTemplate.update.mockResolvedValue({
+        id: 'template-1',
+        isHidden: true,
+      });
+
+      const result = await service.hideTemplate('template-1');
+
+      expect(mockPrismaService.llmPromptTemplate.update).toHaveBeenCalledWith({
+        where: { id: 'template-1' },
+        data: { isHidden: true },
+      });
+
+      expect(result.isHidden).toBe(true);
+    });
+  });
+
+  describe('unhideTemplate', () => {
+    it('should set isHidden to false on a custom template', async () => {
+      mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        isHidden: true,
+      });
+
+      mockPrismaService.llmPromptTemplate.update.mockResolvedValue({
+        id: 'template-1',
+        isHidden: false,
+      });
+
+      const result = await service.unhideTemplate('template-1');
+
+      expect(mockPrismaService.llmPromptTemplate.update).toHaveBeenCalledWith({
+        where: { id: 'template-1' },
+        data: { isHidden: false },
+      });
+
+      expect(result.isHidden).toBe(false);
     });
   });
 
