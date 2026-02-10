@@ -79,9 +79,10 @@ watch(currentProjectId, async (newId) => {
             fetchChannels({ projectId: newId }),
             fetchPublicationsByProject(newId, { limit: 50 }),
             fetchSignatures(newId).then(sigs => { projectSignatures.value = sigs }),
-            fetchProjectTemplates(newId).then(tpls => {
-                if (!isEditMode.value && !state.projectTemplateId && tpls.length > 0) {
-                    const def = tpls.find(t => t.isDefault) || tpls[0]
+            fetchProjectTemplates(newId).then(() => {
+                // Auto-select template if creating new post
+                if (!isEditMode.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
+                    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
                     if (def) state.projectTemplateId = def.id
                 }
             }),
@@ -104,6 +105,27 @@ watch(currentProjectId, async (newId) => {
     }
 })
 
+// Filter templates by publication language
+const filteredProjectTemplates = computed(() => {
+  return projectTemplates.value.filter(tpl => {
+    return !tpl.language || tpl.language === state.language
+  })
+})
+
+// Watch language change to update template selection if needed
+watch(() => state.language, (newLang) => {
+  if (isEditMode.value) return
+  
+  // If current template is not in the filtered list, pick a new one
+  if (state.projectTemplateId && !filteredProjectTemplates.value.some(t => t.id === state.projectTemplateId)) {
+    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+    state.projectTemplateId = def?.id || ''
+  } else if (!state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
+    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+    state.projectTemplateId = def?.id || ''
+  }
+})
+
 // Signature selector options
 const signatureOptions = computed(() => {
   const userLang = user.value?.language || 'en-US'
@@ -123,7 +145,7 @@ const signatureOptions = computed(() => {
 
 // Template selector options
 const templateOptions = computed(() => {
-  return projectTemplates.value.map(tpl => ({
+  return filteredProjectTemplates.value.map(tpl => ({
     value: tpl.id,
     label: tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : ''),
   }))
@@ -213,10 +235,10 @@ onMounted(async () => {
                     }
                 }
             }),
-            fetchProjectTemplates(currentProjectId.value).then(tpls => {
+            fetchProjectTemplates(currentProjectId.value).then(() => {
                 // Auto-select default template if creating new post
-                if (!isEditMode.value && !state.projectTemplateId && tpls.length > 0) {
-                    const def = tpls.find(t => t.isDefault) || tpls[0]
+                if (!isEditMode.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
+                    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
                     if (def) state.projectTemplateId = def.id
                 }
             }),
@@ -504,6 +526,23 @@ function handleLlmGenerated(text: string) {
         </UFormField>
 
         <!-- Language -->
+        <UFormField name="language" required>
+          <template #label>
+            <div class="flex items-center gap-1.5">
+              <span>{{ t('post.languageLabel') }}</span>
+              <CommonInfoTooltip :text="t('post.languageTooltip')" />
+            </div>
+          </template>
+          <USelectMenu
+            v-model="state.language"
+            :items="languageOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-language"
+            :disabled="isLocked"
+          />
+        </UFormField>
 
 
         <!-- Post Type -->
