@@ -66,6 +66,51 @@ const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
+async function handleVoiceRecording() {
+  if (isRecording.value) {
+    const audioBlob = await stopRecording()
+
+    if (!audioBlob) {
+      toast.add({
+        title: t('llm.recordingError'),
+        color: 'error',
+      })
+      return
+    }
+
+    const text = await transcribeAudio(audioBlob, user.value?.language)
+
+    if (text) {
+      if (prompt.value && !prompt.value.endsWith('\n')) {
+        prompt.value += '\n\n'
+      }
+      prompt.value += text
+
+      toast.add({
+        title: t('llm.transcriptionSuccess', 'Transcription successful'),
+        color: 'success',
+      })
+    } else {
+      toast.add({
+        title: t('llm.transcriptionError'),
+        description: sttError.value || t('llm.errorMessage'),
+        color: 'error',
+      })
+    }
+
+    return
+  }
+
+  const success = await startRecording()
+  if (!success) {
+    toast.add({
+      title: t('llm.recordingError'),
+      description: voiceError.value ? t(`llm.${voiceError.value}`, voiceError.value) : undefined,
+      color: 'error',
+    })
+  }
+}
+
 // Steps
 const step = ref(1) // 1: AI Chat, 2: Parameter Generation
 
@@ -86,6 +131,7 @@ const prompt = ref('')
 
 const api = useApi()
 const activeChatController = ref<AbortController | null>(null)
+const isChatGenerating = ref(false)
 
 function getChatErrorDescription(err: any): string {
   const msg = String(err?.message || '')
@@ -238,6 +284,7 @@ function toggleContextTag(id: string) {
 function handleStop() {
   stopLlm()
   activeChatController.value?.abort()
+  isChatGenerating.value = false
 }
 
 const contextTagById = computed(() => {
@@ -271,6 +318,8 @@ const metadata = ref<any>(null)
 const estimatedTokens = computed(() => {
   return estimateTokens(prompt.value + makeContextPromptBlock(contextTags.value))
 })
+
+const estimatedTokensValue = computed(() => Number(estimatedTokens.value) || 0)
 
 // Track if there are unsaved changes
 const hasUnsavedChanges = computed(() => {
@@ -396,6 +445,8 @@ async function handleGenerate() {
   });
   prompt.value = '';
 
+  isChatGenerating.value = true
+
   activeChatController.value?.abort()
   activeChatController.value = api.createAbortController()
 
@@ -426,6 +477,7 @@ async function handleGenerate() {
     response = null
   } finally {
     activeChatController.value = null
+    isChatGenerating.value = false
   }
 
   if (response) {
@@ -812,7 +864,7 @@ async function handleResetChat() {
           </div>
           
           <!-- Generating indicator -->
-          <div v-if="isGenerating" class="flex items-start gap-2">
+          <div v-if="isChatGenerating" class="flex items-start gap-2">
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
                <div class="flex gap-1.5">
                   <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
@@ -851,7 +903,7 @@ async function handleResetChat() {
             :placeholder="t('llm.promptPlaceholder')"
             :rows="3"
             autoresize
-            :disabled="isGenerating || isRecording || isTranscribing"
+            :disabled="isChatGenerating || isGenerating || isRecording || isTranscribing"
             class="w-full pr-12"
             @keydown.ctrl.enter="handleGenerate"
           />
@@ -868,19 +920,20 @@ async function handleResetChat() {
               />
             </UTooltip>
             <UButton
-              v-if="isGenerating"
+              v-if="isChatGenerating"
               icon="i-heroicons-stop"
               color="neutral"
-              variant="outline"
+              variant="solid"
               size="sm"
               @click="handleStop"
             />
             <UButton
+              v-else
               icon="i-heroicons-paper-airplane"
               color="primary"
               variant="solid"
               size="sm"
-              :loading="isGenerating"
+              :loading="isChatGenerating"
               :disabled="!prompt.trim() || isRecording"
               @click="handleGenerate"
             />
@@ -890,7 +943,7 @@ async function handleResetChat() {
         <!-- Metadata & Stats (Chat) -->
         <div class="mt-2 flex items-center justify-between text-[10px] text-gray-400 px-1">
            <div class="flex items-center gap-2">
-              <span v-if="estimatedTokens">{{ t('llm.estimatedTokens', { count: estimatedTokens }) }}</span>
+              <span v-if="estimatedTokensValue">{{ t('llm.estimatedTokens', { count: estimatedTokensValue }) }}</span>
            </div>
            <div v-if="metadata" class="flex items-center gap-2">
               <span>{{ metadata.provider }} ({{ metadata.model_name }})</span>

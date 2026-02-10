@@ -1,9 +1,10 @@
 import {
   BadGatewayException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   RequestTimeoutException,
-  TooManyRequestsException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { request } from 'undici';
@@ -100,7 +101,7 @@ export class LlmService {
         );
 
         if (response.statusCode === 429) {
-          throw new TooManyRequestsException('LLM rate limit exceeded');
+          throw new HttpException('LLM rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
         }
 
         throw new BadGatewayException('LLM provider request failed');
@@ -124,7 +125,8 @@ export class LlmService {
 
       return data;
     } catch (error: any) {
-      if (error instanceof TooManyRequestsException) throw error;
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.TOO_MANY_REQUESTS)
+        throw error;
       if (error instanceof BadGatewayException) throw error;
 
       const message = String(error?.message || 'Unknown error');
