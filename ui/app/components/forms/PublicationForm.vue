@@ -345,7 +345,6 @@ async function performSubmit(data: PublicationFormData) {
        
        // Explicitly copy allowed keys
        if (payload.note !== undefined) filteredPayload.note = payload.note
-       if (payload.postDate !== undefined) filteredPayload.postDate = payload.postDate
        if (payload.scheduledAt !== undefined) filteredPayload.scheduledAt = payload.scheduledAt
        
        payload = filteredPayload
@@ -679,7 +678,7 @@ function handleLlmGenerated(text: string) {
 
       <!-- Post Date for ARTICLE -->
       <UFormField v-if="state.postType === 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
-        <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
+        <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" :disabled="isLocked" />
       </UFormField>
 
       <!-- Advanced Configuration Section -->
@@ -699,7 +698,7 @@ function handleLlmGenerated(text: string) {
         </UFormField>
 
         <UFormField v-if="state.postType !== 'ARTICLE'" name="postDate" :label="t('post.postDate')" :help="t('post.postDateHint')">
-          <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
+          <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" :disabled="isLocked" />
         </UFormField>
         
 

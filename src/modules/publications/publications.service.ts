@@ -606,7 +606,6 @@ export class PublicationsService {
         'publishedAt',
         'note',
         'effectiveAt',
-        'postDate',
       ];
       // Filter out undefined values to ignore fields that are not present in the payload
       const updatedKeys = Object.keys(data).filter(k => (data as any)[k] !== undefined);

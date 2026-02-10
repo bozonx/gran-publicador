@@ -640,7 +640,6 @@ const moreActions = computed(() => [
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
       class: 'text-error-500 hover:text-error-600',
-      disabled: isLocked.value,
       click: () => { isDeleteModalOpen.value = true }
     }
   ]
@@ -1037,6 +1036,12 @@ async function executePublish(force: boolean) {
                                 icon="i-heroicons-ellipsis-horizontal"
                                 size="sm"
                             />
+                            <template #item="{ item }">
+                                <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
+                                    <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 flex-shrink-0" />
+                                    <span class="truncate">{{ item.label }}</span>
+                                </div>
+                            </template>
                         </UDropdownMenu>
 
                     </div>
