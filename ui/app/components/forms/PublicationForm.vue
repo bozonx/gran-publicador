@@ -506,11 +506,9 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('common.languageTooltip')" />
             </div>
           </template>
-          <CommonLanguageSelect
+          <FormsLanguageButtonGroup
             v-model="state.language"
-            mode="all"
-            searchable
-            class="w-full"
+            :channels="channels"
           />
         </UFormField>
 

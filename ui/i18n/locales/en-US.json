@@ -1060,6 +1060,7 @@
     "noPosts": "No linked posts",
     "noPublicationsDescription": "You don't have any publications yet.",
     "noPublicationsFound": "No publications found",
+    "noLanguagesInProject": "No channels with configured languages found in this project",
     "noReadyPublicationsDescription": "No ready publications found",
     "personalPublications": "Private publications",
     "personal_draft": "Personal draft",

@@ -1060,6 +1060,7 @@
     "noPosts": "Нет связанных постов",
     "noPublicationsDescription": "У вас ещё нет созданных публикаций.",
     "noPublicationsFound": "Публикации не найдены",
+    "noLanguagesInProject": "В проекте нет каналов с настроенными языками",
     "noReadyPublicationsDescription": "Готовых публикаций не найдено",
     "personalPublications": "Личные публикации",
     "personal_draft": "Личный черновик",

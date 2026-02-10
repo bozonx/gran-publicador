@@ -980,7 +980,7 @@ async function executePublish(force: boolean) {
                             />
                             <template #item="{ item }">
                                 <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
-                                    <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 flex-shrink-0" />
+                                    <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
                                     <span class="truncate">{{ item.label }}</span>
                                 </div>
                             </template>
@@ -992,128 +992,85 @@ async function executePublish(force: boolean) {
                 <!-- Metadata Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">
                     <!-- Zone 1: Status, Project, Language and Type Column (40%) -->
-                    <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-4">
-                            <!-- Status (Swapped with Project) -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
-                                    {{ t('post.statusLabel') }}
-                                    <UPopover :popper="{ placement: 'top' }">
-                                        <UIcon name="i-heroicons-information-circle" class="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-                                        <template #content>
-                                            <div class="p-3 max-w-xs text-xs whitespace-pre-line">
-                                                {{ t('publication.changeStatusWarningReset') }}
-                                            </div>
-                                        </template>
-                                    </UPopover>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <div class="inline-flex shadow-sm rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
-                                        <UButton
-                                            v-for="option in displayStatusOptions"
-                                            :key="option.value"
-                                            :label="option.label"
-                                            color="neutral"
-                                            variant="ghost"
-                                            :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentOrMediaMissing && currentPublication?.status === 'DRAFT')"
-                                            class="rounded-none border-r last:border-r-0 border-gray-200 dark:border-gray-700 transition-all px-4 py-2 font-medium"
-                                            :class="[
-                                                currentPublication?.status === option.value 
-                                                    ? (getStatusClass(option.value as PublicationStatus) + ' opacity-100! shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] disabled:opacity-100! disabled:cursor-default') 
-                                                    : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 opacity-100'
-                                            ]"
-                                            @click="handleUpdateStatusOption(option.value as PublicationStatus)"
-                                        >
-                                            <template v-if="currentPublication?.status === option.value" #leading>
-                                                <UIcon 
-                                                    :name="getStatusIcon(option.value as PublicationStatus)" 
-                                                    class="w-4 h-4" 
-                                                    :class="{ 'animate-spin': option.value === 'PROCESSING' }"
-                                                />
-                                            </template>
-                                        </UButton>
-                                    </div>
-                                </div>
+                    <div class="space-y-4 md:col-span-2">
+                        <!-- Status (Swapped with Project) -->
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
+                                {{ t('post.statusLabel') }}
+                                <UPopover :popper="{ placement: 'top' }">
+                                    <UIcon name="i-heroicons-information-circle" class="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                                    <template #content>
+                                        <div class="p-3 max-w-xs text-xs whitespace-pre-line">
+                                            {{ t('publication.changeStatusWarningReset') }}
+                                        </div>
+                                    </template>
+                                </UPopover>
                             </div>
-
-                            <!-- Project Selector (Moved down) -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('project.title') }}
-                                </div>
-                                <div v-if="currentPublication.projectId" class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-folder" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ currentPublication.project?.name || t('publication.personal_draft') }}
-                                    </span>
+                            <div class="flex items-center gap-2">
+                                <div class="inline-flex shadow-sm rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                                     <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-pencil-square"
-                                        variant="ghost"
+                                        v-for="option in displayStatusOptions"
+                                        :key="option.value"
+                                        :label="option.label"
                                         color="neutral"
-                                        size="xs"
-                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="openProjectModal"
-                                    />
-                                </div>
-                                <div v-else>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-folder"
-                                        variant="soft"
-                                        color="primary"
-                                        class="w-full justify-center shadow-sm"
-                                        @click="openProjectModal"
+                                        variant="ghost"
+                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentOrMediaMissing && currentPublication?.status === 'DRAFT')"
+                                        class="rounded-none border-r last:border-r-0 border-gray-200 dark:border-gray-700 transition-all px-4 py-2 font-medium"
+                                        :class="[
+                                            currentPublication?.status === option.value 
+                                                ? (getStatusClass(option.value as PublicationStatus) + ' opacity-100! shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] disabled:opacity-100! disabled:cursor-default') 
+                                                : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 opacity-100'
+                                        ]"
+                                        @click="handleUpdateStatusOption(option.value as PublicationStatus)"
                                     >
-                                        {{ t('publication.selectProject') }}
+                                        <template v-if="currentPublication?.status === option.value" #leading>
+                                            <UIcon 
+                                                :name="getStatusIcon(option.value as PublicationStatus)" 
+                                                class="w-4 h-4" 
+                                                :class="{ 'animate-spin': option.value === 'PROCESSING' }"
+                                            />
+                                        </template>
                                     </UButton>
-                                </div>
-                            </div>
-
-                            <!-- Relations -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('publication.relations.title') }}
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-link" class="w-5 h-5 text-gray-400" />
-                                    <template v-if="currentPublication?.relations?.length">
-                                        <UBadge
-                                            v-for="rel in currentPublication.relations"
-                                            :key="rel.id"
-                                            :color="rel.type === 'SERIES' ? 'primary' : 'info'"
-                                            variant="soft"
-                                            size="sm"
-                                        >
-                                            {{ rel.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeLocalization') }}
-                                            ({{ rel.items.length }})
-                                        </UBadge>
-                                        <UButton
-                                            v-if="!isLocked"
-                                            icon="i-heroicons-pencil-square"
-                                            variant="ghost"
-                                            color="neutral"
-                                            size="xs"
-                                            class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                            @click="isRelationsModalOpen = true"
-                                        />
-                                    </template>
-                                    <template v-else>
-                                        <UButton
-                                            v-if="!isLocked"
-                                            icon="i-heroicons-plus"
-                                            variant="soft"
-                                            color="primary"
-                                            size="xs"
-                                            :label="t('publication.relations.add')"
-                                            @click="isRelationsModalOpen = true"
-                                        />
-                                    </template>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
+                        <!-- Project Selector (Moved down) -->
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                {{ t('project.title') }}
+                            </div>
+                            <div v-if="currentPublication.projectId" class="flex items-center gap-2">
+                                <UIcon name="i-heroicons-folder" class="w-5 h-5 text-gray-400" />
+                                <span class="text-gray-900 dark:text-white font-medium text-base">
+                                    {{ currentPublication.project?.name || t('publication.personal_draft') }}
+                                </span>
+                                <UButton
+                                    v-if="!isLocked"
+                                    icon="i-heroicons-pencil-square"
+                                    variant="ghost"
+                                    color="neutral"
+                                    size="xs"
+                                    class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                    @click="openProjectModal"
+                                />
+                            </div>
+                            <div v-else>
+                                <UButton
+                                    v-if="!isLocked"
+                                    icon="i-heroicons-folder"
+                                    variant="soft"
+                                    color="primary"
+                                    class="w-full justify-center shadow-sm"
+                                    @click="openProjectModal"
+                                >
+                                    {{ t('publication.selectProject') }}
+                                </UButton>
+                            </div>
+                        </div>
+
+                        <!-- Type and Language Row -->
+                        <div class="grid grid-cols-2 gap-4">
                             <!-- Type -->
                             <div>
                                 <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
@@ -1147,6 +1104,48 @@ async function executePublish(force: boolean) {
                                         {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Relations -->
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                {{ t('publication.relations.title') }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <UIcon name="i-heroicons-link" class="w-5 h-5 text-gray-400" />
+                                <template v-if="currentPublication?.relations?.length">
+                                    <UBadge
+                                        v-for="rel in currentPublication.relations"
+                                        :key="rel.id"
+                                        :color="rel.type === 'SERIES' ? 'primary' : 'info'"
+                                        variant="soft"
+                                        size="sm"
+                                    >
+                                        {{ rel.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeLocalization') }}
+                                        ({{ rel.items.length }})
+                                    </UBadge>
+                                    <UButton
+                                        v-if="!isLocked"
+                                        icon="i-heroicons-pencil-square"
+                                        variant="ghost"
+                                        color="neutral"
+                                        size="xs"
+                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                        @click="isRelationsModalOpen = true"
+                                    />
+                                </template>
+                                <template v-else>
+                                    <UButton
+                                        v-if="!isLocked"
+                                        icon="i-heroicons-plus"
+                                        variant="soft"
+                                        color="primary"
+                                        size="xs"
+                                        :label="t('publication.relations.add')"
+                                        @click="isRelationsModalOpen = true"
+                                    />
+                                </template>
                             </div>
                         </div>
                     </div>
