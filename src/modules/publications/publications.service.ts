@@ -110,6 +110,35 @@ export class PublicationsService {
     return keptReversed.reverse();
   }
 
+  private sanitizeDangerousHtmlTags(text: string): string {
+    const input = String(text ?? '');
+
+    const removeWithContent = (tagName: string, s: string) => {
+      const re = new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'gi');
+      return s.replace(re, '');
+    };
+
+    const removeStandalone = (tagName: string, s: string) => {
+      const openClose = new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'gi');
+      const openOnly = new RegExp(`<${tagName}\\b[^>]*\\/?>`, 'gi');
+      return s.replace(openClose, '').replace(openOnly, '');
+    };
+
+    let out = input;
+
+    out = removeWithContent('script', out);
+    out = removeWithContent('style', out);
+    out = removeWithContent('iframe', out);
+    out = removeWithContent('object', out);
+    out = removeWithContent('embed', out);
+
+    out = removeStandalone('link', out);
+    out = removeStandalone('meta', out);
+    out = removeStandalone('base', out);
+
+    return out;
+  }
+
   public async chatWithLlm(publicationId: string, userId: string, dto: PublicationLlmChatDto) {
     const publication = await this.findOne(publicationId, userId);
     const meta = this.parseMetaJson((publication as any).meta);
@@ -158,7 +187,8 @@ export class PublicationsService {
       tags: dto.tags,
     });
 
-    const assistantContent = this.llmService.extractContent(response);
+    const assistantContentRaw = this.llmService.extractContent(response);
+    const assistantContent = this.sanitizeDangerousHtmlTags(assistantContentRaw);
     nextStoredMessages.push({ role: 'assistant', content: assistantContent });
 
     const prunedMessages = this.pruneChatMessagesByUserLimit(
