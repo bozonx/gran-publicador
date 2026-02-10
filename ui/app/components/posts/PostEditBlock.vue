@@ -301,10 +301,21 @@ async function confirmDelete() {
 const displayTitle = computed(() => props.post ? getPostTitle(props.post) : props.publication?.title)
 const isPostContentOverride = computed(() => !isTextContentEmpty(formData.content))
 const displayContent = computed(() => {
-    if (!isPostContentOverride.value) return props.publication?.content
+    if (!isPostContentOverride.value) return props.publication?.content || ''
     return formData.content
 })
-const displayDescription = computed(() => props.post ? getPostDescription(props.post) : props.publication?.description)
+const displayAuthorSignature = computed(() => formData.authorSignature)
+const displayTags = computed(() => {
+    if (overriddenTags.value.length > 0) return overriddenTags.value
+    if (props.publication?.tags) {
+        return props.publication.tags.split(',').filter(t => t.trim())
+    }
+    return []
+})
+const hasActivatedPlatformOptions = computed(() => {
+    if (!formData.platformOptions) return false
+    return Object.values(formData.platformOptions).some(v => !!v)
+})
 const displayLanguage = computed(() => {
     // Priority: Channel language (since this block is for a post in a specific channel)
     return channelLanguage.value || publicationLanguage.value
@@ -662,17 +673,6 @@ async function executePublish() {
                     {{ props.post?.channel?.name || t('common.unknownChannel') }}
                 </span>
 
-                <!-- Language Code -->
-                <UBadge 
-                    v-if="!isCreating && displayLanguage"
-                    variant="subtle" 
-                    color="neutral" 
-                    size="xs"
-                    class="font-mono shrink-0 rounded-md gap-1"
-                >
-                    {{ displayLanguage }}
-                </UBadge>
-
                 <!-- Status Display -->
                 <UBadge 
                   v-if="!isCreating && props.post?.status && props.post.status !== 'PENDING'" 
@@ -691,37 +691,55 @@ async function executePublish() {
                      {{ headerDateInfo.date }}
                 </span>
 
-
+                <!-- Platform Options Icon -->
+                <UTooltip v-if="hasActivatedPlatformOptions" :text="t('post.platformOptionsActivated', 'Platform options activated')">
+                   <UIcon name="i-heroicons-adjustments-horizontal" class="w-4 h-4 text-primary-500" />
+                </UTooltip>
             </div>
             
-            <!-- Template & Tags Info -->
-            <div v-if="currentTemplateName || overriddenTags.length > 0" class="flex flex-wrap gap-1 items-center">
-                 <!-- Template Name -->
-                 <UBadge
-                    v-if="currentTemplateName"
-                    variant="subtle"
-                    color="primary"
-                    size="xs"
-                    class="font-medium mr-1"
-                 >
-                    <UIcon name="i-heroicons-squares-2x2" class="w-3 h-3 mr-1" />
-                    {{ currentTemplateName }}
-                 </UBadge>
+            <!-- Collapsed Preview info -->
+            <div v-if="isCollapsed" class="space-y-1">
+                <!-- Template & Tags Info -->
+                <div v-if="currentTemplateName || displayTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
+                     <!-- Template Name -->
+                     <UBadge
+                        v-if="currentTemplateName"
+                        variant="subtle"
+                        color="primary"
+                        size="xs"
+                        class="font-medium mr-1"
+                     >
+                        <UIcon name="i-heroicons-squares-2x2" class="w-3 h-3 mr-1" />
+                        {{ currentTemplateName }}
+                     </UBadge>
 
-                 <!-- Overridden Tags -->
-                 <CommonTags
-                   :tags="overriddenTags"
-                   color="neutral"
-                   variant="subtle"
-                   size="xs"
-                   badge-class="font-mono"
-                 />
+                     <!-- Author Signature -->
+                     <UBadge
+                        v-if="displayAuthorSignature"
+                        variant="subtle"
+                        color="neutral"
+                        size="xs"
+                        class="italic gap-1"
+                     >
+                        <UIcon name="i-heroicons-pencil" class="w-3 h-3" />
+                        <span class="max-w-[150px] truncate">{{ displayAuthorSignature }}</span>
+                     </UBadge>
+
+                     <!-- Tags -->
+                     <CommonTags
+                       :tags="displayTags"
+                       color="neutral"
+                       variant="subtle"
+                       size="xs"
+                       badge-class="font-mono"
+                     />
+                </div>
+
+                <!-- Content Preview -->
+                <p v-if="displayContent" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1 px-0.5" :class="{ 'text-primary-600 dark:text-primary-400 font-medium bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded border border-primary-100 dark:border-primary-800/20': isPostContentOverride }">
+                    {{ stripHtmlAndSpecialChars(displayContent) }}
+                </p>
             </div>
-
-            <!-- Content Preview (Only if overridden for this post) -->
-            <p v-if="isPostContentOverride" class="text-sm text-primary-600 dark:text-primary-400 font-medium line-clamp-2 mt-1 bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded border border-primary-100 dark:border-primary-800/20">
-                {{ stripHtmlAndSpecialChars(formData.content) }}
-            </p>
         </div>
 
         <!-- Expand/Collapse Button -->
