@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { ChannelWithProject } from '~/composables/useChannels'
-import type { PostWithRelations, PostStatus, PostType } from '~/composables/usePosts'
+import type { PostWithRelations } from '~/composables/usePosts'
 import type { PublicationWithRelations } from '~/composables/usePublications'
-import type { PublicationStatus } from '~/types/posts'
+import type { PostStatus, PostType, PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { useViewMode } from '~/composables/useViewMode'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
@@ -123,29 +123,6 @@ async function quickCreatePublication(postType: PostType) {
   }
 }
 
-function getPostTypeIcon(type: string): string {
-    switch (type) {
-        case 'POST': return 'i-heroicons-chat-bubble-bottom-center-text'
-        case 'ARTICLE': return 'i-heroicons-document-text'
-        case 'NEWS': return 'i-heroicons-newspaper'
-        case 'VIDEO': return 'i-heroicons-video-camera'
-        case 'SHORT': return 'i-heroicons-bolt'
-        case 'STORY': return 'i-heroicons-camera'
-        default: return 'i-heroicons-plus'
-    }
-}
-
-function getPostTypeColor(type: string): any {
-    switch (type) {
-        case 'POST': return 'primary'
-        case 'ARTICLE': return 'success'
-        case 'NEWS': return 'warning'
-        case 'VIDEO': return 'error'
-        case 'SHORT': return 'info'
-        case 'STORY': return 'neutral'
-        default: return 'primary'
-    }
-}
 
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('channel-publications-view', 'list')
@@ -501,19 +478,11 @@ const channelProblems = computed(() => {
                 <!-- Actions Footer -->
                 <div class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
                     <div class="flex flex-wrap items-center gap-2">
-                        <UButton 
-                            v-for="option in typeOptions"
-                            :key="option.value"
-                            :icon="getPostTypeIcon(option.value)" 
-                            :color="getPostTypeColor(option.value)" 
-                            size="sm"
-                            variant="soft"
-                            :loading="creatingType === option.value"
-                            :disabled="isCreatingPublication && creatingType !== option.value"
-                            @click="quickCreatePublication(option.value as PostType)"
-                        >
-                            {{ option.label }}
-                        </UButton>
+                        <PublicationsPublicationTypeSelect
+                            :loading-type="creatingType"
+                            :disabled="isCreatingPublication"
+                            @select="quickCreatePublication"
+                        />
                     </div>
 
                     <div class="flex items-center gap-2">

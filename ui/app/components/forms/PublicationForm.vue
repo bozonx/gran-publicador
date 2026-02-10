@@ -509,13 +509,8 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('post.postTypeTooltip')" />
             </div>
           </template>
-          <USelectMenu
+          <PublicationsPublicationTypeSelect
             v-model="state.postType"
-            :items="typeOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-            icon="i-heroicons-information-circle"
           />
         </UFormField>
       </div>

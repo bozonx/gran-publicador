@@ -45,6 +45,49 @@ export function getPostTypeDisplayName(
   if (!type) return '-';
   return t(`postType.${type.toLowerCase()}`);
 }
+
+export function getPostTypeIcon(type: string | undefined | null): string {
+  if (!type) return 'i-heroicons-plus';
+  switch (type.toUpperCase()) {
+    case 'POST':
+      return 'i-heroicons-chat-bubble-bottom-center-text';
+    case 'ARTICLE':
+      return 'i-heroicons-document-text';
+    case 'NEWS':
+      return 'i-heroicons-newspaper';
+    case 'VIDEO':
+      return 'i-heroicons-video-camera';
+    case 'SHORT':
+      return 'i-heroicons-bolt';
+    case 'STORY':
+      return 'i-heroicons-camera';
+    default:
+      return 'i-heroicons-plus';
+  }
+}
+
+export function getPostTypeColor(
+  type: string | undefined | null,
+): 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral' {
+  if (!type) return 'primary';
+  switch (type.toUpperCase()) {
+    case 'POST':
+      return 'primary';
+    case 'ARTICLE':
+      return 'success';
+    case 'NEWS':
+      return 'warning';
+    case 'VIDEO':
+      return 'error';
+    case 'SHORT':
+      return 'info';
+    case 'STORY':
+      return 'neutral';
+    default:
+      return 'primary';
+  }
+}
+
 export function getPostStatusIcon(status: string | undefined | null): string {
   if (!status) return 'i-heroicons-question-mark-circle';
   switch (status.toUpperCase()) {

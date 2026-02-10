@@ -149,7 +149,7 @@ watch(() => formData.projectId, async (newProjectId) => {
             formData.authorSignatureId = userPrefs.defaultSignatures[userId]
         } else if (sigs.length > 0) {
             const userSigs = sigs.filter(s => s.userId === userId)
-            if (userSigs.length > 0) formData.authorSignatureId = userSigs[0].id
+            if (userSigs.length > 0 && userSigs[0]) formData.authorSignatureId = userSigs[0].id
         }
       }),
       fetchProjectTemplates(newProjectId).then(tpls => {
@@ -376,13 +376,8 @@ function handleClose() {
         :label="t('publication.createModal.selectPostType', 'Post Type')"
         required
       >
-        <USelectMenu
-          ref="postTypeSelectRef"
+        <PublicationsPublicationTypeSelect
           v-model="formData.postType"
-          :items="typeOptions"
-          value-key="value"
-          label-key="label"
-          class="w-full"
         />
       </UFormField>
 
