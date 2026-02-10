@@ -15,6 +15,7 @@ const props = defineProps<Props>()
 const { t } = useI18n()
 const toast = useToast()
 const api = useApi()
+const { user } = useAuth()
 
 const {
   templates,
@@ -145,8 +146,8 @@ onMounted(async () => {
 async function handleCreate() {
   isCreating.value = true
   try {
-    // Determine default language from project channels
-    const defaultLang = projectChannels.value.find(ch => !ch.archivedAt)?.language || 'ru-RU'
+    // Determine default language from user or project channels
+    const defaultLang = user.value?.language || projectChannels.value.find(ch => !ch.archivedAt)?.language || 'ru-RU'
 
     const result = await createProjectTemplate(props.projectId, {
       name: t('projectTemplates.newTemplateName'),
@@ -180,6 +181,13 @@ function openEditModal(tpl: ProjectTemplate) {
     language: tpl.language || 'ru-RU',
     template: JSON.parse(JSON.stringify(tpl.template)),
   }
+
+  // Ensure 'content' block is always enabled
+  const contentBlock = templateForm.value.template.find(b => b.insert === 'content')
+  if (contentBlock) {
+    contentBlock.enabled = true
+  }
+
   activeTab.value = 'project'
 
   // Load channel overrides for this template
@@ -475,15 +483,18 @@ const enabledBlocks = computed(() => {
             <UTooltip :text="item.label">
               <UButton
                 :variant="selected ? 'soft' : 'ghost'"
-                :color="selected ? 'primary' : 'neutral'"
+                :color="activeTab !== item.id && isChannelExcluded(item.id) ? 'error' : (selected ? 'primary' : 'neutral')"
                 size="sm"
                 class="transition-all duration-200"
                 @click="select"
               >
                 <template v-if="item.icon" #leading>
-                  <UIcon :name="item.icon" class="w-4 h-4" />
+                  <UIcon :name="item.icon" :class="['w-4 h-4', activeTab !== item.id && isChannelExcluded(item.id) ? 'text-red-500' : '']" />
                 </template>
                 <span v-if="item.id === 'project'">{{ item.label }}</span>
+                <template v-if="item.id !== 'project' && isChannelExcluded(item.id)" #trailing>
+                  <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                </template>
               </UButton>
             </UTooltip>
           </template>
@@ -563,7 +574,11 @@ const enabledBlocks = computed(() => {
               >
                 <div class="flex items-center gap-3">
                   <UIcon name="i-heroicons-bars-3" class="block-drag-handle w-5 h-5 text-gray-400 cursor-grab hover:text-gray-600 dark:hover:text-gray-200 transition-colors" />
-                  <UCheckbox v-model="block.enabled" color="primary" />
+                  <UCheckbox 
+                    v-model="block.enabled" 
+                    color="primary" 
+                    :disabled="block.insert === 'content'"
+                  />
                   <div class="flex-1 text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
                     {{ insertOptions.find(o => o.value === block.insert)?.label || block.insert }}
                   </div>
@@ -620,7 +635,8 @@ const enabledBlocks = computed(() => {
                       <UFormField :label="t('channel.templateBefore')" class="w-full">
                         <UTextarea
                           :model-value="getOverrideValue(activeTab, block.insert, 'before')"
-                          :rows="1"
+                          :rows="2"
+                          :max-rows="10"
                           class="font-mono text-xs w-full"
                           :placeholder="block.before || t('channel.noOverride')"
                           autoresize
@@ -630,7 +646,8 @@ const enabledBlocks = computed(() => {
                       <UFormField :label="t('channel.templateAfter')" class="w-full">
                         <UTextarea
                           :model-value="getOverrideValue(activeTab, block.insert, 'after')"
-                          :rows="1"
+                          :rows="2"
+                          :max-rows="10"
                           class="font-mono text-xs w-full"
                           :placeholder="block.after || t('channel.noOverride')"
                           autoresize
@@ -660,6 +677,7 @@ const enabledBlocks = computed(() => {
                       <UTextarea
                         :model-value="getOverrideValue(activeTab, block.insert, 'content')"
                         :rows="2"
+                        :max-rows="10"
                         class="font-mono text-xs w-full"
                         :placeholder="block.content || t('channel.noOverride')"
                         autoresize
