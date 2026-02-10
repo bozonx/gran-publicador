@@ -814,9 +814,9 @@ async function executePublish() {
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Row 1: Author Signature | Scheduled At -->
-                <UFormField :label="t('post.authorSignature', 'Author Signature')">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Row 1: Author Signature (2/3) | Scheduled At (1/3) -->
+                <UFormField :label="t('post.authorSignature', 'Author Signature')" class="md:col-span-2">
                     <UInput
                         v-model="formData.authorSignature"
                         :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
@@ -825,7 +825,7 @@ async function executePublish() {
                     />
                 </UFormField>
 
-                <UFormField :label="t('post.scheduledAt')">
+                <UFormField :label="t('post.scheduledAt')" class="md:col-span-1">
                     <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
                         <UInput 
                             v-model="formData.scheduledAt" 
@@ -837,8 +837,8 @@ async function executePublish() {
                     </UTooltip>
                 </UFormField>
 
-                <!-- Row 2: Tags | Platform Specific Options -->
-                <UFormField :label="t('post.tags')">
+                <!-- Row 2: Tags (2/3) | Platform Specific Options (1/3) -->
+                <UFormField :label="t('post.tags')" class="md:col-span-2">
                     <CommonInputTags
                         v-model="formData.tags"
                         :placeholder="t('post.tagsPlaceholder')"
@@ -849,7 +849,7 @@ async function executePublish() {
                     />
                 </UFormField>
 
-                <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'">
+                <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'" class="md:col-span-1">
                     <UFormField :label="t('post.options.title', 'Platform Options')">
                         <div class="flex items-center gap-2 py-1">
                             <UCheckbox 
