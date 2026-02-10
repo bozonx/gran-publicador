@@ -54,9 +54,7 @@ const focusCandidates = computed(() => {
     candidates.push({ target: projectSelectRef })
   }
 
-  if (!isLanguageLocked.value) {
-    candidates.push({ target: languageSelectRef })
-  }
+
 
   candidates.push({ target: postTypeSelectRef })
   return candidates
@@ -367,12 +365,9 @@ function handleClose() {
         :label="t('common.language')"
         required
       >
-        <CommonLanguageSelect
-          ref="languageSelectRef"
+        <FormsLanguageButtonGroup
           v-model="formData.language"
-          mode="all"
-          searchable
-          class="w-full"
+          :channels="channels"
         />
       </UFormField>
 
