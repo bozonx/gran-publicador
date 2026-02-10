@@ -293,28 +293,6 @@ async function handleApplyLlm(data: {
   }
 }
 
-async function handleSaveLlmMeta(meta: Record<string, any>) {
-  if (!currentPublication.value) return
-
-  try {
-    const existingMeta = normalizedPublicationMeta.value
-    const mergedMeta = { ...existingMeta, ...meta }
-
-    await updatePublication(
-      currentPublication.value.id,
-      {
-        meta: mergedMeta,
-      },
-      { silent: true },
-    )
-  } catch (e: any) {
-    console.warn('[LLM] Failed to autosave publication meta', {
-      publicationId: currentPublication.value.id,
-      error: e,
-    })
-  }
-}
-
 </script>
 
 <template>
@@ -631,6 +609,7 @@ async function handleSaveLlmMeta(meta: Record<string, any>) {
       v-if="currentPublication"
       ref="llmModalRef"
       v-model:open="showLlmModal"
+      :publication-id="currentPublication.id"
       :content="currentPublication.content || undefined"
       :media="(currentPublication.media || []).map(m => m.media).filter(Boolean) as unknown as MediaItem[]"
       :project-id="currentPublication.projectId || undefined"
@@ -645,7 +624,6 @@ async function handleSaveLlmMeta(meta: Record<string, any>) {
         socialMedia: p.channel?.socialMedia,
       }))"
       @apply="handleApplyLlm"
-      @save-meta="handleSaveLlmMeta"
     />
   </div>
 </template>

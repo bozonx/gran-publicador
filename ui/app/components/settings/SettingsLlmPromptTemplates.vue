@@ -77,16 +77,30 @@ const formData = reactive({
 
 const CUSTOM_CATEGORY_VALUE = '__custom__'
 
+const SYSTEM_CATEGORY_KEYS = ['chat', 'content', 'editing', 'general', 'metadata']
+
 const categoryOptions = computed(() => {
-  const categories = new Set<string>()
+  const existingCategories = new Set<string>()
   ;[...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value].forEach((tpl) => {
-    if (tpl.category) categories.add(tpl.category)
+    if (tpl.category) existingCategories.add(tpl.category.toLowerCase())
   })
-  const sorted = [...categories].sort()
-  return [
-    ...sorted.map(c => ({ value: c, label: c })),
-    { value: CUSTOM_CATEGORY_VALUE, label: t('common.custom', 'Custom') },
-  ]
+
+  const options: Array<{ value: string; label: string }> = SYSTEM_CATEGORY_KEYS.map(key => ({
+    value: key.charAt(0).toUpperCase() + key.slice(1),
+    label: t(`llm.categories.${key}`)
+  }))
+
+  const sortedOther = [...existingCategories]
+    .filter(c => !SYSTEM_CATEGORY_KEYS.includes(c.toLowerCase()))
+    .map(c => c.charAt(0).toUpperCase() + c.slice(1))
+    .sort((a, b) => a.localeCompare(b))
+
+  sortedOther.forEach(c => {
+    options.push({ value: c, label: c })
+  })
+
+  options.push({ value: CUSTOM_CATEGORY_VALUE, label: t('common.custom', 'Custom') })
+  return options
 })
 
 // ─── Search ─────────────────────────────────────────────────────────
@@ -356,9 +370,27 @@ const groupedTemplates = computed<GroupedTemplates>(() => {
     list.push(tpl)
     groups.set(key, list)
   })
+
   return [...groups.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([category, items]) => ({ category, items }))
+    .sort(([a], [b]) => {
+      const aLower = a.toLowerCase()
+      const bLower = b.toLowerCase()
+      const aIdx = SYSTEM_CATEGORY_KEYS.indexOf(aLower)
+      const bIdx = SYSTEM_CATEGORY_KEYS.indexOf(bLower)
+
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
+      if (aIdx !== -1) return -1
+      if (bIdx !== -1) return 1
+      return a.localeCompare(b)
+    })
+    .map(([category, items]) => {
+      const lower = category.toLowerCase()
+      const isSystem = SYSTEM_CATEGORY_KEYS.includes(lower)
+      return {
+        category: isSystem ? t(`llm.categories.${lower}`) : category,
+        items
+      }
+    })
 })
 
 const reorderableGroups = ref<GroupedTemplates>([])
@@ -382,8 +414,25 @@ function rebuildReorderableGroups() {
   })
 
   reorderableGroups.value = [...groups.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([category, items]) => ({ category, items }))
+    .sort(([a], [b]) => {
+      const aLower = a.toLowerCase()
+      const bLower = b.toLowerCase()
+      const aIdx = SYSTEM_CATEGORY_KEYS.indexOf(aLower)
+      const bIdx = SYSTEM_CATEGORY_KEYS.indexOf(bLower)
+
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
+      if (aIdx !== -1) return -1
+      if (bIdx !== -1) return 1
+      return a.localeCompare(b)
+    })
+    .map(([category, items]) => {
+      const lower = category.toLowerCase()
+      const isSystem = SYSTEM_CATEGORY_KEYS.includes(lower)
+      return {
+        category: isSystem ? t(`llm.categories.${lower}`) : category,
+        items
+      }
+    })
 }
 
 watch([sourceFilter, showHiddenOnly, searchQuery, userTemplates, projectTemplates, systemTemplates, availableOrder], () => {

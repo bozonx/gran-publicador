@@ -56,6 +56,74 @@ export class LlmService {
 
   private readonly defaultContextLimitChars = 10000;
 
+  public async generateChat(
+    messages: Array<{ role: string; content: string }>,
+    options: {
+      temperature?: number;
+      max_tokens?: number;
+      model?: string;
+      tags?: string[];
+      type?: string;
+    } = {},
+  ): Promise<LlmResponse> {
+    const url = `${this.config.serviceUrl}/chat/completions`;
+
+    const requestBody = {
+      messages,
+      temperature: options.temperature ?? this.config.temperature,
+      max_tokens: options.max_tokens ?? this.config.maxTokens,
+      model: options.model,
+      tags: options.tags || this.config.defaultTags,
+      type: options.type ?? this.config.defaultType,
+      ...filterUndefined({
+        max_model_switches: this.config.maxModelSwitches,
+        max_same_model_retries: this.config.maxSameModelRetries,
+        retry_delay: this.config.retryDelay,
+        timeout_secs: this.config.timeoutSecs,
+        fallback_provider: this.config.fallbackProvider,
+        fallback_model: this.config.fallbackModel,
+        min_context_size: this.config.minContextSize,
+        min_max_output_tokens: this.config.minMaxOutputTokens,
+      }),
+    };
+
+    this.logger.debug(`Sending request to LLM Router: ${url}`);
+
+    try {
+      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
+      const response = await request(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
+        },
+        body: JSON.stringify(requestBody),
+        headersTimeout: timeout,
+        bodyTimeout: timeout,
+      });
+
+      if (response.statusCode >= 400) {
+        const errorText = await response.body.text();
+        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
+      }
+
+      const data = (await response.body.json()) as LlmResponse;
+
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('LLM Router returned empty choices array');
+      }
+
+      this.logger.debug(
+        `LLM Router success: ${data.model} (fallback: ${data._router?.fallback_used})`,
+      );
+
+      return data;
+    } catch (error: any) {
+      this.logger.error(`Failed to generate content: ${error.message}`);
+      throw error;
+    }
+  }
+
   /**
    * Initializes the LlmService.
    * @param configService - NestJS Configuration service to retrieve LLM settings.

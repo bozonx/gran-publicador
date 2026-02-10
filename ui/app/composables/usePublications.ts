@@ -147,6 +147,35 @@ export interface PaginatedPublications {
   };
 }
 
+export interface PublicationLlmChatContextInput {
+  content?: string;
+  mediaDescriptions?: string[];
+  contextLimitChars?: number;
+}
+
+export interface PublicationLlmChatInput {
+  message: string;
+  context?: PublicationLlmChatContextInput;
+  temperature?: number;
+  max_tokens?: number;
+  model?: string;
+  tags?: string[];
+  onlyRawResult?: boolean;
+}
+
+export interface PublicationLlmChatResponse {
+  message: string;
+  metadata?: any;
+  usage?: any;
+  chat?: {
+    messages: Array<{ role: string; content: string }>;
+    context?: PublicationLlmChatContextInput;
+    savedAt?: string;
+    model?: any;
+    usage?: any;
+  };
+}
+
 export function usePublications() {
   const api = useApi();
   const { user } = useAuth();
@@ -221,6 +250,16 @@ export function usePublications() {
     }
   }
 
+  async function publicationLlmChat(
+    publicationId: string,
+    payload: PublicationLlmChatInput,
+  ): Promise<PublicationLlmChatResponse> {
+    return await api.post<PublicationLlmChatResponse>(
+      `/publications/${publicationId}/llm/chat`,
+      payload,
+    );
+  }
+
   async function fetchUserPublications(
     filters: PublicationsFilter = {},
   ): Promise<PaginatedPublications> {
@@ -273,7 +312,7 @@ export function usePublications() {
     if (currentPublication.value?.id !== id) {
       currentPublication.value = null;
     }
-    
+
     isLoading.value = true;
     error.value = null;
 
@@ -577,6 +616,7 @@ export function usePublications() {
     createPublication,
     updatePublication,
     copyPublication,
+    publicationLlmChat,
     deletePublication,
     bulkOperation,
     createPostsFromPublication,

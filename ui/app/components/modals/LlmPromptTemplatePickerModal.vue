@@ -114,6 +114,8 @@ const filteredTemplates = computed<LlmPromptTemplate[]>(() => {
 
 type GroupedTemplates = Array<{ category: string; items: LlmPromptTemplate[] }>
 
+const SYSTEM_CATEGORY_KEYS = ['chat', 'content', 'editing', 'general', 'metadata']
+
 const groupedTemplates = computed<GroupedTemplates>(() => {
   const groups = new Map<string, LlmPromptTemplate[]>()
 
@@ -125,8 +127,25 @@ const groupedTemplates = computed<GroupedTemplates>(() => {
   })
 
   return [...groups.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([category, items]) => ({ category, items }))
+    .sort(([a], [b]) => {
+      const aLower = a.toLowerCase()
+      const bLower = b.toLowerCase()
+      const aIdx = SYSTEM_CATEGORY_KEYS.indexOf(aLower)
+      const bIdx = SYSTEM_CATEGORY_KEYS.indexOf(bLower)
+
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
+      if (aIdx !== -1) return -1
+      if (bIdx !== -1) return 1
+      return a.localeCompare(b)
+    })
+    .map(([category, items]) => {
+      const lower = category.toLowerCase()
+      const isSystem = SYSTEM_CATEGORY_KEYS.includes(lower)
+      return {
+        category: isSystem ? t(`llm.categories.${lower}`) : category,
+        items
+      }
+    })
 })
 
 const filterOptions = computed(() => {

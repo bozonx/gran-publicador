@@ -24,11 +24,17 @@ import {
   IssueType,
   OwnershipType,
 } from './dto/index.js';
+import type { PublicationLlmChatDto } from './dto/publication-llm-chat.dto.js';
 import type { BulkOperationDto } from './dto/bulk-operation.dto.js';
 import { PublicationMediaInputDto } from './dto/publication-media-input.dto.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { MediaService } from '../media/media.service.js';
 import { PostSnapshotBuilderService } from '../social-posting/post-snapshot-builder.service.js';
+import { LlmService } from '../llm/llm.service.js';
+import {
+  PUBLICATION_CHAT_SYSTEM_PROMPT,
+  RAW_RESULT_SYSTEM_PROMPT,
+} from '../llm/constants/llm.constants.js';
 
 @Injectable()
 export class PublicationsService {
@@ -39,7 +45,128 @@ export class PublicationsService {
     private permissions: PermissionsService,
     private mediaService: MediaService,
     private snapshotBuilder: PostSnapshotBuilderService,
+    private llmService: LlmService,
   ) {}
+
+  public async chatWithLlm(publicationId: string, userId: string, dto: PublicationLlmChatDto) {
+    const publication = await this.findOne(publicationId, userId);
+    const meta = this.parseMetaJson((publication as any).meta);
+
+    const chatMeta = this.parseMetaJson(meta.llmPublicationContentGenerationChat);
+    const storedMessages = Array.isArray(chatMeta.messages) ? chatMeta.messages : [];
+    const isFirstMessage = storedMessages.length === 0;
+
+    const contextSnapshot:
+      | Array<{ id: string; label: string; promptText: string; kind: 'content' | 'media' }>
+      | undefined =
+      isFirstMessage && dto.context
+        ? (() => {
+            const tags: Array<{
+              id: string;
+              label: string;
+              promptText: string;
+              kind: 'content' | 'media';
+            }> = [];
+
+            if (dto.context.content?.trim()) {
+              tags.push({
+                id: 'content:1',
+                label: 'Content',
+                promptText: `<source_content>\n${dto.context.content.trim()}\n</source_content>`,
+                kind: 'content',
+              });
+            }
+
+            if (Array.isArray(dto.context.mediaDescriptions)) {
+              let index = 0;
+              for (const raw of dto.context.mediaDescriptions) {
+                const text = String(raw ?? '').trim();
+                if (!text) continue;
+                tags.push({
+                  id: `media:${index}`,
+                  label: text,
+                  promptText: `<image_description>${text}</image_description>`,
+                  kind: 'media',
+                });
+                index += 1;
+              }
+            }
+
+            return tags.length > 0 ? tags : undefined;
+          })()
+        : undefined;
+
+    const systemMessages: Array<{ role: string; content: string }> = [];
+    systemMessages.push({ role: 'system', content: PUBLICATION_CHAT_SYSTEM_PROMPT });
+    if (dto.onlyRawResult) {
+      systemMessages.push({ role: 'system', content: RAW_RESULT_SYSTEM_PROMPT });
+    }
+
+    if (contextSnapshot) {
+      const limit =
+        typeof dto.context?.contextLimitChars === 'number' && dto.context.contextLimitChars > 0
+          ? dto.context.contextLimitChars
+          : 10000;
+      const ctx = contextSnapshot
+        .map(t => t.promptText)
+        .join('\n')
+        .slice(0, limit);
+
+      if (ctx.trim()) {
+        systemMessages.push({ role: 'system', content: ctx });
+      }
+    }
+
+    const nextStoredMessages = [
+      ...storedMessages,
+      {
+        role: 'user',
+        content: dto.message,
+        ...(contextSnapshot ? { contextSnapshot } : {}),
+      },
+    ];
+
+    const routerMessages = [
+      ...systemMessages,
+      ...nextStoredMessages.map((m: any) => ({ role: m.role, content: m.content })),
+    ];
+
+    const response = await this.llmService.generateChat(routerMessages, {
+      temperature: dto.temperature,
+      max_tokens: dto.max_tokens,
+      model: dto.model,
+      tags: dto.tags,
+    });
+
+    const assistantContent = this.llmService.extractContent(response);
+    nextStoredMessages.push({ role: 'assistant', content: assistantContent });
+
+    const updatedMeta = {
+      ...meta,
+      llmPublicationContentGenerationChat: {
+        messages: nextStoredMessages,
+        contextSnapshot: contextSnapshot ?? chatMeta.contextSnapshot,
+        contextLimitChars: dto.context?.contextLimitChars ?? chatMeta.contextLimitChars,
+        model: response._router ?? null,
+        usage: response.usage ?? null,
+        savedAt: new Date().toISOString(),
+      },
+    };
+
+    await this.prisma.publication.update({
+      where: { id: publicationId },
+      data: {
+        meta: updatedMeta as any,
+      },
+    });
+
+    return {
+      message: assistantContent,
+      metadata: response._router,
+      usage: response.usage,
+      chat: updatedMeta.llmPublicationContentGenerationChat,
+    };
+  }
 
   private readonly PUBLICATION_WITH_RELATIONS_INCLUDE = {
     creator: {

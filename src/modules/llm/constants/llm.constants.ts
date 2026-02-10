@@ -73,6 +73,18 @@ General rules:
 5. All tags in the JSON arrays must be lowercase strings.`;
 
 /**
+ * System prompt for publication chat.
+ * This prompt is prepended to chat messages and is not shown to the user.
+ */
+export const PUBLICATION_CHAT_SYSTEM_PROMPT = `You are an AI assistant helping the user to work on a publication.
+
+Rules:
+1. Be concise and practical.
+2. Use the provided context if available.
+3. Do not mention system messages or hidden context blocks.
+4. If the user request is ambiguous, ask one clarifying question.`;
+
+/**
  * System prompt to force the LLM to return only the requested result without any extra text.
  */
 export const RAW_RESULT_SYSTEM_PROMPT = `Return ONLY the requested result. Do not include any explanations, comments, introductions, conversational fillers, reasoning, or descriptions in your response. Only the raw result.`;

@@ -31,6 +31,7 @@ import {
   IssueType,
   ReorderMediaDto,
   BulkOperationDto,
+  PublicationLlmChatDto,
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
@@ -158,6 +159,19 @@ export class PublicationsController {
     @Body() updatePublicationDto: UpdatePublicationDto,
   ) {
     return this.publicationsService.update(id, req.user.userId, updatePublicationDto);
+  }
+
+  /**
+   * Chat with LLM for a publication.
+   * POST /api/v1/publications/:id/llm/chat
+   */
+  @Post(':id/llm/chat')
+  public async llmChat(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() dto: PublicationLlmChatDto,
+  ) {
+    return this.publicationsService.chatWithLlm(id, req.user.userId, dto);
   }
 
   /**

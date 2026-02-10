@@ -32,11 +32,11 @@ interface ApplyData {
 
 interface Emits {
   (e: 'apply', data: ApplyData): void
-  (e: 'save-meta', meta: Record<string, any>): void
   (e: 'close'): void
 }
 
 interface Props {
+  publicationId: string
   content?: string
   media?: MediaItem[]
   projectId?: string
@@ -46,11 +46,12 @@ interface Props {
   postChannels?: PostChannelInfo[]
 }
 
-const { content, media, projectId, publicationMeta, postType, publicationLanguage, postChannels } = defineProps<Props>()
+const { publicationId, content, media, projectId, publicationMeta, postType, publicationLanguage, postChannels } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, estimateTokens, generatePublicationFields } = useLlm()
+const { generatePublicationFields, isGenerating, estimateTokens } = useLlm()
+const { publicationLlmChat } = usePublications()
 const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
@@ -213,21 +214,6 @@ const hasContext = computed(() => contextTags.value.length > 0)
 // Metadata from last generation
 const metadata = ref<any>(null)
 
-function buildChatMetaPayload() {
-  return {
-    llmPublicationContentGenerationChat: {
-      messages: chatMessages.value,
-      model: metadata.value,
-      savedAt: new Date().toISOString(),
-    },
-  }
-}
-
-function persistChatMeta() {
-  if (chatMessages.value.length === 0) return
-  emit('save-meta', buildChatMetaPayload())
-}
-
 // Token counter with debounce
 const estimatedTokens = computed(() => {
   return estimateTokens(prompt.value + makeContextPromptBlock(contextTags.value))
@@ -340,7 +326,12 @@ async function handleGenerate() {
   }
 
   const userText = prompt.value.trim()
-  const currentPrompt = userText + makeContextPromptBlock(contextTags.value)
+  const isFirstMessage = chatMessages.value.length === 0
+
+  const mediaDescriptions = contextTags.value
+    .filter(t => t.kind === 'media')
+    .map(t => (t.label || '').trim())
+    .filter(Boolean)
 
   chatMessages.value.push({
     role: 'user',
@@ -350,12 +341,26 @@ async function handleGenerate() {
   });
   prompt.value = '';
 
-  const response = await generateContent(currentPrompt);
+  const response = await publicationLlmChat(publicationId, {
+    message: userText,
+    ...(isFirstMessage
+      ? {
+          context: {
+            content,
+            mediaDescriptions,
+            contextLimitChars: contextLimit.value,
+          },
+        }
+      : {}),
+  })
 
   if (response) {
-    chatMessages.value.push({ role: 'assistant', content: response.content });
+    if (Array.isArray(response.chat?.messages) && response.chat!.messages.length > 0) {
+      chatMessages.value = response.chat!.messages as any
+    } else {
+      chatMessages.value.push({ role: 'assistant', content: response.message });
+    }
     metadata.value = response.metadata || null;
-    persistChatMeta()
   } else {
     toast.add({
       title: t('llm.error'),
@@ -574,10 +579,6 @@ async function handleInsert() {
     }
   }
 
-  if (chatMessages.value.length > 0) {
-    data.meta = buildChatMetaPayload()
-  }
-  
   isApplying.value = true
   emit('apply', data)
 }

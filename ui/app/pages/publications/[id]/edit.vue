@@ -77,31 +77,6 @@ const publicationProblems = computed(() => {
   return problems
 })
 
-async function handleSaveLlmMeta(meta: Record<string, any>) {
-  if (!currentPublication.value) return
-
-  try {
-    const existingMeta = normalizedPublicationMeta.value
-    const mergedMeta = { ...existingMeta, ...meta }
-
-    await updatePublication(
-      currentPublication.value.id,
-      {
-        meta: mergedMeta,
-      },
-      { silent: true },
-    )
-  } catch (e: any) {
-    // Non-blocking diagnostics: meta autosave should not interrupt user flow
-    // but we still want to know why it failed (e.g., 413 payload too large).
-    console.warn('[LLM] Failed to autosave publication meta', {
-      publicationId: currentPublication.value.id,
-      error: e,
-    })
-    // Intentionally ignore: meta autosave should not block user flow
-  }
-}
-
 const normalizedPublicationMeta = computed<Record<string, any>>(() => {
   const meta = (currentPublication.value as any)?.meta
 
@@ -1325,6 +1300,7 @@ async function executePublish(force: boolean) {
       v-if="currentPublication"
       ref="llmModalRef"
       v-model:open="showLlmModal"
+      :publication-id="currentPublication.id"
       :content="currentPublication.content || undefined"
       :media="(currentPublication.media || []).map(m => m.media).filter(Boolean) as unknown as MediaItem[]"
       :project-id="projectId || undefined"
@@ -1339,7 +1315,6 @@ async function executePublish(force: boolean) {
         socialMedia: p.channel?.socialMedia,
       }))"
       @apply="handleApplyLlm"
-      @save-meta="handleSaveLlmMeta"
     />
 
     <!-- Publication Relations Modal -->
