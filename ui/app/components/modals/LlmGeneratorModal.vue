@@ -3,6 +3,7 @@ import { FORM_SPACING } from '~/utils/design-tokens'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
+import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import type { MediaItem } from '~/composables/useMedia'
 import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
 import { DialogTitle, DialogDescription } from 'reka-ui'
@@ -709,10 +710,13 @@ defineExpose({
   onApplyError
 })
 
-async function handleResetChat() {
-  const confirmed = confirm(t('llm.resetChatConfirm'))
-  if (!confirmed) return
+const isResetChatConfirmOpen = ref(false)
 
+function handleResetChat() {
+  isResetChatConfirmOpen.value = true
+}
+
+async function confirmResetChat() {
   handleStop()
 
   // Clear chat messages
@@ -1110,7 +1114,7 @@ async function handleResetChat() {
         </div>
       </div>
 
-      <div v-else-if="step === 2" class="flex justify-between w-full">
+      <div v-else-if="step === 2 && !isExtracting" class="flex justify-between w-full">
          <UButton
           color="neutral"
           variant="ghost"
@@ -1131,5 +1135,16 @@ async function handleResetChat() {
         </UButton>
       </div>
     </template>
+
+    <UiConfirmModal
+      v-if="isResetChatConfirmOpen"
+      v-model:open="isResetChatConfirmOpen"
+      :title="t('llm.resetChat')"
+      :description="t('llm.resetChatConfirm')"
+      :confirm-text="t('common.confirm')"
+      color="warning"
+      icon="i-heroicons-exclamation-triangle"
+      @confirm="confirmResetChat"
+    />
   </UiAppModal>
 </template>
