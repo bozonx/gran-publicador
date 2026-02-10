@@ -159,11 +159,12 @@ export class SocialPostingBodyFormatter {
     let variation: ChannelTemplateVariation | null | undefined = null;
 
     if (templateOverride?.id) {
-      variation = variations.find(t => t.id === templateOverride.id);
+      const found = variations.find(t => t.id === templateOverride.id);
+      if (found && !found.excluded) variation = found;
     }
 
     if (!variation) {
-      variation = variations.find(t => t.isDefault);
+      variation = variations.find(t => t.isDefault && !t.excluded);
     }
 
     let blocks: TemplateBlock[];

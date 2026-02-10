@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Project Templates redesign**: Unified template management with tabbed modal editor.
+  - Removed channel template variations from channel settings — now managed from project template editor.
+  - Added `language` field to `ProjectTemplate` model to filter channels by language.
+  - Create-and-open pattern: clicking "Add Template" immediately creates a template and opens the editor.
+  - Autosave for both project template settings and channel overrides.
+  - Modal tabs: Project tab (block ordering, enable/disable) + per-channel tabs (text overrides).
+  - Channel exclusion: channels can be explicitly excluded from a template.
+  - "Done" button replaces "Cancel"/"Save" buttons.
+
 - **Single-language publication model**: Publications now enforce strict single-language policy.
   - Publication language is immutable after creation (`language` removed from `UpdatePublicationDto`).
   - Backend validates that all channels match the publication language when creating posts (`createPostsFromPublication`) and during publication creation with `channelIds`.

@@ -266,6 +266,8 @@
     "templateName": "Template Name",
     "templateNamePlaceholder": "e.g., Main Template",
     "templatePostType": "Post Type",
+    "noOverride": "No override (uses project default)",
+    "textOverridesHelp": "Override text fields for this channel. Leave empty to use the project-level defaults.",
     "templateReset": "Reset blocks",
     "templateSectionDesc": "Configure rules for automatic post text generation for this channel.",
     "templateSettings": "Template Settings",
@@ -762,7 +764,16 @@
     "namePlaceholder": "e.g. Default, News Format...",
     "setAsDefault": "Set as default template",
     "activeBlocks": "active blocks",
-    "footerContent": "Footer text"
+    "footerContent": "Footer text",
+    "newTemplateName": "New Template",
+    "done": "Done",
+    "projectTab": "Project",
+    "language": "Language",
+    "excludeChannel": "Exclude channel",
+    "excludeChannelHelp": "This template won't apply to this channel",
+    "noChannelsForLanguage": "No channels for this language",
+    "noEnabledBlocks": "No enabled blocks. Enable blocks on the Project tab.",
+    "blocksHint": "Enable or disable blocks and reorder them. Text fields are configured per channel in channel tabs."
   },
   "post": {
     "authorComment": "Author comment",

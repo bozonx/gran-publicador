@@ -31,6 +31,7 @@ export interface ChannelTemplateVariation {
   order: number;
   isDefault?: boolean;
   projectTemplateId: string;
+  excluded?: boolean;
   overrides?: Record<string, BlockOverride>;
 }
 
@@ -40,6 +41,7 @@ export interface ProjectTemplate {
   name: string;
   postType?: string | null;
   isDefault?: boolean;
+  language: string;
   order: number;
   template: TemplateBlock[];
   createdAt: string;

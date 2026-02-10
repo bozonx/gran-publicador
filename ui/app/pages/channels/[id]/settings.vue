@@ -182,11 +182,8 @@ async function handleDelete() {
           />
         </UiAppCard>
 
-        <!-- Channel Template Variations -->
-        <UiAppCard v-if="canEdit(channel)">
-          <FormsChannelTemplatesEditor :channel="channel" />
-        </UiAppCard>
- 
+
+
         <!-- Channel Control -->
         <UiAppCard
           v-if="canEdit(channel)"

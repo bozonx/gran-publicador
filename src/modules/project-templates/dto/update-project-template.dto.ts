@@ -29,6 +29,11 @@ export class UpdateProjectTemplateDto {
   @IsOptional()
   public isDefault?: boolean;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  public language?: string;
+
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })

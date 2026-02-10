@@ -6,6 +6,7 @@ export interface CreateProjectTemplateInput {
   name: string;
   postType?: string | null;
   isDefault?: boolean;
+  language?: string;
   template: TemplateBlock[];
 }
 
@@ -13,6 +14,7 @@ export interface UpdateProjectTemplateInput {
   name?: string;
   postType?: string | null;
   isDefault?: boolean;
+  language?: string;
   template?: TemplateBlock[];
 }
 
@@ -56,16 +58,8 @@ export function useProjectTemplates() {
     error.value = null;
 
     try {
-      const result = await api.post<ProjectTemplate>(
-        `/projects/${projectId}/templates`,
-        data,
-      );
+      const result = await api.post<ProjectTemplate>(`/projects/${projectId}/templates`, data);
       templates.value.push(result);
-      toast.add({
-        title: t('common.success'),
-        description: t('projectTemplates.created'),
-        color: 'success',
-      });
       return result;
     } catch (err: any) {
       const message = err.message || 'Failed to create project template';
@@ -97,11 +91,6 @@ export function useProjectTemplates() {
       );
       const idx = templates.value.findIndex(t => t.id === templateId);
       if (idx !== -1) templates.value[idx] = result;
-      toast.add({
-        title: t('common.success'),
-        description: t('projectTemplates.updated'),
-        color: 'success',
-      });
       return result;
     } catch (err: any) {
       const message = err.message || 'Failed to update project template';
@@ -118,10 +107,7 @@ export function useProjectTemplates() {
     }
   }
 
-  async function deleteProjectTemplate(
-    projectId: string,
-    templateId: string,
-  ): Promise<boolean> {
+  async function deleteProjectTemplate(projectId: string, templateId: string): Promise<boolean> {
     isLoading.value = true;
     error.value = null;
 
@@ -149,10 +135,7 @@ export function useProjectTemplates() {
     }
   }
 
-  async function reorderProjectTemplates(
-    projectId: string,
-    ids: string[],
-  ): Promise<boolean> {
+  async function reorderProjectTemplates(projectId: string, ids: string[]): Promise<boolean> {
     try {
       await api.patch(`/projects/${projectId}/templates/reorder`, { ids });
       // Re-sort local templates

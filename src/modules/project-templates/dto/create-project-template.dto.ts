@@ -30,6 +30,11 @@ export class CreateProjectTemplateDto {
   @IsOptional()
   public isDefault?: boolean;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  public language?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TemplateBlockDto)

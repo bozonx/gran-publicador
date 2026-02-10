@@ -93,6 +93,7 @@ export class ProjectTemplatesService {
             name: data.name,
             postType: data.postType ?? null,
             isDefault: data.isDefault ?? false,
+            language: data.language ?? 'ru-RU',
             order: nextOrder,
             template: data.template as any,
           },
@@ -138,6 +139,7 @@ export class ProjectTemplatesService {
             name: data.name,
             postType: data.postType !== undefined ? data.postType : undefined,
             isDefault: data.isDefault,
+            language: data.language,
             template: data.template ? (data.template as any) : undefined,
           },
         });
