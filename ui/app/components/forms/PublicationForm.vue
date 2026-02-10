@@ -684,9 +684,7 @@ function handleLlmGenerated(text: string) {
           <UInput v-model="state.postDate" type="datetime-local" class="w-full" icon="i-heroicons-calendar" />
         </UFormField>
         
-        <UFormField name="note" :label="t('post.note')" :help="t('post.noteHint')">
-          <UTextarea v-model="state.note" :rows="4" autoresize :disabled="isLocked" class="w-full" :placeholder="t('post.notePlaceholder')" />
-        </UFormField>
+
 
         <CommonMetadataEditor v-model="state.meta" :label="t('common.meta')" :rows="8" :disabled="isLocked" />
 

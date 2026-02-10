@@ -629,6 +629,23 @@ async function handleUpdateStatusOption(status: PublicationStatus) {
     }
 }
 
+const moreActions = computed(() => [
+  [
+    {
+      label: t('publication.copyToProject'),
+      icon: 'i-heroicons-document-duplicate',
+      click: openCopyModal
+    },
+    {
+      label: t('common.delete'),
+      icon: 'i-heroicons-trash',
+      class: 'text-error-500 hover:text-error-600',
+      disabled: isLocked.value,
+      click: () => { isDeleteModalOpen.value = true }
+    }
+  ]
+])
+
 function toggleFormCollapse() {
   isFormCollapsed.value = !isFormCollapsed.value
 }
@@ -1013,24 +1030,15 @@ async function executePublish(force: boolean) {
                             @toggle="handleArchiveToggle"
                         />
 
-                        <UButton
-                            :label="t('publication.copyToProject')"
-                            icon="i-heroicons-document-duplicate"
-                            variant="soft"
-                            size="sm"
-                            color="neutral"
-                            @click="openCopyModal"
-                        ></UButton>
+                        <UDropdown :items="moreActions" :popper="{ placement: 'bottom-end' }">
+                            <UButton
+                                color="neutral"
+                                variant="ghost"
+                                icon="i-heroicons-ellipsis-horizontal"
+                                size="sm"
+                            />
+                        </UDropdown>
 
-                        <UButton
-                            :label="t('common.delete')"
-                            icon="i-heroicons-trash"
-                            variant="soft"
-                            size="sm"
-                            color="error"
-                            :disabled="isLocked"
-                            @click="isDeleteModalOpen = true"
-                        ></UButton>
                     </div>
                 </div>
 
