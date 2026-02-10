@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Single-language publication model**: Publications now enforce strict single-language policy.
+  - Publication language is immutable after creation (`language` removed from `UpdatePublicationDto`).
+  - Backend validates that all channels match the publication language when creating posts (`createPostsFromPublication`) and during publication creation with `channelIds`.
+  - UI strictly filters channels by publication language in `CreatePublicationModal`, `PublicationChannelSelector`, `PublicationForm`, and `ChannelQuickAccessBlock`.
+  - Removed language change modal from publication edit page.
+  - LLM generation simplified: removed per-channel content translation (`generateContent`), kept only per-channel tag generation.
+  - Removed language mismatch warnings and translate button from `PostEditBlock` (translation will be added later as a separate feature).
+  - Existing mixed-language publications are not migrated; new mixed-language additions are prevented.
+
 ### Fixed
 - **TiptapEditor Link**: Fixed multiple issues with the link function.
   - Added `defaultProtocol: 'https'` so URLs without protocol are handled correctly.

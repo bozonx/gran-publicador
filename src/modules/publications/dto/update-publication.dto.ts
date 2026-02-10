@@ -2,7 +2,6 @@ import {
   IsArray,
   IsDate,
   IsEnum,
-  IsLocale,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -94,11 +93,6 @@ export class UpdatePublicationDto {
   @IsObject()
   @IsOptional()
   public meta?: any;
-
-  @IsString()
-  @IsOptional()
-  @IsLocale()
-  public language?: string;
 
   @Type(() => Date)
   @IsDate()

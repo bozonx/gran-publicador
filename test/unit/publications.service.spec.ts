@@ -161,6 +161,42 @@ describe('PublicationsService (unit)', () => {
         ForbiddenException,
       );
     });
+
+    it('should reject creation with channelIds that have different language than publication', async () => {
+      const userId = 'user-1';
+      const projectId = 'project-1';
+      const createDto = {
+        projectId,
+        title: 'Test',
+        content: 'Content',
+        language: 'en-US',
+        channelIds: ['ch-en', 'ch-ru'],
+      };
+
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+
+      const mockPublication = {
+        id: 'pub-1',
+        ...createDto,
+        createdBy: userId,
+        meta: '{}',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        scheduledAt: null,
+      };
+
+      mockPrismaService.publication.create.mockResolvedValue(mockPublication);
+      mockPrismaService.publication.update.mockResolvedValue(mockPublication);
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        { id: 'ch-en', projectId, language: 'en-US', name: 'English' },
+        { id: 'ch-ru', projectId, language: 'ru-RU', name: 'Russian' },
+      ]);
+
+      await expect(service.create(createDto as any, userId)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto as any, userId)).rejects.toThrow(
+        /All channels must match the publication language/,
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -615,13 +651,14 @@ describe('PublicationsService (unit)', () => {
         id: publicationId,
         projectId: 'project-1',
         content: 'Test',
+        language: 'en-US',
         meta: '{}',
       };
 
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
-        { id: 'channel-1', projectId: 'project-1' },
+        { id: 'channel-1', projectId: 'project-1', language: 'en-US' },
       ]);
       mockPrismaService.post.create.mockImplementation(({ data }: any) =>
         Promise.resolve({ id: 'p1', ...data }),
@@ -649,6 +686,7 @@ describe('PublicationsService (unit)', () => {
         id: publicationId,
         projectId: 'project-1',
         content: 'Test',
+        language: 'en-US',
         meta: '{}',
         scheduledAt: pubScheduledAt,
       };
@@ -656,7 +694,7 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
-        { id: 'channel-1', projectId: 'project-1' },
+        { id: 'channel-1', projectId: 'project-1', language: 'en-US' },
       ]);
       mockPrismaService.post.create.mockImplementation(({ data }: any) =>
         Promise.resolve({ id: 'p1', ...data }),
@@ -691,6 +729,7 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.findUnique.mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
+        language: 'en-US',
         content: 'Test',
         meta: '{}',
       });
@@ -736,6 +775,7 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.findUnique.mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
+        language: 'en-US',
         content: 'Test',
         meta: '{}',
       });
@@ -780,6 +820,70 @@ describe('PublicationsService (unit)', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
+    it('should reject channels with language different from publication', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const channelIds = ['channel-en', 'channel-ru'];
+
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: publicationId,
+        projectId: 'project-1',
+        language: 'en-US',
+        content: 'Test',
+        meta: '{}',
+      });
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        { id: 'channel-en', projectId: 'project-1', language: 'en-US', name: 'English Channel' },
+        { id: 'channel-ru', projectId: 'project-1', language: 'ru-RU', name: 'Russian Channel' },
+      ]);
+
+      await expect(
+        service.createPostsFromPublication(publicationId, channelIds, userId),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.createPostsFromPublication(publicationId, channelIds, userId),
+      ).rejects.toThrow(/All channels must match the publication language/);
+    });
+
+    it('should allow channels with the same language as publication', async () => {
+      const userId = 'user-1';
+      const publicationId = 'pub-1';
+      const channelIds = ['channel-1', 'channel-2'];
+
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: publicationId,
+        projectId: 'project-1',
+        language: 'ru-RU',
+        content: 'Test',
+        meta: '{}',
+      });
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        {
+          id: 'channel-1',
+          projectId: 'project-1',
+          language: 'ru-RU',
+          name: 'Ch1',
+          socialMedia: 'TELEGRAM',
+        },
+        {
+          id: 'channel-2',
+          projectId: 'project-1',
+          language: 'ru-RU',
+          name: 'Ch2',
+          socialMedia: 'TELEGRAM',
+        },
+      ]);
+      mockPrismaService.post.create.mockImplementation(({ data }: any) =>
+        Promise.resolve({ id: `p-${data.channelId}`, ...data }),
+      );
+
+      const result = await service.createPostsFromPublication(publicationId, channelIds, userId);
+      expect(result.posts).toHaveLength(2);
+    });
+
     it('should normalize per-channel signature overrides before persisting', async () => {
       const userId = 'user-1';
       const publicationId = 'pub-1';
@@ -791,6 +895,7 @@ describe('PublicationsService (unit)', () => {
       mockPrismaService.publication.findUnique.mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
+        language: 'en-US',
         content: 'Test',
         meta: '{}',
       });

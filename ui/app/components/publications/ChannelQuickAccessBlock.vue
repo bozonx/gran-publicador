@@ -53,8 +53,10 @@ const socialMediaWithoutPosts = computed(() => {
     props.publication.posts?.map((p: any) => p.channelId) || []
   )
   
-  // Get available channels (not used)
-  const availableChannels = props.channels.filter(ch => !usedChannelIds.has(ch.id))
+  // Get available channels (not used, same language as publication)
+  const availableChannels = props.channels.filter(
+    ch => !usedChannelIds.has(ch.id) && ch.language === props.publication.language
+  )
   
   // Group by social media
   const platforms = new Map<SocialMedia, { channelId: string; channelName: string }>()

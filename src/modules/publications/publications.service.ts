@@ -266,6 +266,18 @@ export class PublicationsService {
 
     // Automatically create posts for specified channels
     if (data.channelIds && data.channelIds.length > 0) {
+      // Validate channel languages match publication language
+      const channels = await this.prisma.channel.findMany({
+        where: { id: { in: data.channelIds }, projectId: data.projectId },
+      });
+      const mismatchedChannels = channels.filter(ch => ch.language !== data.language);
+      if (mismatchedChannels.length > 0) {
+        const names = mismatchedChannels.map(ch => `"${ch.name}" (${ch.language})`).join(', ');
+        throw new BadRequestException(
+          `All channels must match the publication language "${data.language}". Mismatched: ${names}`,
+        );
+      }
+
       await this.createPostsFromPublication(
         publication.id,
         data.channelIds,
@@ -600,13 +612,7 @@ export class PublicationsService {
     const isReadOnly =
       previousStatus === PublicationStatus.READY || previousStatus === PublicationStatus.SCHEDULED;
     if (isReadOnly) {
-      const allowedKeys = [
-        'status',
-        'scheduledAt',
-        'publishedAt',
-        'note',
-        'effectiveAt',
-      ];
+      const allowedKeys = ['status', 'scheduledAt', 'publishedAt', 'note', 'effectiveAt'];
       // Filter out undefined values to ignore fields that are not present in the payload
       const updatedKeys = Object.keys(data).filter(k => (data as any)[k] !== undefined);
       const invalidKeys = updatedKeys.filter(key => !allowedKeys.includes(key));
@@ -890,7 +896,6 @@ export class PublicationsService {
             : undefined,
         tags: data.tags,
         status: data.status,
-        language: data.language,
         postType: data.postType,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
@@ -1137,6 +1142,15 @@ export class PublicationsService {
 
     if (channels.length !== channelIds.length) {
       throw new NotFoundException('Some channels not found or do not belong to this project');
+    }
+
+    // Validate that all channels match the publication language
+    const mismatchedChannels = channels.filter(ch => ch.language !== publication.language);
+    if (mismatchedChannels.length > 0) {
+      const names = mismatchedChannels.map(ch => `"${ch.name}" (${ch.language})`).join(', ');
+      throw new BadRequestException(
+        `All channels must match the publication language "${publication.language}". Mismatched: ${names}`,
+      );
     }
 
     // Pre-fetch signature variants if authorSignatureId is provided

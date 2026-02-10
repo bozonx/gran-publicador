@@ -431,13 +431,10 @@ async function handleBulkSchedule() {
 const { languageOptions } = useLanguages()
 const { typeOptions } = usePosts()
 
-const isLanguageModalOpen = ref(false)
 const isTypeModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
-const newLanguage = ref('')
 const newPostType = ref<PostType>('POST')
 const newProjectId = ref<string | undefined>(undefined)
-const isUpdatingLanguage = ref(false)
 const isUpdatingType = ref(false)
 const isUpdatingProject = ref(false)
 const isCopyModalOpen = ref(false)
@@ -498,12 +495,6 @@ const displayStatusOptions = computed(() => {
     return options
 })
 
-function openLanguageModal() {
-    if (!currentPublication.value) return
-    newLanguage.value = currentPublication.value.language
-    isLanguageModalOpen.value = true
-}
-
 function openTypeModal() {
     if (!currentPublication.value) return
     isTypeModalOpen.value = true
@@ -541,27 +532,6 @@ async function handleUpdateProject() {
         })
     } finally {
         isUpdatingProject.value = false
-    }
-}
-
-async function handleUpdateLanguage() {
-    if (!currentPublication.value) return
-    isUpdatingLanguage.value = true
-    try {
-        await updatePublication(currentPublication.value.id, {
-            language: newLanguage.value
-        })
-        isLanguageModalOpen.value = false
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update language:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingLanguage.value = false
     }
 }
 
@@ -860,34 +830,6 @@ async function executePublish(force: boolean) {
       </template>
     </UiAppModal>
 
-    <!-- Language Change Modal -->
-    <UiAppModal v-if="isLanguageModalOpen" v-model:open="isLanguageModalOpen" :title="t('publication.changeLanguage')">
-      <UFormField :label="t('common.language')" required>
-         <USelectMenu
-            v-model="newLanguage"
-            :items="languageOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-        />
-      </UFormField>
-
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :label="t('common.cancel')"
-          @click="isLanguageModalOpen = false"
-        />
-        <UButton
-          color="primary"
-          :label="t('common.save')"
-          :loading="isUpdatingLanguage"
-          @click="handleUpdateLanguage"
-        />
-      </template>
-    </UiAppModal>
-
     <!-- Post Type Change Modal -->
     <UiAppModal v-if="isTypeModalOpen" v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
       <div class="space-y-2">
@@ -1137,15 +1079,6 @@ async function executePublish(force: boolean) {
                                 <span class="text-gray-900 dark:text-white font-medium text-base">
                                     {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
                                 </span>
-                                <UButton
-                                    v-if="!isLocked"
-                                    icon="i-heroicons-pencil-square"
-                                    variant="ghost"
-                                    color="neutral"
-                                    size="xs"
-                                    class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                    @click="openLanguageModal"
-                                />
                             </div>
                         </div>
 

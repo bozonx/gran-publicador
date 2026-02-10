@@ -230,33 +230,30 @@ watch([isOpen, () => props.preselectedChannelId], async ([open, preselectedChann
   formData.channelIds = [preselectedChannelId]
 })
 
-// Watch language changes to auto-select matching channels
+// Watch language changes: clear mismatched channels and auto-select matching ones
 watch(() => formData.language, (newLang) => {
-    // Avoid auto-selecting if we are in "single channel" mode from props
-    if (props.preselectedChannelId) {
-        const channel = channels.value.find(ch => ch.id === props.preselectedChannelId)
-        if (channel && channel.language === newLang) return
-    }
+    // Remove channels that don't match the new language
+    const matchingIds = new Set(
+      channels.value.filter(ch => ch.language === newLang).map(ch => ch.id)
+    )
+    formData.channelIds = formData.channelIds.filter(id => matchingIds.has(id))
 
-    if (formData.channelIds.length > 0) return
-
-    const matchingChannels = channels.value
-      .filter(ch => ch.language === newLang)
-      .map(ch => ch.id)
-    
-    if (matchingChannels.length > 0) {
-        formData.channelIds = matchingChannels
+    // Auto-select all matching channels if none selected
+    if (formData.channelIds.length === 0 && !props.preselectedChannelId) {
+      formData.channelIds = [...matchingIds]
     }
 })
 
-// Channel options
+// Channel options — strictly filtered by publication language
 const channelOptions = computed(() => {
-  return channels.value.map((channel) => ({
-    value: channel.id,
-    label: channel.name,
-    socialMedia: channel.socialMedia,
-    language: channel.language,
-  }))
+  return channels.value
+    .filter(channel => channel.language === formData.language)
+    .map((channel) => ({
+      value: channel.id,
+      label: channel.name,
+      socialMedia: channel.socialMedia,
+      language: channel.language,
+    }))
 })
 
 // Signature selector options
@@ -452,16 +449,6 @@ function handleClose() {
             </div>
 
             <div class="flex items-center gap-1.5 shrink-0 ml-2">
-              <span class="text-xxs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded flex items-center gap-1 font-mono uppercase">
-                <UIcon name="i-heroicons-language" class="w-3 h-3" />
-                {{ channel.language }}
-              </span>
-              <UTooltip
-                v-if="channel.language !== formData.language"
-                :text="t('publication.languageMismatch', 'Language mismatch! Publication is ' + formData.language)"
-              >
-                <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
-              </UTooltip>
               <UTooltip :text="channel.socialMedia">
                 <CommonSocialIcon :platform="channel.socialMedia" size="sm" />
               </UTooltip>

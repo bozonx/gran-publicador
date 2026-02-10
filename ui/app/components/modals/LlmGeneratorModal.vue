@@ -95,7 +95,6 @@ const pubSelectedFields = reactive({
 })
 
 interface PostSelectedFields {
-  content: boolean
   tags: boolean
 }
 const postSelectedFields = ref<Record<string, PostSelectedFields>>({})
@@ -246,13 +245,6 @@ function getChannelInfo(channelId: string): PostChannelInfo | undefined {
   return postChannels?.find(ch => ch.channelId === channelId)
 }
 
-// Helper: check if channel has same language as publication
-function isSameLanguage(channelLang: string): boolean {
-  if (!publicationLanguage || !channelLang) return true
-  const normalize = (l: string) => l.toLowerCase().replace(/[-_]/g, '').trim()
-  return normalize(publicationLanguage) === normalize(channelLang)
-}
-
 // Channels that have posts (for Step 2 display)
 const channelsWithPosts = computed(() => postChannels || [])
 
@@ -260,11 +252,9 @@ const channelsWithPosts = computed(() => postChannels || [])
 function initPostSelectedFields() {
   const fields: Record<string, PostSelectedFields> = {}
   for (const ch of channelsWithPosts.value) {
-    const sameLanguage = isSameLanguage(ch.language)
     const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0
     fields[ch.channelId] = {
-      content: !sameLanguage,
-      tags: hasChannelTags || !sameLanguage,
+      tags: hasChannelTags,
     }
   }
   postSelectedFields.value = fields
@@ -533,7 +523,7 @@ async function handleInsert() {
   // Check if at least one field is selected
   const hasPubSelection = pubSelectedFields.title || pubSelectedFields.description || 
                            pubSelectedFields.tags || pubSelectedFields.content
-  const hasPostSelection = Object.values(postSelectedFields.value).some(f => f.content || f.tags)
+  const hasPostSelection = Object.values(postSelectedFields.value).some(f => f.tags)
   
   if (!hasPubSelection && !hasPostSelection) {
     toast.add({
@@ -568,14 +558,11 @@ async function handleInsert() {
   if (hasPostSelection) {
     const posts: ApplyData['posts'] = []
     for (const [channelId, fields] of Object.entries(postSelectedFields.value)) {
-      if (!fields.content && !fields.tags) continue
+      if (!fields.tags) continue
       const postResult = getPostResult(channelId)
       if (!postResult) continue
 
-      const postData: { channelId: string; content?: string; tags?: string } = { channelId }
-      if (fields.content && postResult.content) {
-        postData.content = postResult.content
-      }
+      const postData: { channelId: string; tags?: string } = { channelId }
       if (fields.tags && postResult.tags.length > 0) {
         postData.tags = postResult.tags.join(', ')
       }
@@ -866,7 +853,7 @@ defineExpose({
            <!-- POST BLOCKS (per channel) -->
            <template v-for="ch in channelsWithPosts" :key="ch.channelId">
              <div
-               v-if="postSelectedFields[ch.channelId] && (getPostResult(ch.channelId)?.content || (getPostResult(ch.channelId)?.tags?.length ?? 0) > 0)"
+               v-if="postSelectedFields[ch.channelId] && (getPostResult(ch.channelId)?.tags?.length ?? 0) > 0"
                class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden"
              >
                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700/50">
@@ -874,27 +861,9 @@ defineExpose({
                    <CommonSocialIcon v-if="ch.socialMedia" :platform="ch.socialMedia" size="xs" />
                    <UIcon v-else name="i-heroicons-megaphone" class="w-4 h-4 text-gray-400" />
                    <span class="font-semibold text-sm text-gray-900 dark:text-white truncate">{{ ch.channelName }}</span>
-                   <UBadge variant="subtle" color="neutral" size="xs" class="font-mono ml-auto">
-                     {{ ch.language }}
-                   </UBadge>
-                   <UBadge v-if="!isSameLanguage(ch.language)" variant="subtle" color="warning" size="xs">
-                     {{ t('llm.differentLanguage') }}
-                   </UBadge>
                  </div>
                </div>
                <div class="p-4 space-y-4">
-                 <!-- Post Content (only if language differs) -->
-                 <div v-if="getPostResult(ch.channelId)?.content" class="space-y-1.5">
-                   <UCheckbox v-model="postSelectedFields[ch.channelId].content" :label="t('post.contentLabel')" />
-                   <UTextarea
-                     v-if="postSelectedFields[ch.channelId].content"
-                     v-model="getPostResult(ch.channelId)!.content"
-                     autoresize
-                     :rows="3"
-                     class="font-mono text-xs w-full"
-                   />
-                 </div>
-
                  <!-- Post Tags -->
                  <div v-if="(getPostResult(ch.channelId)?.tags?.length ?? 0) > 0" class="space-y-1.5">
                    <UCheckbox v-model="postSelectedFields[ch.channelId].tags" :label="t('post.tags')" />

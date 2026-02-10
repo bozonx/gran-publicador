@@ -20,7 +20,6 @@ import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
-import { useTranslate } from '~/composables/useTranslate'
 
 interface Props {
   post?: PostWithRelations
@@ -43,7 +42,6 @@ const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
 const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
-const { translateText, isLoading: isTranslating } = useTranslate()
 const { generateContent, extractParameters, isGenerating: isLlmGenerating } = useLlm()
 
 const isQuickGenModalOpen = ref(false)
@@ -202,44 +200,12 @@ const channelLanguage = computed(() => {
     return selectedChannel.value?.language
 })
 
-const hasLanguageMismatch = computed(() => {
-    const pLang = publicationLanguage.value
-    const cLang = channelLanguage.value
-    if (!pLang || !cLang) return false
-    
-    // Normalize: lowercase, trim, and treat - and _ the same for comparison
-    const normalize = (l: string) => l.toLowerCase().replace(/[-_]/g, '').trim()
-    return normalize(pLang) !== normalize(cLang)
-})
 
 function toggleCollapse() {
   if (props.isCreating) return
   isCollapsed.value = !isCollapsed.value
 }
 
-async function handleTranslate() {
-  const targetLang = channelLanguage.value
-  if (!targetLang) return
-  
-  const sourceText = isTextContentEmpty(formData.content) 
-    ? props.publication?.content 
-    : formData.content
-    
-  if (!sourceText || isTextContentEmpty(sourceText)) return
-
-  try {
-    const result = await translateText({
-      text: sourceText,
-      targetLang: targetLang,
-      splitter: 'markdown'
-    })
-    
-    formData.content = result.translatedText
-  } catch (error) {
-    // Error is handled by composable and potentially shown in UI if we added it, 
-    // but here we just catch to avoid unhandled rejection
-  }
-}
 
 const isDeleteModalOpen = ref(false)
 const isRepublishModalOpen = ref(false)
@@ -696,21 +662,15 @@ async function executePublish() {
                 </span>
 
                 <!-- Language Code -->
-                <UTooltip 
+                <UBadge 
                     v-if="!isCreating && displayLanguage"
-                    :text="hasLanguageMismatch ? t('post.languageMismatch', 'Channel language differs from publication') : ''"
-                    :disabled="!hasLanguageMismatch"
+                    variant="subtle" 
+                    color="neutral" 
+                    size="xs"
+                    class="font-mono shrink-0 rounded-md gap-1"
                 >
-                    <UBadge 
-                        variant="subtle" 
-                        :color="hasLanguageMismatch ? 'warning' : 'neutral'" 
-                        size="xs"
-                        class="font-mono shrink-0 rounded-md gap-1"
-                    >
-                        <UIcon v-if="hasLanguageMismatch" name="i-heroicons-exclamation-triangle" class="w-3 h-3" />
-                        {{ displayLanguage }}
-                    </UBadge>
-                </UTooltip>
+                    {{ displayLanguage }}
+                </UBadge>
 
                 <!-- Status Display -->
                 <UBadge 
@@ -814,11 +774,6 @@ async function executePublish() {
                     </div>
                 </template>
             </USelectMenu>
-            <!-- Language Mismatch Warning (Create Mode) -->
-            <div v-if="hasLanguageMismatch" class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4" />
-                {{ t('post.languageMismatchWarning', 'Warning: Channel language differs from publication language') }}
-            </div>
         </div>
 
         <!-- Social Media Validation Warning (Global for entire post) -->
@@ -951,18 +906,6 @@ async function executePublish() {
                         @click="isQuickGenModalOpen = true"
                     >
                         {{ t('llm.generate') }}
-                    </UButton>
-                    <UButton
-                        v-if="channelLanguage"
-                        variant="soft"
-                        color="primary"
-                        size="xs"
-                        icon="i-heroicons-language"
-                        :loading="isTranslating"
-                        :disabled="isLocked"
-                        @click="handleTranslate"
-                    >
-                        {{ t('post.translateTo', { lang: channelLanguage }) }}
                     </UButton>
                     <UButton 
                         v-if="formData.content" 

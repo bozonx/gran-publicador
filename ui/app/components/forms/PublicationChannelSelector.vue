@@ -15,15 +15,17 @@ const emit = defineEmits(['update:modelValue'])
 const { t } = useI18n()
 
 const channelOptions = computed(() => {
-  return props.channels.map((channel: any) => ({
-    value: channel.id,
-    label: channel.name,
-    socialMedia: channel.socialMedia,
-    language: channel.language,
-    isActive: channel.isActive,
-    archivedAt: channel.archivedAt,
-    isDisabled: !channel.isActive || !!channel.archivedAt || props.disabled,
-  }))
+  return props.channels
+    .filter((channel: any) => channel.language === props.currentLanguage)
+    .map((channel: any) => ({
+      value: channel.id,
+      label: channel.name,
+      socialMedia: channel.socialMedia,
+      language: channel.language,
+      isActive: channel.isActive,
+      archivedAt: channel.archivedAt,
+      isDisabled: !channel.isActive || !!channel.archivedAt || props.disabled,
+    }))
 })
 
 function toggleChannel(channelId: string) {
@@ -78,15 +80,6 @@ function toggleChannel(channelId: string) {
           <UBadge color="neutral" variant="subtle" size="xs">
             {{ t('common.archived') }}
           </UBadge>
-        </UTooltip>
-        
-        <span class="text-xxs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded flex items-center gap-1 font-mono uppercase">
-          <UIcon name="i-heroicons-language" class="w-3 h-3" />
-          {{ channel.language }}
-        </span>
-        
-        <UTooltip v-if="channel.language !== currentLanguage" :text="t('publication.languageMismatch', { lang: currentLanguage })">
-          <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
         </UTooltip>
         
         <UTooltip :text="channel.socialMedia">
