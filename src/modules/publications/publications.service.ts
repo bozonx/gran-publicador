@@ -196,15 +196,57 @@ export class PublicationsService {
       });
     } catch (error: any) {
       if (error?.getStatus?.() === 499) {
+        const updatedMeta = {
+          ...meta,
+          llmPublicationContentGenerationChat: {
+            messages: this.pruneChatMessagesByUserLimit(
+              nextStoredMessages,
+              PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES,
+            ),
+            context: contextInput
+              ? {
+                  content: contextInput.content,
+                  mediaDescriptions: contextInput.mediaDescriptions,
+                  contextLimitChars: contextInput.contextLimitChars,
+                  stats: contextBlock?.stats,
+                }
+              : undefined,
+            model: null,
+            usage: null,
+            savedAt: new Date().toISOString(),
+          },
+        };
+
+        try {
+          await this.prisma.publication.update({
+            where: { id: publicationId },
+            data: {
+              meta: updatedMeta as any,
+            },
+          });
+        } catch {
+          // noop
+        }
+
         return {
           message: '',
           metadata: null,
           usage: null,
-          chat: meta.llmPublicationContentGenerationChat ?? null,
+          chat: updatedMeta.llmPublicationContentGenerationChat,
           aborted: true,
         };
       }
       throw error;
+    }
+
+    if (options.signal?.aborted) {
+      return {
+        message: '',
+        metadata: null,
+        usage: null,
+        chat: meta.llmPublicationContentGenerationChat ?? null,
+        aborted: true,
+      };
     }
 
     const assistantContentRaw = this.llmService.extractContent(response);

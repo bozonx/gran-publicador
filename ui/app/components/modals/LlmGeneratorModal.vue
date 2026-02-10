@@ -135,6 +135,27 @@ const api = useApi()
 const activeChatController = ref<AbortController | null>(null)
 const isChatGenerating = ref(false)
 
+async function persistChatDraft() {
+  if (!publicationId) return
+  if (!Array.isArray(chatMessages.value) || chatMessages.value.length === 0) return
+
+  try {
+    await updatePublication(publicationId, {
+      meta: {
+        ...publicationMeta,
+        llmPublicationContentGenerationChat: {
+          messages: chatMessages.value,
+          model: metadata.value || null,
+          usage: null,
+          savedAt: new Date().toISOString(),
+        },
+      },
+    })
+  } catch {
+    // noop
+  }
+}
+
 function getChatErrorDescription(err: any): string {
   const msg = String(err?.message || '')
   if (msg.toLowerCase().includes('aborted')) {
@@ -287,6 +308,10 @@ function handleStop() {
   stopLlm()
   activeChatController.value?.abort()
   isChatGenerating.value = false
+
+  if (step.value === 1) {
+    void persistChatDraft()
+  }
 
   if (step.value === 2) {
     isExtracting.value = false
@@ -478,11 +503,17 @@ async function handleGenerate() {
       { signal: activeChatController.value.signal },
     )
   } catch (err: any) {
-    toast.add({
-      title: t('llm.error'),
-      description: getChatErrorDescription(err),
-      color: 'error',
-    })
+    const description = getChatErrorDescription(err)
+    const isAborted = String(description || '').toLowerCase().includes('stopped')
+      || String(err?.message || '').toLowerCase().includes('aborted')
+
+    if (!isAborted) {
+      toast.add({
+        title: t('llm.error'),
+        description,
+        color: 'error',
+      })
+    }
     response = null
   } finally {
     activeChatController.value = null
