@@ -706,7 +706,6 @@ function handleLlmGenerated(text: string) {
           :is-dirty="isDirty"
           :save-label="isEditMode ? t('common.save') : t('common.create')"
           hide-cancel
-          :disabled="isLocked"
           @reset="handleReset"
         />
       </div>

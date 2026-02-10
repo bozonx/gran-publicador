@@ -1000,7 +1000,7 @@ async function executePublish(force: boolean) {
         />
 
         <!-- Block 1: Publication Info & Actions (Non-collapsible) -->
-        <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
+        <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 shadow-sm">
             <div class="p-6">
                 <!-- Header with title and actions -->
                 <div class="flex items-center justify-between mb-6">
@@ -1030,7 +1030,7 @@ async function executePublish(force: boolean) {
                             @toggle="handleArchiveToggle"
                         />
 
-                        <UDropdown :items="moreActions" :popper="{ placement: 'bottom-end' }">
+                        <UDropdown :items="moreActions" :popper="{ placement: 'bottom-end', strategy: 'fixed' }">
                             <UButton
                                 color="neutral"
                                 variant="ghost"

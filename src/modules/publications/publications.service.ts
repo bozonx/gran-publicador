@@ -600,11 +600,20 @@ export class PublicationsService {
     const isReadOnly =
       previousStatus === PublicationStatus.READY || previousStatus === PublicationStatus.SCHEDULED;
     if (isReadOnly) {
-      const keys = Object.keys(data);
-      const isOnlyStatusChange = keys.length === 1 && keys[0] === 'status';
-      if (data.status !== PublicationStatus.DRAFT || !isOnlyStatusChange) {
+      const allowedKeys = [
+        'status',
+        'scheduledAt',
+        'publishedAt',
+        'note',
+        'effectiveAt',
+        'postDate',
+      ];
+      const updatedKeys = Object.keys(data);
+      const invalidKeys = updatedKeys.filter(key => !allowedKeys.includes(key));
+
+      if (data.status !== PublicationStatus.DRAFT && invalidKeys.length > 0) {
         throw new BadRequestException(
-          'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify it.',
+          `Publication is read-only in ${previousStatus} status. Cannot modify: ${invalidKeys.join(', ')}. Switch to DRAFT to modify it.`,
         );
       }
     }

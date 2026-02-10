@@ -133,9 +133,11 @@ export class PostsService {
       publication.status === PublicationStatus.READY ||
       publication.status === PublicationStatus.SCHEDULED
     ) {
-      throw new BadRequestException(
-        'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify posts.',
-      );
+      if (data.status !== PostStatus.PENDING) {
+        throw new BadRequestException(
+          'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to add new posts.',
+        );
+      }
     }
 
     // Validation: Check content limits
@@ -463,9 +465,15 @@ export class PostsService {
       publicationStatus === PublicationStatus.READY ||
       publicationStatus === PublicationStatus.SCHEDULED
     ) {
-      throw new BadRequestException(
-        'Publication is read-only in READY/SCHEDULED status. Switch to DRAFT to modify posts.',
-      );
+      const allowedKeys = ['status', 'scheduledAt', 'publishedAt', 'errorMessage'];
+      const updatedKeys = Object.keys(data).filter(k => (data as any)[k] !== undefined);
+      const invalidKeys = updatedKeys.filter(key => !allowedKeys.includes(key));
+
+      if (invalidKeys.length > 0) {
+        throw new BadRequestException(
+          `Publication is read-only in ${publicationStatus} status. Cannot modify post fields: ${invalidKeys.join(', ')}. Switch to DRAFT to modify it.`,
+        );
+      }
     }
 
     const prevPublishedAt = post.publishedAt;

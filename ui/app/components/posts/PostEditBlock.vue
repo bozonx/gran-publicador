@@ -517,7 +517,7 @@ onMounted(() => {
 })
 
 const isSaveDisabled = computed(() => {
-    if (isLocked.value) return true
+    // When locked, we allow saving because all fields except allowed ones (like scheduledAt) are disabled
     if (props.isCreating) return !formData.channelId
     return false
 })
