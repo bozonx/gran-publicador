@@ -71,7 +71,11 @@ export class LlmService {
     return (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
   }
 
-  private async callLlmRouter(requestBody: Record<string, any>, logContext: Record<string, any>) {
+  private async callLlmRouter(
+    requestBody: Record<string, any>,
+    logContext: Record<string, any>,
+    options: { signal?: AbortSignal } = {},
+  ) {
     const url = this.getChatCompletionsUrl();
     const timeout = this.getRequestTimeoutMs();
 
@@ -85,6 +89,7 @@ export class LlmService {
           ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
         },
         body: JSON.stringify(requestBody),
+        signal: options.signal,
         headersTimeout: timeout,
         bodyTimeout: timeout,
       });
@@ -125,6 +130,10 @@ export class LlmService {
 
       return data;
     } catch (error: any) {
+      if (error?.name === 'AbortError' || options.signal?.aborted) {
+        throw new HttpException('Request aborted', 499);
+      }
+
       if (error instanceof HttpException && error.getStatus() === HttpStatus.TOO_MANY_REQUESTS)
         throw error;
       if (error instanceof BadGatewayException) throw error;
@@ -213,6 +222,7 @@ export class LlmService {
       model?: string;
       tags?: string[];
       type?: string;
+      signal?: AbortSignal;
     } = {},
   ): Promise<LlmResponse> {
     const requestBody = {
@@ -234,13 +244,17 @@ export class LlmService {
       }),
     };
 
-    return this.callLlmRouter(requestBody, {
-      method: 'generateChat',
-      hasMessages: Array.isArray(messages) && messages.length > 0,
-      model: options.model,
-      tags: options.tags,
-      type: options.type,
-    });
+    return this.callLlmRouter(
+      requestBody,
+      {
+        method: 'generateChat',
+        hasMessages: Array.isArray(messages) && messages.length > 0,
+        model: options.model,
+        tags: options.tags,
+        type: options.type,
+      },
+      { signal: options.signal },
+    );
   }
 
   /**

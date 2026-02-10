@@ -139,7 +139,12 @@ export class PublicationsService {
     return out;
   }
 
-  public async chatWithLlm(publicationId: string, userId: string, dto: PublicationLlmChatDto) {
+  public async chatWithLlm(
+    publicationId: string,
+    userId: string,
+    dto: PublicationLlmChatDto,
+    options: { signal?: AbortSignal } = {},
+  ) {
     const publication = await this.findOne(publicationId, userId);
     const meta = this.parseMetaJson((publication as any).meta);
 
@@ -180,12 +185,27 @@ export class PublicationsService {
       ...nextStoredMessages.map((m: any) => ({ role: m.role, content: m.content })),
     ];
 
-    const response = await this.llmService.generateChat(routerMessages, {
-      temperature: dto.temperature,
-      max_tokens: dto.max_tokens,
-      model: dto.model,
-      tags: dto.tags,
-    });
+    let response: any;
+    try {
+      response = await this.llmService.generateChat(routerMessages, {
+        temperature: dto.temperature,
+        max_tokens: dto.max_tokens,
+        model: dto.model,
+        tags: dto.tags,
+        signal: options.signal,
+      });
+    } catch (error: any) {
+      if (error?.getStatus?.() === 499) {
+        return {
+          message: '',
+          metadata: null,
+          usage: null,
+          chat: meta.llmPublicationContentGenerationChat ?? null,
+          aborted: true,
+        };
+      }
+      throw error;
+    }
 
     const assistantContentRaw = this.llmService.extractContent(response);
     const assistantContent = this.sanitizeDangerousHtmlTags(assistantContentRaw);

@@ -285,6 +285,12 @@ function handleStop() {
   stopLlm()
   activeChatController.value?.abort()
   isChatGenerating.value = false
+
+  if (step.value === 2) {
+    isExtracting.value = false
+    fieldsResult.value = null
+    step.value = 1
+  }
 }
 
 const contextTagById = computed(() => {
@@ -707,6 +713,8 @@ async function handleResetChat() {
   const confirmed = confirm(t('llm.resetChatConfirm'))
   if (!confirmed) return
 
+  handleStop()
+
   // Clear chat messages
   chatMessages.value = []
   prompt.value = ''
@@ -753,6 +761,9 @@ async function handleResetChat() {
       console.error('Failed to clear chat meta:', error)
     }
   }
+
+  isOpen.value = false
+  emit('close')
 }
 </script>
 
