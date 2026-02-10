@@ -276,7 +276,9 @@ const signatureOptions = computed(() => {
 // Filter templates by publication language
 const filteredProjectTemplates = computed(() => {
   return projectTemplates.value.filter((tpl) => {
-    return !tpl.language || tpl.language === formData.language
+    const langMatch = !tpl.language || tpl.language === formData.language
+    const typeMatch = !tpl.postType || tpl.postType === formData.postType
+    return langMatch && typeMatch
   })
 })
 

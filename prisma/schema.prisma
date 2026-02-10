@@ -274,6 +274,8 @@ model Publication {
   postType      PostType   @default(POST) @map("post_type")
   // Language of the publication (ru-RU, en-US, etc.)
   language      String     @default("en-US")
+  // Reference to the project template used for this publication
+  projectTemplateId String?  @map("project_template_id")
   // Publication status (user can select: DRAFT, READY; system sets: SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
   status        PublicationStatus @default(DRAFT)
   // Title for articles and social media posts where title is required. Even if not required, it's recommended to fill it for easier post identification in Gran Publicador

@@ -468,8 +468,11 @@ const projectOptions = computed(() => {
 
 const filteredProjectTemplates = computed(() => {
     const pubLang = currentPublication.value?.language
+    const pubType = currentPublication.value?.postType
     return projectTemplates.value.filter((tpl) => {
-        return !tpl.language || tpl.language === pubLang
+        const langMatch = !tpl.language || tpl.language === pubLang
+        const typeMatch = !tpl.postType || tpl.postType === pubType
+        return langMatch && typeMatch
     })
 })
 
@@ -1153,8 +1156,8 @@ async function executePublish(force: boolean) {
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <UIcon name="i-heroicons-squares-plus" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate">
-                                        {{ filteredProjectTemplates.find(tpl => tpl.id === currentPublication?.projectTemplateId)?.name || currentPublication?.projectTemplateId || '-' }}
+                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate max-w-[150px]">
+                                        {{ projectTemplates.find(tpl => tpl.id === currentPublication?.projectTemplateId)?.name || currentPublication?.projectTemplateId || '-' }}
                                     </span>
                                     <UButton
                                         v-if="!isLocked"
