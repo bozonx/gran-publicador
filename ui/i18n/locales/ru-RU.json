@@ -599,7 +599,9 @@
     "personal": "Личный",
     "publicationBlock": "Публикация",
     "differentLanguage": "Другой язык",
-    "skipDisabledNoContext": "Добавьте контекст, чтобы пропустить чат"
+    "skipDisabledNoContext": "Добавьте контекст, чтобы пропустить чат",
+    "resetChat": "Сбросить чат",
+    "resetChatConfirm": "Вы уверены, что хотите сбросить чат? Вся история будет удалена."
   },
   "media": {
     "add": "Добавить медиа",

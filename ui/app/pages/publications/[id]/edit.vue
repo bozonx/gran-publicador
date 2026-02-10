@@ -316,6 +316,12 @@ async function handleApplyLlm(data: {
     // Update publication fields
     if (data.publication && Object.keys(data.publication).length > 0) {
       const pubPayload: Record<string, any> = { ...data.publication }
+
+      // Ensure authorComment is not populated from LLM generation
+      if ('authorComment' in pubPayload) {
+        delete pubPayload['authorComment']
+      }
+
       if (data.meta) {
         const existingMeta = normalizedPublicationMeta.value
         pubPayload.meta = { ...existingMeta, ...data.meta }

@@ -11,6 +11,7 @@ interface LlmContextTag {
   label: string
   promptText: string
   kind: 'content' | 'media' | 'selection'
+  enabled: boolean
 }
 
 interface Emits {
@@ -68,6 +69,7 @@ function getCleanedContextText(ctx: LlmContextTag): string {
 
 function getContextPreviewText(tags: LlmContextTag[]): string {
   const rawParts = tags
+    .filter(t => t.enabled)
     .map((t) => t.promptText?.trim())
     .filter((x): x is string => Boolean(x))
 
@@ -94,10 +96,11 @@ function getContextPreviewText(tags: LlmContextTag[]): string {
   return `\n\n${parts.join('\n')}`
 }
 
-function removeContextTag(id: string) {
+function toggleContextTag(id: string) {
   const tag = contextTags.value.find(t => t.id === id)
-  if (tag?.kind === 'selection') return // Cannot remove selection context if present
-  contextTags.value = contextTags.value.filter(t => t.id !== id)
+  if (tag && tag.kind !== 'selection') {
+    tag.enabled = !tag.enabled
+  }
 }
 
 // Token counter
@@ -116,6 +119,7 @@ watch(isOpen, (open) => {
         label: t('llm.selectionContext'),
         promptText: `<selection>\n${props.selectionText.trim()}\n</selection>`,
         kind: 'selection',
+        enabled: true,
       })
     } else if (props.content?.trim()) {
       nextTags.push({
@@ -123,6 +127,7 @@ watch(isOpen, (open) => {
         label: t('llm.publicationBlock'),
         promptText: `<source_content>\n${props.content.trim()}\n</source_content>`,
         kind: 'content',
+        enabled: true,
       })
     }
 
@@ -135,6 +140,7 @@ watch(isOpen, (open) => {
         label: text,
         promptText: `<image_description>${text}</image_description>`,
         kind: 'media',
+        enabled: true,
       })
     }
 
@@ -203,24 +209,22 @@ async function handleGenerate() {
         <!-- Context Tags -->
         <div v-if="contextTags.length > 0" class="mb-4">
           <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap gap-2">
               <UPopover
                 v-for="ctx in contextTags"
                 :key="ctx.id"
                 mode="hover"
                 :popper="{ placement: 'top' }"
               >
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  class="rounded-full! px-2 py-0.5 h-auto max-w-full"
-                  :disabled="ctx.kind === 'selection'"
-                  @click="removeContextTag(ctx.id)"
-                >
-                  <span class="truncate max-w-105">{{ ctx.label }}</span>
-                  <UIcon v-if="ctx.kind !== 'selection'" name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100 shrink-0" />
-                </UButton>
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                  <UCheckbox
+                    v-if="ctx.kind !== 'selection'"
+                    :model-value="ctx.enabled"
+                    @update:model-value="toggleContextTag(ctx.id)"
+                  />
+                  <UIcon v-else name="i-heroicons-lock-closed" class="w-3 h-3 text-gray-400" />
+                  <span class="text-xs truncate max-w-105">{{ ctx.label }}</span>
+                </div>
                 <template #content>
                   <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
                     {{ getCleanedContextText(ctx) }}

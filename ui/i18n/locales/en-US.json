@@ -599,7 +599,9 @@
     "personal": "Personal",
     "publicationBlock": "Publication",
     "differentLanguage": "Different language",
-    "skipDisabledNoContext": "Add context to skip chat"
+    "skipDisabledNoContext": "Add context to skip chat",
+    "resetChat": "Reset Chat",
+    "resetChatConfirm": "Are you sure you want to reset the chat? All history will be deleted."
   },
   "media": {
     "add": "Add Media",

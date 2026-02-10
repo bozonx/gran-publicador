@@ -52,6 +52,7 @@ const { t } = useI18n()
 const toast = useToast()
 const { generatePublicationFields, isGenerating, estimateTokens } = useLlm()
 const { publicationLlmChat } = usePublications()
+const { updatePublication } = usePublications()
 const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
@@ -131,6 +132,7 @@ interface LlmContextTag {
   label: string
   promptText: string
   kind: 'content' | 'media'
+  enabled: boolean
 }
 
 const contextTags = ref<LlmContextTag[]>([])
@@ -161,6 +163,7 @@ function getCleanedContextText(ctx: LlmContextTag): string {
 
 function makeContextPromptBlock(tags: LlmContextTag[]): string {
   const rawParts = tags
+    .filter(t => t.enabled)
     .map((t) => t.promptText?.trim())
     .filter((x): x is string => Boolean(x))
 
@@ -187,8 +190,11 @@ function makeContextPromptBlock(tags: LlmContextTag[]): string {
   return `\n\n${parts.join('\n')}`
 }
 
-function removeContextTag(id: string) {
-  contextTags.value = contextTags.value.filter(t => t.id !== id)
+function toggleContextTag(id: string) {
+  const tag = contextTags.value.find(t => t.id === id)
+  if (tag) {
+    tag.enabled = !tag.enabled
+  }
 }
 
 const contextTagById = computed(() => {
@@ -198,7 +204,11 @@ const contextTagById = computed(() => {
 function getContextTagsForMessage(message: ChatMessage): LlmContextTag[] {
   // If we have a snapshot, use it (historical accuracy)
   if (message.contextSnapshot && message.contextSnapshot.length > 0) {
-    return message.contextSnapshot
+    // Ensure all tags have the enabled field (for backward compatibility)
+    return message.contextSnapshot.map(tag => ({
+      ...tag,
+      enabled: tag.enabled ?? true,
+    }))
   }
 
   // Fallback to current tags (for older saved messages without snapshots)
@@ -257,6 +267,7 @@ watch(isOpen, async (open) => {
         label: 'Контент',
         promptText: `<source_content>\n${content.trim()}\n</source_content>`,
         kind: 'content',
+        enabled: true,
       })
     }
 
@@ -269,6 +280,7 @@ watch(isOpen, async (open) => {
         label: text,
         promptText: `<image_description>${text}</image_description>`,
         kind: 'media',
+        enabled: true,
       })
     }
 
@@ -329,15 +341,15 @@ async function handleGenerate() {
   const isFirstMessage = chatMessages.value.length === 0
 
   const mediaDescriptions = contextTags.value
-    .filter(t => t.kind === 'media')
+    .filter(t => t.enabled && t.kind === 'media')
     .map(t => (t.label || '').trim())
     .filter(Boolean)
 
   chatMessages.value.push({
     role: 'user',
     content: userText,
-    contextTagIds: contextTags.value.map(t => t.id),
-    contextSnapshot: contextTags.value.map(t => ({ ...t })),
+    contextTagIds: contextTags.value.filter(t => t.enabled).map(t => t.id),
+    contextSnapshot: contextTags.value.filter(t => t.enabled).map(t => ({ ...t })),
   });
   prompt.value = '';
 
@@ -608,6 +620,58 @@ defineExpose({
   onApplySuccess,
   onApplyError
 })
+
+async function handleResetChat() {
+  const confirmed = confirm(t('llm.resetChatConfirm'))
+  if (!confirmed) return
+
+  // Clear chat messages
+  chatMessages.value = []
+  prompt.value = ''
+  metadata.value = null
+
+  // Re-initialize context tags
+  const nextTags: LlmContextTag[] = []
+
+  if (content?.trim()) {
+    nextTags.push({
+      id: 'content:1',
+      label: 'Контент',
+      promptText: `<source_content>\n${content.trim()}\n</source_content>`,
+      kind: 'content',
+      enabled: true,
+    })
+  }
+
+  const mediaItems = (media || []).filter(m => m?.type === 'IMAGE')
+  for (const item of mediaItems) {
+    const text = (item.description || item.alt || '').trim()
+    if (!text) continue
+    nextTags.push({
+      id: `media:${item.id}`,
+      label: text,
+      promptText: `<image_description>${text}</image_description>`,
+      kind: 'media',
+      enabled: true,
+    })
+  }
+
+  contextTags.value = nextTags
+
+  // Clear publication meta
+  if (publicationId) {
+    try {
+      await updatePublication(publicationId, {
+        meta: {
+          ...publicationMeta,
+          llmPublicationContentGenerationChat: undefined,
+        },
+      })
+    } catch (error) {
+      console.error('Failed to clear chat meta:', error)
+    }
+  }
+}
 </script>
 
 <template>
@@ -629,23 +693,20 @@ defineExpose({
 
         <div v-if="contextTags.length > 0" class="mb-4">
           <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap gap-2">
               <UPopover
                 v-for="ctx in contextTags"
                 :key="ctx.id"
                 mode="hover"
                 :popper="{ placement: 'top' }"
               >
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  class="rounded-full! px-2 py-0.5 h-auto max-w-full"
-                  @click="removeContextTag(ctx.id)"
-                >
-                  <span class="truncate max-w-105">{{ ctx.label }}</span>
-                  <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100 shrink-0" />
-                </UButton>
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                  <UCheckbox
+                    :model-value="ctx.enabled"
+                    @update:model-value="toggleContextTag(ctx.id)"
+                  />
+                  <span class="text-xs truncate max-w-105">{{ ctx.label }}</span>
+                </div>
                 <template #content>
                   <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
                     {{ getCleanedContextText(ctx) }}
@@ -680,7 +741,7 @@ defineExpose({
             >
               <div class="whitespace-pre-wrap">{{ msg.content }}</div>
 
-              <div v-if="msg.role === 'user' && getContextTagsForMessage(msg).length > 0" class="mt-2">
+              <div v-if="msg.role === 'user' && idx === 0 && getContextTagsForMessage(msg).length > 0" class="mt-2">
                 <div class="flex flex-wrap gap-1.5">
                   <UPopover
                     v-for="ctx in getContextTagsForMessage(msg)"
@@ -894,7 +955,18 @@ defineExpose({
 
     <template #footer>
       <div v-if="step === 1" class="flex justify-between w-full">
-        <div class="flex gap-2 ml-auto">
+        <div>
+          <UButton
+            v-if="chatMessages.length > 0"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-path"
+            @click="handleResetChat"
+          >
+            {{ t('llm.resetChat') }}
+          </UButton>
+        </div>
+        <div class="flex gap-2">
            <UTooltip :text="hasContext ? t('llm.skipDescription') : t('llm.skipDisabledNoContext')">
              <UButton
               color="neutral"
