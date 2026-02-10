@@ -258,6 +258,10 @@ export class ChannelTemplateVariationDto {
   projectTemplateId!: string;
 
   @IsOptional()
+  @IsBoolean()
+  excluded?: boolean;
+
+  @IsOptional()
   @IsObject()
   overrides?: Record<string, any>;
 }
