@@ -102,7 +102,6 @@ const hasMediaValidationErrors = computed(() => {
 const isLocked = computed(() => currentPublication.value?.status === 'READY')
 
 
-const isFormCollapsed = ref(false)
 const isDeleteModalOpen = ref(false)
 const isDeleting = ref(false)
 const isRepublishModalOpen = ref(false)
@@ -643,9 +642,6 @@ const moreActions = computed(() => [
   ]
 ])
 
-function toggleFormCollapse() {
-  isFormCollapsed.value = !isFormCollapsed.value
-}
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '-'
@@ -1298,56 +1294,9 @@ async function executePublish(force: boolean) {
           @refresh="() => fetchPublication(publicationId)"
         />
 
-        <!-- Block 2: Collapsible Publication Form (styled like PostEditBlock) -->
-        <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
-            <!-- Header -->
-            <div 
-                class="p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors select-none group"
-                @click="toggleFormCollapse"
-            >
-                <div class="flex items-start justify-between">
-                    <div class="flex-1 space-y-2">
-                        <div class="flex items-center gap-2">
-                             <UIcon name="i-heroicons-pencil-square" class="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors"></UIcon>
-                             <h3 class="font-semibold text-gray-900 dark:text-white" :class="{ 'italic text-gray-500 font-medium': !currentPublication.title && !stripHtmlAndSpecialChars(currentPublication.content) }">
-                                {{ displayTitle }}
-                             </h3>
-                        </div>
-                        
-                        <!-- Content Preview -->
-                        <p v-if="currentPublication.content" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                            {{ stripHtmlAndSpecialChars(currentPublication.content) }}
-                        </p>
-
-                        <!-- Tags -->
-                        <CommonTags
-                          v-if="currentPublication.tags"
-                          :tags="currentPublication.tags"
-                          color="neutral"
-                          variant="soft"
-                          size="xs"
-                          badge-class="font-mono"
-                          container-class="mt-2"
-                        />
-
-                    </div>
-
-                    <!-- Expand/Collapse Button -->
-                    <UButton
-                        variant="ghost"
-                        color="neutral"
-                        size="sm"
-                        :icon="isFormCollapsed ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-up'"
-                        class="ml-4 shrink-0"
-                    ></UButton>
-                </div>
-            </div>
-
-            <!-- Collapsible Content -->
-            <div 
-                v-show="!isFormCollapsed" 
-                class="border-t border-gray-200 dark:border-gray-700/50 p-6 bg-gray-50/50 dark:bg-gray-900/20"
-            >
+        <!-- Block 2: Publication Form (styled like PostEditBlock) -->
+        <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 shadow-sm">
+            <div class="p-6">
                 <FormsPublicationForm
                   :project-id="projectId"
                   :publication="currentPublication"
