@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -32,8 +33,9 @@ export class CreateProjectTemplateDto {
 
   @IsString()
   @IsOptional()
+  @ValidateIf((o: any, v: any) => v !== null)
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  public language?: string;
+  public language?: string | null;
 
   @IsArray()
   @ValidateNested({ each: true })

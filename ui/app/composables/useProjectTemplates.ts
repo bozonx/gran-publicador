@@ -6,7 +6,7 @@ export interface CreateProjectTemplateInput {
   name: string;
   postType?: string | null;
   isDefault?: boolean;
-  language?: string;
+  language?: string | null;
   template: TemplateBlock[];
 }
 
@@ -14,7 +14,7 @@ export interface UpdateProjectTemplateInput {
   name?: string;
   postType?: string | null;
   isDefault?: boolean;
-  language?: string;
+  language?: string | null;
   template?: TemplateBlock[];
 }
 

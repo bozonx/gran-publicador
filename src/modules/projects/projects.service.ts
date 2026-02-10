@@ -86,6 +86,9 @@ export class ProjectsService {
         // Create default roles for the project
         await this.roles.createDefaultRoles(project.id, tx);
 
+        // Create default project template
+        await this.createDefaultProjectTemplate(project.id, tx);
+
         this.logger.log(`Project "${project.name}" created by user ${userId}`);
 
         return project;
@@ -95,6 +98,25 @@ export class ProjectsService {
         timeout: TRANSACTION_TIMEOUT.TIMEOUT,
       },
     );
+  }
+
+  private async createDefaultProjectTemplate(projectId: string, tx: Prisma.TransactionClient) {
+    this.logger.debug(`Creating default project template for project ${projectId}`);
+    return tx.projectTemplate.create({
+      data: {
+        projectId,
+        name: 'Стандартный',
+        isDefault: true,
+        language: null, // Applies to all languages
+        order: 0,
+        template: [
+          {
+            enabled: true,
+            insert: 'content',
+          },
+        ] as any,
+      },
+    });
   }
 
   public async findAllForUser(

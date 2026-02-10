@@ -28,7 +28,11 @@ const {
 } = useProjectTemplates()
 
 const { fetchChannels } = useChannels()
-const { languageOptions } = useLanguages()
+const { languageOptions: baseLanguageOptions } = useLanguages()
+const languageOptions = computed(() => [
+  { value: null, label: t('common.allLanguages', 'All Languages'), icon: 'i-heroicons-globe-alt' },
+  ...baseLanguageOptions
+])
 
 const insertOptions = [
   { value: 'title', label: t('channel.templateInsertTitle') },
@@ -86,7 +90,7 @@ const templateForm = ref({
   name: '',
   postType: null as string | null,
   isDefault: false,
-  language: 'ru-RU',
+  language: null as string | null,
   template: [] as TemplateBlock[],
 })
 
@@ -97,9 +101,10 @@ const channelOverridesMap = ref<Record<string, { excluded: boolean; overrides: R
 const projectChannels = ref<ChannelWithProject[]>([])
 
 const filteredChannels = computed(() => {
-  return projectChannels.value.filter(ch =>
-    ch.language === templateForm.value.language && !ch.archivedAt
-  )
+  return projectChannels.value.filter(ch => {
+    if (!templateForm.value.language) return !ch.archivedAt
+    return ch.language === templateForm.value.language && !ch.archivedAt
+  })
 })
 
 // ─── Tab items ──────────────────────────────────────────────────────

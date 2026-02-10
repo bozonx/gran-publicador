@@ -41,7 +41,7 @@ export interface ProjectTemplate {
   name: string;
   postType?: string | null;
   isDefault?: boolean;
-  language: string;
+  language: string | null;
   order: number;
   template: TemplateBlock[];
   createdAt: string;

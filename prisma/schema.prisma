@@ -675,7 +675,8 @@ model ProjectTemplate {
   isDefault Boolean   @default(false) @map("is_default")
   order     Int       @default(0)
   // Template language (e.g. ru-RU, en-US) — determines which channels are shown in template editor
-  language  String    @default("ru-RU")
+  // If null, template applies to all languages
+  language  String?   @map("language")
   // Array of TemplateBlock objects
   template  Json
   createdAt DateTime  @default(now()) @map("created_at")

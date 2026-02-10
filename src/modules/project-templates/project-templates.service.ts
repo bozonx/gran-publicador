@@ -93,7 +93,7 @@ export class ProjectTemplatesService {
             name: data.name,
             postType: data.postType ?? null,
             isDefault: data.isDefault ?? false,
-            language: data.language ?? 'ru-RU',
+            language: data.language !== undefined ? data.language : null,
             order: nextOrder,
             template: data.template as any,
           },
@@ -165,6 +165,15 @@ export class ProjectTemplatesService {
 
     return this.prisma.$transaction(
       async tx => {
+        // Protect the last template from being deleted
+        const count = await tx.projectTemplate.count({
+          where: { projectId },
+        });
+
+        if (count <= 1) {
+          throw new BadRequestException('Project must have at least one template');
+        }
+
         // Delete the project template
         await tx.projectTemplate.delete({ where: { id: templateId } });
 
