@@ -814,79 +814,51 @@ async function executePublish() {
                 </p>
             </div>
 
-            <div class="flex flex-col md:flex-row gap-6">
-                <!-- Column 1 (60%) -->
-                <div class="w-full md:w-[60%] space-y-6">
-                    <!-- Scheduled At (Custom for post) -->
-                    <UFormField :label="t('post.scheduledAt')">
-                        <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
-                            <UInput 
-                                v-model="formData.scheduledAt" 
-                                type="datetime-local" 
-                                class="w-full" 
-                                icon="i-heroicons-clock" 
-                                :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
-                            />
-                        </UTooltip>
-                    </UFormField>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Row 1: Author Signature | Scheduled At -->
+                <UFormField :label="t('post.authorSignature', 'Author Signature')">
+                    <UInput
+                        v-model="formData.authorSignature"
+                        :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
+                        :disabled="isLoading || isLocked"
+                        class="w-full"
+                    />
+                </UFormField>
 
-                    <!-- Tags (Override) -->
-                    <UFormField :label="t('post.tags')">
-                        <CommonInputTags
-                          v-model="formData.tags"
-                          :placeholder="t('post.tagsPlaceholder')"
-                          color="neutral"
-                          variant="outline"
-                          :disabled="isLocked"
-                          class="w-full"
+                <UFormField :label="t('post.scheduledAt')">
+                    <UTooltip :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!props.publication?.scheduledAt ? t('publication.status.publicationTimeRequired') : '')">
+                        <UInput 
+                            v-model="formData.scheduledAt" 
+                            type="datetime-local" 
+                            class="w-full" 
+                            icon="i-heroicons-clock" 
+                            :disabled="!props.publication?.scheduledAt || !!props.publication?.archivedAt"
                         />
-                    </UFormField>
+                    </UTooltip>
+                </UFormField>
 
-                    <!-- Author Signature Editor -->
-                    <UFormField :label="t('post.authorSignature', 'Author Signature')">
-                        <UTextarea
-                            v-model="formData.authorSignature"
-                            :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
-                            :disabled="isLoading || isLocked"
-                            :rows="3"
-                            class="w-full"
-                        />
-                    </UFormField>
-                </div>
+                <!-- Row 2: Tags | Platform Specific Options -->
+                <UFormField :label="t('post.tags')">
+                    <CommonInputTags
+                        v-model="formData.tags"
+                        :placeholder="t('post.tagsPlaceholder')"
+                        color="neutral"
+                        variant="outline"
+                        :disabled="isLocked"
+                        class="w-full"
+                    />
+                </UFormField>
 
-                <!-- Column 2 (40%) -->
-                <div class="w-full md:w-[40%] space-y-6">
-                    <!-- Template Selector -->
-                    <UFormField 
-                        v-if="availableTemplates.length > 0"
-                        :label="t('post.template')" 
-                        :error="isTemplateMissing ? t('post.errorTemplateDeleted', 'Template was deleted, using system default') : undefined"
-                    >
-                        <USelectMenu
-                            v-model="formData.template"
-                            :items="availableTemplates"
-                            value-key="value"
-                            label-key="label"
-                            class="w-full"
-                            :placeholder="t('post.selectTemplate', 'Select template...')"
-                            :color="isTemplateMissing ? 'warning' : 'neutral'"
-                            :disabled="isLocked"
-                        >
-                        </USelectMenu>
-                    </UFormField>
-
-                    <!-- Platform Specific Options -->
-                    <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'">
-                        <UFormField :label="t('post.options.title', 'Platform Options')">
-                            <div class="flex items-center gap-2 py-1">
-                                <UCheckbox 
+                <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'">
+                    <UFormField :label="t('post.options.title', 'Platform Options')">
+                        <div class="flex items-center gap-2 py-1">
+                            <UCheckbox 
                                 v-model="formData.platformOptions.disableNotification" 
                                 :label="t('post.options.disableNotification')" 
                                 :disabled="isLocked"
-                                />
-                            </div>
-                        </UFormField>
-                    </div>
+                            />
+                        </div>
+                    </UFormField>
                 </div>
             </div>
        </div>
