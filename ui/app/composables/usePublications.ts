@@ -79,6 +79,10 @@ export interface PublicationWithRelations extends Publication {
         status: string;
         archivedAt: string | null;
         posts?: Array<{
+          id: string;
+          status: string;
+          postingSnapshot?: any;
+          postingSnapshotCreatedAt?: string | null;
           channel: {
             id: string;
             name: string;

@@ -57,6 +57,7 @@ const projectId = computed(() => props.publication?.projectId ?? props.post?.cha
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
+const isPreviewModalOpen = ref(false)
 
 // Formatting date helper
 const toDatetimeLocal = (dateStr?: string | null) => {
@@ -724,7 +725,16 @@ async function executePublish() {
         </div>
 
         <!-- Expand/Collapse Button -->
-        <div v-if="!isCreating" class="shrink-0 ml-2">
+        <div v-if="!isCreating" class="shrink-0 ml-2 flex items-center gap-1">
+          <UTooltip :text="t('post.previewTitle', 'Post Preview')">
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-heroicons-eye"
+              @click.stop="isPreviewModalOpen = true"
+            />
+          </UTooltip>
           <UButton
             variant="ghost"
             color="neutral"
@@ -1029,7 +1039,14 @@ async function executePublish() {
       :content="formData.content || publicationContent"
       :media="(publicationMedia as any)"
       :project-id="projectId"
-      @apply="handleLlmGenerated"
+      @apply="handleApplyLlm"
+    />
+
+    <!-- Preview Modal -->
+    <ModalsPostPreviewModal
+      v-model="isPreviewModalOpen"
+      :post="props.post"
+      :publication="props.publication"
     />
   </div>
 </template>

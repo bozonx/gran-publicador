@@ -27,6 +27,8 @@ export interface Post {
   content: string | null;
   authorSignature: string | null;
   platformOptions: any;
+  postingSnapshot: any; // Frozen snapshot of the post content
+  postingSnapshotCreatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

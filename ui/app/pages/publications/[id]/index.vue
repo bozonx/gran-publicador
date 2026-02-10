@@ -59,10 +59,6 @@ const isProjectArchived = computed(() => !!currentProject.value?.archivedAt)
 const hasArchivedChannels = computed(() => currentPublication.value?.posts?.some(p => !!p.channel?.archivedAt))
 const hasInactiveChannels = computed(() => currentPublication.value?.posts?.some(p => p.channel?.isActive === false))
 
-const isPreviewModalOpen = ref(false)
-const previewContent = ref('')
-const previewTitle = ref('')
-
 const showDescription = computed(() => {
   if (!currentPublication.value?.description) return false
   
@@ -75,28 +71,11 @@ const showDescription = computed(() => {
   })
 })
 
-async function showPostPreview(post: any) {
-  if (!currentPublication.value) return
+const isPreviewModalOpen = ref(false)
+const selectedPost = ref<any>(null)
 
-  previewTitle.value = getSocialMediaDisplayName(post.channel?.socialMedia || post.socialMedia, t)
-  
-  // Author signature is already stored as text in the post
-  const authorSignatureContent = post.authorSignature || ''
-
-  previewContent.value = SocialPostingBodyFormatter.format(
-    {
-      title: currentPublication.value.title,
-      content: post.content || currentPublication.value.content,
-      tags: post.tags || currentPublication.value.tags,
-      postType: currentPublication.value.postType as any,
-      language: post.language || currentPublication.value.language,
-      authorComment: currentPublication.value.authorComment,
-      authorSignature: authorSignatureContent,
-    },
-    post.channel || post,
-    post.template,
-  )
-  
+function showPostPreview(post: any) {
+  selectedPost.value = post
   isPreviewModalOpen.value = true
 }
 
@@ -538,29 +517,11 @@ async function handleApplyLlm(data: {
     </div>
 
     <!-- Preview Modal -->
-    <UiAppModal 
-      v-model:open="isPreviewModalOpen"
-      :title="t('post.previewTitle', 'Post Preview')"
-    >
-      <template #header>
-        <div class="flex items-center gap-2">
-          <UIcon name="i-heroicons-paper-airplane" class="w-5 h-5 text-primary-500" />
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-            {{ t('post.previewTitle', 'Post Preview') }}: {{ previewTitle }}
-          </h3>
-        </div>
-      </template>
-
-      <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
-        <pre class="whitespace-pre-wrap font-sans text-sm text-gray-800 dark:text-gray-200">{{ previewContent }}</pre>
-      </div>
-
-      <template #footer>
-        <UButton color="neutral" variant="soft" @click="isPreviewModalOpen = false">
-          {{ t('common.close') }}
-        </UButton>
-      </template>
-    </UiAppModal>
+    <ModalsPostPreviewModal
+      v-model="isPreviewModalOpen"
+      :post="selectedPost"
+      :publication="currentPublication"
+    />
 
     <!-- Delete Confirmation Modal -->
     <UiConfirmModal
