@@ -66,7 +66,7 @@ function getCleanedContextText(ctx: LlmContextTag): string {
     .trim()
 }
 
-function makeContextPromptBlock(tags: LlmContextTag[]): string {
+function getContextPreviewText(tags: LlmContextTag[]): string {
   const rawParts = tags
     .map((t) => t.promptText?.trim())
     .filter((x): x is string => Boolean(x))
@@ -102,7 +102,7 @@ function removeContextTag(id: string) {
 
 // Token counter
 const estimatedTokensCount = computed(() => {
-  return estimateTokens(prompt.value + makeContextPromptBlock(contextTags.value))
+  return estimateTokens(prompt.value + getContextPreviewText(contextTags.value))
 })
 
 // Initialize tags
@@ -160,8 +160,19 @@ async function handleGenerate() {
     return
   }
 
-  const currentPrompt = prompt.value.trim() + makeContextPromptBlock(contextTags.value)
-  const response = await generateContent(currentPrompt, { onlyRawResult: true })
+  const mediaDescriptions = contextTags.value
+    .filter(t => t.kind === 'media')
+    .map(t => (t.label || '').trim())
+    .filter(Boolean)
+
+  const response = await generateContent(prompt.value.trim(), {
+    onlyRawResult: true,
+    selectionText: props.selectionText,
+    content: props.content,
+    useContent: !props.selectionText?.trim() && Boolean(props.content?.trim()),
+    mediaDescriptions,
+    contextLimitChars: contextLimit.value,
+  })
 
   if (response?.content) {
     emit('apply', response.content)

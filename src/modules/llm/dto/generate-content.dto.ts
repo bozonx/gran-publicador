@@ -28,6 +28,33 @@ export class GenerateContentDto {
   prompt!: string;
 
   /**
+   * Optional selection text from editor to be used as context.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_LLM_CONTEXT_LENGTH)
+  selectionText?: string;
+
+  /**
+   * Optional media descriptions to be used as context.
+   */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_CONTENT_ITEMS)
+  @MaxLength(VALIDATION_LIMITS.MAX_ALT_TEXT_LENGTH, { each: true })
+  mediaDescriptions?: string[];
+
+  /**
+   * Optional maximum number of characters to include from context parts.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(VALIDATION_LIMITS.MAX_LLM_CONTEXT_LENGTH)
+  contextLimitChars?: number;
+
+  /**
    * Temperature parameter (0-2).
    * Controls randomness of the response.
    */

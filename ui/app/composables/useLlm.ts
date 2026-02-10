@@ -7,6 +7,9 @@ interface GenerateLlmOptions {
   tags?: string[];
   content?: string;
   useContent?: boolean;
+  selectionText?: string;
+  mediaDescriptions?: string[];
+  contextLimitChars?: number;
   onlyRawResult?: boolean;
 }
 

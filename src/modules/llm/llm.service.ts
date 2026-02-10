@@ -54,6 +54,8 @@ export class LlmService {
   private readonly config: LlmConfig;
   private readonly defaultRequestTimeoutSecs: number;
 
+  private readonly defaultContextLimitChars = 10000;
+
   /**
    * Initializes the LlmService.
    * @param configService - NestJS Configuration service to retrieve LLM settings.
@@ -317,10 +319,35 @@ export class LlmService {
   }
 
   private buildFullPrompt(dto: GenerateContentDto): string {
-    // Determine content to include
-    const content = dto.useContent ? dto.content : undefined;
+    const contextLimit = dto.contextLimitChars ?? this.defaultContextLimitChars;
 
-    return buildPromptWithContext(dto.prompt, content, { includeMetadata: true });
+    const parts: string[] = [];
+
+    if (dto.selectionText?.trim()) {
+      parts.push(`<selection>\n${dto.selectionText.trim()}\n</selection>`);
+    }
+
+    if (!dto.selectionText?.trim()) {
+      const content = dto.useContent ? dto.content : undefined;
+      if (content?.trim()) {
+        parts.push(`<source_content>\n${content.trim()}\n</source_content>`);
+      }
+    }
+
+    if (Array.isArray(dto.mediaDescriptions)) {
+      for (const raw of dto.mediaDescriptions) {
+        const text = String(raw ?? '').trim();
+        if (!text) continue;
+        parts.push(`<image_description>${text}</image_description>`);
+      }
+    }
+
+    const contextBlockRaw = parts.join('\n');
+    const contextBlock = contextBlockRaw.slice(0, Math.max(0, contextLimit));
+
+    const promptWithContext = contextBlock ? `${dto.prompt.trim()}\n\n${contextBlock}` : dto.prompt;
+
+    return buildPromptWithContext(promptWithContext, undefined, { includeMetadata: true });
   }
 
   /**

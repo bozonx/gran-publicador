@@ -93,6 +93,56 @@ describe('LlmService', () => {
       expect(result).toEqual(mockResponse);
     });
 
+    it('should build prompt with selection and media descriptions on server', async () => {
+      const dto: GenerateContentDto = {
+        prompt: 'Rewrite it',
+        onlyRawResult: true,
+        selectionText: 'Selected text',
+        content: 'Full content',
+        useContent: true,
+        mediaDescriptions: ['Image one', ''],
+        contextLimitChars: 10000,
+      };
+
+      const mockResponse = {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-4',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Generated content',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      };
+
+      let capturedBody: any;
+      const client = mockAgent.get('http://localhost:8080');
+      client
+        .intercept({
+          path: '/api/v1/chat/completions',
+          method: 'POST',
+        })
+        .reply(200, opts => {
+          capturedBody = JSON.parse(opts.body as string);
+          return mockResponse;
+        });
+
+      await service.generateContent(dto);
+
+      const userMsg = capturedBody.messages.find((m: any) => m.role === 'user');
+      expect(userMsg).toBeTruthy();
+      expect(userMsg.content).toContain('<selection>');
+      expect(userMsg.content).toContain('Selected text');
+      expect(userMsg.content).toContain('<image_description>Image one</image_description>');
+      expect(userMsg.content).not.toContain('<source_content>');
+    });
+
     it('should handle 4xx client errors', async () => {
       const dto: GenerateContentDto = {
         prompt: 'Test',
