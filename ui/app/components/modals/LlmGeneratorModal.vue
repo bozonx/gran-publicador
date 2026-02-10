@@ -6,6 +6,7 @@ import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplateP
 import type { MediaItem } from '~/composables/useMedia'
 import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
 import { DialogTitle, DialogDescription } from 'reka-ui'
+import { LlmErrorType } from '~/composables/useLlm'
 
 interface PostChannelInfo {
   channelId: string
@@ -50,7 +51,7 @@ const { publicationId, content, media, projectId, publicationMeta, postType, pub
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generatePublicationFields, isGenerating, estimateTokens } = useLlm()
+const { generatePublicationFields, isGenerating, estimateTokens, stop: stopLlm, error: llmError } = useLlm()
 const { publicationLlmChat } = usePublications()
 const { updatePublication } = usePublications()
 const { transcribeAudio, isTranscribing, error: sttError } = useStt()
@@ -82,6 +83,23 @@ interface ChatMessage {
 }
 const chatMessages = ref<ChatMessage[]>([])
 const prompt = ref('')
+
+const api = useApi()
+const activeChatController = ref<AbortController | null>(null)
+
+function getChatErrorDescription(err: any): string {
+  const msg = String(err?.message || '')
+  if (msg.toLowerCase().includes('aborted')) {
+    return t('llm.aborted', 'Request was stopped.')
+  }
+  if (msg.toLowerCase().includes('timeout')) {
+    return t('llm.timeoutError', 'Request timed out. Try reducing context or retry.')
+  }
+  if (err?.status === 429 || err?.statusCode === 429) {
+    return t('llm.rateLimitError', 'Too many requests. Please try again later.')
+  }
+  return t('llm.errorMessage')
+}
 
 const modalDescription = computed(() => {
   return step.value === 1 ? t('llm.step1Description') : t('llm.step2Description')
@@ -148,6 +166,24 @@ const contextLimit = computed(() => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : (isArticle ? 100000 : 10000)
 })
 
+const contextStats = computed(() => {
+  const rawParts = contextTags.value
+    .filter(t => t.enabled)
+    .map(t => t.promptText?.trim())
+    .filter((x): x is string => Boolean(x))
+
+  const rawText = rawParts.join('\n')
+  const limit = contextLimit.value
+  const used = rawText.slice(0, Math.max(0, limit))
+
+  return {
+    totalChars: rawText.length,
+    usedChars: used.length,
+    limitChars: limit,
+    isTruncated: rawText.length > used.length,
+  }
+})
+
 function truncateText(text: string, maxChars: number): string {
   if (maxChars <= 0) return ''
   if (text.length <= maxChars) return text
@@ -195,6 +231,13 @@ function toggleContextTag(id: string) {
   if (tag) {
     tag.enabled = !tag.enabled
   }
+
+  activeChatController.value = null
+}
+
+function handleStop() {
+  stopLlm()
+  activeChatController.value?.abort()
 }
 
 const contextTagById = computed(() => {
@@ -353,18 +396,37 @@ async function handleGenerate() {
   });
   prompt.value = '';
 
-  const response = await publicationLlmChat(publicationId, {
-    message: userText,
-    ...(isFirstMessage
-      ? {
-          context: {
-            content,
-            mediaDescriptions,
-            contextLimitChars: contextLimit.value,
-          },
-        }
-      : {}),
-  })
+  activeChatController.value?.abort()
+  activeChatController.value = api.createAbortController()
+
+  let response: any = null
+  try {
+    response = await publicationLlmChat(
+      publicationId,
+      {
+        message: userText,
+        ...(isFirstMessage
+          ? {
+              context: {
+                content,
+                mediaDescriptions,
+                contextLimitChars: contextLimit.value,
+              },
+            }
+          : {}),
+      },
+      { signal: activeChatController.value.signal },
+    )
+  } catch (err: any) {
+    toast.add({
+      title: t('llm.error'),
+      description: getChatErrorDescription(err),
+      color: 'error',
+    })
+    response = null
+  } finally {
+    activeChatController.value = null
+  }
 
   if (response) {
     if (Array.isArray(response.chat?.messages) && response.chat!.messages.length > 0) {
@@ -373,19 +435,20 @@ async function handleGenerate() {
       chatMessages.value.push({ role: 'assistant', content: response.message });
     }
     metadata.value = response.metadata || null;
-  } else {
-    toast.add({
-      title: t('llm.error'),
-      description: t('llm.errorMessage'),
-      color: 'error',
-    });
   }
 }
 
 function handleSkip() {
   // Skip chat — use context as source text
   const contextText = makeContextPromptBlock(contextTags.value).trim()
-  if (!contextText) return
+  if (!contextText) {
+    toast.add({
+      title: t('llm.error'),
+      description: t('llm.contextTruncation'),
+      color: 'error',
+    })
+    return
+  }
 
   step.value = 2
   pubSelectedFields.content = false
@@ -443,57 +506,24 @@ async function handleFieldsGeneration(sourceText: string) {
       
       fieldsResult.value = response
     } else {
-       toast.add({
+      const errType = llmError.value?.type
+      const description =
+        errType === LlmErrorType.RATE_LIMIT
+          ? t('llm.rateLimitError', 'Too many requests. Please try again later.')
+          : errType === LlmErrorType.TIMEOUT
+            ? t('llm.timeoutError', 'Request timed out. Try reducing context or retry.')
+            : errType === LlmErrorType.ABORTED
+              ? t('llm.aborted', 'Request was stopped.')
+              : t('llm.errorMessage')
+
+      toast.add({
         title: t('llm.error'),
-        description: t('llm.errorMessage'),
+        description,
         color: 'error',
       });
     }
   } finally {
     isExtracting.value = false
-  }
-}
-
-async function handleVoiceRecording() {
-  if (isRecording.value) {
-    const audioBlob = await stopRecording()
-    
-    if (!audioBlob) {
-      toast.add({
-        title: t('llm.recordingError'),
-        color: 'error',
-      })
-      return
-    }
-
-    const text = await transcribeAudio(audioBlob, user.value?.language)
-    
-    if (text) {
-      if (prompt.value && !prompt.value.endsWith('\n')) {
-        prompt.value += '\n\n'
-      }
-      prompt.value += text
-      
-      toast.add({
-        title: t('llm.transcriptionSuccess', 'Transcription successful'),
-        color: 'success',
-      })
-    } else {
-      toast.add({
-        title: t('llm.transcriptionError'),
-        description: sttError.value || t('llm.errorMessage'),
-        color: 'error',
-      })
-    }
-  } else {
-    const success = await startRecording()
-    
-    if (!success) {
-      toast.add({
-        title: t('llm.recordingError'),
-        color: 'error',
-      })
-    }
   }
 }
 
@@ -691,6 +721,16 @@ async function handleResetChat() {
       <!-- STEP 1: CHAT -->
       <template v-if="step === 1">
 
+        <UAlert
+          v-if="contextStats.isTruncated"
+          color="warning"
+          variant="soft"
+          icon="i-heroicons-exclamation-triangle"
+          :title="t('llm.contextTruncatedTitle', 'Context was truncated')"
+          :description="t('llm.contextTruncatedDesc', { used: contextStats.usedChars, total: contextStats.totalChars, limit: contextStats.limitChars })"
+          class="mb-4"
+        />
+
         <div v-if="contextTags.length > 0" class="mb-4">
           <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
             <div class="flex flex-wrap gap-2">
@@ -828,6 +868,14 @@ async function handleResetChat() {
               />
             </UTooltip>
             <UButton
+              v-if="isGenerating"
+              icon="i-heroicons-stop"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="handleStop"
+            />
+            <UButton
               icon="i-heroicons-paper-airplane"
               color="primary"
               variant="solid"
@@ -855,6 +903,14 @@ async function handleResetChat() {
 
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
            <UiLoadingSpinner size="lg" color="primary" :label="t('llm.processingParameters')" centered />
+           <UButton
+             color="neutral"
+             variant="outline"
+             icon="i-heroicons-stop"
+             @click="handleStop"
+           >
+             {{ t('common.stop', 'Stop') }}
+           </UButton>
         </div>
         
         <div v-else-if="fieldsResult" class="space-y-6 max-h-[60vh] overflow-y-auto pr-1">

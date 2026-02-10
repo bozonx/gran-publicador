@@ -3,6 +3,7 @@ import { logger } from '~/utils/logger';
 export interface ApiOptions {
   headers?: Record<string, string>;
   onUploadProgress?: (progress: number) => void;
+  signal?: AbortSignal;
   [key: string]: any;
 }
 
@@ -234,6 +235,10 @@ export const useApi = () => {
         headers,
       });
     } catch (error: any) {
+      if (isAbortError(error) || isAbortError(error?.cause)) {
+        throw createApiError('Request aborted', { status: 0 });
+      }
+
       if (isTimeoutError(error)) {
         throw createApiError('Request timeout', { status: 0 });
       }
@@ -271,5 +276,6 @@ export const useApi = () => {
       request<T>(url, { ...options, method: 'PUT', body }),
     delete: <T>(url: string, options: ApiOptions = {}) =>
       request<T>(url, { ...options, method: 'DELETE' }),
+    createAbortController: () => new AbortController(),
   };
 };

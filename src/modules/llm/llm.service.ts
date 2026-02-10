@@ -1,4 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  Logger,
+  RequestTimeoutException,
+  TooManyRequestsException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { request } from 'undici';
 import { LlmConfig } from '../../config/llm.config.js';
@@ -56,6 +62,147 @@ export class LlmService {
 
   private readonly defaultContextLimitChars = 10000;
 
+  private getChatCompletionsUrl(): string {
+    return `${this.config.serviceUrl}/chat/completions`;
+  }
+
+  private getRequestTimeoutMs(): number {
+    return (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
+  }
+
+  private async callLlmRouter(requestBody: Record<string, any>, logContext: Record<string, any>) {
+    const url = this.getChatCompletionsUrl();
+    const timeout = this.getRequestTimeoutMs();
+
+    this.logger.debug(`Sending request to LLM Router: ${url}`);
+
+    try {
+      const response = await request(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
+        },
+        body: JSON.stringify(requestBody),
+        headersTimeout: timeout,
+        bodyTimeout: timeout,
+      });
+
+      if (response.statusCode >= 400) {
+        const errorText = await response.body.text();
+        const errorPreview = String(errorText || '').slice(0, 500);
+
+        this.logger.error(
+          `LLM Router error ${response.statusCode}. Context=${JSON.stringify({
+            ...logContext,
+            errorPreview,
+          })}`,
+        );
+
+        if (response.statusCode === 429) {
+          throw new TooManyRequestsException('LLM rate limit exceeded');
+        }
+
+        throw new BadGatewayException('LLM provider request failed');
+      }
+
+      const data = (await response.body.json()) as LlmResponse;
+      if (!data.choices || data.choices.length === 0) {
+        this.logger.error(
+          `LLM Router returned empty choices. Context=${JSON.stringify({
+            ...logContext,
+            model: data.model,
+            router: data._router,
+          })}`,
+        );
+        throw new BadGatewayException('LLM provider returned empty response');
+      }
+
+      this.logger.debug(
+        `LLM Router success: ${data.model} (fallback: ${data._router?.fallback_used})`,
+      );
+
+      return data;
+    } catch (error: any) {
+      if (error instanceof TooManyRequestsException) throw error;
+      if (error instanceof BadGatewayException) throw error;
+
+      const message = String(error?.message || 'Unknown error');
+      const isTimeout = message.toLowerCase().includes('timeout');
+
+      this.logger.error(
+        `LLM Router request failed. Context=${JSON.stringify({
+          ...logContext,
+          errorName: error?.name,
+          errorMessage: message,
+        })}`,
+      );
+
+      if (isTimeout) {
+        throw new RequestTimeoutException('LLM provider request timed out');
+      }
+
+      throw new BadGatewayException('LLM provider request failed');
+    }
+  }
+
+  private stripCodeFences(text: string): string {
+    return String(text || '')
+      .replace(/```(?:json)?\n?|\n?```/g, '')
+      .trim();
+  }
+
+  private tryExtractFirstJsonObject(text: string): string | null {
+    const s = String(text || '');
+    const start = s.indexOf('{');
+    if (start < 0) return null;
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < s.length; i += 1) {
+      const ch = s[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (ch === '{') depth += 1;
+      if (ch === '}') depth -= 1;
+      if (depth === 0) {
+        return s.slice(start, i + 1);
+      }
+    }
+
+    return null;
+  }
+
+  private parseJsonFromLlmContent(content: string): any {
+    const clean = this.stripCodeFences(content);
+    try {
+      return JSON.parse(clean);
+    } catch {
+      const extracted = this.tryExtractFirstJsonObject(clean);
+      if (!extracted) {
+        throw new BadGatewayException('LLM returned invalid JSON');
+      }
+      try {
+        return JSON.parse(extracted);
+      } catch {
+        throw new BadGatewayException('LLM returned invalid JSON');
+      }
+    }
+  }
+
   public async generateChat(
     messages: Array<{ role: string; content: string }>,
     options: {
@@ -66,8 +213,6 @@ export class LlmService {
       type?: string;
     } = {},
   ): Promise<LlmResponse> {
-    const url = `${this.config.serviceUrl}/chat/completions`;
-
     const requestBody = {
       messages,
       temperature: options.temperature ?? this.config.temperature,
@@ -87,41 +232,13 @@ export class LlmService {
       }),
     };
 
-    this.logger.debug(`Sending request to LLM Router: ${url}`);
-
-    try {
-      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
-      const response = await request(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
-        },
-        body: JSON.stringify(requestBody),
-        headersTimeout: timeout,
-        bodyTimeout: timeout,
-      });
-
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
-      }
-
-      const data = (await response.body.json()) as LlmResponse;
-
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('LLM Router returned empty choices array');
-      }
-
-      this.logger.debug(
-        `LLM Router success: ${data.model} (fallback: ${data._router?.fallback_used})`,
-      );
-
-      return data;
-    } catch (error: any) {
-      this.logger.error(`Failed to generate content: ${error.message}`);
-      throw error;
-    }
+    return this.callLlmRouter(requestBody, {
+      method: 'generateChat',
+      hasMessages: Array.isArray(messages) && messages.length > 0,
+      model: options.model,
+      tags: options.tags,
+      type: options.type,
+    });
   }
 
   /**
@@ -139,8 +256,6 @@ export class LlmService {
    * Relies on the external microservice for retries and limit management.
    */
   async generateContent(dto: GenerateContentDto): Promise<LlmResponse> {
-    const url = `${this.config.serviceUrl}/chat/completions`;
-
     // Build full prompt with context if provided
     const fullPrompt = this.buildFullPrompt(dto);
 
@@ -179,42 +294,16 @@ export class LlmService {
       }),
     };
 
-    this.logger.debug(`Sending request to LLM Router: ${url}`);
-
-    try {
-      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
-      const response = await request(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
-        },
-        body: JSON.stringify(requestBody),
-        headersTimeout: timeout,
-        bodyTimeout: timeout,
-      });
-
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
-      }
-
-      const data = (await response.body.json()) as LlmResponse;
-
-      // Validate response structure
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('LLM Router returned empty choices array');
-      }
-
-      this.logger.debug(
-        `LLM Router success: ${data.model} (fallback: ${data._router?.fallback_used})`,
-      );
-
-      return data;
-    } catch (error: any) {
-      this.logger.error(`Failed to generate content: ${error.message}`);
-      throw error;
-    }
+    return this.callLlmRouter(requestBody, {
+      method: 'generateContent',
+      model: dto.model,
+      tags: dto.tags,
+      onlyRawResult: dto.onlyRawResult,
+      contextLimitChars: dto.contextLimitChars,
+      hasSelection: Boolean(dto.selectionText?.trim()),
+      hasContent: Boolean(dto.content?.trim()),
+      mediaCount: Array.isArray(dto.mediaDescriptions) ? dto.mediaDescriptions.length : 0,
+    });
   }
 
   /**
@@ -228,8 +317,6 @@ export class LlmService {
    * Extract publication parameters (title, description, tags, content) from text using LLM.
    */
   async extractParameters(dto: GenerateContentDto): Promise<LlmResponse> {
-    const url = `${this.config.serviceUrl}/chat/completions`;
-
     const fullPrompt = this.buildFullPrompt(dto);
 
     const requestBody = {
@@ -261,45 +348,18 @@ export class LlmService {
       }),
     };
 
-    this.logger.debug(`Sending extraction request to LLM Router: ${url}`);
-
-    try {
-      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
-      const response = await request(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
-        },
-        body: JSON.stringify(requestBody),
-        headersTimeout: timeout,
-        bodyTimeout: timeout,
-      });
-
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
-      }
-
-      const data = (await response.body.json()) as LlmResponse;
-
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('LLM Router returned empty choices array');
-      }
-
-      return data;
-    } catch (error: any) {
-      this.logger.error(`Failed to extract parameters: ${error.message}`);
-      throw error;
-    }
+    return this.callLlmRouter(requestBody, {
+      method: 'extractParameters',
+      model: dto.model,
+      tags: dto.tags,
+      contextLimitChars: dto.contextLimitChars,
+    });
   }
 
   /**
    * Generate publication fields and per-channel post fields using LLM.
    */
   async generatePublicationFields(dto: GeneratePublicationFieldsDto): Promise<LlmResponse> {
-    const url = `${this.config.serviceUrl}/chat/completions`;
-
     const channelsForPrompt = dto.channels.map((ch: ChannelInfoDto) => {
       const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0;
       return {
@@ -347,37 +407,13 @@ export class LlmService {
       }),
     };
 
-    this.logger.debug(`Sending publication fields request to LLM Router: ${url}`);
-
-    try {
-      const timeout = (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
-      const response = await request(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
-        },
-        body: JSON.stringify(requestBody),
-        headersTimeout: timeout,
-        bodyTimeout: timeout,
-      });
-
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        throw new Error(`LLM Router returned ${response.statusCode}: ${errorText}`);
-      }
-
-      const data = (await response.body.json()) as LlmResponse;
-
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('LLM Router returned empty choices array');
-      }
-
-      return data;
-    } catch (error: any) {
-      this.logger.error(`Failed to generate publication fields: ${error.message}`);
-      throw error;
-    }
+    return this.callLlmRouter(requestBody, {
+      method: 'generatePublicationFields',
+      model: dto.model,
+      tags: dto.tags,
+      channelsCount: Array.isArray(dto.channels) ? dto.channels.length : 0,
+      publicationLanguage: dto.publicationLanguage,
+    });
   }
 
   /**
@@ -437,18 +473,8 @@ export class LlmService {
     posts: Array<{ channelId: string; content: string; tags: string[] }>;
   } {
     const content = this.extractContent(response);
-    const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
 
-    let parsed: any;
-    try {
-      parsed = JSON.parse(cleanJson);
-    } catch (e: any) {
-      this.logger.error(`Failed to parse publication fields JSON: ${e.message}`);
-      return {
-        publication: { title: '', description: '', content: '', tags: [] },
-        posts: [],
-      };
-    }
+    const parsed = this.parseJsonFromLlmContent(content);
 
     const pub = parsed.publication || {};
     const posts = Array.isArray(parsed.posts) ? parsed.posts : [];

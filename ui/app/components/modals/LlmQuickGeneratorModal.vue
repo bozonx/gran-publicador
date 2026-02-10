@@ -5,6 +5,7 @@ import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
 import type { MediaItem } from '~/composables/useMedia'
 import { DialogTitle } from 'reka-ui'
+import { LlmErrorType } from '~/composables/useLlm'
 
 interface LlmContextTag {
   id: string
@@ -30,7 +31,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
-const { generateContent, isGenerating, estimateTokens } = useLlm()
+const { generateContent, isGenerating, estimateTokens, stop, error: llmError } = useLlm()
 
 const isOpen = defineModel<boolean>('open', { required: true })
 const prompt = ref('')
@@ -184,9 +185,19 @@ async function handleGenerate() {
     emit('apply', response.content)
     isOpen.value = false
   } else {
+    const errType = llmError.value?.type
+    const description =
+      errType === LlmErrorType.RATE_LIMIT
+        ? t('llm.rateLimitError', 'Too many requests. Please try again later.')
+        : errType === LlmErrorType.TIMEOUT
+          ? t('llm.timeoutError', 'Request timed out. Try reducing context or retry.')
+          : errType === LlmErrorType.ABORTED
+            ? t('llm.aborted', 'Request was stopped.')
+            : t('llm.errorMessage')
+
     toast.add({
       title: t('llm.error'),
-      description: t('llm.errorMessage'),
+      description,
       color: 'error',
     })
   }
@@ -279,6 +290,15 @@ async function handleGenerate() {
             @click="isOpen = false"
           >
             {{ t('common.cancel') }}
+          </UButton>
+          <UButton
+            v-if="isGenerating"
+            color="neutral"
+            variant="outline"
+            icon="i-heroicons-stop"
+            @click="stop"
+          >
+            {{ t('common.stop', 'Stop') }}
           </UButton>
           <UButton
             color="primary"

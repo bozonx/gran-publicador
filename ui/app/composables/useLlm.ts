@@ -73,6 +73,7 @@ export interface GeneratePublicationFieldsOptions {
 export enum LlmErrorType {
   NETWORK = 'network',
   TIMEOUT = 'timeout',
+  ABORTED = 'aborted',
   SERVER = 'server',
   RATE_LIMIT = 'rate_limit',
   UNKNOWN = 'unknown',
@@ -85,15 +86,27 @@ export interface LlmError {
 }
 
 export function useLlm() {
-  const { post } = useApi();
+  const api = useApi();
+  const { post } = api;
   const isGenerating = ref(false);
   const error = ref<LlmError | null>(null);
+  const isAborted = ref(false);
+
+  const activeController = ref<AbortController | null>(null);
 
   /**
    * Determines the error type from the error object.
    */
   function getErrorType(err: any): LlmErrorType {
     if (!err) return LlmErrorType.UNKNOWN;
+
+    if (
+      String(err.message || '')
+        .toLowerCase()
+        .includes('aborted')
+    ) {
+      return LlmErrorType.ABORTED;
+    }
 
     // Network errors
     if (err.name === 'NetworkError' || err.message?.includes('network')) {
@@ -128,17 +141,28 @@ export function useLlm() {
   ): Promise<LlmResponse | null> {
     isGenerating.value = true;
     error.value = null;
+    isAborted.value = false;
+    activeController.value?.abort();
+    activeController.value = api.createAbortController();
 
     try {
-      const response = await post<LlmResponse>('/llm/generate', {
-        prompt,
-        ...options,
-      });
+      const response = await post<LlmResponse>(
+        '/llm/generate',
+        {
+          prompt,
+          ...options,
+        },
+        { signal: activeController.value.signal },
+      );
 
       return response;
     } catch (err: any) {
       const errorType = getErrorType(err);
       const msg = err.data?.message || err.message || 'Failed to generate content';
+
+      if (errorType === LlmErrorType.ABORTED) {
+        isAborted.value = true;
+      }
 
       error.value = {
         type: errorType,
@@ -150,6 +174,7 @@ export function useLlm() {
       return null;
     } finally {
       isGenerating.value = false;
+      activeController.value = null;
     }
   }
 
@@ -171,16 +196,27 @@ export function useLlm() {
   ): Promise<LlmExtractResponse | null> {
     isGenerating.value = true;
     error.value = null;
+    isAborted.value = false;
+    activeController.value?.abort();
+    activeController.value = api.createAbortController();
 
     try {
-      const response = await post<LlmExtractResponse>('/llm/extract-parameters', {
-        prompt,
-        ...options,
-      });
+      const response = await post<LlmExtractResponse>(
+        '/llm/extract-parameters',
+        {
+          prompt,
+          ...options,
+        },
+        { signal: activeController.value.signal },
+      );
       return response;
     } catch (err: any) {
       const errorType = getErrorType(err);
       const msg = err.data?.message || err.message || 'Failed to extract parameters';
+
+      if (errorType === LlmErrorType.ABORTED) {
+        isAborted.value = true;
+      }
 
       error.value = {
         type: errorType,
@@ -190,6 +226,7 @@ export function useLlm() {
       return null;
     } finally {
       isGenerating.value = false;
+      activeController.value = null;
     }
   }
 
@@ -204,18 +241,29 @@ export function useLlm() {
   ): Promise<LlmPublicationFieldsResult | null> {
     isGenerating.value = true;
     error.value = null;
+    isAborted.value = false;
+    activeController.value?.abort();
+    activeController.value = api.createAbortController();
 
     try {
-      const response = await post<LlmPublicationFieldsResult>('/llm/generate-publication-fields', {
-        prompt,
-        publicationLanguage,
-        channels,
-        ...options,
-      });
+      const response = await post<LlmPublicationFieldsResult>(
+        '/llm/generate-publication-fields',
+        {
+          prompt,
+          publicationLanguage,
+          channels,
+          ...options,
+        },
+        { signal: activeController.value.signal },
+      );
       return response;
     } catch (err: any) {
       const errorType = getErrorType(err);
       const msg = err.data?.message || err.message || 'Failed to generate publication fields';
+
+      if (errorType === LlmErrorType.ABORTED) {
+        isAborted.value = true;
+      }
 
       error.value = {
         type: errorType,
@@ -225,15 +273,22 @@ export function useLlm() {
       return null;
     } finally {
       isGenerating.value = false;
+      activeController.value = null;
     }
+  }
+
+  function stop() {
+    activeController.value?.abort();
   }
 
   return {
     isGenerating,
     error,
+    isAborted,
     generateContent,
     extractParameters,
     generatePublicationFields,
     estimateTokens,
+    stop,
   };
 }

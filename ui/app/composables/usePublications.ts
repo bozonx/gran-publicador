@@ -253,10 +253,12 @@ export function usePublications() {
   async function publicationLlmChat(
     publicationId: string,
     payload: PublicationLlmChatInput,
+    options: Parameters<typeof api.post>[2] = {},
   ): Promise<PublicationLlmChatResponse> {
     return await api.post<PublicationLlmChatResponse>(
       `/publications/${publicationId}/llm/chat`,
       payload,
+      options,
     );
   }
 
