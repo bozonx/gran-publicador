@@ -16,6 +16,9 @@ import { IssueType, OwnershipType } from '../../src/modules/publications/dto/ind
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PostSnapshotBuilderService } from '../../src/modules/social-posting/post-snapshot-builder.service.js';
 import { PUBLICATION_CHAT_SYSTEM_PROMPT } from '../../src/modules/llm/constants/llm.constants.js';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { CreatePublicationDto } from '../../src/modules/publications/dto/create-publication.dto.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -244,6 +247,18 @@ describe('PublicationsService (unit)', () => {
   });
 
   describe('create', () => {
+    it('should require projectTemplateId in CreatePublicationDto validation', async () => {
+      const dto = plainToInstance(CreatePublicationDto, {
+        projectId: 'b3f1c1a1-1111-4d11-8111-111111111111',
+        language: 'en-US',
+      });
+
+      const errors = await validate(dto);
+      const templateErrors = errors.find(e => e.property === 'projectTemplateId');
+
+      expect(templateErrors).toBeTruthy();
+    });
+
     it('should create a publication when user has access to project', async () => {
       const userId = 'user-1';
       const projectId = 'project-1';
@@ -254,6 +269,7 @@ describe('PublicationsService (unit)', () => {
         tags: 'test,demo',
         status: PublicationStatus.DRAFT,
         language: 'ru-RU',
+        projectTemplateId: 'b3f1c1a1-1111-4d11-8111-111111111111',
       };
 
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
@@ -298,6 +314,7 @@ describe('PublicationsService (unit)', () => {
         content: 'Content',
         language: 'en-US',
         channelIds: ['ch-en', 'ch-ru'],
+        projectTemplateId: 'b3f1c1a1-1111-4d11-8111-111111111111',
       };
 
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);

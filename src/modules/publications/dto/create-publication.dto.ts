@@ -156,6 +156,6 @@ export class CreatePublicationDto {
   public authorSignatureOverrides?: Record<string, string>;
 
   @IsUUID()
-  @IsOptional()
-  public projectTemplateId?: string;
+  @IsNotEmpty()
+  public projectTemplateId!: string;
 }

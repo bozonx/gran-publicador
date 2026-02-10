@@ -288,6 +288,14 @@ const templateOptions = computed(() => {
   }))
 })
 
+const hasTemplateOptions = computed(() => templateOptions.value.length > 0)
+
+const canSubmit = computed(() => {
+  if (!formData.projectId) return false
+  if (!hasTemplateOptions.value) return false
+  return Boolean(formData.projectTemplateId)
+})
+
 watch([
   () => formData.language,
   () => formData.projectId,
@@ -323,6 +331,19 @@ function toggleChannel(channelId: string) {
 // Handle form submission
 async function handleCreate() {
   try {
+    if (!canSubmit.value) {
+      const toast = useToast()
+      toast.add({
+        title: t('common.error'),
+        description: t(
+          'publication.createModal.templateRequired',
+          'You must select a publication template before creating a publication',
+        ),
+        color: 'error',
+      })
+      return
+    }
+
     const createData = {
       projectId: formData.projectId,
       language: formData.language,
@@ -413,10 +434,9 @@ function handleClose() {
       </UFormField>
 
       <!-- Advanced Configuration (Templates & Signatures) -->
-      <div v-if="formData.projectId && (templateOptions.length > 0 || signatureOptions.length > 0)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div v-if="formData.projectId" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <!-- Publication Template Selection -->
         <UFormField
-          v-if="templateOptions.length > 0"
           :label="t('projectTemplates.title', 'Publication Template')"
         >
           <USelectMenu
@@ -426,7 +446,11 @@ function handleClose() {
             label-key="label"
             class="w-full"
             icon="i-heroicons-squares-plus"
+            :disabled="!hasTemplateOptions"
           />
+          <div v-if="!hasTemplateOptions" class="text-sm text-gray-500 dark:text-gray-400 italic mt-2">
+            {{ t('projectTemplates.noTemplatesForLanguage', 'No templates available for this language. Create a template or remove language restriction.') }}
+          </div>
         </UFormField>
 
         <!-- Author Signature Selection -->
@@ -496,6 +520,7 @@ function handleClose() {
         type="submit"
         color="primary"
         :loading="isLoading"
+        :disabled="isLoading || !canSubmit"
         form="create-publication-form"
       >
         {{ t('common.create') }}
