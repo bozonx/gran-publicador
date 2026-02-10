@@ -237,8 +237,9 @@ export class LlmService {
       return {
         channelId: ch.channelId,
         channelName: ch.channelName,
+        socialMedia: ch.socialMedia,
         tags: ch.tags || [],
-        generateTags: hasChannelTags,
+        generateTags: true, // Always generate tags for each social network
       };
     });
 

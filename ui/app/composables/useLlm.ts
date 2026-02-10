@@ -59,6 +59,7 @@ export interface ChannelInfoForLlm {
   channelId: string;
   channelName: string;
   language: string;
+  socialMedia?: string;
   tags?: string[];
 }
 

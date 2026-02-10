@@ -34,6 +34,11 @@ export class ChannelInfoDto {
   language!: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  socialMedia?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)

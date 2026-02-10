@@ -53,19 +53,24 @@ Rules for the "publication" block (generate in the publication language):
 2. "description": a concise summary (1-2 sentences) for SEO or social media preview.
 3. "content": the main text — extract only useful content, removing conversational fillers, introductions, and meta-phrases like "Here is the content:".
 4. "tags": up to 10 relevant tags WITHOUT the # symbol, ordered by relevance (most relevant first).
+   Format: lowercase, selected language, comma-separated, space as word separator.
 
 Rules for each "posts" entry:
-1. Only include a post entry if "generateTags" is true for that channel.
-2. If "generateTags" is true:
-   a. If the channel has predefined "tags", you MUST use them letter-for-letter when they are relevant to the content. Place matching channel tags first, then add extra relevant tags ordered by relevance.
-   b. If the channel has no predefined "tags", generate up to 10 relevant tags in the publication language, ordered by relevance.
-   c. If false, set "tags" to an empty array.
+1. ALWAYS include tags for each channel (generateTags is always considered true).
+2. Consider the specific social network ("socialMedia") when generating tags.
+3. Tag format: ALWAYS lowercase, in the publication language, comma-separated, space as word separator (e.g., "fast food, burger king, yummy").
+4. If the channel has predefined "tags":
+   a. If the meaning matches, you MUST use the channel's tags letter-for-letter (case-insensitive for comparison, but use the channel's exact casing if different, though output should be lowercase as per rule 3).
+   b. Add other relevant tags that are not in the channel list but fit the context.
+   c. RELEVANCE TO CONTEXT IS MORE IMPORTANT than just listing all channel tags. Use channel tags only if they are genuinely relevant.
+5. If the channel has no predefined "tags", generate up to 10 relevant tags based on the content and social network.
 
 General rules:
 1. Return ONLY the JSON object. No markdown, no backticks, no extra text.
 2. Tags must never include the # symbol.
 3. If a field cannot be generated, use an empty string for text fields or an empty array for tag fields.
-4. Preserve the original meaning and tone when translating content across languages.`;
+4. Preserve the original meaning and tone when translating content across languages.
+5. All tags in the JSON arrays must be lowercase strings.`;
 
 /**
  * System prompt to force the LLM to return only the requested result without any extra text.

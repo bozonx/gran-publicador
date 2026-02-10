@@ -403,6 +403,7 @@ async function handleFieldsGeneration(sourceText: string) {
       channelId: ch.channelId,
       channelName: ch.channelName,
       language: ch.language,
+      socialMedia: ch.socialMedia,
       tags: ch.tags,
     }))
 
