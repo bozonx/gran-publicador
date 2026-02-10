@@ -3,6 +3,8 @@ import { VueDraggable } from 'vue-draggable-plus'
 import type { ProjectTemplate, TemplateBlock, ChannelTemplateVariation, BlockOverride, ChannelWithProject } from '~/types/channels'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import CommonInfoTooltip from '~/components/common/CommonInfoTooltip.vue'
+import { getSocialMediaIcon } from '~/utils/socialMedia'
+import AppTabs from '~/components/ui/AppTabs.vue'
 
 interface Props {
   projectId: string
@@ -24,7 +26,7 @@ const {
   reorderProjectTemplates,
 } = useProjectTemplates()
 
-const { channels, fetchChannels } = useChannels()
+const { fetchChannels } = useChannels()
 const { languageOptions } = useLanguages()
 
 const insertOptions = [
@@ -109,6 +111,7 @@ const tabItems = computed(() => {
     items.push({
       value: ch.id,
       label: ch.name + (isExcluded ? ` (${t('common.disabled')})` : ''),
+      icon: getSocialMediaIcon(ch.socialMedia),
     })
   })
   return items
@@ -252,6 +255,18 @@ async function saveChannelOverrides(channelId: string) {
         templates: updatedVariations,
       },
     })
+
+    // Keep local state in sync so switching tabs / reopening modal reflects saved data
+    const chIdx = projectChannels.value.findIndex(ch => ch.id === channelId)
+    if (chIdx !== -1) {
+      projectChannels.value[chIdx] = {
+        ...projectChannels.value[chIdx]!,
+        preferences: {
+          ...currentPrefs,
+          templates: updatedVariations,
+        },
+      }
+    }
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
@@ -451,11 +466,28 @@ const enabledBlocks = computed(() => {
 
       <div class="space-y-4">
         <!-- Tabs -->
-        <UTabs
+        <AppTabs
+          :items="tabItems.map(i => ({ id: i.value, label: i.label, icon: i.icon }))"
           :model-value="activeTab"
-          :items="tabItems"
           @update:model-value="activeTab = $event as string"
-        />
+        >
+          <template #tab="{ item, selected, select }">
+            <UTooltip :text="item.label">
+              <UButton
+                :variant="selected ? 'soft' : 'ghost'"
+                :color="selected ? 'primary' : 'neutral'"
+                size="sm"
+                class="transition-all duration-200"
+                @click="select"
+              >
+                <template v-if="item.icon" #leading>
+                  <UIcon :name="item.icon" class="w-4 h-4" />
+                </template>
+                <span v-if="item.id === 'project'">{{ item.label }}</span>
+              </UButton>
+            </UTooltip>
+          </template>
+        </AppTabs>
 
         <!-- Project Tab -->
         <div v-if="activeTab === 'project'" class="space-y-6">
@@ -470,20 +502,20 @@ const enabledBlocks = computed(() => {
             </UFormField>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <UFormField :label="t('post.postType')">
+              <UFormField :label="t('projectTemplates.language')">
                 <USelectMenu
-                  v-model="templateForm.postType"
-                  :items="postTypeOptions"
+                  v-model="templateForm.language"
+                  :items="languageOptions"
                   value-key="value"
                   label-key="label"
                   class="w-full"
                 />
               </UFormField>
 
-              <UFormField :label="t('projectTemplates.language')">
+              <UFormField :label="t('post.postType')">
                 <USelectMenu
-                  v-model="templateForm.language"
-                  :items="languageOptions"
+                  v-model="templateForm.postType"
+                  :items="postTypeOptions"
                   value-key="value"
                   label-key="label"
                   class="w-full"
@@ -540,17 +572,6 @@ const enabledBlocks = computed(() => {
             </VueDraggable>
           </div>
 
-          <!-- Delete button -->
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-            <UButton
-              color="error"
-              variant="ghost"
-              icon="i-heroicons-trash"
-              @click="handleDeleteRequest(templateForm.id)"
-            >
-              {{ t('common.delete') }}
-            </UButton>
-          </div>
         </div>
 
         <!-- Channel Tab -->
@@ -664,7 +685,18 @@ const enabledBlocks = computed(() => {
       </div>
 
       <template #footer>
-        <div class="flex items-center justify-end w-full">
+        <div class="flex items-center justify-between w-full">
+          <div>
+            <UButton
+              v-if="templateForm.id"
+              color="error"
+              variant="ghost"
+              icon="i-heroicons-trash"
+              @click="handleDeleteRequest(templateForm.id)"
+            >
+              {{ t('common.delete') }}
+            </UButton>
+          </div>
           <UButton
             color="primary"
             @click="handleCloseModal"
