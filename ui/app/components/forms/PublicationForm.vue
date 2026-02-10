@@ -324,7 +324,6 @@ async function performSubmit(data: PublicationFormData) {
       authorComment: data.authorComment || null,
       note: data.note || null,
       tags: data.tags || null,
-      language: data.language,
       postType: data.postType,
       meta: data.meta || {},
       postDate: data.postDate ? new Date(data.postDate).toISOString() : null,
@@ -375,6 +374,7 @@ async function performSubmit(data: PublicationFormData) {
       const createData = {
         ...commonData,
         projectId: currentProjectId.value!,
+        language: data.language,
         status: data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : data.status,
         projectTemplateId: data.projectTemplateId || null,
       }

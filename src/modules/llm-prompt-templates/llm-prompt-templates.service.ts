@@ -295,7 +295,7 @@ export class LlmPromptTemplatesService {
       where: { id },
       data: {
         ...updateDto,
-        name: updateDto.name !== undefined ? (updateDto.name?.trim() || null) : undefined,
+        name: updateDto.name !== undefined ? updateDto.name?.trim() || null : undefined,
       },
     });
   }

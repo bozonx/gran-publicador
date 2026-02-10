@@ -1175,7 +1175,7 @@ export class PublicationsService {
         },
       });
 
-      if (!signature || signature.projectId !== publication.projectId) {
+      if (signature?.projectId !== publication.projectId) {
         throw new ForbiddenException('You do not have permission to use this signature');
       }
 
