@@ -971,7 +971,7 @@ async function confirmResetChat() {
             </UTooltip>
             <UButton
               v-if="isChatGenerating"
-              icon="i-heroicons-stop"
+              icon="i-heroicons-x-mark"
               color="neutral"
               variant="solid"
               size="sm"
@@ -1009,10 +1009,10 @@ async function confirmResetChat() {
            <UButton
              color="neutral"
              variant="outline"
-             icon="i-heroicons-stop"
+             icon="i-heroicons-x-mark"
              @click="handleStop"
            >
-             {{ t('common.stop', 'Stop') }}
+             {{ t('common.cancel') }}
            </UButton>
         </div>
         
