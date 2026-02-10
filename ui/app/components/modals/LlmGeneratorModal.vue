@@ -401,6 +401,7 @@ watch(isOpen, async (open) => {
     metadata.value = null
     contextTags.value = []
     isTemplatePickerOpen.value = false
+    isResetChatConfirmOpen.value = false
     pubSelectedFields.content = false
     isApplying.value = false
     postSelectedFields.value = {}
@@ -759,13 +760,15 @@ async function confirmResetChat() {
       await updatePublication(publicationId, {
         meta: {
           ...publicationMeta,
-          llmPublicationContentGenerationChat: undefined,
+          llmPublicationContentGenerationChat: null,
         },
       })
     } catch (error) {
       console.error('Failed to clear chat meta:', error)
     }
   }
+
+  isResetChatConfirmOpen.value = false
 
   isOpen.value = false
   emit('close')
@@ -1054,8 +1057,8 @@ async function confirmResetChat() {
                <div class="p-4 space-y-4">
                  <!-- Post Tags -->
                  <div v-if="(getPostResult(ch.channelId)?.tags?.length ?? 0) > 0" class="space-y-1.5">
-                   <UCheckbox v-model="postSelectedFields[ch.channelId].tags" :label="t('post.tags')" />
-                   <div v-if="postSelectedFields[ch.channelId].tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-9">
+                   <UCheckbox v-model="postSelectedFields[ch.channelId]!.tags" :label="t('post.tags')" />
+                   <div v-if="postSelectedFields[ch.channelId]!.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-9">
                      <UButton
                        v-for="tag in getPostResult(ch.channelId)!.tags"
                        :key="tag"

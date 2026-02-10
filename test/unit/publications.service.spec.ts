@@ -186,10 +186,7 @@ describe('PublicationsService (unit)', () => {
 
       expect(capturedUpdateMeta.llmPublicationContentGenerationChat).toBeTruthy();
       expect(capturedUpdateMeta.llmPublicationContentGenerationChat.messages).toHaveLength(2);
-      expect(capturedUpdateMeta.llmPublicationContentGenerationChat.contextSnapshot).toBeTruthy();
-      expect(
-        Array.isArray(capturedUpdateMeta.llmPublicationContentGenerationChat.contextSnapshot),
-      ).toBe(true);
+      expect(capturedUpdateMeta.llmPublicationContentGenerationChat.context).toBeTruthy();
     });
 
     it('should not include context for subsequent messages and keep previous contextSnapshot', async () => {
@@ -202,14 +199,11 @@ describe('PublicationsService (unit)', () => {
             { role: 'user', content: 'Hello', contextSnapshot: [{ id: 'content:1' }] },
             { role: 'assistant', content: 'Hi' },
           ],
-          contextSnapshot: [
-            {
-              id: 'content:1',
-              label: 'Content',
-              promptText: '<source_content>...</source_content>',
-            },
-          ],
-          contextLimitChars: 10000,
+          context: {
+            content: 'Publication content',
+            mediaDescriptions: ['Image desc'],
+            contextLimitChars: 10000,
+          },
         },
       };
 
