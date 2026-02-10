@@ -273,12 +273,41 @@ const signatureOptions = computed(() => {
   })
 })
 
+// Filter templates by publication language
+const filteredProjectTemplates = computed(() => {
+  return projectTemplates.value.filter((tpl) => {
+    return !tpl.language || tpl.language === formData.language
+  })
+})
+
 // Template selector options
 const templateOptions = computed(() => {
-  return projectTemplates.value.map(tpl => ({
+  return filteredProjectTemplates.value.map(tpl => ({
     value: tpl.id,
     label: tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : ''),
   }))
+})
+
+watch([
+  () => formData.language,
+  () => formData.projectId,
+  () => projectTemplates.value.length,
+], () => {
+  if (!formData.projectId) return
+
+  if (
+    formData.projectTemplateId
+    && !filteredProjectTemplates.value.some(t => t.id === formData.projectTemplateId)
+  ) {
+    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+    formData.projectTemplateId = def?.id || ''
+    return
+  }
+
+  if (!formData.projectTemplateId && filteredProjectTemplates.value.length > 0) {
+    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+    formData.projectTemplateId = def?.id || ''
+  }
 })
 
 // Toggle channel selection
