@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useProjects } from '~/composables/useProjects'
 import { usePublications } from '~/composables/usePublications'
+import { useProjectTemplates } from '~/composables/useProjectTemplates'
 import { useChannels } from '~/composables/useChannels'
 import { usePosts } from '~/composables/usePosts'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
@@ -232,7 +233,10 @@ onMounted(async () => {
     }
     
     if (projectId.value) {
-        await fetchChannels({ projectId: projectId.value })
+        await Promise.all([
+          fetchChannels({ projectId: projectId.value }),
+          fetchProjectTemplates(projectId.value)
+        ])
     }
 })
 
@@ -242,7 +246,8 @@ watch(projectId, async (newId) => {
     if (newId) {
         await Promise.all([
             fetchChannels({ projectId: newId }),
-            fetchProject(newId)
+            fetchProject(newId),
+            fetchProjectTemplates(newId)
         ])
     }
 })
@@ -411,13 +416,17 @@ async function handleBulkSchedule() {
 // Language and Type Editing
 const { languageOptions } = useLanguages()
 const { typeOptions } = usePosts()
+const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
 
 const isTypeModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
+const isTemplateModalOpen = ref(false)
 const newPostType = ref<PostType>('POST')
 const newProjectId = ref<string | undefined>(undefined)
+const newTemplateId = ref<string | undefined>(undefined)
 const isUpdatingType = ref(false)
 const isUpdatingProject = ref(false)
+const isUpdatingTemplate = ref(false)
 const isCopyModalOpen = ref(false)
 const copyProjectId = ref<string | undefined>(undefined)
 const isCopying = ref(false)
@@ -455,6 +464,13 @@ const projectOptions = computed(() => {
         value: p.id,
         label: p.name
     }))
+})
+
+const filteredProjectTemplates = computed(() => {
+    const pubLang = currentPublication.value?.language
+    return projectTemplates.value.filter((tpl) => {
+        return !tpl.language || tpl.language === pubLang
+    })
 })
 
 const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
@@ -539,6 +555,32 @@ async function handleUpdateTypeOption(type: PostType) {
         })
     } finally {
         isUpdatingType.value = false
+    }
+}
+
+async function handleUpdateTemplate(templateId: string) {
+    if (!currentPublication.value) return
+    if (currentPublication.value.projectTemplateId === templateId) {
+        isTemplateModalOpen.value = false
+        return
+    }
+    newTemplateId.value = templateId
+    isUpdatingTemplate.value = true
+    try {
+        await updatePublication(currentPublication.value.id, {
+            projectTemplateId: templateId
+        })
+        isTemplateModalOpen.value = false
+        await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update template:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
+    } finally {
+        isUpdatingTemplate.value = false
     }
 }
 
@@ -866,6 +908,25 @@ async function executePublish(force: boolean) {
       </div>
     </UiAppModal>
 
+    <!-- Template Change Modal -->
+    <UiAppModal v-if="isTemplateModalOpen" v-model:open="isTemplateModalOpen" :title="t('projectTemplates.title', 'Publication Template')">
+      <div class="space-y-2">
+        <UButton
+          v-for="tpl in filteredProjectTemplates"
+          :key="tpl.id"
+          :label="tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : '')"
+          :variant="currentPublication?.projectTemplateId === tpl.id ? 'soft' : 'ghost'"
+          :color="currentPublication?.projectTemplateId === tpl.id ? 'primary' : 'neutral'"
+          class="w-full justify-start"
+          :loading="isUpdatingTemplate && newTemplateId === tpl.id"
+          @click="handleUpdateTemplate(tpl.id)"
+        />
+        <div v-if="filteredProjectTemplates.length === 0" class="text-center py-4 text-gray-500 text-sm italic">
+            {{ t('projectTemplates.noTemplates', 'No templates available for this language') }}
+        </div>
+      </div>
+    </UiAppModal>
+
     <!-- Project Change Modal -->
     <UiAppModal v-if="isProjectModalOpen" v-model:open="isProjectModalOpen" :title="t('publication.changeProject')">
       <UFormField :label="t('project.title')" required>
@@ -1011,37 +1072,53 @@ async function executePublish(force: boolean) {
                             </div>
                         </div>
 
-                        <!-- Project Selector (Moved down) -->
-                        <div>
-                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                {{ t('project.title') }}
+                        <!-- Project and Language Row -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Project Selector -->
+                            <div>
+                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                    {{ t('project.title') }}
+                                </div>
+                                <div v-if="currentPublication.projectId" class="flex items-center gap-2">
+                                    <UIcon name="i-heroicons-folder" class="w-5 h-5 text-gray-400" />
+                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate">
+                                        {{ currentPublication.project?.name || t('publication.personal_draft') }}
+                                    </span>
+                                    <UButton
+                                        v-if="!isLocked"
+                                        icon="i-heroicons-pencil-square"
+                                        variant="ghost"
+                                        color="neutral"
+                                        size="xs"
+                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                        @click="openProjectModal"
+                                    />
+                                </div>
+                                <div v-else>
+                                    <UButton
+                                        v-if="!isLocked"
+                                        icon="i-heroicons-folder"
+                                        variant="soft"
+                                        color="primary"
+                                        class="w-full justify-center shadow-sm"
+                                        @click="openProjectModal"
+                                    >
+                                        {{ t('publication.selectProject') }}
+                                    </UButton>
+                                </div>
                             </div>
-                            <div v-if="currentPublication.projectId" class="flex items-center gap-2">
-                                <UIcon name="i-heroicons-folder" class="w-5 h-5 text-gray-400" />
-                                <span class="text-gray-900 dark:text-white font-medium text-base">
-                                    {{ currentPublication.project?.name || t('publication.personal_draft') }}
-                                </span>
-                                <UButton
-                                    v-if="!isLocked"
-                                    icon="i-heroicons-pencil-square"
-                                    variant="ghost"
-                                    color="neutral"
-                                    size="xs"
-                                    class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                    @click="openProjectModal"
-                                />
-                            </div>
-                            <div v-else>
-                                <UButton
-                                    v-if="!isLocked"
-                                    icon="i-heroicons-folder"
-                                    variant="soft"
-                                    color="primary"
-                                    class="w-full justify-center shadow-sm"
-                                    @click="openProjectModal"
-                                >
-                                    {{ t('publication.selectProject') }}
-                                </UButton>
+
+                            <!-- Language -->
+                            <div>
+                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                    {{ t('common.language') }}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
+                                    <span class="text-gray-900 dark:text-white font-medium text-base">
+                                        {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -1069,16 +1146,25 @@ async function executePublish(force: boolean) {
                                 </div>
                             </div>
 
-                            <!-- Language -->
+                            <!-- Template -->
                             <div>
                                 <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('common.language') }}
+                                    {{ t('projectTemplates.title', 'Publication Template') }}
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
+                                    <UIcon name="i-heroicons-squares-plus" class="w-5 h-5 text-gray-400" />
+                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate">
+                                        {{ filteredProjectTemplates.find(tpl => tpl.id === currentPublication?.projectTemplateId)?.name || currentPublication?.projectTemplateId || '-' }}
                                     </span>
+                                    <UButton
+                                        v-if="!isLocked"
+                                        icon="i-heroicons-pencil-square"
+                                        variant="ghost"
+                                        color="neutral"
+                                        size="xs"
+                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                        @click="isTemplateModalOpen = true"
+                                    />
                                 </div>
                             </div>
                         </div>
