@@ -604,13 +604,15 @@ const moreActions = computed(() => [
     {
       label: t('publication.copyToProject'),
       icon: 'i-heroicons-document-duplicate',
-      click: openCopyModal
+      click: openCopyModal,
+      disabled: false
     },
     {
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
       class: 'text-error-500 hover:text-error-600',
-      click: () => { isDeleteModalOpen.value = true }
+      click: () => { isDeleteModalOpen.value = true },
+      disabled: false
     }
   ]
 ])
@@ -747,7 +749,7 @@ async function executePublish(force: boolean) {
 <template>
   <div class="w-full">
     <!-- Tab Switcher -->
-    <div class="mb-8 border-b border-gray-200 dark:border-gray-700">
+    <div class="mb-8 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <NuxtLink
           v-for="tab in tabs"
@@ -764,6 +766,43 @@ async function executePublish(force: boolean) {
           {{ tab.label }}
         </NuxtLink>
       </nav>
+
+      <!-- Action Buttons -->
+      <div v-if="currentPublication" class="flex items-center gap-2 pb-2">
+        <UTooltip :text="t('llm.tooltip')">
+          <UButton
+            icon="i-heroicons-sparkles"
+            color="primary"
+            variant="soft"
+            size="sm"
+            :disabled="isLocked"
+            @click="showLlmModal = true"
+          />
+        </UTooltip>
+
+        <UiArchiveButton
+          :key="currentPublication.archivedAt ? 'archived' : 'active'"
+          :entity-type="ArchiveEntityType.PUBLICATION"
+          :entity-id="currentPublication.id"
+          :is-archived="!!currentPublication.archivedAt"
+          @toggle="handleArchiveToggle"
+        />
+
+        <UDropdownMenu :items="moreActions" :popper="{ placement: 'bottom-end', strategy: 'fixed' }">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-horizontal"
+            size="sm"
+          />
+          <template #item="{ item }">
+            <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
+              <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
+              <span class="truncate">{{ item.label }}</span>
+            </div>
+          </template>
+        </UDropdownMenu>
+      </div>
     </div>
     <!-- Delete Confirmation Modal -->
     <UiConfirmModal
@@ -943,51 +982,7 @@ async function executePublish(force: boolean) {
         <!-- Block 1: Publication Info & Actions (Non-collapsible) -->
         <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 shadow-sm">
             <div class="p-6">
-                <!-- Header with title and actions -->
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-gray-500"></UIcon>
-                        {{ t('publication.edit') }}
-                    </h2>
-                    
-                    <!-- Action Buttons -->
-                    <div class="flex items-center gap-2">
-                        <UTooltip :text="t('llm.tooltip')">
-                          <UButton
-                              icon="i-heroicons-sparkles"
-                              color="primary"
-                              variant="soft"
-                              size="sm"
-                              :disabled="isLocked"
-                              @click="showLlmModal = true"
-                          />
-                        </UTooltip>
-
-                        <UiArchiveButton
-                            :key="currentPublication.archivedAt ? 'archived' : 'active'"
-                            :entity-type="ArchiveEntityType.PUBLICATION"
-                            :entity-id="currentPublication.id"
-                            :is-archived="!!currentPublication.archivedAt"
-                            @toggle="handleArchiveToggle"
-                        />
-
-                        <UDropdownMenu :items="moreActions" :popper="{ placement: 'bottom-end', strategy: 'fixed' }">
-                            <UButton
-                                color="neutral"
-                                variant="ghost"
-                                icon="i-heroicons-ellipsis-horizontal"
-                                size="sm"
-                            />
-                            <template #item="{ item }">
-                                <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
-                                    <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span class="truncate">{{ item.label }}</span>
-                                </div>
-                            </template>
-                        </UDropdownMenu>
-
-                    </div>
-                </div>
+                <!-- Actions moved to tabs row -->
 
                 <!-- Metadata Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">

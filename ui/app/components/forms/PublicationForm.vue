@@ -499,18 +499,7 @@ function handleLlmGenerated(text: string) {
         </UFormField>
 
         <!-- Language -->
-        <UFormField v-if="!isEditMode" name="language" required>
-          <template #label>
-            <div class="flex items-center gap-1.5">
-              <span>{{ t('common.language') }}</span>
-              <CommonInfoTooltip :text="t('common.languageTooltip')" />
-            </div>
-          </template>
-          <FormsLanguageButtonGroup
-            v-model="state.language"
-            :channels="channels"
-          />
-        </UFormField>
+
 
         <!-- Post Type -->
         <UFormField v-if="!isEditMode" name="postType" required>

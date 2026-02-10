@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
+import { usePosts } from '~/composables/usePosts'
 import { useFormatters } from '~/composables/useFormatters'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import { getStatusColor, getStatusIcon } from '~/utils/publications'
 import { getSocialMediaIcon, getSocialMediaDisplayName } from '~/utils/socialMedia'
 import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
+import { ArchiveEntityType } from '~/types/archive.types'
+import type { MediaItem } from '~/composables/useMedia'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 
 definePageMeta({
@@ -14,8 +17,18 @@ definePageMeta({
 
 const { t } = useI18n()
 const route = useRoute()
-const { fetchPublication, currentPublication, isLoading } = usePublications()
-const { fetchProject, currentProject } = useProjects()
+const router = useRouter()
+const toast = useToast()
+const { 
+  fetchPublication, 
+  currentPublication, 
+  isLoading,
+  updatePublication,
+  deletePublication,
+  copyPublication
+} = usePublications()
+const { fetchProject, currentProject, fetchProjects, projects } = useProjects()
+const { updatePost } = usePosts()
 const { formatDateWithTime, formatDateShort } = useFormatters()
 
 const publicationId = computed(() => route.params.id as string)
@@ -122,12 +135,192 @@ const isAnyPostPublished = computed(() => {
     return currentPublication.value?.posts?.some(p => !!p.publishedAt) ?? false
 })
 
+// Action buttons logic
+const showLlmModal = ref(false)
+const llmModalRef = ref<any>(null)
+const isDeleting = ref(false)
+const isDeleteModalOpen = ref(false)
+const isCopyModalOpen = ref(false)
+const copyProjectId = ref<string | undefined>(undefined)
+const isCopying = ref(false)
+
+const isLocked = computed(() => !!currentPublication.value?.archivedAt || !!currentProject.value?.archivedAt)
+
+const normalizedPublicationMeta = computed<Record<string, any>>(() => {
+  const meta = (currentPublication.value as any)?.meta
+
+  if (typeof meta === 'object' && meta !== null) return meta
+
+  if (typeof meta === 'string' && meta.trim()) {
+    try {
+      return JSON.parse(meta)
+    } catch (e) {
+      return {}
+    }
+  }
+
+  return {}
+})
+
+const moreActions = computed(() => [
+  [
+    {
+      label: t('publication.copyToProject'),
+      icon: 'i-heroicons-document-duplicate',
+      click: openCopyModal,
+      disabled: false
+    },
+    {
+      label: t('common.delete'),
+      icon: 'i-heroicons-trash',
+      class: 'text-error-500 hover:text-error-600',
+      click: () => { isDeleteModalOpen.value = true },
+      disabled: false
+    }
+  ]
+])
+
+async function handleArchiveToggle() {
+    if (!currentPublication.value) return
+    await fetchPublication(currentPublication.value.id)
+}
+
+async function handleDelete() {
+    if (!currentPublication.value) return
+    isDeleting.value = true
+    try {
+        await deletePublication(currentPublication.value.id)
+        toast.add({
+            title: t('common.success'),
+            color: 'success'
+        })
+        router.push('/publications')
+    } catch (err: any) {
+        toast.add({
+            title: t('common.error'),
+            description: t('common.deleteError'),
+            color: 'error'
+        })
+    } finally {
+        isDeleting.value = false
+        isDeleteModalOpen.value = false
+    }
+}
+
+function openCopyModal() {
+    fetchProjects()
+    isCopyModalOpen.value = true
+}
+
+const projectOptions = computed(() => projects.value?.map(p => ({ label: p.name, value: p.id })) || [])
+
+async function handleCopyPublication() {
+    if (!currentPublication.value || !copyProjectId.value) return
+    isCopying.value = true
+    try {
+        const result = await copyPublication(currentPublication.value.id, copyProjectId.value)
+        toast.add({
+            title: t('common.success'),
+            description: t('publication.copySuccess'),
+            color: 'success'
+        })
+        router.push(`/publications/${result.id}/edit`)
+    } catch (err: any) {
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
+    } finally {
+        isCopying.value = false
+        isCopyModalOpen.value = false
+    }
+}
+
+async function handleApplyLlm(data: {
+  publication?: { title?: string; description?: string; tags?: string; content?: string }
+  posts?: Array<{ channelId: string; content?: string; tags?: string }>
+  meta?: Record<string, any>
+}) {
+  if (!currentPublication.value) return
+  
+  try {
+    // Update publication fields
+    if (data.publication && Object.keys(data.publication).length > 0) {
+      const pubPayload: Record<string, any> = { ...data.publication }
+      if (data.meta) {
+        const existingMeta = normalizedPublicationMeta.value
+        pubPayload.meta = { ...existingMeta, ...data.meta }
+      }
+      await updatePublication(currentPublication.value.id, pubPayload)
+    } else if (data.meta) {
+      const existingMeta = normalizedPublicationMeta.value
+      await updatePublication(currentPublication.value.id, { meta: { ...existingMeta, ...data.meta } })
+    }
+
+    // Update post fields
+    if (data.posts && data.posts.length > 0) {
+      const postMap = new Map(
+        (currentPublication.value.posts || []).map((p: any) => [p.channelId, p.id])
+      )
+      for (const postData of data.posts) {
+        const postId = postMap.get(postData.channelId)
+        if (!postId) continue
+        const postPayload: Record<string, any> = {}
+        if (postData.content !== undefined) postPayload.content = postData.content
+        if (postData.tags !== undefined) postPayload.tags = postData.tags
+        if (Object.keys(postPayload).length > 0) {
+          await updatePost(postId, postPayload, { silent: true })
+        }
+      }
+    }
+
+    // Refresh publication to reflect all changes
+    await fetchPublication(currentPublication.value.id)
+
+    toast.add({
+      title: t('llm.applySuccess'),
+      color: 'success'
+    })
+    llmModalRef.value?.onApplySuccess()
+  } catch (e: any) {
+    toast.add({
+      title: t('llm.applyError'),
+      description: t('common.saveError'),
+      color: 'error'
+    })
+    llmModalRef.value?.onApplyError()
+  }
+}
+
+async function handleSaveLlmMeta(meta: Record<string, any>) {
+  if (!currentPublication.value) return
+
+  try {
+    const existingMeta = normalizedPublicationMeta.value
+    const mergedMeta = { ...existingMeta, ...meta }
+
+    await updatePublication(
+      currentPublication.value.id,
+      {
+        meta: mergedMeta,
+      },
+      { silent: true },
+    )
+  } catch (e: any) {
+    console.warn('[LLM] Failed to autosave publication meta', {
+      publicationId: currentPublication.value.id,
+      error: e,
+    })
+  }
+}
+
 </script>
 
 <template>
   <div class="w-full max-w-4xl mx-auto py-6 px-4">
     <!-- Tab Switcher -->
-    <div class="mb-8 border-b border-gray-200 dark:border-gray-700">
+    <div class="mb-8 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <NuxtLink
           v-for="tab in tabs"
@@ -144,6 +337,43 @@ const isAnyPostPublished = computed(() => {
           {{ tab.label }}
         </NuxtLink>
       </nav>
+
+      <!-- Action Buttons -->
+      <div v-if="currentPublication" class="flex items-center gap-2 pb-2">
+        <UTooltip :text="t('llm.tooltip')">
+          <UButton
+            icon="i-heroicons-sparkles"
+            color="primary"
+            variant="soft"
+            size="sm"
+            :disabled="isLocked"
+            @click="showLlmModal = true"
+          />
+        </UTooltip>
+
+        <UiArchiveButton
+          :key="currentPublication.archivedAt ? 'archived' : 'active'"
+          :entity-type="ArchiveEntityType.PUBLICATION"
+          :entity-id="currentPublication.id"
+          :is-archived="!!currentPublication.archivedAt"
+          @toggle="handleArchiveToggle"
+        />
+
+        <UDropdownMenu :items="moreActions" :popper="{ placement: 'bottom-end', strategy: 'fixed' }">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-horizontal"
+            size="sm"
+          />
+          <template #item="{ item }">
+            <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
+              <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
+              <span class="truncate">{{ item.label }}</span>
+            </div>
+          </template>
+        </UDropdownMenu>
+      </div>
     </div>
 
     <!-- Loading state -->
@@ -353,5 +583,69 @@ const isAnyPostPublished = computed(() => {
         </UButton>
       </template>
     </UiAppModal>
+
+    <!-- Delete Confirmation Modal -->
+    <UiConfirmModal
+      v-if="isDeleteModalOpen"
+      v-model:open="isDeleteModalOpen"
+      :title="t('publication.deleteConfirm')"
+      :description="t('publication.deleteCascadeWarning')"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      :loading="isDeleting"
+      @confirm="handleDelete"
+    />
+
+    <!-- Copy Project Modal -->
+    <UiAppModal v-if="isCopyModalOpen" v-model:open="isCopyModalOpen" :title="t('publication.copyToProject')">
+      <UFormField :label="t('project.title')" required>
+         <USelectMenu
+            v-model="copyProjectId"
+            :items="projectOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+            icon="i-heroicons-folder"
+        />
+      </UFormField>
+
+      <template #footer>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :label="t('common.cancel')"
+          @click="isCopyModalOpen = false"
+        />
+        <UButton
+          color="primary"
+          :label="t('common.confirm')"
+          :loading="isCopying"
+          @click="handleCopyPublication"
+        />
+      </template>
+    </UiAppModal>
+
+    <!-- LLM Generator Modal -->
+    <ModalsLlmGeneratorModal
+      v-if="currentPublication"
+      ref="llmModalRef"
+      v-model:open="showLlmModal"
+      :content="currentPublication.content || undefined"
+      :media="(currentPublication.media || []).map(m => m.media).filter(Boolean) as unknown as MediaItem[]"
+      :project-id="currentPublication.projectId || undefined"
+      :publication-meta="normalizedPublicationMeta"
+      :post-type="currentPublication.postType || undefined"
+      :publication-language="currentPublication.language || undefined"
+      :post-channels="(currentPublication.posts || []).map((p: any) => ({
+        channelId: p.channelId,
+        channelName: p.channel?.name || '',
+        language: p.channel?.language || currentPublication!.language,
+        tags: p.channel?.tags ? p.channel.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+        socialMedia: p.channel?.socialMedia,
+      }))"
+      @apply="handleApplyLlm"
+      @save-meta="handleSaveLlmMeta"
+    />
   </div>
 </template>
