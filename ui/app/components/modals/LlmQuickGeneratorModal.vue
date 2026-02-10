@@ -161,7 +161,7 @@ async function handleGenerate() {
   }
 
   const currentPrompt = prompt.value.trim() + makeContextPromptBlock(contextTags.value)
-  const response = await generateContent(currentPrompt)
+  const response = await generateContent(currentPrompt, { onlyRawResult: true })
 
   if (response?.content) {
     emit('apply', response.content)

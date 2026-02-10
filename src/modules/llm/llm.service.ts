@@ -8,6 +8,7 @@ import { filterUndefined } from '../../common/utils/object.utils.js';
 import {
   PUBLICATION_EXTRACT_SYSTEM_PROMPT,
   PUBLICATION_FIELDS_SYSTEM_PROMPT,
+  RAW_RESULT_SYSTEM_PROMPT,
 } from './constants/llm.constants.js';
 import {
   GeneratePublicationFieldsDto,
@@ -73,14 +74,23 @@ export class LlmService {
     // Build full prompt with context if provided
     const fullPrompt = this.buildFullPrompt(dto);
 
+    const messages: any[] = [];
+
+    if (dto.onlyRawResult) {
+      messages.push({
+        role: 'system',
+        content: RAW_RESULT_SYSTEM_PROMPT,
+      });
+    }
+
+    messages.push({
+      role: 'user',
+      content: fullPrompt,
+    });
+
     // Build request body with config defaults and DTO overrides
     const requestBody = {
-      messages: [
-        {
-          role: 'user',
-          content: fullPrompt,
-        },
-      ],
+      messages,
       temperature: dto.temperature ?? this.config.temperature,
       max_tokens: dto.max_tokens ?? this.config.maxTokens,
       model: dto.model,
@@ -221,16 +231,12 @@ export class LlmService {
     const url = `${this.config.serviceUrl}/chat/completions`;
 
     const channelsForPrompt = dto.channels.map((ch: ChannelInfoDto) => {
-      const sameLanguage =
-        this.normalizeLanguage(ch.language) === this.normalizeLanguage(dto.publicationLanguage);
       const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0;
       return {
         channelId: ch.channelId,
         channelName: ch.channelName,
-        language: ch.language,
         tags: ch.tags || [],
-        generateContent: !sameLanguage,
-        generateTags: hasChannelTags || !sameLanguage,
+        generateTags: hasChannelTags,
       };
     });
 

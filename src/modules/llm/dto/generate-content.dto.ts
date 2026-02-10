@@ -77,4 +77,11 @@ export class GenerateContentDto {
   @IsOptional()
   @IsBoolean()
   useContent?: boolean;
+
+  /**
+   * Whether to include a system prompt to return only the raw result.
+   */
+  @IsOptional()
+  @IsBoolean()
+  onlyRawResult?: boolean;
 }

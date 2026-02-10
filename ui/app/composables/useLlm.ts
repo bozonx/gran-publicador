@@ -7,6 +7,7 @@ interface GenerateLlmOptions {
   tags?: string[];
   content?: string;
   useContent?: boolean;
+  onlyRawResult?: boolean;
 }
 
 interface LlmResponse {
