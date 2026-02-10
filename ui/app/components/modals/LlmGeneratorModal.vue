@@ -125,6 +125,7 @@ interface ChatMessage {
     label: string
     promptText: string
     kind: 'content' | 'media'
+    enabled?: boolean
   }>
 }
 const chatMessages = ref<ChatMessage[]>([])

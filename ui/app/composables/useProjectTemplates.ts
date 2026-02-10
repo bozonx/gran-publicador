@@ -60,6 +60,15 @@ export function useProjectTemplates() {
     try {
       const result = await api.post<ProjectTemplate>(`/projects/${projectId}/templates`, data);
       templates.value.push(result);
+      
+      // If the new template is now the default, unset default for all other templates
+      if (result.isDefault) {
+        templates.value.forEach((t) => {
+          if (t.id !== result.id && t.isDefault) {
+            t.isDefault = false;
+          }
+        });
+      }
       return result;
     } catch (err: any) {
       const message = err.message || 'Failed to create project template';
@@ -90,7 +99,18 @@ export function useProjectTemplates() {
         data,
       );
       const idx = templates.value.findIndex(t => t.id === templateId);
-      if (idx !== -1) templates.value[idx] = result;
+      if (idx !== -1) {
+        templates.value[idx] = result;
+        
+        // If the updated template is now the default, unset default for all other templates
+        if (result.isDefault) {
+          templates.value.forEach((t, i) => {
+            if (i !== idx && t.isDefault) {
+              t.isDefault = false;
+            }
+          });
+        }
+      }
       return result;
     } catch (err: any) {
       const message = err.message || 'Failed to update project template';

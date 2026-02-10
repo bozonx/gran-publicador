@@ -79,7 +79,12 @@ watch(currentProjectId, async (newId) => {
             fetchChannels({ projectId: newId }),
             fetchPublicationsByProject(newId, { limit: 50 }),
             fetchSignatures(newId).then(sigs => { projectSignatures.value = sigs }),
-            fetchProjectTemplates(newId),
+            fetchProjectTemplates(newId).then(tpls => {
+                if (!isEditMode.value && !state.projectTemplateId && tpls.length > 0) {
+                    const def = tpls.find(t => t.isDefault) || tpls[0]
+                    if (def) state.projectTemplateId = def.id
+                }
+            }),
         ])
         
         // Auto-select signature if creating new
@@ -210,8 +215,8 @@ onMounted(async () => {
             }),
             fetchProjectTemplates(currentProjectId.value).then(tpls => {
                 // Auto-select default template if creating new post
-                if (!isEditMode.value && state.projectTemplateId === '') {
-                    const def = tpls.find(t => t.isDefault)
+                if (!isEditMode.value && !state.projectTemplateId && tpls.length > 0) {
+                    const def = tpls.find(t => t.isDefault) || tpls[0]
                     if (def) state.projectTemplateId = def.id
                 }
             }),
@@ -633,7 +638,7 @@ function handleLlmGenerated(text: string) {
         >
           <USelectMenu
             v-model="state.projectTemplateId"
-            :items="[{ value: null, label: t('common.none', 'None') }, ...templateOptions]"
+            :items="templateOptions"
             value-key="value"
             label-key="label"
             class="w-full"

@@ -154,8 +154,10 @@ watch(() => formData.projectId, async (newProjectId) => {
       }),
       fetchProjectTemplates(newProjectId).then(tpls => {
         // Auto-select default template
-        const def = tpls.find(t => t.isDefault)
-        if (def) formData.projectTemplateId = def.id
+        if (tpls.length > 0) {
+          const def = tpls.find(t => t.isDefault) || tpls[0]
+          if (def) formData.projectTemplateId = def.id
+        }
       }),
     ])
 
@@ -390,7 +392,7 @@ function handleClose() {
         >
           <USelectMenu
             v-model="formData.projectTemplateId"
-            :items="[{ value: null, label: t('common.none', 'None') }, ...templateOptions]"
+            :items="templateOptions"
             value-key="value"
             label-key="label"
             class="w-full"
