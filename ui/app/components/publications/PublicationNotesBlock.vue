@@ -37,9 +37,9 @@ function startEditing() {
 const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave } = useAutosave({
   data: localNote,
   saveFn: async (note) => {
-    await updatePublication(props.publication.id, {
-        note: note
-    }, { silent: true }) // Silent update to not trigger global loading indicators if possible
+    // Paranoid payload construction to ensure no reactive proxies or extra fields are sent
+    const payload = { note: String(note) }
+    await updatePublication(props.publication.id, payload, { silent: true }) // Silent update to not trigger global loading indicators if possible
     
     // We don't emit update here to avoid re-rendering parent components while typing
     // But we might want to update local state if needed

@@ -1030,14 +1030,14 @@ async function executePublish(force: boolean) {
                             @toggle="handleArchiveToggle"
                         />
 
-                        <UDropdown :items="moreActions" :popper="{ placement: 'bottom-end', strategy: 'fixed' }">
+                        <UDropdownMenu :items="moreActions" :popper="{ placement: 'bottom-end', strategy: 'fixed' }">
                             <UButton
                                 color="neutral"
                                 variant="ghost"
                                 icon="i-heroicons-ellipsis-horizontal"
                                 size="sm"
                             />
-                        </UDropdown>
+                        </UDropdownMenu>
 
                     </div>
                 </div>

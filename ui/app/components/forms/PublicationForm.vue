@@ -333,10 +333,28 @@ async function performSubmit(data: PublicationFormData) {
 
     let publicationId = props.publication?.id
 
+    const isReadOnly = state.status === 'READY' || state.status === 'SCHEDULED'
+    
+    // If read-only, we must filter out fields that are not allowed to be modified
+    // to avoid backend validation errors (server rejects modifications to title, content etc in READY state)
+    let payload = { ...commonData }
+    
+    if (isReadOnly) {
+       // Create a new payload with only allowed keys that are present in commonData
+       const filteredPayload: any = {}
+       
+       // Explicitly copy allowed keys
+       if (payload.note !== undefined) filteredPayload.note = payload.note
+       if (payload.postDate !== undefined) filteredPayload.postDate = payload.postDate
+       if (payload.scheduledAt !== undefined) filteredPayload.scheduledAt = payload.scheduledAt
+       
+       payload = filteredPayload
+    }
+
     if (isEditMode.value && publicationId) {
       await updatePublication(publicationId, {
-        ...commonData,
-        projectTemplateId: data.projectTemplateId || null,
+        ...payload,
+        projectTemplateId: isReadOnly ? undefined : (data.projectTemplateId || null),
         // Status is managed by separate actions in edit mode, don't send it back 
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,

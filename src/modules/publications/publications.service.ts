@@ -608,7 +608,8 @@ export class PublicationsService {
         'effectiveAt',
         'postDate',
       ];
-      const updatedKeys = Object.keys(data);
+      // Filter out undefined values to ignore fields that are not present in the payload
+      const updatedKeys = Object.keys(data).filter(k => (data as any)[k] !== undefined);
       const invalidKeys = updatedKeys.filter(key => !allowedKeys.includes(key));
 
       if (data.status !== PublicationStatus.DRAFT && invalidKeys.length > 0) {
