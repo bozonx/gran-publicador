@@ -105,15 +105,17 @@ watch(currentProjectId, async (newId) => {
     }
 })
 
-// Filter templates by publication language
+// Filter templates by publication language and post type
 const filteredProjectTemplates = computed(() => {
   return projectTemplates.value.filter(tpl => {
-    return !tpl.language || tpl.language === state.language
+    const langMatch = !tpl.language || tpl.language === state.language
+    const typeMatch = !tpl.postType || tpl.postType === state.postType
+    return langMatch && typeMatch
   })
 })
 
-// Watch language change to update template selection if needed
-watch(() => state.language, (newLang) => {
+// Watch language/postType changes to update template selection if needed
+watch([() => state.language, () => state.postType], () => {
   if (isEditMode.value) return
   
   // If current template is not in the filtered list, pick a new one

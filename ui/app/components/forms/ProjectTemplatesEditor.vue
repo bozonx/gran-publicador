@@ -154,9 +154,15 @@ async function handleCreate() {
     // Determine default language from user or project channels
     const defaultLang = user.value?.language || projectChannels.value.find(ch => !ch.archivedAt)?.language || 'ru-RU'
 
+    const hasDefaultInGroup = templates.value.some(t => {
+      const sameLanguage = (t.language ?? null) === defaultLang
+      const samePostType = (t.postType ?? null) === null
+      return sameLanguage && samePostType && t.isDefault
+    })
+
     const result = await createProjectTemplate(props.projectId, {
       name: t('projectTemplates.newTemplateName'),
-      isDefault: templates.value.length === 0,
+      isDefault: !hasDefaultInGroup,
       language: defaultLang,
       template: getDefaultBlocks(),
     })

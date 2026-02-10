@@ -60,11 +60,15 @@ export function useProjectTemplates() {
     try {
       const result = await api.post<ProjectTemplate>(`/projects/${projectId}/templates`, data);
       templates.value.push(result);
-      
-      // If the new template is now the default, unset default for all other templates
+
+      // If the new template is now the default, unset default for all other templates in the same group
       if (result.isDefault) {
-        templates.value.forEach((t) => {
-          if (t.id !== result.id && t.isDefault) {
+        const groupLanguage = result.language ?? null;
+        const groupPostType = result.postType ?? null;
+        templates.value.forEach(t => {
+          const sameGroup =
+            (t.language ?? null) === groupLanguage && (t.postType ?? null) === groupPostType;
+          if (sameGroup && t.id !== result.id && t.isDefault) {
             t.isDefault = false;
           }
         });
@@ -101,11 +105,15 @@ export function useProjectTemplates() {
       const idx = templates.value.findIndex(t => t.id === templateId);
       if (idx !== -1) {
         templates.value[idx] = result;
-        
-        // If the updated template is now the default, unset default for all other templates
+
+        // If the updated template is now the default, unset default for all other templates in the same group
         if (result.isDefault) {
+          const groupLanguage = result.language ?? null;
+          const groupPostType = result.postType ?? null;
           templates.value.forEach((t, i) => {
-            if (i !== idx && t.isDefault) {
+            const sameGroup =
+              (t.language ?? null) === groupLanguage && (t.postType ?? null) === groupPostType;
+            if (sameGroup && i !== idx && t.isDefault) {
               t.isDefault = false;
             }
           });

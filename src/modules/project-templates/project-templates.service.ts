@@ -81,8 +81,15 @@ export class ProjectTemplatesService {
       async tx => {
         // If setting as default, unset other defaults
         if (data.isDefault) {
+          const targetLanguage = data.language !== undefined ? data.language : null;
+          const targetPostType = data.postType ?? null;
           await tx.projectTemplate.updateMany({
-            where: { projectId, isDefault: true },
+            where: {
+              projectId,
+              isDefault: true,
+              language: targetLanguage,
+              postType: targetPostType,
+            },
             data: { isDefault: false },
           });
         }
@@ -125,10 +132,25 @@ export class ProjectTemplatesService {
 
     return this.prisma.$transaction(
       async tx => {
-        // If setting as default, unset other defaults
-        if (data.isDefault) {
+        const nextLanguage = data.language !== undefined ? data.language : existing.language;
+        const nextPostType = data.postType !== undefined ? data.postType : existing.postType;
+
+        const shouldEnforceGroupDefaultUniqueness =
+          data.isDefault === true ||
+          (existing.isDefault &&
+            (data.language !== undefined || data.postType !== undefined) &&
+            (nextLanguage !== existing.language || nextPostType !== existing.postType));
+
+        // If setting as default (or moving a default template to another group), unset other defaults in the same group
+        if (shouldEnforceGroupDefaultUniqueness) {
           await tx.projectTemplate.updateMany({
-            where: { projectId, isDefault: true, id: { not: templateId } },
+            where: {
+              projectId,
+              isDefault: true,
+              language: nextLanguage,
+              postType: nextPostType,
+              id: { not: templateId },
+            },
             data: { isDefault: false },
           });
         }
