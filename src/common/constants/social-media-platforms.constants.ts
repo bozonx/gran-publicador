@@ -14,6 +14,10 @@ export interface PlatformPostTypeContentLimits {
   maxTextLength: number;
   /** Maximum caption length when media is attached */
   maxCaptionLength: number;
+  /** Maximum caption length depending on media type (falls back to maxCaptionLength) */
+  maxCaptionLengthByMediaType?: Partial<Record<MediaType, number>>;
+  /** Maximum title length depending on media type (platform-specific; optional) */
+  maxTitleLengthByMediaType?: Partial<Record<MediaType, number>>;
 }
 
 /**
@@ -30,6 +34,10 @@ export interface PlatformPostTypeMediaLimits {
   allowedTypes: MediaType[];
   /** Allowed media types in a gallery (2+ items) */
   allowedGalleryTypes: MediaType[];
+  /** Maximum file size in bytes depending on media type (optional) */
+  maxFileSizeBytesByType?: Partial<Record<MediaType, number>>;
+  /** Maximum video duration in seconds (optional; platform-specific) */
+  maxVideoDurationSeconds?: number;
 }
 
 /**
@@ -129,6 +137,8 @@ const ALL_MEDIA_TYPES: MediaType[] = [
 
 const VISUAL_MEDIA_TYPES: MediaType[] = [MediaType.IMAGE, MediaType.VIDEO];
 
+const MB_BYTES = 1024 * 1024;
+
 // ────────────────────────────────────────────────────────────────────────────
 // Platform configurations
 // ────────────────────────────────────────────────────────────────────────────
@@ -141,6 +151,12 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
       content: {
         maxTextLength: 4096,
         maxCaptionLength: 1024,
+        maxCaptionLengthByMediaType: {
+          [MediaType.IMAGE]: 1024,
+          [MediaType.VIDEO]: 1024,
+          [MediaType.AUDIO]: 1024,
+          [MediaType.DOCUMENT]: 1024,
+        },
       },
       media: {
         maxCount: 10,
@@ -148,12 +164,24 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
         maxGalleryCount: 10,
         allowedTypes: ALL_MEDIA_TYPES,
         allowedGalleryTypes: VISUAL_MEDIA_TYPES,
+        maxFileSizeBytesByType: {
+          [MediaType.IMAGE]: 50 * MB_BYTES,
+          [MediaType.VIDEO]: 50 * MB_BYTES,
+          [MediaType.AUDIO]: 50 * MB_BYTES,
+          [MediaType.DOCUMENT]: 50 * MB_BYTES,
+        },
       },
     },
     [PostType.NEWS]: {
       content: {
         maxTextLength: 4096,
         maxCaptionLength: 1024,
+        maxCaptionLengthByMediaType: {
+          [MediaType.IMAGE]: 1024,
+          [MediaType.VIDEO]: 1024,
+          [MediaType.AUDIO]: 1024,
+          [MediaType.DOCUMENT]: 1024,
+        },
       },
       media: {
         maxCount: 10,
@@ -161,6 +189,12 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
         maxGalleryCount: 10,
         allowedTypes: ALL_MEDIA_TYPES,
         allowedGalleryTypes: VISUAL_MEDIA_TYPES,
+        maxFileSizeBytesByType: {
+          [MediaType.IMAGE]: 50 * MB_BYTES,
+          [MediaType.VIDEO]: 50 * MB_BYTES,
+          [MediaType.AUDIO]: 50 * MB_BYTES,
+          [MediaType.DOCUMENT]: 50 * MB_BYTES,
+        },
       },
     },
     [PostType.ARTICLE]: {
@@ -176,6 +210,9 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
         maxGalleryCount: 0,
         allowedTypes: [MediaType.IMAGE],
         allowedGalleryTypes: [],
+        maxFileSizeBytesByType: {
+          [MediaType.IMAGE]: 50 * MB_BYTES,
+        },
       },
     },
   },
