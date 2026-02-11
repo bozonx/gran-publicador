@@ -88,18 +88,6 @@ export function getValidationRules(
   };
 }
 
-/**
- * Platform-specific validation rules for API/UI display.
- * Derived from shared platform configuration.
- */
-export const SOCIAL_MEDIA_VALIDATION_RULES: Partial<
-  Record<SocialMedia, SocialMediaValidationRules>
-> = {
-  [SocialMedia.telegram]: getValidationRules(SocialMedia.telegram, PostType.POST)!,
-  [SocialMedia.vk]: getValidationRules(SocialMedia.vk, PostType.POST)!,
-  [SocialMedia.site]: getValidationRules(SocialMedia.site, PostType.ARTICLE)!,
-};
-
 export function getValidationRulesOrThrow(
   socialMedia: SocialMedia,
   postType?: PostType,

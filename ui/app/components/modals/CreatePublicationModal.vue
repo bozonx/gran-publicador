@@ -129,14 +129,7 @@ watch(() => props.projectId, (newProjectId) => {
   }
 }, { immediate: true })
 
-const activeProjects = computed(() => {
-    return projects.value
-        .filter(p => !p.archivedAt)
-        .map(p => ({
-            value: p.id,
-            label: p.name
-        }))
-})
+
 
 // Watch for project ID to load channels
 watch(() => formData.projectId, async (newProjectId) => {
@@ -426,12 +419,9 @@ function handleClose() {
         :label="t('project.title')"
         required
       >
-        <USelectMenu
+        <CommonProjectSelect
           ref="projectSelectRef"
           v-model="formData.projectId"
-          :items="activeProjects"
-          value-key="value"
-          label-key="label"
           class="w-full"
           searchable
           :placeholder="t('project.namePlaceholder')"

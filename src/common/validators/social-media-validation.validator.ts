@@ -205,10 +205,3 @@ export function validatePostContent(data: PostValidationData): ValidationResult 
     errors,
   };
 }
-
-/**
- * Get validation rules for display in UI
- */
-export function getValidationRulesForDisplay(socialMedia: SocialMedia): SocialMediaValidationRules {
-  return getValidationRulesOrThrow(socialMedia);
-}

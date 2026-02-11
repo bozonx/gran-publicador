@@ -91,12 +91,7 @@ watch([selectedPlatforms, () => state.postType], () => {
   }
 })
 
-const projectOptions = computed(() => {
-    return projects.value.map(p => ({
-        value: p.id,
-        label: p.name
-    }))
-})
+
 
 watch(currentProjectId, async (newId) => {
     if (newId) {
@@ -531,13 +526,9 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('publication.projectSelectorHelp')" />
             </div>
           </template>
-          <USelectMenu
+          <CommonProjectSelect
             v-model="currentProjectId"
-            :items="projectOptions"
-            value-key="value"
-            label-key="label"
             class="w-full"
-            icon="i-heroicons-folder"
           />
         </UFormField>
 

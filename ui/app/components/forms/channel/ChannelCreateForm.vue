@@ -36,22 +36,12 @@ const formState = reactive({
 
 const isProjectLocked = computed(() => !props.showProjectSelect)
 
-// Options for project selection
-const projectOptions = computed(() => 
-  projects.value.map(p => ({
-    value: p.id,
-    label: p.name
-  }))
-)
+
 
 // Initialize projects if needed
 onMounted(async () => {
   if (props.showProjectSelect && projects.value.length === 0) {
     await fetchProjects()
-  }
-  
-  if (!formState.projectId && projects.value.length > 0 && projects.value[0]) {
-    formState.projectId = projects.value[0].id
   }
 })
 
@@ -169,19 +159,12 @@ defineExpose({
   <form :id="formId" class="space-y-6" @submit.prevent="handleSubmit">
     <!-- Project Selection (Optional) -->
     <UFormField v-if="props.showProjectSelect" :label="t('channel.project')" required>
-      <USelectMenu
+      <CommonProjectSelect
         ref="projectSelectRef"
         v-model="formState.projectId"
-        :items="projectOptions"
-        value-key="value"
-        label-key="label"
         class="w-full"
         searchable
-      >
-        <template #leading>
-          <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
-        </template>
-      </USelectMenu>
+      />
     </UFormField>
 
     <!-- General Fields -->

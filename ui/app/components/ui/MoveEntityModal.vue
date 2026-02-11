@@ -20,11 +20,6 @@ const selectedTargetId = ref('');
 const loading = ref(false);
 
 const targetOptions = computed(() => {
-    if (props.entityType === ArchiveEntityType.CHANNEL || props.entityType === ArchiveEntityType.PUBLICATION) {
-        return projects.value
-            .filter(p => p.id !== props.currentParentId)
-            .map(p => ({ label: p.name, value: p.id }));
-    }
     return [];
 });
 
@@ -68,7 +63,15 @@ const handleMove = async () => {
             </p>
 
             <UFormField :label="t('archive.target_parent')" required>
+                <CommonProjectSelect
+                    v-if="entityType === ArchiveEntityType.CHANNEL || entityType === ArchiveEntityType.PUBLICATION"
+                    v-model="selectedTargetId"
+                    :exclude-ids="[currentParentId]"
+                    class="w-full"
+                    size="lg"
+                />
                 <USelectMenu
+                    v-else
                     v-model="selectedTargetId"
                     :items="targetOptions"
                     value-key="value"
