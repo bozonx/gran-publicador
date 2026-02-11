@@ -104,6 +104,12 @@ const constraintsBlock = computed(() => {
   return `\n\n<content_constraints>\n${lines.join('\n')}\n</content_constraints>\n`
 })
 
+function stripContentConstraintsBlock(text: string): string {
+  return String(text ?? '')
+    .replace(/\n*<content_constraints>[\s\S]*?<\/content_constraints>\n*/g, '\n')
+    .trim()
+}
+
 async function handleVoiceRecording() {
   if (isRecording.value) {
     const audioBlob = await stopRecording()
@@ -426,7 +432,17 @@ watch(isOpen, async (open) => {
     const savedChat = publicationMeta?.llmPublicationContentGenerationChat
     const savedMessages = savedChat?.messages
     if (Array.isArray(savedMessages) && savedMessages.length > 0) {
-      chatMessages.value = savedMessages
+      chatMessages.value = savedMessages.map((m: any, idx: number) => {
+        const role = m?.role
+        const content = typeof m?.content === 'string' ? m.content : ''
+        if (idx === 0 && role === 'user') {
+          return {
+            ...m,
+            content: stripContentConstraintsBlock(content),
+          }
+        }
+        return m
+      })
       metadata.value = savedChat?.model || null
     }
   } else {
@@ -483,9 +499,7 @@ async function handleGenerate() {
     .map(t => (t.label || '').trim())
     .filter(Boolean)
 
-  const message = isFirstMessage
-    ? (userText + constraintsBlock.value).trim()
-    : userText
+  const message = userText
 
   chatMessages.value.push({
     role: 'user',
@@ -538,7 +552,17 @@ async function handleGenerate() {
 
   if (response) {
     if (Array.isArray(response.chat?.messages) && response.chat!.messages.length > 0) {
-      chatMessages.value = response.chat!.messages as any
+      chatMessages.value = (response.chat!.messages as any[]).map((m: any, idx: number) => {
+        const role = m?.role
+        const content = typeof m?.content === 'string' ? m.content : ''
+        if (idx === 0 && role === 'user') {
+          return {
+            ...m,
+            content: stripContentConstraintsBlock(content),
+          }
+        }
+        return m
+      }) as any
     } else {
       chatMessages.value.push({ role: 'assistant', content: response.message });
     }

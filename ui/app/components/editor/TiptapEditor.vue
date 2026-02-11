@@ -112,10 +112,10 @@ async function toggleRecording() {
 
       e.commands.focus()
 
-      // Insert as plain text to avoid creating a new paragraph
-      const { from: insertPos } = e.state.selection
-      const needsSpace = insertPos > 1 && !/\s$/.test(e.state.doc.textBetween(Math.max(0, insertPos - 1), insertPos))
-      const tr = e.state.tr.insertText(needsSpace ? ' ' + text : text, insertPos)
+      // Insert as plain text to avoid creating a new paragraph, replacing selection if any
+      const { from, to } = e.state.selection
+      const needsSpace = from > 1 && !/\s$/.test(e.state.doc.textBetween(Math.max(0, from - 1), from))
+      const tr = e.state.tr.insertText(needsSpace ? ' ' + text : text, from, to)
       e.view.dispatch(tr)
     }
     sttSelection.value = null
