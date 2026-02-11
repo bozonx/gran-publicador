@@ -11,6 +11,7 @@ import { LlmErrorType } from '~/composables/useLlm'
 import {
   getAggregatedMaxTextLength,
   getAggregatedTagsConfig,
+  getTagsLimitsByPlatform,
   type PostType,
   type SocialMedia,
 } from '~/utils/socialMediaPlatforms'
@@ -80,29 +81,80 @@ const platformsForConstraints = computed(() => {
   return [...new Set(platforms)]
 })
 
-const constraintsBlock = computed(() => {
+function parseUserRequestedMaxContentLength(text: string): number | null {
+  const input = String(text ?? '')
+
+  const patterns: RegExp[] = [
+    /max(?:imum)?\s*(?:content\s*)?length\s*[:=]?\s*(\d{2,6})/i,
+    /(?:up\s*to|no\s*more\s*than|not\s*more\s*than)\s*(\d{2,6})\s*(?:chars|characters|symbols)/i,
+    /(?:до|не\s*более)\s*(\d{2,6})\s*(?:символ(?:ов|а)?|знак(?:ов|а)?|chars|characters)/i,
+    /(\d{2,6})\s*(?:символ(?:ов|а)?|знак(?:ов|а)?|chars|characters)\s*(?:макс|max(?:imum)?)/i,
+  ]
+
+  for (const re of patterns) {
+    const m = input.match(re)
+    const raw = m?.[1]
+    if (!raw) continue
+    const n = Number.parseInt(raw, 10)
+    if (!Number.isFinite(n)) continue
+    if (n < 10 || n > 500000) continue
+    return n
+  }
+
+  return null
+}
+
+function resolveMaxContentLengthForPrompt(params: { sourceText: string }): number | null {
   const resolvedPostType = (postType || 'POST') as PostType
   const hasMedia = (media || []).length > 0
 
-  const maxLen = getAggregatedMaxTextLength({
+  const platformMax = getAggregatedMaxTextLength({
     platforms: platformsForConstraints.value,
     postType: resolvedPostType,
     hasMedia,
   })
-  const tagsCfg = getAggregatedTagsConfig(platformsForConstraints.value)
+  const userRequested = parseUserRequestedMaxContentLength(params.sourceText)
+
+  if (userRequested && Number.isFinite(userRequested)) {
+    if (platformMax && Number.isFinite(platformMax)) {
+      return Math.min(platformMax, userRequested)
+    }
+    return userRequested
+  }
+
+  return platformMax && Number.isFinite(platformMax) ? platformMax : null
+}
+
+function buildConstraintsBlock(params: { sourceText: string }): string {
+  const maxLen = resolveMaxContentLengthForPrompt({ sourceText: params.sourceText })
 
   const lines: string[] = []
   if (maxLen && Number.isFinite(maxLen)) {
     lines.push(`Max content length: ${maxLen} characters. Do not exceed this limit.`)
   }
+
+  const tagsCfg = getAggregatedTagsConfig(platformsForConstraints.value)
   if (tagsCfg.supported && tagsCfg.maxCount && tagsCfg.recommendedCount) {
-    lines.push(`Tags: recommended ${tagsCfg.recommendedCount}, maximum ${tagsCfg.maxCount}.`)
+    lines.push(`Publication tags: recommended ${tagsCfg.recommendedCount}, maximum ${tagsCfg.maxCount}.`)
+  }
+
+  const tagLimitsByPlatform = getTagsLimitsByPlatform(platformsForConstraints.value)
+  const supportedTagPlatforms = tagLimitsByPlatform.filter((x) => x.supported)
+  if (supportedTagPlatforms.length > 0) {
+    lines.push('Channel tags limits by platform:')
+    for (const lim of supportedTagPlatforms) {
+      const maxCount = lim.maxCount ?? 'n/a'
+      const recommendedCount = lim.recommendedCount ?? 'n/a'
+      const maxTagLength = lim.maxTagLength ?? 'n/a'
+      lines.push(
+        `- ${lim.platform}: recommended ${recommendedCount}, maximum ${maxCount}, maxTagLength ${maxTagLength}.`,
+      )
+    }
   }
 
   if (lines.length === 0) return ''
-
   return `\n\n<content_constraints>\n${lines.join('\n')}\n</content_constraints>\n`
-})
+}
 
 function stripContentConstraintsBlock(text: string): string {
   return String(text ?? '')
@@ -619,7 +671,7 @@ async function handleFieldsGeneration(sourceText: string) {
     }))
 
       const response = await generatePublicationFields(
-        (sourceText + constraintsBlock.value).trim(),
+        (sourceText + buildConstraintsBlock({ sourceText })).trim(),
         publicationLanguage || 'en-US',
         channelsForApi
       )

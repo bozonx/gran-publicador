@@ -11,8 +11,8 @@ You will receive a JSON instruction block in the user message with:
 - "channels": an array of channel objects, each with:
   - "channelId": unique identifier
   - "channelName": display name
+  - "socialMedia": social network identifier (e.g. "telegram", "vk", "site")
   - "tags": array of the channel's predefined tags (may be empty)
-  - "generateTags": boolean — whether to generate tags for this channel
 
 Output a strictly valid JSON object with this structure:
 {
@@ -38,7 +38,7 @@ Rules for the "publication" block (generate in the publication language):
    Format: lowercase, selected language, comma-separated, space as word separator.
 
 Rules for each "posts" entry:
-1. ALWAYS include tags for each channel (generateTags is always considered true).
+1. ALWAYS include tags for each channel.
 2. Consider the specific social network ("socialMedia") when generating tags.
 3. Tag format: ALWAYS lowercase, in the publication language, comma-separated, space as word separator (e.g., "fast food, burger king, yummy").
 4. If the channel has predefined "tags":

@@ -335,16 +335,12 @@ export class LlmService {
    * Generate publication fields and per-channel post fields using LLM.
    */
   async generatePublicationFields(dto: GeneratePublicationFieldsDto): Promise<LlmResponse> {
-    const channelsForPrompt = dto.channels.map((ch: ChannelInfoDto) => {
-      const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0;
-      return {
-        channelId: ch.channelId,
-        channelName: ch.channelName,
-        socialMedia: ch.socialMedia,
-        tags: ch.tags || [],
-        generateTags: true, // Always generate tags for each social network
-      };
-    });
+    const channelsForPrompt = dto.channels.map((ch: ChannelInfoDto) => ({
+      channelId: ch.channelId,
+      channelName: ch.channelName,
+      socialMedia: ch.socialMedia,
+      tags: ch.tags || [],
+    }));
 
     const instructionBlock = JSON.stringify({
       publicationLanguage: dto.publicationLanguage,

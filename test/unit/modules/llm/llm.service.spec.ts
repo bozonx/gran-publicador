@@ -365,6 +365,7 @@ describe('LlmService', () => {
             channelId: 'ch-1',
             channelName: 'Channel EN',
             tags: ['tech', 'news'],
+            socialMedia: 'telegram',
           },
           { channelId: 'ch-2', channelName: 'Channel RU', tags: [] },
         ],
@@ -396,7 +397,25 @@ describe('LlmService', () => {
           path: '/api/v1/chat/completions',
           method: 'POST',
         })
-        .reply(200, mockResponse);
+        .reply(200, opts => {
+          const body = JSON.parse(opts.body as string);
+          const userMsg = body.messages.find((m: any) => m.role === 'user');
+          expect(userMsg).toBeTruthy();
+
+          const content = String(userMsg.content || '');
+          expect(content).toContain('=== INSTRUCTION ===');
+
+          const rawJson = content
+            .split('=== INSTRUCTION ===\n')[1]
+            ?.split('\n\n=== SOURCE TEXT ===')[0];
+          expect(rawJson).toBeTruthy();
+
+          const instruction = JSON.parse(String(rawJson));
+          expect(instruction.channels[0].socialMedia).toBe('telegram');
+          expect(JSON.stringify(instruction)).not.toContain('generateTags');
+
+          return mockResponse;
+        });
 
       const result = await service.generatePublicationFields(dto);
 
