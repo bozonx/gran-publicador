@@ -295,7 +295,9 @@ export class ContentLibraryService {
       where.OR = [
         { title: { contains: query.search, mode: 'insensitive' } },
         { note: { contains: query.search, mode: 'insensitive' } },
-        ...(tagTokens.length > 0 ? ([{ tagObjects: { some: { name: { in: tagTokens } } } }] as any) : []),
+        ...(tagTokens.length > 0
+          ? ([{ tagObjects: { some: { name: { in: tagTokens } } } }] as any)
+          : []),
         { blocks: { some: { text: { contains: query.search, mode: 'insensitive' } } } },
       ];
     }
@@ -398,11 +400,10 @@ export class ContentLibraryService {
         projectId: dto.scope === 'project' ? dto.projectId! : null,
         folderId: dto.folderId ?? null,
         title: dto.title,
-        tags: this.normalizeTags(dto.tags),
-        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
+        tagObjects: (await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
           projectId: dto.scope === 'project' ? dto.projectId : undefined,
           userId: dto.scope === 'personal' ? userId : undefined,
-        }),
+        })) as any,
         note: dto.note,
         blocks: {
           create: (dto.blocks ?? []).map((b, idx) => ({
@@ -455,13 +456,13 @@ export class ContentLibraryService {
       data: {
         folderId: dto.folderId,
         title: dto.title,
-        tags: dto.tags ? this.normalizeTags(dto.tags) : undefined,
-        tagObjects: dto.tags
-          ? await this.tagsService.prepareTagsConnectOrCreate(dto.tags, {
-              projectId: item.projectId ?? undefined,
-              userId: item.userId ?? undefined,
-            })
-          : undefined,
+        tagObjects:
+          dto.tags !== undefined
+            ? ((await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
+                projectId: item.projectId ?? undefined,
+                userId: item.userId ?? undefined,
+              })) as any)
+            : undefined,
         note: dto.note,
       },
       include: {
@@ -1058,7 +1059,6 @@ export class ContentLibraryService {
         where: { id: contentItemId },
         data: {
           title: dto.title,
-          tags: dto.tags ? this.normalizeTags(dto.tags) : undefined,
           note: dto.note,
         },
       });
@@ -1173,20 +1173,23 @@ export class ContentLibraryService {
       await this.permissions.checkProjectAccess(projectId, userId, true);
     }
 
-    const tags = await this.prisma.$queryRaw<Array<{ tag: string }>>`
-      SELECT DISTINCT unnest(tags) AS tag
-      FROM content_items
-      WHERE (
-        (${scope} = 'personal' AND user_id = ${userId} AND project_id IS NULL)
-        OR
-        (${scope} = 'project' AND project_id = ${projectId ?? null})
-      )
-    `;
+    const tags = await this.prisma.tag.findMany({
+      where:
+        scope === 'project'
+          ? {
+              projectId: projectId!,
+              contentItems: { some: {} },
+            }
+          : {
+              userId,
+              projectId: null,
+              contentItems: { some: {} },
+            },
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    });
 
-    return tags
-      .map(t => t.tag)
-      .filter(Boolean)
-      .sort();
+    return tags.map(t => t.name);
   }
 
   public async listTabs(

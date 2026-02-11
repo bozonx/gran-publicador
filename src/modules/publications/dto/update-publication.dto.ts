@@ -75,10 +75,12 @@ export class UpdatePublicationDto {
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
   public existingMediaIds?: (string | PublicationMediaInputDto)[];
 
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  public tags?: string;
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
+  @MaxLength(VALIDATION_LIMITS.MAX_TAG_LENGTH, { each: true })
+  public tags?: string[];
 
   @Type(() => Date)
   @IsDate()

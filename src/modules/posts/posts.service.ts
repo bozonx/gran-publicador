@@ -12,7 +12,7 @@ import { normalizeOverrideContent } from '../../common/validators/social-media-v
 import { ChannelsService } from '../channels/channels.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
-import { normalizeTags, parseTags } from '../../common/utils/tags.util.js';
+import { normalizeTags } from '../../common/utils/tags.util.js';
 
 @Injectable()
 export class PostsService {
@@ -107,7 +107,7 @@ export class PostsService {
     data: {
       publicationId: string; // Now required
       socialMedia?: string;
-      tags?: string;
+      tags?: string[];
       status?: PostStatus;
       scheduledAt?: Date;
       content?: string | null;
@@ -182,7 +182,6 @@ export class PostsService {
         channelId,
         publicationId: data.publicationId,
         socialMedia: data.socialMedia ?? channel.socialMedia,
-        tags: data.tags,
         status: postStatus,
         scheduledAt: data.scheduledAt,
         content: normalizedOverrideContent ?? null,
@@ -191,10 +190,12 @@ export class PostsService {
         platformOptions: data.platformOptions,
         authorSignature: authorSignature || undefined,
         errorMessage,
-        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
-          normalizeTags(parseTags(data.tags ?? '')),
-          { projectId: channel.projectId },
-        ),
+        tagObjects: (await this.tagsService.prepareTagsConnectOrCreate(
+          normalizeTags(data.tags ?? []),
+          {
+            projectId: channel.projectId,
+          },
+        )) as any,
       },
       include: {
         channel: true,
@@ -340,7 +341,8 @@ export class PostsService {
             socialMedia: true,
           },
         },
-        publication: { include: { tagObjects: true } }, tagObjects: true
+        publication: { include: { tagObjects: true } },
+        tagObjects: true,
       },
       orderBy: { createdAt: 'desc' },
       take: filters?.limit,
@@ -398,7 +400,8 @@ export class PostsService {
             socialMedia: true,
           },
         },
-        publication: { include: { tagObjects: true } }, tagObjects: true
+        publication: { include: { tagObjects: true } },
+        tagObjects: true,
       },
       orderBy: { createdAt: 'desc' },
       take: filters?.limit,
@@ -468,7 +471,7 @@ export class PostsService {
     id: string,
     userId: string,
     data: {
-      tags?: string;
+      tags?: string[];
       status?: PostStatus;
       scheduledAt?: Date | null;
       publishedAt?: Date | null;
@@ -590,7 +593,6 @@ export class PostsService {
     const updatedPost = await this.prisma.post.update({
       where: { id },
       data: {
-        tags: data.tags,
         status: data.status,
         scheduledAt: data.scheduledAt,
         publishedAt: data.publishedAt,
@@ -602,10 +604,9 @@ export class PostsService {
         authorSignature: data.authorSignature,
         tagObjects:
           data.tags !== undefined
-            ? await this.tagsService.prepareTagsConnectOrCreate(
-                normalizeTags(parseTags(data.tags)),
-                { projectId: post.channel?.projectId || '' },
-              )
+            ? ((await this.tagsService.prepareTagsConnectOrCreate(normalizeTags(data.tags), {
+                projectId: post.channel?.projectId || '',
+              })) as any)
             : undefined,
       },
       include: {

@@ -288,7 +288,6 @@ model Publication {
   content       String?
   // Author's commentary for the news (published along with the content)
   authorComment String?    @map("author_comment")
-  tags          String?
   // Additional metadata stored as JSON
   meta          Json
   // Content date set by the author (e.g., article date, event date). Not the publication/posting date
@@ -322,7 +321,6 @@ model ContentItem {
   folderId  String?  @map("folder_id")
 
   title     String?
-  tags      String[] @default([])
   note      String?
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -400,8 +398,6 @@ model Post {
   channelId     String    @map("channel_id")
   // Social media platform type stored as string for flexibility
   socialMedia   String    @map("social_media")
-  // Tags specific to this channel (can override publication tags)
-  tags          String?
   // Post status for tracking publication success (PENDING, FAILED, PUBLISHED)
   // Note: Status is managed by the system only, not manually editable
   status        PostStatus @default(PENDING)
@@ -698,6 +694,7 @@ model ProjectTemplate {
 model Tag {
   id        String   @id @default(uuid())
   name      String
+  normalizedName String @map("normalized_name")
   projectId String?  @map("project_id")
   userId    String?  @map("user_id")
 
@@ -711,7 +708,8 @@ model Tag {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([projectId, name])
-  @@unique([userId, name])
+  @@unique([projectId, normalizedName])
+  @@unique([userId, normalizedName])
+  @@index([normalizedName])
   @@map("tags")
 }

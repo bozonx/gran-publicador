@@ -37,7 +37,7 @@ import {
   PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES,
   RAW_RESULT_SYSTEM_PROMPT,
 } from '../llm/constants/llm.constants.js';
-import { formatTagsCsv, normalizeTags, parseTags } from '../../common/utils/tags.util.js';
+import { normalizeTags } from '../../common/utils/tags.util.js';
 import sanitizeHtml from 'sanitize-html';
 
 @Injectable()
@@ -415,11 +415,6 @@ export class PublicationsService {
       );
     }
 
-    const normalizedTags =
-      data.tags !== undefined
-        ? formatTagsCsv(normalizeTags(parseTags(data.tags))) || null
-        : undefined;
-
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
@@ -491,7 +486,6 @@ export class PublicationsService {
         },
 
         note: data.note,
-        tags: normalizedTags,
         status: data.status ?? PublicationStatus.DRAFT,
         language: data.language,
         projectTemplateId: data.projectTemplateId,
@@ -506,10 +500,12 @@ export class PublicationsService {
               })),
             }
           : undefined,
-        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
-          normalizeTags(parseTags(data.tags ?? '')),
-          { projectId: data.projectId! },
-        ),
+        tagObjects: (await this.tagsService.prepareTagsConnectOrCreate(
+          normalizeTags(data.tags ?? []),
+          {
+            projectId: data.projectId!,
+          },
+        )) as any,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
@@ -583,7 +579,7 @@ export class PublicationsService {
       ownership?: OwnershipType;
       socialMedia?: SocialMedia;
       issueType?: IssueType;
-      tags?: string;
+      tags?: string[];
       publishedAfter?: Date;
     },
   ) {
@@ -681,7 +677,7 @@ export class PublicationsService {
       ownership?: OwnershipType;
       socialMedia?: SocialMedia;
       issueType?: IssueType;
-      tags?: string;
+      tags?: string[];
       publishedAfter?: Date;
     },
   ) {
@@ -1125,11 +1121,6 @@ export class PublicationsService {
       }
     }
 
-    const normalizedTags =
-      data.tags !== undefined
-        ? formatTagsCsv(normalizeTags(parseTags(data.tags))) || null
-        : undefined;
-
     const updated = await this.prisma.publication.update({
       where: { id },
       data: {
@@ -1164,7 +1155,6 @@ export class PublicationsService {
                 ],
               }
             : undefined,
-        tags: normalizedTags,
         status: data.status,
         postType: data.postType,
         projectTemplateId: data.projectTemplateId,
@@ -1173,10 +1163,9 @@ export class PublicationsService {
         note: data.note,
         tagObjects:
           data.tags !== undefined
-            ? await this.tagsService.prepareTagsConnectOrCreate(
-                normalizeTags(parseTags(data.tags)),
-                { projectId: publication.projectId! },
-              )
+            ? ((await this.tagsService.prepareTagsConnectOrCreate(normalizeTags(data.tags), {
+                projectId: publication.projectId!,
+              })) as any)
             : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,

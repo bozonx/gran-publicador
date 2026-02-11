@@ -2,6 +2,7 @@ import {
   IsOptional,
   IsEnum,
   IsString,
+  IsArray,
   IsInt,
   Min,
   Max,
@@ -9,6 +10,7 @@ import {
   IsLocale,
   IsDate,
   MaxLength,
+  ArrayMaxSize,
   IsUUID,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
@@ -101,9 +103,21 @@ export class FindPublicationsQueryDto {
   socialMedia?: SocialMedia;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
-  tags?: string;
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map(v => v.trim())
+        .filter(v => v.length > 0);
+    }
+    return value;
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
+  @MaxLength(VALIDATION_LIMITS.MAX_TAG_LENGTH, { each: true })
+  tags?: string[];
 
   @IsOptional()
   @IsEnum(PublicationSortBy)

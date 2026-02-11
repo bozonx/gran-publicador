@@ -16,3 +16,4 @@
 - Update `docs/CHANGELOG.md` for significant changes
 - jsdoc, messages and strings have to be in English
 - Environment variables: `.env.production.example` is the source of truth for expected variables
+- run db migrations with `pnpm db:dev:migrate`

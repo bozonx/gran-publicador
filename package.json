@@ -1,6 +1,6 @@
 {
   "name": "gran-publicador",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Gran Publicador",
   "type": "module",
   "main": "dist/src/main.js",
@@ -111,7 +111,7 @@
   "author": "Ivan K",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   },
   "packageManager": "pnpm@10.29.2",
   "pnpm": {

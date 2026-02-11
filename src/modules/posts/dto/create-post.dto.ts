@@ -28,9 +28,10 @@ export class CreatePostDto {
   @IsOptional()
   public socialMedia?: string;
 
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  public tags?: string; // Can override publication tags
+  public tags?: string[]; // Can override publication tags
 
   @IsEnum(PostStatus)
   @IsOptional()

@@ -275,7 +275,7 @@ describe('PublicationsService (unit)', () => {
         projectId,
         title: 'Test Publication',
         content: 'Test content',
-        tags: 'test,demo',
+        tags: ['test', 'demo'],
         status: PublicationStatus.DRAFT,
         language: 'ru-RU',
         projectTemplateId: 'b3f1c1a1-1111-4d11-8111-111111111111',
@@ -474,7 +474,7 @@ describe('PublicationsService (unit)', () => {
       const userId = 'user-1';
       const projectId = 'project-1';
       const filters = {
-        tags: 'news, tech',
+        tags: ['news', 'tech'],
       };
 
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);

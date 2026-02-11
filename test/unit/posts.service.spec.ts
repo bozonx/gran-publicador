@@ -100,9 +100,9 @@ describe('PostsService (unit)', () => {
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
 
-      await expect(
-        service.update(postId, userId, { status: PostStatus.PUBLISHED }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update(postId, userId, { tags: ['tag1'] })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should forbid updating post when publication is SCHEDULED', async () => {
@@ -118,9 +118,9 @@ describe('PostsService (unit)', () => {
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
 
-      await expect(
-        service.update(postId, userId, { status: PostStatus.PUBLISHED }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update(postId, userId, { tags: ['tag1'] })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should allow author to update post', async () => {
@@ -234,7 +234,13 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({});
       mockPrismaService.publication.findUnique.mockResolvedValue({ scheduledAt: new Date() });
 
-      mockPrismaService.post.update.mockResolvedValue({});
+      mockPrismaService.post.update.mockResolvedValue({
+        id: postId,
+        channelId: 'channel-1',
+        publicationId: 'pub-1',
+        status: PostStatus.PUBLISHED,
+        publishedAt: new Date(),
+      });
 
       await service.update(postId, userId, updateDto);
 
@@ -267,7 +273,13 @@ describe('PostsService (unit)', () => {
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
       mockChannelsService.findOne.mockResolvedValue({});
       mockPrismaService.publication.findUnique.mockResolvedValue({ scheduledAt: new Date() });
-      mockPrismaService.post.update.mockResolvedValue({});
+      mockPrismaService.post.update.mockResolvedValue({
+        id: postId,
+        channelId: 'channel-1',
+        publicationId: 'pub-1',
+        status: PostStatus.PUBLISHED,
+        publishedAt: new Date(),
+      });
 
       await service.update(postId, userId, updateDto);
 
@@ -297,7 +309,13 @@ describe('PostsService (unit)', () => {
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
       mockChannelsService.findOne.mockResolvedValue({});
-      mockPrismaService.post.update.mockResolvedValue({});
+      mockPrismaService.post.update.mockResolvedValue({
+        id: postId,
+        channelId: 'channel-1',
+        publicationId: 'pub-1',
+        status: PostStatus.PUBLISHED,
+        publishedAt: new Date(),
+      });
 
       await service.update(postId, userId, updateDto);
 
@@ -316,7 +334,7 @@ describe('PostsService (unit)', () => {
     it('should create a post when user has access', async () => {
       const userId = 'user-1';
       const channelId = 'channel-1';
-      const dto = { publicationId: 'pub-1', content: 'hello' };
+      const dto = { publicationId: 'pub-1', content: 'hello', tags: ['a'] };
       const projectId = 'p1';
 
       mockChannelsService.findOne.mockResolvedValue({
@@ -344,7 +362,7 @@ describe('PostsService (unit)', () => {
       const userId = 'user-1';
       const channelId = 'channel-1';
       const projectId = 'p1';
-      const dto = { publicationId: 'pub-1', template: { id: 'tpl-1' } };
+      const dto = { publicationId: 'pub-1', template: { id: 'tpl-1' }, tags: ['a'] };
 
       mockChannelsService.findOne.mockResolvedValue({
         id: channelId,

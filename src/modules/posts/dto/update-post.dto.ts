@@ -1,14 +1,15 @@
 import { Type } from 'class-transformer';
-import { IsDate, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsArray, IsDate, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 /**
  * DTO for updating an existing post.
  * Posts inherit content from Publication, so only channel-specific fields can be updated.
  */
 export class UpdatePostDto {
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  public tags?: string; // Can override publication tags
+  public tags?: string[]; // Can override publication tags
 
   @Type(() => Date)
   @ValidateIf((_, value) => value !== null && value !== undefined)

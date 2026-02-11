@@ -9,10 +9,13 @@ export class TagsService {
   async search(query: SearchTagsQueryDto) {
     const { q, projectId, userId, limit = 20 } = query;
 
+    const normalizedQ = q ? String(q).trim().toLowerCase() : undefined;
+
     return this.prisma.tag.findMany({
       where: {
         AND: [
-          q ? { name: { contains: q, mode: 'insensitive' } } : {},
+          // Cast to any until Prisma client is regenerated after schema update
+          normalizedQ ? ({ normalizedName: { startsWith: normalizedQ } } as any) : {},
           projectId ? { projectId } : userId ? { userId, projectId: null } : {},
         ],
       },
@@ -29,17 +32,23 @@ export class TagsService {
 
     const { projectId, userId } = scope;
 
+    const normalizedTags = tags
+      .map(t => String(t ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 50);
+
     return {
       set: [], // Dissociate current tags
-      connectOrCreate: tags.map(name => {
-        const normalizedName = name.trim();
+      connectOrCreate: normalizedTags.map(name => {
+        const normalizedName = name.toLowerCase();
+
         const where = projectId
-          ? { projectId_name: { projectId, name: normalizedName } }
-          : { userId_name: { userId: userId!, name: normalizedName } };
+          ? { projectId_normalizedName: { projectId, normalizedName } }
+          : { userId_normalizedName: { userId: userId!, normalizedName } };
 
         const create = projectId
-          ? { projectId, name: normalizedName }
-          : { userId: userId!, name: normalizedName };
+          ? { projectId, name, normalizedName }
+          : { userId: userId!, name, normalizedName };
 
         return { where, create };
       }),

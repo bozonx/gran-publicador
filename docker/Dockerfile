@@ -1,9 +1,9 @@
-ARG NODE_MAJOR=22
+ARG NODE_MAJOR=24
 
 # -----------------------------------------------------------------------------
 # Builder Stage (Handles native modules compilation)
 # -----------------------------------------------------------------------------
-FROM node:${NODE_MAJOR}-bookworm AS builder
+FROM node:${NODE_MAJOR}-bookworm-slim AS builder
 
 WORKDIR /app
 RUN corepack enable
