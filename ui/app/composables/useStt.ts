@@ -29,6 +29,42 @@ export function useStt() {
 
   let activeWaitCleanup: (() => void) | null = null;
 
+  const detachSocketListeners = () => {
+    if (!socket) return;
+    socket.off('transcription-error', handleSocketTranscriptionError);
+    socket.off('disconnect', handleSocketDisconnect);
+  };
+
+  const attachSocketListeners = () => {
+    if (!socket) return;
+    detachSocketListeners();
+    socket.on('transcription-error', handleSocketTranscriptionError);
+    socket.on('disconnect', handleSocketDisconnect);
+  };
+
+  const stopAllActivityOnError = () => {
+    try {
+      stopRecording().catch(() => {});
+      activeWaitCleanup?.();
+      activeWaitCleanup = null;
+    } finally {
+      isTranscribing.value = false;
+    }
+  };
+
+  const handleSocketTranscriptionError = (data?: { message: string }) => {
+    console.error('STT Error received:', data?.message);
+    stopAllActivityOnError();
+    error.value = 'transcriptionError';
+  };
+
+  const handleSocketDisconnect = () => {
+    if (!isRecording.value && !isTranscribing.value) return;
+    console.warn('Socket disconnected during STT activity');
+    stopAllActivityOnError();
+    error.value = 'connectionLost';
+  };
+
   async function handleDataAvailable(blob: Blob) {
     if (!socket || !socket.connected) return;
 
@@ -58,6 +94,7 @@ export function useStt() {
     }
 
     socket = connectedSocket;
+    attachSocketListeners();
 
     if (!connectedSocket.connected) {
       try {
@@ -184,8 +221,6 @@ export function useStt() {
 
       const cleanup = () => {
         socket?.off('transcription-result', handleResult);
-        socket?.off('transcription-error', handleError);
-        socket?.off('disconnect', handleDisconnect);
         clearTimeout(timeoutId);
       };
 
@@ -202,7 +237,7 @@ export function useStt() {
       };
 
       const handleError = (data?: { message: string }) => {
-        console.error('STT Error received:', data?.message);
+        console.error('STT Error received while waiting:', data?.message);
         cleanup();
         activeWaitCleanup = null;
         error.value = 'transcriptionError';
@@ -218,8 +253,8 @@ export function useStt() {
       };
 
       socket?.on('transcription-result', handleResult);
-      socket?.on('transcription-error', handleError);
-      socket?.on('disconnect', handleDisconnect);
+      socket?.once('transcription-error', handleError);
+      socket?.once('disconnect', handleDisconnect);
 
       // Safety timeout - 10 minutes
       timeoutId = setTimeout(() => {
@@ -234,11 +269,8 @@ export function useStt() {
 
   onUnmounted(() => {
     // Keep socket connection in store, only cleanup local listeners
-    if (socket) {
-      socket.off('transcription-result');
-      socket.off('transcription-error');
-      socket.off('disconnect');
-    }
+    detachSocketListeners();
+    socket?.off('transcription-result');
   });
 
   return {
