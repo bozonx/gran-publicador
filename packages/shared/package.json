@@ -41,6 +41,17 @@
       "types": "./dist/post-statuses.constants.d.ts",
       "import": "./dist/post-statuses.constants.js",
       "default": "./dist/post-statuses.constants.js"
+    },
+
+    "./utils/tags": {
+      "types": "./src/utils/tags.ts",
+      "import": "./dist/utils/tags.js",
+      "default": "./dist/utils/tags.js"
+    },
+    "./utils/object": {
+      "types": "./src/utils/object.ts",
+      "import": "./dist/utils/object.js",
+      "default": "./dist/utils/object.js"
     }
   }
 }
