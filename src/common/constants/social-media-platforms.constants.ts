@@ -60,6 +60,8 @@ export interface PlatformTagsConfig {
 export interface PlatformFeatures {
   /** Body format used when sending to the posting service */
   bodyFormat: BodyFormat;
+  /** Whether the platform supports placing caption above media */
+  supportsCaptionAboveMedia: boolean;
   /** Whether the platform supports a separate title field */
   supportsTitle: boolean;
   /** Whether the platform supports a separate description field */
@@ -188,6 +190,7 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
 
   features: {
     bodyFormat: 'html',
+    supportsCaptionAboveMedia: true,
     supportsTitle: false,
     supportsDescription: false,
     supportsHasSpoiler: true,
@@ -263,6 +266,7 @@ const VK_CONFIG: SocialMediaPlatformConfig = {
 
   features: {
     bodyFormat: 'markdown',
+    supportsCaptionAboveMedia: false,
     supportsTitle: true,
     supportsDescription: true,
     supportsHasSpoiler: false,
@@ -270,9 +274,7 @@ const VK_CONFIG: SocialMediaPlatformConfig = {
     supportsScheduling: true,
   },
 
-  credentials: [
-    { key: 'vkAccessToken', required: true, label: 'Access Token' },
-  ],
+  credentials: [{ key: 'vkAccessToken', required: true, label: 'Access Token' }],
 
   ui: {
     color: '#4a76a8',
@@ -282,35 +284,9 @@ const VK_CONFIG: SocialMediaPlatformConfig = {
 };
 
 const SITE_CONFIG: SocialMediaPlatformConfig = {
-  supportedPostTypes: [PostType.POST, PostType.ARTICLE, PostType.NEWS],
+  supportedPostTypes: [PostType.ARTICLE],
 
   postTypes: {
-    [PostType.POST]: {
-      content: {
-        maxTextLength: 100_000,
-        maxCaptionLength: 100_000,
-      },
-      media: {
-        maxCount: 50,
-        minCount: 0,
-        maxGalleryCount: 50,
-        allowedTypes: ALL_MEDIA_TYPES,
-        allowedGalleryTypes: ALL_MEDIA_TYPES,
-      },
-    },
-    [PostType.NEWS]: {
-      content: {
-        maxTextLength: 100_000,
-        maxCaptionLength: 100_000,
-      },
-      media: {
-        maxCount: 50,
-        minCount: 0,
-        maxGalleryCount: 50,
-        allowedTypes: ALL_MEDIA_TYPES,
-        allowedGalleryTypes: ALL_MEDIA_TYPES,
-      },
-    },
     [PostType.ARTICLE]: {
       content: {
         maxTextLength: 500_000,
@@ -320,8 +296,8 @@ const SITE_CONFIG: SocialMediaPlatformConfig = {
         maxCount: 100,
         minCount: 0,
         maxGalleryCount: 100,
-        allowedTypes: ALL_MEDIA_TYPES,
-        allowedGalleryTypes: ALL_MEDIA_TYPES,
+        allowedTypes: [MediaType.IMAGE],
+        allowedGalleryTypes: [MediaType.IMAGE],
       },
     },
   },
@@ -335,6 +311,7 @@ const SITE_CONFIG: SocialMediaPlatformConfig = {
 
   features: {
     bodyFormat: 'markdown',
+    supportsCaptionAboveMedia: false,
     supportsTitle: true,
     supportsDescription: true,
     supportsHasSpoiler: false,
@@ -342,9 +319,7 @@ const SITE_CONFIG: SocialMediaPlatformConfig = {
     supportsScheduling: true,
   },
 
-  credentials: [
-    { key: 'apiKey', required: true, label: 'API Key' },
-  ],
+  credentials: [{ key: 'apiKey', required: true, label: 'API Key' }],
 
   ui: {
     color: '#6b7280',
@@ -377,9 +352,7 @@ export const SOCIAL_MEDIA_PLATFORMS: Partial<Record<SocialMedia, SocialMediaPlat
 /**
  * Get the full platform configuration or undefined if not configured.
  */
-export function getPlatformConfig(
-  platform: SocialMedia,
-): SocialMediaPlatformConfig | undefined {
+export function getPlatformConfig(platform: SocialMedia): SocialMediaPlatformConfig | undefined {
   return SOCIAL_MEDIA_PLATFORMS[platform];
 }
 
@@ -400,10 +373,7 @@ export function getPostTypeConfig(
 /**
  * Check if a platform supports a given post type.
  */
-export function isPlatformPostTypeSupported(
-  platform: SocialMedia,
-  postType: PostType,
-): boolean {
+export function isPlatformPostTypeSupported(platform: SocialMedia, postType: PostType): boolean {
   const config = SOCIAL_MEDIA_PLATFORMS[platform];
   if (!config) return false;
 
