@@ -1,4 +1,30 @@
-import { SocialMedia, PostType, MediaType } from '@gran/shared/social-media-platforms';
+export const SocialMedia = {
+  TELEGRAM: 'TELEGRAM',
+  VK: 'VK',
+  YOUTUBE: 'YOUTUBE',
+  TIKTOK: 'TIKTOK',
+  FACEBOOK: 'FACEBOOK',
+  SITE: 'SITE',
+} as const;
+
+export type SocialMedia = (typeof SocialMedia)[keyof typeof SocialMedia];
+
+export const PostType = {
+  POST: 'POST',
+  ARTICLE: 'ARTICLE',
+  NEWS: 'NEWS',
+} as const;
+
+export type PostType = (typeof PostType)[keyof typeof PostType];
+
+export const MediaType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  AUDIO: 'AUDIO',
+  DOCUMENT: 'DOCUMENT',
+} as const;
+
+export type MediaType = (typeof MediaType)[keyof typeof MediaType];
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
