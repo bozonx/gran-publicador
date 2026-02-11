@@ -71,6 +71,9 @@ const {
   stopRecording,
 } = useVoiceRecorder()
 const { user } = useAuth()
+const { cancel: cancelStt } = useStt()
+
+const isSttHovered = ref(false)
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
@@ -205,6 +208,11 @@ async function handleVoiceRecording() {
       color: 'error',
     })
   }
+}
+
+function handleCancelStt() {
+  cancelStt()
+  isSttHovered.value = false
 }
 
 // Steps
@@ -1049,17 +1057,32 @@ async function confirmResetChat() {
             @keydown.ctrl.enter="handleGenerate"
           />
           
-          <div class="absolute bottom-2 right-2 flex items-center gap-1.5">
-            <UTooltip :text="t('llm.voiceInputAppend')">
+          <div class="absolute bottom-2 right-2 flex flex-col items-center gap-1.5">
+            <!-- STT Button -->
+            <UTooltip :text="isRecording ? t('common.stop') : (isTranscribing ? t('common.cancel') : t('llm.voiceInputAppend'))">
               <UButton
-                icon="i-heroicons-microphone"
-                :color="isRecording ? 'error' : 'neutral'"
+                v-if="isTranscribing"
+                :icon="isSttHovered ? 'i-heroicons-x-mark' : 'i-heroicons-arrow-path'"
+                :color="isSttHovered ? 'error' : 'primary'"
                 variant="ghost"
                 size="sm"
-                :disabled="isGenerating || isTranscribing"
+                :class="{ 'animate-spin': !isSttHovered }"
+                @click="handleCancelStt"
+                @mouseenter="isSttHovered = true"
+                @mouseleave="isSttHovered = false"
+              />
+              <UButton
+                v-else
+                :icon="isRecording ? 'i-heroicons-stop' : 'i-heroicons-microphone'"
+                :color="isRecording ? 'error' : 'neutral'"
+                :variant="isRecording ? 'solid' : 'ghost'"
+                size="sm"
+                :disabled="isGenerating || isChatGenerating"
                 @click="handleVoiceRecording"
               />
             </UTooltip>
+
+            <!-- Send/Stop Generation Button -->
             <UButton
               v-if="isChatGenerating"
               icon="i-heroicons-x-mark"
@@ -1075,7 +1098,7 @@ async function confirmResetChat() {
               variant="solid"
               size="sm"
               :loading="isChatGenerating"
-              :disabled="!prompt.trim() || isRecording"
+              :disabled="!prompt.trim() || isRecording || isTranscribing"
               @click="handleGenerate"
             />
           </div>
