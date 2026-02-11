@@ -32,6 +32,7 @@ All notable changes to this project will be documented in this file.
   - Existing mixed-language publications are not migrated; new mixed-language additions are prevented.
 
 ### Fixed
+- **Frontend Unit Tests**: Fixed broken unit tests for `SocialPostingBodyFormatter` after the project templates redesign.
 - **TiptapEditor Link**: Fixed multiple issues with the link function.
   - Added `defaultProtocol: 'https'` so URLs without protocol are handled correctly.
   - Fixed BubbleMenu flicker: link menu no longer re-opens on every cursor move within a link.
