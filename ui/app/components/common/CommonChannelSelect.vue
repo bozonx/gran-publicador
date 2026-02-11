@@ -54,9 +54,9 @@ const channelOptions = computed(() => {
 })
 
 const internalValue = computed({
-  get: () => ((modelValue.value as string | string[] | undefined) || (props.multiple ? [] : undefined)) as string | string[] | null,
+  get: () => ((modelValue.value as string | string[] | undefined) || (props.multiple ? [] : undefined)) as string | string[] | undefined,
   set: (val) => {
-    modelValue.value = val
+    modelValue.value = val || null
   }
 })
 </script>

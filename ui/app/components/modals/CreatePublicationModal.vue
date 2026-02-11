@@ -241,17 +241,6 @@ watch(() => formData.language, (newLang) => {
     }
 })
 
-// Channel options — strictly filtered by publication language
-const channelOptions = computed(() => {
-  return channels.value
-    .filter(channel => channel.language === formData.language)
-    .map((channel) => ({
-      value: channel.id,
-      label: channel.name,
-      socialMedia: channel.socialMedia,
-      language: channel.language,
-    }))
-})
 
 const selectedPlatforms = computed(() => {
   const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
@@ -338,15 +327,6 @@ watch([
   }
 })
 
-// Toggle channel selection
-function toggleChannel(channelId: string) {
-  const index = formData.channelIds.indexOf(channelId)
-  if (index === -1) {
-    formData.channelIds.push(channelId)
-  } else {
-    formData.channelIds.splice(index, 1)
-  }
-}
 
 // Handle form submission
 async function handleCreate() {
@@ -493,34 +473,12 @@ function handleClose() {
         :label="t('publication.selectChannels')"
         :help="t('publication.channelsHelp')"
       >
-        <div v-if="channelOptions.length > 0" class="grid grid-cols-1 gap-3 mt-2">
-          <div
-            v-for="channel in channelOptions"
-            :key="channel.value"
-            class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
-            @click="toggleChannel(channel.value)"
-          >
-            <div class="flex items-center gap-2">
-              <UCheckbox
-                :model-value="formData.channelIds.includes(channel.value)"
-                class="pointer-events-none"
-                @update:model-value="toggleChannel(channel.value)"
-              />
-              <span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-48">
-                {{ channel.label }}
-              </span>
-            </div>
-
-            <div class="flex items-center gap-1.5 shrink-0 ml-2">
-              <UTooltip :text="channel.socialMedia">
-                <CommonSocialIcon :platform="channel.socialMedia" size="sm" />
-              </UTooltip>
-            </div>
-          </div>
-        </div>
-        <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic mt-2">
-          {{ t('publication.noChannels', 'No channels available. Create a channel first to publish.') }}
-        </div>
+        <CommonChannelCheckboxList
+          v-model="formData.channelIds"
+          :project-id="formData.projectId"
+          :language="formData.language"
+          :channels="channels"
+        />
       </UFormField>
     </form>
     </div>
