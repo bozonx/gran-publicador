@@ -28,11 +28,7 @@ const {
 } = useProjectTemplates()
 
 const { fetchChannels } = useChannels()
-const { languageOptions: baseLanguageOptions } = useLanguages()
-const languageOptions = computed(() => [
-  { value: null, label: t('common.allLanguages', 'All Languages'), icon: 'i-heroicons-globe-alt' },
-  ...baseLanguageOptions
-])
+const { languageOptions: baseLanguageOptions, getLanguageLabel } = useLanguages()
 
 const insertOptions = [
   { value: 'title', label: t('channel.templateInsertTitle') },
@@ -450,7 +446,7 @@ const enabledBlocks = computed(() => {
                 {{ tpl.postType }}
               </UBadge>
               <UBadge color="neutral" variant="subtle" size="xs">
-                {{ languageOptions.find(l => l.value === tpl.language)?.label || tpl.language }}
+                {{ tpl.language ? getLanguageLabel(tpl.language) : t('common.allLanguages') }}
               </UBadge>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -525,11 +521,11 @@ const enabledBlocks = computed(() => {
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <UFormField :label="t('projectTemplates.language')">
-                <USelectMenu
+                <CommonLanguageSelect
                   v-model="templateForm.language"
-                  :items="languageOptions"
-                  value-key="value"
-                  label-key="label"
+                  mode="all"
+                  allow-all
+                  :all-label="t('common.allLanguages')"
                   class="w-full"
                 />
               </UFormField>

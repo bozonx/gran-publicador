@@ -59,7 +59,6 @@ const { updatePublication, createPublication, createPostsFromPublication, status
 const { projects, fetchProjects } = useProjects()
 const { channels, fetchChannels } = useChannels()
 const { typeOptions } = usePosts()
-const { languageOptions } = useLanguages()
 const { schema } = usePublicationFormValidation(t)
 const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
 const { fetchByProject: fetchSignatures } = useAuthorSignatures()
@@ -559,14 +558,11 @@ function handleLlmGenerated(text: string) {
               <CommonInfoTooltip :text="t('post.languageTooltip')" />
             </div>
           </template>
-          <USelectMenu
+          <CommonLanguageSelect
             v-model="state.language"
-            :items="languageOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-            icon="i-heroicons-language"
             :disabled="isLocked"
+            mode="all"
+            searchable
           />
         </UFormField>
 

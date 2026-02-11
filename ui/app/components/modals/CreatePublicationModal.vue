@@ -414,9 +414,11 @@ function handleClose() {
         :label="t('common.language')"
         required
       >
-        <FormsLanguageButtonGroup
+        <CommonLanguageSelect
           v-model="formData.language"
-          :channels="channels"
+          mode="all"
+          searchable
+          class="w-full"
         />
       </UFormField>
 
