@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { ConfigService } from '@nestjs/config';
 import { LlmService } from '../../../../src/modules/llm/llm.service.js';
 import type { GenerateContentDto } from '../../../../src/modules/llm/dto/generate-content.dto.js';
@@ -158,7 +158,7 @@ describe('LlmService', () => {
         })
         .reply(400, 'Bad request');
 
-      await expect(service.generateContent(dto)).rejects.toThrow('LLM Router returned 400');
+      await expect(service.generateContent(dto)).rejects.toThrow('LLM provider request failed');
     });
   });
 
@@ -257,16 +257,40 @@ describe('LlmService', () => {
       expect(result.publication.tags).toEqual([]);
     });
 
-    it('should handle invalid JSON gracefully', () => {
+    it('should throw on invalid JSON', () => {
       const response: any = {
         choices: [{ message: { content: 'not valid json' } }],
       };
 
-      const result = service.parsePublicationFieldsResponse(response);
+      expect(() => service.parsePublicationFieldsResponse(response)).toThrow(
+        'LLM returned invalid JSON',
+      );
+    });
 
-      expect(result.publication.title).toBe('');
-      expect(result.publication.tags).toEqual([]);
-      expect(result.posts).toEqual([]);
+    it('should prefer _router.data when present', () => {
+      const response: any = {
+        choices: [
+          {
+            message: {
+              content: 'not valid json',
+            },
+          },
+        ],
+        _router: {
+          data: {
+            publication: {
+              title: 'From router',
+              description: 'D',
+              content: 'C',
+              tags: ['t'],
+            },
+            posts: [],
+          },
+        },
+      };
+
+      const result = service.parsePublicationFieldsResponse(response);
+      expect(result.publication.title).toBe('From router');
     });
 
     it('should handle JSON wrapped in markdown code blocks', () => {
@@ -340,10 +364,9 @@ describe('LlmService', () => {
           {
             channelId: 'ch-1',
             channelName: 'Channel EN',
-            language: 'en-US',
             tags: ['tech', 'news'],
           },
-          { channelId: 'ch-2', channelName: 'Channel RU', language: 'ru-RU', tags: [] },
+          { channelId: 'ch-2', channelName: 'Channel RU', tags: [] },
         ],
       };
 
@@ -378,54 +401,6 @@ describe('LlmService', () => {
       const result = await service.generatePublicationFields(dto);
 
       expect(result.choices[0].message.content).toBeTruthy();
-    });
-
-    it('should mark same-language channels as generateContent=false', async () => {
-      const dto = {
-        prompt: 'Source text',
-        publicationLanguage: 'ru-RU',
-        channels: [
-          { channelId: 'ch-same', channelName: 'Same Lang', language: 'ru-RU' },
-          { channelId: 'ch-diff', channelName: 'Diff Lang', language: 'en-US' },
-        ],
-      };
-
-      let capturedBody: any;
-      const client = mockAgent.get('http://localhost:8080');
-      client
-        .intercept({
-          path: '/api/v1/chat/completions',
-          method: 'POST',
-        })
-        .reply(200, opts => {
-          capturedBody = JSON.parse(opts.body as string);
-          return {
-            id: 'id',
-            object: 'chat.completion',
-            created: Date.now(),
-            model: 'test',
-            choices: [
-              {
-                index: 0,
-                message: { role: 'assistant', content: '{"publication":{},"posts":[]}' },
-                finish_reason: 'stop',
-              },
-            ],
-          };
-        });
-
-      await service.generatePublicationFields(dto);
-
-      const userMsg = capturedBody.messages.find((m: any) => m.role === 'user');
-      const instruction = JSON.parse(
-        userMsg.content.split('=== SOURCE TEXT ===')[0].replace('=== INSTRUCTION ===\n', '').trim(),
-      );
-
-      const sameLangChannel = instruction.channels.find((c: any) => c.channelId === 'ch-same');
-      const diffLangChannel = instruction.channels.find((c: any) => c.channelId === 'ch-diff');
-
-      expect(sameLangChannel.generateContent).toBe(false);
-      expect(diffLangChannel.generateContent).toBe(true);
     });
   });
 });

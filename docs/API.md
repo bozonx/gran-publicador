@@ -372,12 +372,6 @@ x-api-key: gp_<TOKEN_VALUE>
 | `publicationLanguage` | string | Да | Язык публикации (например, `ru-RU`) |
 | `channels` | array | Да | Список каналов с настройками генерации |
 
-### POST `/llm/extract-parameters`
-
-Извлечение параметров публикации (title/description/tags/content) из текста.
-
-Статус: **deprecated** (рекомендуется использовать `/llm/generate-publication-fields`).
-
 ---
 
 ## System API (Schedulers)

@@ -10,10 +10,8 @@ import { ConfigService } from '@nestjs/config';
 import { request } from 'undici';
 import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
-import { buildPromptWithContext } from './utils/context-formatter.js';
 import { filterUndefined } from '../../common/utils/object.utils.js';
 import {
-  PUBLICATION_EXTRACT_SYSTEM_PROMPT,
   PUBLICATION_FIELDS_SYSTEM_PROMPT,
   RAW_RESULT_SYSTEM_PROMPT,
 } from './constants/llm.constants.js';
@@ -49,6 +47,7 @@ export interface LlmResponse {
     attempts: number;
     fallback_used: boolean;
     errors?: any[];
+    data?: unknown;
   };
 }
 
@@ -155,6 +154,16 @@ export class LlmService {
 
       throw new BadGatewayException('LLM provider request failed');
     }
+  }
+
+  private extractJsonDataFromResponse(response: LlmResponse): any {
+    const data = (response as any)?._router?.data;
+    if (data && typeof data === 'object') {
+      return data;
+    }
+
+    const content = this.extractContent(response);
+    return this.parseJsonFromLlmContent(content);
   }
 
   private stripCodeFences(text: string): string {
@@ -323,56 +332,6 @@ export class LlmService {
   }
 
   /**
-   * Builds the full prompt string combining user prompt with formatted context.
-   *
-   * @param dto - The generate content DTO containing prompt and context sources.
-   * @returns A fully constructed prompt string ready for LLM consumption.
-   * @private
-   */
-  /**
-   * Extract publication parameters (title, description, tags, content) from text using LLM.
-   */
-  async extractParameters(dto: GenerateContentDto): Promise<LlmResponse> {
-    const fullPrompt = this.buildFullPrompt(dto);
-
-    const requestBody = {
-      messages: [
-        {
-          role: 'system',
-          content: PUBLICATION_EXTRACT_SYSTEM_PROMPT,
-        },
-        {
-          role: 'user',
-          content: fullPrompt,
-        },
-      ],
-      temperature: dto.temperature || this.config.temperature || 0.3, // Lower temperature for more consistent JSON
-      max_tokens: dto.max_tokens || this.config.maxTokens || 2000,
-      model: dto.model,
-      tags: dto.tags || this.config.defaultTags,
-      type: this.config.defaultType,
-      response_format: { type: 'json_object' }, // Request JSON output
-      ...filterUndefined({
-        max_model_switches: this.config.maxModelSwitches,
-        max_same_model_retries: this.config.maxSameModelRetries,
-        retry_delay: this.config.retryDelay,
-        timeout_secs: this.config.timeoutSecs,
-        fallback_provider: this.config.fallbackProvider,
-        fallback_model: this.config.fallbackModel,
-        min_context_size: this.config.minContextSize,
-        min_max_output_tokens: this.config.minMaxOutputTokens,
-      }),
-    };
-
-    return this.callLlmRouter(requestBody, {
-      method: 'extractParameters',
-      model: dto.model,
-      tags: dto.tags,
-      contextLimitChars: dto.contextLimitChars,
-    });
-  }
-
-  /**
    * Generate publication fields and per-channel post fields using LLM.
    */
   async generatePublicationFields(dto: GeneratePublicationFieldsDto): Promise<LlmResponse> {
@@ -466,9 +425,7 @@ export class LlmService {
     const contextBlockRaw = parts.join('\n');
     const contextBlock = contextBlockRaw.slice(0, Math.max(0, contextLimit));
 
-    const promptWithContext = contextBlock ? `${dto.prompt.trim()}\n\n${contextBlock}` : dto.prompt;
-
-    return buildPromptWithContext(promptWithContext, undefined, { includeMetadata: true });
+    return contextBlock ? `${dto.prompt.trim()}\n\n${contextBlock}` : dto.prompt;
   }
 
   /**
@@ -488,9 +445,7 @@ export class LlmService {
     publication: { title: string; description: string; content: string; tags: string[] };
     posts: Array<{ channelId: string; content: string; tags: string[] }>;
   } {
-    const content = this.extractContent(response);
-
-    const parsed = this.parseJsonFromLlmContent(content);
+    const parsed = this.extractJsonDataFromResponse(response);
 
     const pub = parsed.publication || {};
     const posts = Array.isArray(parsed.posts) ? parsed.posts : [];

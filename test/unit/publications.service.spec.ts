@@ -19,6 +19,7 @@ import { PUBLICATION_CHAT_SYSTEM_PROMPT } from '../../src/modules/llm/constants/
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CreatePublicationDto } from '../../src/modules/publications/dto/create-publication.dto.js';
+import { TagsService } from '../../src/modules/tags/tags.service.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -81,6 +82,11 @@ describe('PublicationsService (unit)', () => {
     clearForPublication: jest.fn() as any,
   };
 
+  const mockTagsService = {
+    resolveAndPersistForPublication: jest.fn() as any,
+    prepareTagsConnectOrCreate: jest.fn() as any,
+  };
+
   const mockLlmService = {
     generateChat: jest.fn() as any,
     extractContent: jest.fn() as any,
@@ -110,6 +116,10 @@ describe('PublicationsService (unit)', () => {
           provide: LlmService,
           useValue: mockLlmService,
         },
+        {
+          provide: TagsService,
+          useValue: mockTagsService,
+        },
       ],
     }).compile();
 
@@ -117,11 +127,14 @@ describe('PublicationsService (unit)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    await moduleRef?.close?.();
   });
 
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
+
+    mockTagsService.prepareTagsConnectOrCreate.mockResolvedValue([]);
 
     mockPrismaService.post.aggregate.mockResolvedValue({
       _max: { publishedAt: null },
@@ -176,12 +189,10 @@ describe('PublicationsService (unit)', () => {
 
       expect(messages[0]).toEqual({ role: 'system', content: PUBLICATION_CHAT_SYSTEM_PROMPT });
       expect(
-        messages.some(m => m.role === 'system' && String(m.content).includes('<source_content>')),
+        messages.some(m => m.role === 'user' && String(m.content).includes('<source_content>')),
       ).toBe(true);
       expect(
-        messages.some(
-          m => m.role === 'system' && String(m.content).includes('<image_description>'),
-        ),
+        messages.some(m => m.role === 'user' && String(m.content).includes('<image_description>')),
       ).toBe(true);
 
       expect(capturedUpdateMeta.llmPublicationContentGenerationChat).toBeTruthy();
@@ -189,7 +200,7 @@ describe('PublicationsService (unit)', () => {
       expect(capturedUpdateMeta.llmPublicationContentGenerationChat.context).toBeTruthy();
     });
 
-    it('should not include context for subsequent messages and keep previous contextSnapshot', async () => {
+    it('should not include context for subsequent messages and normalize stored messages', async () => {
       const userId = 'user-1';
       const publicationId = 'pub-1';
 
@@ -229,14 +240,18 @@ describe('PublicationsService (unit)', () => {
       });
 
       await service.chatWithLlm(publicationId, userId, {
-        message: 'Second message',
+        message: 'Next',
       } as any);
 
       const messages = mockLlmService.generateChat.mock.calls[0][0] as any[];
       expect(messages[0]).toEqual({ role: 'system', content: PUBLICATION_CHAT_SYSTEM_PROMPT });
       expect(
-        messages.some(m => m.role === 'system' && String(m.content).includes('<source_content>')),
+        messages.some(m => m.role === 'user' && String(m.content).includes('<source_content>')),
       ).toBe(false);
+
+      const updatedMeta = mockPrismaService.publication.update.mock.calls[0][0].data.meta;
+      const savedMessages = updatedMeta.llmPublicationContentGenerationChat.messages;
+      expect(savedMessages[0]).toEqual({ role: 'user', content: 'Hello' });
     });
   });
 
@@ -475,10 +490,13 @@ describe('PublicationsService (unit)', () => {
       const andConditions = where.AND as any[];
 
       expect(andConditions).toContainEqual({
-        tags: { contains: 'news', mode: 'insensitive' },
-      });
-      expect(andConditions).toContainEqual({
-        tags: { contains: 'tech', mode: 'insensitive' },
+        tagObjects: {
+          some: {
+            name: {
+              in: ['news', 'tech'],
+            },
+          },
+        },
       });
     });
   });
@@ -820,6 +838,8 @@ describe('PublicationsService (unit)', () => {
         meta: '{}',
       };
 
+      jest.spyOn(service, 'findOne').mockResolvedValue(mockPublication as any);
+
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
@@ -856,6 +876,8 @@ describe('PublicationsService (unit)', () => {
         scheduledAt: pubScheduledAt,
       };
 
+      jest.spyOn(service, 'findOne').mockResolvedValue(mockPublication as any);
+
       mockPrismaService.publication.findUnique.mockResolvedValue(mockPublication);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
@@ -891,13 +913,13 @@ describe('PublicationsService (unit)', () => {
       const channelIds = ['channel-1'];
       const authorSignatureId = 'sig-foreign';
 
-      mockPrismaService.publication.findUnique.mockResolvedValue({
+      jest.spyOn(service, 'findOne').mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
         language: 'en-US',
         content: 'Test',
         meta: '{}',
-      });
+      } as any);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 
       mockPrismaService.channel.findMany.mockResolvedValue([
@@ -937,13 +959,13 @@ describe('PublicationsService (unit)', () => {
       const channelIds = ['channel-1'];
       const authorSignatureId = 'sig-1';
 
-      mockPrismaService.publication.findUnique.mockResolvedValue({
+      jest.spyOn(service, 'findOne').mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
         language: 'en-US',
         content: 'Test',
         meta: '{}',
-      });
+      } as any);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 
       mockPrismaService.channel.findMany.mockResolvedValue([
@@ -990,13 +1012,13 @@ describe('PublicationsService (unit)', () => {
       const publicationId = 'pub-1';
       const channelIds = ['channel-en', 'channel-ru'];
 
-      mockPrismaService.publication.findUnique.mockResolvedValue({
+      jest.spyOn(service, 'findOne').mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
         language: 'en-US',
         content: 'Test',
         meta: '{}',
-      });
+      } as any);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
         { id: 'channel-en', projectId: 'project-1', language: 'en-US', name: 'English Channel' },
@@ -1017,13 +1039,13 @@ describe('PublicationsService (unit)', () => {
       const publicationId = 'pub-1';
       const channelIds = ['channel-1', 'channel-2'];
 
-      mockPrismaService.publication.findUnique.mockResolvedValue({
+      jest.spyOn(service, 'findOne').mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
         language: 'ru-RU',
         content: 'Test',
         meta: '{}',
-      });
+      } as any);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
         {
@@ -1057,13 +1079,13 @@ describe('PublicationsService (unit)', () => {
         'channel-1': 'Line 1\nLine 2',
       };
 
-      mockPrismaService.publication.findUnique.mockResolvedValue({
+      jest.spyOn(service, 'findOne').mockResolvedValue({
         id: publicationId,
         projectId: 'project-1',
         language: 'en-US',
         content: 'Test',
         meta: '{}',
-      });
+      } as any);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.channel.findMany.mockResolvedValue([
         {
@@ -1252,7 +1274,7 @@ describe('PublicationsService (unit)', () => {
         media: [{ mediaId: 'media-1', order: 0, hasSpoiler: false }],
       };
 
-      mockPrismaService.publication.findUnique.mockResolvedValue(mockSourcePublication);
+      jest.spyOn(service, 'findOne').mockResolvedValue(mockSourcePublication as any);
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
       mockPermissionsService.checkPermission.mockResolvedValue(undefined);
 

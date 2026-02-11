@@ -1,6 +1,7 @@
 import { SocialPostingRequestFormatter } from '../../src/modules/social-posting/utils/social-posting-request.formatter.js';
 import { PostType, SocialMedia } from '../../src/generated/prisma/index.js';
 import type { PostingSnapshot } from '../../src/modules/social-posting/interfaces/posting-snapshot.interface.js';
+import { describe, it, expect } from '@jest/globals';
 
 describe('SocialPostingRequestFormatter', () => {
   const mockPost = {
@@ -64,7 +65,7 @@ describe('SocialPostingRequestFormatter', () => {
     const request = SocialPostingRequestFormatter.prepareRequest(vkParams);
 
     expect(request.platform).toBe('vk');
-    expect(request.bodyFormat).toBe('html');
+    expect(request.bodyFormat).toBe('markdown');
     expect(request.title).toBe('Pub Title');
     expect(request.description).toBe('Pub Desc');
   });

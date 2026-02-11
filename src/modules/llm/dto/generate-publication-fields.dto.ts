@@ -28,11 +28,6 @@ export class ChannelInfoDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
   channelName!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(20)
-  language!: string;
-
   @IsOptional()
   @IsString()
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)

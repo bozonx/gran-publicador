@@ -4,6 +4,7 @@ import { PostsService } from '../../src/modules/posts/posts.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ChannelsService } from '../../src/modules/channels/channels.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
+import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { PostStatus, SocialMedia, PublicationStatus } from '../../src/generated/prisma/index.js';
 
@@ -42,6 +43,11 @@ describe('PostsService (unit)', () => {
     getUserProjectRole: jest.fn() as any,
   };
 
+  const mockTagsService = {
+    resolveAndPersistForPost: jest.fn() as any,
+    prepareTagsConnectOrCreate: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -58,6 +64,10 @@ describe('PostsService (unit)', () => {
           provide: PermissionsService,
           useValue: mockPermissionsService,
         },
+        {
+          provide: TagsService,
+          useValue: mockTagsService,
+        },
       ],
     }).compile();
 
@@ -65,7 +75,7 @@ describe('PostsService (unit)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    await moduleRef?.close?.();
   });
 
   beforeEach(() => {

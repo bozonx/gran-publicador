@@ -135,27 +135,6 @@ const api = useApi()
 const activeChatController = ref<AbortController | null>(null)
 const isChatGenerating = ref(false)
 
-async function persistChatDraft() {
-  if (!publicationId) return
-  if (!Array.isArray(chatMessages.value) || chatMessages.value.length === 0) return
-
-  try {
-    await updatePublication(publicationId, {
-      meta: {
-        ...publicationMeta,
-        llmPublicationContentGenerationChat: {
-          messages: chatMessages.value,
-          model: metadata.value || null,
-          usage: null,
-          savedAt: new Date().toISOString(),
-        },
-      },
-    })
-  } catch {
-    // noop
-  }
-}
-
 function getChatErrorDescription(err: any): string {
   const msg = String(err?.message || '')
   if (msg.toLowerCase().includes('aborted')) {
@@ -309,10 +288,6 @@ function handleStop() {
   activeChatController.value?.abort()
   isChatGenerating.value = false
 
-  if (step.value === 1) {
-    void persistChatDraft()
-  }
-
   if (step.value === 2) {
     isExtracting.value = false
     fieldsResult.value = null
@@ -389,7 +364,7 @@ watch(isOpen, async (open) => {
     if (content?.trim()) {
       nextTags.push({
         id: 'content:1',
-        label: 'Контент',
+        label: t('llm.publicationBlock'),
         promptText: `<source_content>\n${content.trim()}\n</source_content>`,
         kind: 'content',
         enabled: true,
@@ -574,7 +549,6 @@ async function handleFieldsGeneration(sourceText: string) {
     const channelsForApi: ChannelInfoForLlm[] = channelsWithPosts.value.map(ch => ({
       channelId: ch.channelId,
       channelName: ch.channelName,
-      language: ch.language,
       socialMedia: ch.socialMedia,
       tags: ch.tags,
     }))

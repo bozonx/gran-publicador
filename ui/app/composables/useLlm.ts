@@ -28,15 +28,6 @@ interface LlmResponse {
   };
 }
 
-export interface LlmExtractResponse {
-  title: string;
-  description: string;
-  tags: string;
-  content: string;
-  metadata?: LlmResponse['metadata'];
-  usage?: LlmResponse['usage'];
-}
-
 export interface LlmPublicationFieldsPostResult {
   channelId: string;
   content: string;
@@ -58,7 +49,6 @@ export interface LlmPublicationFieldsResult {
 export interface ChannelInfoForLlm {
   channelId: string;
   channelName: string;
-  language: string;
   socialMedia?: string;
   tags?: string[];
 }
@@ -188,49 +178,6 @@ export function useLlm() {
   }
 
   /**
-   * Extract publication parameters using LLM.
-   */
-  async function extractParameters(
-    prompt: string,
-    options?: GenerateLlmOptions,
-  ): Promise<LlmExtractResponse | null> {
-    isGenerating.value = true;
-    error.value = null;
-    isAborted.value = false;
-    activeController.value?.abort();
-    activeController.value = api.createAbortController();
-
-    try {
-      const response = await post<LlmExtractResponse>(
-        '/llm/extract-parameters',
-        {
-          prompt,
-          ...options,
-        },
-        { signal: activeController.value.signal },
-      );
-      return response;
-    } catch (err: any) {
-      const errorType = getErrorType(err);
-      const msg = err.data?.message || err.message || 'Failed to extract parameters';
-
-      if (errorType === LlmErrorType.ABORTED) {
-        isAborted.value = true;
-      }
-
-      error.value = {
-        type: errorType,
-        message: msg,
-        originalError: err,
-      };
-      return null;
-    } finally {
-      isGenerating.value = false;
-      activeController.value = null;
-    }
-  }
-
-  /**
    * Generate publication fields and per-channel post fields using LLM.
    */
   async function generatePublicationFields(
@@ -286,7 +233,6 @@ export function useLlm() {
     error,
     isAborted,
     generateContent,
-    extractParameters,
     generatePublicationFields,
     estimateTokens,
     stop,

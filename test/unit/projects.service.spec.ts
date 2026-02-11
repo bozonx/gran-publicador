@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { SystemRoleType, PermissionKey } from '../../src/common/types/permissions.types.js';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { RolesService } from '../../src/modules/roles/roles.service.js';
@@ -134,6 +134,13 @@ describe('ProjectsService (unit)', () => {
         const tx = {
           project: {
             create: (jest.fn() as any).mockResolvedValue(mockProject),
+          },
+          projectTemplate: {
+            create: (jest.fn() as any).mockResolvedValue({
+              id: 'tpl-1',
+              projectId: mockProject.id,
+              name: 'Стандартный',
+            }),
           },
           // projectMember.create should NOT be called for owner anymore
         };

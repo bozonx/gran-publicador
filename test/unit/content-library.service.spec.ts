@@ -5,6 +5,7 @@ import { jest } from '@jest/globals';
 import { ContentLibraryService } from '../../src/modules/content-library/content-library.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
+import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { BulkOperationType } from '../../src/modules/content-library/dto/bulk-operation.dto.js';
 
 describe('ContentLibraryService (unit)', () => {
@@ -60,6 +61,10 @@ describe('ContentLibraryService (unit)', () => {
     checkProjectPermission: jest.fn() as any,
   };
 
+  const mockTagsService = {
+    prepareTagsConnectOrCreate: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -71,6 +76,10 @@ describe('ContentLibraryService (unit)', () => {
         {
           provide: PermissionsService,
           useValue: mockPermissionsService,
+        },
+        {
+          provide: TagsService,
+          useValue: mockTagsService,
         },
       ],
     }).compile();
@@ -149,7 +158,7 @@ describe('ContentLibraryService (unit)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    await moduleRef?.close?.();
   });
 
   beforeEach(() => {

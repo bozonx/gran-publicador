@@ -38,6 +38,7 @@ import {
   RAW_RESULT_SYSTEM_PROMPT,
 } from '../llm/constants/llm.constants.js';
 import { formatTagsCsv, normalizeTags, parseTags } from '../../common/utils/tags.util.js';
+import sanitizeHtml from 'sanitize-html';
 
 @Injectable()
 export class PublicationsService {
@@ -113,33 +114,25 @@ export class PublicationsService {
     return keptReversed.reverse();
   }
 
-  private sanitizeDangerousHtmlTags(text: string): string {
+  private sanitizeLlmOutputHtml(text: string): string {
     const input = String(text ?? '');
 
-    const removeWithContent = (tagName: string, s: string) => {
-      const re = new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'gi');
-      return s.replace(re, '');
-    };
+    return sanitizeHtml(input, {
+      allowedTags: false,
+      allowedAttributes: false,
+      disallowedTagsMode: 'discard',
+      disallowedTags: ['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base'],
+      allowVulnerableTags: false,
+    });
+  }
 
-    const removeStandalone = (tagName: string, s: string) => {
-      const openClose = new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'gi');
-      const openOnly = new RegExp(`<${tagName}\\b[^>]*\\/?>`, 'gi');
-      return s.replace(openClose, '').replace(openOnly, '');
-    };
+  private normalizeChatMessages(messages: any[]): Array<{ role: string; content: string }> {
+    if (!Array.isArray(messages)) return [];
 
-    let out = input;
-
-    out = removeWithContent('script', out);
-    out = removeWithContent('style', out);
-    out = removeWithContent('iframe', out);
-    out = removeWithContent('object', out);
-    out = removeWithContent('embed', out);
-
-    out = removeStandalone('link', out);
-    out = removeStandalone('meta', out);
-    out = removeStandalone('base', out);
-
-    return out;
+    return messages
+      .map(m => ({ role: m?.role, content: m?.content }))
+      .filter(m => typeof m.role === 'string' && typeof m.content === 'string')
+      .map(m => ({ role: m.role, content: m.content }));
   }
 
   public async chatWithLlm(
@@ -152,18 +145,21 @@ export class PublicationsService {
     const meta = this.parseMetaJson((publication as any).meta);
 
     const chatMeta = this.parseMetaJson(meta.llmPublicationContentGenerationChat);
-    const storedMessages = Array.isArray(chatMeta.messages) ? chatMeta.messages : [];
+    const storedMessages = this.normalizeChatMessages(chatMeta.messages);
     const storedContext = this.parseMetaJson(chatMeta.context);
+
+    const isFirstMessage = storedMessages.length === 0;
 
     const contextInput =
       dto.context ?? (Object.keys(storedContext).length > 0 ? storedContext : undefined);
-    const contextBlock = contextInput
-      ? this.buildUntrustedContextBlock({
-          content: contextInput.content,
-          mediaDescriptions: contextInput.mediaDescriptions,
-          contextLimitChars: contextInput.contextLimitChars,
-        })
-      : null;
+    const contextBlock =
+      isFirstMessage && contextInput
+        ? this.buildUntrustedContextBlock({
+            content: contextInput.content,
+            mediaDescriptions: contextInput.mediaDescriptions,
+            contextLimitChars: contextInput.contextLimitChars,
+          })
+        : null;
 
     const systemMessages: Array<{ role: string; content: string }> = [];
     systemMessages.push({ role: 'system', content: PUBLICATION_CHAT_SYSTEM_PROMPT });
@@ -202,9 +198,11 @@ export class PublicationsService {
         const updatedMeta = {
           ...meta,
           llmPublicationContentGenerationChat: {
-            messages: this.pruneChatMessagesByUserLimit(
-              nextStoredMessages,
-              PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES,
+            messages: this.normalizeChatMessages(
+              this.pruneChatMessagesByUserLimit(
+                nextStoredMessages,
+                PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES,
+              ),
             ),
             context: contextInput
               ? {
@@ -253,12 +251,11 @@ export class PublicationsService {
     }
 
     const assistantContentRaw = this.llmService.extractContent(response);
-    const assistantContent = this.sanitizeDangerousHtmlTags(assistantContentRaw);
+    const assistantContent = this.sanitizeLlmOutputHtml(assistantContentRaw);
     nextStoredMessages.push({ role: 'assistant', content: assistantContent });
 
-    const prunedMessages = this.pruneChatMessagesByUserLimit(
-      nextStoredMessages,
-      PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES,
+    const prunedMessages = this.normalizeChatMessages(
+      this.pruneChatMessagesByUserLimit(nextStoredMessages, PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES),
     );
 
     const updatedMeta = {

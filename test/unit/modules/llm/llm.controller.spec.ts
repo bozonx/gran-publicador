@@ -2,16 +2,14 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { LlmController } from '../../../../src/modules/llm/llm.controller.js';
 import { LlmService } from '../../../../src/modules/llm/llm.service.js';
 import type { GenerateContentDto } from '../../../../src/modules/llm/dto/generate-content.dto.js';
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 describe('LlmController', () => {
   let controller: LlmController;
-  let _service: LlmService;
 
   const mockLlmService = {
     generateContent: jest.fn() as any,
     extractContent: jest.fn() as any,
-    extractParameters: jest.fn() as any,
     generatePublicationFields: jest.fn() as any,
     parsePublicationFieldsResponse: jest.fn() as any,
   };
@@ -28,7 +26,7 @@ describe('LlmController', () => {
     }).compile();
 
     controller = module.get<LlmController>(LlmController);
-    _service = module.get<LlmService>(LlmService);
+    module.get<LlmService>(LlmService);
   });
 
   afterEach(() => {
@@ -103,9 +101,7 @@ describe('LlmController', () => {
       const dto = {
         prompt: 'Source text',
         publicationLanguage: 'ru-RU',
-        channels: [
-          { channelId: 'ch-1', channelName: 'EN Channel', language: 'en-US', tags: ['tech'] },
-        ],
+        channels: [{ channelId: 'ch-1', channelName: 'EN Channel', tags: ['tech'] }],
       } as any;
 
       const mockResponse = {

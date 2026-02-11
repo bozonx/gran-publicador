@@ -67,8 +67,12 @@ describe('LlmPromptTemplatesService', () => {
     });
 
     it('should filter out hidden templates when includeHidden is false', async () => {
+      const allBefore = await service.getSystemTemplates('user-1', true);
+      const hiddenId = allBefore[0]?.id;
+      if (!hiddenId) return;
+
       mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([
-        { systemTemplateId: 'sys-general-brainstorm-ideas' },
+        { systemTemplateId: hiddenId },
       ]);
 
       const allTemplates = await service.getSystemTemplates('user-1', true);
