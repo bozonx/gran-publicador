@@ -1,7 +1,9 @@
-export type PostStatus = 'PENDING' | 'FAILED' | 'PUBLISHED'
-export type PublicationStatus = 'DRAFT' | 'READY' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'PARTIAL' | 'FAILED' | 'EXPIRED'
-export type PostType = 'POST' | 'ARTICLE' | 'NEWS' | 'VIDEO' | 'SHORT' | 'STORY'
+export type PostStatus = import('@gran/shared/post-statuses').PostStatus;
+
+export type PublicationStatus = import('@gran/shared/post-statuses').PublicationStatus;
+
+export type PostType = import('@gran/shared/social-media-platforms').PostType;
 
 export interface PostTemplateData {
-  id: string
+  id: string;
 }

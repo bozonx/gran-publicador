@@ -1,21 +1,12 @@
 import type { Tables } from './database.types';
 
-export enum ArchiveEntityType {
-    PROJECT = 'project',
-    CHANNEL = 'channel',
-    PUBLICATION = 'publication',
-}
+export { ArchiveEntityType } from '@gran/shared/archive';
 
-export interface ArchiveStats {
-    projects: number;
-    channels: number;
-    publications: number;
-    total: number;
-}
+export type ArchiveEntityType = import('@gran/shared/archive').ArchiveEntityType;
 
-export interface MoveEntityDto {
-    targetParentId: string;
-}
+export type { ArchiveStats } from '@gran/shared/archive';
+
+export type { MoveEntityRequest as MoveEntityDto } from '@gran/shared/archive';
 
 export type ArchivedProject = Tables<'projects'>;
 export type ArchivedChannel = Tables<'channels'>;

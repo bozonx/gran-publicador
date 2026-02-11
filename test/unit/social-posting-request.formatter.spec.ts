@@ -13,7 +13,7 @@ describe('SocialPostingRequestFormatter', () => {
   };
 
   const mockChannel = {
-    socialMedia: SocialMedia.TELEGRAM,
+    socialMedia: SocialMedia.telegram,
     language: 'ru-RU',
     preferences: {},
   };
@@ -60,7 +60,7 @@ describe('SocialPostingRequestFormatter', () => {
   it('should format request correctly for non-Telegram platforms', () => {
     const vkParams = {
       ...params,
-      channel: { ...mockChannel, socialMedia: SocialMedia.VK },
+      channel: { ...mockChannel, socialMedia: SocialMedia.vk },
     };
     const request = SocialPostingRequestFormatter.prepareRequest(vkParams);
 

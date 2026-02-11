@@ -1,60 +1,27 @@
-export type PermissionKey =
-  | 'project.read'
-  | 'project.update'
-  | 'channels.read'
-  | 'channels.create'
-  | 'channels.update'
-  | 'channels.delete'
-  | 'publications.read'
-  | 'publications.create'
-  | 'publications.updateOwn'
-  | 'publications.updateAll'
-  | 'publications.deleteOwn'
-  | 'publications.deleteAll'
+export { PermissionKey, SystemRoleType } from '@gran/shared/permissions';
 
-export interface RolePermissions {
-  project: {
-    read: boolean
-    update: boolean
-  }
-  channels: {
-    read: boolean
-    create: boolean
-    update: boolean
-    delete: boolean
-  }
-  publications: {
-    read: boolean
-    create: boolean
-    updateOwn: boolean
-    updateAll: boolean
-    deleteOwn: boolean
-    deleteAll: boolean
-  }
-}
+export type PermissionKey = import('@gran/shared/permissions').PermissionKey;
 
-export enum SystemRoleType {
-  ADMIN = 'ADMIN',
-  EDITOR = 'EDITOR',
-  VIEWER = 'VIEWER',
-}
+export type RolePermissions = import('@gran/shared/permissions').RolePermissions;
+
+export type SystemRoleType = import('@gran/shared/permissions').SystemRoleType;
 
 export interface Role {
-  id: string
-  projectId: string
-  name: string
-  description?: string | null
-  isSystem: boolean
-  systemType: SystemRoleType | null
-  permissions: RolePermissions
-  createdAt: string
-  updatedAt: string
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string | null;
+  isSystem: boolean;
+  systemType: SystemRoleType | null;
+  permissions: RolePermissions;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RoleWithMemberCount extends Role {
-  memberCount?: number
-  members?: { id: string }[]
+  memberCount?: number;
+  members?: { id: string }[];
   _count?: {
-    members: number
-  }
+    members: number;
+  };
 }

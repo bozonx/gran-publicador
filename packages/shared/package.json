@@ -16,6 +16,31 @@
       "types": "./dist/social-media-platforms.constants.d.ts",
       "import": "./dist/social-media-platforms.constants.js",
       "default": "./dist/social-media-platforms.constants.js"
+    },
+    "./permissions": {
+      "types": "./dist/permissions.constants.d.ts",
+      "import": "./dist/permissions.constants.js",
+      "default": "./dist/permissions.constants.js"
+    },
+    "./archive": {
+      "types": "./dist/archive.contracts.d.ts",
+      "import": "./dist/archive.contracts.js",
+      "default": "./dist/archive.contracts.js"
+    },
+    "./api-tokens": {
+      "types": "./dist/api-tokens.contracts.d.ts",
+      "import": "./dist/api-tokens.contracts.js",
+      "default": "./dist/api-tokens.contracts.js"
+    },
+    "./llm": {
+      "types": "./dist/llm.contracts.d.ts",
+      "import": "./dist/llm.contracts.js",
+      "default": "./dist/llm.contracts.js"
+    },
+    "./post-statuses": {
+      "types": "./dist/post-statuses.constants.d.ts",
+      "import": "./dist/post-statuses.constants.js",
+      "default": "./dist/post-statuses.constants.js"
     }
   }
 }

@@ -187,7 +187,7 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({});
       mockPrismaService.channel.findUnique.mockResolvedValue({
         projectId: 'p1',
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
       });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined); // Authorized
       mockPrismaService.post.update.mockResolvedValue({ ...mockPost, ...updateDto });
@@ -340,7 +340,7 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({
         id: channelId,
         projectId,
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
       });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findFirst.mockResolvedValue({ id: 'pub-1', projectId });
@@ -367,7 +367,7 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({
         id: channelId,
         projectId,
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
       });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findFirst.mockResolvedValue({

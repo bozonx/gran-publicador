@@ -58,9 +58,9 @@ describe('social-media-validation.validator (unit)', () => {
 
   describe('validatePostContent', () => {
     it('validates Telegram text length for text-only post', () => {
-      const rules = getValidationRulesOrThrow(SocialMedia.TELEGRAM, PostType.POST);
+      const rules = getValidationRulesOrThrow(SocialMedia.telegram, PostType.POST);
       const res = validatePostContent({
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
         postType: PostType.POST,
         mediaCount: 0,
         content: 'a'.repeat(rules.maxTextLength + 1),
@@ -70,9 +70,9 @@ describe('social-media-validation.validator (unit)', () => {
     });
 
     it('validates Telegram caption length when media is present', () => {
-      const rules = getValidationRulesOrThrow(SocialMedia.TELEGRAM, PostType.POST);
+      const rules = getValidationRulesOrThrow(SocialMedia.telegram, PostType.POST);
       const res = validatePostContent({
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
         postType: PostType.POST,
         mediaCount: 1,
         content: 'a'.repeat(rules.maxCaptionLength + 1),
@@ -82,9 +82,9 @@ describe('social-media-validation.validator (unit)', () => {
     });
 
     it('validates media count', () => {
-      const rules = getValidationRulesOrThrow(SocialMedia.TELEGRAM, PostType.POST);
+      const rules = getValidationRulesOrThrow(SocialMedia.telegram, PostType.POST);
       const res = validatePostContent({
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
         postType: PostType.POST,
         mediaCount: rules.maxMediaCount + 1,
         content: 'ok',
@@ -94,9 +94,9 @@ describe('social-media-validation.validator (unit)', () => {
     });
 
     it('validates VK text length for text-only post', () => {
-      const rules = getValidationRulesOrThrow(SocialMedia.VK, PostType.POST);
+      const rules = getValidationRulesOrThrow(SocialMedia.vk, PostType.POST);
       const res = validatePostContent({
-        socialMedia: SocialMedia.VK,
+        socialMedia: SocialMedia.vk,
         postType: PostType.POST,
         mediaCount: 0,
         content: 'a'.repeat(rules.maxTextLength + 1),
@@ -106,9 +106,9 @@ describe('social-media-validation.validator (unit)', () => {
     });
 
     it('validates SITE text length for ARTICLE', () => {
-      const rules = getValidationRulesOrThrow(SocialMedia.SITE, PostType.ARTICLE);
+      const rules = getValidationRulesOrThrow(SocialMedia.site, PostType.ARTICLE);
       const res = validatePostContent({
-        socialMedia: SocialMedia.SITE,
+        socialMedia: SocialMedia.site,
         postType: PostType.ARTICLE,
         mediaCount: 0,
         content: 'a'.repeat(rules.maxTextLength + 1),

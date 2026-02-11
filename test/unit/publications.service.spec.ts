@@ -438,7 +438,7 @@ describe('PublicationsService (unit)', () => {
       const projectId = 'project-1';
       const filters = {
         ownership: OwnershipType.OWN,
-        socialMedia: SocialMedia.TELEGRAM,
+        socialMedia: SocialMedia.telegram,
         issueType: IssueType.FAILED,
         sortBy: 'createdAt',
         sortOrder: 'desc' as const,
@@ -464,7 +464,7 @@ describe('PublicationsService (unit)', () => {
 
       // Social Media check
       const socialMediaCondition = andConditions.find(
-        c => c.posts?.some?.channel?.socialMedia === SocialMedia.TELEGRAM,
+        c => c.posts?.some?.channel?.socialMedia === SocialMedia.telegram,
       );
       expect(socialMediaCondition).toBeDefined();
 
@@ -931,7 +931,7 @@ describe('PublicationsService (unit)', () => {
           projectId: 'project-1',
           language: 'en-US',
           name: 'Channel',
-          socialMedia: SocialMedia.TELEGRAM,
+          socialMedia: SocialMedia.telegram,
         },
       ]);
 
@@ -977,7 +977,7 @@ describe('PublicationsService (unit)', () => {
           projectId: 'project-1',
           language: 'en-US',
           name: 'Channel',
-          socialMedia: SocialMedia.TELEGRAM,
+          socialMedia: SocialMedia.telegram,
         },
       ]);
 
@@ -1056,14 +1056,14 @@ describe('PublicationsService (unit)', () => {
           projectId: 'project-1',
           language: 'ru-RU',
           name: 'Ch1',
-          socialMedia: 'TELEGRAM',
+          socialMedia: 'telegram',
         },
         {
           id: 'channel-2',
           projectId: 'project-1',
           language: 'ru-RU',
           name: 'Ch2',
-          socialMedia: 'TELEGRAM',
+          socialMedia: 'telegram',
         },
       ]);
       mockPrismaService.post.create.mockImplementation(({ data }: any) =>
@@ -1096,7 +1096,7 @@ describe('PublicationsService (unit)', () => {
           projectId: 'project-1',
           language: 'en-US',
           name: 'Channel',
-          socialMedia: SocialMedia.TELEGRAM,
+          socialMedia: SocialMedia.telegram,
         },
       ]);
 

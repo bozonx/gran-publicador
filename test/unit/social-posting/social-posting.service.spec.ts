@@ -116,7 +116,7 @@ describe('SocialPostingService', () => {
       const channelId = 'chan-123';
       const mockChannel = {
         id: channelId,
-        socialMedia: 'TELEGRAM',
+        socialMedia: 'telegram',
         channelIdentifier: '@test',
         isActive: true,
         credentials: {
@@ -164,7 +164,7 @@ describe('SocialPostingService', () => {
         },
         channel: {
           id: 'chan-1',
-          socialMedia: 'TELEGRAM',
+          socialMedia: 'telegram',
           channelIdentifier: '@test',
           isActive: true,
           credentials: {

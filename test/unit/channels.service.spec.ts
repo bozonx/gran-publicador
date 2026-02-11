@@ -71,7 +71,7 @@ describe('ChannelsService (unit)', () => {
 
       await service.create(userId, projectId, {
         name: 'New Channel',
-        socialMedia: 'TELEGRAM',
+        socialMedia: 'telegram',
         channelIdentifier: '@test',
         language: 'en',
       });

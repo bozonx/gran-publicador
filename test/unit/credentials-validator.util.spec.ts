@@ -4,20 +4,20 @@ import { validatePlatformCredentials } from '../../src/modules/social-posting/ut
 
 describe('credentials-validator.util (unit)', () => {
   it('returns error for non-object credentials', () => {
-    const res = validatePlatformCredentials(SocialMedia.TELEGRAM, null);
+    const res = validatePlatformCredentials(SocialMedia.telegram, null);
     expect(res.valid).toBe(false);
     expect(res.errors).toContain('Credentials must be a valid object');
   });
 
   it('validates Telegram required fields using shared config', () => {
-    const res = validatePlatformCredentials(SocialMedia.TELEGRAM, {});
+    const res = validatePlatformCredentials(SocialMedia.telegram, {});
     expect(res.valid).toBe(false);
     expect(res.errors).toContain('Missing required credential field: telegramBotToken');
     expect(res.errors).toContain('Missing required credential field: telegramChannelId');
   });
 
   it('adds Telegram format errors in addition to required field checks', () => {
-    const res = validatePlatformCredentials(SocialMedia.TELEGRAM, {
+    const res = validatePlatformCredentials(SocialMedia.telegram, {
       telegramBotToken: 'shorttoken',
       telegramChannelId: '@test',
     });
@@ -28,7 +28,7 @@ describe('credentials-validator.util (unit)', () => {
   });
 
   it('does not accept legacy Telegram botToken key', () => {
-    const res = validatePlatformCredentials(SocialMedia.TELEGRAM, {
+    const res = validatePlatformCredentials(SocialMedia.telegram, {
       botToken: '123:token',
       telegramChannelId: '@test',
     });
@@ -38,7 +38,7 @@ describe('credentials-validator.util (unit)', () => {
   });
 
   it('returns valid for VK when required fields are present', () => {
-    const res = validatePlatformCredentials(SocialMedia.VK, {
+    const res = validatePlatformCredentials(SocialMedia.vk, {
       vkAccessToken: 'token',
     });
 
@@ -47,14 +47,14 @@ describe('credentials-validator.util (unit)', () => {
   });
 
   it('returns errors for VK when required fields are missing', () => {
-    const res = validatePlatformCredentials(SocialMedia.VK, {});
+    const res = validatePlatformCredentials(SocialMedia.vk, {});
 
     expect(res.valid).toBe(false);
     expect(res.errors).toContain('Missing required credential field: vkAccessToken');
   });
 
   it('returns valid for SITE when required fields are present', () => {
-    const res = validatePlatformCredentials(SocialMedia.SITE, {
+    const res = validatePlatformCredentials(SocialMedia.site, {
       apiKey: 'key',
     });
 
@@ -63,7 +63,7 @@ describe('credentials-validator.util (unit)', () => {
   });
 
   it('returns errors for SITE when required fields are missing', () => {
-    const res = validatePlatformCredentials(SocialMedia.SITE, {});
+    const res = validatePlatformCredentials(SocialMedia.site, {});
 
     expect(res.valid).toBe(false);
     expect(res.errors).toContain('Missing required credential field: apiKey');

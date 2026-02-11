@@ -74,7 +74,7 @@ describe('PostSnapshotBuilderService', () => {
           template: null,
           authorSignature: 'Author Sig',
           channel: {
-            socialMedia: 'TELEGRAM',
+            socialMedia: 'telegram',
             language: 'ru-RU',
             preferences: {},
           },
@@ -87,7 +87,7 @@ describe('PostSnapshotBuilderService', () => {
           template: null,
           authorSignature: null,
           channel: {
-            socialMedia: 'VK',
+            socialMedia: 'vk',
             language: 'en-US',
             preferences: {},
           },
@@ -123,7 +123,7 @@ describe('PostSnapshotBuilderService', () => {
         expect.objectContaining({
           publicationId,
           postId: 'post-1',
-          platform: 'TELEGRAM',
+          platform: 'telegram',
           inputs: expect.objectContaining({
             content: 'Test content',
           }),
@@ -190,7 +190,7 @@ describe('PostSnapshotBuilderService', () => {
           template: null,
           authorSignature: null,
           channel: {
-            socialMedia: 'TELEGRAM',
+            socialMedia: 'telegram',
             language: 'ru-RU',
             preferences: {},
           },
@@ -224,7 +224,7 @@ describe('PostSnapshotBuilderService', () => {
           template: null,
           authorSignature: null,
           channel: {
-            socialMedia: 'TELEGRAM',
+            socialMedia: 'telegram',
             language: 'ru-RU',
             preferences: {},
           },
@@ -259,7 +259,7 @@ describe('PostSnapshotBuilderService', () => {
           template: null,
           authorSignature: null,
           channel: {
-            socialMedia: 'VK',
+            socialMedia: 'vk',
             language: 'ru-RU',
             preferences: {},
           },
