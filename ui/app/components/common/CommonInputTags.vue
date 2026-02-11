@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatTagsCsv, normalizeTags, parseTags } from '~/utils/tags'
+
 const props = withDefaults(defineProps<{
   modelValue: string | null | undefined
   placeholder?: string
@@ -17,15 +19,11 @@ const emit = defineEmits<{
 const value = computed<string[]>({
   get() {
     const raw = props.modelValue ?? ''
-
-    return raw
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
+    return normalizeTags(parseTags(raw))
   },
   set(next) {
-    const normalized = next.map(t => t.trim()).filter(Boolean)
-    emit('update:modelValue', normalized.join(', '))
+    const normalized = normalizeTags(next)
+    emit('update:modelValue', formatTagsCsv(normalized))
   },
 })
 </script>

@@ -5,6 +5,7 @@ import {
   type SocialMedia,
 } from '../../../generated/prisma/index.js';
 import { IssueType, OwnershipType } from '../dto/index.js';
+import { normalizeTags, parseTags } from '../../../common/utils/tags.util.js';
 
 /**
  * Helper class to build Prisma WHERE clauses for Publications.
@@ -154,11 +155,8 @@ export class PublicationQueryBuilder {
 
     // Filter by tags
     if (filters?.tags) {
-      const tagList = filters.tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-      tagList.forEach((tag) => {
+      const tagList = normalizeTags(parseTags(filters.tags));
+      tagList.forEach(tag => {
         conditions.push({
           tags: { contains: tag, mode: 'insensitive' },
         });

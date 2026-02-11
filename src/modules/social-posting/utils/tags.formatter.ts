@@ -27,16 +27,7 @@ export class TagsFormatter {
     const individualTags: string[] = [];
 
     for (const chunk of chunks) {
-      if (tagCase !== 'none') {
-        individualTags.push(chunk.startsWith('#') ? chunk.slice(1) : chunk);
-      } else {
-        const subTags = chunk
-          .split(/\s+/)
-          .map(t => t.trim())
-          .filter(t => t.length > 0)
-          .map(t => (t.startsWith('#') ? t.slice(1) : t));
-        individualTags.push(...subTags);
-      }
+      individualTags.push(chunk.startsWith('#') ? chunk.slice(1) : chunk);
     }
 
     if (individualTags.length === 0) return [];

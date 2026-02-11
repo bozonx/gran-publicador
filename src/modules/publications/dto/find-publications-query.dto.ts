@@ -102,7 +102,7 @@ export class FindPublicationsQueryDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   tags?: string;
 
   @IsOptional()

@@ -36,6 +36,7 @@ import {
   PUBLICATION_LLM_CHAT_MAX_USER_MESSAGES,
   RAW_RESULT_SYSTEM_PROMPT,
 } from '../llm/constants/llm.constants.js';
+import { formatTagsCsv, normalizeTags, parseTags } from '../../common/utils/tags.util.js';
 
 @Injectable()
 export class PublicationsService {
@@ -414,6 +415,11 @@ export class PublicationsService {
       );
     }
 
+    const normalizedTags =
+      data.tags !== undefined
+        ? formatTagsCsv(normalizeTags(parseTags(data.tags))) || null
+        : undefined;
+
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
@@ -485,7 +491,7 @@ export class PublicationsService {
         },
 
         note: data.note,
-        tags: data.tags,
+        tags: normalizedTags,
         status: data.status ?? PublicationStatus.DRAFT,
         language: data.language,
         projectTemplateId: data.projectTemplateId,
@@ -1113,6 +1119,11 @@ export class PublicationsService {
       }
     }
 
+    const normalizedTags =
+      data.tags !== undefined
+        ? formatTagsCsv(normalizeTags(parseTags(data.tags))) || null
+        : undefined;
+
     const updated = await this.prisma.publication.update({
       where: { id },
       data: {
@@ -1147,7 +1158,7 @@ export class PublicationsService {
                 ],
               }
             : undefined,
-        tags: data.tags,
+        tags: normalizedTags,
         status: data.status,
         postType: data.postType,
         projectTemplateId: data.projectTemplateId,

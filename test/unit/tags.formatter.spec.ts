@@ -1,4 +1,5 @@
 import { TagsFormatter } from '../../src/modules/social-posting/utils/tags.formatter.js';
+import { describe, it, expect } from '@jest/globals';
 
 describe('TagsFormatter', () => {
   it('should format simple tags as hashtags', () => {
@@ -8,7 +9,7 @@ describe('TagsFormatter', () => {
 
   it('should handle already prefixed hashtags', () => {
     const result = TagsFormatter.format('#tag1 tag2');
-    expect(result).toBe('#tag1 #tag2');
+    expect(result).toBe('#tag1 tag2');
   });
 
   it('should convert to snake_case', () => {

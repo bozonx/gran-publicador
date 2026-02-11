@@ -24,6 +24,7 @@ export function normalizeTags(tags: string[], options: NormalizeTagsOptions = {}
   const { lowercase = false, dedupe = true, dedupeCaseInsensitive = true, limit } = options;
 
   let out = (tags ?? []).map(t => String(t ?? '').trim()).filter(Boolean);
+
   if (lowercase) {
     out = out.map(t => t.toLowerCase());
   }
