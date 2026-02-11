@@ -53,6 +53,13 @@ const currentIcon = computed(() => {
   }
   return props.leadingIcon
 })
+
+const currentIconColor = computed(() => {
+  if (modelValue.value) {
+    return getSocialMediaColor(modelValue.value as SocialMedia)
+  }
+  return ''
+})
 </script>
 
 <template>
@@ -69,14 +76,13 @@ const currentIcon = computed(() => {
     v-bind="$attrs"
   >
     <template #leading>
-      <UIcon :name="currentIcon" class="w-4 h-4" />
+      <UIcon :name="currentIcon" :class="['w-4 h-4', currentIconColor]" />
     </template>
 
     <template #default>
-      <div v-if="selectedOption && modelValue" class="flex items-center gap-2 truncate">
-        <UIcon :name="getSocialMediaIcon(modelValue as SocialMedia)" class="w-4 h-4" />
-        <span class="truncate">{{ selectedOption.label }}</span>
-      </div>
+      <span v-if="selectedOption && modelValue" class="truncate">
+        {{ selectedOption.label }}
+      </span>
       <span v-else-if="selectedOption" class="truncate">
         {{ selectedOption.label }}
       </span>

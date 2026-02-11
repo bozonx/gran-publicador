@@ -75,6 +75,25 @@ const internalValue = computed({
     modelValue.value = val || null
   }
 })
+
+const selectedSingleOption = computed(() => {
+  if (props.multiple || typeof internalValue.value !== 'string') return null
+  return (channelOptions.value as any[]).find(o => o.value === internalValue.value)
+})
+
+const currentLeadingIcon = computed(() => {
+  if (selectedSingleOption.value?.socialMedia) {
+    return getSocialMediaIcon(selectedSingleOption.value.socialMedia)
+  }
+  return 'i-heroicons-rss'
+})
+
+const currentLeadingIconColor = computed(() => {
+  if (selectedSingleOption.value?.socialMedia) {
+    return getSocialMediaColor(selectedSingleOption.value.socialMedia)
+  }
+  return ''
+})
 </script>
 
 <template>
@@ -94,7 +113,10 @@ const internalValue = computed({
   >
     <template #leading>
       <slot name="leading">
-        <UIcon name="i-heroicons-rss" class="w-4 h-4" />
+        <UIcon 
+          :name="currentLeadingIcon" 
+          :class="['w-4 h-4', currentLeadingIconColor]" 
+        />
       </slot>
     </template>
 
@@ -113,17 +135,7 @@ const internalValue = computed({
          <span>{{ t('common.selected', { count: internalValue.length }) }}</span>
       </div>
       <div v-else-if="!multiple && internalValue" class="flex items-center gap-2 overflow-hidden">
-        <template v-if="typeof internalValue === 'string'">
-          <template v-for="opt in [(channelOptions as any[]).find(o => o.value === internalValue)]" :key="opt?.value">
-            <UIcon 
-              v-if="opt?.socialMedia"
-              :name="getSocialMediaIcon(opt.socialMedia as any)" 
-              :class="getSocialMediaColor(opt.socialMedia as any)"
-              class="w-4 h-4 shrink-0"
-            />
-            <span class="truncate">{{ opt?.label }}</span>
-          </template>
-        </template>
+        <span class="truncate">{{ selectedSingleOption?.label }}</span>
       </div>
       <span v-else class="text-gray-400 dark:text-gray-500">
         {{ placeholder || (multiple ? t('publication.select_channels') : t('channel.select_channel')) }}
