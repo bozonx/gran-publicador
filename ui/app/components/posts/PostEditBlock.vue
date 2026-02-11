@@ -43,6 +43,7 @@ const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
 const { generateContent, extractParameters, isGenerating: isLlmGenerating } = useLlm()
+const { user } = useAuth()
 
 const isQuickGenModalOpen = ref(false)
 
@@ -873,6 +874,8 @@ async function executePublish() {
                         color="neutral"
                         variant="outline"
                         :disabled="isLocked"
+                        :project-id="projectId"
+                        :user-id="user?.id"
                         class="w-full"
                     />
                 </UFormField>
@@ -1057,7 +1060,7 @@ async function executePublish() {
       :content="formData.content || publicationContent"
       :media="(publicationMedia as any)"
       :project-id="projectId"
-      @apply="handleApplyLlm"
+      @apply="handleLlmGenerated"
     />
 
     <!-- Preview Modal -->

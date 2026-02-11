@@ -11,6 +11,8 @@ import { normalizeOverrideContent } from '../../common/validators/social-media-v
 
 import { ChannelsService } from '../channels/channels.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { TagsService } from '../tags/tags.service.js';
+import { normalizeTags, parseTags } from '../../common/utils/tags.util.js';
 
 @Injectable()
 export class PostsService {
@@ -19,6 +21,7 @@ export class PostsService {
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
     private readonly channelsService: ChannelsService,
+    private readonly tagsService: TagsService,
   ) {}
 
   private async refreshPublicationEffectiveAt(publicationId: string) {
@@ -188,10 +191,19 @@ export class PostsService {
         platformOptions: data.platformOptions,
         authorSignature: authorSignature || undefined,
         errorMessage,
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+          normalizeTags(parseTags(data.tags ?? '')),
+          { projectId: channel.projectId },
+        ),
       },
       include: {
         channel: true,
-        publication: true,
+        publication: {
+          include: {
+            tagObjects: true,
+          },
+        },
+        tagObjects: true,
       },
     });
 
@@ -258,7 +270,12 @@ export class PostsService {
             socialMedia: true,
           },
         },
-        publication: true, // Include full publication with content
+        publication: {
+          include: {
+            tagObjects: true,
+          },
+        },
+        tagObjects: true,
       },
       orderBy: { createdAt: 'desc' },
       take: filters?.limit,
@@ -323,7 +340,7 @@ export class PostsService {
             socialMedia: true,
           },
         },
-        publication: true, // Include full publication
+        publication: { include: { tagObjects: true } }, tagObjects: true
       },
       orderBy: { createdAt: 'desc' },
       take: filters?.limit,
@@ -381,7 +398,7 @@ export class PostsService {
             socialMedia: true,
           },
         },
-        publication: true, // Include full publication
+        publication: { include: { tagObjects: true } }, tagObjects: true
       },
       orderBy: { createdAt: 'desc' },
       take: filters?.limit,
@@ -419,7 +436,12 @@ export class PostsService {
             socialMedia: true,
           },
         },
-        publication: true, // Include full publication with all content
+        publication: {
+          include: {
+            tagObjects: true,
+          },
+        },
+        tagObjects: true,
       },
     });
 
@@ -578,6 +600,13 @@ export class PostsService {
         template: data.template,
         platformOptions: data.platformOptions,
         authorSignature: data.authorSignature,
+        tagObjects:
+          data.tags !== undefined
+            ? await this.tagsService.prepareTagsConnectOrCreate(
+                normalizeTags(parseTags(data.tags)),
+                { projectId: post.channel?.projectId || '' },
+              )
+            : undefined,
       },
       include: {
         channel: true,

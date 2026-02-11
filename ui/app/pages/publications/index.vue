@@ -626,6 +626,8 @@ async function handleDelete() {
         <CommonInputTags
           v-model="selectedTags"
           :placeholder="t('publication.filter.tagsPlaceholder', 'Filter by tags...')"
+          :project-id="selectedProjectId || undefined"
+          :user-id="user?.id"
           class="w-full sm:w-64"
         />
 

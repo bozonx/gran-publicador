@@ -156,11 +156,15 @@ export class PublicationQueryBuilder {
     // Filter by tags
     if (filters?.tags) {
       const tagList = normalizeTags(parseTags(filters.tags));
-      tagList.forEach(tag => {
+      if (tagList.length > 0) {
         conditions.push({
-          tags: { contains: tag, mode: 'insensitive' },
+          tagObjects: {
+            some: {
+              name: { in: tagList },
+            },
+          },
         });
-      });
+      }
     }
 
     // Filter by publication date (last 24h for example)

@@ -98,7 +98,8 @@ watch(currentProjectId, async (newId) => {
                 // Fallback to first one if no default set
                 const userSigs = projectSignatures.value.filter(s => s.userId === userId)
                 if (userSigs.length > 0) {
-                    state.authorSignatureId = userSigs[0].id
+                  const firstSig = userSigs[0]
+                  if (firstSig) state.authorSignatureId = firstSig.id
                 }
             }
         }
@@ -233,7 +234,10 @@ onMounted(async () => {
                         state.authorSignatureId = project.preferences.defaultSignatures[userId]
                     } else {
                         const userSigs = sigs.filter(s => s.userId === userId)
-                        if (userSigs.length > 0) state.authorSignatureId = userSigs[0].id
+                        if (userSigs.length > 0) {
+                            const firstSig = userSigs[0]
+                            if (firstSig) state.authorSignatureId = firstSig.id
+                        }
                     }
                 }
             }),
@@ -665,6 +669,8 @@ function handleLlmGenerated(text: string) {
           color="neutral"
           variant="outline"
           :disabled="isLocked"
+          :project-id="currentProjectId"
+          :user-id="user?.id"
           class="w-full"
         />
       </UFormField>

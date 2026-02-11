@@ -17,6 +17,7 @@ import {
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { TagsService } from '../tags/tags.service.js';
 import { PublicationQueryBuilder } from './utils/publication-query.builder.js';
 import {
   CreatePublicationDto,
@@ -48,6 +49,7 @@ export class PublicationsService {
     private mediaService: MediaService,
     private snapshotBuilder: PostSnapshotBuilderService,
     private llmService: LlmService,
+    private tagsService: TagsService,
   ) {}
 
   private buildUntrustedContextBlock(params: {
@@ -332,6 +334,7 @@ export class PublicationsService {
         order: 'asc' as const,
       },
     },
+    tagObjects: true,
   };
 
   private normalizeAuthorSignatureContent(value: string): string {
@@ -506,6 +509,10 @@ export class PublicationsService {
               })),
             }
           : undefined,
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+          normalizeTags(parseTags(data.tags ?? '')),
+          { projectId: data.projectId! },
+        ),
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
@@ -620,6 +627,7 @@ export class PublicationsService {
           name: true,
         },
       },
+      tagObjects: true,
     };
 
     const sortBy = filters?.sortBy || 'chronology';
@@ -731,6 +739,7 @@ export class PublicationsService {
           name: true,
         },
       },
+      tagObjects: true,
     };
 
     const sortBy = filters?.sortBy || 'chronology';
@@ -1165,6 +1174,13 @@ export class PublicationsService {
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
         note: data.note,
+        tagObjects:
+          data.tags !== undefined
+            ? await this.tagsService.prepareTagsConnectOrCreate(
+                normalizeTags(parseTags(data.tags)),
+                { projectId: publication.projectId! },
+              )
+            : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });

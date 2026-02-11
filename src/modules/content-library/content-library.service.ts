@@ -8,6 +8,7 @@ import {
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { TagsService } from '../tags/tags.service.js';
 import {
   AttachContentBlockMediaDto,
   UpdateContentBlockMediaLinkDto,
@@ -32,6 +33,7 @@ export class ContentLibraryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
+    private readonly tagsService: TagsService,
   ) {}
 
   private async withSerializableRetry<T>(operationName: string, fn: () => Promise<T>): Promise<T> {
@@ -285,7 +287,7 @@ export class ContentLibraryService {
     }
 
     if (query.tags && query.tags.length > 0) {
-      where.tags = { hasEvery: query.tags };
+      where.tagObjects = { some: { name: { in: query.tags } } };
     }
 
     if (query.search) {
@@ -293,7 +295,7 @@ export class ContentLibraryService {
       where.OR = [
         { title: { contains: query.search, mode: 'insensitive' } },
         { note: { contains: query.search, mode: 'insensitive' } },
-        ...(tagTokens.length > 0 ? ([{ tags: { hasSome: tagTokens } }] as any) : []),
+        ...(tagTokens.length > 0 ? ([{ tagObjects: { some: { name: { in: tagTokens } } } }] as any) : []),
         { blocks: { some: { text: { contains: query.search, mode: 'insensitive' } } } },
       ];
     }
@@ -309,6 +311,7 @@ export class ContentLibraryService {
         ...(includeBlocks
           ? {
               include: {
+                tagObjects: true,
                 blocks: {
                   orderBy: { order: 'asc' },
                   include: {
@@ -348,6 +351,7 @@ export class ContentLibraryService {
     return (this.prisma.contentItem as any).findUnique({
       where: { id },
       include: {
+        tagObjects: true,
         blocks: {
           orderBy: { order: 'asc' },
           include: {
@@ -395,6 +399,10 @@ export class ContentLibraryService {
         folderId: dto.folderId ?? null,
         title: dto.title,
         tags: this.normalizeTags(dto.tags),
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
+          projectId: dto.scope === 'project' ? dto.projectId : undefined,
+          userId: dto.scope === 'personal' ? userId : undefined,
+        }),
         note: dto.note,
         blocks: {
           create: (dto.blocks ?? []).map((b, idx) => ({
@@ -412,6 +420,7 @@ export class ContentLibraryService {
         },
       },
       include: {
+        tagObjects: true,
         blocks: {
           orderBy: { order: 'asc' },
           include: {
@@ -428,19 +437,9 @@ export class ContentLibraryService {
   }
 
   public async update(id: string, dto: UpdateContentItemDto, userId: string) {
-    await this.assertContentItemAccess(id, userId, false);
-    await this.assertContentItemMutationAllowed(id, userId);
+    const item = await this.assertContentItemMutationAllowed(id, userId);
 
-    if (dto.folderId !== undefined) {
-      const item = await this.prisma.contentItem.findUnique({
-        where: { id },
-        select: { userId: true, projectId: true },
-      });
-
-      if (!item) {
-        throw new NotFoundException('Content item not found');
-      }
-
+    if (dto.folderId !== undefined && dto.folderId !== null) {
       if (dto.folderId) {
         await this.assertFolderTabAccess({
           folderId: dto.folderId,
@@ -457,9 +456,16 @@ export class ContentLibraryService {
         folderId: dto.folderId,
         title: dto.title,
         tags: dto.tags ? this.normalizeTags(dto.tags) : undefined,
+        tagObjects: dto.tags
+          ? await this.tagsService.prepareTagsConnectOrCreate(dto.tags, {
+              projectId: item.projectId ?? undefined,
+              userId: item.userId ?? undefined,
+            })
+          : undefined,
         note: dto.note,
       },
       include: {
+        tagObjects: true,
         blocks: {
           orderBy: { order: 'asc' },
           include: {

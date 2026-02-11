@@ -53,6 +53,7 @@ model User {
   llmSystemPromptHidden LlmSystemPromptHidden[]
   authorSignatures ProjectAuthorSignature[]
   contentLibraryTabs ContentLibraryTab[]
+  tags               Tag[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -108,6 +109,7 @@ model Project {
   relationGroups PublicationRelationGroup[]
   projectTemplates ProjectTemplate[]
   authorSignatures ProjectAuthorSignature[]
+  tags             Tag[]
 
   @@map("projects")
 }
@@ -300,6 +302,7 @@ model Publication {
   media   PublicationMedia[]
   contentItems PublicationContentItem[]
   relationItems PublicationRelationItem[]
+  tagObjects    Tag[]
 
   @@index([projectId, status])
   @@index([projectId, createdAt])
@@ -333,6 +336,7 @@ model ContentItem {
 
   blocks ContentBlock[]
   publications PublicationContentItem[]
+  tagObjects   Tag[]
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
@@ -426,6 +430,7 @@ model Post {
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  tagObjects  Tag[]
 
   @@index([status, scheduledAt])
   @@index([channelId, createdAt])
@@ -688,4 +693,25 @@ model ProjectTemplate {
 
   @@index([projectId])
   @@map("project_templates")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String
+  projectId String?  @map("project_id")
+  userId    String?  @map("user_id")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contentItems ContentItem[]
+  publications Publication[]
+  posts        Post[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([projectId, name])
+  @@unique([userId, name])
+  @@map("tags")
 }
