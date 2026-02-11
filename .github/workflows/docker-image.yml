@@ -47,6 +47,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
+      - name: Build shared package
+        run: pnpm --filter @gran/shared build
+
       - name: Run unit tests
         run: pnpm test:unit
 

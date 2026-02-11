@@ -40,6 +40,13 @@ const config: Config = {
       coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/test/', '.module.ts$', 'main.ts$'],
       transform,
       moduleNameMapper: {
+        '^@gran/shared/permissions$': '<rootDir>/packages/shared/src/permissions.constants',
+        '^@gran/shared/social-media-platforms$': '<rootDir>/packages/shared/src/social-media-platforms.constants',
+        '^@gran/shared/archive$': '<rootDir>/packages/shared/src/archive.contracts',
+        '^@gran/shared/api-tokens$': '<rootDir>/packages/shared/src/api-tokens.contracts',
+        '^@gran/shared/llm$': '<rootDir>/packages/shared/src/llm.contracts',
+        '^@gran/shared/post-statuses$': '<rootDir>/packages/shared/src/post-statuses.constants',
+        '^@gran/shared/utils/(.*)$': '<rootDir>/packages/shared/src/utils/$1',
         '^(\\.{1,2}/.*)\\.js$': '$1',
       },
       // Global timeout for unit tests (default: 5 seconds)
@@ -59,6 +66,13 @@ const config: Config = {
       coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/test/', '.module.ts$', 'main.ts$'],
       transform,
       moduleNameMapper: {
+        '^@gran/shared/permissions$': '<rootDir>/packages/shared/src/permissions.constants',
+        '^@gran/shared/social-media-platforms$': '<rootDir>/packages/shared/src/social-media-platforms.constants',
+        '^@gran/shared/archive$': '<rootDir>/packages/shared/src/archive.contracts',
+        '^@gran/shared/api-tokens$': '<rootDir>/packages/shared/src/api-tokens.contracts',
+        '^@gran/shared/llm$': '<rootDir>/packages/shared/src/llm.contracts',
+        '^@gran/shared/post-statuses$': '<rootDir>/packages/shared/src/post-statuses.constants',
+        '^@gran/shared/utils/(.*)$': '<rootDir>/packages/shared/src/utils/$1',
         '^(\\.{1,2}/.*)\\.js$': '$1',
       },
       // Global timeout for e2e tests (default: 30 seconds)
