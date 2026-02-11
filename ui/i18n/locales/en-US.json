@@ -567,6 +567,7 @@
     "socketConnectionError": "Could not connect to transcription service",
     "connectionLost": "Connection lost during transcription",
     "timeout": "Transcription timed out",
+    "cancelled": "Transcription cancelled",
     "regenerate": "Re-extract fields",
     "searchTemplates": "Search templates...",
     "selectFieldsToApply": "Select the fields you want to update:",

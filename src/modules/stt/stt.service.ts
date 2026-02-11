@@ -77,6 +77,24 @@ export class SttService {
         );
       }
 
+      // Quick connectivity pre-check to fail fast if STT service is down
+      try {
+        const healthResponse = await request(config.serviceUrl, {
+          method: 'HEAD',
+          headersTimeout: 5_000,
+          bodyTimeout: 5_000,
+        });
+        // Consume body to free socket
+        await healthResponse.body.dump();
+      } catch (healthErr) {
+        if (this.isConnectionError(healthErr)) {
+          throw new ServiceUnavailableException(
+            'STT Gateway microservice is unavailable. Please check if the service is running.',
+          );
+        }
+        // Non-connection errors (404 from HEAD, etc.) are fine — service is reachable
+      }
+
       const query = new URLSearchParams();
       query.set('filename', filename);
       if (params.provider) {
@@ -164,7 +182,14 @@ export class SttService {
         (error as Error).stack,
       );
 
-      if (error instanceof InternalServerErrorException || error instanceof BadGatewayException) {
+      if (
+        error instanceof InternalServerErrorException ||
+        error instanceof BadGatewayException ||
+        error instanceof ServiceUnavailableException ||
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof RequestTimeoutException
+      ) {
         throw error;
       }
 

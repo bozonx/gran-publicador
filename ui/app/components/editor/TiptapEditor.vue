@@ -79,7 +79,7 @@ const sttSelection = ref<{ from: number; to: number } | null>(null)
 
 // Watch for STT errors
 watch([sttError, recorderError], ([newSttError, newRecorderError]) => {
-  if (newSttError) {
+  if (newSttError && newSttError !== 'cancelled') {
     toast.add({
       title: t('common.error'),
       description: t(`llm.${newSttError}`, 'Transcription error'),
@@ -694,26 +694,36 @@ function getLinkHrefNearCursor(editor: any): string | null {
         ></UButton>
         
         <!-- STT/Voice Recorder -->
-        <UTooltip :text="isRecording ? t('common.stopRecording') : t('common.startRecording')">
-          <UButton
-            :color="isRecording ? 'error' : isTranscribing ? 'warning' : 'neutral'"
-            :variant="isRecording ? 'solid' : 'ghost'"
-            size="xs"
-            :icon="isTranscribing ? 'i-heroicons-arrow-path' : (isRecording ? 'i-heroicons-stop' : 'i-heroicons-microphone')"
-            :loading="isTranscribing"
-            @click="toggleRecording"
-          >
-            <span v-if="isRecording" class="ml-1 text-[10px] font-mono">{{ formattedDuration }}</span>
-          </UButton>
-        </UTooltip>
-
-        <UTooltip v-if="isRecording || isTranscribing" :text="t('common.cancel', 'Cancel')">
+        <template v-if="isRecording || isTranscribing">
+          <div class="inline-flex items-center rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <UButton
+              :color="isRecording ? 'error' : 'warning'"
+              :variant="isRecording ? 'soft' : 'soft'"
+              size="xs"
+              :icon="isTranscribing ? 'i-heroicons-arrow-path' : 'i-heroicons-stop'"
+              :loading="isTranscribing"
+              class="rounded-none"
+              @click="toggleRecording"
+            >
+              <span v-if="isRecording" class="ml-1 text-xxs font-mono">{{ formattedDuration }}</span>
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="soft"
+              size="xs"
+              icon="i-heroicons-x-mark"
+              class="rounded-none border-l border-gray-200 dark:border-gray-700"
+              @click="handleCancelStt"
+            />
+          </div>
+        </template>
+        <UTooltip v-else :text="t('common.startRecording')">
           <UButton
             color="neutral"
             variant="ghost"
             size="xs"
-            icon="i-heroicons-x-mark"
-            @click="handleCancelStt"
+            icon="i-heroicons-microphone"
+            @click="toggleRecording"
           />
         </UTooltip>
 
