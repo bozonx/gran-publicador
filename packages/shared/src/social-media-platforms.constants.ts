@@ -6,6 +6,12 @@ export const SocialMedia = {
 
 export type SocialMedia = (typeof SocialMedia)[keyof typeof SocialMedia];
 
+export const SOCIAL_MEDIA_VALUES = [
+  SocialMedia.TELEGRAM,
+  SocialMedia.VK,
+  SocialMedia.SITE,
+] as const;
+
 export const PostType = {
   POST: 'POST',
   ARTICLE: 'ARTICLE',

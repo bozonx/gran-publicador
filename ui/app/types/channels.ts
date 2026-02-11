@@ -1,4 +1,4 @@
-import type { SocialMedia } from './socialMedia';
+import type { SocialMedia } from '@gran/shared/social-media-platforms';
 
 export interface TemplateBlock {
   enabled: boolean;

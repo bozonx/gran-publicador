@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SocialMedia } from '~/types/socialMedia'
 import type { ChannelCreateInput } from '~/types/channels'
+import { getPlatformConfig } from '@gran/shared/social-media-platforms'
 
 const { t } = useI18n()
 const { projects, fetchProjects } = useProjects()
@@ -29,6 +30,7 @@ const formState = reactive({
     telegramChannelId: '',
     telegramBotToken: '',
     vkAccessToken: '',
+    apiKey: '',
   },
 })
 
@@ -72,31 +74,26 @@ watch(() => user.value?.language, (newLang) => {
 watch(() => formState.socialMedia, (newSocialMedia) => {
   if (!newSocialMedia) return
 
-  if (newSocialMedia !== 'TELEGRAM') {
-    formState.credentials.telegramChannelId = ''
-    formState.credentials.telegramBotToken = ''
-  }
+  const config = getPlatformConfig(newSocialMedia as SocialMedia)
+  const allowedKeys = new Set((config?.credentials ?? []).map((f) => f.key))
 
-  if (newSocialMedia !== 'VK') {
-    formState.credentials.vkAccessToken = ''
+  for (const key of Object.keys(formState.credentials)) {
+    if (!allowedKeys.has(key)) {
+      ;(formState.credentials as any)[key] = ''
+    }
   }
 })
 
 function getCredentials(): ChannelCreateInput['credentials'] | undefined {
-  if (formState.socialMedia === 'TELEGRAM') {
-    return {
-      telegramChannelId: formState.credentials.telegramChannelId,
-      telegramBotToken: formState.credentials.telegramBotToken,
-    }
-  }
+  if (!formState.socialMedia) return undefined
+  const config = getPlatformConfig(formState.socialMedia as SocialMedia)
+  if (!config || config.credentials.length === 0) return undefined
 
-  if (formState.socialMedia === 'VK') {
-    return {
-      vkAccessToken: formState.credentials.vkAccessToken,
-    }
+  const credentials: Record<string, any> = {}
+  for (const field of config.credentials) {
+    credentials[field.key] = (formState.credentials as any)[field.key]
   }
-
-  return undefined
+  return credentials
 }
 
 function handleSubmit() {

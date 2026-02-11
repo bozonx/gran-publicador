@@ -33,9 +33,6 @@ function getIdentifierPlaceholder(socialMedia: SocialMedia | undefined): string 
   const placeholders: Record<SocialMedia, string> = {
     TELEGRAM: '@channel_name',
     VK: 'club123456789',
-    YOUTUBE: '@channelhandle',
-    TIKTOK: '@username',
-    FACEBOOK: 'page_username',
     SITE: 'https://example.com',
   }
   return socialMedia ? placeholders[socialMedia] : t('channel.identifierPlaceholder')
@@ -49,9 +46,6 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
   const helps: Record<SocialMedia, string> = {
     TELEGRAM: t('channel.identifierHelpTelegram'),
     VK: t('channel.identifierHelpVk'),
-    YOUTUBE: t('channel.identifierHelpYoutube'),
-    TIKTOK: t('channel.identifierHelpTiktok'),
-    FACEBOOK: t('channel.identifierHelpFacebook'),
     SITE: t('channel.identifierHelpSite'),
   }
   return socialMedia ? helps[socialMedia] : t('channel.identifierHelp')
@@ -110,7 +104,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
           <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             {{ t('channel.createdAt') }}
           </dt>
-          <dd class="text-sm text-gray-900 dark:text-white min-h-[28px] flex items-center">
+          <dd class="text-sm text-gray-900 dark:text-white min-h-7 flex items-center">
             {{ d(new Date(channel.createdAt), { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
           </dd>
         </div>

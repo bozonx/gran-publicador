@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import type { ComposerTranslation } from 'vue-i18n';
 
-export const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'VK', 'SITE'] as const;
+import {
+  getPlatformConfig,
+  SOCIAL_MEDIA_VALUES,
+  type SocialMedia,
+} from '@gran/shared/social-media-platforms';
 
 export const createChannelBaseObject = (t: ComposerTranslation) => {
   return z.object({
@@ -15,6 +19,7 @@ export const createChannelBaseObject = (t: ComposerTranslation) => {
       telegramChannelId: z.string().optional(),
       telegramBotToken: z.string().optional(),
       vkAccessToken: z.string().optional(),
+      apiKey: z.string().optional(),
     }),
     preferences: z
       .object({
@@ -41,27 +46,18 @@ export const createChannelBaseObject = (t: ComposerTranslation) => {
 };
 
 export const channelRefinement = (t: ComposerTranslation) => (val: any, ctx: z.RefinementCtx) => {
-  if (val.socialMedia === 'TELEGRAM') {
-    if (!val.credentials?.telegramChannelId) {
+  const platform = val.socialMedia as SocialMedia;
+  const config = getPlatformConfig(platform);
+  if (!config) return;
+
+  for (const field of config.credentials) {
+    if (!field.required) continue;
+    const value = val.credentials?.[field.key];
+    if (typeof value === 'string' ? value.trim().length === 0 : value == null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'telegramChannelId'],
-      });
-    }
-    if (!val.credentials?.telegramBotToken) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: t('validation.required'),
-        path: ['credentials', 'telegramBotToken'],
-      });
-    }
-  } else if (val.socialMedia === 'VK') {
-    if (!val.credentials?.vkAccessToken) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: t('validation.required'),
-        path: ['credentials', 'vkAccessToken'],
+        path: ['credentials', field.key],
       });
     }
   }

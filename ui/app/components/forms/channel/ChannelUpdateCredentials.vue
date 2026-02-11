@@ -5,6 +5,7 @@ import type { ChannelWithProject } from '~/types/channels'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { FORM_SPACING } from '~/utils/design-tokens'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { getPlatformConfig } from '@gran/shared/social-media-platforms'
 
 interface Props {
   channel: ChannelWithProject
@@ -29,6 +30,7 @@ const state = reactive({
      telegramChannelId: props.channel.credentials?.telegramChannelId || props.channel.credentials?.chatId || '',
      telegramBotToken: props.channel.credentials?.telegramBotToken || props.channel.credentials?.botToken || '',
      vkAccessToken: props.channel.credentials?.vkAccessToken || props.channel.credentials?.accessToken || '',
+     apiKey: props.channel.credentials?.apiKey || '',
   }
 })
 
@@ -43,6 +45,7 @@ const isDirty = computed(() => {
         telegramChannelId: props.channel.credentials?.telegramChannelId || props.channel.credentials?.chatId || '',
         telegramBotToken: props.channel.credentials?.telegramBotToken || props.channel.credentials?.botToken || '',
         vkAccessToken: props.channel.credentials?.vkAccessToken || props.channel.credentials?.accessToken || '',
+        apiKey: props.channel.credentials?.apiKey || '',
     })
 })
 
@@ -60,18 +63,31 @@ async function performUpdate(data: any, silent: boolean = false) {
 }
 
 function prepareUpdateData(formData: any) {
-    let credentials = {}
-    if (props.channel.socialMedia === 'TELEGRAM') {
-        credentials = {
-            telegramChannelId: formData.credentials.telegramChannelId,
-            telegramBotToken: formData.credentials.telegramBotToken,
-        }
-    } else if (props.channel.socialMedia === 'VK') {
-        credentials = {
-            vkAccessToken: formData.credentials.vkAccessToken,
-        }
+    const config = getPlatformConfig(props.channel.socialMedia)
+    if (!config || config.credentials.length === 0) return { credentials: {} }
+
+    const credentials: Record<string, any> = {}
+    for (const field of config.credentials) {
+        credentials[field.key] = formData.credentials?.[field.key]
     }
+
     return { credentials }
+}
+
+function hasAllRequiredCredentials(formData: any): boolean {
+    const config = getPlatformConfig(props.channel.socialMedia)
+    if (!config) return true
+
+    for (const field of config.credentials) {
+        if (!field.required) continue
+        const val = formData.credentials?.[field.key]
+        if (typeof val === 'string') {
+            if (val.trim().length === 0) return false
+            continue
+        }
+        if (val == null) return false
+    }
+    return true
 }
 
 // Auto-save setup
@@ -80,14 +96,9 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } 
   saveFn: async () => {
     if (!props.autosave) return { saved: false, skipped: true }
     
-    // Simple validation: check if relevant credentials are not empty
-    const updateData = prepareUpdateData(state)
-    const creds = updateData.credentials as any
-    const isEmpty = props.channel.socialMedia === 'TELEGRAM' 
-        ? (!creds.telegramBotToken || !creds.telegramChannelId)
-        : (props.channel.socialMedia === 'VK' ? !creds.vkAccessToken : false)
+    if (!hasAllRequiredCredentials(state)) return { saved: false, skipped: true }
 
-    if (isEmpty) return { saved: false, skipped: true }
+    const updateData = prepareUpdateData(state)
 
     await performUpdate(updateData, true)
     return { saved: true }

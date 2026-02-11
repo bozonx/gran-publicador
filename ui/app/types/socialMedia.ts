@@ -1,1 +1,1 @@
-export type SocialMedia = 'TELEGRAM' | 'VK' | 'SITE';
+export type { SocialMedia } from '@gran/shared/social-media-platforms';
