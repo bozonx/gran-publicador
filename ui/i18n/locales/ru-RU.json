@@ -1040,6 +1040,7 @@
       "showIssuesOnly": "Проблемные",
       "socialMedia": "Социальная сеть",
       "socialMediaTitle": "Фильтр по социальной сети",
+      "tagsPlaceholder": "Поиск по тегам...",
       "statusGroup": {
         "active": "В работе",
         "draft": "Черновики",

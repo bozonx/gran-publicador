@@ -139,6 +139,7 @@ export interface PublicationsFilter {
   socialMedia?: string;
   scope?: 'projects';
   publishedAfter?: string;
+  tags?: string | null;
 }
 
 export interface PaginatedPublications {
@@ -234,6 +235,7 @@ export function usePublications() {
       if (filters.issueType && filters.issueType !== 'all') params.issueType = filters.issueType;
       if (filters.socialMedia) params.socialMedia = filters.socialMedia;
       if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter;
+      if (filters.tags) params.tags = filters.tags;
 
       const data = await api.get<PaginatedPublications>('/publications', { params });
       publications.value = data.items;
@@ -293,6 +295,7 @@ export function usePublications() {
       if (filters.issueType && filters.issueType !== 'all') params.issueType = filters.issueType;
       if (filters.socialMedia) params.socialMedia = filters.socialMedia;
       if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter;
+      if (filters.tags) params.tags = filters.tags;
 
       const data = await api.get<PaginatedPublications>('/publications', { params });
       publications.value = data.items;

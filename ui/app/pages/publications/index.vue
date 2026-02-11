@@ -55,6 +55,7 @@ const filters = useUrlFilters<{
   archived: string
   sortBy: string
   sortOrder: string
+  tags: string
 }>({
   page: { defaultValue: 1, deserialize: (v: string) => Math.max(1, parseInt(v) || 1) },
   status: {
@@ -79,6 +80,7 @@ const filters = useUrlFilters<{
     defaultValue: 'desc',
     deserialize: (v: string) => (ALLOWED_SORT_ORDER as readonly string[]).includes(v) ? v : 'desc',
   },
+  tags: { defaultValue: '' },
 })
 
 const currentPage = filters.page
@@ -92,6 +94,7 @@ const selectedLanguage = filters.language
 const showArchivedFilter = filters.archived
 const sortBy = filters.sortBy
 const sortOrder = filters.sortOrder
+const selectedTags = filters.tags
 
 const SORT_BY_STORAGE_KEY = 'publications-sort-by'
 const SORT_ORDER_STORAGE_KEY = 'publications-sort-order'
@@ -187,6 +190,7 @@ async function fetchPublications() {
     projectId: selectedProjectId.value || undefined,
     ownership: ownershipFilter.value as any,
     socialMedia: selectedSocialMedia.value as any,
+    tags: selectedTags.value || undefined,
   })
 }
 
@@ -221,7 +225,7 @@ onMounted(async () => {
 
 // Reactively re-fetch when any filter changes
 watch(
-  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], 
+  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, selectedTags, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], 
   () => {
     fetchPublications()
   }
@@ -229,7 +233,7 @@ watch(
 
 // Reset to page 1 on filter change
 watch(
-  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
+  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, selectedTags, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
   () => {
     currentPage.value = 1
   }
@@ -246,7 +250,8 @@ const hasActiveFilters = computed(() => {
          selectedProjectId.value || 
          ownershipFilter.value !== 'all' || 
          selectedSocialMedia.value ||
-         selectedLanguage.value
+         selectedLanguage.value ||
+         selectedTags.value
 })
 
 function resetFilters() {
@@ -257,6 +262,7 @@ function resetFilters() {
   ownershipFilter.value = 'all'
   selectedSocialMedia.value = null
   selectedLanguage.value = null
+  selectedTags.value = ''
 }
 
 
@@ -388,7 +394,7 @@ function toggleSelection(pubId: string) {
 }
 
 // Reset selection on filter change
-watch([selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], () => {
+watch([selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, selectedTags, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], () => {
     selectedIds.value = []
 })
 
@@ -615,6 +621,13 @@ async function handleDelete() {
             <UIcon name="i-heroicons-language" class="w-4 h-4" />
           </template>
         </USelectMenu>
+
+        <!-- Tags Filter (InputTags) -->
+        <CommonInputTags
+          v-model="selectedTags"
+          :placeholder="t('publication.filter.tagsPlaceholder', 'Filter by tags...')"
+          class="w-full sm:w-64"
+        />
 
         <!-- Project Filter (Select) -->
         <USelectMenu

@@ -36,6 +36,7 @@ export class PublicationQueryBuilder {
       issueType?: IssueType;
       search?: string;
       language?: string;
+      tags?: string;
       publishedAfter?: Date;
     },
     userAllowedProjectIds?: string[],
@@ -149,6 +150,19 @@ export class PublicationQueryBuilder {
     // Filter by language
     if (filters?.language) {
       where.language = filters.language;
+    }
+
+    // Filter by tags
+    if (filters?.tags) {
+      const tagList = filters.tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      tagList.forEach((tag) => {
+        conditions.push({
+          tags: { contains: tag, mode: 'insensitive' },
+        });
+      });
     }
 
     // Filter by publication date (last 24h for example)

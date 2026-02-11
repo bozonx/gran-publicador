@@ -95,6 +95,7 @@ export class PublicationsController {
       ownership,
       socialMedia,
       issueType,
+      tags,
     } = query;
 
     // Validate and cap limit
@@ -114,6 +115,7 @@ export class PublicationsController {
       ownership,
       socialMedia,
       issueType,
+      tags,
     };
 
     if (projectId) {

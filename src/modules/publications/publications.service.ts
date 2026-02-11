@@ -573,6 +573,7 @@ export class PublicationsService {
       ownership?: OwnershipType;
       socialMedia?: SocialMedia;
       issueType?: IssueType;
+      tags?: string;
       publishedAfter?: Date;
     },
   ) {
@@ -669,6 +670,7 @@ export class PublicationsService {
       ownership?: OwnershipType;
       socialMedia?: SocialMedia;
       issueType?: IssueType;
+      tags?: string;
       publishedAfter?: Date;
     },
   ) {

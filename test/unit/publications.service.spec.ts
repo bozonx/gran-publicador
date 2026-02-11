@@ -454,6 +454,33 @@ describe('PublicationsService (unit)', () => {
       const issueTypeCondition = andConditions.find(c => c.OR?.length === 2);
       expect(issueTypeCondition).toBeDefined();
     });
+
+    it('should apply tag filters', async () => {
+      const userId = 'user-1';
+      const projectId = 'project-1';
+      const filters = {
+        tags: 'news, tech',
+      };
+
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
+      mockPrismaService.publication.findMany.mockResolvedValue([]);
+      mockPrismaService.publication.count.mockResolvedValue(0);
+
+      await service.findAll(projectId, userId, filters);
+
+      const findManyArgs = mockPrismaService.publication.findMany.mock.calls[0][0];
+      const where = findManyArgs.where;
+
+      expect(where.AND).toBeDefined();
+      const andConditions = where.AND as any[];
+
+      expect(andConditions).toContainEqual({
+        tags: { contains: 'news', mode: 'insensitive' },
+      });
+      expect(andConditions).toContainEqual({
+        tags: { contains: 'tech', mode: 'insensitive' },
+      });
+    });
   });
 
   describe('update', () => {

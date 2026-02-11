@@ -101,6 +101,11 @@ export class FindPublicationsQueryDto {
   socialMedia?: SocialMedia;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
+  tags?: string;
+
+  @IsOptional()
   @IsEnum(PublicationSortBy)
   sortBy?: PublicationSortBy;
 

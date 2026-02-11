@@ -216,6 +216,16 @@ async function handleCopyPublication() {
     }
 }
 
+function onTagClick(tag: string) {
+  router.push({
+    path: '/publications',
+    query: {
+      projectId: currentPublication.value?.projectId,
+      tags: tag
+    }
+  })
+}
+
 async function handleApplyLlm(data: {
   publication?: { title?: string; description?: string; tags?: string; content?: string }
   posts?: Array<{ channelId: string; content?: string; tags?: string }>
@@ -492,10 +502,12 @@ async function handleApplyLlm(data: {
                     <UIcon name="i-heroicons-tag" class="w-5 h-5 text-gray-400" />
                     <CommonTags
                       :tags="currentPublication.tags"
+                      clickable
                       color="primary"
                       variant="soft"
                       size="sm"
                       badge-class="font-medium"
+                      @tag-click="onTagClick"
                     />
                   </div>
               </div>

@@ -10,15 +10,27 @@ const props = withDefaults(defineProps<{
   prefix?: string
   containerClass?: string
   badgeClass?: string
+  clickable?: boolean
 }>(), {
   prefix: '#',
   containerClass: '',
   badgeClass: '',
+  clickable: false,
 })
+
+const emit = defineEmits<{
+  (e: 'tag-click', tag: string): void
+}>()
 
 const normalizedTags = computed(() => {
   return parseTags(props.tags)
 })
+
+function onTagClick(tag: string) {
+  if (props.clickable) {
+    emit('tag-click', tag)
+  }
+}
 </script>
 
 <template>
@@ -29,7 +41,11 @@ const normalizedTags = computed(() => {
       :color="color"
       :variant="variant"
       :size="size"
-      :class="badgeClass"
+      :class="[
+        badgeClass,
+        clickable && 'cursor-pointer hover:brightness-95 transition-all'
+      ]"
+      @click="onTagClick(tag)"
     >
       {{ prefix }}{{ tag }}
     </UBadge>
