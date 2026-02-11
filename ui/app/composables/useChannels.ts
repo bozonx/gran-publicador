@@ -22,7 +22,6 @@ import {
 } from '~/utils/channels';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
-export type { SocialMedia };
 export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter };
 
 export function useChannels() {

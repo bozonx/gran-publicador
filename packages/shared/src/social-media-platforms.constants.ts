@@ -196,7 +196,13 @@ const MB_BYTES = 1024 * 1024;
 // ────────────────────────────────────────────────────────────────────────────
 
 const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
-  supportedPostTypes: [PostType.POST, PostType.ARTICLE, PostType.NEWS],
+  supportedPostTypes: [
+    PostType.POST,
+    PostType.ARTICLE,
+    PostType.NEWS,
+    PostType.VIDEO,
+    PostType.STORY,
+  ],
 
   postTypes: {
     [PostType.POST]: {
@@ -224,7 +230,57 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
         },
       },
     },
+    [PostType.VIDEO]: {
+      content: {
+        maxTextLength: 4096,
+        maxCaptionLength: 1024,
+        maxCaptionLengthByMediaType: {
+          [MediaType.IMAGE]: 1024,
+          [MediaType.VIDEO]: 1024,
+          [MediaType.AUDIO]: 1024,
+          [MediaType.DOCUMENT]: 1024,
+        },
+      },
+      media: {
+        maxCount: 10,
+        minCount: 0,
+        maxGalleryCount: 10,
+        allowedTypes: ALL_MEDIA_TYPES,
+        allowedGalleryTypes: VISUAL_MEDIA_TYPES,
+        maxFileSizeBytesByType: {
+          [MediaType.IMAGE]: 50 * MB_BYTES,
+          [MediaType.VIDEO]: 50 * MB_BYTES,
+          [MediaType.AUDIO]: 50 * MB_BYTES,
+          [MediaType.DOCUMENT]: 50 * MB_BYTES,
+        },
+      },
+    },
     [PostType.NEWS]: {
+      content: {
+        maxTextLength: 4096,
+        maxCaptionLength: 1024,
+        maxCaptionLengthByMediaType: {
+          [MediaType.IMAGE]: 1024,
+          [MediaType.VIDEO]: 1024,
+          [MediaType.AUDIO]: 1024,
+          [MediaType.DOCUMENT]: 1024,
+        },
+      },
+      media: {
+        maxCount: 10,
+        minCount: 0,
+        maxGalleryCount: 10,
+        allowedTypes: ALL_MEDIA_TYPES,
+        allowedGalleryTypes: VISUAL_MEDIA_TYPES,
+        maxFileSizeBytesByType: {
+          [MediaType.IMAGE]: 50 * MB_BYTES,
+          [MediaType.VIDEO]: 50 * MB_BYTES,
+          [MediaType.AUDIO]: 50 * MB_BYTES,
+          [MediaType.DOCUMENT]: 50 * MB_BYTES,
+        },
+      },
+    },
+    [PostType.STORY]: {
       content: {
         maxTextLength: 4096,
         maxCaptionLength: 1024,
