@@ -973,7 +973,6 @@ export class ContentLibraryService {
           userId: sourceItem.userId,
           projectId: sourceItem.projectId,
           title: block.text?.slice(0, 50) || 'Detached Block',
-          tags: [],
           note: null,
         },
       });
@@ -1022,7 +1021,6 @@ export class ContentLibraryService {
           userId: sourceItem.userId,
           projectId: sourceItem.projectId,
           title: `Copy of media from ${sourceItem.title || 'unnamed item'}`,
-          tags: [],
           note: null,
           blocks: {
             create: [

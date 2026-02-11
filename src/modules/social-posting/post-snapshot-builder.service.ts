@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SocialPostingBodyFormatter } from './utils/social-posting-body.formatter.js';
 import { ContentConverter } from '../../common/utils/content-converter.util.js';
+import { formatTagsCsv } from '../../common/utils/tags.util.js';
 import type {
   PostingSnapshot,
   PostingSnapshotMedia,
@@ -20,9 +21,10 @@ export class PostSnapshotBuilderService {
    * and produces a frozen snapshot per post.
    */
   async buildForPublication(publicationId: string): Promise<void> {
-    const publication = await this.prisma.publication.findUnique({
+    const publication = await (this.prisma.publication as any).findUnique({
       where: { id: publicationId },
       include: {
+        tagObjects: true,
         media: {
           include: { media: true },
           orderBy: { order: 'asc' },
@@ -35,10 +37,11 @@ export class PostSnapshotBuilderService {
       return;
     }
 
-    const posts = await this.prisma.post.findMany({
+    const posts = await (this.prisma.post as any).findMany({
       where: { publicationId },
       include: {
         channel: true,
+        tagObjects: true,
       },
     });
 
@@ -52,16 +55,26 @@ export class PostSnapshotBuilderService {
       orderBy: { order: 'asc' },
     });
 
-    const snapshotMedia = this.buildMediaSnapshot(publication.media);
+    const snapshotMedia = this.buildMediaSnapshot((publication as any).media);
     const now = new Date();
     const nowIso = now.toISOString();
 
+    const publicationTagsString = formatTagsCsv(
+      (publication as any).tagObjects?.map((t: any) => t?.name).filter(Boolean),
+    );
+
     for (const post of posts) {
+      const postTagsStringRaw = formatTagsCsv(
+        (post as any).tagObjects?.map((t: any) => t?.name).filter(Boolean),
+      );
+      const tagsString = postTagsStringRaw || publicationTagsString || null;
+
       const { body, bodyFormat, template } = this.buildBody(
         post,
-        post.channel,
+        (post as any).channel,
         publication,
         projectTemplates,
+        tagsString,
       );
 
       const snapshot: PostingSnapshot = {
@@ -74,11 +87,11 @@ export class PostSnapshotBuilderService {
           publicationId: publication.id,
           postId: post.id,
           channelId: post.channelId,
-          platform: post.channel?.socialMedia,
+          platform: (post as any).channel?.socialMedia,
           inputs: {
             title: publication.title,
             content: post.content || publication.content,
-            tags: post.tags || publication.tags,
+            tags: tagsString,
             authorComment: publication.authorComment,
             postType: publication.postType,
             language: publication.language,
@@ -126,6 +139,7 @@ export class PostSnapshotBuilderService {
     channel: any,
     publication: any,
     projectTemplates: any[],
+    tagsString: string | null,
   ): {
     body: string;
     bodyFormat: PostingSnapshot['bodyFormat'];
@@ -135,7 +149,7 @@ export class PostSnapshotBuilderService {
       {
         title: publication.title,
         content: post.content || publication.content,
-        tags: post.tags || publication.tags,
+        tags: tagsString,
         authorComment: publication.authorComment,
         postType: publication.postType,
         language: publication.language,

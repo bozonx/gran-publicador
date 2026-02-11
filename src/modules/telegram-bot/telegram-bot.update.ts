@@ -346,7 +346,6 @@ export class TelegramBotUpdate {
           projectId: null,
           folderId: null,
           title,
-          tags: [],
           note: null,
         },
       });

@@ -35,7 +35,15 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
     if (publication.description) request.description = publication.description;
 
     // Add tags as separate field if present
-    const tagsString = post.tags || publication.tags;
+    const tagNames =
+      (post as any).tagObjects?.map((t: any) => t?.name).filter(Boolean) ??
+      (publication as any).tagObjects?.map((t: any) => t?.name).filter(Boolean) ??
+      null;
+
+    const tagsString =
+      Array.isArray(tagNames) && tagNames.length > 0
+        ? tagNames.join(', ')
+        : (snapshot.meta?.inputs?.tags ?? null);
     if (tagsString) {
       request.tags = TagsFormatter.toArray(tagsString);
     }

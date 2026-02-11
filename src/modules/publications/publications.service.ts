@@ -1763,7 +1763,11 @@ export class PublicationsService {
         description: source.description,
         authorComment: source.authorComment,
         content: source.content,
-        tags: source.tags,
+        tagObjects: (source as any).tagObjects?.length
+          ? {
+              connect: (source as any).tagObjects.map((t: any) => ({ id: t.id })),
+            }
+          : undefined,
         postType: source.postType,
         language: source.language,
         meta: (source.meta as any) || {},
@@ -1790,6 +1794,7 @@ export class PublicationsService {
     return {
       ...newPublication,
       meta: this.parseMetaJson(newPublication.meta),
+      tags: ((newPublication as any).tagObjects ?? []).map((t: any) => t?.name).filter(Boolean),
     };
   }
 }

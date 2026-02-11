@@ -60,6 +60,7 @@ async function main() {
   await prisma.llmPromptTemplate.deleteMany({});
   await prisma.llmSystemPromptHidden.deleteMany({});
   await prisma.projectTemplate.deleteMany({});
+  await prisma.tag.deleteMany({});
   await prisma.project.deleteMany({});
   await prisma.user.deleteMany({});
 
@@ -597,7 +598,7 @@ async function main() {
       description: 'Brief overview of new Nuxt 4 features.',
       content: '<h1>Mastering Nuxt 4</h1>',
       authorComment: 'Important post.',
-      tags: 'nuxt,vue,frontend',
+      _tags: 'nuxt,vue,frontend',
       status: PublicationStatus.PUBLISHED,
       postType: PostType.ARTICLE,
       postDate: new Date(2025, 0, 1),
@@ -610,7 +611,7 @@ async function main() {
       createdBy: devUser.id,
       title: 'Introduction to Nuxt 4',
       content: '<h1>Mastering Nuxt 4</h1>',
-      tags: 'nuxt,vue,frontend',
+      _tags: 'nuxt,vue,frontend',
       status: PublicationStatus.PUBLISHED,
       postType: PostType.ARTICLE,
       language: 'en-US',
@@ -622,7 +623,7 @@ async function main() {
       createdBy: devUser.id,
       title: 'Top 5 Kyoto',
       content: '<p>Kyoto is great.</p>',
-      tags: 'kyoto,japan',
+      _tags: 'kyoto,japan',
       status: PublicationStatus.PUBLISHED,
       postType: PostType.POST,
       language: 'ru-RU',
@@ -634,7 +635,7 @@ async function main() {
       createdBy: adminUser.id,
       title: 'Bitcoin 2025',
       content: '<p>BTC Analysis...</p>',
-      tags: 'crypto,bitcoin',
+      _tags: 'crypto,bitcoin',
       status: PublicationStatus.SCHEDULED,
       postType: PostType.NEWS,
       language: 'ru-RU',
@@ -714,9 +715,31 @@ async function main() {
   ];
 
   for (const pub of publications) {
+    const { _tags, ...basePub } = pub as any;
     const pubData = {
-      ...pub,
-      effectiveAt: (pub as any).postDate || (pub as any).createdAt || new Date(),
+      ...basePub,
+      effectiveAt: basePub.postDate || basePub.createdAt || new Date(),
+      tagObjects: _tags
+        ? {
+            connectOrCreate: _tags
+              .split(',')
+              .map((t: string) => t.trim())
+              .filter(Boolean)
+              .map((name: string) => ({
+                where: {
+                  projectId_normalizedName: {
+                    projectId: pub.projectId,
+                    normalizedName: name.toLowerCase(),
+                  },
+                },
+                create: {
+                  name,
+                  normalizedName: name.toLowerCase(),
+                  projectId: pub.projectId,
+                },
+              })),
+          }
+        : undefined,
     };
     await prisma.publication.upsert({
       where: { id: pub.id },
@@ -1003,7 +1026,7 @@ async function main() {
       userId: null,
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
-      tags: ['nuxt', 'future', 'speculation'],
+      _tags: ['nuxt', 'future', 'speculation'],
       folderId: 'tab10000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
       blocks: [
@@ -1021,7 +1044,7 @@ async function main() {
       userId: null,
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
-      tags: ['image', 'asset'],
+      _tags: ['image', 'asset'],
       folderId: 'tab10000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
       blocks: [
@@ -1046,7 +1069,7 @@ async function main() {
       userId: null,
       projectId: projectData[1].id,
       title: 'Travel Log Segment',
-      tags: ['travel', 'raw'],
+      _tags: ['travel', 'raw'],
       note: null,
       blocks: [
         {
@@ -1070,7 +1093,7 @@ async function main() {
       userId: null,
       projectId: projectData[0].id,
       title: 'Archived: Old snippet',
-      tags: ['archived', 'example'],
+      _tags: ['archived', 'example'],
       note: 'This item is archived to test trash flow',
       archivedBy: devUser.id,
       blocks: [
@@ -1088,7 +1111,7 @@ async function main() {
       userId: devUser.id,
       projectId: null,
       title: 'Personal: Quick snippet',
-      tags: ['personal', 'snippet'],
+      _tags: ['personal', 'snippet'],
       note: null,
       blocks: [
         {
@@ -1103,11 +1126,26 @@ async function main() {
   ];
 
   for (const item of contentItems) {
-    const { blocks, ...itemData } = item;
+    const { blocks, _tags, ...itemData } = item as any;
+    const tagObjects = _tags
+      ? {
+          connectOrCreate: _tags.map((name: string) => {
+            const normalizedName = name.toLowerCase();
+            const where = itemData.projectId
+              ? { projectId_normalizedName: { projectId: itemData.projectId, normalizedName } }
+              : { userId_normalizedName: { userId: itemData.userId, normalizedName } };
+            const create = itemData.projectId
+              ? { name, normalizedName, projectId: itemData.projectId }
+              : { name, normalizedName, userId: itemData.userId };
+            return { where, create };
+          }),
+        }
+      : undefined;
+
     await prisma.contentItem.upsert({
       where: { id: item.id },
-      update: itemData,
-      create: itemData,
+      update: { ...itemData, tagObjects },
+      create: { ...itemData, tagObjects },
     });
 
     for (const block of blocks) {

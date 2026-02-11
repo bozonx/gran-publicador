@@ -348,7 +348,11 @@ export class PublicationRelationsService {
           description: source.description,
           content: source.content,
           authorComment: source.authorComment,
-          tags: source.tags,
+          tagObjects: source.tagObjects?.length
+            ? {
+                connect: source.tagObjects.map(t => ({ id: t.id })),
+              }
+            : undefined,
           postType: source.postType,
           language,
           meta: (source.meta as any) || {},
@@ -426,7 +430,12 @@ export class PublicationRelationsService {
         description: true,
         content: true,
         authorComment: true,
-        tags: true,
+        tagObjects: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         meta: true,
         note: true,
         postDate: true,
