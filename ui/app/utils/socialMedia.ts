@@ -23,13 +23,13 @@ export function getSocialMediaDisplayName(
   socialMedia: SocialMedia | string,
   t: (key: string) => string,
 ): string {
-  return t(`socialMedia.${String(socialMedia).toLowerCase()}`);
+  return t(`socialMedia.${String(socialMedia)}`);
 }
 
 export function getSocialMediaOptions(t: (key: string) => string) {
   return getConfiguredPlatformsOrEmpty().map(platform => ({
     value: platform,
-    label: t(`socialMedia.${platform.toLowerCase()}`),
+    label: t(`socialMedia.${platform}`),
   }));
 }
 

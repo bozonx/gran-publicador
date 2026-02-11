@@ -95,9 +95,9 @@ export function getValidationRules(
 export const SOCIAL_MEDIA_VALIDATION_RULES: Partial<
   Record<SocialMedia, SocialMediaValidationRules>
 > = {
-  [SocialMedia.TELEGRAM]: getValidationRules(SocialMedia.TELEGRAM, PostType.POST)!,
-  [SocialMedia.VK]: getValidationRules(SocialMedia.VK, PostType.POST)!,
-  [SocialMedia.SITE]: getValidationRules(SocialMedia.SITE, PostType.ARTICLE)!,
+  [SocialMedia.telegram]: getValidationRules(SocialMedia.telegram, PostType.POST)!,
+  [SocialMedia.vk]: getValidationRules(SocialMedia.vk, PostType.POST)!,
+  [SocialMedia.site]: getValidationRules(SocialMedia.site, PostType.ARTICLE)!,
 };
 
 export function getValidationRulesOrThrow(

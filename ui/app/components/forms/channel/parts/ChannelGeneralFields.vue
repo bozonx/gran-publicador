@@ -31,9 +31,9 @@ const {
  */
 function getIdentifierPlaceholder(socialMedia: SocialMedia | undefined): string {
   const placeholders: Record<SocialMedia, string> = {
-    TELEGRAM: '@channel_name',
-    VK: 'club123456789',
-    SITE: 'https://example.com',
+    telegram: '@channel_name',
+    vk: 'club123456789',
+    site: 'https://example.com',
   }
   return socialMedia ? placeholders[socialMedia] : t('channel.identifierPlaceholder')
 
@@ -44,9 +44,9 @@ function getIdentifierPlaceholder(socialMedia: SocialMedia | undefined): string 
  */
 function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
   const helps: Record<SocialMedia, string> = {
-    TELEGRAM: t('channel.identifierHelpTelegram'),
-    VK: t('channel.identifierHelpVk'),
-    SITE: t('channel.identifierHelpSite'),
+    telegram: t('channel.identifierHelpTelegram'),
+    vk: t('channel.identifierHelpVk'),
+    site: t('channel.identifierHelpSite'),
   }
   return socialMedia ? helps[socialMedia] : t('channel.identifierHelp')
 }
@@ -65,12 +65,12 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
           <dd class="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
             <div 
               class="p-1.5 rounded"
-              :style="{ backgroundColor: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') + '20' }"
+              :style="{ backgroundColor: getSocialMediaColor(channel?.socialMedia || 'telegram') + '20' }"
             >
               <UIcon 
-                :name="getSocialMediaIcon(channel?.socialMedia || 'TELEGRAM')" 
+                :name="getSocialMediaIcon(channel?.socialMedia || 'telegram')" 
                 class="w-5 h-5"
-                :style="{ color: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') }"
+                :style="{ color: getSocialMediaColor(channel?.socialMedia || 'telegram') }"
               />
             </div>
             <span class="font-medium">{{ socialMediaOptions.find((o) => o.value === channel?.socialMedia)?.label }}</span>

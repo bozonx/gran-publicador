@@ -17,7 +17,7 @@ export class SocialPostingRequestFormatter {
    */
   static prepareRequest(params: FormatterParams): PostRequestDto {
     const { channel } = params;
-    const platform = channel.socialMedia.toLowerCase();
+    const platform = channel.socialMedia;
 
     // Select strategy
     const strategy =

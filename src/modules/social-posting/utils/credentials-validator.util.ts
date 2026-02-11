@@ -55,7 +55,7 @@ export function validatePlatformCredentials(
     }
   }
 
-  if (platform === SocialMedia.TELEGRAM) {
+  if (platform === SocialMedia.telegram) {
     errors.push(...validateTelegramCredentials(credentials));
   }
 

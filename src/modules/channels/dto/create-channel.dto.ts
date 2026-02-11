@@ -30,7 +30,6 @@ export class CreateChannelDto {
 
   @IsEnum(SocialMedia)
   @IsNotEmpty()
-  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
   public socialMedia!: SocialMedia;
 
   @IsString()

@@ -18,7 +18,7 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
     );
 
     const request: PostRequestDto = {
-      platform: channel.socialMedia.toLowerCase(),
+      platform: channel.socialMedia,
       channelId: targetChannelId,
       auth: {
         apiKey,

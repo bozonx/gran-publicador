@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Social media platform IDs**: Migrated platform identifiers to lowercase across the whole project.
+  - Platforms are now stored and handled as `telegram`, `vk`, `site` (and future platforms in lowercase).
+  - Requires database migration for Prisma `SocialMedia` enum.
+  - Requires regenerating Prisma client after schema update.
 - **Project Templates redesign**: Unified template management with tabbed modal editor.
   - Removed channel template variations from channel settings — now managed from project template editor.
   - Added `language` field to `ProjectTemplate` model to filter channels by language.

@@ -85,7 +85,7 @@ export class SocialPostingService {
       }
 
       const request: PostRequestDto = {
-        platform: channel.socialMedia.toLowerCase(),
+        platform: channel.socialMedia,
         body: 'Test connection message from Gran Publicador',
         channelId: targetChannelId,
         auth: {

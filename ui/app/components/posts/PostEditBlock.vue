@@ -880,7 +880,7 @@ async function executePublish() {
                     />
                 </UFormField>
 
-                <div v-if="selectedChannel?.socialMedia === 'TELEGRAM'" class="md:col-span-1">
+                <div v-if="selectedChannel?.socialMedia === 'telegram'" class="md:col-span-1">
                     <UFormField :label="t('post.options.title', 'Platform Options')">
                         <div class="flex items-center gap-2 py-1">
                             <UCheckbox 

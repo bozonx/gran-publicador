@@ -575,12 +575,9 @@ model LlmSystemPromptHidden {
 
 
 enum SocialMedia {
-  TELEGRAM
-  VK
-  YOUTUBE
-  TIKTOK
-  FACEBOOK
-  SITE
+  telegram
+  vk
+  site
 }
 
 enum PostType {
