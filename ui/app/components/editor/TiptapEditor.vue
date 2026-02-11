@@ -756,6 +756,8 @@ function getLinkHrefNearCursor(editor: any): string | null {
       v-model:open="isQuickGenModalOpen"
       :selection-text="actionSourceText"
       :project-id="props.projectId"
+      :post-type="(props as any).postType"
+      :platforms="(props as any).platforms"
       @apply="handleLlmGenerated"
     />
   </div>

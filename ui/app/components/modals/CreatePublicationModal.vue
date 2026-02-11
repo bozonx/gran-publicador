@@ -4,6 +4,10 @@ import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import { useProjectTemplates } from '~/composables/useProjectTemplates'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
+import {
+  getPostTypeOptionsForPlatforms,
+  getSupportedPostTypesIntersection,
+} from '~/utils/socialMediaPlatforms'
 
 interface Props {
   projectId?: string
@@ -256,6 +260,26 @@ const channelOptions = computed(() => {
     }))
 })
 
+const selectedPlatforms = computed(() => {
+  const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
+  return formData.channelIds.map(id => map.get(id)).filter(Boolean) as any[]
+})
+
+const postTypeOptions = computed(() => {
+  return getPostTypeOptionsForPlatforms({
+    t,
+    platforms: selectedPlatforms.value,
+  })
+})
+
+watch([selectedPlatforms, () => formData.postType], () => {
+  const supported = getSupportedPostTypesIntersection(selectedPlatforms.value)
+  if (supported.length === 0) return
+  if (!supported.includes(formData.postType as any)) {
+    formData.postType = supported[0] as any
+  }
+})
+
 // Signature selector options
 const signatureOptions = computed(() => {
   const userLang = user.value?.language || 'en-US'
@@ -433,6 +457,7 @@ function handleClose() {
       >
         <PublicationsPublicationTypeSelect
           v-model="formData.postType"
+          :items="postTypeOptions"
         />
       </UFormField>
 

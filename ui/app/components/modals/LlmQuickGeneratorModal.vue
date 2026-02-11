@@ -6,6 +6,12 @@ import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplateP
 import type { MediaItem } from '~/composables/useMedia'
 import { DialogTitle } from 'reka-ui'
 import { LlmErrorType } from '~/composables/useLlm'
+import {
+  getAggregatedMaxTextLength,
+  getAggregatedTagsConfig,
+  type SocialMedia,
+  type PostType,
+} from '~/utils/socialMediaPlatforms'
 
 interface LlmContextTag {
   id: string
@@ -25,6 +31,8 @@ interface Props {
   media?: MediaItem[]
   projectId?: string
   selectionText?: string
+  postType?: PostType | string
+  platforms?: SocialMedia[]
 }
 
 const props = defineProps<Props>()
@@ -172,7 +180,33 @@ async function handleGenerate() {
     .map(t => (t.label || '').trim())
     .filter(Boolean)
 
-  const response = await generateContent(prompt.value.trim(), {
+  const hasMedia = (props.media || []).length > 0
+  const resolvedPostType = (props.postType || 'POST') as PostType
+  const maxLen = getAggregatedMaxTextLength({
+    platforms: props.platforms || [],
+    postType: resolvedPostType,
+    hasMedia,
+  })
+  const tagsCfg = getAggregatedTagsConfig(props.platforms || [])
+
+  const constraintsLines: string[] = []
+  if (maxLen && Number.isFinite(maxLen)) {
+    constraintsLines.push(
+      `Max content length: ${maxLen} characters. Do not exceed this limit.`,
+    )
+  }
+  if (tagsCfg.supported && tagsCfg.maxCount && tagsCfg.recommendedCount) {
+    constraintsLines.push(
+      `Tags: recommended ${tagsCfg.recommendedCount}, maximum ${tagsCfg.maxCount}.`,
+    )
+  }
+
+  const constraintsBlock =
+    constraintsLines.length > 0
+      ? `\n\n<content_constraints>\n${constraintsLines.join('\n')}\n</content_constraints>\n`
+      : ''
+
+  const response = await generateContent((prompt.value.trim() + constraintsBlock).trim(), {
     onlyRawResult: true,
     selectionText: props.selectionText,
     content: props.content,

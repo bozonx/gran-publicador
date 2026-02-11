@@ -1059,6 +1059,8 @@ async function executePublish() {
       v-model:open="isQuickGenModalOpen"
       :content="formData.content || publicationContent"
       :media="(publicationMedia as any)"
+      :post-type="(getPostType(props.post) as any)"
+      :platforms="selectedChannel?.socialMedia ? [selectedChannel.socialMedia as any] : []"
       :project-id="projectId"
       @apply="handleLlmGenerated"
     />

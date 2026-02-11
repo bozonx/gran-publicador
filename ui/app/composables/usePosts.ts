@@ -6,7 +6,6 @@ import {
   getPostStatusDisplayName,
   getPostStatusColor,
   getPostStatusIcon,
-  getPostTypeOptions,
   getPostTypeDisplayName,
 } from '~/utils/posts';
 import { logger } from '~/utils/logger';
@@ -321,7 +320,7 @@ export function usePosts() {
 
   // Constants
   const statusOptions = computed(() => getPostStatusOptions(t));
-  const typeOptions = computed(() => getPostTypeOptions(t));
+  const typeOptions = computed(() => [] as Array<{ value: string; label: string }>);
 
   function canDelete(post: PostWithRelations): boolean {
     if (!user.value) return false;

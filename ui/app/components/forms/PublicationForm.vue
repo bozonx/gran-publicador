@@ -20,6 +20,10 @@ import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import { useProjectTemplates } from '~/composables/useProjectTemplates'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import type { ProjectTemplate } from '~/types/channels'
+import {
+  getPostTypeOptionsForPlatforms,
+  getSupportedPostTypesIntersection,
+} from '~/utils/socialMediaPlatforms'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -65,6 +69,27 @@ const projectSignatures = ref<ProjectAuthorSignature[]>([])
 const languageParam = route.query.language as string | undefined
 const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
 const state = usePublicationFormState(props.publication, languageParam)
+
+const selectedPlatforms = computed(() => {
+  const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
+  return state.channelIds.map(id => map.get(id)).filter(Boolean) as any[]
+})
+
+const postTypeOptions = computed(() => {
+  return getPostTypeOptionsForPlatforms({
+    t,
+    platforms: selectedPlatforms.value,
+  })
+})
+
+watch([selectedPlatforms, () => state.postType], () => {
+  if (isEditMode.value) return
+  const supported = getSupportedPostTypesIntersection(selectedPlatforms.value)
+  if (supported.length === 0) return
+  if (!supported.includes(state.postType as any)) {
+    state.postType = supported[0] as any
+  }
+})
 
 const projectOptions = computed(() => {
     return projects.value.map(p => ({
@@ -178,6 +203,9 @@ const validationErrors = computed(() => {
     let errors = []
     
     if (!isEditMode.value) {
+        const channelMap = Object.fromEntries(
+            channels.value.map(ch => [ch.id, { name: ch.name, socialMedia: ch.socialMedia }])
+        )
         // Creating: validate for selected channels
         errors = validateForChannels(
             state.content,
@@ -185,7 +213,8 @@ const validationErrors = computed(() => {
             mediaArray,
             postType,
             state.channelIds,
-            [] // Deprecated: channels.value is no longer required here
+            [],
+            channelMap,
         )
     } else {
         // Editing: validate for existing posts that inherit content
@@ -561,6 +590,7 @@ function handleLlmGenerated(text: string) {
           </template>
           <PublicationsPublicationTypeSelect
             v-model="state.postType"
+            :items="postTypeOptions"
           />
         </UFormField>
       </div>
@@ -783,6 +813,8 @@ function handleLlmGenerated(text: string) {
       :content="state.content"
       :media="(publication?.media?.map(m => m.media).filter(m => !!m) as any)"
       :project-id="currentProjectId"
+      :post-type="state.postType"
+      :platforms="selectedPlatforms as any"
       @apply="handleLlmGenerated"
     />
 

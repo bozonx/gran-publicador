@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ComposerTranslation } from 'vue-i18n';
 
-export const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'FACEBOOK', 'SITE'] as const;
+export const SOCIAL_MEDIA_VALUES = ['TELEGRAM', 'VK', 'SITE'] as const;
 
 export const createChannelBaseObject = (t: ComposerTranslation) => {
   return z.object({
@@ -16,18 +16,27 @@ export const createChannelBaseObject = (t: ComposerTranslation) => {
       telegramBotToken: z.string().optional(),
       vkAccessToken: z.string().optional(),
     }),
-    preferences: z.object({
-      staleChannelsDays: z.preprocess(
-        (val) => (val === '' || val === null ? undefined : val),
-        z.coerce.number().min(1, t('validation.min', { min: 1 })).optional()
-      ),
-      footers: z.array(z.object({
-        id: z.string(),
-        name: z.string().min(1, t('validation.required')),
-        content: z.string().min(1, t('validation.required')),
-        isDefault: z.boolean(),
-      })).optional()
-    }).optional()
+    preferences: z
+      .object({
+        staleChannelsDays: z.preprocess(
+          val => (val === '' || val === null ? undefined : val),
+          z.coerce
+            .number()
+            .min(1, t('validation.min', { min: 1 }))
+            .optional(),
+        ),
+        footers: z
+          .array(
+            z.object({
+              id: z.string(),
+              name: z.string().min(1, t('validation.required')),
+              content: z.string().min(1, t('validation.required')),
+              isDefault: z.boolean(),
+            }),
+          )
+          .optional(),
+      })
+      .optional(),
   });
 };
 
@@ -37,14 +46,14 @@ export const channelRefinement = (t: ComposerTranslation) => (val: any, ctx: z.R
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'telegramChannelId']
+        path: ['credentials', 'telegramChannelId'],
       });
     }
     if (!val.credentials?.telegramBotToken) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'telegramBotToken']
+        path: ['credentials', 'telegramBotToken'],
       });
     }
   } else if (val.socialMedia === 'VK') {
@@ -52,7 +61,7 @@ export const channelRefinement = (t: ComposerTranslation) => (val: any, ctx: z.R
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: t('validation.required'),
-        path: ['credentials', 'vkAccessToken']
+        path: ['credentials', 'vkAccessToken'],
       });
     }
   }
@@ -63,6 +72,6 @@ export const createChannelSchema = (t: ComposerTranslation) => {
 };
 
 export const updateChannelSchema = (t: ComposerTranslation) => {
-    // Similar to create but looser if needed, or identical
-    return createChannelSchema(t);
-}
+  // Similar to create but looser if needed, or identical
+  return createChannelSchema(t);
+};

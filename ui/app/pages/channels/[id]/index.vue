@@ -7,6 +7,7 @@ import type { PostStatus, PostType, PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { useViewMode } from '~/composables/useViewMode'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { getPostTypeOptionsForPlatforms } from '~/utils/socialMediaPlatforms'
 
 definePageMeta({
   middleware: 'auth',
@@ -21,6 +22,14 @@ const { user } = useAuth()
 
 const projectId = computed(() => channel.value?.projectId || '')
 const channelId = computed(() => route.params.id as string)
+
+const quickCreateTypeOptions = computed(() => {
+  const platform = channel.value?.socialMedia
+  return getPostTypeOptionsForPlatforms({
+    t,
+    platforms: [platform as any],
+  })
+})
 
 const {
   fetchChannel,
@@ -504,6 +513,7 @@ const channelProblems = computed(() => {
                         <PublicationsPublicationTypeSelect
                             :loading-type="creatingType"
                             :disabled="isCreatingPublication"
+                            :items="quickCreateTypeOptions"
                             @select="quickCreatePublication"
                         />
                     </div>

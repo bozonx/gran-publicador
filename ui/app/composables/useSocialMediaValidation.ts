@@ -3,61 +3,25 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import { SKIP, visit } from 'unist-util-visit';
 import { toString } from 'mdast-util-to-string';
+import {
+  getPostTypeConfig,
+  MediaType,
+  PostType,
+  SocialMedia,
+} from '@gran/shared/social-media-platforms';
 
 /**
  * Social media validation rules for client-side
  */
-
-export enum SocialMedia {
-  TELEGRAM = 'TELEGRAM',
-  VK = 'VK',
-  YOUTUBE = 'YOUTUBE',
-  TIKTOK = 'TIKTOK',
-  FACEBOOK = 'FACEBOOK',
-  SITE = 'SITE',
-}
-
-export enum PostType {
-  POST = 'POST',
-  ARTICLE = 'ARTICLE',
-  NEWS = 'NEWS',
-  VIDEO = 'VIDEO',
-  SHORT = 'SHORT',
-  STORY = 'STORY',
-}
-
-export enum MediaType {
-  IMAGE = 'IMAGE',
-  VIDEO = 'VIDEO',
-  AUDIO = 'AUDIO',
-  DOCUMENT = 'DOCUMENT',
-}
 
 export interface SocialMediaValidationRules {
   maxTextLength: number;
   maxCaptionLength: number;
   maxMediaCount: number;
   minMediaCount?: number;
-  allowedMediaTypes?: string[];
-  allowedGalleryMediaTypes?: string[];
+  allowedMediaTypes?: MediaType[];
+  allowedGalleryMediaTypes?: MediaType[];
   maxMediaCountForGallery?: number;
-}
-
-let rulesCache: Record<string, SocialMediaValidationRules> | null = null;
-let rulesPromise: Promise<void> | null = null;
-
-async function ensureRulesLoaded(api: ReturnType<typeof useApi>): Promise<void> {
-  if (rulesCache) return;
-  if (rulesPromise) return rulesPromise;
-
-  rulesPromise = (async () => {
-    const res = await api.get<{ rules: Record<string, SocialMediaValidationRules> }>(
-      '/posts/validation-rules',
-    );
-    rulesCache = res?.rules ?? null;
-  })();
-
-  return rulesPromise;
 }
 
 export interface ValidationError {
@@ -145,29 +109,12 @@ function validateMediaTypes(
   // Check if this is a gallery (2+ files) or single file
   const isGallery = mediaCount > 1;
 
-  // Telegram ARTICLE override: only 1 IMAGE allowed
-  if (platform === SocialMedia.TELEGRAM && postType === PostType.ARTICLE) {
-    if (isGallery) {
-      errors.push({
-        field: 'media',
-        message:
-          'Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.',
-      });
-    } else if (mediaCount === 1 && media[0]) {
-      if (media[0].type !== MediaType.IMAGE) {
-        errors.push({
-          field: 'media',
-          message: `Telegram Article (telegra.ph) only allows IMAGE type, but found: ${media[0].type}`,
-        });
-      }
-    }
-    return errors;
-  }
-
   if (isGallery) {
     // Validate gallery media types
     if (rules.allowedGalleryMediaTypes && rules.allowedGalleryMediaTypes.length > 0) {
-      const invalidMedia = media.filter(m => !rules.allowedGalleryMediaTypes!.includes(m.type));
+      const invalidMedia = media.filter(
+        m => !rules.allowedGalleryMediaTypes!.includes(m.type as MediaType),
+      );
       if (invalidMedia.length > 0) {
         const invalidTypes = [...new Set(invalidMedia.map(m => m.type))].join(', ');
         const allowedTypes = rules.allowedGalleryMediaTypes.join(', ');
@@ -189,7 +136,7 @@ function validateMediaTypes(
     // Validate single file media type
     if (rules.allowedMediaTypes && media[0]) {
       const mediaType = media[0].type;
-      if (!rules.allowedMediaTypes.includes(mediaType)) {
+      if (!rules.allowedMediaTypes.includes(mediaType as MediaType)) {
         const allowedTypes = rules.allowedMediaTypes.join(', ');
         errors.push({
           field: 'media',
@@ -207,22 +154,32 @@ function validateMediaTypes(
  */
 export function useSocialMediaValidation() {
   const { t } = useI18n();
-  const api = useApi();
 
-  void ensureRulesLoaded(api);
+  function getValidationRules(
+    socialMedia: SocialMedia,
+    postType?: PostType | string,
+  ): SocialMediaValidationRules {
+    const resolvedPostType =
+      typeof postType === 'string' ? (postType as PostType) : (postType ?? PostType.POST);
 
-  /**
-   * Get validation rules for a specific platform
-   */
-  function getValidationRules(socialMedia: SocialMedia): SocialMediaValidationRules {
-    const rules = rulesCache?.[socialMedia];
-    return (
-      rules ?? {
+    const cfg = getPostTypeConfig(socialMedia, resolvedPostType);
+    if (!cfg) {
+      return {
         maxTextLength: Number.MAX_SAFE_INTEGER,
         maxCaptionLength: Number.MAX_SAFE_INTEGER,
         maxMediaCount: Number.MAX_SAFE_INTEGER,
-      }
-    );
+      };
+    }
+
+    return {
+      maxTextLength: cfg.content.maxTextLength,
+      maxCaptionLength: cfg.content.maxCaptionLength,
+      maxMediaCount: cfg.media.maxCount,
+      minMediaCount: cfg.media.minCount || undefined,
+      maxMediaCountForGallery: cfg.media.maxGalleryCount || undefined,
+      allowedMediaTypes: cfg.media.allowedTypes,
+      allowedGalleryMediaTypes: cfg.media.allowedGalleryTypes,
+    };
   }
 
   /**
@@ -236,11 +193,7 @@ export function useSocialMediaValidation() {
     postType?: string,
   ): ValidationResult {
     const errors: ValidationError[] = [];
-    const rules = getValidationRules(socialMedia);
-
-    if (!rulesCache) {
-      return { isValid: true, errors: [] };
-    }
+    const rules = getValidationRules(socialMedia, postType);
 
     const contentLength = getTextLength(content);
     const hasMedia = mediaCount > 0;
@@ -332,7 +285,6 @@ export function useSocialMediaValidation() {
   }
 
   return {
-    ensureRulesLoaded: () => ensureRulesLoaded(api),
     getValidationRules,
     validatePostContent,
     getContentLength,

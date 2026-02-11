@@ -19,17 +19,6 @@ export function getPostStatusOptions(t: (key: string) => string) {
   ];
 }
 
-export function getPostTypeOptions(t: (key: string) => string) {
-  return [
-    { value: 'POST', label: t('postType.post') },
-    { value: 'ARTICLE', label: t('postType.article') },
-    { value: 'NEWS', label: t('postType.news') },
-    { value: 'VIDEO', label: t('postType.video') },
-    { value: 'SHORT', label: t('postType.short') },
-    { value: 'STORY', label: t('postType.story') },
-  ];
-}
-
 export function getPostStatusDisplayName(
   status: string | undefined | null,
   t: (key: string) => string,

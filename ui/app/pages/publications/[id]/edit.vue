@@ -7,6 +7,7 @@ import { usePosts } from '~/composables/usePosts'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
+import { getPostTypeOptionsForPlatforms } from '~/utils/socialMediaPlatforms'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
@@ -49,6 +50,13 @@ const linkedSocialMedia = computed(() => {
     if (!currentPublication.value?.posts) return []
     const platforms = currentPublication.value.posts.map((p: any) => p.channel?.socialMedia).filter(Boolean)
     return [...new Set(platforms)]
+})
+
+const supportedTypeOptions = computed(() => {
+  return getPostTypeOptionsForPlatforms({
+    t,
+    platforms: linkedSocialMedia.value as any,
+  })
 })
 
 const publicationProblems = computed(() => {
@@ -895,10 +903,10 @@ async function executePublish(force: boolean) {
     <UiAppModal v-if="isTypeModalOpen" v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
       <div class="space-y-2">
         <UButton
-          v-for="option in typeOptions"
+          v-for="option in supportedTypeOptions"
           :key="option.value"
           :label="option.label"
-          :variant="currentPublication?.postType === option.value ? 'soft' : 'ghost'"
+          variant="soft"
           :color="currentPublication?.postType === option.value ? 'primary' : 'neutral'"
           class="w-full justify-start"
           :loading="isUpdatingType && newPostType === option.value"

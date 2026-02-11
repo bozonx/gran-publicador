@@ -8,6 +8,12 @@ import type { MediaItem } from '~/composables/useMedia'
 import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
 import { DialogTitle, DialogDescription } from 'reka-ui'
 import { LlmErrorType } from '~/composables/useLlm'
+import {
+  getAggregatedMaxTextLength,
+  getAggregatedTagsConfig,
+  type PostType,
+  type SocialMedia,
+} from '~/utils/socialMediaPlatforms'
 
 interface PostChannelInfo {
   channelId: string
@@ -66,6 +72,37 @@ const {
 const { user } = useAuth()
 
 const isOpen = defineModel<boolean>('open', { required: true })
+
+const platformsForConstraints = computed(() => {
+  const platforms = (postChannels || [])
+    .map((ch) => ch.socialMedia)
+    .filter(Boolean) as SocialMedia[]
+  return [...new Set(platforms)]
+})
+
+const constraintsBlock = computed(() => {
+  const resolvedPostType = (postType || 'POST') as PostType
+  const hasMedia = (media || []).length > 0
+
+  const maxLen = getAggregatedMaxTextLength({
+    platforms: platformsForConstraints.value,
+    postType: resolvedPostType,
+    hasMedia,
+  })
+  const tagsCfg = getAggregatedTagsConfig(platformsForConstraints.value)
+
+  const lines: string[] = []
+  if (maxLen && Number.isFinite(maxLen)) {
+    lines.push(`Max content length: ${maxLen} characters. Do not exceed this limit.`)
+  }
+  if (tagsCfg.supported && tagsCfg.maxCount && tagsCfg.recommendedCount) {
+    lines.push(`Tags: recommended ${tagsCfg.recommendedCount}, maximum ${tagsCfg.maxCount}.`)
+  }
+
+  if (lines.length === 0) return ''
+
+  return `\n\n<content_constraints>\n${lines.join('\n')}\n</content_constraints>\n`
+})
 
 async function handleVoiceRecording() {
   if (isRecording.value) {
@@ -446,9 +483,13 @@ async function handleGenerate() {
     .map(t => (t.label || '').trim())
     .filter(Boolean)
 
+  const message = isFirstMessage
+    ? (userText + constraintsBlock.value).trim()
+    : userText
+
   chatMessages.value.push({
     role: 'user',
-    content: userText,
+    content: message,
     contextTagIds: contextTags.value.filter(t => t.enabled).map(t => t.id),
     contextSnapshot: contextTags.value.filter(t => t.enabled).map(t => ({ ...t })),
   });
@@ -464,7 +505,7 @@ async function handleGenerate() {
     response = await publicationLlmChat(
       publicationId,
       {
-        message: userText,
+        message,
         ...(isFirstMessage
           ? {
               context: {
@@ -554,7 +595,7 @@ async function handleFieldsGeneration(sourceText: string) {
     }))
 
       const response = await generatePublicationFields(
-        sourceText,
+        (sourceText + constraintsBlock.value).trim(),
         publicationLanguage || 'en-US',
         channelsForApi
       )

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { PostType } from '~/types/posts'
-import { usePosts } from '~/composables/usePosts'
 import { getPostTypeIcon, getPostTypeColor } from '~/utils/posts'
 
 interface Props {
@@ -16,8 +15,7 @@ const emit = defineEmits<{
   (e: 'select', value: PostType): void
 }>()
 
-const { typeOptions } = usePosts()
-const displayItems = computed(() => props.items || typeOptions.value)
+const displayItems = computed(() => props.items || [])
 
 function handleSelect(type: string) {
     if (props.disabled) return
