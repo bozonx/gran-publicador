@@ -43,13 +43,20 @@ export function useStt() {
   };
 
   const stopAllActivityOnError = () => {
-    try {
-      stopRecording().catch(() => {});
-      activeWaitCleanup?.();
-      activeWaitCleanup = null;
-    } finally {
-      isTranscribing.value = false;
-    }
+    // Optimistic UI reset: stop() may take a tick while MediaRecorder emits 'stop'
+    isTranscribing.value = false;
+    isRecording.value = false;
+
+    activeWaitCleanup?.();
+    activeWaitCleanup = null;
+
+    void (async () => {
+      try {
+        await stopRecording();
+      } catch {
+        // ignore
+      }
+    })();
   };
 
   const handleSocketTranscriptionError = (data?: { message: string }) => {
