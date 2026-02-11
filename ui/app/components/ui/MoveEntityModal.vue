@@ -16,17 +16,13 @@ const { moveEntity } = useArchive();
 const { projects, fetchProjects } = useProjects();
 const { channels, fetchChannels } = useChannels();
 
-const selectedTargetId = ref('');
+const selectedTargetId = ref<string | null>(null);
 const loading = ref(false);
 
-const targetOptions = computed(() => {
-    return [];
-});
+
 
 onMounted(async () => {
-    if (props.entityType === ArchiveEntityType.CHANNEL || props.entityType === ArchiveEntityType.PUBLICATION) {
-        await fetchProjects();
-    }
+    await fetchProjects();
 });
 
 const handleMove = async () => {
@@ -64,19 +60,8 @@ const handleMove = async () => {
 
             <UFormField :label="t('archive.target_parent')" required>
                 <CommonProjectSelect
-                    v-if="entityType === ArchiveEntityType.CHANNEL || entityType === ArchiveEntityType.PUBLICATION"
                     v-model="selectedTargetId"
                     :exclude-ids="[currentParentId]"
-                    class="w-full"
-                    size="lg"
-                />
-                <USelectMenu
-                    v-else
-                    v-model="selectedTargetId"
-                    :items="targetOptions"
-                    value-key="value"
-                    label-key="label"
-                    :placeholder="t('archive.select_target')"
                     class="w-full"
                     size="lg"
                 />

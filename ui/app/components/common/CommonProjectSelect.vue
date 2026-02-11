@@ -2,23 +2,29 @@
 import { useProjects } from '~/composables/useProjects'
 import type { ProjectWithRole } from '~/stores/projects'
 
+interface ProjectOption {
+  value: string | null
+  label: string
+  [key: string]: any
+}
+
 interface Props {
-  modelValue?: string | null
   excludeIds?: string[]
   placeholder?: string
   disabled?: boolean
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  extraOptions?: ProjectOption[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: null,
   excludeIds: () => [],
   placeholder: undefined,
-  disabled: false
+  disabled: false,
+  size: 'md',
+  extraOptions: () => []
 })
 
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
+const modelValue = defineModel<string | null>({ default: null })
 
 const { projects, fetchProjects, isLoading } = useProjects()
 const { user } = useAuth()
@@ -50,33 +56,32 @@ const sortedProjects = computed(() => {
 })
 
 const projectOptions = computed(() => {
-  return sortedProjects.value.map(p => ({
+  const options = sortedProjects.value.map(p => ({
     value: p.id,
     label: p.name
   }))
+  return [...props.extraOptions, ...options]
 })
 
 // Validation and Default Selection logic
 watch(projectOptions, (newOptions) => {
   if (newOptions.length > 0) {
-    // If current value is not in options, select the first one
-    if (!props.modelValue || !newOptions.some(opt => opt.value === props.modelValue)) {
-      emit('update:modelValue', newOptions[0].value)
+    if (!modelValue.value || !newOptions.some(opt => opt.value === modelValue.value)) {
+      modelValue.value = newOptions[0].value
     }
   }
 }, { immediate: true })
 
-// Handle case where modelValue is initially empty but we have projects
-watch(() => props.modelValue, (newVal) => {
+watch(modelValue, (newVal) => {
   if (!newVal && projectOptions.value.length > 0) {
-    emit('update:modelValue', projectOptions.value[0].value)
+    modelValue.value = projectOptions.value[0].value
   }
 }, { immediate: true })
 
 const internalValue = computed({
-  get: () => props.modelValue || undefined,
+  get: () => modelValue.value ?? undefined,
   set: (val) => {
-    if (val) emit('update:modelValue', val)
+    modelValue.value = val ?? null
   }
 })
 </script>
@@ -89,6 +94,7 @@ const internalValue = computed({
     label-key="label"
     :loading="isLoading"
     :disabled="disabled"
+    :size="size"
     :placeholder="placeholder || t('project.select_project')"
     icon="i-heroicons-briefcase"
     class="w-full"

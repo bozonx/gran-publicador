@@ -360,21 +360,9 @@ useModalAutoFocus({
   candidates: [{ target: moveProjectSelectRef }],
 })
 
-const myProjects = computed(() => {
-  return (projects.value || []).map((p) => ({
-    id: p.id,
-    label: p.name,
-    isPersonal: false,
-  }))
-})
-
-// Add "Personal Scope" option
-const projectOptions = computed(() => {
-  return [
-    { id: 'PERSONAL', label: t('contentLibrary.bulk.personalScope'), isPersonal: true },
-    ...myProjects.value
-  ]
-})
+const extraProjectOptions = computed(() => [
+  { value: 'PERSONAL', label: t('contentLibrary.bulk.personalScope'), isPersonal: true }
+])
 
 const handleMoveToProject = async () => {
   targetProjectId.value = undefined
@@ -717,16 +705,13 @@ if (props.scope === 'project' && props.projectId) {
       @close="isMoveToProjectModalOpen = false"
     >
       <div ref="moveModalRootRef">
-      <USelectMenu
-        ref="moveProjectSelectRef"
-        v-model="targetProjectId"
-        :items="projectOptions"
-        value-key="id"
-        label-key="label"
-        searchable
-        :search-attributes="['label']"
-        :placeholder="t('contentLibrary.bulk.selectProject')"
-      />
+        <CommonProjectSelect
+          ref="moveProjectSelectRef"
+          v-model="targetProjectId"
+          :extra-options="extraProjectOptions"
+          searchable
+          :placeholder="t('contentLibrary.bulk.selectProject')"
+        />
       </div>
 
       <template #footer>

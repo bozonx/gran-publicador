@@ -45,9 +45,8 @@ const isCreating = ref(false)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
-const projectOptions = computed(() => [
-  { value: null, label: t('publication.personal_draft') },
-  ...projects.value.map(p => ({ value: p.id, label: p.name }))
+const extraProjectOptions = computed(() => [
+  { value: null, label: t('publication.personal_draft') }
 ])
 
 const selectedProject = computed(() => {
@@ -369,18 +368,12 @@ function handleUseNewsData(clearError = true) {
         <div v-if="scrapedData" class="space-y-6">
            <!-- Project selection (only on general news page) -->
            <UFormField v-if="isGeneralNewsPage" :label="t('publication.select_project')">
-              <USelectMenu
+              <CommonProjectSelect
                 v-model="selectedProjectId"
-                :items="projectOptions"
-                value-key="value"
-                label-key="label"
+                :extra-options="extraProjectOptions"
                 class="w-full"
                 :placeholder="t('publication.select_project')"
-              >
-                <template #leading>
-                   <UIcon :name="selectedProjectId ? 'i-heroicons-briefcase' : 'i-heroicons-user'" class="w-4 h-4 text-gray-400" />
-                </template>
-              </USelectMenu>
+              />
            </UFormField>
 
            <!-- Premium News Preview Card -->
