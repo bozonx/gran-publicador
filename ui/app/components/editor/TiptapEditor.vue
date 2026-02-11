@@ -99,12 +99,24 @@ async function toggleRecording() {
   if (isRecording.value) {
     const text = await stopStt()
     if (text && editor.value) {
+      const e = editor.value
+      const docSize = e.state.doc.content.size
       const sel = sttSelection.value
+
+      // Restore cursor position, clamping to current document bounds
       if (sel) {
-        editor.value.commands.setTextSelection(sel)
+        const from = Math.min(sel.from, docSize)
+        const to = Math.min(sel.to, docSize)
+        e.commands.setTextSelection({ from, to })
       }
-      editor.value.commands.focus()
-      editor.value.commands.insertContent(' ' + text, { contentType: 'markdown' })
+
+      e.commands.focus()
+
+      // Insert as plain text to avoid creating a new paragraph
+      const { from: insertPos } = e.state.selection
+      const needsSpace = insertPos > 1 && !/\s$/.test(e.state.doc.textBetween(Math.max(0, insertPos - 1), insertPos))
+      const tr = e.state.tr.insertText(needsSpace ? ' ' + text : text, insertPos)
+      e.view.dispatch(tr)
     }
     sttSelection.value = null
   } else {
