@@ -401,6 +401,9 @@ x-api-key: gp_<TOKEN_VALUE>
 ### SocialMedia
 - `TELEGRAM`, `VK`, `YOUTUBE`, `TIKTOK`, `FACEBOOK`, `SITE`, `X`, `INSTAGRAM`, `LINKEDIN`
 
+Источник правды по поддерживаемым платформам и их возможностям/лимитам:
+- [`packages/shared/src/social-media-platforms.constants.ts`](../packages/shared/src/social-media-platforms.constants.ts)
+
 ### PublicationStatus
 - `DRAFT` — Черновик
 - `READY` — Готов

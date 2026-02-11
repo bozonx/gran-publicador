@@ -1,0 +1,73 @@
+import { describe, it, expect } from '@jest/globals';
+import { SocialMedia } from '../../src/generated/prisma/index.js';
+import { resolvePlatformParams } from '../../src/modules/social-posting/utils/platform-params-resolver.util.js';
+
+describe('platform-params-resolver.util (unit)', () => {
+  it('resolves Telegram params strictly from credentials (no channelIdentifier fallback)', () => {
+    const res = resolvePlatformParams(SocialMedia.TELEGRAM, '@fromChannelIdentifier', {
+      telegramChannelId: '@fromCredentials',
+      telegramBotToken: '123:token',
+    });
+
+    expect(res).toEqual({
+      channelId: '@fromCredentials',
+      apiKey: '123:token',
+    });
+  });
+
+  it('resolves Telegram apiKey with botToken fallback', () => {
+    const res = resolvePlatformParams(SocialMedia.TELEGRAM, '@ignored', {
+      telegramChannelId: '@channel',
+      botToken: '123:token',
+    });
+
+    expect(res).toEqual({
+      channelId: '@channel',
+      apiKey: '123:token',
+    });
+  });
+
+  it('resolves VK params using channelIdentifier and vkAccessToken', () => {
+    const res = resolvePlatformParams(SocialMedia.VK, 'club123', {
+      vkAccessToken: 'vk-token',
+    });
+
+    expect(res).toEqual({
+      channelId: 'club123',
+      apiKey: 'vk-token',
+    });
+  });
+
+  it('resolves VK apiKey with accessToken fallback', () => {
+    const res = resolvePlatformParams(SocialMedia.VK, 'club123', {
+      accessToken: 'vk-token',
+    });
+
+    expect(res).toEqual({
+      channelId: 'club123',
+      apiKey: 'vk-token',
+    });
+  });
+
+  it('resolves default params using channelIdentifier and apiKey', () => {
+    const res = resolvePlatformParams(SocialMedia.SITE, 'site-1', {
+      apiKey: 'site-key',
+    });
+
+    expect(res).toEqual({
+      channelId: 'site-1',
+      apiKey: 'site-key',
+    });
+  });
+
+  it('resolves default apiKey with accessToken fallback', () => {
+    const res = resolvePlatformParams(SocialMedia.SITE, 'site-1', {
+      accessToken: 'token',
+    });
+
+    expect(res).toEqual({
+      channelId: 'site-1',
+      apiKey: 'token',
+    });
+  });
+});

@@ -4,7 +4,8 @@ import {
   normalizeOverrideContent,
   validatePostContent,
 } from '../../src/common/validators/social-media-validation.validator.js';
-import { SocialMedia } from '../../src/generated/prisma/index.js';
+import { PostType, SocialMedia } from '../../src/generated/prisma/index.js';
+import { getValidationRulesOrThrow } from '../../src/common/validators/social-media-validation.constants.js';
 
 describe('social-media-validation.validator (unit)', () => {
   describe('normalizeOverrideContent', () => {
@@ -57,33 +58,63 @@ describe('social-media-validation.validator (unit)', () => {
 
   describe('validatePostContent', () => {
     it('validates Telegram text length for text-only post', () => {
+      const rules = getValidationRulesOrThrow(SocialMedia.TELEGRAM, PostType.POST);
       const res = validatePostContent({
         socialMedia: SocialMedia.TELEGRAM,
+        postType: PostType.POST,
         mediaCount: 0,
-        content: 'a'.repeat(4097),
+        content: 'a'.repeat(rules.maxTextLength + 1),
       });
       expect(res.isValid).toBe(false);
-      expect(res.errors.join(' ')).toContain('exceeds maximum allowed (4096)');
+      expect(res.errors.join(' ')).toContain(`exceeds maximum allowed (${rules.maxTextLength})`);
     });
 
     it('validates Telegram caption length when media is present', () => {
+      const rules = getValidationRulesOrThrow(SocialMedia.TELEGRAM, PostType.POST);
       const res = validatePostContent({
         socialMedia: SocialMedia.TELEGRAM,
+        postType: PostType.POST,
         mediaCount: 1,
-        content: 'a'.repeat(1025),
+        content: 'a'.repeat(rules.maxCaptionLength + 1),
       });
       expect(res.isValid).toBe(false);
-      expect(res.errors.join(' ')).toContain('exceeds maximum allowed (1024)');
+      expect(res.errors.join(' ')).toContain(`exceeds maximum allowed (${rules.maxCaptionLength})`);
     });
 
     it('validates media count', () => {
+      const rules = getValidationRulesOrThrow(SocialMedia.TELEGRAM, PostType.POST);
       const res = validatePostContent({
         socialMedia: SocialMedia.TELEGRAM,
-        mediaCount: 11,
+        postType: PostType.POST,
+        mediaCount: rules.maxMediaCount + 1,
         content: 'ok',
       });
       expect(res.isValid).toBe(false);
-      expect(res.errors.join(' ')).toContain('Media count (11)');
+      expect(res.errors.join(' ')).toContain(`Media count (${rules.maxMediaCount + 1})`);
+    });
+
+    it('validates VK text length for text-only post', () => {
+      const rules = getValidationRulesOrThrow(SocialMedia.VK, PostType.POST);
+      const res = validatePostContent({
+        socialMedia: SocialMedia.VK,
+        postType: PostType.POST,
+        mediaCount: 0,
+        content: 'a'.repeat(rules.maxTextLength + 1),
+      });
+      expect(res.isValid).toBe(false);
+      expect(res.errors.join(' ')).toContain(`exceeds maximum allowed (${rules.maxTextLength})`);
+    });
+
+    it('validates SITE text length for ARTICLE', () => {
+      const rules = getValidationRulesOrThrow(SocialMedia.SITE, PostType.ARTICLE);
+      const res = validatePostContent({
+        socialMedia: SocialMedia.SITE,
+        postType: PostType.ARTICLE,
+        mediaCount: 0,
+        content: 'a'.repeat(rules.maxTextLength + 1),
+      });
+      expect(res.isValid).toBe(false);
+      expect(res.errors.join(' ')).toContain(`exceeds maximum allowed (${rules.maxTextLength})`);
     });
   });
 });

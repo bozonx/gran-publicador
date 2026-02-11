@@ -1,8 +1,18 @@
 import { SocialMedia } from '../../../generated/prisma/index.js';
+import {
+  getPlatformConfig,
+  SocialMedia as SharedSocialMedia,
+} from '@gran/shared/social-media-platforms';
 
 export interface CredentialsValidationResult {
   valid: boolean;
   errors: string[];
+}
+
+function isSharedSocialMedia(value: unknown): value is SharedSocialMedia {
+  return (
+    typeof value === 'string' && (Object.values(SharedSocialMedia) as string[]).includes(value)
+  );
 }
 
 /**
@@ -21,17 +31,32 @@ export function validatePlatformCredentials(
     };
   }
 
-  switch (platform) {
-    case SocialMedia.TELEGRAM:
-      return validateTelegramCredentials(credentials);
+  if (!isSharedSocialMedia(platform)) {
+    return {
+      valid: false,
+      errors: [`Unknown platform: ${platform}`],
+    };
+  }
 
-    case SocialMedia.VK:
-    case SocialMedia.SITE:
-      errors.push(`Platform ${platform} is not yet supported for publishing`);
-      break;
+  const config = getPlatformConfig(platform);
+  if (!config) {
+    return {
+      valid: false,
+      errors: [`Unknown platform: ${platform}`],
+    };
+  }
 
-    default:
-      errors.push(`Unknown platform: ${platform}`);
+  const requiredFields = config.credentials?.filter(f => f.required) ?? [];
+  for (const field of requiredFields) {
+    const value = (credentials as any)[field.key];
+    const hasValue = value !== undefined && value !== null && String(value).trim().length > 0;
+    if (!hasValue) {
+      errors.push(`Missing required credential field: ${field.key}`);
+    }
+  }
+
+  if (platform === SocialMedia.TELEGRAM) {
+    errors.push(...validateTelegramCredentials(credentials));
   }
 
   return {
@@ -44,13 +69,13 @@ export function validatePlatformCredentials(
  * Validates Telegram credentials
  * Required: botToken (mapped to apiKey in library)
  */
-function validateTelegramCredentials(credentials: any): CredentialsValidationResult {
+function validateTelegramCredentials(credentials: any): string[] {
   const errors: string[] = [];
 
   // Check for telegramBotToken
   const botToken = credentials.telegramBotToken || credentials.botToken;
   if (!botToken) {
-    errors.push('Telegram credentials must include telegramBotToken');
+    // Missing is reported by required field validation
   } else if (typeof botToken !== 'string') {
     errors.push('telegramBotToken must be a string');
   } else {
@@ -68,13 +93,10 @@ function validateTelegramCredentials(credentials: any): CredentialsValidationRes
   // Check for telegramChannelId
   const channelId = credentials.telegramChannelId || credentials.chatId;
   if (!channelId) {
-    errors.push('Telegram credentials must include telegramChannelId');
+    // Missing is reported by required field validation
   } else if (typeof channelId !== 'string' && typeof channelId !== 'number') {
     errors.push('telegramChannelId must be a string or number');
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return errors;
 }
