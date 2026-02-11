@@ -381,9 +381,6 @@ export class PublicationsService {
     });
   }
 
-  /**
-   * Helper to normalize media input from string or object.
-   */
   private getMediaInput(item: string | PublicationMediaInputDto): {
     id: string;
     hasSpoiler: boolean;
@@ -392,6 +389,48 @@ export class PublicationsService {
       return { id: item, hasSpoiler: false };
     }
     return { id: item.id, hasSpoiler: !!item.hasSpoiler };
+  }
+
+  /**
+   * Resolve best matching project template for a publication.
+   */
+  private async resolveProjectTemplateId(
+    projectId: string,
+    language: string,
+    postType?: PostType,
+    preferredId?: string,
+  ): Promise<string | null> {
+    if (preferredId) {
+      // Check if this template belongs to the project
+      const tpl = await this.prisma.projectTemplate.findFirst({
+        where: { id: preferredId, projectId },
+        select: { id: true },
+      });
+      if (tpl) return tpl.id;
+    }
+
+    // Find best default template matching language and type
+    const tpl = await this.prisma.projectTemplate.findFirst({
+      where: {
+        projectId,
+        isDefault: true,
+        AND: [
+          { OR: [{ language }, { language: null }] },
+          { OR: [{ postType: postType ?? null }, { postType: null }] },
+        ],
+      },
+      orderBy: [{ language: 'desc' }, { postType: 'desc' }, { createdAt: 'asc' }],
+    });
+
+    if (tpl) return tpl.id;
+
+    // Fallback to any template in the project
+    const fallback = await this.prisma.projectTemplate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return fallback?.id || null;
   }
 
   /**
@@ -412,6 +451,12 @@ export class PublicationsService {
         PermissionKey.PUBLICATIONS_CREATE,
       );
     }
+    const projectTemplateId = await this.resolveProjectTemplateId(
+      data.projectId,
+      data.language,
+      data.postType,
+      data.projectTemplateId,
+    );
 
     const publication = await this.prisma.publication.create({
       data: {
@@ -486,7 +531,7 @@ export class PublicationsService {
         note: data.note,
         status: data.status ?? PublicationStatus.DRAFT,
         language: data.language,
-        projectTemplateId: data.projectTemplateId,
+        projectTemplateId,
         postType: data.postType ?? PostType.POST,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
@@ -540,7 +585,7 @@ export class PublicationsService {
         undefined,
         data.authorSignatureId,
         data.authorSignatureOverrides,
-        data.projectTemplateId,
+        projectTemplateId ?? undefined,
       );
       this.logger.log(`Created ${data.channelIds.length} posts for publication ${publication.id}`);
     }
@@ -1770,6 +1815,12 @@ export class PublicationsService {
           : undefined,
         postType: source.postType,
         language: source.language,
+        projectTemplateId: await this.resolveProjectTemplateId(
+          targetProjectId,
+          source.language,
+          source.postType as PostType,
+          source.projectTemplateId ?? undefined,
+        ),
         meta: (source.meta as any) || {},
         note: source.note,
         postDate: source.postDate,

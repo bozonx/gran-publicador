@@ -2,6 +2,7 @@
 import type { ChannelWithProject } from '~/composables/useChannels'
 import type { PostWithRelations } from '~/composables/usePosts'
 import type { PublicationWithRelations } from '~/composables/usePublications'
+import { useProjectTemplates } from '~/composables/useProjectTemplates'
 import type { PostStatus, PostType, PublicationStatus } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import { useViewMode } from '~/composables/useViewMode'
@@ -77,6 +78,11 @@ const {
   isLoading: isReadyLoading,
 } = usePublications()
 
+const {
+    templates: projectTemplates,
+    fetchProjectTemplates
+} = useProjectTemplates()
+
 // Import utility function for getting post title
 const { getPostTitle, getPostScheduledAt } = await import('~/composables/usePosts')
 
@@ -109,6 +115,20 @@ async function quickCreatePublication(postType: PostType) {
       postType,
       channelIds: [channelId.value],
       content: '', 
+      projectTemplateId: undefined as string | undefined
+    }
+
+    // Try to find the best matching template
+    if (projectTemplates.value.length > 0) {
+      const bestMatch = projectTemplates.value.find(t => 
+        t.isDefault && (!t.language || t.language === createData.language) && (!t.postType || t.postType === createData.postType)
+      ) || projectTemplates.value.find(t => 
+        (!t.language || t.language === createData.language) && (!t.postType || t.postType === createData.postType)
+      ) || projectTemplates.value.find(t => t.isDefault) || projectTemplates.value[0]
+      
+      if (bestMatch) {
+        createData.projectTemplateId = bestMatch.id
+      }
     }
 
     const publication = await createPublication(createData)
@@ -198,6 +218,9 @@ onMounted(async () => {
             status: 'READY', 
             limit: 5 
         })
+
+        // Fetch project templates
+        await fetchProjectTemplates(projectId.value)
     }
 })
 
