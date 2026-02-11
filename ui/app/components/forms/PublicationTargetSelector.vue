@@ -15,23 +15,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { projects, fetchProjects } = useProjects()
-const { channels, fetchChannels } = useChannels()
 
 onMounted(async () => {
-  await Promise.all([
-    fetchProjects(true),
-    fetchChannels()
-  ])
+  await fetchProjects(true)
 })
 
 
 
-const projectChannelsOptions = computed(() => {
-  if (!props.projectId) return []
-  return channels.value
-    .filter(c => c.projectId === props.projectId && !c.archivedAt)
-    .map(c => ({ value: c.id, label: c.name }))
-})
 
 const currentProjectId = computed({
   get: () => props.projectId,
@@ -67,22 +57,11 @@ const selectedChannelIds = computed({
       :label="t('channel.titlePlural')" 
       :help="t('publication.channelsSelectorHelp')"
     >
-      <USelectMenu
+      <CommonChannelSelect
         v-model="selectedChannelIds"
-        :items="projectChannelsOptions"
-        value-key="value"
-        label-key="label"
+        :project-id="currentProjectId"
         multiple
-        class="w-full"
-        :placeholder="t('publication.select_channels')"
-      >
-        <template #default>
-          <span v-if="selectedChannelIds.length">
-            {{ t('common.selected', { count: selectedChannelIds.length }) }}
-          </span>
-          <span v-else>{{ t('publication.select_channels') }}</span>
-        </template>
-      </USelectMenu>
+      />
     </UFormField>
     
     <UAlert
