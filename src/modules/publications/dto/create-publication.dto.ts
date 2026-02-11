@@ -17,7 +17,7 @@ import {
   Max,
   IsUUID,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/index.js';
 import { CreateMediaDto } from '../../media/dto/index.js';
 import { ValidateNested } from 'class-validator';
@@ -85,6 +85,16 @@ export class CreatePublicationDto {
   public existingMediaIds?: (string | PublicationMediaInputDto)[];
 
   @IsArray()
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map(v => v.trim())
+        .filter(v => v.length > 0);
+    }
+    return value;
+  })
   @IsString({ each: true })
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
