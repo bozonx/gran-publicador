@@ -1,6 +1,7 @@
 import { ref, onUnmounted } from 'vue';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useSttStore } from '../stores/stt';
+import type { SttSocket } from '../stores/stt';
 
 export function useStt() {
   const sttStore = useSttStore();
@@ -21,8 +22,7 @@ export function useStt() {
   const isTranscribing = ref(false);
   const error = ref<string | null>(null);
 
-  // Use a local ref that we update when socket connects
-  let socket = sttStore.socket;
+  let socket: SttSocket | null = null;
 
   // Track pending chunk uploads to ensure sequence
   const pendingChunks = ref<Promise<void>[]>([]);
@@ -34,7 +34,7 @@ export function useStt() {
       try {
         // Send Blob directly if supported -> but safer to ensure ArrayBuffer for consistency
         const buffer = await blob.arrayBuffer();
-        socket?.emit('audio-chunk', buffer);
+        socket.emit('audio-chunk', buffer);
       } catch (err) {
         console.error('Error sending audio chunk via WebSocket:', err);
       }
@@ -48,45 +48,36 @@ export function useStt() {
     });
   }
 
-  function setupSocketListeners() {
-    if (!socket) return () => {};
-
-    const onResult = (data: { text: string }) => {
-      transcription.value = data.text;
-      isTranscribing.value = false;
-    };
-
-    const onError = (data: { message: string }) => {
-      console.error('STT transcription error:', data.message);
-      error.value = 'transcriptionError';
-      isTranscribing.value = false;
-    };
-
-    const onDisconnect = () => {
-      if (isTranscribing.value) {
-        error.value = 'connectionLost';
-        isTranscribing.value = false;
-      }
-    };
-
-    socket.on('transcription-result', onResult);
-    socket.on('transcription-error', onError);
-    socket.on('disconnect', onDisconnect);
-
-    return () => {
-      socket?.off('transcription-result', onResult);
-      socket?.off('transcription-error', onError);
-      socket?.off('disconnect', onDisconnect);
-    };
-  }
-
-  let stopSocketListeners: (() => void) | null = null;
-
-  function cleanupListeners() {
-    if (stopSocketListeners) {
-      stopSocketListeners();
-      stopSocketListeners = null;
+  async function ensureConnected(): Promise<SttSocket | null> {
+    const connectedSocket = sttStore.connect();
+    if (!connectedSocket) {
+      error.value = 'socketConnectionError';
+      return null;
     }
+
+    socket = connectedSocket;
+
+    if (!connectedSocket.connected) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Socket connection timeout')), 5000);
+          connectedSocket.once('connect', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+          connectedSocket.once('connect_error', err => {
+            clearTimeout(timeout);
+            reject(err);
+          });
+        });
+      } catch (err) {
+        console.error('STT socket connection failed:', err);
+        error.value = 'socketConnectionError';
+        return null;
+      }
+    }
+
+    return connectedSocket;
   }
 
   async function start(language?: string) {
@@ -96,30 +87,10 @@ export function useStt() {
     const permitted = await requestPermission();
     if (!permitted) return false;
 
-    // Ensure socket is connected
-    socket = sttStore.connect();
-    if (!socket) {
-      error.value = 'socketConnectionError';
-      return false;
-    }
+    const connectedSocket = await ensureConnected();
+    if (!connectedSocket) return false;
 
-    if (!socket.connected) {
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Socket connection timeout')), 5000);
-        socket!.once('connect', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      });
-    }
-
-    cleanupListeners();
-    stopSocketListeners = setupSocketListeners();
-    
-    // isTranscribing should not be true during recording to avoid disabling the stop button
-    isTranscribing.value = false;
-
-    socket.emit('transcribe-start', {
+    connectedSocket.emit('transcribe-start', {
       mimetype: mimeType.value || 'audio/webm',
       filename: `recording-${Date.now()}.webm`,
       language,
@@ -127,8 +98,6 @@ export function useStt() {
 
     const started = await startRecording();
     if (!started) {
-      isTranscribing.value = false;
-      cleanupListeners();
       return false;
     }
 
@@ -137,23 +106,22 @@ export function useStt() {
 
   async function stop() {
     await stopRecording();
-    
+
     if (socket && socket.connected) {
       isTranscribing.value = true;
-      
+
       // Wait for all pending chunks to be sent
       if (pendingChunks.value.length > 0) {
         await Promise.all([...pendingChunks.value]);
       }
 
       socket.emit('transcribe-end');
-      
+
       const result = await waitForTranscription();
       isTranscribing.value = false;
       return result;
     } else {
       isTranscribing.value = false;
-      cleanupListeners();
       return '';
     }
   }
@@ -165,36 +133,19 @@ export function useStt() {
     error.value = null;
     transcription.value = '';
 
-    socket = sttStore.connect();
-    if (!socket) {
-      error.value = 'socketConnectionError';
-      return '';
-    }
+    const connectedSocket = await ensureConnected();
+    if (!connectedSocket) return '';
 
-    if (!socket.connected) {
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Socket connection timeout')), 5000);
-        socket!.once('connect', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      });
-    }
-
-    cleanupListeners();
-    // For one-shot, we might not need long-lived listeners, 
-    // but better to have them for consistency or just rely on waitForTranscription
-    
     isTranscribing.value = true;
-    socket.emit('transcribe-start', {
+    connectedSocket.emit('transcribe-start', {
       mimetype: blob.type || 'audio/webm',
       filename: 'recording.webm',
       language,
     });
 
     const buffer = await blob.arrayBuffer();
-    socket.emit('audio-chunk', buffer);
-    socket.emit('transcribe-end');
+    connectedSocket.emit('audio-chunk', buffer);
+    connectedSocket.emit('transcribe-end');
 
     const result = await waitForTranscription();
     isTranscribing.value = false;
@@ -202,7 +153,7 @@ export function useStt() {
   }
 
   function waitForTranscription(): Promise<string> {
-    return new Promise<string>((resolve) => {
+    return new Promise<string>(resolve => {
       let timeoutId: NodeJS.Timeout;
 
       const cleanup = () => {
@@ -236,22 +187,23 @@ export function useStt() {
       socket?.on('transcription-error', handleError);
       socket?.on('disconnect', handleDisconnect);
 
-      // Safety timeout - 5 minutes
+      // Safety timeout - 10 minutes
       timeoutId = setTimeout(() => {
         console.error('Transcription timed out');
         cleanup();
-        error.value = 'timeout'; 
+        error.value = 'timeout';
         resolve('');
-      }, 300000);
+      }, 600000);
     });
   }
 
   onUnmounted(() => {
-    cleanupListeners();
-  });
-
-  onUnmounted(() => {
-    cleanupListeners();
+    // Keep socket connection in store, only cleanup local listeners
+    if (socket) {
+      socket.off('transcription-result');
+      socket.off('transcription-error');
+      socket.off('disconnect');
+    }
   });
 
   return {

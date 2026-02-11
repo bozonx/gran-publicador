@@ -1,5 +1,6 @@
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -13,6 +14,7 @@ import { Server, Socket } from 'socket.io';
 import { SttService } from './stt.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PassThrough } from 'node:stream';
+import type { SttConfig } from '../../config/stt.config.js';
 
 @WebSocketGateway({
   namespace: '/stt',
@@ -27,12 +29,16 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server!: Server;
 
   // Track active streams per socket ID
-  private activeStreams = new Map<string, { stream: PassThrough; promise: Promise<any> }>();
+  private activeStreams = new Map<
+    string,
+    { stream: PassThrough; promise: Promise<any>; receivedBytes: number; maxBytes: number }
+  >();
 
   constructor(
     private jwtService: JwtService,
     private sttService: SttService,
     private usersService: UsersService,
+    private configService: ConfigService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -79,6 +85,9 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const filename = data.filename || `recording-${Date.now()}.webm`;
     const mimetype = data.mimetype || 'audio/webm';
+
+    const sttConfig = this.configService.get<SttConfig>('stt');
+    const maxBytes = sttConfig?.maxFileSize ?? 50 * 1024 * 1024;
 
     this.logger.log(`Starting STT stream for client ${client.id}: ${filename} (${mimetype})`);
 
@@ -132,6 +141,8 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.activeStreams.set(client.id, {
       stream: passThrough,
       promise: transcriptionPromise,
+      receivedBytes: 0,
+      maxBytes,
     });
   }
 
@@ -145,6 +156,16 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // chunk might be a Buffer or ArrayBuffer depending on socket.io configuration
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+
+    active.receivedBytes += buffer.length;
+    if (active.receivedBytes > active.maxBytes) {
+      this.logger.warn(
+        `STT stream size limit exceeded for client ${client.id}: ${active.receivedBytes} > ${active.maxBytes}`,
+      );
+      client.emit('transcription-error', { message: 'Audio file is too large' });
+      this.cleanupStream(client.id, 'size-limit');
+      return;
+    }
 
     if (active.stream.writable && !active.stream.writableEnded) {
       active.stream.write(buffer, err => {

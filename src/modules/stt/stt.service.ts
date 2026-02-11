@@ -116,8 +116,8 @@ export class SttService {
         {
           method: 'POST',
           body: params.file as any,
-          headersTimeout: config?.timeoutMs || 300000,
-          bodyTimeout: config?.timeoutMs || 300000,
+          headersTimeout: config?.timeoutMs || 600000,
+          bodyTimeout: config?.timeoutMs || 600000,
           headers,
         },
       );

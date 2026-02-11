@@ -1,18 +1,27 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { useAuthStore } from './auth';
+
+export interface SttSocket {
+  connected: boolean;
+  emit(event: string, ...args: any[]): void;
+  on(event: string, listener: (...args: any[]) => void): void;
+  off(event: string, listener?: (...args: any[]) => void): void;
+  once(event: string, listener: (...args: any[]) => void): void;
+  disconnect(): void;
+}
 
 export const useSttStore = defineStore('stt', () => {
   const authStore = useAuthStore();
   const config = useRuntimeConfig();
 
-  const socket = ref<Socket | null>(null);
+  const socket = ref<SttSocket | null>(null);
 
   /**
    * Connect to WebSocket for STT
    */
-  function connect() {
+  function connect(): SttSocket {
     if (socket.value) return socket.value;
 
     const apiBase = config.public.apiBase || '';
@@ -30,13 +39,13 @@ export const useSttStore = defineStore('stt', () => {
         token: authStore.accessToken,
       },
       transports: ['websocket'],
-    });
+    }) as unknown as SttSocket;
 
     socket.value.on('connect_error', error => {
       console.error('STT WebSocket connection error', error);
     });
 
-    return socket.value;
+    return socket.value!;
   }
 
   /**

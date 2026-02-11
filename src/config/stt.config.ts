@@ -30,17 +30,17 @@ export class SttConfig {
   @IsOptional()
   @IsInt()
   @Min(1)
-  public timeoutMs?: number = 300000;
+  public timeoutMs?: number = 600000;
 
   /**
    * Maximum allowed audio file size in bytes.
    * Defined by STT_MAX_FILE_SIZE environment variable.
-   * Default: 10MB
+   * Default: 50MB
    */
   @IsOptional()
   @IsInt()
   @Min(1)
-  public maxFileSize?: number = 10 * 1024 * 1024;
+  public maxFileSize?: number = 50 * 1024 * 1024;
 }
 
 export default registerAs('stt', (): SttConfig => {
