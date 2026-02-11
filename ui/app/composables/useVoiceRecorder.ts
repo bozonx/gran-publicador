@@ -127,14 +127,29 @@ export function useVoiceRecorder(options: VoiceRecorderOptions = {}) {
         return;
       }
 
+      // Safety timeout: if onstop doesn't fire within 2 seconds, force cleanup
+      const timeout = setTimeout(() => {
+        console.warn('stopRecording timeout - forcing cleanup');
+        cleanup();
+        resolve(null);
+      }, 2000);
+
       mediaRecorder.onstop = () => {
+        clearTimeout(timeout);
         const mimeType = mediaRecorder?.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        const audioBlob = audioChunks.length > 0 ? new Blob(audioChunks, { type: mimeType }) : null;
         cleanup();
         resolve(audioBlob);
       };
 
-      mediaRecorder.stop();
+      try {
+        mediaRecorder.stop();
+      } catch (err) {
+        console.error('Error stopping MediaRecorder:', err);
+        clearTimeout(timeout);
+        cleanup();
+        resolve(null);
+      }
     });
   }
 

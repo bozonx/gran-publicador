@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useSttStore } from '../stores/stt';
 import type { SttSocket } from '../stores/stt';
@@ -40,6 +40,7 @@ export function useStt() {
     detachSocketListeners();
     socket.on('transcription-error', handleSocketTranscriptionError);
     socket.on('disconnect', handleSocketDisconnect);
+    socket.on('error', handleSocketError);
   };
 
   const stopAllActivityOnError = () => {
@@ -61,15 +62,21 @@ export function useStt() {
 
   const handleSocketTranscriptionError = (data?: { message: string }) => {
     console.error('STT Error received:', data?.message);
-    stopAllActivityOnError();
     error.value = 'transcriptionError';
+    stopAllActivityOnError();
+  };
+
+  const handleSocketError = (err: any) => {
+    console.error('STT Socket error:', err);
+    error.value = 'socketConnectionError';
+    stopAllActivityOnError();
   };
 
   const handleSocketDisconnect = () => {
     if (!isRecording.value && !isTranscribing.value) return;
-    console.warn('Socket disconnected during STT activity');
-    stopAllActivityOnError();
+    console.warn('STT Socket disconnected');
     error.value = 'connectionLost';
+    stopAllActivityOnError();
   };
 
   async function handleDataAvailable(blob: Blob) {
@@ -248,6 +255,7 @@ export function useStt() {
         cleanup();
         activeWaitCleanup = null;
         error.value = 'transcriptionError';
+        stopAllActivityOnError();
         resolve('');
       };
 
@@ -256,6 +264,7 @@ export function useStt() {
         cleanup();
         activeWaitCleanup = null;
         error.value = 'connectionLost';
+        stopAllActivityOnError();
         resolve('');
       };
 
@@ -278,6 +287,13 @@ export function useStt() {
     // Keep socket connection in store, only cleanup local listeners
     detachSocketListeners();
     socket?.off('transcription-result');
+  });
+
+  // Reset STT state on recorder error
+  watch(() => recorderError.value, (newError) => {
+    if (newError) {
+      stopAllActivityOnError();
+    }
   });
 
   return {
