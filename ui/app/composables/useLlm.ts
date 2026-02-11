@@ -51,6 +51,7 @@ export interface ChannelInfoForLlm {
   channelName: string;
   socialMedia?: string;
   tags?: string[];
+  maxContentLength?: number;
 }
 
 export interface GeneratePublicationFieldsOptions {

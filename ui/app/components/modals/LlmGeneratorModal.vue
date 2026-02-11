@@ -12,6 +12,7 @@ import {
   getAggregatedMaxTextLength,
   getAggregatedTagsConfig,
   getTagsLimitsByPlatform,
+  getPostTypeConfig,
   type PostType,
   type SocialMedia,
 } from '~/utils/socialMediaPlatforms'
@@ -267,6 +268,7 @@ const pubSelectedFields = reactive({
 
 interface PostSelectedFields {
   tags: boolean
+  content: boolean
 }
 const postSelectedFields = ref<Record<string, PostSelectedFields>>({})
 
@@ -454,6 +456,7 @@ function initPostSelectedFields() {
     const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0
     fields[ch.channelId] = {
       tags: hasChannelTags,
+      content: true,
     }
   }
   postSelectedFields.value = fields
@@ -671,12 +674,27 @@ async function handleFieldsGeneration(sourceText: string) {
   fieldsResult.value = null
   
   try {
-    const channelsForApi: ChannelInfoForLlm[] = channelsWithPosts.value.map(ch => ({
-      channelId: ch.channelId,
-      channelName: ch.channelName,
-      socialMedia: ch.socialMedia,
-      tags: ch.tags,
-    }))
+    const resolvedPostType = (postType || 'POST') as PostType
+    const hasMedia = (media || []).length > 0
+
+    const channelsForApi: ChannelInfoForLlm[] = channelsWithPosts.value.map((ch) => {
+      const platform = ch.socialMedia as SocialMedia | undefined
+      const maxContentLength = platform
+        ? (getPostTypeConfig(platform, resolvedPostType)?.content
+            ? hasMedia
+              ? getPostTypeConfig(platform, resolvedPostType)!.content.maxCaptionLength
+              : getPostTypeConfig(platform, resolvedPostType)!.content.maxTextLength
+            : undefined)
+        : undefined
+
+      return {
+        channelId: ch.channelId,
+        channelName: ch.channelName,
+        socialMedia: ch.socialMedia,
+        tags: ch.tags,
+        maxContentLength,
+      }
+    })
 
       const response = await generatePublicationFields(
         (sourceText + buildConstraintsBlock({ sourceText })).trim(),
@@ -695,7 +713,17 @@ async function handleFieldsGeneration(sourceText: string) {
         })
       }
       
-      fieldsResult.value = response
+      const normalizedPosts: LlmPublicationFieldsPostResult[] = [...(response.posts || [])]
+      for (const ch of channelsWithPosts.value) {
+        if (!normalizedPosts.some(p => p.channelId === ch.channelId)) {
+          normalizedPosts.push({ channelId: ch.channelId, content: '', tags: [] })
+        }
+      }
+
+      fieldsResult.value = {
+        ...response,
+        posts: normalizedPosts,
+      }
     } else {
       const errType = llmError.value?.type
       const description =
@@ -756,13 +784,31 @@ function getPostResult(channelId: string): LlmPublicationFieldsPostResult | unde
   return fieldsResult.value?.posts.find(p => p.channelId === channelId)
 }
 
+function getPostContentForChannel(channelId: string): string {
+  const post = getPostResult(channelId)
+  const base = fieldsResult.value?.publication.content || ''
+  return (post?.content || base).trim()
+}
+
+function setPostContentForChannel(channelId: string, content: string) {
+  if (!fieldsResult.value) return
+
+  let post = fieldsResult.value.posts.find(p => p.channelId === channelId)
+  if (!post) {
+    post = { channelId, content: '', tags: [] }
+    fieldsResult.value.posts.push(post)
+  }
+
+  post.content = content
+}
+
 async function handleInsert() {
   if (!fieldsResult.value) return
   
   // Check if at least one field is selected
   const hasPubSelection = pubSelectedFields.title || pubSelectedFields.description || 
                            pubSelectedFields.tags || pubSelectedFields.content
-  const hasPostSelection = Object.values(postSelectedFields.value).some(f => f.tags)
+  const hasPostSelection = Object.values(postSelectedFields.value).some(f => f.tags || f.content)
   
   if (!hasPubSelection && !hasPostSelection) {
     toast.add({
@@ -797,14 +843,21 @@ async function handleInsert() {
   if (hasPostSelection) {
     const posts: ApplyData['posts'] = []
     for (const [channelId, fields] of Object.entries(postSelectedFields.value)) {
-      if (!fields.tags) continue
       const postResult = getPostResult(channelId)
       if (!postResult) continue
 
-      const postData: { channelId: string; tags?: string } = { channelId }
+      const postData: { channelId: string; tags?: string; content?: string } = { channelId }
       if (fields.tags && postResult.tags.length > 0) {
         postData.tags = postResult.tags.join(', ')
       }
+      if (fields.content) {
+        const contentToApply = (postResult.content || fieldsResult.value.publication.content || '').trim()
+        if (contentToApply) {
+          postData.content = contentToApply
+        }
+      }
+
+      if (!postData.tags && !postData.content) continue
       posts.push(postData)
     }
     if (posts.length > 0) {
@@ -1189,8 +1242,8 @@ async function confirmResetChat() {
            <!-- POST BLOCKS (per channel) -->
            <template v-for="ch in channelsWithPosts" :key="ch.channelId">
              <div
-               v-if="postSelectedFields[ch.channelId] && (getPostResult(ch.channelId)?.tags?.length ?? 0) > 0"
-               class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden"
+              v-if="postSelectedFields[ch.channelId]"
+              class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden"
              >
                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700/50">
                  <div class="flex items-center gap-2">
@@ -1200,6 +1253,19 @@ async function confirmResetChat() {
                  </div>
                </div>
                <div class="p-4 space-y-4">
+                 <!-- Post Content -->
+                 <div class="space-y-1.5">
+                   <UCheckbox v-model="postSelectedFields[ch.channelId]!.content" :label="t('post.contentLabel')" />
+                   <UTextarea
+                     v-if="postSelectedFields[ch.channelId]!.content"
+                     :model-value="getPostContentForChannel(ch.channelId)"
+                     autoresize
+                     :rows="4"
+                     class="font-mono text-xs w-full"
+                     @update:model-value="(v) => setPostContentForChannel(ch.channelId, String(v ?? ''))"
+                   />
+                 </div>
+
                  <!-- Post Tags -->
                  <div v-if="(getPostResult(ch.channelId)?.tags?.length ?? 0) > 0" class="space-y-1.5">
                    <UCheckbox v-model="postSelectedFields[ch.channelId]!.tags" :label="t('post.tags')" />

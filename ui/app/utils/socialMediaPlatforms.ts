@@ -8,6 +8,8 @@ import {
 
 export type { PostType, SocialMedia };
 
+export { getPlatformConfig, getPostTypeConfig };
+
 export interface PostTypeOption {
   value: PostType;
   label: string;

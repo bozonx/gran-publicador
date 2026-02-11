@@ -13,6 +13,7 @@ You will receive a JSON instruction block in the user message with:
   - "channelName": display name
   - "socialMedia": social network identifier (e.g. "telegram", "vk", "site")
   - "tags": array of the channel's predefined tags (may be empty)
+  - "maxContentLength": maximum allowed length (in characters) for this channel post content (may be missing)
 
 Output a strictly valid JSON object with this structure:
 {
@@ -25,6 +26,7 @@ Output a strictly valid JSON object with this structure:
   "posts": [
     {
       "channelId": "...",
+      "content": "...",
       "tags": ["tag1", "tag2", ...]
     }
   ]
@@ -46,6 +48,12 @@ Rules for each "posts" entry:
    b. Add other relevant tags that are not in the channel list but fit the context.
    c. RELEVANCE TO CONTEXT IS MORE IMPORTANT than just listing all channel tags. Use channel tags only if they are genuinely relevant.
 5. If the channel has no predefined "tags", generate up to 10 relevant tags based on the content and social network.
+
+Rules for per-channel "content" in "posts":
+1. "publication.content" is the primary content.
+2. If a channel has "maxContentLength" and the primary content exceeds it, generate a shortened version for that channel.
+3. If the primary content fits the channel limit OR the channel has no "maxContentLength", set "posts[i].content" to an empty string.
+4. When generating a shortened version, it MUST be <= maxContentLength characters and preserve the key message.
 
 General rules:
 1. Return ONLY the JSON object. No markdown, no backticks, no extra text.

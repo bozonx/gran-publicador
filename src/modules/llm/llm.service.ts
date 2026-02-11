@@ -340,6 +340,7 @@ export class LlmService {
       channelName: ch.channelName,
       socialMedia: ch.socialMedia,
       tags: ch.tags || [],
+      maxContentLength: ch.maxContentLength,
     }));
 
     const instructionBlock = JSON.stringify({

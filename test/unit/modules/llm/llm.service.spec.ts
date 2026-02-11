@@ -366,6 +366,7 @@ describe('LlmService', () => {
             channelName: 'Channel EN',
             tags: ['tech', 'news'],
             socialMedia: 'telegram',
+            maxContentLength: 100,
           },
           { channelId: 'ch-2', channelName: 'Channel RU', tags: [] },
         ],
@@ -412,6 +413,7 @@ describe('LlmService', () => {
 
           const instruction = JSON.parse(String(rawJson));
           expect(instruction.channels[0].socialMedia).toBe('telegram');
+          expect(instruction.channels[0].maxContentLength).toBe(100);
           expect(JSON.stringify(instruction)).not.toContain('generateTags');
 
           return mockResponse;

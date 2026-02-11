@@ -38,6 +38,12 @@ export class ChannelInfoDto {
   @IsString({ each: true })
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
   tags?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500000)
+  maxContentLength?: number;
 }
 
 /**

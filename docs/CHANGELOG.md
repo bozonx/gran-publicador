@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **LLM Publication Fields Generation**: Added per-channel content shortening support.
+  - Optional `channels[].maxContentLength` is now forwarded to the LLM instruction block.
+  - LLM may return `posts[].content` as a per-channel override only when `publication.content` exceeds the channel limit.
+  - UI can insert per-channel post content using the generated override (fallbacks to `publication.content`).
 - **Social media platform IDs**: Migrated platform identifiers to lowercase across the whole project.
   - Platforms are now stored and handled as `telegram`, `vk`, `site` (and future platforms in lowercase).
   - Requires database migration for Prisma `SocialMedia` enum.
