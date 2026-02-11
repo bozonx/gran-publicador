@@ -10,6 +10,9 @@ export const PostType = {
   POST: 'POST',
   ARTICLE: 'ARTICLE',
   NEWS: 'NEWS',
+  VIDEO: 'VIDEO',
+  SHORT: 'SHORT',
+  STORY: 'STORY',
 } as const;
 
 export type PostType = (typeof PostType)[keyof typeof PostType];

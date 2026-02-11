@@ -37,7 +37,15 @@ function isSharedPostType(value: unknown): value is SharedPostType {
 }
 
 function mapSharedMediaTypesToPrisma(types: SharedMediaType[]): MediaType[] {
-  return types as unknown as MediaType[];
+  const allowed = new Set(Object.values(MediaType) as string[]);
+  const result: MediaType[] = [];
+  for (const t of types) {
+    if (!allowed.has(t)) {
+      throw new Error(`Shared MediaType value is not present in Prisma enum: ${t}`);
+    }
+    result.push(t as unknown as MediaType);
+  }
+  return result;
 }
 
 export function getValidationRules(
@@ -46,9 +54,14 @@ export function getValidationRules(
 ): SocialMediaValidationRules | undefined {
   if (!isSharedSocialMedia(socialMedia)) return undefined;
 
-  const sharedPostType: SharedPostType = isSharedPostType(postType)
-    ? postType
-    : SharedPostType.POST;
+  let sharedPostType: SharedPostType;
+  if (postType === undefined || postType === null) {
+    sharedPostType = SharedPostType.POST;
+  } else if (isSharedPostType(postType)) {
+    sharedPostType = postType;
+  } else {
+    return undefined;
+  }
   const postTypeConfig = getPostTypeConfig(socialMedia, sharedPostType);
   if (!postTypeConfig) return undefined;
 

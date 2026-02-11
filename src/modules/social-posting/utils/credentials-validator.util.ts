@@ -73,7 +73,7 @@ function validateTelegramCredentials(credentials: any): string[] {
   const errors: string[] = [];
 
   // Check for telegramBotToken
-  const botToken = credentials.telegramBotToken || credentials.botToken;
+  const botToken = credentials.telegramBotToken;
   if (!botToken) {
     // Missing is reported by required field validation
   } else if (typeof botToken !== 'string') {
@@ -91,7 +91,7 @@ function validateTelegramCredentials(credentials: any): string[] {
   }
 
   // Check for telegramChannelId
-  const channelId = credentials.telegramChannelId || credentials.chatId;
+  const channelId = credentials.telegramChannelId;
   if (!channelId) {
     // Missing is reported by required field validation
   } else if (typeof channelId !== 'string' && typeof channelId !== 'number') {

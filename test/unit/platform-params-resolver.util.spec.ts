@@ -15,32 +15,9 @@ describe('platform-params-resolver.util (unit)', () => {
     });
   });
 
-  it('resolves Telegram apiKey with botToken fallback', () => {
-    const res = resolvePlatformParams(SocialMedia.TELEGRAM, '@ignored', {
-      telegramChannelId: '@channel',
-      botToken: '123:token',
-    });
-
-    expect(res).toEqual({
-      channelId: '@channel',
-      apiKey: '123:token',
-    });
-  });
-
   it('resolves VK params using channelIdentifier and vkAccessToken', () => {
     const res = resolvePlatformParams(SocialMedia.VK, 'club123', {
       vkAccessToken: 'vk-token',
-    });
-
-    expect(res).toEqual({
-      channelId: 'club123',
-      apiKey: 'vk-token',
-    });
-  });
-
-  it('resolves VK apiKey with accessToken fallback', () => {
-    const res = resolvePlatformParams(SocialMedia.VK, 'club123', {
-      accessToken: 'vk-token',
     });
 
     expect(res).toEqual({
@@ -57,17 +34,6 @@ describe('platform-params-resolver.util (unit)', () => {
     expect(res).toEqual({
       channelId: 'site-1',
       apiKey: 'site-key',
-    });
-  });
-
-  it('resolves default apiKey with accessToken fallback', () => {
-    const res = resolvePlatformParams(SocialMedia.SITE, 'site-1', {
-      accessToken: 'token',
-    });
-
-    expect(res).toEqual({
-      channelId: 'site-1',
-      apiKey: 'token',
     });
   });
 });

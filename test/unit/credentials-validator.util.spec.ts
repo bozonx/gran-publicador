@@ -27,6 +27,16 @@ describe('credentials-validator.util (unit)', () => {
     expect(res.errors.join(' ')).toContain('too short');
   });
 
+  it('does not accept legacy Telegram botToken key', () => {
+    const res = validatePlatformCredentials(SocialMedia.TELEGRAM, {
+      botToken: '123:token',
+      telegramChannelId: '@test',
+    });
+
+    expect(res.valid).toBe(false);
+    expect(res.errors).toContain('Missing required credential field: telegramBotToken');
+  });
+
   it('returns valid for VK when required fields are present', () => {
     const res = validatePlatformCredentials(SocialMedia.VK, {
       vkAccessToken: 'token',

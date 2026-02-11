@@ -22,7 +22,7 @@ export function resolvePlatformParams(
        */
       return {
         channelId: credentials?.telegramChannelId || '',
-        apiKey: credentials?.telegramBotToken || credentials?.botToken || '',
+        apiKey: credentials?.telegramBotToken || '',
       };
 
     case SocialMedia.VK:
@@ -31,16 +31,16 @@ export function resolvePlatformParams(
        */
       return {
         channelId: channelIdentifier,
-        apiKey: credentials?.vkAccessToken || credentials?.accessToken || '',
+        apiKey: credentials?.vkAccessToken || '',
+      };
+
+    case SocialMedia.SITE:
+      return {
+        channelId: channelIdentifier,
+        apiKey: credentials?.apiKey || '',
       };
 
     default:
-      /**
-       * Generic fallback for other platforms.
-       */
-      return {
-        channelId: channelIdentifier,
-        apiKey: credentials?.apiKey || credentials?.accessToken || '',
-      };
+      throw new Error(`Unsupported platform: ${platform}`);
   }
 }
