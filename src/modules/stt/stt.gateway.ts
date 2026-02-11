@@ -107,7 +107,12 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Start transcription promise
     const transcriptionPromise = this.sttService
-      .transcribeAudioStream(passThrough, filename, mimetype, language)
+      .transcribeAudioStream({
+        file: passThrough,
+        filename,
+        mimetype,
+        language,
+      })
       .then(result => {
         client.emit('transcription-result', result);
       })

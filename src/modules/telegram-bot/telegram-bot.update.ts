@@ -538,12 +538,12 @@ export class TelegramBotUpdate {
         throw new Error(`Failed to download file: ${response.statusCode}`);
       }
 
-      const transcription = await this.sttService.transcribeAudioStream(
-        response.body as Readable,
-        'voice.ogg',
-        'audio/ogg',
+      const transcription = await this.sttService.transcribeAudioStream({
+        file: response.body as Readable,
+        filename: 'voice.ogg',
+        mimetype: 'audio/ogg',
         language,
-      );
+      });
 
       return transcription.text;
     } catch (error) {

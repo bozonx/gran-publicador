@@ -5,11 +5,12 @@ import {
   ServiceUnavailableException,
   BadGatewayException,
   RequestTimeoutException,
+  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SttConfig } from '../../config/stt.config.js';
-import { request, Dispatcher } from 'undici';
-import FormData from 'form-data';
+import { request } from 'undici';
 import type { Readable } from 'stream';
 
 @Injectable()
@@ -41,12 +42,18 @@ export class SttService {
   /**
    * Transcribes audio stream (or buffer) to text by proxying to STT Gateway.
    */
-  async transcribeAudioStream(
-    file: Readable | Buffer,
-    filename: string,
-    mimetype: string,
-    language?: string,
-  ): Promise<{ text: string }> {
+  async transcribeAudioStream(params: {
+    file: Readable | Buffer;
+    filename?: string;
+    mimetype: string;
+    language?: string;
+    provider?: string;
+    restorePunctuation?: boolean;
+    formatText?: boolean;
+    models?: string[];
+    apiKey?: string;
+    maxWaitMinutes?: number;
+  }): Promise<{ text: string }> {
     const config = this.configService.get<SttConfig>('stt');
 
     if (!config?.serviceUrl) {
@@ -55,45 +62,65 @@ export class SttService {
     }
 
     try {
+      const filename = params.filename || 'upload';
       this.logger.log(
-        `Proxying audio to STT Gateway: ${filename} (${mimetype})${language ? ` [lang: ${language}]` : ''}`,
+        `Proxying audio to STT Gateway: ${filename} (${params.mimetype})${params.language ? ` [lang: ${params.language}]` : ''}`,
       );
 
-      const form = new FormData();
-      // STT Gateway expects 'file' field
-      if (Buffer.isBuffer(file)) {
-        form.append('file', file, {
-          contentType: mimetype,
-          filename: filename,
-          knownLength: file.length, // Help form-data set correct Content-Length
-        });
-      } else {
-        form.append('file', file, {
-          contentType: mimetype,
-          filename: filename,
-        });
+      if (
+        Buffer.isBuffer(params.file) &&
+        config.maxFileSize &&
+        params.file.length > config.maxFileSize
+      ) {
+        throw new BadRequestException(
+          `Audio file is too large. Max allowed size is ${config.maxFileSize} bytes.`,
+        );
       }
 
-      if (language) {
-        form.append('language', language);
+      const query = new URLSearchParams();
+      query.set('filename', filename);
+      if (params.provider) {
+        query.set('provider', params.provider);
+      }
+      if (params.language) {
+        query.set('language', params.language);
+      }
+      if (params.restorePunctuation !== undefined) {
+        query.set('restorePunctuation', String(params.restorePunctuation));
+      }
+      if (params.formatText !== undefined) {
+        query.set('formatText', String(params.formatText));
+      }
+      if (params.models?.length) {
+        query.set('models', params.models.join(','));
+      }
+      if (params.apiKey) {
+        query.set('apiKey', params.apiKey);
+      }
+      if (params.maxWaitMinutes !== undefined) {
+        query.set('maxWaitMinutes', String(params.maxWaitMinutes));
       }
 
-      // Get headers from form-data
-      const formHeaders = form.getHeaders();
+      const headers: Record<string, string> = {
+        'Content-Type': params.mimetype || 'application/octet-stream',
+      };
 
       if (config.apiToken) {
-        (formHeaders as any)['Authorization'] = `Bearer ${config.apiToken}`;
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
       }
 
-      this.logger.debug(`Starting upload to STT Gateway for ${filename}`);
+      this.logger.debug(`Starting raw upload to STT Gateway for ${filename}`);
 
-      const response = await request(`${config.serviceUrl}/transcribe/stream`, {
-        method: 'POST',
-        body: form as any,
-        headersTimeout: config?.timeoutMs || 300000,
-        bodyTimeout: config?.timeoutMs || 300000,
-        headers: formHeaders,
-      });
+      const response = await request(
+        `${config.serviceUrl}/transcribe/stream${query.size ? `?${query.toString()}` : ''}`,
+        {
+          method: 'POST',
+          body: params.file as any,
+          headersTimeout: config?.timeoutMs || 300000,
+          bodyTimeout: config?.timeoutMs || 300000,
+          headers,
+        },
+      );
 
       if (response.statusCode !== 200) {
         const errorBody = await response.body.json().catch(() => ({}));
@@ -101,13 +128,28 @@ export class SttService {
           `STT Gateway returned HTTP ${response.statusCode}: ${JSON.stringify(errorBody)}`,
         );
 
-        if (response.statusCode >= 500) {
-          throw new BadGatewayException(
-            `STT Gateway error: ${(errorBody as any).message || 'Internal server error'}`,
-          );
+        const message =
+          (errorBody as any)?.message ||
+          (errorBody as any)?.error ||
+          'Failed to transcribe audio via gateway';
+
+        if (response.statusCode === 401) {
+          throw new UnauthorizedException(message);
         }
 
-        throw new InternalServerErrorException('Failed to transcribe audio via gateway');
+        if (response.statusCode === 400) {
+          throw new BadRequestException(message);
+        }
+
+        if (response.statusCode === 504) {
+          throw new RequestTimeoutException(message);
+        }
+
+        if (response.statusCode >= 500) {
+          throw new BadGatewayException(`STT Gateway error: ${message}`);
+        }
+
+        throw new InternalServerErrorException(message);
       }
 
       const result = (await response.body.json()) as { text: string };
