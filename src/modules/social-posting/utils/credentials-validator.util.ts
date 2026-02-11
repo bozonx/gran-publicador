@@ -26,9 +26,6 @@ export function validatePlatformCredentials(
       return validateTelegramCredentials(credentials);
 
     case SocialMedia.VK:
-    case SocialMedia.YOUTUBE:
-    case SocialMedia.TIKTOK:
-    case SocialMedia.FACEBOOK:
     case SocialMedia.SITE:
       errors.push(`Platform ${platform} is not yet supported for publishing`);
       break;

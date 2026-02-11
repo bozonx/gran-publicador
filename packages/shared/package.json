@@ -3,13 +3,19 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/social-media-platforms.constants.js",
+  "types": "./dist/social-media-platforms.constants.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
   "files": [
-    "src"
+    "dist"
   ],
   "exports": {
     "./social-media-platforms": {
-      "types": "./src/social-media-platforms.constants.ts",
-      "default": "./src/social-media-platforms.constants.ts"
+      "types": "./dist/social-media-platforms.constants.d.ts",
+      "import": "./dist/social-media-platforms.constants.js",
+      "default": "./dist/social-media-platforms.constants.js"
     }
   }
 }

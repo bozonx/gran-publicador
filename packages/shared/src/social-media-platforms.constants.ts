@@ -1,9 +1,6 @@
 export const SocialMedia = {
   TELEGRAM: 'TELEGRAM',
   VK: 'VK',
-  YOUTUBE: 'YOUTUBE',
-  TIKTOK: 'TIKTOK',
-  FACEBOOK: 'FACEBOOK',
   SITE: 'SITE',
 } as const;
 

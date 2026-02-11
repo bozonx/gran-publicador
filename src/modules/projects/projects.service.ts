@@ -29,6 +29,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { I18nService } from 'nestjs-i18n';
+import { getPlatformConfig } from '@gran/shared/social-media-platforms';
 
 @Injectable()
 export class ProjectsService {
@@ -46,21 +47,16 @@ export class ProjectsService {
   private hasNoCredentials(creds: any, socialMedia?: string): boolean {
     if (!creds || typeof creds !== 'object') return true;
 
-    // Platform-specific required fields
-    if (socialMedia === 'TELEGRAM') {
-      const { telegramBotToken, telegramChannelId } = creds;
-      if (
-        !telegramBotToken ||
-        !telegramChannelId ||
-        String(telegramBotToken).trim().length === 0 ||
-        String(telegramChannelId).trim().length === 0
-      ) {
-        return true;
-      }
-    } else if (socialMedia === 'VK') {
-      const { vkAccessToken } = creds;
-      if (!vkAccessToken || String(vkAccessToken).trim().length === 0) {
-        return true;
+    if (socialMedia) {
+      const config = getPlatformConfig(socialMedia as any);
+      const requiredFields = config?.credentials?.filter(f => f.required) ?? [];
+      if (requiredFields.length > 0) {
+        for (const f of requiredFields) {
+          const value = (creds as any)[f.key];
+          if (!value || String(value).trim().length === 0) {
+            return true;
+          }
+        }
       }
     }
 

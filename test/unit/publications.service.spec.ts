@@ -34,6 +34,9 @@ describe('PublicationsService (unit)', () => {
       delete: jest.fn() as any,
       count: jest.fn() as any,
     },
+    projectTemplate: {
+      findFirst: jest.fn() as any,
+    },
     publicationRelationItem: {
       findMany: jest.fn() as any,
     },

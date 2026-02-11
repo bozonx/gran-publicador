@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SocialPostingBodyFormatter } from './utils/social-posting-body.formatter.js';
 import { ContentConverter } from '../../common/utils/content-converter.util.js';
 import { formatTagsCsv } from '../../common/utils/tags.util.js';
+import { getPlatformConfig } from '@gran/shared/social-media-platforms';
 import type {
   PostingSnapshot,
   PostingSnapshotMedia,
@@ -163,11 +164,15 @@ export class PostSnapshotBuilderService {
     let body = formatted.body;
     let bodyFormat: PostingSnapshot['bodyFormat'] = 'markdown';
 
-    // Apply platform-specific body conversion
-    const platform = channel.socialMedia?.toLowerCase();
-    if (platform === 'telegram') {
-      body = ContentConverter.mdToTelegramHtml(body);
+    const platformConfig = channel.socialMedia ? getPlatformConfig(channel.socialMedia) : undefined;
+    const configuredBodyFormat = platformConfig?.features.bodyFormat;
+    if (configuredBodyFormat === 'html') {
       bodyFormat = 'html';
+      body = ContentConverter.mdToTelegramHtml(body);
+    } else if (configuredBodyFormat === 'markdown') {
+      bodyFormat = 'markdown';
+    } else if (configuredBodyFormat === 'plain') {
+      bodyFormat = 'text';
     }
 
     return { body, bodyFormat, template: formatted.template };

@@ -6,7 +6,7 @@ import { SKIP, visit } from 'unist-util-visit';
 import { toString } from 'mdast-util-to-string';
 
 import {
-  getValidationRules,
+  getValidationRulesOrThrow,
   type SocialMediaValidationRules,
 } from './social-media-validation.constants.js';
 
@@ -105,29 +105,13 @@ function validateMediaTypes(
   media: Array<{ type: string }>,
   rules: SocialMediaValidationRules,
   socialMedia: SocialMedia,
-  postType?: PostType,
+  _postType?: PostType,
 ): string[] {
   const errors: string[] = [];
   const mediaCount = media.length;
 
   // Check if this is a gallery (2+ files) or single file
   const isGallery = mediaCount > 1;
-
-  // Telegram ARTICLE override: only 1 IMAGE allowed
-  if (socialMedia === SocialMedia.TELEGRAM && postType === PostType.ARTICLE) {
-    if (isGallery) {
-      errors.push(
-        `Telegram Article (telegra.ph) does not support galleries. Only one image is allowed.`,
-      );
-    } else if (mediaCount === 1) {
-      if (media[0].type !== MediaType.IMAGE) {
-        errors.push(
-          `Telegram Article (telegra.ph) only allows IMAGE type, but found: ${media[0].type}`,
-        );
-      }
-    }
-    return errors;
-  }
 
   if (isGallery) {
     // Validate gallery media types
@@ -145,7 +129,10 @@ function validateMediaTypes(
     }
 
     // Validate gallery count
-    if (rules.maxMediaCountForGallery && mediaCount > rules.maxMediaCountForGallery) {
+    if (
+      typeof rules.maxMediaCountForGallery === 'number' &&
+      mediaCount > rules.maxMediaCountForGallery
+    ) {
       errors.push(
         `Gallery has too many files (${mediaCount}) for ${socialMedia}. Maximum for gallery: ${rules.maxMediaCountForGallery}`,
       );
@@ -171,7 +158,7 @@ function validateMediaTypes(
  */
 export function validatePostContent(data: PostValidationData): ValidationResult {
   const errors: string[] = [];
-  const rules = getValidationRules(data.socialMedia);
+  const rules = getValidationRulesOrThrow(data.socialMedia, data.postType);
 
   const contentLength = getTextLength(data.content);
   const hasMedia = data.mediaCount > 0;
@@ -201,7 +188,7 @@ export function validatePostContent(data: PostValidationData): ValidationResult 
   }
 
   // Check minimum media count if required
-  if (rules.minMediaCount && data.mediaCount < rules.minMediaCount) {
+  if (typeof rules.minMediaCount === 'number' && data.mediaCount < rules.minMediaCount) {
     errors.push(
       `Media count (${data.mediaCount}) is below minimum required (${rules.minMediaCount}) for ${data.socialMedia}`,
     );
@@ -223,5 +210,5 @@ export function validatePostContent(data: PostValidationData): ValidationResult 
  * Get validation rules for display in UI
  */
 export function getValidationRulesForDisplay(socialMedia: SocialMedia): SocialMediaValidationRules {
-  return getValidationRules(socialMedia);
+  return getValidationRulesOrThrow(socialMedia);
 }

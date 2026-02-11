@@ -19,7 +19,11 @@ import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.j
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ParsePostStatusPipe } from '../../common/pipes/parse-post-status.pipe.js';
 import { ParsePostTypePipe } from '../../common/pipes/parse-post-type.pipe.js';
-import { SOCIAL_MEDIA_VALIDATION_RULES } from '../../common/validators/social-media-validation.constants.js';
+import {
+  getValidationRules,
+  SOCIAL_MEDIA_VALIDATION_RULES,
+} from '../../common/validators/social-media-validation.constants.js';
+import { PostType } from '../../generated/prisma/index.js';
 import { ChannelsService } from '../channels/channels.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
 import { CreatePostDto, UpdatePostDto } from './dto/index.js';
@@ -59,9 +63,18 @@ export class PostsController {
   }
 
   @Get('validation-rules')
-  public getValidationRules() {
+  public getValidationRules(@Query('postType') postType?: PostType) {
+    const rulesByPlatform = Object.fromEntries(
+      Object.entries(SOCIAL_MEDIA_VALIDATION_RULES)
+        .map(([platform]) => {
+          const rules = getValidationRules(platform as any, postType);
+          return rules ? [platform, rules] : null;
+        })
+        .filter(Boolean) as any,
+    );
+
     return {
-      rules: SOCIAL_MEDIA_VALIDATION_RULES,
+      rules: rulesByPlatform,
     };
   }
 

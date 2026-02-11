@@ -1,4 +1,10 @@
-import { SocialMedia, MediaType } from '../../generated/prisma/index.js';
+import { MediaType, PostType, SocialMedia } from '../../generated/prisma/index.js';
+import {
+  getPostTypeConfig,
+  MediaType as SharedMediaType,
+  PostType as SharedPostType,
+  SocialMedia as SharedSocialMedia,
+} from '@gran/shared/social-media-platforms';
 
 /**
  * Validation rules for different social media platforms
@@ -20,51 +26,76 @@ export interface SocialMediaValidationRules {
   maxMediaCountForGallery?: number;
 }
 
-/**
- * Platform-specific validation rules
- */
-export const SOCIAL_MEDIA_VALIDATION_RULES: Record<SocialMedia, SocialMediaValidationRules> = {
-  [SocialMedia.TELEGRAM]: {
-    maxTextLength: 4096,
-    maxCaptionLength: 1024,
-    maxMediaCount: 10,
-    maxMediaCountForGallery: 10,
-    allowedMediaTypes: [MediaType.IMAGE, MediaType.VIDEO, MediaType.AUDIO, MediaType.DOCUMENT],
-    allowedGalleryMediaTypes: [MediaType.IMAGE, MediaType.VIDEO],
-  },
-  [SocialMedia.VK]: {
-    maxTextLength: 16384,
-    maxCaptionLength: 16384,
-    maxMediaCount: 10,
-  },
-  [SocialMedia.YOUTUBE]: {
-    maxTextLength: 5000,
-    maxCaptionLength: 5000,
-    maxMediaCount: 1,
-    minMediaCount: 1,
-  },
-  [SocialMedia.TIKTOK]: {
-    maxTextLength: 2200,
-    maxCaptionLength: 2200,
-    maxMediaCount: 1,
-    minMediaCount: 1,
-  },
-  [SocialMedia.FACEBOOK]: {
-    maxTextLength: 63206,
-    maxCaptionLength: 63206,
-    maxMediaCount: 10,
-  },
-  [SocialMedia.SITE]: {
-    maxTextLength: 100000,
-    maxCaptionLength: 100000,
-    maxMediaCount: 1,
-    allowedMediaTypes: [MediaType.IMAGE],
-  },
-};
+function isSharedSocialMedia(value: unknown): value is SharedSocialMedia {
+  return (
+    typeof value === 'string' && (Object.values(SharedSocialMedia) as string[]).includes(value)
+  );
+}
+
+function isSharedPostType(value: unknown): value is SharedPostType {
+  return typeof value === 'string' && (Object.values(SharedPostType) as string[]).includes(value);
+}
+
+function mapSharedMediaTypesToPrisma(types: SharedMediaType[]): MediaType[] {
+  return types as unknown as MediaType[];
+}
+
+export function getValidationRules(
+  socialMedia: SocialMedia,
+  postType?: PostType,
+): SocialMediaValidationRules | undefined {
+  if (!isSharedSocialMedia(socialMedia)) return undefined;
+
+  const sharedPostType: SharedPostType = isSharedPostType(postType)
+    ? postType
+    : SharedPostType.POST;
+  const postTypeConfig = getPostTypeConfig(socialMedia, sharedPostType);
+  if (!postTypeConfig) return undefined;
+
+  const maxTextLength = postTypeConfig.content.maxTextLength;
+  const maxCaptionLength = postTypeConfig.content.maxCaptionLength;
+
+  const maxMediaCount = postTypeConfig.media.maxCount;
+  const minMediaCount = postTypeConfig.media.minCount || undefined;
+  const maxMediaCountForGallery = postTypeConfig.media.maxGalleryCount || undefined;
+
+  const allowedMediaTypes = mapSharedMediaTypesToPrisma(postTypeConfig.media.allowedTypes);
+  const allowedGalleryMediaTypes = mapSharedMediaTypesToPrisma(
+    postTypeConfig.media.allowedGalleryTypes,
+  );
+
+  return {
+    maxTextLength,
+    maxCaptionLength,
+    maxMediaCount,
+    minMediaCount,
+    maxMediaCountForGallery,
+    allowedMediaTypes,
+    allowedGalleryMediaTypes,
+  };
+}
 
 /**
- * Get validation rules for a specific social media platform
+ * Platform-specific validation rules for API/UI display.
+ * Derived from shared platform configuration.
  */
-export function getValidationRules(socialMedia: SocialMedia): SocialMediaValidationRules {
-  return SOCIAL_MEDIA_VALIDATION_RULES[socialMedia];
+export const SOCIAL_MEDIA_VALIDATION_RULES: Partial<
+  Record<SocialMedia, SocialMediaValidationRules>
+> = {
+  [SocialMedia.TELEGRAM]: getValidationRules(SocialMedia.TELEGRAM, PostType.POST)!,
+  [SocialMedia.VK]: getValidationRules(SocialMedia.VK, PostType.POST)!,
+  [SocialMedia.SITE]: getValidationRules(SocialMedia.SITE, PostType.ARTICLE)!,
+};
+
+export function getValidationRulesOrThrow(
+  socialMedia: SocialMedia,
+  postType?: PostType,
+): SocialMediaValidationRules {
+  const rules = getValidationRules(socialMedia, postType);
+  if (!rules) {
+    throw new Error(
+      `Unsupported platform or post type: platform=${socialMedia}, postType=${postType}`,
+    );
+  }
+  return rules;
 }
