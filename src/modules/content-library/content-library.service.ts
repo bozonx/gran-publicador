@@ -461,7 +461,7 @@ export class ContentLibraryService {
             ? ((await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
                 projectId: item.projectId ?? undefined,
                 userId: item.userId ?? undefined,
-              })) as any)
+              }, true)) as any)
             : undefined,
         note: dto.note,
       },

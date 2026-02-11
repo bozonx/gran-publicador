@@ -1208,7 +1208,7 @@ export class PublicationsService {
           data.tags !== undefined
             ? ((await this.tagsService.prepareTagsConnectOrCreate(normalizeTags(data.tags), {
                 projectId: publication.projectId!,
-              })) as any)
+              }, true)) as any)
             : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,

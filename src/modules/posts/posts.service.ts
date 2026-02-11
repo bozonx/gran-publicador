@@ -606,7 +606,7 @@ export class PostsService {
           data.tags !== undefined
             ? ((await this.tagsService.prepareTagsConnectOrCreate(normalizeTags(data.tags), {
                 projectId: post.channel?.projectId || '',
-              })) as any)
+              }, true)) as any)
             : undefined,
       },
       include: {

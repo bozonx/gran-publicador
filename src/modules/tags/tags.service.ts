@@ -27,8 +27,12 @@ export class TagsService {
   /**
    * Helper to prepare many-to-many tags connection for Prisma
    */
-  async prepareTagsConnectOrCreate(tags: string[], scope: { projectId?: string; userId?: string }) {
-    if (!tags || tags.length === 0) return { set: [] };
+  async prepareTagsConnectOrCreate(
+    tags: string[],
+    scope: { projectId?: string; userId?: string },
+    isUpdate = false,
+  ) {
+    if (!tags || tags.length === 0) return isUpdate ? { set: [] } : {};
 
     const { projectId, userId } = scope;
 
@@ -38,7 +42,7 @@ export class TagsService {
       .slice(0, 50);
 
     return {
-      set: [], // Dissociate current tags
+      ...(isUpdate ? { set: [] } : {}), // Dissociate current tags only on update
       connectOrCreate: normalizedTags.map(name => {
         const normalizedName = name.toLowerCase();
 
