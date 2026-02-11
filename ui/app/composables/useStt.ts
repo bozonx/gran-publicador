@@ -27,6 +27,8 @@ export function useStt() {
   // Track pending chunk uploads to ensure sequence
   const pendingChunks = ref<Promise<void>[]>([]);
 
+  let activeWaitCleanup: (() => void) | null = null;
+
   async function handleDataAvailable(blob: Blob) {
     if (!socket || !socket.connected) return;
 
@@ -105,10 +107,18 @@ export function useStt() {
   }
 
   async function stop() {
-    await stopRecording();
+    try {
+      await stopRecording();
 
-    if (socket && socket.connected) {
+      if (!socket || !socket.connected) {
+        isTranscribing.value = false;
+        return '';
+      }
+
       isTranscribing.value = true;
+
+      // Prepare listeners BEFORE sending transcribe-end to avoid missing fast error/result events
+      const waitPromise = waitForTranscription();
 
       // Wait for all pending chunks to be sent
       if (pendingChunks.value.length > 0) {
@@ -116,13 +126,23 @@ export function useStt() {
       }
 
       socket.emit('transcribe-end');
+      return await waitPromise;
+    } finally {
+      isTranscribing.value = false;
+    }
+  }
 
-      const result = await waitForTranscription();
+  function cancel() {
+    try {
+      stopRecording().catch(() => {});
+      activeWaitCleanup?.();
+      activeWaitCleanup = null;
+      if (socket && socket.connected) {
+        socket.emit('transcribe-cancel');
+      }
+      error.value = 'cancelled';
+    } finally {
       isTranscribing.value = false;
-      return result;
-    } else {
-      isTranscribing.value = false;
-      return '';
     }
   }
 
@@ -136,20 +156,26 @@ export function useStt() {
     const connectedSocket = await ensureConnected();
     if (!connectedSocket) return '';
 
-    isTranscribing.value = true;
-    connectedSocket.emit('transcribe-start', {
-      mimetype: blob.type || 'audio/webm',
-      filename: 'recording.webm',
-      language,
-    });
+    try {
+      isTranscribing.value = true;
 
-    const buffer = await blob.arrayBuffer();
-    connectedSocket.emit('audio-chunk', buffer);
-    connectedSocket.emit('transcribe-end');
+      // Prepare listeners BEFORE sending transcribe-end to avoid missing fast error/result events
+      const waitPromise = waitForTranscription();
 
-    const result = await waitForTranscription();
-    isTranscribing.value = false;
-    return result;
+      connectedSocket.emit('transcribe-start', {
+        mimetype: blob.type || 'audio/webm',
+        filename: 'recording.webm',
+        language,
+      });
+
+      const buffer = await blob.arrayBuffer();
+      connectedSocket.emit('audio-chunk', buffer);
+      connectedSocket.emit('transcribe-end');
+
+      return await waitPromise;
+    } finally {
+      isTranscribing.value = false;
+    }
   }
 
   function waitForTranscription(): Promise<string> {
@@ -163,8 +189,14 @@ export function useStt() {
         clearTimeout(timeoutId);
       };
 
+      activeWaitCleanup = () => {
+        cleanup();
+        resolve('');
+      };
+
       const handleResult = (data: { text: string }) => {
         cleanup();
+        activeWaitCleanup = null;
         transcription.value = data.text;
         resolve(data.text);
       };
@@ -172,6 +204,7 @@ export function useStt() {
       const handleError = (data?: { message: string }) => {
         console.error('STT Error received:', data?.message);
         cleanup();
+        activeWaitCleanup = null;
         error.value = 'transcriptionError';
         resolve('');
       };
@@ -179,6 +212,7 @@ export function useStt() {
       const handleDisconnect = () => {
         console.warn('Socket disconnected while waiting for transcription');
         cleanup();
+        activeWaitCleanup = null;
         error.value = 'connectionLost';
         resolve('');
       };
@@ -191,6 +225,7 @@ export function useStt() {
       timeoutId = setTimeout(() => {
         console.error('Transcription timed out');
         cleanup();
+        activeWaitCleanup = null;
         error.value = 'timeout';
         resolve('');
       }, 600000);
@@ -216,6 +251,7 @@ export function useStt() {
     hasPermission,
     start,
     stop,
+    cancel,
     transcribeAudio,
   };
 }

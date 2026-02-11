@@ -70,9 +70,12 @@ const {
   isTranscribing, 
   start: startStt, 
   stop: stopStt,
+  cancel: cancelStt,
   error: sttError,
   recorderError
 } = useStt()
+
+const sttSelection = ref<{ from: number; to: number } | null>(null)
 
 // Watch for STT errors
 watch([sttError, recorderError], ([newSttError, newRecorderError]) => {
@@ -96,11 +99,26 @@ async function toggleRecording() {
   if (isRecording.value) {
     const text = await stopStt()
     if (text && editor.value) {
+      const sel = sttSelection.value
+      if (sel) {
+        editor.value.commands.setTextSelection(sel)
+      }
+      editor.value.commands.focus()
       editor.value.commands.insertContent(' ' + text, { contentType: 'markdown' })
     }
+    sttSelection.value = null
   } else {
+    if (editor.value) {
+      const { from, to } = editor.value.state.selection
+      sttSelection.value = { from, to }
+    }
     await startStt()
   }
+}
+
+function handleCancelStt() {
+  cancelStt()
+  sttSelection.value = null
 }
 
 const formattedDuration = computed(() => {
@@ -675,6 +693,16 @@ function getLinkHrefNearCursor(editor: any): string | null {
           >
             <span v-if="isRecording" class="ml-1 text-[10px] font-mono">{{ formattedDuration }}</span>
           </UButton>
+        </UTooltip>
+
+        <UTooltip v-if="isRecording || isTranscribing" :text="t('common.cancel', 'Cancel')">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-x-mark"
+            @click="handleCancelStt"
+          />
         </UTooltip>
 
         <UButton

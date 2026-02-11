@@ -65,6 +65,12 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('transcribe-cancel')
+  handleTranscribeCancel(@ConnectedSocket() client: Socket) {
+    this.logger.log(`Cancelling STT stream for client ${client.id}`);
+    this.cleanupStream(client.id, 'cancel');
+  }
+
   handleDisconnect(client: Socket) {
     this.logger.debug(`Client ${client.id} disconnected from STT`);
     this.cleanupStream(client.id, 'disconnect');
