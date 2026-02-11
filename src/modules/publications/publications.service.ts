@@ -118,10 +118,8 @@ export class PublicationsService {
     const input = String(text ?? '');
 
     return sanitizeHtml(input, {
-      allowedTags: false,
-      allowedAttributes: false,
-      disallowedTagsMode: 'discard',
-      disallowedTags: ['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'base'],
+      allowedTags: [],
+      allowedAttributes: {},
       allowVulnerableTags: false,
     });
   }
