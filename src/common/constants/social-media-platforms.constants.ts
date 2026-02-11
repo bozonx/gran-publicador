@@ -6,6 +6,10 @@ import { SocialMedia, PostType, MediaType } from '../../generated/prisma/index.j
 
 export type BodyFormat = 'html' | 'markdown' | 'plain';
 
+export type TagsDelivery = 'inline' | 'separate' | 'both';
+
+export type TagsSeparator = 'space' | 'comma' | 'newline';
+
 /**
  * Content limits for a specific post type on a platform.
  */
@@ -59,7 +63,23 @@ export interface PlatformTagsConfig {
   /** Recommended number of tags for best engagement */
   recommendedCount: number;
   /** How tags are delivered to the posting service */
-  delivery: 'inline' | 'separate' | 'both';
+  delivery: TagsDelivery;
+  /** Tag formatting rules (used when tags are rendered inline into body) */
+  format: {
+    /** Prefix for each tag (usually '#') */
+    prefix: string;
+    /** Separator between tags when rendered inline */
+    separator: TagsSeparator;
+  };
+  /** Additional constraints for tags (optional; platform-specific) */
+  constraints?: {
+    /** Maximum length for a single tag (without prefix) */
+    maxTagLength?: number;
+    /** Maximum length for all tags rendered inline (including prefixes and separators) */
+    maxRenderedLength?: number;
+    /** Allowed tag characters as a string regex (without slashes), e.g. "^[A-Za-z0-9_]+$" */
+    allowedPattern?: string;
+  };
 }
 
 /**
@@ -223,6 +243,10 @@ const TELEGRAM_CONFIG: SocialMediaPlatformConfig = {
     recommendedCount: 5,
     // Tags are embedded into the body text, not sent as a separate field
     delivery: 'inline',
+    format: {
+      prefix: '#',
+      separator: 'space',
+    },
   },
 
   features: {
@@ -299,6 +323,10 @@ const VK_CONFIG: SocialMediaPlatformConfig = {
     recommendedCount: 10,
     // VK supports hashtags both inline and as a separate field
     delivery: 'both',
+    format: {
+      prefix: '#',
+      separator: 'space',
+    },
   },
 
   features: {
@@ -344,6 +372,10 @@ const SITE_CONFIG: SocialMediaPlatformConfig = {
     maxCount: 50,
     recommendedCount: 10,
     delivery: 'separate',
+    format: {
+      prefix: '#',
+      separator: 'space',
+    },
   },
 
   features: {
@@ -395,7 +427,6 @@ export function getPlatformConfig(platform: SocialMedia): SocialMediaPlatformCon
 
 /**
  * Get post type configuration for a specific platform and post type.
- * Falls back to POST config if the requested post type is not configured.
  */
 export function getPostTypeConfig(
   platform: SocialMedia,
@@ -404,7 +435,7 @@ export function getPostTypeConfig(
   const config = SOCIAL_MEDIA_PLATFORMS[platform];
   if (!config) return undefined;
 
-  return config.postTypes[postType] ?? config.postTypes[PostType.POST];
+  return config.postTypes[postType];
 }
 
 /**
