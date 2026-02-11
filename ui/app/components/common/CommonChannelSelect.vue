@@ -17,6 +17,10 @@ interface Props {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   multiple?: boolean
   extraOptions?: ChannelOption[]
+  /** Whether to show an "All Channels" option and allow null value */
+  allowAll?: boolean
+  /** Label for the "All Channels" option */
+  allLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -26,7 +30,9 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   size: 'md',
   multiple: false,
-  extraOptions: () => []
+  extraOptions: () => [],
+  allowAll: false,
+  allLabel: undefined
 })
 
 // Correct way to handle multiple/single modelValue with defineModel
@@ -50,7 +56,17 @@ const channelOptions = computed(() => {
     label: c.name,
     socialMedia: c.socialMedia
   }))
-  return [...props.extraOptions, ...options]
+  
+  const base = [...props.extraOptions, ...options]
+  
+  if (props.allowAll) {
+    return [
+      { value: null, label: props.allLabel || t('channel.allChannels') },
+      ...base
+    ]
+  }
+  
+  return base
 })
 
 const internalValue = computed({
@@ -84,9 +100,9 @@ const internalValue = computed({
 
     <template #item-leading="{ item }">
       <UIcon 
-        v-if="item.socialMedia"
-        :name="getSocialMediaIcon(item.socialMedia as any)" 
-        :class="getSocialMediaColor(item.socialMedia as any)"
+        v-if="(item as any).socialMedia"
+        :name="getSocialMediaIcon((item as any).socialMedia)" 
+        :class="getSocialMediaColor((item as any).socialMedia)"
         class="w-4 h-4"
       />
     </template>
@@ -98,7 +114,7 @@ const internalValue = computed({
       </div>
       <div v-else-if="!multiple && internalValue" class="flex items-center gap-2 overflow-hidden">
         <template v-if="typeof internalValue === 'string'">
-          <template v-for="opt in [channelOptions.find(o => o.value === internalValue)]" :key="opt?.value">
+          <template v-for="opt in [(channelOptions as any[]).find(o => o.value === internalValue)]" :key="opt?.value">
             <UIcon 
               v-if="opt?.socialMedia"
               :name="getSocialMediaIcon(opt.socialMedia as any)" 

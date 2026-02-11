@@ -65,6 +65,11 @@ const selectedProjectId = ref<string | null>(
   (route.query.projectId as string) || null
 )
 
+// Social media filter
+const selectedSocialMedia = ref<string | null>(
+  (route.query.socialMedia as string) || null
+)
+
 // Sorting
 type SortBy = 'alphabetical' | 'socialMedia' | 'language' | 'postsCount'
 const ALLOWED_SORT_BY = ['alphabetical', 'socialMedia', 'language', 'postsCount'] as const
@@ -99,6 +104,7 @@ async function loadChannels() {
     ownership: ownershipFilter.value,
     issueType: selectedIssueType.value,
     projectId: selectedProjectId.value || undefined,
+    socialMedia: selectedSocialMedia.value || undefined,
     sortBy: sortBy.value,
     sortOrder: sortOrder.value,
     limit: limit.value,
@@ -154,7 +160,8 @@ watch(
     debouncedSearch, 
     archiveStatus,
     sortBy,
-    sortOrder
+    sortOrder,
+    selectedSocialMedia
   ], 
   () => {
     if (!import.meta.client) return
@@ -174,6 +181,7 @@ watch(
     updateQuery('ownership', ownershipFilter.value, 'all')
     updateQuery('issue', selectedIssueType.value, 'all')
     updateQuery('projectId', selectedProjectId.value)
+    updateQuery('socialMedia', selectedSocialMedia.value)
     updateQuery('archived', archiveStatus.value === 'archived' ? 'true' : null, null)
     updateQuery('sortBy', sortBy.value, 'alphabetical')
     updateQuery('sortOrder', sortOrder.value, 'asc')
@@ -186,7 +194,7 @@ watch(
 )
 
 // Watch filters and sorting - reset to page 1 and re-fetch
-watch([ownershipFilter, selectedIssueType, selectedProjectId, debouncedSearch, archiveStatus, sortBy, sortOrder], () => {
+watch([ownershipFilter, selectedIssueType, selectedProjectId, selectedSocialMedia, debouncedSearch, archiveStatus, sortBy, sortOrder], () => {
     currentPage.value = 1
     loadChannels()
 })
@@ -273,6 +281,7 @@ const projectFilterOptions = computed(() => {
 const hasActiveFilters = computed(() => {
     return searchQuery.value || 
            selectedProjectId.value || 
+           selectedSocialMedia.value ||
            ownershipFilter.value !== 'all' || 
            selectedIssueType.value !== 'all' ||
            archiveStatus.value === 'archived'
@@ -281,6 +290,7 @@ const hasActiveFilters = computed(() => {
 function resetFilters() {
     searchQuery.value = ''
     selectedProjectId.value = null
+    selectedSocialMedia.value = null
     ownershipFilter.value = 'all'
     selectedIssueType.value = 'all'
     archiveStatus.value = 'active'
@@ -405,19 +415,19 @@ const showPagination = computed(() => {
         </div>
         
         <!-- Project Filter (Select) -->
-        <USelectMenu
+        <CommonProjectSelect
           v-model="selectedProjectId"
-          :items="projectFilterOptions"
-          value-key="value"
-          label-key="label"
-          :placeholder="t('channel.filter.project')"
-          :title="t('channel.filter.projectTitle')"
+          allow-all
+          :all-label="t('project.allProjects')"
           class="w-full sm:w-48"
-        >
-          <template #leading>
-            <UIcon v-if="selectedProjectId" name="i-heroicons-folder" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+        />
+
+        <!-- Social Media Filter (Select) -->
+        <CommonSocialMediaSelect
+          v-model="selectedSocialMedia"
+          allow-all
+          class="w-full sm:w-48"
+        />
       </div>
     </div>
 

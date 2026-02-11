@@ -145,21 +145,10 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
         required
         :help="t('channel.socialMediaWarningOnCreate')"
       >
-        <USelectMenu
+        <CommonSocialMediaSelect
           v-model="state.socialMedia"
-          :items="socialMediaOptions"
-          value-key="value"
-          label-key="label"
-          class="w-full"
-        >
-          <template #default>
-              <div v-if="state.socialMedia" class="flex items-center gap-2">
-                <UIcon :name="getSocialMediaIcon(state.socialMedia)" class="w-4 h-4" />
-                <span>{{ socialMediaOptions.find(o => o.value === state.socialMedia)?.label }}</span>
-              </div>
-              <span v-else class="text-gray-400">{{ t('common.select') }}</span>
-          </template>
-        </USelectMenu>
+          :disabled="isEditMode"
+        />
       </UFormField>
 
       <!-- Social media preview -->

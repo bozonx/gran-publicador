@@ -14,6 +14,10 @@ interface Props {
   disabled?: boolean
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   extraOptions?: ProjectOption[]
+  /** Whether to show an "All Projects" option and allow null value */
+  allowAll?: boolean
+  /** Label for the "All Projects" option */
+  allLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,7 +25,9 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: undefined,
   disabled: false,
   size: 'md',
-  extraOptions: () => []
+  extraOptions: () => [],
+  allowAll: false,
+  allLabel: undefined
 })
 
 const modelValue = defineModel<string | null>({ default: null })
@@ -60,20 +66,39 @@ const projectOptions = computed(() => {
     value: p.id,
     label: p.name
   }))
-  return [...props.extraOptions, ...options]
+  
+  const base = [...props.extraOptions, ...options]
+  
+  if (props.allowAll) {
+    return [
+      { value: null, label: props.allLabel || t('project.allProjects') },
+      ...base
+    ]
+  }
+  
+  return base
 })
 
 // Validation and Default Selection logic
 watch(projectOptions, (newOptions) => {
   if (newOptions.length > 0) {
-    if (!modelValue.value || !newOptions.some(opt => opt.value === modelValue.value)) {
-      modelValue.value = newOptions[0].value
+    // If current value is not in options, and we don't allow null (or it's not null)
+    const exists = newOptions.some(opt => opt.value === modelValue.value)
+    if (!exists) {
+      if (props.allowAll) {
+         // Keep null if it's there, but if not even null exists (somehow), default to first
+         if (!newOptions.some(o => o.value === null)) {
+            modelValue.value = newOptions[0]?.value ?? null
+         }
+      } else {
+        modelValue.value = newOptions[0]?.value ?? null
+      }
     }
   }
 }, { immediate: true })
 
 watch(modelValue, (newVal) => {
-  if (!newVal && projectOptions.value.length > 0) {
+  if (newVal === null && !props.allowAll && projectOptions.value.length > 0) {
     modelValue.value = projectOptions.value[0].value
   }
 }, { immediate: true })

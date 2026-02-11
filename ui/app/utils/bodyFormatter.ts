@@ -114,7 +114,7 @@ export class SocialPostingBodyFormatter {
       { enabled: true, insert: 'authorSignature', before: '', after: '' },
       { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
       { enabled: false, insert: 'custom', before: '', after: '', content: '' },
-      { enabled: true, insert: 'footer', before: '', after: '' },
+      { enabled: true, insert: 'footer', before: '', after: '', content: '' },
     ];
   }
 

@@ -275,72 +275,12 @@ const sortOrderLabel = computed(() =>
   sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc')
 )
 
-// Social media filter options
-const socialMediaFilterOptions = computed(() => [
-  { value: null, label: t('publication.filter.allSocialMedia') },
-  ...getSocialMediaOptions(t)
-])
+
 
 // Issue filter options
 // Issue filter options removed as we switched to button group with static options
 
-// Language filter options
-const languageFilterOptions = computed(() => {
-  const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('publication.filter.allLanguages') }
-  ]
-  
-  LANGUAGE_OPTIONS.forEach(lang => {
-    options.push({
-      value: lang.value,
-      label: lang.label
-    })
-  })
-  
-  return options
-})
 
-// Project filter options
-const projectFilterOptions = computed(() => {
-  const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('publication.filter.allProjects') }
-  ]
-  
-  // Sort and add all projects
-  const sortedProjects = [...projects.value].sort((a, b) => a.name.localeCompare(b.name))
-  
-  sortedProjects.forEach(project => {
-    options.push({
-      value: project.id,
-      label: project.name
-    })
-  })
-  
-  return options
-})
-
-// Channel filter options
-const channelFilterOptions = computed(() => {
-  const options: Array<{ value: string | null; label: string }> = [
-    { value: null, label: t('publication.filter.allChannels') }
-  ]
-  
-  // Sort and add all channels
-  const sortedChannels = [...channels.value].sort((a, b) => a.name.localeCompare(b.name))
-  
-  sortedChannels.forEach(channel => {
-    // Get project name for better context
-    const project = projects.value.find(p => p.id === channel.projectId)
-    const projectName = project ? ` (${project.name})` : ''
-    
-    options.push({
-      value: channel.id,
-      label: `${channel.name}${projectName}`
-    })
-  })
-  
-  return options
-})
 
 // Count for badge - use server total count
 const filteredCount = computed(() => totalCount.value)
@@ -590,37 +530,19 @@ async function handleDelete() {
         </div>
 
         <!-- Social Media Filter (Select) -->
-        <USelectMenu
+        <CommonSocialMediaSelect
           v-model="selectedSocialMedia"
-          :items="socialMediaFilterOptions"
-          value-key="value"
-          label-key="label"
-          :placeholder="t('publication.filter.socialMedia')"
-          :title="t('publication.filter.socialMediaTitle')"
+          allow-all
           class="w-full sm:w-48"
-        >
-          <template #leading>
-            <UIcon
-              :name="selectedSocialMedia ? getSocialMediaIcon(selectedSocialMedia) : 'i-heroicons-share'"
-              class="w-4 h-4"
-            />
-          </template>
-        </USelectMenu>
+        />
 
         <!-- Language Filter (Select) -->
-        <USelectMenu
+        <CommonLanguageSelect
           v-model="selectedLanguage"
-          :items="languageFilterOptions"
-          value-key="value"
-          label-key="label"
-          :placeholder="t('publication.filter.language')"
-          :title="t('publication.filter.languageTitle')"
-          class="w-full sm:w-40"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-language" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+          allow-all
+          searchable
+          class="w-full sm:w-48"
+        />
 
         <!-- Tags Filter (InputTags) -->
         <CommonInputTags
@@ -632,34 +554,21 @@ async function handleDelete() {
         />
 
         <!-- Project Filter (Select) -->
-        <USelectMenu
+        <CommonProjectSelect
           v-model="selectedProjectId"
-          :items="projectFilterOptions"
-          value-key="value"
-          label-key="label"
-          :placeholder="t('publication.filter.project')"
-          :title="t('publication.filter.projectTitle')"
+          allow-all
+          :all-label="t('publication.filter.allProjects')"
           class="w-full sm:w-48"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-folder" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+          searchable
+        />
 
         <!-- Channel Filter (Select) -->
-        <USelectMenu
+        <CommonChannelSelect
           v-model="selectedChannelId"
-          :items="channelFilterOptions"
-          value-key="value"
-          label-key="label"
-          :placeholder="t('publication.filter.channel')"
-          :title="t('publication.filter.channelTitle')"
+          allow-all
+          :all-label="t('publication.filter.allChannels')"
           class="w-full sm:w-48"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-megaphone" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+        />
       </div>
     </div>
 

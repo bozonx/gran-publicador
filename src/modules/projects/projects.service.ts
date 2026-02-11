@@ -106,10 +106,13 @@ export class ProjectsService {
         language: null, // Applies to all languages
         order: 0,
         template: [
-          {
-            enabled: true,
-            insert: 'content',
-          },
+          { enabled: false, insert: 'title', before: '', after: '' },
+          { enabled: true, insert: 'content', before: '', after: '' },
+          { enabled: true, insert: 'authorComment', before: '', after: '' },
+          { enabled: true, insert: 'authorSignature', before: '', after: '' },
+          { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
+          { enabled: false, insert: 'custom', before: '', after: '', content: '' },
+          { enabled: true, insert: 'footer', before: '', after: '', content: '' },
         ] as any,
       },
     });
