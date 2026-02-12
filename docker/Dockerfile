@@ -22,6 +22,7 @@ ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN pnpm prisma generate
 
 # 4. Build backend
+RUN pnpm --filter @gran/shared build
 RUN pnpm build
 
 # -----------------------------------------------------------------------------
@@ -53,6 +54,7 @@ COPY --from=builder /app/package.json ./package.json
 
 # Copy compiled backend
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/shared ./packages/shared
 
 # Copy remaining necessary files
 COPY prisma ./prisma
