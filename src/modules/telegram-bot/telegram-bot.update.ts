@@ -10,7 +10,7 @@ import { AppConfig } from '../../config/app.config.js';
 import PQueue from 'p-queue';
 import { StorageType } from '../../generated/prisma/index.js';
 import type { Message } from 'grammy/types';
-import type { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 
@@ -221,6 +221,7 @@ export class TelegramBotUpdate {
           supportedMedia,
           voiceMedia,
           mediaGroupId: mgid,
+          language: user.language,
         });
 
         if (created.reportCreated && created.contentItemId) {
@@ -238,6 +239,7 @@ export class TelegramBotUpdate {
         extractedText: supportedText,
         supportedMedia,
         voiceMedia,
+        language: user.language,
       });
 
       if (contentItem) {
@@ -313,9 +315,18 @@ export class TelegramBotUpdate {
     extractedText: string;
     supportedMedia: Array<ReturnType<typeof extractMessageContent>['media'][number]>;
     voiceMedia: Array<ReturnType<typeof extractMessageContent>['media'][number]>;
+    language?: string;
   }) {
-    const { ctx, userId, telegramUserId, message, extractedText, supportedMedia, voiceMedia } =
-      options;
+    const {
+      ctx,
+      userId,
+      telegramUserId,
+      message,
+      extractedText,
+      supportedMedia,
+      voiceMedia,
+      language,
+    } = options;
 
     const meta = {
       telegram: {
@@ -331,7 +342,7 @@ export class TelegramBotUpdate {
 
     let finalText = extractedText;
     if (voiceMedia.length > 0) {
-      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, undefined);
+      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, language);
       if (transcribed) {
         finalText = finalText ? `${finalText}\n\n${transcribed}` : transcribed;
       }
@@ -402,6 +413,7 @@ export class TelegramBotUpdate {
     supportedMedia: Array<ReturnType<typeof extractMessageContent>['media'][number]>;
     voiceMedia: Array<ReturnType<typeof extractMessageContent>['media'][number]>;
     mediaGroupId: string;
+    language?: string;
   }): Promise<{ reportCreated: boolean; contentItemId?: string }> {
     const {
       ctx,
@@ -412,6 +424,7 @@ export class TelegramBotUpdate {
       supportedMedia,
       voiceMedia,
       mediaGroupId,
+      language,
     } = options;
 
     const existingBlock = await (this.prisma as any).contentBlock.findFirst({
@@ -438,13 +451,14 @@ export class TelegramBotUpdate {
         extractedText,
         supportedMedia,
         voiceMedia,
+        language,
       });
 
       return { reportCreated: true, contentItemId: created?.id };
     }
 
     if (voiceMedia.length > 0) {
-      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, undefined);
+      const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, language);
       if (transcribed) {
         const current = await (this.prisma as any).contentBlock.findUnique({
           where: { id: existingBlock.id },
@@ -527,9 +541,8 @@ export class TelegramBotUpdate {
       const appConfig = this.configService.get<AppConfig>('app')!;
       const fileUrl = `https://api.telegram.org/file/bot${appConfig.telegramBotToken}/${file.file_path}`;
 
-      // undici request returns a stream in response.body
-      const { request } = await import('undici');
-      const response = await request(fileUrl, {
+      const { request: undiciRequest } = await import('undici');
+      const response = await undiciRequest(fileUrl, {
         headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
         bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
       });

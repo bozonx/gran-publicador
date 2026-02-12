@@ -63,16 +63,17 @@ const toast = useToast()
 const { generatePublicationFields, isGenerating, estimateTokens, stop: stopLlm, error: llmError } = useLlm()
 const { publicationLlmChat } = usePublications()
 const { updatePublication } = usePublications()
-const { transcribeAudio, isTranscribing, error: sttError } = useStt()
 const {
   isRecording,
   recordingDuration,
-  error: voiceError,
-  startRecording,
-  stopRecording,
-} = useVoiceRecorder()
+  isTranscribing,
+  error: sttError,
+  recorderError: voiceError,
+  start: startStt,
+  stop: stopStt,
+  cancel: cancelStt,
+} = useStt()
 const { user } = useAuth()
-const { cancel: cancelStt } = useStt()
 
 const isSttHovered = ref(false)
 
@@ -168,17 +169,7 @@ function stripContentConstraintsBlock(text: string): string {
 
 async function handleVoiceRecording() {
   if (isRecording.value) {
-    const audioBlob = await stopRecording()
-
-    if (!audioBlob) {
-      toast.add({
-        title: t('llm.recordingError'),
-        color: 'error',
-      })
-      return
-    }
-
-    const text = await transcribeAudio(audioBlob, user.value?.language)
+    const text = await stopStt()
 
     if (text) {
       if (prompt.value && !prompt.value.endsWith('\n')) {
@@ -190,10 +181,10 @@ async function handleVoiceRecording() {
         title: t('llm.transcriptionSuccess', 'Transcription successful'),
         color: 'success',
       })
-    } else {
+    } else if (sttError.value && sttError.value !== 'cancelled') {
       toast.add({
         title: t('llm.transcriptionError'),
-        description: sttError.value || t('llm.errorMessage'),
+        description: sttError.value ? t(`llm.${sttError.value}`, sttError.value) : t('llm.errorMessage'),
         color: 'error',
       })
     }
@@ -201,7 +192,7 @@ async function handleVoiceRecording() {
     return
   }
 
-  const success = await startRecording()
+  const success = await startStt(user.value?.language)
   if (!success) {
     toast.add({
       title: t('llm.recordingError'),

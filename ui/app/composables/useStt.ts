@@ -33,6 +33,7 @@ export function useStt() {
     if (!socket) return;
     socket.off('transcription-error', handleSocketTranscriptionError);
     socket.off('disconnect', handleSocketDisconnect);
+    socket.off('error', handleSocketError);
   };
 
   const attachSocketListeners = () => {
@@ -126,6 +127,10 @@ export function useStt() {
       } catch (err) {
         console.error('STT socket connection failed:', err);
         error.value = 'socketConnectionError';
+        // Clean up broken socket so next attempt creates a fresh one
+        detachSocketListeners();
+        sttStore.disconnect();
+        socket = null;
         return null;
       }
     }
@@ -235,6 +240,8 @@ export function useStt() {
 
       const cleanup = () => {
         socket?.off('transcription-result', handleResult);
+        socket?.off('transcription-error', handleWaitError);
+        socket?.off('disconnect', handleWaitDisconnect);
         clearTimeout(timeoutId);
       };
 
@@ -250,7 +257,7 @@ export function useStt() {
         resolve(data.text);
       };
 
-      const handleError = (data?: { message: string }) => {
+      const handleWaitError = (data?: { message: string }) => {
         console.error('STT Error received while waiting:', data?.message);
         cleanup();
         activeWaitCleanup = null;
@@ -259,7 +266,7 @@ export function useStt() {
         resolve('');
       };
 
-      const handleDisconnect = () => {
+      const handleWaitDisconnect = () => {
         console.warn('Socket disconnected while waiting for transcription');
         cleanup();
         activeWaitCleanup = null;
@@ -269,8 +276,8 @@ export function useStt() {
       };
 
       socket?.on('transcription-result', handleResult);
-      socket?.once('transcription-error', handleError);
-      socket?.once('disconnect', handleDisconnect);
+      socket?.once('transcription-error', handleWaitError);
+      socket?.once('disconnect', handleWaitDisconnect);
 
       // Safety timeout - 10 minutes
       timeoutId = setTimeout(() => {
@@ -290,11 +297,14 @@ export function useStt() {
   });
 
   // Reset STT state on recorder error
-  watch(() => recorderError.value, (newError) => {
-    if (newError) {
-      stopAllActivityOnError();
-    }
-  });
+  watch(
+    () => recorderError.value,
+    newError => {
+      if (newError) {
+        stopAllActivityOnError();
+      }
+    },
+  );
 
   return {
     isRecording,

@@ -77,9 +77,10 @@ const {
 
 const sttSelection = ref<{ from: number; to: number } | null>(null)
 
-// Watch for STT errors
+// Watch for STT errors — reset local state and notify user
 watch([sttError, recorderError], ([newSttError, newRecorderError]) => {
   if (newSttError && newSttError !== 'cancelled') {
+    sttSelection.value = null
     toast.add({
       title: t('common.error'),
       description: t(`llm.${newSttError}`, 'Transcription error'),
@@ -87,6 +88,7 @@ watch([sttError, recorderError], ([newSttError, newRecorderError]) => {
     })
   }
   if (newRecorderError) {
+    sttSelection.value = null
     toast.add({
       title: t('common.error'),
       description: t(`llm.${newRecorderError}`, 'Microphone error'),

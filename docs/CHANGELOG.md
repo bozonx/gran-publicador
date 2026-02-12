@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **STT in LLM Chat (LlmGeneratorModal)**: Fixed critical bug where two independent `useStt()` instances and a separate `useVoiceRecorder()` were created, causing audio chunks to never be streamed via WebSocket. Consolidated to a single `useStt()` instance with proper `start`/`stop`/`cancel` flow.
+- **STT in Editor (TiptapEditor)**: Fixed `sttSelection` not being cleared on STT errors, leaving the editor in an inconsistent state when connection to STT service fails.
+- **STT composable (useStt)**: Fixed socket event listener leaks — `detachSocketListeners` was not removing the `'error'` handler; `waitForTranscription` cleanup was not removing its own `transcription-error` and `disconnect` handlers.
+- **STT composable (useStt)**: Fixed broken socket persisting in store after connection failure — `ensureConnected` now properly disconnects and clears the store socket on error so subsequent attempts create a fresh connection.
+- **Telegram Bot STT**: Fixed voice message transcription always receiving `undefined` language — user's content language is now properly passed through `createContentItemFromMessage` and `addMediaGroupMessageToContentBlock` to `transcribeVoice`.
+
 ### Changed
 - **LLM Publication Fields Generation**: Added per-channel content shortening support.
   - Optional `channels[].maxContentLength` is now forwarded to the LLM instruction block.
