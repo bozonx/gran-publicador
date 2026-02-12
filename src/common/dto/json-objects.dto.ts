@@ -61,6 +61,10 @@ export class TelegramMediaMetaDto {
   @IsOptional()
   hasSpoiler?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  isVoice?: boolean;
+
   @IsOptional()
   @IsObject()
   @ValidateNested()
