@@ -169,5 +169,6 @@ export class CreatePublicationDto {
 
   // Project template ID to use for this publication
   @IsUUID()
-  public projectTemplateId!: string;
+  @IsOptional()
+  public projectTemplateId?: string;
 }
