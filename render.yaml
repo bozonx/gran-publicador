@@ -1,0 +1,41 @@
+services:
+  # Backend service
+  - type: web
+    name: gran-publicador-backend
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gran-publicador-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SOCIAL_POSTING_SERVICE_URL
+        sync: false
+      - key: NEWS_SERVICE_URL
+        sync: false
+      - key: STT_SERVICE_URL
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: NODE_ENV
+        value: production
+
+  # Database migration job
+  - type: job
+    name: gran-publicador-migrations
+    runtime: node
+    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate
+    startCommand: pnpm db:migrate:deploy
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gran-publicador-db
+          property: connectionString
+
+databases:
+  - name: gran-publicador-db
+    databaseName: gran_publicador
+    user: gran_publicador
