@@ -42,14 +42,7 @@ const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
 const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
-const { generateContent, extractParameters, isGenerating: isLlmGenerating } = useLlm()
 const { user } = useAuth()
-
-const isQuickGenModalOpen = ref(false)
-
-function handleLlmGenerated(text: string) {
-  formData.content = text
-}
 
 const publicationContent = computed(() => props.publication?.content ?? '')
 const publicationMedia = computed(() => props.publication?.media?.map(m => m.media).filter(Boolean) ?? [])
@@ -894,22 +887,11 @@ async function executePublish() {
             </div>
        </div>
        
-       <!-- Post Content (Override) -->
+        <!-- Post Content (Override) -->
        <div class="space-y-2">
             <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.content') }}</span>
                 <div class="flex items-center gap-2">
-                    <UButton
-                        v-if="formData.content || publicationContent"
-                        variant="soft"
-                        color="primary"
-                        size="xs"
-                        icon="i-heroicons-sparkles"
-                        :disabled="isLocked"
-                        @click="isQuickGenModalOpen = true"
-                    >
-                        {{ t('llm.generate') }}
-                    </UButton>
                     <UButton 
                         v-if="formData.content" 
                         variant="ghost" 
@@ -1054,16 +1036,6 @@ async function executePublish() {
       </div>
 
     </div>
-
-    <ModalsLlmQuickGeneratorModal
-      v-model:open="isQuickGenModalOpen"
-      :content="formData.content || publicationContent"
-      :media="(publicationMedia as any)"
-      :post-type="(getPostType(props.post) as any)"
-      :platforms="selectedChannel?.socialMedia ? [selectedChannel.socialMedia as any] : []"
-      :project-id="projectId"
-      @apply="handleLlmGenerated"
-    />
 
     <!-- Preview Modal -->
     <ModalsPostPreviewModal

@@ -492,23 +492,6 @@ function handleReset() {
   resetToOriginal()
 }
 
-const isTranslateModalOpen = ref(false)
-const translationSourceText = ref('')
-
-function handleOpenTranslateModal() {
-    translationSourceText.value = state.content || ''
-    isTranslateModalOpen.value = true
-}
-
-function handleTranslated(result: { translatedText: string }) {
-    state.content = result.translatedText
-}
-
-const isQuickGenModalOpen = ref(false)
-
-function handleLlmGenerated(text: string) {
-    state.content = text
-}
 
 </script>
 
@@ -617,27 +600,9 @@ function handleLlmGenerated(text: string) {
               <span>{{ t('post.content') }}</span>
               <CommonInfoTooltip :text="t('post.contentTooltip')" />
             </div>
-                <UButton
-                    icon="i-heroicons-sparkles"
-                    color="primary"
-                    variant="ghost"
-                    size="xs"
-                    :label="t('llm.generate')"
-                    :disabled="isLocked"
-                    @click="isQuickGenModalOpen = true"
-                />
-                <UButton
-                    icon="i-heroicons-language"
-                    color="primary"
-                    variant="ghost"
-                    size="xs"
-                    :label="$t('actions.translate')"
-                    :disabled="isLocked"
-                    @click="() => handleOpenTranslateModal()"
-                />
           </div>
         </template>
-        
+
         <UAlert
           v-if="isContentMissing"
           color="info"
@@ -788,21 +753,5 @@ function handleLlmGenerated(text: string) {
       @cancel="handleValidationWarningCancel"
     />
 
-    <ModalsTranslateModal
-      v-model:open="isTranslateModalOpen"
-      :source-text="translationSourceText"
-      :default-target-lang="state.language"
-      @translated="(res) => handleTranslated(res)"
-    />
-
-    <ModalsLlmQuickGeneratorModal
-      v-model:open="isQuickGenModalOpen"
-      :content="state.content"
-      :media="(publication?.media?.map(m => m.media).filter(m => !!m) as any)"
-      :project-id="currentProjectId"
-      :post-type="state.postType"
-      :platforms="selectedPlatforms as any"
-      @apply="handleLlmGenerated"
-    />
 
 </template>
