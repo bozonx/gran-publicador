@@ -31,7 +31,6 @@ const toast = useToast()
 const signatures = ref<ProjectAuthorSignature[]>([])
 const isModalOpen = ref(false)
 const editingSignature = ref<ProjectAuthorSignature | null>(null)
-const isDefault = ref(false)
 const showDeleteModal = ref(false)
 const signatureToDeleteId = ref<string | null>(null)
 
@@ -111,11 +110,6 @@ function openEdit(sig: ProjectAuthorSignature) {
   editingSignature.value = sig
   localVariants.value = sig.variants.map(v => ({ language: v.language, content: v.content }))
 
-  // Check if this signature is default for current user
-  const userId = user.value?.id
-  const defaultSignatureId = props.projectPreferences?.defaultSignatures?.[userId || '']
-  isDefault.value = sig.id === defaultSignatureId
-
   isModalOpen.value = true
 }
 
@@ -193,37 +187,6 @@ async function handleSave() {
           const v = filledVariants[i]!
           await upsertVariant(created.id, v.language, { content: v.content.trim() })
         }
-      }
-    }
-
-    if (editingSignature.value && isDefault.value) {
-      const userId = user.value?.id
-      if (userId) {
-        const currentPrefs = props.projectPreferences || {}
-        const defaultSignatures = { ...(currentPrefs.defaultSignatures || {}) }
-        defaultSignatures[userId] = editingSignature.value.id
-        
-        await updateProject(props.projectId, {
-          preferences: {
-            ...currentPrefs,
-            defaultSignatures
-          }
-        })
-      }
-    } else if (editingSignature.value && !isDefault.value) {
-      // Unset if it was default
-      const userId = user.value?.id
-      if (userId && props.projectPreferences?.defaultSignatures?.[userId] === editingSignature.value.id) {
-        const currentPrefs = props.projectPreferences || {}
-        const defaultSignatures = { ...(currentPrefs.defaultSignatures || {}) }
-        delete defaultSignatures[userId]
-        
-        await updateProject(props.projectId, {
-          preferences: {
-            ...currentPrefs,
-            defaultSignatures
-          }
-        })
       }
     }
 
@@ -365,7 +328,6 @@ async function handleDragEnd() {
           v-for="sig in signatures"
           :key="sig.id"
           class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-primary-500 dark:hover:border-primary-400 transition-colors cursor-pointer group"
-          :class="{ 'ring-2 ring-primary-500/20 border-primary-500/50': projectPreferences?.defaultSignatures?.[user?.id || ''] === sig.id }"
           @click="openEdit(sig)"
         >
           <div class="flex items-center gap-3 overflow-hidden">
@@ -397,10 +359,6 @@ async function handleDragEnd() {
                 <span v-if="sig.user && sig.userId !== user?.id" class="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 ml-1">
                   <UIcon name="i-heroicons-user" class="w-3 h-3" />
                   {{ sig.user.fullName || sig.user.telegramUsername || sig.userId }}
-                </span>
-                <span v-if="projectPreferences?.defaultSignatures?.[user?.id || ''] === sig.id" class="text-[10px] text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 ml-1">
-                  <UIcon name="i-heroicons-star" class="w-3 h-3" />
-                  {{ t('common.default', 'Default') }}
                 </span>
               </div>
             </div>
@@ -474,20 +432,6 @@ async function handleDragEnd() {
             :title="t('authorSignature.addVariant', 'Add another language')"
             @click="addVariant()"
           />
-        </div>
-
-        <!-- Default signature toggle -->
-        <div 
-          v-if="editingSignature && editingSignature.userId === user?.id"
-          class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          @click="isDefault = !isDefault"
-        >
-          <UCheckbox v-model="isDefault" @click.stop />
-          <div class="flex-1 min-w-0">
-            <div class="text-xs font-medium text-gray-900 dark:text-white truncate">
-              {{ t('authorSignature.is_default', 'Default Signature') }}
-            </div>
-          </div>
         </div>
       </div>
 

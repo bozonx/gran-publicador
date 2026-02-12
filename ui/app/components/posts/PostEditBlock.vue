@@ -514,6 +514,15 @@ watch(projectId, async (newProjectId) => {
     }
 }, { immediate: true })
 
+// Auto-select first signature when creating a new post
+watch(signatureOptions, (newOptions) => {
+    // Only auto-select if creating a new post and signature is not already set
+    if (props.isCreating && !formData.authorSignature && newOptions.length > 0) {
+        formData.authorSignature = newOptions[0].value
+    }
+}, { immediate: true })
+
+
 onMounted(() => {
     if (props.isCreating) {
         const channels = props.availableChannels

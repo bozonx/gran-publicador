@@ -107,14 +107,10 @@ watch(currentProjectId, async (newId) => {
             }),
         ])
         
-        // Auto-select signature if creating new
+        // Auto-select first signature from sorted list
         if (!isEditMode.value) {
-            const project = projects.value.find(p => p.id === newId)
             const userId = user.value?.id
-            if (userId && project?.preferences?.defaultSignatures?.[userId]) {
-                state.authorSignatureId = project.preferences.defaultSignatures[userId]
-            } else if (projectSignatures.value.length > 0) {
-                // Fallback to first one if no default set
+            if (userId && projectSignatures.value.length > 0) {
                 const userSigs = projectSignatures.value.filter(s => s.userId === userId)
                 if (userSigs.length > 0) {
                   const firstSig = userSigs[0]
@@ -249,13 +245,10 @@ onMounted(async () => {
             fetchPublicationsByProject(currentProjectId.value, { limit: 50 }),
             fetchSignatures(currentProjectId.value).then(sigs => { 
                 projectSignatures.value = sigs 
-                // Auto-select signature if creating new post
+                // Auto-select first signature from sorted list
                 if (!isEditMode.value && state.authorSignatureId === '') {
-                    const project = projects.value.find(p => p.id === currentProjectId.value)
                     const userId = user.value?.id
-                    if (userId && project?.preferences?.defaultSignatures?.[userId]) {
-                        state.authorSignatureId = project.preferences.defaultSignatures[userId]
-                    } else {
+                    if (userId && sigs.length > 0) {
                         const userSigs = sigs.filter(s => s.userId === userId)
                         if (userSigs.length > 0) {
                             const firstSig = userSigs[0]

@@ -138,15 +138,13 @@ watch(() => formData.projectId, async (newProjectId) => {
       fetchChannels({ projectId: newProjectId }),
       fetchSignatures(newProjectId).then(sigs => { 
         projectSignatures.value = sigs 
-        // Auto-select signature
-        const project = projects.value.find(p => p.id === newProjectId)
+        // Auto-select first signature from sorted list
         const userId = user.value?.id
-        const userPrefs = project?.preferences as any
-        if (userId && userPrefs?.defaultSignatures?.[userId]) {
-            formData.authorSignatureId = userPrefs.defaultSignatures[userId]
-        } else if (sigs.length > 0) {
+        if (userId && sigs.length > 0) {
             const userSigs = sigs.filter(s => s.userId === userId)
-            if (userSigs.length > 0 && userSigs[0]) formData.authorSignatureId = userSigs[0].id
+            if (userSigs.length > 0 && userSigs[0]) {
+                formData.authorSignatureId = userSigs[0].id
+            }
         }
       }),
       fetchProjectTemplates(newProjectId).then(tpls => {
