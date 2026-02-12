@@ -1287,7 +1287,9 @@
     "cancel": "Cancel",
     "targetLanguagePrecise": "Translate TO language",
     "title": "Translate Text",
-    "translateButton": "Translate"
+    "translateButton": "Translate",
+    "translateContentButton": "Translate content",
+    "translateSelectionButton": "Translate selection"
   },
   "user": {
     "adminStatus": "Admin Status",

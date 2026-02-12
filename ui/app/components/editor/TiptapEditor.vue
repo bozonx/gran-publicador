@@ -868,6 +868,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
     <ModalsTranslateModal
       v-model:open="isTranslateModalOpen"
       :source-text="actionSourceText"
+      :is-full-replace="actionIsWholeDocument"
       :default-target-lang="defaultTargetLang"
       :splitter="actionSplitter"
       @translated="handleTranslated"

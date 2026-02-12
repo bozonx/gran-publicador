@@ -1289,7 +1289,9 @@
     "cancel": "Отмена",
     "targetLanguagePrecise": "Язык, НА который переводим",
     "title": "Перевод текста",
-    "translateButton": "Перевести"
+    "translateButton": "Перевести",
+    "translateContentButton": "Перевести весь текст",
+    "translateSelectionButton": "Перевести выделение"
   },
   "user": {
     "adminStatus": "Статус администратора",

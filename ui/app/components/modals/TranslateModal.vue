@@ -6,6 +6,7 @@ import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 const props = defineProps<{
   open: boolean
   sourceText: string
+  isFullReplace?: boolean
   defaultTargetLang?: string
   splitter?: 'paragraph' | 'markdown' | 'sentence' | 'off'
 }>()
@@ -75,7 +76,7 @@ async function handleTranslate() {
         :disabled="!translateFormRef?.targetLang"
         @click="handleTranslate"
       >
-        {{ t('translate.translateButton') }}
+        {{ props.isFullReplace ? t('translate.translateContentButton') : t('translate.translateSelectionButton') }}
       </UButton>
     </template>
   </UiAppModal>
