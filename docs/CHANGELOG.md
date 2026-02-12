@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **LLM Quick Generator Modal button text**: Fixed button showing "Apply to selection" instead of "Replace content" when no text is selected in the editor. Added `isWholeDocument` flag to `useEditorTextActions` and `isFullReplace` prop to `LlmQuickGeneratorModal`.
+- **Editor formatting BubbleMenu**: Restored formatting bubble menu (bold, italic, strike, code, link, AI, translate) that appears when text is selected in the TiptapEditor.
 - **STT in LLM Chat (LlmGeneratorModal)**: Fixed critical bug where two independent `useStt()` instances and a separate `useVoiceRecorder()` were created, causing audio chunks to never be streamed via WebSocket. Consolidated to a single `useStt()` instance with proper `start`/`stop`/`cancel` flow.
 - **STT in Editor (TiptapEditor)**: Fixed `sttSelection` not being cleared on STT errors, leaving the editor in an inconsistent state when connection to STT service fails.
 - **STT composable (useStt)**: Fixed socket event listener leaks — `detachSocketListeners` was not removing the `'error'` handler; `waitForTranscription` cleanup was not removing its own `transcription-error` and `disconnect` handlers.

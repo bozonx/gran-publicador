@@ -31,6 +31,7 @@ interface Props {
   media?: MediaItem[]
   projectId?: string
   selectionText?: string
+  isFullReplace?: boolean
   postType?: PostType | string
   platforms?: SocialMedia[]
 }
@@ -351,7 +352,7 @@ async function handleGenerate() {
             :disabled="!prompt.trim()"
             @click="handleGenerate"
           >
-            {{ selectionText ? t('llm.applyToSelection') : t('llm.replaceContent') }}
+            {{ (selectionText && !isFullReplace) ? t('llm.applyToSelection') : t('llm.replaceContent') }}
           </UButton>
         </div>
       </div>

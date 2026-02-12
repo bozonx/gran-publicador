@@ -350,6 +350,7 @@ const {
   pendingSourceText: actionSourceText,
   pendingKind: actionPendingKind,
   isActionPending: isActionPending,
+  isWholeDocument: actionIsWholeDocument,
   captureSelection: captureEditorSelection,
   applyResult: applyEditorResult,
   cancelAction: cancelEditorAction,
@@ -479,6 +480,81 @@ function getLinkHrefNearCursor(editor: any): string | null {
           variant="ghost"
           @click="cancelLink"
         />
+      </div>
+    </BubbleMenu>
+
+    <!-- Formatting BubbleMenu (text selection) -->
+    <BubbleMenu
+      v-if="editor"
+      :editor="editor"
+      plugin-key="formattingBubbleMenu"
+      :options="{ offset: 6, placement: 'top' }"
+      :should-show="({ editor: e, state }) => {
+        if (isSourceMode) return false
+        if (isLinkMenuOpen) return false
+        if (state.selection.empty) return false
+        if (e.isActive('table')) return false
+        if (e.isActive('codeBlock')) return false
+        return true
+      }"
+    >
+      <div class="flex items-center gap-0.5 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl">
+        <UButton
+          :color="editor.isActive('bold') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('bold') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-bold"
+          @click="editor.chain().focus().toggleBold().run()"
+        />
+        <UButton
+          :color="editor.isActive('italic') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('italic') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-italic"
+          @click="editor.chain().focus().toggleItalic().run()"
+        />
+        <UButton
+          :color="editor.isActive('strike') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('strike') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-strikethrough"
+          @click="editor.chain().focus().toggleStrike().run()"
+        />
+        <UButton
+          :color="editor.isActive('code') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('code') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-code-bracket"
+          @click="editor.chain().focus().toggleCode().run()"
+        />
+        <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+        <UButton
+          :color="editor.isActive('link') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('link') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-link"
+          @mousedown.prevent
+          @click="setLink"
+        />
+        <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+        <UTooltip :text="t('editor.llmTooltip', 'AI generation')">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-sparkles"
+            @click="openQuickGenModal"
+          />
+        </UTooltip>
+        <UTooltip :text="t('editor.translateTooltip', 'Translate')">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-language"
+            @click="openTranslateModal"
+          />
+        </UTooltip>
       </div>
     </BubbleMenu>
 
@@ -800,6 +876,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
     <ModalsLlmQuickGeneratorModal
       v-model:open="isQuickGenModalOpen"
       :selection-text="actionSourceText"
+      :is-full-replace="actionIsWholeDocument"
       :project-id="props.projectId"
       :post-type="(props as any).postType"
       :platforms="(props as any).platforms"

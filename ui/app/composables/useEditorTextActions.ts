@@ -324,6 +324,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
   const pendingSourceText = ref('');
   const isActionPending = ref(false);
   const pendingKind = ref<'inline' | 'block' | null>(null);
+  const isWholeDocument = ref(false);
 
   /**
    * Capture the current selection: extract markdown, lock editor, store range.
@@ -336,24 +337,26 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
 
     const selection = editor.state.selection;
     const isEmpty = selection.empty;
-    
+
     // If nothing selected, capture entire document
     if (isEmpty) {
       const fullText = editor.getMarkdown();
       if (!fullText.trim()) return '';
-      
+
       pendingKind.value = 'block';
+      isWholeDocument.value = true;
       const docSize = editor.state.doc.content.size;
       pendingRange.value = { from: 0, to: docSize };
       pendingSourceText.value = fullText;
       isActionPending.value = true;
       editor.setEditable(false);
-      
+
       return fullText;
     }
 
     const kind = getSelectionKind(editor);
     pendingKind.value = kind;
+    isWholeDocument.value = false;
 
     const rawRange = { from: selection.from, to: selection.to };
     pendingRange.value = kind === 'block' ? expandRangeToBlocks(editor, rawRange) : rawRange;
@@ -410,6 +413,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     pendingSourceText.value = '';
     isActionPending.value = false;
     pendingKind.value = null;
+    isWholeDocument.value = false;
     return true;
   }
 
@@ -426,6 +430,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     pendingSourceText.value = '';
     isActionPending.value = false;
     pendingKind.value = null;
+    isWholeDocument.value = false;
   }
 
   return {
@@ -433,6 +438,7 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
     pendingSourceText,
     pendingKind,
     isActionPending,
+    isWholeDocument,
     captureSelection,
     applyResult,
     cancelAction,
