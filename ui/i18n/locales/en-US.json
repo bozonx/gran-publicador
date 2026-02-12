@@ -789,6 +789,7 @@
     "authorCommentPlaceholder": "Author's comment text...",
     "authorSignature": "Author Signature",
     "authorSignaturePlaceholder": "Enter author signature in Markdown format...",
+    "selectSignature": "Select signature...",
     "clickToPreview": "Click to preview post content",
     "content": "Content",
     "contentInheritedFromPublication": "Post content is inherited from publication",

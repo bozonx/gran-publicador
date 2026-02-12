@@ -791,6 +791,7 @@
     "authorCommentPlaceholder": "Текст комментария автора...",
     "authorSignature": "Подпись автора",
     "authorSignaturePlaceholder": "Введите подпись автора в формате Markdown...",
+    "selectSignature": "Выбрать подпись...",
     "clickToPreview": "Нажмите для предпросмотра",
     "content": "Содержимое",
     "contentInheritedFromPublication": "Контент поста наследуется от публикации",

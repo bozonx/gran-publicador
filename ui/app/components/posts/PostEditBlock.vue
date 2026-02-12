@@ -15,6 +15,8 @@ import type { PostStatus } from '~/types/posts'
 import type { ChannelTemplateVariation } from '~/types/channels'
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
+import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
+import type { ProjectAuthorSignature } from '~/types/author-signatures'
 
 import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
@@ -43,11 +45,14 @@ const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
 const { user } = useAuth()
+const { fetchByProject } = useAuthorSignatures()
 
 const publicationContent = computed(() => props.publication?.content ?? '')
 const publicationMedia = computed(() => props.publication?.media?.map(m => m.media).filter(Boolean) ?? [])
 
 const projectId = computed(() => props.publication?.projectId ?? props.post?.channel?.projectId ?? '')
+
+const projectSignatures = ref<ProjectAuthorSignature[]>([])
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -316,6 +321,29 @@ const displayLanguage = computed(() => {
 })
 const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
 
+// Signature options filtered by channel language
+const signatureOptions = computed(() => {
+    if (!projectSignatures.value.length || !channelLanguage.value) {
+        return []
+    }
+
+    return projectSignatures.value
+        .map(sig => {
+            // Find variant in channel language, fallback to first available
+            const variant = sig.variants.find(v => v.language === channelLanguage.value)
+                || sig.variants[0]
+
+            if (!variant?.content) return null
+
+            return {
+                value: variant.content,
+                label: variant.content,
+                signatureId: sig.id
+            }
+        })
+        .filter(Boolean) as { value: string; label: string; signatureId: string }[]
+})
+
 // Social media validation
 const { validatePostContent, getContentLength, getRemainingCharacters } = useSocialMediaValidation()
 
@@ -476,6 +504,15 @@ watch(() => props.post, (newPost, oldPost) => {
         }
     })
 }, { deep: true, immediate: true })
+
+// Load signatures when projectId changes
+watch(projectId, async (newProjectId) => {
+    if (newProjectId) {
+        projectSignatures.value = await fetchByProject(newProjectId)
+    } else {
+        projectSignatures.value = []
+    }
+}, { immediate: true })
 
 onMounted(() => {
     if (props.isCreating) {
@@ -839,12 +876,30 @@ async function executePublish() {
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Row 1: Author Signature (2/3) | Scheduled At (1/3) -->
                 <UFormField :label="t('post.authorSignature', 'Author Signature')" class="md:col-span-2">
-                    <UInput
-                        v-model="formData.authorSignature"
-                        :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
-                        :disabled="isLoading || isLocked"
-                        class="w-full"
-                    />
+                    <div class="flex gap-2 items-end">
+                        <UInput
+                            v-model="formData.authorSignature"
+                            :placeholder="t('post.authorSignaturePlaceholder', 'Enter author signature...')"
+                            :disabled="isLoading || isLocked"
+                            class="flex-1"
+                        />
+                        <USelectMenu
+                            v-if="signatureOptions.length > 0"
+                            :items="signatureOptions"
+                            value-key="value"
+                            label-key="label"
+                            :placeholder="t('post.selectSignature', 'Select...')"
+                            :disabled="isLoading || isLocked"
+                            @update:model-value="formData.authorSignature = $event"
+                        >
+                            <UButton
+                                icon="i-heroicons-pencil"
+                                variant="outline"
+                                color="neutral"
+                                :disabled="isLoading || isLocked"
+                            />
+                        </USelectMenu>
+                    </div>
                 </UFormField>
 
                 <UFormField :label="t('post.scheduledAt')" class="md:col-span-1">
