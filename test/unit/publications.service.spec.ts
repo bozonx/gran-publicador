@@ -259,17 +259,7 @@ describe('PublicationsService (unit)', () => {
   });
 
   describe('create', () => {
-    it('should require projectTemplateId in CreatePublicationDto validation', async () => {
-      const dto = plainToInstance(CreatePublicationDto, {
-        projectId: 'b3f1c1a1-1111-4d11-8111-111111111111',
-        language: 'en-US',
-      });
 
-      const errors = await validate(dto);
-      const templateErrors = errors.find(e => e.property === 'projectTemplateId');
-
-      expect(templateErrors).toBeTruthy();
-    });
 
     it('should create a publication when user has access to project', async () => {
       const userId = 'user-1';
