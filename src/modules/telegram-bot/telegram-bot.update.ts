@@ -350,6 +350,9 @@ export class TelegramBotUpdate {
 
     const title = this.getTitleForMessage(message, finalText);
 
+    // Combine supported media with voice media for saving
+    const allMediaToSave = [...supportedMedia, ...voiceMedia];
+
     return this.prisma.$transaction(async tx => {
       const item = await tx.contentItem.create({
         data: {
@@ -371,7 +374,7 @@ export class TelegramBotUpdate {
       });
 
       let order = 0;
-      for (const m of supportedMedia) {
+      for (const m of allMediaToSave) {
         const createdMedia = await this.mediaService.create({
           type: m.type,
           storageType: StorageType.TELEGRAM,
@@ -384,6 +387,7 @@ export class TelegramBotUpdate {
               thumbnailFileId: m.thumbnailFileId,
               hasSpoiler: m.hasSpoiler || false,
               repost: extractMessageContent(message).repostInfo,
+              isVoice: m.isVoice || false,
             },
           },
         });
@@ -472,7 +476,10 @@ export class TelegramBotUpdate {
       }
     }
 
-    if (supportedMedia.length === 0) {
+    // Combine supported media with voice media for saving
+    const allMediaToSave = [...supportedMedia, ...voiceMedia];
+
+    if (allMediaToSave.length === 0) {
       return { reportCreated: false, contentItemId: existingBlock.contentItemId };
     }
 
@@ -482,7 +489,7 @@ export class TelegramBotUpdate {
     });
     let nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
 
-    for (const m of supportedMedia) {
+    for (const m of allMediaToSave) {
       const alreadyAttached = await (this.prisma as any).contentBlockMedia.findFirst({
         where: {
           contentBlockId: existingBlock.id,
@@ -510,6 +517,7 @@ export class TelegramBotUpdate {
             thumbnailFileId: m.thumbnailFileId,
             hasSpoiler: m.hasSpoiler || false,
             repost: extractMessageContent(message).repostInfo,
+            isVoice: m.isVoice || false,
           },
         },
       });
