@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { LlmErrorType } from '@gran/shared/llm.contracts';
+import { LlmErrorType } from '@gran/shared/llm';
 
 interface GenerateLlmOptions {
   temperature?: number;
