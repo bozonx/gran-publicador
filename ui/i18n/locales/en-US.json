@@ -499,7 +499,9 @@
   },
   "editor": {
     "characters": "characters",
+    "llmTooltip": "AI generation - replaces all content or selection if cursor is placed",
     "placeholder": "Start typing...",
+    "sttTooltip": "Voice input - always inserts at cursor position",
     "table": {
       "addColumnAfter": "Add column after",
       "addColumnBefore": "Add column before",
@@ -509,6 +511,7 @@
       "deleteRow": "Delete row",
       "deleteTable": "Delete table"
     },
+    "translateTooltip": "Translate - replaces all content or selection if cursor is placed",
     "words": "words"
   },
   "errors": {

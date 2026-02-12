@@ -158,6 +158,13 @@ watch(isOpen, (open) => {
   }
 })
 
+// Abort generation when modal is closed
+watch(isOpen, (open) => {
+  if (!open && isGenerating.value) {
+    stop()
+  }
+})
+
 function handleTemplateSelected(template: LlmPromptTemplate) {
   if (!template?.prompt?.trim()) return
   if (prompt.value.trim()) {

@@ -433,7 +433,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
 <template>
   <div class="tiptap-editor border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col relative">
     
-    <!-- Contextual BubbleMenu (Links & Text Selection) -->
+    <!-- Contextual BubbleMenu (Links only) -->
     <BubbleMenu
       v-if="editor"
       :editor="editor"
@@ -443,18 +443,11 @@ function getLinkHrefNearCursor(editor: any): string | null {
         if (isSourceMode) return false
         
         // Show only if manual link edit mode is active
-        if (isLinkMenuOpen) return true
-        
-        // Show selection tools (Translate) if text is selected
-        const { empty } = e.state.selection
-        if (!empty && !disabled && !e.isActive('table')) return true
-        
-        return false
+        return isLinkMenuOpen
       }"
     >
       <!-- Link Input UI -->
       <div 
-        v-if="isLinkMenuOpen"
         class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl"
       >
         <UInput
@@ -488,31 +481,6 @@ function getLinkHrefNearCursor(editor: any): string | null {
           variant="ghost"
           @click="cancelLink"
         />
-      </div>
-
-      <!-- Selection Tools (Translate) -->
-      <div 
-        v-else
-        class="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl"
-      >
-        <UTooltip :text="t('llm.quickGenerate')">
-            <UButton
-                size="xs"
-                variant="ghost"
-                icon="i-heroicons-sparkles"
-                @mousedown.prevent
-                @click="openQuickGenModal"
-            />
-        </UTooltip>
-        <UTooltip :text="t('translate.translateButton', 'Translate')">
-          <UButton
-            size="xs"
-            variant="ghost"
-            icon="i-heroicons-language"
-            @mousedown.prevent
-            @click="openTranslateModal"
-          />
-        </UTooltip>
       </div>
     </BubbleMenu>
 
@@ -684,7 +652,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
 
       <div v-if="!isSourceMode" class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-      <!-- Link & Tools -->
+      <!-- Link & Table -->
       <div v-if="!isSourceMode" class="flex items-center gap-0.5">
         <UButton
           :color="(editor.isActive('link') || isLinkMenuOpen) ? 'primary' : 'neutral'"
@@ -694,6 +662,41 @@ function getLinkHrefNearCursor(editor: any): string | null {
           @mousedown.prevent
           @click="setLink"
         ></UButton>
+
+        <UButton
+          :color="editor.isActive('table') ? 'primary' : 'neutral'"
+          :variant="editor.isActive('table') ? 'solid' : 'ghost'"
+          size="xs"
+          icon="i-heroicons-table-cells"
+          @click="insertTable"
+        ></UButton>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <!-- AI Actions (Right side) -->
+      <div v-if="!isSourceMode" class="flex items-center gap-0.5">
+        <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+        
+        <UTooltip :text="t('editor.llmTooltip', 'AI generation - replaces all content or selection if cursor is placed')">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-sparkles"
+            @click="openQuickGenModal"
+          />
+        </UTooltip>
+        
+        <UTooltip :text="t('editor.translateTooltip', 'Translate - replaces all content or selection if cursor is placed')">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-language"
+            @click="openTranslateModal"
+          />
+        </UTooltip>
         
         <!-- STT/Voice Recorder -->
         <template v-if="isRecording || isTranscribing">
@@ -719,7 +722,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
             />
           </div>
         </template>
-        <UTooltip v-else :text="t('common.startRecording')">
+        <UTooltip v-else :text="t('editor.sttTooltip', 'Voice input - always inserts at cursor position')">
           <UButton
             color="neutral"
             variant="ghost"
@@ -728,17 +731,9 @@ function getLinkHrefNearCursor(editor: any): string | null {
             @click="toggleRecording"
           />
         </UTooltip>
-
-        <UButton
-          :color="editor.isActive('table') ? 'primary' : 'neutral'"
-          :variant="editor.isActive('table') ? 'solid' : 'ghost'"
-          size="xs"
-          icon="i-heroicons-table-cells"
-          @click="insertTable"
-        ></UButton>
       </div>
 
-      <div class="flex-1"></div>
+      <div v-if="!isSourceMode" class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
       <!-- Undo/Redo -->
       <div v-if="!isSourceMode" class="flex items-center gap-0.5">
