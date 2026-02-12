@@ -40,7 +40,7 @@ const toast = useToast()
 const editForm = ref({
   id: props.item.id,
   title: props.item.title || '',
-  tags: props.item.tags.join(', '),
+  tags: (props.item.tags || []).join(', '),
   note: props.item.note || '',
   blocks: JSON.parse(JSON.stringify(props.item.blocks || [])).sort((a: any, b: any) => a.order - b.order),
 })
