@@ -321,6 +321,7 @@ async function handleGenerate() {
         <!-- Actions -->
         <div class="flex justify-end gap-3 mt-6">
           <UButton
+            v-if="!isGenerating"
             color="neutral"
             variant="ghost"
             @click="isOpen = false"
