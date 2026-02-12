@@ -227,7 +227,9 @@ async function handleGenerate() {
           ? t('llm.timeoutError', 'Request timed out. Try reducing context or retry.')
           : errType === LlmErrorType.ABORTED
             ? t('llm.aborted', 'Request was stopped.')
-            : t('llm.errorMessage')
+            : errType === LlmErrorType.GATEWAY_ERROR
+              ? t('llm.gatewayError', 'Service temporarily unavailable. Please retry.')
+              : t('llm.errorMessage')
 
     toast.add({
       title: t('llm.error'),

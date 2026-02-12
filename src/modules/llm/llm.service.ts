@@ -12,6 +12,10 @@ import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
 import { filterUndefined } from '../../common/utils/object.utils.js';
 import {
+  DEFAULT_LLM_CONTEXT_LIMIT_CHARS,
+  DEFAULT_LLM_TIMEOUT_SECS,
+} from '../../common/constants/global.constants.js';
+import {
   PUBLICATION_FIELDS_SYSTEM_PROMPT,
   RAW_RESULT_SYSTEM_PROMPT,
 } from './constants/llm.constants.js';
@@ -60,14 +64,14 @@ export class LlmService {
   private readonly config: LlmConfig;
   private readonly defaultRequestTimeoutSecs: number;
 
-  private readonly defaultContextLimitChars = 10000;
+  private readonly defaultContextLimitChars = DEFAULT_LLM_CONTEXT_LIMIT_CHARS;
 
   private getChatCompletionsUrl(): string {
     return `${this.config.serviceUrl}/chat/completions`;
   }
 
   private getRequestTimeoutMs(): number {
-    return (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? 120) * 1000;
+    return (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000;
   }
 
   private async callLlmRouter(
@@ -112,7 +116,16 @@ export class LlmService {
       }
 
       const data = (await response.body.json()) as LlmResponse;
-      if (!data.choices || data.choices.length === 0) {
+
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        this.logger.error(
+          `LLM Router returned invalid response structure. Context=${JSON.stringify(logContext)}`,
+        );
+        throw new BadGatewayException('LLM provider returned invalid response');
+      }
+
+      if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
         this.logger.error(
           `LLM Router returned empty choices. Context=${JSON.stringify({
             ...logContext,
@@ -121,6 +134,28 @@ export class LlmService {
           })}`,
         );
         throw new BadGatewayException('LLM provider returned empty response');
+      }
+
+      const firstChoice = data.choices[0];
+      if (!firstChoice || typeof firstChoice !== 'object') {
+        this.logger.error(
+          `LLM Router returned invalid choice structure. Context=${JSON.stringify(logContext)}`,
+        );
+        throw new BadGatewayException('LLM provider returned invalid response');
+      }
+
+      if (!firstChoice.message || typeof firstChoice.message !== 'object') {
+        this.logger.error(
+          `LLM Router returned invalid message structure. Context=${JSON.stringify(logContext)}`,
+        );
+        throw new BadGatewayException('LLM provider returned invalid response');
+      }
+
+      if (typeof firstChoice.message.content !== 'string') {
+        this.logger.error(
+          `LLM Router returned invalid content type. Context=${JSON.stringify(logContext)}`,
+        );
+        throw new BadGatewayException('LLM provider returned invalid response');
       }
 
       this.logger.debug(

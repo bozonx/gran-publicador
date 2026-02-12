@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { LlmErrorType } from '@gran/shared/llm.contracts';
 
 interface GenerateLlmOptions {
   temperature?: number;
@@ -61,20 +62,14 @@ export interface GeneratePublicationFieldsOptions {
   tags?: string[];
 }
 
-export enum LlmErrorType {
-  NETWORK = 'network',
-  TIMEOUT = 'timeout',
-  ABORTED = 'aborted',
-  SERVER = 'server',
-  RATE_LIMIT = 'rate_limit',
-  UNKNOWN = 'unknown',
-}
-
 export interface LlmError {
   type: LlmErrorType;
   message: string;
   originalError?: any;
 }
+
+// Re-export LlmErrorType for convenience
+export { LlmErrorType };
 
 export function useLlm() {
   const api = useApi();
@@ -91,6 +86,7 @@ export function useLlm() {
   function getErrorType(err: any): LlmErrorType {
     if (!err) return LlmErrorType.UNKNOWN;
 
+    // Abort errors
     if (
       String(err.message || '')
         .toLowerCase()
@@ -109,17 +105,36 @@ export function useLlm() {
       return LlmErrorType.TIMEOUT;
     }
 
+    const statusCode = err.status ?? err.statusCode;
+
     // Rate limit (429)
-    if (err.status === 429 || err.statusCode === 429) {
+    if (statusCode === 429) {
       return LlmErrorType.RATE_LIMIT;
     }
 
-    // Server errors (5xx)
-    if (err.status >= 500 || err.statusCode >= 500) {
+    // Gateway errors (502 Bad Gateway, 504 Gateway Timeout)
+    if (statusCode === 502 || statusCode === 504) {
+      return LlmErrorType.GATEWAY_ERROR;
+    }
+
+    // Other server errors (5xx)
+    if (statusCode >= 500) {
       return LlmErrorType.SERVER;
     }
 
     return LlmErrorType.UNKNOWN;
+  }
+
+  /**
+   * Checks if an error type is retryable.
+   */
+  function isRetryableError(errorType: LlmErrorType): boolean {
+    return [
+      LlmErrorType.NETWORK,
+      LlmErrorType.TIMEOUT,
+      LlmErrorType.GATEWAY_ERROR,
+      LlmErrorType.SERVER,
+    ].includes(errorType);
   }
 
   /**
@@ -236,6 +251,7 @@ export function useLlm() {
     generateContent,
     generatePublicationFields,
     estimateTokens,
+    isRetryableError,
     stop,
   };
 }

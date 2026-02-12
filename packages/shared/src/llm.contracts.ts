@@ -72,6 +72,7 @@ export const LlmErrorType = {
   ABORTED: 'aborted',
   SERVER: 'server',
   RATE_LIMIT: 'rate_limit',
+  GATEWAY_ERROR: 'gateway_error',
   UNKNOWN: 'unknown',
 } as const;
 

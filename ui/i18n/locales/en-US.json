@@ -540,6 +540,7 @@
     "editTemplate": "Edit Template",
     "error": "Generation Error",
     "errorMessage": "Failed to generate content. Please try again.",
+    "gatewayError": "Service temporarily unavailable. Please retry.",
     "estimatedTokens": "Approximately {count} tokens",
     "extractionEmpty": "The model returned empty values. Try re-extracting.",
     "extractionFailed": "Failed to extract parameters",
