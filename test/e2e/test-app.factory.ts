@@ -34,6 +34,7 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
     .useValue({
       $connect: async () => {},
       $disconnect: async () => {},
+      $queryRaw: async () => [{ '?column?': 1 }],
       onModuleInit: async () => {},
       onModuleDestroy: async () => {},
     })

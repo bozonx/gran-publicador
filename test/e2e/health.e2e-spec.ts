@@ -1,5 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createTestApp } from './test-app.factory.js';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 describe('Health (e2e)', () => {
   let app: NestFastifyApplication;
@@ -23,7 +24,7 @@ describe('Health (e2e)', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      expect(body).toEqual({ status: 'ok' });
+      expect(body).toEqual({ status: 'ok', database: 'connected' });
     });
   });
 });

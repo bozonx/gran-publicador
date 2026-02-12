@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
  * Health check controller.
@@ -6,11 +7,18 @@ import { Controller, Get } from '@nestjs/common';
  */
 @Controller('health')
 export class HealthController {
+  constructor(private readonly prisma: PrismaService) {}
+
   /**
-   * Basic health check endpoint returning a simple OK status
+   * Basic health check endpoint returning status and database connection state
    */
   @Get()
-  public check() {
-    return { status: 'ok' };
+  public async check() {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return { status: 'ok', database: 'connected' };
+    } catch (error) {
+      return { status: 'ok', database: 'disconnected', error: error.message };
+    }
   }
 }
