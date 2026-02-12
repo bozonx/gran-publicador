@@ -30,6 +30,15 @@ This document lists key production configuration options.
 
 - `SOCIAL_POSTING_SERVICE_URL` (required)
 - `MEDIA_STORAGE_SERVICE_URL` (optional, but required for media upload endpoints)
+- `STT_SERVICE_URL` (optional, required for STT/voice transcription features)
+- `STT_SERVICE_API_TOKEN` (optional)
+- `STT_TIMEOUT_MS` (optional)
+- `STT_MAX_FILE_SIZE` (optional)
+- `STT_DEFAULT_PROVIDER` (optional, default: `assemblyai`)
+- `STT_DEFAULT_MODELS` (optional, comma-separated, default: `universal-2`)
+- `STT_SEND_USER_LANGUAGE` (optional, default: `true`)
+- `STT_RESTORE_PUNCTUATION` (optional)
+- `STT_FORMAT_TEXT` (optional)
 
 ## UI / LLM
 

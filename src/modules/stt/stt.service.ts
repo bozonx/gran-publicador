@@ -63,8 +63,25 @@ export class SttService {
 
     try {
       const filename = params.filename || 'upload';
+
+      const provider = params.provider ?? config?.defaultProvider;
+      const models =
+        params.models ??
+        (config?.defaultModels
+          ? config.defaultModels
+              .split(',')
+              .map(m => m.trim())
+              .filter(Boolean)
+          : undefined);
+      const restorePunctuation =
+        params.restorePunctuation !== undefined
+          ? params.restorePunctuation
+          : config?.restorePunctuation;
+      const formatText = params.formatText !== undefined ? params.formatText : config?.formatText;
+      const language = config?.sendUserLanguage === false ? undefined : params.language;
+
       this.logger.log(
-        `Proxying audio to STT Gateway: ${filename} (${params.mimetype})${params.language ? ` [lang: ${params.language}]` : ''}`,
+        `Proxying audio to STT Gateway: ${filename} (${params.mimetype})${language ? ` [lang: ${language}]` : ''}`,
       );
 
       if (
@@ -100,24 +117,24 @@ export class SttService {
         'X-File-Name': filename,
       };
 
-      if (params.provider) {
-        headers['X-STT-Provider'] = params.provider;
+      if (provider) {
+        headers['X-STT-Provider'] = provider;
       }
 
-      if (params.language) {
-        headers['X-STT-Language'] = params.language;
+      if (language) {
+        headers['X-STT-Language'] = language;
       }
 
-      if (params.restorePunctuation !== undefined) {
-        headers['X-STT-Restore-Punctuation'] = String(params.restorePunctuation);
+      if (restorePunctuation !== undefined) {
+        headers['X-STT-Restore-Punctuation'] = String(restorePunctuation);
       }
 
-      if (params.formatText !== undefined) {
-        headers['X-STT-Format-Text'] = String(params.formatText);
+      if (formatText !== undefined) {
+        headers['X-STT-Format-Text'] = String(formatText);
       }
 
-      if (params.models?.length) {
-        headers['X-STT-Models'] = params.models.join(',');
+      if (models?.length) {
+        headers['X-STT-Models'] = models.join(',');
       }
 
       if (params.apiKey) {

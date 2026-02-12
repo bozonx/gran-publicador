@@ -10,6 +10,7 @@ describe('SttService', () => {
   let service: SttService;
   let mockAgent: MockAgent;
   let originalDispatcher: any;
+  let sttConfig: any;
 
   beforeAll(() => {
     originalDispatcher = getGlobalDispatcher();
@@ -23,6 +24,18 @@ describe('SttService', () => {
   });
 
   beforeEach(async () => {
+    sttConfig = {
+      serviceUrl: 'http://stt-gateway/api/v1',
+      apiToken: 'test-token',
+      timeoutMs: 300000,
+      maxFileSize: 10 * 1024 * 1024,
+      defaultProvider: 'assemblyai',
+      defaultModels: 'universal-2',
+      sendUserLanguage: true,
+      restorePunctuation: true,
+      formatText: true,
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SttService,
@@ -31,12 +44,7 @@ describe('SttService', () => {
           useValue: {
             get: jest.fn((key: string) => {
               if (key === 'stt') {
-                return {
-                  serviceUrl: 'http://stt-gateway/api/v1',
-                  apiToken: 'test-token',
-                  timeoutMs: 300000,
-                  maxFileSize: 10 * 1024 * 1024,
-                };
+                return sttConfig;
               }
               return null;
             }),
@@ -83,6 +91,69 @@ describe('SttService', () => {
       models: ['universal-3-pro', 'universal-2'],
       apiKey: 'provider-key',
       maxWaitMinutes: 2,
+    });
+
+    expect(result).toEqual({ text: 'ok' });
+  });
+
+  it('should apply config defaults when request params are missing', async () => {
+    const client = mockAgent.get('http://stt-gateway');
+    client
+      .intercept({
+        method: 'POST',
+        path: '/api/v1/transcribe/stream',
+        headers: {
+          'content-type': 'audio/ogg',
+          authorization: 'Bearer test-token',
+          'x-file-name': 'voice.ogg',
+          'x-stt-provider': 'assemblyai',
+          'x-stt-language': 'en',
+          'x-stt-restore-punctuation': 'true',
+          'x-stt-format-text': 'true',
+          'x-stt-models': 'universal-2',
+        },
+      })
+      .reply(200, { text: 'ok' });
+
+    const stream = Readable.from(Buffer.from('test'));
+
+    const result = await service.transcribeAudioStream({
+      file: stream,
+      filename: 'voice.ogg',
+      mimetype: 'audio/ogg',
+      language: 'en',
+    });
+
+    expect(result).toEqual({ text: 'ok' });
+  });
+
+  it('should omit language header when sendUserLanguage is disabled', async () => {
+    sttConfig.sendUserLanguage = false;
+
+    const client = mockAgent.get('http://stt-gateway');
+    client
+      .intercept({
+        method: 'POST',
+        path: '/api/v1/transcribe/stream',
+        headers: {
+          'content-type': 'audio/ogg',
+          authorization: 'Bearer test-token',
+          'x-file-name': 'voice.ogg',
+          'x-stt-provider': 'assemblyai',
+          'x-stt-restore-punctuation': 'true',
+          'x-stt-format-text': 'true',
+          'x-stt-models': 'universal-2',
+        },
+      })
+      .reply(200, { text: 'ok' });
+
+    const stream = Readable.from(Buffer.from('test'));
+
+    const result = await service.transcribeAudioStream({
+      file: stream,
+      filename: 'voice.ogg',
+      mimetype: 'audio/ogg',
+      language: 'en',
     });
 
     expect(result).toEqual({ text: 'ok' });

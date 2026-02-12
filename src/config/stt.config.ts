@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, IsString, IsUrl, IsOptional } from 'class-validator';
+import { IsInt, Min, IsString, IsUrl, IsOptional, IsBoolean } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -41,6 +41,26 @@ export class SttConfig {
   @IsInt()
   @Min(1)
   public maxFileSize?: number = 50 * 1024 * 1024;
+
+  @IsOptional()
+  @IsString()
+  public defaultProvider?: string;
+
+  @IsOptional()
+  @IsString()
+  public defaultModels?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  public sendUserLanguage?: boolean = true;
+
+  @IsOptional()
+  @IsBoolean()
+  public restorePunctuation?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  public formatText?: boolean;
 }
 
 export default registerAs('stt', (): SttConfig => {
@@ -51,6 +71,20 @@ export default registerAs('stt', (): SttConfig => {
     maxFileSize: process.env.STT_MAX_FILE_SIZE
       ? parseInt(process.env.STT_MAX_FILE_SIZE, 10)
       : undefined,
+    defaultProvider: process.env.STT_DEFAULT_PROVIDER,
+    defaultModels: process.env.STT_DEFAULT_MODELS,
+    sendUserLanguage:
+      process.env.STT_SEND_USER_LANGUAGE !== undefined
+        ? process.env.STT_SEND_USER_LANGUAGE === 'true'
+        : undefined,
+    restorePunctuation:
+      process.env.STT_RESTORE_PUNCTUATION !== undefined
+        ? process.env.STT_RESTORE_PUNCTUATION === 'true'
+        : undefined,
+    formatText:
+      process.env.STT_FORMAT_TEXT !== undefined
+        ? process.env.STT_FORMAT_TEXT === 'true'
+        : undefined,
   };
 
   // Remove undefined and NaN values to let class defaults take over
