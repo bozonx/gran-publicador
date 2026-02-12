@@ -360,8 +360,7 @@ const actionSplitter = computed(() => {
 })
 
 function openTranslateModal() {
-  const text = captureEditorSelection()
-  if (!text) return
+  captureEditorSelection()
   isTranslateModalOpen.value = true
 }
 
@@ -378,8 +377,7 @@ watch([isTranslateModalOpen, isQuickGenModalOpen], ([translateOpen, quickGenOpen
 })
 
 function openQuickGenModal() {
-  const text = captureEditorSelection()
-  if (!text) return
+  captureEditorSelection()
   isQuickGenModalOpen.value = true
 }
 

@@ -328,13 +328,29 @@ export function useEditorTextActions(editorRef: ShallowRef<Editor | undefined>) 
   /**
    * Capture the current selection: extract markdown, lock editor, store range.
    * Returns the markdown text of the selection, or empty string if nothing selected.
+   * If nothing is selected, captures the entire document content.
    */
   function captureSelection(): string {
     const editor = editorRef.value;
     if (!editor) return '';
 
     const selection = editor.state.selection;
-    if (selection.empty) return '';
+    const isEmpty = selection.empty;
+    
+    // If nothing selected, capture entire document
+    if (isEmpty) {
+      const fullText = editor.getMarkdown();
+      if (!fullText.trim()) return '';
+      
+      pendingKind.value = 'block';
+      const docSize = editor.state.doc.content.size;
+      pendingRange.value = { from: 0, to: docSize };
+      pendingSourceText.value = fullText;
+      isActionPending.value = true;
+      editor.setEditable(false);
+      
+      return fullText;
+    }
 
     const kind = getSelectionKind(editor);
     pendingKind.value = kind;
