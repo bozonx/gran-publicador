@@ -49,15 +49,23 @@ describe('SttService', () => {
     mockAgent.assertNoPendingInterceptors();
   });
 
-  it('should proxy raw stream with correct query and headers', async () => {
+  it('should proxy raw stream with correct headers', async () => {
     const client = mockAgent.get('http://stt-gateway');
     client
       .intercept({
         method: 'POST',
-        path: /\/api\/v1\/transcribe\/stream\?(.+&)?filename=voice\.ogg(&.+)?/,
+        path: '/api/v1/transcribe/stream',
         headers: {
           'content-type': 'audio/ogg',
           authorization: 'Bearer test-token',
+          'x-file-name': 'voice.ogg',
+          'x-stt-provider': 'assemblyai',
+          'x-stt-language': 'en',
+          'x-stt-restore-punctuation': 'true',
+          'x-stt-format-text': 'true',
+          'x-stt-models': 'universal-3-pro,universal-2',
+          'x-stt-api-key': 'provider-key',
+          'x-stt-max-wait-minutes': '2',
         },
       })
       .reply(200, { text: 'ok' });

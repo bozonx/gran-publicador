@@ -95,33 +95,42 @@ export class SttService {
         // Non-connection errors (404 from HEAD, etc.) are fine — service is reachable
       }
 
-      const query = new URLSearchParams();
-      query.set('filename', filename);
-      if (params.provider) {
-        query.set('provider', params.provider);
-      }
-      if (params.language) {
-        query.set('language', params.language);
-      }
-      if (params.restorePunctuation !== undefined) {
-        query.set('restorePunctuation', String(params.restorePunctuation));
-      }
-      if (params.formatText !== undefined) {
-        query.set('formatText', String(params.formatText));
-      }
-      if (params.models?.length) {
-        query.set('models', params.models.join(','));
-      }
-      if (params.apiKey) {
-        query.set('apiKey', params.apiKey);
-      }
-      if (params.maxWaitMinutes !== undefined) {
-        query.set('maxWaitMinutes', String(params.maxWaitMinutes));
-      }
-
       const headers: Record<string, string> = {
         'Content-Type': params.mimetype || 'application/octet-stream',
+        'X-File-Name': filename,
       };
+
+      if (params.provider) {
+        headers['X-STT-Provider'] = params.provider;
+      }
+
+      if (params.language) {
+        headers['X-STT-Language'] = params.language;
+      }
+
+      if (params.restorePunctuation !== undefined) {
+        headers['X-STT-Restore-Punctuation'] = String(params.restorePunctuation);
+      }
+
+      if (params.formatText !== undefined) {
+        headers['X-STT-Format-Text'] = String(params.formatText);
+      }
+
+      if (params.models?.length) {
+        headers['X-STT-Models'] = params.models.join(',');
+      }
+
+      if (params.apiKey) {
+        headers['X-STT-Api-Key'] = params.apiKey;
+      }
+
+      if (params.maxWaitMinutes !== undefined) {
+        headers['X-STT-Max-Wait-Minutes'] = String(params.maxWaitMinutes);
+      }
+
+      if (Buffer.isBuffer(params.file)) {
+        headers['Content-Length'] = String(params.file.length);
+      }
 
       if (config.apiToken) {
         headers['Authorization'] = `Bearer ${config.apiToken}`;
@@ -129,16 +138,13 @@ export class SttService {
 
       this.logger.debug(`Starting raw upload to STT Gateway for ${filename}`);
 
-      const response = await request(
-        `${config.serviceUrl}/transcribe/stream${query.size ? `?${query.toString()}` : ''}`,
-        {
-          method: 'POST',
-          body: params.file as any,
-          headersTimeout: config?.timeoutMs || 600000,
-          bodyTimeout: config?.timeoutMs || 600000,
-          headers,
-        },
-      );
+      const response = await request(`${config.serviceUrl}/transcribe/stream`, {
+        method: 'POST',
+        body: params.file as any,
+        headersTimeout: config?.timeoutMs || 600000,
+        bodyTimeout: config?.timeoutMs || 600000,
+        headers,
+      });
 
       if (response.statusCode !== 200) {
         const errorBody = await response.body.json().catch(() => ({}));
