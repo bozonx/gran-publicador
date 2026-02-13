@@ -921,7 +921,7 @@ async function executePublish(force: boolean) {
         <UButton
           v-for="tpl in filteredProjectTemplates"
           :key="tpl.id"
-          :label="tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : '')"
+          :label="tpl.name"
           :variant="currentPublication?.projectTemplateId === tpl.id ? 'soft' : 'ghost'"
           :color="currentPublication?.projectTemplateId === tpl.id ? 'primary' : 'neutral'"
           class="w-full justify-start"

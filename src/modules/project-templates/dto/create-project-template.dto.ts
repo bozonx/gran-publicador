@@ -27,9 +27,6 @@ export class CreateProjectTemplateDto {
   @IsOptional()
   public postType?: PostType;
 
-  @IsBoolean()
-  @IsOptional()
-  public isDefault?: boolean;
 
   @IsString()
   @IsOptional()

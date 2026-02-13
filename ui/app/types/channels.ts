@@ -37,7 +37,6 @@ export interface ProjectTemplate {
   projectId: string;
   name: string;
   postType?: string | null;
-  isDefault?: boolean;
   language: string | null;
   order: number;
   template: TemplateBlock[];

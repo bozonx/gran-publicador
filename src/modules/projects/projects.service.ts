@@ -102,7 +102,6 @@ export class ProjectsService {
       data: {
         projectId,
         name: 'Стандартный',
-        isDefault: true,
         language: null, // Applies to all languages
         order: 0,
         template: [

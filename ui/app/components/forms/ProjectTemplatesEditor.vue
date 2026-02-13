@@ -85,7 +85,6 @@ const templateForm = ref({
   id: '',
   name: '',
   postType: null as string | null,
-  isDefault: false,
   language: null as string | null,
   template: [] as TemplateBlock[],
 })
@@ -127,7 +126,6 @@ const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, r
     await updateProjectTemplate(props.projectId, data.id, {
       name: data.name,
       postType: data.postType,
-      isDefault: data.isDefault,
       language: data.language,
       template: data.template,
     })
@@ -150,15 +148,8 @@ async function handleCreate() {
     // Determine default language from user or project channels
     const defaultLang = user.value?.language || projectChannels.value.find(ch => !ch.archivedAt)?.language || 'ru-RU'
 
-    const hasDefaultInGroup = templates.value.some(t => {
-      const sameLanguage = (t.language ?? null) === defaultLang
-      const samePostType = (t.postType ?? null) === null
-      return sameLanguage && samePostType && t.isDefault
-    })
-
     const result = await createProjectTemplate(props.projectId, {
       name: t('projectTemplates.newTemplateName'),
-      isDefault: !hasDefaultInGroup,
       language: defaultLang,
       template: getDefaultBlocks(),
     })
@@ -184,7 +175,6 @@ function openEditModal(tpl: ProjectTemplate) {
     id: tpl.id,
     name: tpl.name,
     postType: tpl.postType || null,
-    isDefault: !!tpl.isDefault,
     language: tpl.language ?? null,
     template: JSON.parse(JSON.stringify(tpl.template)),
   }
@@ -443,9 +433,6 @@ const allBlocks = computed(() => {
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="font-medium text-gray-900 dark:text-white truncate">{{ tpl.name }}</span>
-              <UBadge v-if="tpl.isDefault" color="primary" variant="subtle" size="xs">
-                {{ t('common.default') }}
-              </UBadge>
               <UBadge v-if="tpl.postType" color="neutral" variant="subtle" size="xs">
                 {{ tpl.postType }}
               </UBadge>
@@ -544,20 +531,7 @@ const allBlocks = computed(() => {
                 />
               </UFormField>
 
-              <div
-                class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors self-end"
-                @click="templateForm.isDefault = !templateForm.isDefault"
-              >
-                <UCheckbox v-model="templateForm.isDefault" @click.stop />
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs font-medium text-gray-900 dark:text-white truncate">
-                    {{ t('channel.templateIsDefault') }}
-                  </div>
-                  <div class="text-xxs text-gray-500 truncate">
-                    {{ t('channel.templateIsDefaultHelp') }}
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
 

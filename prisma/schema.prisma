@@ -673,7 +673,6 @@ model ProjectTemplate {
   projectId String    @map("project_id")
   name      String
   postType  PostType? @map("post_type")
-  isDefault Boolean   @default(false) @map("is_default")
   order     Int       @default(0)
   // Template language (e.g. ru-RU, en-US) — determines which channels are shown in template editor
   // If null, template applies to all languages

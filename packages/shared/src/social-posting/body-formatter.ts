@@ -37,7 +37,6 @@ export interface ProjectTemplateData {
   id: string;
   name: string;
   postType: string | null;
-  isDefault?: boolean;
   order: number;
   template: TemplateBlock[];
 }
@@ -142,8 +141,6 @@ export class SocialPostingBodyFormatter {
 
     const pickDefaultProjectTemplate = () => {
       if (!projectTemplates || projectTemplates.length === 0) return undefined;
-      const defaultTpl = projectTemplates.find(t => t.isDefault);
-      if (defaultTpl) return defaultTpl;
       return [...projectTemplates].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
     };
 

@@ -186,7 +186,7 @@ watch(
         hasManualTemplateSelection.value = false
       }
       if (!hasManualTemplateSelection.value) {
-        const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+        const def = filteredProjectTemplates.value[0]
         state.projectTemplateId = def?.id || ''
       }
 
@@ -239,11 +239,11 @@ watch([() => state.language, () => state.postType], () => {
   
   // If current template is not in the filtered list, pick a new one
   if (state.projectTemplateId && !filteredProjectTemplates.value.some(t => t.id === state.projectTemplateId)) {
-    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+    const def = filteredProjectTemplates.value[0]
     state.projectTemplateId = def?.id || ''
     hasManualTemplateSelection.value = false
   } else if (!state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
-    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+    const def = filteredProjectTemplates.value[0]
     state.projectTemplateId = def?.id || ''
   }
 })
@@ -269,7 +269,7 @@ const signatureOptions = computed(() => {
 const templateOptions = computed(() => {
   return filteredProjectTemplates.value.map(tpl => ({
     value: tpl.id,
-    label: tpl.name + (tpl.isDefault ? ` (${t('common.default')})` : ''),
+    label: tpl.name,
   }))
 })
 
@@ -364,7 +364,7 @@ onMounted(async () => {
     }
 
     if (!hasManualTemplateSelection.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
-      const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+      const def = filteredProjectTemplates.value[0]
       if (def) state.projectTemplateId = def.id
     }
 

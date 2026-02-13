@@ -130,10 +130,8 @@ async function quickCreatePublication(postType: PostType) {
     // Try to find the best matching template
     if (projectTemplates.value.length > 0) {
       const bestMatch = projectTemplates.value.find(t => 
-        t.isDefault && (!t.language || t.language === createData.language) && (!t.postType || t.postType === createData.postType)
-      ) || projectTemplates.value.find(t => 
         (!t.language || t.language === createData.language) && (!t.postType || t.postType === createData.postType)
-      ) || projectTemplates.value.find(t => t.isDefault) || projectTemplates.value[0]
+      ) || projectTemplates.value[0]
       
       if (bestMatch) {
         createData.projectTemplateId = bestMatch.id

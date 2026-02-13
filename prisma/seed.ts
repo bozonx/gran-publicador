@@ -511,7 +511,6 @@ async function main() {
       projectId: projectData[0].id,
       name: 'Standard Tech Article',
       postType: PostType.ARTICLE,
-      isDefault: true,
       order: 0,
       template: [
         { type: 'header', content: 'Mastering {{topic}}' },
@@ -524,7 +523,6 @@ async function main() {
       projectId: projectData[0].id,
       name: 'Quick News Post',
       postType: PostType.NEWS,
-      isDefault: false,
       order: 1,
       template: [{ type: 'text', content: '🚀 {{headline}}\n\nCheck out more at {{url}}' }],
     },

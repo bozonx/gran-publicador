@@ -409,17 +409,16 @@ export class PublicationsService {
       if (tpl) return tpl.id;
     }
 
-    // Find best default template matching language and type
+    // Find best matching template matching language and type, prioritized by order
     const tpl = await this.prisma.projectTemplate.findFirst({
       where: {
         projectId,
-        isDefault: true,
         AND: [
           { OR: [{ language }, { language: null }] },
           { OR: [{ postType: postType ?? null }, { postType: null }] },
         ],
       },
-      orderBy: [{ language: 'desc' }, { postType: 'desc' }, { createdAt: 'asc' }],
+      orderBy: { order: 'asc' },
     });
 
     if (tpl) return tpl.id;

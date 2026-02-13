@@ -5,7 +5,6 @@ import { logger } from '~/utils/logger';
 export interface CreateProjectTemplateInput {
   name: string;
   postType?: string | null;
-  isDefault?: boolean;
   language?: string | null;
   template: TemplateBlock[];
 }
@@ -13,7 +12,6 @@ export interface CreateProjectTemplateInput {
 export interface UpdateProjectTemplateInput {
   name?: string;
   postType?: string | null;
-  isDefault?: boolean;
   language?: string | null;
   template?: TemplateBlock[];
 }
@@ -61,18 +59,6 @@ export function useProjectTemplates() {
       const result = await api.post<ProjectTemplate>(`/projects/${projectId}/templates`, data);
       templates.value.push(result);
 
-      // If the new template is now the default, unset default for all other templates in the same group
-      if (result.isDefault) {
-        const groupLanguage = result.language ?? null;
-        const groupPostType = result.postType ?? null;
-        templates.value.forEach(t => {
-          const sameGroup =
-            (t.language ?? null) === groupLanguage && (t.postType ?? null) === groupPostType;
-          if (sameGroup && t.id !== result.id && t.isDefault) {
-            t.isDefault = false;
-          }
-        });
-      }
       return result;
     } catch (err: any) {
       const message = err.message || 'Failed to create project template';
@@ -106,18 +92,7 @@ export function useProjectTemplates() {
       if (idx !== -1) {
         templates.value[idx] = result;
 
-        // If the updated template is now the default, unset default for all other templates in the same group
-        if (result.isDefault) {
-          const groupLanguage = result.language ?? null;
-          const groupPostType = result.postType ?? null;
-          templates.value.forEach((t, i) => {
-            const sameGroup =
-              (t.language ?? null) === groupLanguage && (t.postType ?? null) === groupPostType;
-            if (sameGroup && i !== idx && t.isDefault) {
-              t.isDefault = false;
-            }
-          });
-        }
+
       }
       return result;
     } catch (err: any) {

@@ -6,7 +6,6 @@ describe('SocialPostingBodyFormatter', () => {
     {
       id: 'pt1',
       name: 'Project Template 1',
-      isDefault: true,
       order: 0,
       template: [
         { enabled: true, insert: 'content', before: '', after: '' },
@@ -16,7 +15,6 @@ describe('SocialPostingBodyFormatter', () => {
     {
       id: 'pt2',
       name: 'Project Template 2',
-      isDefault: false,
       order: 1,
       template: [
         { enabled: true, insert: 'content', before: '', after: '' },
@@ -32,7 +30,6 @@ describe('SocialPostingBodyFormatter', () => {
     {
       id: 'pt_mixed',
       name: 'Mixed Blocks',
-      isDefault: false,
       order: 2,
       template: [
         { enabled: false, insert: 'title', before: 'Title: ', after: '' },

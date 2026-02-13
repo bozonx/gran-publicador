@@ -79,27 +79,11 @@ export class ProjectTemplatesService {
 
     return this.prisma.$transaction(
       async tx => {
-        // If setting as default, unset other defaults
-        if (data.isDefault) {
-          const targetLanguage = data.language !== undefined ? data.language : null;
-          const targetPostType = data.postType ?? null;
-          await tx.projectTemplate.updateMany({
-            where: {
-              projectId,
-              isDefault: true,
-              language: targetLanguage,
-              postType: targetPostType,
-            },
-            data: { isDefault: false },
-          });
-        }
-
         return tx.projectTemplate.create({
           data: {
             projectId,
             name: data.name,
             postType: data.postType ?? null,
-            isDefault: data.isDefault ?? false,
             language: data.language !== undefined ? data.language : null,
             order: nextOrder,
             template: data.template as any,
@@ -132,35 +116,11 @@ export class ProjectTemplatesService {
 
     return this.prisma.$transaction(
       async tx => {
-        const nextLanguage = data.language !== undefined ? data.language : existing.language;
-        const nextPostType = data.postType !== undefined ? data.postType : existing.postType;
-
-        const shouldEnforceGroupDefaultUniqueness =
-          data.isDefault === true ||
-          (existing.isDefault &&
-            (data.language !== undefined || data.postType !== undefined) &&
-            (nextLanguage !== existing.language || nextPostType !== existing.postType));
-
-        // If setting as default (or moving a default template to another group), unset other defaults in the same group
-        if (shouldEnforceGroupDefaultUniqueness) {
-          await tx.projectTemplate.updateMany({
-            where: {
-              projectId,
-              isDefault: true,
-              language: nextLanguage,
-              postType: nextPostType,
-              id: { not: templateId },
-            },
-            data: { isDefault: false },
-          });
-        }
-
         return tx.projectTemplate.update({
           where: { id: templateId },
           data: {
             name: data.name,
             postType: data.postType !== undefined ? data.postType : undefined,
-            isDefault: data.isDefault,
             language: data.language,
             template: data.template ? (data.template as any) : undefined,
           },

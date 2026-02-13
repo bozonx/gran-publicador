@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 
 import { ProjectTemplatesService } from '../../src/modules/project-templates/project-templates.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -13,7 +13,6 @@ describe('ProjectTemplatesService (unit)', () => {
 
   const mockTx: any = {
     projectTemplate: {
-      updateMany: jest.fn() as any,
       create: jest.fn() as any,
       findFirst: jest.fn() as any,
       aggregate: jest.fn() as any,
@@ -80,14 +79,13 @@ describe('ProjectTemplatesService (unit)', () => {
   });
 
   describe('create', () => {
-    it('should unset defaults only in the same (language, postType) group', async () => {
+    it('should create a project template', async () => {
       mockTx.projectTemplate.create.mockResolvedValue({
         id: 'tpl-1',
         projectId: 'project-1',
         name: 'Template',
         language: 'ru-RU',
         postType: 'POST',
-        isDefault: true,
         order: 1,
         template: [],
       });
@@ -96,7 +94,6 @@ describe('ProjectTemplatesService (unit)', () => {
         name: 'Template',
         language: 'ru-RU',
         postType: 'POST' as any,
-        isDefault: true,
         template: [],
       } as any);
 
@@ -106,85 +103,30 @@ describe('ProjectTemplatesService (unit)', () => {
         PermissionKey.PROJECT_UPDATE,
       );
 
-      expect(mockTx.projectTemplate.updateMany).toHaveBeenCalledWith({
-        where: {
-          projectId: 'project-1',
-          isDefault: true,
-          language: 'ru-RU',
-          postType: 'POST',
-        },
-        data: { isDefault: false },
-      });
+      expect(mockTx.projectTemplate.create).toHaveBeenCalled();
     });
   });
 
   describe('update', () => {
-    it('should unset defaults only in the target group when setting isDefault=true', async () => {
+    it('should update a project template', async () => {
       const existing = {
         id: 'tpl-1',
         projectId: 'project-1',
         name: 'Existing',
         language: 'ru-RU',
         postType: 'POST',
-        isDefault: false,
         order: 0,
         template: [],
       };
 
       mockPrismaService.projectTemplate.findFirst.mockResolvedValue(existing);
-      mockTx.projectTemplate.update.mockResolvedValue({ ...existing, isDefault: true });
+      mockTx.projectTemplate.update.mockResolvedValue({ ...existing, name: 'Updated' });
 
       await service.update('project-1', 'tpl-1', 'user-1', {
-        isDefault: true,
+        name: 'Updated',
       } as any);
 
-      expect(mockTx.projectTemplate.updateMany).toHaveBeenCalledWith({
-        where: {
-          projectId: 'project-1',
-          isDefault: true,
-          language: 'ru-RU',
-          postType: 'POST',
-          id: { not: 'tpl-1' },
-        },
-        data: { isDefault: false },
-      });
-    });
-
-    it('should enforce group uniqueness when moving a default template to a different group', async () => {
-      const existing = {
-        id: 'tpl-1',
-        projectId: 'project-1',
-        name: 'Existing',
-        language: 'ru-RU',
-        postType: 'POST',
-        isDefault: true,
-        order: 0,
-        template: [],
-      };
-
-      mockPrismaService.projectTemplate.findFirst.mockResolvedValue(existing);
-      mockTx.projectTemplate.update.mockResolvedValue({
-        ...existing,
-        language: 'en-US',
-        postType: 'ARTICLE',
-        isDefault: true,
-      });
-
-      await service.update('project-1', 'tpl-1', 'user-1', {
-        language: 'en-US',
-        postType: 'ARTICLE' as any,
-      } as any);
-
-      expect(mockTx.projectTemplate.updateMany).toHaveBeenCalledWith({
-        where: {
-          projectId: 'project-1',
-          isDefault: true,
-          language: 'en-US',
-          postType: 'ARTICLE',
-          id: { not: 'tpl-1' },
-        },
-        data: { isDefault: false },
-      });
+      expect(mockTx.projectTemplate.update).toHaveBeenCalled();
     });
   });
 });

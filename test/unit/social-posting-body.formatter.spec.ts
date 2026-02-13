@@ -21,7 +21,6 @@ describe('SocialPostingBodyFormatter', () => {
       id: 'pt-1',
       name: 'Project template',
       postType: null,
-      isDefault: true,
       order: 0,
       template: [
         { enabled: true, insert: 'content', before: '', after: '' },
@@ -64,7 +63,6 @@ describe('SocialPostingBodyFormatter', () => {
         id: 'pt-1',
         name: 'PT-1',
         postType: null,
-        isDefault: true,
         order: 0,
         template: [
           { enabled: true, insert: 'content', before: '', after: '' },
@@ -75,7 +73,6 @@ describe('SocialPostingBodyFormatter', () => {
         id: 'pt-2',
         name: 'PT-2',
         postType: null,
-        isDefault: false,
         order: 1,
         template: [
           { enabled: true, insert: 'content', before: '', after: '' },
@@ -111,7 +108,6 @@ describe('SocialPostingBodyFormatter', () => {
         id: 'pt-2',
         name: 'PT-2',
         postType: null,
-        isDefault: true,
         order: 0,
         template: [
           { enabled: true, insert: 'content', before: '', after: '' },
@@ -162,7 +158,6 @@ describe('SocialPostingBodyFormatter', () => {
         id: 'pt-custom',
         name: 'Custom',
         postType: null,
-        isDefault: true,
         order: 0,
         template: [
           {
