@@ -24,6 +24,23 @@ export class PostsService {
     private readonly tagsService: TagsService,
   ) {}
 
+  private normalizePostResponse(post: any) {
+    if (!post) return post;
+
+    const normalizedPublication = post.publication
+      ? {
+          ...post.publication,
+          tags: (post.publication.tagObjects ?? []).map((t: any) => t?.name).filter(Boolean),
+        }
+      : post.publication;
+
+    return {
+      ...post,
+      publication: normalizedPublication,
+      tags: (post.tagObjects ?? []).map((t: any) => t?.name).filter(Boolean),
+    };
+  }
+
   private async refreshPublicationEffectiveAt(publicationId: string) {
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
@@ -209,7 +226,7 @@ export class PostsService {
     this.logger.log(
       `Created post ${post.id}. platformOptions: ${JSON.stringify(data.platformOptions)}`,
     );
-    return post;
+    return this.normalizePostResponse(post);
   }
 
   /**
@@ -258,7 +275,7 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
-    return this.prisma.post.findMany({
+    const posts = await this.prisma.post.findMany({
       where,
       include: {
         channel: {
@@ -280,6 +297,8 @@ export class PostsService {
       take: filters?.limit,
       skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
     });
+
+    return posts.map(post => this.normalizePostResponse(post));
   }
 
   /**
@@ -328,7 +347,7 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
-    return this.prisma.post.findMany({
+    const posts = await this.prisma.post.findMany({
       where,
       include: {
         channel: {
@@ -346,6 +365,8 @@ export class PostsService {
       take: filters?.limit,
       skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
     });
+
+    return posts.map(post => this.normalizePostResponse(post));
   }
 
   /**
@@ -387,7 +408,7 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
-    return this.prisma.post.findMany({
+    const posts = await this.prisma.post.findMany({
       where,
       include: {
         channel: {
@@ -405,6 +426,8 @@ export class PostsService {
       take: filters?.limit,
       skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
     });
+
+    return posts.map(post => this.normalizePostResponse(post));
   }
 
   /**
@@ -451,7 +474,7 @@ export class PostsService {
     }
 
     await this.channelsService.findOne(post.channelId, userId); // Validates access
-    return post;
+    return this.normalizePostResponse(post);
   }
 
   /**
@@ -628,7 +651,7 @@ export class PostsService {
     this.logger.log(
       `Updated post ${id}. platformOptions in return: ${JSON.stringify(updatedPost.platformOptions)}`,
     );
-    return updatedPost;
+    return this.normalizePostResponse(updatedPost);
   }
 
   /**

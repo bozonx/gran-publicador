@@ -215,7 +215,11 @@ async function handleSave() {
     showValidationWarning.value = true
     return
   }
-  await performSave()
+  try {
+    await performSave()
+  } catch {
+    // Error toast and button state are handled in performSave.
+  }
 }
 
 async function performSave() {
@@ -271,6 +275,7 @@ async function performSave() {
       description: t('common.saveError', 'Failed to save'),
       color: 'error',
     })
+    throw error
   }
 }
 
@@ -435,7 +440,9 @@ watch(projectId, async (newProjectId) => {
 watch(signatureOptions, (newOptions) => {
     // Only auto-select if creating a new post and signature is not already set
     if (props.isCreating && !formData.authorSignature && newOptions.length > 0) {
-        formData.authorSignature = newOptions[0].value
+        const first = newOptions[0]
+        if (!first) return
+        formData.authorSignature = first.value
     }
 }, { immediate: true })
 
