@@ -20,7 +20,7 @@ export function usePublicationFormValidation(t: any) {
       .object({
         title: z.string().optional(),
         content: z.string().optional(),
-        tags: z.string().optional(),
+        tags: z.array(z.string()).optional(),
         postType: z.enum(POST_TYPE_VALUES),
         status: z.enum(STATUS_VALUES),
         scheduledAt: z.string().optional(),
@@ -71,7 +71,7 @@ export function usePublicationFormState(
   const state = reactive({
     title: publication?.title || '',
     content: publication?.content || '',
-    tags: publication?.tags || '',
+    tags: publication?.tags || [],
     postType: (publication?.postType || 'POST') as PostType,
     status: (publication?.status || 'DRAFT') as PublicationStatus,
     scheduledAt: publication?.scheduledAt
@@ -97,8 +97,8 @@ export function usePublicationFormState(
     postDate: publication?.postDate
       ? new Date(publication.postDate).toISOString().slice(0, 16)
       : '',
-    authorSignatureId: publication?.authorSignatureId || '' as string,
-    projectTemplateId: publication?.projectTemplateId || '' as string,
+    authorSignatureId: publication?.authorSignatureId || ('' as string),
+    projectTemplateId: publication?.projectTemplateId || ('' as string),
   });
 
   return state;

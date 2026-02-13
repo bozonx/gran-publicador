@@ -160,7 +160,7 @@ export class PublicationQueryBuilder {
         conditions.push({
           tagObjects: {
             some: {
-              name: { in: tagList },
+              normalizedName: { in: tagList.map(t => t.toLowerCase()) },
             },
           },
         });

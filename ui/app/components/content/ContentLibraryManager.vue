@@ -2,7 +2,7 @@
 import { type ContentLibraryTab } from '~/composables/useContentLibraryTabs'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
-import { parseTags, formatTagsCsv } from '~/utils/tags'
+import { parseTags } from '~/utils/tags'
 import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
 import ContentLibraryTabs from './ContentLibraryTabs.vue'
 import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
@@ -34,6 +34,7 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const toast = useToast()
+const { user } = useAuth()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
 const { updateTab, deleteTab } = useContentLibraryTabs()
 const { formatDateShort } = useFormatters()
@@ -99,7 +100,7 @@ const publicationData = ref({
   title: '',
   content: '',
   mediaIds: [] as Array<{ id: string }>,
-  tags: '',
+  tags: [] as string[],
   note: '',
   contentItemIds: [] as string[]
 })
@@ -119,8 +120,6 @@ const isEditModalOpen = ref(false)
 const activeItem = ref<any | null>(null)
 
 const isBulkUploadModalOpen = ref(false)
-
-const formatTags = (tags: string[]): string => formatTagsCsv(tags)
 
 const fetchItems = async (opts?: { reset?: boolean }) => {
   if (props.scope === 'project' && !props.projectId) return
@@ -404,7 +403,7 @@ const handleCreatePublicationFromSelection = () => {
       title: aggregated.title,
       content: aggregated.content,
       mediaIds: aggregated.media,
-      tags: aggregated.tags,
+      tags: parseTags(aggregated.tags),
       note: aggregated.note,
       contentItemIds: aggregated.contentItemIds
     }
@@ -427,7 +426,7 @@ const handleCreatePublication = (item: any) => {
     title: (item.title || '').toString().trim(),
     content: texts.join('\n\n'),
     mediaIds: (item.blocks || []).flatMap((b: any) => (b.media || []).map((m: any) => ({ id: m.mediaId }))).filter((m: any) => !!m.id),
-    tags: formatTags(item.tags || []),
+    tags: item.tags || [],
     note: item.note || '',
     contentItemIds: [item.id]
   }
@@ -663,7 +662,9 @@ if (props.scope === 'project' && props.projectId) {
         ref="editorRef"
         :item="activeItem"
         @refresh="fetchItems({ reset: true })"
-      />
+      />"
+        :scope="props.scope"
+        :project-id="props.projectId
       
       <template #footer>
         <div class="flex justify-between items-center w-full">

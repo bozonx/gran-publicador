@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { formatTagsCsv, normalizeTags, parseTags } from '~/utils/tags'
+import { normalizeTags } from '~/utils/tags'
 
 const props = withDefaults(defineProps<{
-  modelValue: string | null | undefined
+  modelValue: string[] | null | undefined
   placeholder?: string
   color?: 'error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral'
   variant?: 'outline' | 'soft' | 'subtle' | 'ghost'
@@ -16,25 +16,27 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: string[]): void
 }>()
 
 const api = useApi()
 const loading = ref(false)
+const searchTerm = ref('')
+const items = ref<string[]>([])
 
 const value = computed<string[]>({
   get() {
-    const raw = props.modelValue ?? ''
-    return normalizeTags(parseTags(raw))
+    return normalizeTags(props.modelValue ?? [])
   },
   set(next) {
-    const normalized = normalizeTags(next)
-    emit('update:modelValue', formatTagsCsv(normalized))
+    emit('update:modelValue', normalizeTags(next))
   },
 })
 
 async function searchTags(q: string) {
   if (!q || q.length < 1) return []
+
+  if (!props.projectId && !props.userId) return []
   
   loading.value = true
   try {
@@ -54,14 +56,28 @@ async function searchTags(q: string) {
     loading.value = false
   }
 }
+
+const debouncedSearch = useDebounceFn(async () => {
+  items.value = await searchTags(searchTerm.value)
+}, 200)
+
+watch(searchTerm, () => {
+  if (!searchTerm.value) {
+    items.value = []
+    return
+  }
+  debouncedSearch()
+})
 </script>
 
 <template>
   <UInputMenu
     v-model="value"
+    v-model:search-term="searchTerm"
     multiple
     create-item
-    :items="searchTags"
+    :items="items"
+    ignore-filter
     :placeholder="placeholder"
     :color="color"
     :variant="variant"

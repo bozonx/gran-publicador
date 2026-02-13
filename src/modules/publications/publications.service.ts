@@ -277,7 +277,7 @@ export class PublicationsService {
     await this.prisma.publication.update({
       where: { id: publicationId },
       data: {
-        meta: updatedMeta as any,
+        meta: updatedMeta,
       },
     });
 
@@ -496,7 +496,7 @@ export class PublicationsService {
                             filename,
                             mimeType: metadata.mimeType,
                             sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
-                            meta: metadata as any,
+                            meta: metadata,
                           },
                         },
                       };
@@ -505,7 +505,7 @@ export class PublicationsService {
                         `Failed to upload image from URL ${data.imageUrl}: ${err.message}`,
                       );
                       // If it fails, we just don't add the media, but log it
-                      return null as any;
+                      return null;
                     }
                   })(),
                 ]
@@ -513,7 +513,7 @@ export class PublicationsService {
             // New Media
             ...(data.media || []).map((m, i) => ({
               order: (data.imageUrl ? 1 : 0) + i,
-              media: { create: { ...m, meta: (m.meta || {}) as any } },
+              media: { create: { ...m, meta: m.meta } },
             })),
             // Existing Media
             ...(data.existingMediaIds || []).map((item, i) => {
@@ -542,12 +542,12 @@ export class PublicationsService {
               })),
             }
           : undefined,
-        tagObjects: (await this.tagsService.prepareTagsConnectOrCreate(
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
           normalizeTags(data.tags ?? []),
           {
             projectId: data.projectId!,
           },
-        )) as any,
+        ),
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
@@ -601,7 +601,7 @@ export class PublicationsService {
    *
    * @param projectId - The ID of the project.
    * @param userId - The ID of the user.
-   * @param filters - Optional filters (status, limit, offset, sorting, search, etc.).
+   * @param filters - Optional filters (status, limit, offset, includeArchived, sorting, search, etc.).
    * @returns Publications with total count for pagination.
    */
   public async findAll(
@@ -1059,8 +1059,8 @@ export class PublicationsService {
         },
         data: {
           status: PostStatus.PENDING,
-          errorMessage: null,
           scheduledAt: null, // Clear post-specific schedule to fallback to publication's one
+          errorMessage: null,
           publishedAt: null,
         },
       });
@@ -1183,7 +1183,7 @@ export class PublicationsService {
                   // New Media
                   ...(data.media || []).map((m, i) => ({
                     order: i,
-                    media: { create: { ...m, meta: (m.meta || {}) as any } },
+                    media: { create: { ...m, meta: m.meta } },
                   })),
                   // Existing Media
                   ...(data.existingMediaIds || []).map((item, i) => {
@@ -1205,13 +1205,13 @@ export class PublicationsService {
         note: data.note,
         tagObjects:
           data.tags !== undefined
-            ? ((await this.tagsService.prepareTagsConnectOrCreate(
+            ? await this.tagsService.prepareTagsConnectOrCreate(
                 normalizeTags(data.tags),
                 {
                   projectId: publication.projectId!,
                 },
                 true,
-              )) as any)
+              )
             : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,

@@ -188,12 +188,12 @@ export class PostsService {
         platformOptions: data.platformOptions,
         authorSignature: authorSignature || undefined,
         errorMessage,
-        tagObjects: (await this.tagsService.prepareTagsConnectOrCreate(
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
           normalizeTags(data.tags ?? []),
           {
             projectId: channel.projectId,
           },
-        )) as any,
+        ),
       },
       include: {
         channel: true,
@@ -600,13 +600,13 @@ export class PostsService {
         authorSignature: data.authorSignature,
         tagObjects:
           data.tags !== undefined
-            ? ((await this.tagsService.prepareTagsConnectOrCreate(
+            ? await this.tagsService.prepareTagsConnectOrCreate(
                 normalizeTags(data.tags),
                 {
                   projectId: post.channel?.projectId || '',
                 },
                 true,
-              )) as any)
+              )
             : undefined,
       },
       include: {

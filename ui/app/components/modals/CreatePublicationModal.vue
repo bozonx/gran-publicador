@@ -19,7 +19,7 @@ interface Props {
   prefilledTitle?: string
   prefilledContent?: string
   prefilledMediaIds?: any[]
-  prefilledTags?: string
+  prefilledTags?: string[]
   prefilledNote?: string
   prefilledContentItemIds?: string[]
 }
@@ -437,7 +437,7 @@ async function handleCreate() {
       title: props.prefilledTitle || '',
       content: props.prefilledContent || '',
       existingMediaIds: props.prefilledMediaIds || [],
-      tags: props.prefilledTags || '',
+      tags: props.prefilledTags || [],
       note: props.prefilledNote || '',
       contentItemIds: props.prefilledContentItemIds || [],
       authorSignatureId: formData.authorSignatureId || undefined,

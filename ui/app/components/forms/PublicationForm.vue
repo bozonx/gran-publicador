@@ -145,7 +145,7 @@ watch(
       state.title = ''
       state.description = ''
       state.content = ''
-      state.tags = ''
+      state.tags = []
       state.note = ''
       state.authorComment = ''
       state.meta = {}
@@ -439,7 +439,7 @@ watch(() => props.publication, (newPub, oldPub) => {
 
     state.title = newPub.title || ''
     state.content = newPub.content || ''
-    state.tags = newPub.tags || ''
+    state.tags = newPub.tags || []
     state.postType = newPub.postType as PostType
     state.status = (newPub.status || 'DRAFT') as PublicationStatus
     state.language = newPub.language || user.value?.language || locale.value
@@ -485,10 +485,11 @@ async function performSubmit(data: PublicationFormData) {
       content: isTextContentEmpty(data.content) ? null : (data.content || null),
       authorComment: data.authorComment || null,
       note: data.note || null,
-      tags: data.tags || null,
+      tags: data.tags,
       postType: data.postType,
       meta: data.meta || {},
-      postDate: data.postDate ? new Date(data.postDate).toISOString() : null,
+      language: data.language,
+      postDate: data.postDate ? new Date(data.postDate).toISOString() : undefined,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : undefined,
     }
 

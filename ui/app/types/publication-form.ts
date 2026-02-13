@@ -9,7 +9,7 @@ export interface PublicationFormData {
   content: string | null;
   authorComment: string | null;
   note: string | null;
-  tags: string | null;
+  tags: string[];
   language: string;
   postType: PostType;
   status: PublicationStatus;

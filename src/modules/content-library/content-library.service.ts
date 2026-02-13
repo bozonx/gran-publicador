@@ -135,7 +135,7 @@ export class ContentLibraryService {
     projectId?: string;
     userId: string;
   }) {
-    const tab = await (this.prisma as any).contentLibraryTab.findUnique({
+    const tab = await this.prisma.contentLibraryTab.findUnique({
       where: { id: options.folderId },
       select: { id: true, type: true, userId: true, projectId: true },
     });
@@ -181,7 +181,7 @@ export class ContentLibraryService {
     userId: string;
     requireMutationPermission?: boolean;
   }) {
-    const tab = await (this.prisma as any).contentLibraryTab.findUnique({
+    const tab = await this.prisma.contentLibraryTab.findUnique({
       where: { id: options.tabId },
       select: { id: true, type: true, userId: true, projectId: true },
     });
@@ -350,7 +350,7 @@ export class ContentLibraryService {
   public async findOne(id: string, userId: string) {
     await this.assertContentItemAccess(id, userId, true);
 
-    return (this.prisma.contentItem as any).findUnique({
+    return this.prisma.contentItem.findUnique({
       where: { id },
       include: {
         tagObjects: true,
@@ -394,16 +394,16 @@ export class ContentLibraryService {
       });
     }
 
-    const created = await (this.prisma.contentItem as any).create({
+    const created = await this.prisma.contentItem.create({
       data: {
         userId: dto.scope === 'personal' ? userId : null,
         projectId: dto.scope === 'project' ? dto.projectId! : null,
         folderId: dto.folderId ?? null,
         title: dto.title,
-        tagObjects: (await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
           projectId: dto.scope === 'project' ? dto.projectId : undefined,
           userId: dto.scope === 'personal' ? userId : undefined,
-        })) as any,
+        }),
         note: dto.note,
         blocks: {
           create: (dto.blocks ?? []).map((b, idx) => ({
@@ -451,17 +451,21 @@ export class ContentLibraryService {
       }
     }
 
-    return (this.prisma.contentItem as any).update({
+    return this.prisma.contentItem.update({
       where: { id },
       data: {
         folderId: dto.folderId,
         title: dto.title,
         tagObjects:
           dto.tags !== undefined
-            ? ((await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
-                projectId: item.projectId ?? undefined,
-                userId: item.userId ?? undefined,
-              }, true)) as any)
+            ? await this.tagsService.prepareTagsConnectOrCreate(
+                dto.tags ?? [],
+                {
+                  projectId: item.projectId ?? undefined,
+                  userId: item.userId ?? undefined,
+                },
+                true,
+              )
             : undefined,
         note: dto.note,
       },

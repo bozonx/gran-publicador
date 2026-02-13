@@ -12,7 +12,7 @@ export interface Publication {
   title: string | null;
   description: string | null;
   content: string | null;
-  tags: string | null;
+  tags: string[];
   status: PublicationStatus;
   meta: string;
   language: string;

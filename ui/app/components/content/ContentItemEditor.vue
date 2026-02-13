@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, toRef, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { parseTags } from '~/utils/tags'
+import { normalizeTags } from '~/utils/tags'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
 
@@ -23,6 +23,8 @@ interface ContentItem {
 
 const props = defineProps<{
   item: ContentItem
+  scope: 'project' | 'personal'
+  projectId?: string
 }>()
 
 const emit = defineEmits<{
@@ -40,7 +42,7 @@ const toast = useToast()
 const editForm = ref({
   id: props.item.id,
   title: props.item.title || '',
-  tags: (props.item.tags || []).join(', '),
+  tags: normalizeTags(props.item.tags || []),
   note: props.item.note || '',
   blocks: JSON.parse(JSON.stringify(props.item.blocks || [])).sort((a: any, b: any) => a.order - b.order),
 })
@@ -63,7 +65,7 @@ const saveItem = async (formData: typeof editForm.value) => {
   // Atomic update of both item meta and its blocks
   await api.post(`/content-library/items/${formData.id}/sync`, {
     title: formData.title || null,
-    tags: parseTags(formData.tags),
+    tags: formData.tags,
     note: formData.note || null,
     blocks: formData.blocks.map((b, i) => ({
       id: b.id,
@@ -195,6 +197,8 @@ defineExpose({
       <CommonInputTags
         v-model="editForm.tags"
         :placeholder="t('contentLibrary.fields.tagsPlaceholder')"
+        :project-id="props.scope === 'project' ? props.projectId : undefined"
+        :user-id="props.scope === 'personal' ? user?.id : undefined"
         class="w-full"
       />
     </UFormField>
