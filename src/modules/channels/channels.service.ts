@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/index.js';
 
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
@@ -14,6 +14,76 @@ export class ChannelsService {
     private permissions: PermissionsService,
   ) {}
 
+  private getJsonObject(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return value as Record<string, unknown>;
+  }
+
+  private getChannelPreferences(value: unknown): {
+    disableNotification?: boolean;
+    protectContent?: boolean;
+    staleChannelsDays?: number;
+    templates?: Array<{
+      id: string;
+      name: string;
+      order: number;
+      isDefault?: boolean;
+      projectTemplateId: string;
+      excluded?: boolean;
+      overrides?: Record<string, unknown>;
+    }>;
+  } {
+    const prefs = this.getJsonObject(value);
+    const templates = prefs.templates;
+
+    return {
+      disableNotification:
+        typeof prefs.disableNotification === 'boolean' ? prefs.disableNotification : undefined,
+      protectContent: typeof prefs.protectContent === 'boolean' ? prefs.protectContent : undefined,
+      staleChannelsDays:
+        typeof prefs.staleChannelsDays === 'number' ? prefs.staleChannelsDays : undefined,
+      templates: Array.isArray(templates)
+        ? templates
+            .map(t => this.getJsonObject(t))
+            .filter(t => typeof t.projectTemplateId === 'string')
+            .map(t => ({
+              id: typeof t.id === 'string' ? t.id : '',
+              name: typeof t.name === 'string' ? t.name : '',
+              order: typeof t.order === 'number' ? t.order : 0,
+              isDefault: typeof t.isDefault === 'boolean' ? t.isDefault : undefined,
+              projectTemplateId: t.projectTemplateId as string,
+              excluded: typeof t.excluded === 'boolean' ? t.excluded : undefined,
+              overrides: this.getJsonObject(t.overrides),
+            }))
+        : undefined,
+    };
+  }
+
+  private async validateChannelTemplateReferences(
+    projectId: string,
+    preferences: unknown,
+  ): Promise<void> {
+    const templates = this.getChannelPreferences(preferences).templates;
+    if (!templates || templates.length === 0) return;
+
+    const ids = Array.from(new Set(templates.map(t => t.projectTemplateId)));
+    if (ids.length === 0) return;
+
+    const existing = await this.prisma.projectTemplate.findMany({
+      where: {
+        projectId,
+        id: { in: ids },
+      },
+      select: { id: true },
+    });
+
+    const existingSet = new Set(existing.map(t => t.id));
+    const missing = ids.filter(id => !existingSet.has(id));
+    if (missing.length > 0) {
+      throw new BadRequestException('Channel preferences contain unknown projectTemplateId');
+    }
+  }
+
   /**
    * Creates a new channel within a project.
    * Requires OWNER, ADMIN, or EDITOR role in the project.
@@ -25,6 +95,10 @@ export class ChannelsService {
   ) {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.CHANNELS_CREATE);
 
+    if (data.preferences) {
+      await this.validateChannelTemplateReferences(projectId, data.preferences);
+    }
+
     return this.prisma.channel.create({
       data: {
         projectId,
@@ -33,8 +107,8 @@ export class ChannelsService {
         description: data.description,
         channelIdentifier: data.channelIdentifier,
         language: data.language ?? 'en-US',
-        credentials: (data.credentials ?? {}) as any,
-        preferences: (data.preferences ?? {}) as any,
+        credentials: (data.credentials ?? {}) as Prisma.InputJsonValue,
+        preferences: (data.preferences ?? {}) as Prisma.InputJsonValue,
         isActive: data.isActive ?? true,
       },
     });
@@ -106,14 +180,18 @@ export class ChannelsService {
       PermissionKey.CHANNELS_UPDATE,
     );
 
+    if (data.preferences) {
+      await this.validateChannelTemplateReferences(channel.projectId, data.preferences);
+    }
+
     return this.prisma.channel.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description,
         channelIdentifier: data.channelIdentifier,
-        credentials: data.credentials ? (data.credentials as any) : undefined,
-        preferences: data.preferences ? (data.preferences as any) : undefined,
+        credentials: data.credentials ? (data.credentials as Prisma.InputJsonValue) : undefined,
+        preferences: data.preferences ? (data.preferences as Prisma.InputJsonValue) : undefined,
         isActive: data.isActive,
         tags: data.tags,
         language: data.language,
@@ -498,15 +576,17 @@ export class ChannelsService {
     role?: string,
   ): ChannelResponseDto {
     const { posts, credentials, preferences, project, _count, ...channelData } = channel;
-    const channelPrefs = (preferences as Record<string, any>) ?? {};
-    const projectPrefs = (project?.preferences as Record<string, any>) ?? {};
+    const channelPrefs = this.getChannelPreferences(preferences);
+    const projectPrefs = this.getJsonObject(project?.preferences);
     const lastPostAt = posts?.[0]?.publishedAt ?? posts?.[0]?.createdAt ?? null;
 
     let isStale = false;
     if (lastPostAt && !channelData.archivedAt) {
       const staleDays =
-        (channelPrefs.staleChannelsDays as number) ??
-        (projectPrefs.staleChannelsDays as number) ??
+        channelPrefs.staleChannelsDays ??
+        (typeof projectPrefs.staleChannelsDays === 'number'
+          ? projectPrefs.staleChannelsDays
+          : undefined) ??
         DEFAULT_STALE_CHANNELS_DAYS;
       const diffDays = Math.ceil(
         Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
@@ -517,7 +597,7 @@ export class ChannelsService {
     return {
       ...channelData,
       project,
-      credentials: (credentials as Record<string, any>) ?? {},
+      credentials: this.getJsonObject(credentials),
       role: role?.toLowerCase(),
       postsCount: counts.published,
       failedPostsCount: counts.failed,

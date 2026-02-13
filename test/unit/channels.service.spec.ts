@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ChannelsService } from '../../src/modules/channels/channels.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
-import { jest } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { PermissionKey } from '../../src/common/types/permissions.types.js';
 
 describe('ChannelsService (unit)', () => {
@@ -30,6 +30,9 @@ describe('ChannelsService (unit)', () => {
     },
     publication: {
       deleteMany: jest.fn() as any,
+    },
+    projectTemplate: {
+      findMany: jest.fn() as any,
     },
     $transaction: jest.fn((callback: any) => callback(mockPrismaService)) as any,
   };
@@ -90,6 +93,7 @@ describe('ChannelsService (unit)', () => {
       mockPrismaService.channel.findUnique.mockResolvedValue({ id: 'c1', projectId });
       mockPermissionsService.getUserProjectRole.mockResolvedValue('editor');
       mockPrismaService.post.groupBy.mockResolvedValue([]);
+      mockPrismaService.projectTemplate.findMany.mockResolvedValue([]);
 
       await service.update('c1', userId, { name: 'Updated' });
 
@@ -99,6 +103,31 @@ describe('ChannelsService (unit)', () => {
         PermissionKey.CHANNELS_UPDATE,
       );
       expect(mockPrismaService.channel.update).toHaveBeenCalled();
+    });
+
+    it('should reject update when preferences reference unknown project template', async () => {
+      mockPrismaService.channel.findUnique.mockResolvedValue({ id: 'c1', projectId });
+      mockPermissionsService.getUserProjectRole.mockResolvedValue('editor');
+      mockPrismaService.post.groupBy.mockResolvedValue([]);
+
+      mockPrismaService.projectTemplate.findMany.mockResolvedValue([{ id: 'tpl-1' }]);
+
+      await expect(
+        service.update('c1', userId, {
+          preferences: {
+            templates: [
+              {
+                id: 'v-1',
+                name: 'Var',
+                order: 0,
+                projectTemplateId: 'tpl-missing',
+              },
+            ],
+          },
+        } as any),
+      ).rejects.toThrow('Channel preferences contain unknown projectTemplateId');
+
+      expect(mockPrismaService.channel.update).not.toHaveBeenCalled();
     });
   });
 

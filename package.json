@@ -7,9 +7,8 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "dotenv -e .env.development -- nest start --watch",
-    "start:debug": "dotenv -e .env.development -- nest start --debug --watch",
+    "dev": "dotenv -e .env.development -- nest start --watch",
+    "dev:debug": "dotenv -e .env.development -- nest start --debug --watch",
     "start:prod": "dotenv -e .env.production -- node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "lint:ui": "pnpm --filter ui lint",
