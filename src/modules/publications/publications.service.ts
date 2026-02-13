@@ -340,6 +340,16 @@ export class PublicationsService {
   }
 
   /**
+   * Normalize tagObjects relation into a flat tags string array on a publication response.
+   */
+  private normalizePublicationTags(publication: any): any {
+    return {
+      ...publication,
+      tags: (publication.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
+    };
+  }
+
+  /**
    * Return meta object, ensuring it's an object.
    */
   private parseMetaJson(meta: any): Record<string, any> {
@@ -589,10 +599,10 @@ export class PublicationsService {
       this.logger.log(`Created ${data.channelIds.length} posts for publication ${publication.id}`);
     }
 
-    return {
+    return this.normalizePublicationTags({
       ...publication,
       meta: this.parseMetaJson(publication.meta),
-    };
+    });
   }
 
   /**
@@ -686,10 +696,12 @@ export class PublicationsService {
     ]);
 
     return {
-      items: items.map((item: any) => ({
-        ...item,
-        meta: this.parseMetaJson(item.meta),
-      })),
+      items: items.map((item: any) =>
+        this.normalizePublicationTags({
+          ...item,
+          meta: this.parseMetaJson(item.meta),
+        }),
+      ),
       total,
       totalUnfiltered,
     };
@@ -798,10 +810,12 @@ export class PublicationsService {
     ]);
 
     return {
-      items: items.map((item: any) => ({
-        ...item,
-        meta: this.parseMetaJson(item.meta),
-      })),
+      items: items.map((item: any) =>
+        this.normalizePublicationTags({
+          ...item,
+          meta: this.parseMetaJson(item.meta),
+        }),
+      ),
       total,
       totalUnfiltered,
     };
@@ -892,12 +906,12 @@ export class PublicationsService {
       };
     });
 
-    return {
+    return this.normalizePublicationTags({
       ...publication,
       media: parsedMedia,
       relations,
       meta: this.parseMetaJson(publication.meta),
-    };
+    });
   }
 
   /**
@@ -1239,10 +1253,10 @@ export class PublicationsService {
       // SCHEDULED -> READY: do NOT rebuild snapshot (intentional)
     }
 
-    return {
+    return this.normalizePublicationTags({
       ...updated,
       meta: this.parseMetaJson(updated.meta),
-    };
+    });
   }
   public async remove(id: string, userId: string) {
     const publication = await this.findOne(id, userId);
@@ -1836,10 +1850,9 @@ export class PublicationsService {
       `Publication ${id} copied to project ${targetProjectId} by user ${userId}. New publication ID: ${newPublication.id}`,
     );
 
-    return {
+    return this.normalizePublicationTags({
       ...newPublication,
       meta: this.parseMetaJson(newPublication.meta),
-      tags: (newPublication.tagObjects ?? []).map(t => t.name).filter(Boolean),
-    };
+    });
   }
 }

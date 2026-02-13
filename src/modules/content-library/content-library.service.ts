@@ -287,7 +287,7 @@ export class ContentLibraryService {
     }
 
     if (query.tags && query.tags.length > 0) {
-      where.tagObjects = { some: { name: { in: query.tags } } };
+      where.tagObjects = { some: { normalizedName: { in: query.tags.map(t => t.toLowerCase()) } } };
     }
 
     if (query.search) {
@@ -296,7 +296,13 @@ export class ContentLibraryService {
         { title: { contains: query.search, mode: 'insensitive' } },
         { note: { contains: query.search, mode: 'insensitive' } },
         ...(tagTokens.length > 0
-          ? ([{ tagObjects: { some: { name: { in: tagTokens } } } }] as any)
+          ? ([
+              {
+                tagObjects: {
+                  some: { normalizedName: { in: tagTokens.map(t => t.toLowerCase()) } },
+                },
+              },
+            ] as any)
           : []),
         { blocks: { some: { text: { contains: query.search, mode: 'insensitive' } } } },
       ];

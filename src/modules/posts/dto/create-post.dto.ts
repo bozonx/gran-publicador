@@ -1,14 +1,17 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsDate,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateIf,
 } from 'class-validator';
 import { PostStatus, PostType } from '../../../generated/prisma/index.js';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for creating a new post.
@@ -31,6 +34,8 @@ export class CreatePostDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
+  @MaxLength(VALIDATION_LIMITS.MAX_TAG_LENGTH, { each: true })
   public tags?: string[]; // Can override publication tags
 
   @IsEnum(PostStatus)
