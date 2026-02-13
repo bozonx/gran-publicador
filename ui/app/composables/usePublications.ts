@@ -4,6 +4,7 @@ import { logger } from '~/utils/logger';
 import type { PublicationStatus } from '~/types/posts';
 import { getStatusIcon } from '~/utils/publications';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
+import { normalizeTags, parseTags } from '~/utils/tags';
 
 export interface Publication {
   id: string;
@@ -31,6 +32,31 @@ export interface Publication {
   projectTemplateId?: string | null;
 }
 
+function resolvePublicationTags(publication: PublicationWithRelations): string[] {
+  const rawTags = (publication as { tags?: unknown }).tags;
+
+  if (Array.isArray(rawTags)) {
+    return normalizeTags(rawTags.map(tag => String(tag ?? '')));
+  }
+
+  if (typeof rawTags === 'string') {
+    return normalizeTags(parseTags(rawTags));
+  }
+
+  if (Array.isArray(publication.tagObjects)) {
+    return normalizeTags(publication.tagObjects.map(tag => tag.name));
+  }
+
+  return [];
+}
+
+function normalizePublication(publication: PublicationWithRelations): PublicationWithRelations {
+  return {
+    ...publication,
+    tags: resolvePublicationTags(publication),
+  };
+}
+
 export interface PublicationCreateInput {
   projectId?: string | null;
   title?: string | null;
@@ -53,6 +79,7 @@ export interface PublicationCreateInput {
 export interface PublicationUpdateInput extends Partial<PublicationCreateInput> {}
 
 export interface PublicationWithRelations extends Publication {
+  tagObjects?: Array<{ id: string; name: string; normalizedName?: string }>;
   creator?: {
     id: string;
     fullName: string | null;
@@ -238,10 +265,12 @@ export function usePublications() {
       if (filters.tags) params.tags = filters.tags;
 
       const data = await api.get<PaginatedPublications>('/publications', { params });
-      publications.value = data.items;
+      const normalizedItems = data.items.map(normalizePublication);
+      const normalizedData = { ...data, items: normalizedItems };
+      publications.value = normalizedItems;
       totalCount.value = data.meta.total;
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
-      return data;
+      return normalizedData;
     } catch (err: any) {
       logger.error('[usePublications] fetchPublicationsByProject error', err);
       error.value = err.message || 'Failed to fetch publications';
@@ -298,10 +327,12 @@ export function usePublications() {
       if (filters.tags) params.tags = filters.tags;
 
       const data = await api.get<PaginatedPublications>('/publications', { params });
-      publications.value = data.items;
+      const normalizedItems = data.items.map(normalizePublication);
+      const normalizedData = { ...data, items: normalizedItems };
+      publications.value = normalizedItems;
       totalCount.value = data.meta.total;
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
-      return data;
+      return normalizedData;
     } catch (err: any) {
       logger.error('[usePublications] fetchUserPublications error', err);
       error.value = err.message || 'Failed to fetch publications';
@@ -327,8 +358,9 @@ export function usePublications() {
 
     try {
       const data = await api.get<PublicationWithRelations>(`/publications/${id}`);
-      currentPublication.value = data;
-      return data;
+      const normalized = normalizePublication(data);
+      currentPublication.value = normalized;
+      return normalized;
     } catch (err: any) {
       logger.error('[usePublications] fetchPublication error', err);
       error.value = err.message || 'Failed to fetch publication';
@@ -364,8 +396,9 @@ export function usePublications() {
 
     try {
       const result = await api.post<PublicationWithRelations>('/publications', data);
-      publications.value.unshift(result);
-      return result;
+      const normalized = normalizePublication(result);
+      publications.value.unshift(normalized);
+      return normalized;
     } catch (err: any) {
       logger.error('[usePublications] createPublication error', err);
       error.value = err.message || 'Failed to create publication';
@@ -387,14 +420,15 @@ export function usePublications() {
 
     try {
       const result = await api.patch<PublicationWithRelations>(`/publications/${id}`, data);
+      const normalized = normalizePublication(result);
       const index = publications.value.findIndex((p: PublicationWithRelations) => p.id === id);
       if (index !== -1) {
-        publications.value[index] = result;
+        publications.value[index] = normalized;
       }
       if (currentPublication.value?.id === id) {
-        currentPublication.value = result;
+        currentPublication.value = normalized;
       }
-      return result;
+      return normalized;
     } catch (err: any) {
       logger.error('[usePublications] updatePublication error', err);
       error.value = err.message || 'Failed to update publication';

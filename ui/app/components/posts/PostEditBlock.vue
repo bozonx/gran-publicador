@@ -22,7 +22,7 @@ import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
-import { normalizeTags } from '~/utils/tags'
+import { normalizeTags, parseTags } from '~/utils/tags'
 
 interface Props {
   post?: PostWithRelations
@@ -54,6 +54,18 @@ const publicationMedia = computed(() => props.publication?.media?.map(m => m.med
 const projectId = computed(() => props.publication?.projectId ?? props.post?.channel?.projectId ?? '')
 
 const projectSignatures = ref<ProjectAuthorSignature[]>([])
+
+function coerceTagsToArray(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return normalizeTags(raw.map(tag => String(tag ?? '')))
+  }
+
+  if (typeof raw === 'string') {
+    return normalizeTags(parseTags(raw))
+  }
+
+  return []
+}
 
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
@@ -102,12 +114,12 @@ const headerDateInfo = computed(() => {
 })
 
 const overriddenTags = computed(() => {
-    return normalizeTags(props.post?.tags ?? [])
+    return coerceTagsToArray(props.post?.tags)
 })
 
 const formData = reactive({
   channelId: '', 
-  tags: normalizeTags(props.post?.tags ?? []), // Empty array means use publication tags
+  tags: coerceTagsToArray(props.post?.tags), // Empty array means use publication tags
   scheduledAt: toDatetimeLocal(props.post?.scheduledAt),
   status: (props.post?.status || 'PENDING') as PostStatus,
   content: props.post?.content || '',
@@ -289,10 +301,7 @@ const displayContent = computed(() => {
 const displayAuthorSignature = computed(() => formData.authorSignature)
 const displayTags = computed(() => {
     if (overriddenTags.value.length > 0) return overriddenTags.value
-    if (props.publication?.tags) {
-        return props.publication.tags.split(',').filter(t => t.trim())
-    }
-    return []
+    return coerceTagsToArray(props.publication?.tags)
 })
 const hasActivatedPlatformOptions = computed(() => {
     if (!formData.platformOptions) return false
@@ -396,7 +405,7 @@ watch(() => props.post, (newPost, oldPost) => {
         return
     }
 
-    formData.tags = newPost.tags || ''
+    formData.tags = coerceTagsToArray(newPost.tags)
     formData.scheduledAt = toDatetimeLocal(newPost.scheduledAt)
     formData.status = newPost.status
     formData.content = newPost.content || ''
