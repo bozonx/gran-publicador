@@ -197,6 +197,17 @@ export class ProjectTemplatesService {
         }
 
         // Delete the project template
+        // Unlink publications referencing this template (FK will also handle it on delete, but keep explicit)
+        await tx.publication.updateMany({
+          where: {
+            projectId,
+            projectTemplateId: templateId,
+          },
+          data: {
+            projectTemplateId: null,
+          },
+        });
+
         await tx.projectTemplate.delete({ where: { id: templateId } });
 
         // Remove channel variations referencing this template

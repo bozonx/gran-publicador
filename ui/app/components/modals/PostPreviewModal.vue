@@ -51,7 +51,8 @@ const previewContent = computed(() => {
     },
     props.post.channel || props.post,
     props.post.template,
-    props.projectTemplates
+    props.projectTemplates,
+    pub.projectTemplateId
   )
 })
 </script>

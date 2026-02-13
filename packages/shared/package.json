@@ -52,6 +52,17 @@
       "types": "./src/utils/object.ts",
       "import": "./dist/utils/object.js",
       "default": "./dist/utils/object.js"
+    },
+
+    "./social-posting/tags-formatter": {
+      "types": "./src/social-posting/tags-formatter.ts",
+      "import": "./dist/social-posting/tags-formatter.js",
+      "default": "./dist/social-posting/tags-formatter.js"
+    },
+    "./social-posting/body-formatter": {
+      "types": "./src/social-posting/body-formatter.ts",
+      "import": "./dist/social-posting/body-formatter.js",
+      "default": "./dist/social-posting/body-formatter.js"
     }
   }
 }

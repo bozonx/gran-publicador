@@ -66,19 +66,98 @@ export class ChannelsService {
     const templates = this.getChannelPreferences(preferences).templates;
     if (!templates || templates.length === 0) return;
 
-    const ids = Array.from(new Set(templates.map(t => t.projectTemplateId)));
-    if (ids.length === 0) return;
+    // Validate variation IDs are unique and present
+    const ids = templates.map(t => t.id).filter(Boolean);
+    const uniqueIds = new Set(ids);
+    if (uniqueIds.size !== ids.length) {
+      throw new BadRequestException('Channel preferences contain duplicated template variation id');
+    }
+
+    const validOverrideKeys = new Set([
+      'title',
+      'content',
+      'tags',
+      'authorComment',
+      'authorSignature',
+      'footer',
+      'custom',
+    ]);
+    const validTagCases = new Set([
+      'camelCase',
+      'pascalCase',
+      'snake_case',
+      'SNAKE_CASE',
+      'kebab-case',
+      'KEBAB-CASE',
+      'lower_case',
+      'upper_case',
+      'none',
+    ]);
+
+    // Validate overrides structure
+    for (const tpl of templates) {
+      if (!tpl.overrides) continue;
+      for (const [blockKey, override] of Object.entries(tpl.overrides)) {
+        if (!validOverrideKeys.has(blockKey)) {
+          throw new BadRequestException('Channel template overrides contain unknown block key');
+        }
+        if (!override || typeof override !== 'object' || Array.isArray(override)) {
+          throw new BadRequestException(
+            'Channel template overrides contain invalid override object',
+          );
+        }
+        const obj = override as Record<string, unknown>;
+        for (const field of ['before', 'after', 'content']) {
+          if (obj[field] !== undefined && typeof obj[field] !== 'string') {
+            throw new BadRequestException('Channel template overrides contain non-string field');
+          }
+        }
+        if (obj.tagCase !== undefined && typeof obj.tagCase === 'string') {
+          if (!validTagCases.has(obj.tagCase)) {
+            throw new BadRequestException('Channel template overrides contain unknown tagCase');
+          }
+        } else if (obj.tagCase !== undefined) {
+          throw new BadRequestException('Channel template overrides contain invalid tagCase');
+        }
+      }
+    }
+
+    // Validate default uniqueness among non-excluded variations.
+    // We enforce only one default overall, and also only one default per projectTemplateId.
+    const defaults = templates.filter(t => t.isDefault && !t.excluded);
+    if (defaults.length > 1) {
+      throw new BadRequestException(
+        'Channel preferences contain multiple default template variations',
+      );
+    }
+    const defaultByProjectTemplate = new Map<string, number>();
+    for (const tpl of defaults) {
+      defaultByProjectTemplate.set(
+        tpl.projectTemplateId,
+        (defaultByProjectTemplate.get(tpl.projectTemplateId) ?? 0) + 1,
+      );
+    }
+    for (const count of defaultByProjectTemplate.values()) {
+      if (count > 1) {
+        throw new BadRequestException(
+          'Channel preferences contain multiple default variations for the same project template',
+        );
+      }
+    }
+
+    const projectTemplateIds = Array.from(new Set(templates.map(t => t.projectTemplateId)));
+    if (projectTemplateIds.length === 0) return;
 
     const existing = await this.prisma.projectTemplate.findMany({
       where: {
         projectId,
-        id: { in: ids },
+        id: { in: projectTemplateIds },
       },
       select: { id: true },
     });
 
     const existingSet = new Set(existing.map(t => t.id));
-    const missing = ids.filter(id => !existingSet.has(id));
+    const missing = projectTemplateIds.filter(id => !existingSet.has(id));
     if (missing.length > 0) {
       throw new BadRequestException('Channel preferences contain unknown projectTemplateId');
     }

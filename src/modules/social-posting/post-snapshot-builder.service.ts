@@ -146,8 +146,8 @@ export class PostSnapshotBuilderService {
     bodyFormat: PostingSnapshot['bodyFormat'];
     template: NonNullable<PostingSnapshot['meta']>['template'];
   } {
-    const formatted = SocialPostingBodyFormatter.formatWithMeta(
-      {
+    const formatted = SocialPostingBodyFormatter.formatWithMeta({
+      data: {
         title: publication.title,
         content: post.content || publication.content,
         tags: tagsString,
@@ -157,9 +157,10 @@ export class PostSnapshotBuilderService {
         authorSignature: post.authorSignature,
       },
       channel,
-      post.template,
+      templateOverride: post.template,
       projectTemplates,
-    );
+      preferredProjectTemplateId: publication.projectTemplateId ?? null,
+    });
 
     let body = formatted.body;
     let bodyFormat: PostingSnapshot['bodyFormat'] = 'markdown';

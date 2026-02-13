@@ -234,11 +234,51 @@ export class TemplateBlockDto {
 
   @IsOptional()
   @IsString()
+  @IsIn([
+    'camelCase',
+    'pascalCase',
+    'snake_case',
+    'SNAKE_CASE',
+    'kebab-case',
+    'KEBAB-CASE',
+    'lower_case',
+    'upper_case',
+    'none',
+  ])
   tagCase?: string;
 
   @IsOptional()
   @IsString()
   content?: string;
+}
+
+export class BlockOverrideDto {
+  @IsOptional()
+  @IsString()
+  before?: string;
+
+  @IsOptional()
+  @IsString()
+  after?: string;
+
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn([
+    'camelCase',
+    'pascalCase',
+    'snake_case',
+    'SNAKE_CASE',
+    'kebab-case',
+    'KEBAB-CASE',
+    'lower_case',
+    'upper_case',
+    'none',
+  ])
+  tagCase?: string;
 }
 
 /**
@@ -267,7 +307,7 @@ export class ChannelTemplateVariationDto {
 
   @IsOptional()
   @IsObject()
-  overrides?: Record<string, any>;
+  overrides?: Record<string, BlockOverrideDto>;
 }
 
 /**

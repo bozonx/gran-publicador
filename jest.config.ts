@@ -41,11 +41,16 @@ const config: Config = {
       transform,
       moduleNameMapper: {
         '^@gran/shared/permissions$': '<rootDir>/packages/shared/src/permissions.constants',
-        '^@gran/shared/social-media-platforms$': '<rootDir>/packages/shared/src/social-media-platforms.constants',
+        '^@gran/shared/social-media-platforms$':
+          '<rootDir>/packages/shared/src/social-media-platforms.constants',
         '^@gran/shared/archive$': '<rootDir>/packages/shared/src/archive.contracts',
         '^@gran/shared/api-tokens$': '<rootDir>/packages/shared/src/api-tokens.contracts',
         '^@gran/shared/llm$': '<rootDir>/packages/shared/src/llm.contracts',
         '^@gran/shared/post-statuses$': '<rootDir>/packages/shared/src/post-statuses.constants',
+        '^@gran/shared/social-posting/tags-formatter$':
+          '<rootDir>/packages/shared/src/social-posting/tags-formatter',
+        '^@gran/shared/social-posting/body-formatter$':
+          '<rootDir>/packages/shared/src/social-posting/body-formatter',
         '^@gran/shared/utils/(.*)$': '<rootDir>/packages/shared/src/utils/$1',
         '^(\\.{1,2}/.*)\\.js$': '$1',
       },
@@ -67,11 +72,16 @@ const config: Config = {
       transform,
       moduleNameMapper: {
         '^@gran/shared/permissions$': '<rootDir>/packages/shared/src/permissions.constants',
-        '^@gran/shared/social-media-platforms$': '<rootDir>/packages/shared/src/social-media-platforms.constants',
+        '^@gran/shared/social-media-platforms$':
+          '<rootDir>/packages/shared/src/social-media-platforms.constants',
         '^@gran/shared/archive$': '<rootDir>/packages/shared/src/archive.contracts',
         '^@gran/shared/api-tokens$': '<rootDir>/packages/shared/src/api-tokens.contracts',
         '^@gran/shared/llm$': '<rootDir>/packages/shared/src/llm.contracts',
         '^@gran/shared/post-statuses$': '<rootDir>/packages/shared/src/post-statuses.constants',
+        '^@gran/shared/social-posting/tags-formatter$':
+          '<rootDir>/packages/shared/src/social-posting/tags-formatter',
+        '^@gran/shared/social-posting/body-formatter$':
+          '<rootDir>/packages/shared/src/social-posting/body-formatter',
         '^@gran/shared/utils/(.*)$': '<rootDir>/packages/shared/src/utils/$1',
         '^(\\.{1,2}/.*)\\.js$': '$1',
       },

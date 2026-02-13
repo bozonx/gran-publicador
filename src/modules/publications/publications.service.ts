@@ -1206,9 +1206,13 @@ export class PublicationsService {
         note: data.note,
         tagObjects:
           data.tags !== undefined
-            ? ((await this.tagsService.prepareTagsConnectOrCreate(normalizeTags(data.tags), {
-                projectId: publication.projectId!,
-              }, true)) as any)
+            ? ((await this.tagsService.prepareTagsConnectOrCreate(
+                normalizeTags(data.tags),
+                {
+                  projectId: publication.projectId!,
+                },
+                true,
+              )) as any)
             : undefined,
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
@@ -1516,14 +1520,6 @@ export class PublicationsService {
       );
     }
 
-    // Pre-fetch project template if projectTemplateId is provided
-    let projectTemplate: any | undefined;
-    if (projectTemplateId) {
-      projectTemplate = await this.prisma.projectTemplate.findUnique({
-        where: { id: projectTemplateId },
-      });
-    }
-
     const warnings: string[] = [];
 
     // Create posts for each channel (content comes from publication via relation)
@@ -1556,7 +1552,6 @@ export class PublicationsService {
             status: PostStatus.PENDING,
             scheduledAt: scheduledAt ?? publication.scheduledAt,
             meta: {},
-            template: projectTemplate?.template || undefined,
             authorSignature: authorSignature || undefined,
           },
           include: {
