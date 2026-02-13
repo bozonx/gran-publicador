@@ -20,7 +20,7 @@ const nodeEnv = process.env.NODE_ENV || 'development';
 config({ path: path.resolve(process.cwd(), `.env.${nodeEnv}`) });
 config();
 
-// getDatabaseUrl() will throw if DATA_DIR is not set
+// getDatabaseUrl() will throw if DATABASE_URL is not set
 const url = getDatabaseUrl();
 console.log('Using DB URL:', url);
 
@@ -512,6 +512,7 @@ async function main() {
       name: 'Standard Tech Article',
       postType: PostType.ARTICLE,
       order: 0,
+      language: 'ru-RU',
       template: [
         { type: 'header', content: 'Mastering {{topic}}' },
         { type: 'text', content: 'In this article, we will explore {{topic}} in depth.' },
@@ -524,6 +525,7 @@ async function main() {
       name: 'Quick News Post',
       postType: PostType.NEWS,
       order: 1,
+      language: null, // Global template
       template: [{ type: 'text', content: '🚀 {{headline}}\n\nCheck out more at {{url}}' }],
     },
   ];
@@ -601,6 +603,7 @@ async function main() {
       postType: PostType.ARTICLE,
       postDate: new Date(2025, 0, 1),
       language: 'ru-RU',
+      projectTemplateId: 'pt-00000000-0000-4000-8000-000000000001',
       meta: {},
     },
     {
@@ -797,6 +800,7 @@ async function main() {
       socialMedia: 'telegram',
       status: PostStatus.PUBLISHED,
       publishedAt: new Date(Date.now() - 3600000),
+      authorSignature: '*Отправлено через Gran Publicador*',
       meta: {},
       platformOptions: { disableNotification: true },
     },
@@ -807,6 +811,7 @@ async function main() {
       socialMedia: 'telegram',
       status: PostStatus.PUBLISHED,
       publishedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+      authorSignature: '--- \n\n **Gran Publicador**',
       meta: {},
     },
     {
@@ -884,6 +889,8 @@ async function main() {
       storageType: 'FS' as const,
       storagePath: 'samples/image1.jpg',
       filename: 'image1.jpg',
+      alt: 'Nuxt 4 Logo',
+      description: 'The official Nuxt 4 brand logo for technical articles.',
       mimeType: 'image/jpeg',
       sizeBytes: 1024n * 100n,
       meta: {},
@@ -894,9 +901,21 @@ async function main() {
       storageType: 'FS' as const,
       storagePath: 'samples/video1.mp4',
       filename: 'video1.mp4',
+      description: 'Intro video for Nuxt 4 features.',
       mimeType: 'video/mp4',
       sizeBytes: 1024n * 1024n * 5n,
       meta: {},
+    },
+    {
+      id: '99999999-9999-4999-8999-000000000003',
+      type: 'AUDIO' as const,
+      storageType: 'TELEGRAM' as const,
+      storagePath: 'file_123',
+      filename: 'voice_note.ogg',
+      description: 'Voice transcription sample from Telegram.',
+      mimeType: 'audio/ogg',
+      sizeBytes: 1024n * 50n,
+      meta: { telegram: { fileId: 'file_123_id' } },
     },
   ];
 
