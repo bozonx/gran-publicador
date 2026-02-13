@@ -36,6 +36,7 @@ const emit = defineEmits<{
 import { getApiErrorMessage } from '~/utils/error'
 
 const { t } = useI18n()
+const { user } = useAuth()
 const api = useApi()
 const toast = useToast()
 
@@ -67,7 +68,7 @@ const saveItem = async (formData: typeof editForm.value) => {
     title: formData.title || null,
     tags: formData.tags,
     note: formData.note || null,
-    blocks: formData.blocks.map((b, i) => ({
+    blocks: formData.blocks.map((b: ContentBlock, i: number) => ({
       id: b.id,
       text: b.text?.trim() || '',
       order: i,
@@ -85,7 +86,7 @@ const removeBlock = (index: number) => {
 }
 
 const handleReorder = () => {
-  editForm.value.blocks.forEach((b, i) => { b.order = i })
+  editForm.value.blocks.forEach((b: ContentBlock, i: number) => { b.order = i })
 }
 
 const detachBlock = async (index: number) => {
@@ -108,9 +109,9 @@ const detachBlock = async (index: number) => {
 const refreshActiveItem = async () => {
   try {
     const item = await api.get<ContentItem>(`/content-library/items/${editForm.value.id}`)
-    editForm.value.blocks.forEach(localBlock => {
+    editForm.value.blocks.forEach((localBlock: ContentBlock) => {
       if (!localBlock.id) return
-      const freshBlock = item.blocks?.find(b => b.id === localBlock.id)
+      const freshBlock = item.blocks?.find((b: ContentBlock) => b.id === localBlock.id)
       if (freshBlock) localBlock.media = freshBlock.media
     })
     emit('refresh')

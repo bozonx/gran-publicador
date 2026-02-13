@@ -22,6 +22,7 @@ import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { normalizeTags } from '~/utils/tags'
 
 interface Props {
   post?: PostWithRelations
@@ -101,13 +102,12 @@ const headerDateInfo = computed(() => {
 })
 
 const overriddenTags = computed(() => {
-    if (!props.post?.tags) return []
-    return props.post.tags.split(',').filter(t => t.trim())
+    return normalizeTags(props.post?.tags ?? [])
 })
 
 const formData = reactive({
   channelId: '', 
-  tags: props.post?.tags || '', // Null or empty means use publication tags
+  tags: normalizeTags(props.post?.tags ?? []), // Empty array means use publication tags
   scheduledAt: toDatetimeLocal(props.post?.scheduledAt),
   status: (props.post?.status || 'PENDING') as PostStatus,
   content: props.post?.content || '',
@@ -216,7 +216,7 @@ async function performSave() {
         const newPost = await createPost({
             channelId: formData.channelId,
             publicationId: props.publication.id,
-            tags: formData.tags || null,
+            tags: formData.tags.length > 0 ? formData.tags : null,
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
             content: normalizedContent,
             meta: formData.meta,
@@ -237,7 +237,7 @@ async function performSave() {
 
         const normalizedContent = isTextContentEmpty(formData.content) ? null : formData.content
         const updatedPost = await updatePost(props.post.id, {
-          tags: formData.tags || null,
+          tags: formData.tags.length > 0 ? formData.tags : null,
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
           content: normalizedContent,
           meta: formData.meta,

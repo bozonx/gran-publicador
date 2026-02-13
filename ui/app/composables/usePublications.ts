@@ -36,7 +36,7 @@ export interface PublicationCreateInput {
   title?: string | null;
   description?: string | null;
   content?: string | null;
-  tags?: string | null;
+  tags?: string[];
   language?: string | null;
   postType?: string | null;
   postDate?: string | null;

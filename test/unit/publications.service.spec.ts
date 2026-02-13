@@ -259,8 +259,6 @@ describe('PublicationsService (unit)', () => {
   });
 
   describe('create', () => {
-
-
     it('should create a publication when user has access to project', async () => {
       const userId = 'user-1';
       const projectId = 'project-1';
@@ -485,7 +483,7 @@ describe('PublicationsService (unit)', () => {
       expect(andConditions).toContainEqual({
         tagObjects: {
           some: {
-            name: {
+            normalizedName: {
               in: ['news', 'tech'],
             },
           },

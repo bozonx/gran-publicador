@@ -5,12 +5,10 @@ import AppModal from '~/components/ui/AppModal.vue'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
 
-
 const { t } = useI18n()
 const api = useApi()
 const router = useRouter()
 const toast = useToast()
-const { user } = useAuth()
 
 const items = ref<any[]>([])
 const isLoading = ref(false)

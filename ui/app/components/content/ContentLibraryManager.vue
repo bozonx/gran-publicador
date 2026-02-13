@@ -2,7 +2,6 @@
 import { type ContentLibraryTab } from '~/composables/useContentLibraryTabs'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
-import { parseTags } from '~/utils/tags'
 import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
 import ContentLibraryTabs from './ContentLibraryTabs.vue'
 import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
@@ -403,7 +402,7 @@ const handleCreatePublicationFromSelection = () => {
       title: aggregated.title,
       content: aggregated.content,
       mediaIds: aggregated.media,
-      tags: parseTags(aggregated.tags),
+      tags: aggregated.tags,
       note: aggregated.note,
       contentItemIds: aggregated.contentItemIds
     }

@@ -1839,7 +1839,7 @@ export class PublicationsService {
     return {
       ...newPublication,
       meta: this.parseMetaJson(newPublication.meta),
-      tags: ((newPublication as any).tagObjects ?? []).map((t: any) => t?.name).filter(Boolean),
+      tags: (newPublication.tagObjects ?? []).map(t => t.name).filter(Boolean),
     };
   }
 }

@@ -16,7 +16,7 @@ export interface Post {
   channelId: string;
   publicationId: string;
   socialMedia: string;
-  tags: string | null; // Can override publication tags
+  tags: string[] | null; // Can override publication tags
   status: PostStatus; // Post-specific status
   scheduledAt: string | null;
   publishedAt: string | null;
@@ -45,7 +45,7 @@ export interface PostWithRelations extends Post {
     description: string | null;
     content: string;
     authorComment: string | null;
-    tags: string | null; // Fallback if post.tags is null
+    tags: string[]; // Fallback if post.tags is null
     mediaFiles: string;
     meta: string;
     postType: string;
@@ -61,7 +61,7 @@ export interface PostWithRelations extends Post {
 export interface PostCreateInput {
   channelId: string;
   publicationId: string; // Required
-  tags?: string | null; // Override publication tags
+  tags?: string[] | null; // Override publication tags
   status?: PostStatus | null;
   scheduledAt?: string | null;
   content?: string | null;
@@ -71,7 +71,7 @@ export interface PostCreateInput {
 }
 
 export interface PostUpdateInput {
-  tags?: string | null; // Update tags
+  tags?: string[] | null; // Update tags
   status?: PostStatus; // Update status
   scheduledAt?: string | null;
   publishedAt?: string | null;
@@ -199,13 +199,7 @@ export function usePosts() {
     error.value = null;
 
     try {
-      // Transform tags if they are an array
-      const payload = { ...data };
-      if (Array.isArray(payload.tags)) {
-        payload.tags = payload.tags.join(', ');
-      }
-
-      const post = await api.post<Post>('/posts', payload);
+      const post = await api.post<Post>('/posts', data);
 
       if (!options?.silent) {
         toast.add({
@@ -237,13 +231,7 @@ export function usePosts() {
     error.value = null;
 
     try {
-      // Transform tags if they are an array
-      const payload = { ...data };
-      if (Array.isArray(payload.tags)) {
-        payload.tags = payload.tags.join(', ');
-      }
-
-      const post = await api.patch<Post>(`/posts/${postId}`, payload);
+      const post = await api.patch<Post>(`/posts/${postId}`, data);
 
       if (!options?.silent) {
         toast.add({
@@ -374,9 +362,9 @@ export function getPostContent(post: PostWithRelations): string {
   return post.content ?? post.publication?.content ?? '';
 }
 
-export function getPostTags(post: PostWithRelations): string | null {
+export function getPostTags(post: PostWithRelations): string[] {
   // Priority: post tags > publication tags
-  return post.tags ?? post.publication?.tags ?? null;
+  return post.tags ?? post.publication?.tags ?? [];
 }
 
 export function getPostDescription(post: PostWithRelations): string | null {
