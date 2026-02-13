@@ -7,10 +7,6 @@ describe('SocialPostingBodyFormatter', () => {
     preferences: {
       templates: [
         {
-          id: 'var-default',
-          name: 'Default variation',
-          order: 0,
-          isDefault: true,
           projectTemplateId: 'pt-1',
           overrides: {
             authorSignature: { before: 'By: ', after: '' },
@@ -51,20 +47,12 @@ describe('SocialPostingBodyFormatter', () => {
       preferences: {
         templates: [
           {
-            id: 'var-for-pt-2',
-            name: 'Variation for PT-2',
-            order: 0,
-            isDefault: true,
             projectTemplateId: 'pt-2',
             overrides: {
               authorSignature: { before: 'Sig: ', after: '' },
             },
           },
           {
-            id: 'var-for-pt-1',
-            name: 'Variation for PT-1',
-            order: 1,
-            isDefault: false,
             projectTemplateId: 'pt-1',
           },
         ],
@@ -111,22 +99,8 @@ describe('SocialPostingBodyFormatter', () => {
       preferences: {
         templates: [
           {
-            id: 'var-excluded',
-            name: 'Excluded',
-            order: 0,
-            isDefault: true,
             excluded: true,
             projectTemplateId: 'pt-2',
-          },
-          {
-            id: 'var-ok',
-            name: 'OK',
-            order: 1,
-            isDefault: false,
-            projectTemplateId: 'pt-2',
-            overrides: {
-              authorSignature: { before: 'OK: ', after: '' },
-            },
           },
         ],
       },
@@ -153,7 +127,7 @@ describe('SocialPostingBodyFormatter', () => {
       'pt-2',
     );
 
-    expect(result).toBe('Main Content\n\nOK: John Doe');
+    expect(result).toBe('Main Content\n\nJohn Doe');
   });
 
   it('should include author signature block correctly with overrides', () => {
@@ -177,10 +151,6 @@ describe('SocialPostingBodyFormatter', () => {
       preferences: {
         templates: [
           {
-            id: 'var-custom',
-            name: 'Custom variation',
-            order: 0,
-            isDefault: true,
             projectTemplateId: 'pt-custom',
           },
         ],

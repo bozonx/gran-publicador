@@ -18,10 +18,6 @@ export interface BlockOverride {
 }
 
 export interface ChannelTemplateVariation {
-  id: string;
-  name: string;
-  order: number;
-  isDefault?: boolean;
   projectTemplateId: string;
   excluded?: boolean;
   overrides?: Record<string, BlockOverride>;
@@ -137,7 +133,6 @@ export class SocialPostingBodyFormatter {
 
     const variations: ChannelTemplateVariation[] = preferences?.templates || [];
 
-    let variation: ChannelTemplateVariation | null | undefined = null;
     let resolution: TemplateResolutionMeta['resolution'] = 'fallback_default_blocks';
 
     const preferredTplId = preferredProjectTemplateId ?? null;
@@ -145,67 +140,40 @@ export class SocialPostingBodyFormatter {
     const findProjectTemplate = (id: string | null | undefined) =>
       id && projectTemplates ? projectTemplates.find(pt => pt.id === id) : undefined;
 
-    const allowedVariations = preferredTplId
-      ? variations.filter(v => v.projectTemplateId === preferredTplId)
-      : variations;
+    const pickDefaultProjectTemplate = () => {
+      if (!projectTemplates || projectTemplates.length === 0) return undefined;
+      const defaultTpl = projectTemplates.find(t => t.isDefault);
+      if (defaultTpl) return defaultTpl;
+      return [...projectTemplates].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
+    };
 
-    // 1) Preferred template: choose channel default variation within preferred template
-    if (!variation && preferredTplId) {
-      variation = allowedVariations.find(v => v.isDefault && !v.excluded);
-      if (variation) {
-        resolution = 'preferred_template_channel_default';
-      }
+    const resolvedProjectTemplate =
+      preferredTplId && projectTemplates
+        ? findProjectTemplate(preferredTplId)
+        : pickDefaultProjectTemplate();
+
+    if (preferredTplId && projectTemplates && !resolvedProjectTemplate) {
+      resolution = 'missing_project_template_fallback';
+    } else if (preferredTplId) {
+      resolution = 'preferred_template_first_variation';
+    } else if (resolvedProjectTemplate) {
+      resolution = 'channel_default';
     }
 
-    // 2) Preferred template: fallback to first non-excluded variation for that template
-    if (!variation && preferredTplId) {
-      variation = allowedVariations
-        .filter(v => !v.excluded)
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
+    const resolvedProjectTemplateId = resolvedProjectTemplate?.id ?? null;
+    const variation = resolvedProjectTemplateId
+      ? variations.find(v => v.projectTemplateId === resolvedProjectTemplateId && !v.excluded)
+      : null;
 
-      if (variation) {
-        resolution = 'preferred_template_first_variation';
-      }
-    }
-
-    // 3) Generic channel default (no preferred template)
-    if (!variation && !preferredTplId) {
-      variation = variations.find(v => v.isDefault && !v.excluded);
-      if (variation) {
-        resolution = 'channel_default';
-      }
-    }
-
-    let blocks: TemplateBlock[];
-    let resolvedProjectTemplateId: string | null | undefined = null;
-
-    if (variation && projectTemplates) {
-      const projectTemplate = findProjectTemplate(variation.projectTemplateId);
-      if (projectTemplate) {
-        resolvedProjectTemplateId = projectTemplate.id;
-        blocks = this.buildEffectiveBlocks(projectTemplate.template, variation.overrides);
-      } else {
-        resolution = 'missing_project_template_fallback';
-        blocks = this.getDefaultBlocks();
-      }
-    } else if (preferredTplId && projectTemplates) {
-      const projectTemplate = findProjectTemplate(preferredTplId);
-      if (projectTemplate) {
-        resolvedProjectTemplateId = projectTemplate.id;
-        blocks = projectTemplate.template;
-      } else {
-        resolution = 'missing_project_template_fallback';
-        blocks = this.getDefaultBlocks();
-      }
-    } else {
-      blocks = this.getDefaultBlocks();
-    }
+    const blocks = resolvedProjectTemplate
+      ? this.buildEffectiveBlocks(resolvedProjectTemplate.template, variation?.overrides)
+      : this.getDefaultBlocks();
 
     return {
       body: this.renderBlocks(data, blocks),
       template: {
         preferredProjectTemplateId: preferredTplId,
-        resolvedVariationId: variation?.id ?? null,
+        resolvedVariationId: variation ? variation.projectTemplateId : null,
         resolvedProjectTemplateId,
         resolution,
         hasOverrides: variation?.overrides ? Object.keys(variation.overrides).length > 0 : false,

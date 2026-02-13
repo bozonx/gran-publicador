@@ -117,9 +117,6 @@ describe('ChannelsService (unit)', () => {
           preferences: {
             templates: [
               {
-                id: 'v-1',
-                name: 'Var',
-                order: 0,
                 projectTemplateId: 'tpl-missing',
               },
             ],

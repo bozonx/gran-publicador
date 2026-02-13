@@ -185,7 +185,7 @@ function openEditModal(tpl: ProjectTemplate) {
     name: tpl.name,
     postType: tpl.postType || null,
     isDefault: !!tpl.isDefault,
-    language: tpl.language || 'ru-RU',
+    language: tpl.language ?? null,
     template: JSON.parse(JSON.stringify(tpl.template)),
   }
 
@@ -241,45 +241,17 @@ async function saveChannelOverrides(channelId: string) {
   const overrideData = channelOverridesMap.value[channelId]
   if (!overrideData) return
 
-  const currentPrefs = channel.preferences || {}
-  const currentVariations: ChannelTemplateVariation[] = currentPrefs.templates || []
-
-  // Find or create variation for this template
-  const existingIdx = currentVariations.findIndex(v => v.projectTemplateId === templateId)
-  const variation: ChannelTemplateVariation = {
-    id: templateId,
-    name: editingTemplate.value.name,
-    order: existingIdx >= 0 ? currentVariations[existingIdx]!.order : currentVariations.length,
-    projectTemplateId: templateId,
-    excluded: overrideData.excluded,
-    overrides: overrideData.overrides,
-  }
-
-  let updatedVariations: ChannelTemplateVariation[]
-  if (existingIdx >= 0) {
-    updatedVariations = [...currentVariations]
-    updatedVariations[existingIdx] = variation
-  } else {
-    updatedVariations = [...currentVariations, variation]
-  }
-
   try {
-    await api.patch(`/channels/${channelId}`, {
-      preferences: {
-        ...currentPrefs,
-        templates: updatedVariations,
-      },
+    const updated = await api.patch<ChannelWithProject>(`/channels/${channelId}/template-variations/${templateId}`, {
+      excluded: overrideData.excluded,
+      overrides: overrideData.overrides,
     })
 
     // Keep local state in sync so switching tabs / reopening modal reflects saved data
     const chIdx = projectChannels.value.findIndex(ch => ch.id === channelId)
     if (chIdx !== -1) {
       projectChannels.value[chIdx] = {
-        ...projectChannels.value[chIdx]!,
-        preferences: {
-          ...currentPrefs,
-          templates: updatedVariations,
-        },
+        ...(updated ?? projectChannels.value[chIdx]!),
       }
     }
   } catch (e: any) {

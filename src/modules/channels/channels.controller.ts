@@ -10,6 +10,7 @@ import {
   Query,
   Request,
 } from '@nestjs/common';
+import { IsBoolean, IsObject, IsOptional } from 'class-validator';
 
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
@@ -23,6 +24,16 @@ import {
   ChannelResponseDto,
 } from './dto/index.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
+
+class UpsertChannelTemplateVariationBodyDto {
+  @IsOptional()
+  @IsBoolean()
+  public excluded?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  public overrides?: Record<string, unknown>;
+}
 
 /**
  * Controller for managing channels within projects.
@@ -159,6 +170,29 @@ export class ChannelsController {
     this.validateProjectScope(req, channel.projectId);
 
     return this.channelsService.update(id, req.user.userId, updateChannelDto);
+  }
+
+  @Patch(':id/template-variations/:projectTemplateId')
+  public async upsertTemplateVariation(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Param('projectTemplateId') projectTemplateId: string,
+    @Body() data: UpsertChannelTemplateVariationBodyDto,
+  ) {
+    const channel = await this.channelsService.findOne(id, req.user.userId, true);
+
+    // Validate project scope for API token users
+    this.validateProjectScope(req, channel.projectId);
+
+    return this.channelsService.upsertTemplateVariation({
+      channelId: id,
+      userId: req.user.userId,
+      projectTemplateId,
+      variation: {
+        excluded: data.excluded,
+        overrides: data.overrides,
+      },
+    });
   }
 
   @Delete(':id')

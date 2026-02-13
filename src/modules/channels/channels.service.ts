@@ -24,10 +24,6 @@ export class ChannelsService {
     protectContent?: boolean;
     staleChannelsDays?: number;
     templates?: Array<{
-      id: string;
-      name: string;
-      order: number;
-      isDefault?: boolean;
       projectTemplateId: string;
       excluded?: boolean;
       overrides?: Record<string, unknown>;
@@ -47,10 +43,6 @@ export class ChannelsService {
             .map(t => this.getJsonObject(t))
             .filter(t => typeof t.projectTemplateId === 'string')
             .map(t => ({
-              id: typeof t.id === 'string' ? t.id : '',
-              name: typeof t.name === 'string' ? t.name : '',
-              order: typeof t.order === 'number' ? t.order : 0,
-              isDefault: typeof t.isDefault === 'boolean' ? t.isDefault : undefined,
               projectTemplateId: t.projectTemplateId as string,
               excluded: typeof t.excluded === 'boolean' ? t.excluded : undefined,
               overrides: this.getJsonObject(t.overrides),
@@ -66,11 +58,13 @@ export class ChannelsService {
     const templates = this.getChannelPreferences(preferences).templates;
     if (!templates || templates.length === 0) return;
 
-    // Validate variation IDs are unique and present
-    const ids = templates.map(t => t.id).filter(Boolean);
-    const uniqueIds = new Set(ids);
-    if (uniqueIds.size !== ids.length) {
-      throw new BadRequestException('Channel preferences contain duplicated template variation id');
+    // Validate uniqueness by projectTemplateId (single adaptation per template)
+    const tplIds = templates.map(t => t.projectTemplateId);
+    const uniqueTplIds = new Set(tplIds);
+    if (uniqueTplIds.size !== tplIds.length) {
+      throw new BadRequestException(
+        'Channel preferences contain duplicated projectTemplateId in templates',
+      );
     }
 
     const validOverrideKeys = new Set([
@@ -122,29 +116,13 @@ export class ChannelsService {
         } else if (obj.tagCase !== undefined) {
           throw new BadRequestException('Channel template overrides contain invalid tagCase');
         }
-      }
-    }
 
-    // Validate default uniqueness among non-excluded variations.
-    // We enforce only one default overall, and also only one default per projectTemplateId.
-    const defaults = templates.filter(t => t.isDefault && !t.excluded);
-    if (defaults.length > 1) {
-      throw new BadRequestException(
-        'Channel preferences contain multiple default template variations',
-      );
-    }
-    const defaultByProjectTemplate = new Map<string, number>();
-    for (const tpl of defaults) {
-      defaultByProjectTemplate.set(
-        tpl.projectTemplateId,
-        (defaultByProjectTemplate.get(tpl.projectTemplateId) ?? 0) + 1,
-      );
-    }
-    for (const count of defaultByProjectTemplate.values()) {
-      if (count > 1) {
-        throw new BadRequestException(
-          'Channel preferences contain multiple default variations for the same project template',
-        );
+        // Disallow unknown fields to keep JSON clean
+        for (const key of Object.keys(obj)) {
+          if (!['enabled', 'before', 'after', 'content', 'tagCase'].includes(key)) {
+            throw new BadRequestException('Channel template overrides contain unknown field');
+          }
+        }
       }
     }
 
@@ -164,6 +142,56 @@ export class ChannelsService {
     if (missing.length > 0) {
       throw new BadRequestException('Channel preferences contain unknown projectTemplateId');
     }
+  }
+
+  public async upsertTemplateVariation(params: {
+    channelId: string;
+    userId: string;
+    projectTemplateId: string;
+    variation: { excluded?: boolean; overrides?: Record<string, unknown> };
+  }) {
+    const channel = await this.findOne(params.channelId, params.userId, true);
+    await this.permissions.checkPermission(
+      channel.projectId,
+      params.userId,
+      PermissionKey.CHANNELS_UPDATE,
+    );
+
+    if (params.variation.excluded === undefined && params.variation.overrides === undefined) {
+      throw new BadRequestException('No variation fields provided');
+    }
+
+    const templates = this.getChannelPreferences(channel.preferences).templates ?? [];
+    const nextTemplates = [...templates];
+
+    const existingIdx = nextTemplates.findIndex(
+      t => t.projectTemplateId === params.projectTemplateId,
+    );
+    const next = {
+      projectTemplateId: params.projectTemplateId,
+      excluded: params.variation.excluded,
+      overrides: this.getJsonObject(params.variation.overrides),
+    };
+
+    if (existingIdx >= 0) nextTemplates[existingIdx] = { ...nextTemplates[existingIdx], ...next };
+    else nextTemplates.push(next);
+
+    await this.validateChannelTemplateReferences(channel.projectId, {
+      ...(this.getJsonObject(channel.preferences) as any),
+      templates: nextTemplates,
+    });
+
+    await this.prisma.channel.update({
+      where: { id: params.channelId },
+      data: {
+        preferences: {
+          ...(this.getJsonObject(channel.preferences) as any),
+          templates: nextTemplates,
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    return this.findOne(params.channelId, params.userId, true);
   }
 
   /**

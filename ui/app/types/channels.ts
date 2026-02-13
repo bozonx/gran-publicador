@@ -27,10 +27,6 @@ export interface BlockOverride {
 }
 
 export interface ChannelTemplateVariation {
-  id: string;
-  name: string;
-  order: number;
-  isDefault?: boolean;
   projectTemplateId: string;
   excluded?: boolean;
   overrides?: Record<string, BlockOverride>;

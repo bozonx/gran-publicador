@@ -6,6 +6,8 @@ describe('SocialPostingBodyFormatter', () => {
     {
       id: 'pt1',
       name: 'Project Template 1',
+      isDefault: true,
+      order: 0,
       template: [
         { enabled: true, insert: 'content', before: '', after: '' },
         { enabled: true, insert: 'footer', before: '', after: '', content: 'Footer 1 Content' },
@@ -14,6 +16,8 @@ describe('SocialPostingBodyFormatter', () => {
     {
       id: 'pt2',
       name: 'Project Template 2',
+      isDefault: false,
+      order: 1,
       template: [
         { enabled: true, insert: 'content', before: '', after: '' },
         {
@@ -28,6 +32,8 @@ describe('SocialPostingBodyFormatter', () => {
     {
       id: 'pt_mixed',
       name: 'Mixed Blocks',
+      isDefault: false,
+      order: 2,
       template: [
         { enabled: false, insert: 'title', before: 'Title: ', after: '' },
         { enabled: true, insert: 'content', before: '', after: '' },
@@ -40,18 +46,10 @@ describe('SocialPostingBodyFormatter', () => {
     preferences: {
       templates: [
         {
-          id: 't1',
-          name: 'Template 1',
-          order: 0,
           projectTemplateId: 'pt1',
-          isDefault: true,
         },
         {
-          id: 't2',
-          name: 'Template 2',
-          order: 1,
           projectTemplateId: 'pt2',
-          isDefault: false,
         },
       ],
     },
@@ -64,7 +62,7 @@ describe('SocialPostingBodyFormatter', () => {
   };
 
   it('should use specific footer when selected in block', () => {
-    // Already set up with t1 (pt1) as default
+    // pt1 is default project template
     const result = SocialPostingBodyFormatter.format(
       mockData,
       mockChannel,
@@ -77,39 +75,23 @@ describe('SocialPostingBodyFormatter', () => {
   });
 
   it('should use default footer when no footer selected in block', () => {
-    // Set t2 as default
-    const channelWithT2 = {
-      ...mockChannel,
-      preferences: {
-        ...mockChannel.preferences,
-        templates: mockChannel.preferences.templates.map(t => ({ ...t, isDefault: t.id === 't2' })),
-      },
-    };
-
+    // Preferred template pt2 should be selected when explicitly provided
     const result = SocialPostingBodyFormatter.format(
       mockData,
-      channelWithT2,
+      mockChannel,
       mockProjectTemplates as any,
-      null,
+      'pt2',
     );
     expect(result).toContain('Main Content');
     expect(result).toContain('Default Footer Content');
   });
 
   it('should use default system blocks if no template is default', () => {
-    const channelNoDefault = {
-      ...mockChannel,
-      preferences: {
-        ...mockChannel.preferences,
-        templates: mockChannel.preferences.templates.map(t => ({ ...t, isDefault: false })),
-      },
-    };
-
     const result = SocialPostingBodyFormatter.format(
       mockData,
-      channelNoDefault,
+      { preferences: {} },
       mockProjectTemplates as any,
-      null,
+      'pt_missing',
     );
     // Default blocks include: content, authorComment, authorSignature, tags, footer (default with empty content)
     expect(result).toContain('Main Content');
@@ -134,10 +116,7 @@ describe('SocialPostingBodyFormatter', () => {
       preferences: {
         templates: [
           {
-            id: 't_custom',
-            name: 'Template with Placeholder',
             projectTemplateId: 'pt_custom',
-            isDefault: true,
           },
         ],
       },
@@ -157,10 +136,7 @@ describe('SocialPostingBodyFormatter', () => {
       preferences: {
         templates: [
           {
-            id: 't_mixed_var',
-            name: 'Mixed Blocks Variation',
             projectTemplateId: 'pt_mixed',
-            isDefault: true,
           },
         ],
       },
@@ -176,7 +152,7 @@ describe('SocialPostingBodyFormatter', () => {
       data,
       channelWithMixedBlocks,
       mockProjectTemplates as any,
-      null,
+      'pt_mixed',
     );
     expect(result).toBe('Hello World');
     expect(result).not.toContain('Post Title');
@@ -188,11 +164,7 @@ describe('SocialPostingBodyFormatter', () => {
       preferences: {
         templates: [
           {
-            id: 't_override_disabled',
-            name: 'Variation with disabled footer',
-            order: 0,
             projectTemplateId: 'pt1',
-            isDefault: true,
             overrides: {
               footer: {
                 enabled: false,

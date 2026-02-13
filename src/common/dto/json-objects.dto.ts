@@ -286,22 +286,9 @@ export class BlockOverrideDto {
 }
 
 /**
- * DTO for Channel Template Variation (linked to a project template).
+ * DTO for Channel Template Adaptation (linked to a project template).
  */
 export class ChannelTemplateVariationDto {
-  @IsString()
-  id!: string;
-
-  @IsString()
-  name!: string;
-
-  @IsNumber()
-  order!: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isDefault?: boolean;
-
   @IsString()
   projectTemplateId!: string;
 
@@ -311,6 +298,8 @@ export class ChannelTemplateVariationDto {
 
   @IsOptional()
   @IsObject()
+  @ValidateNested({ each: true })
+  @Type(() => BlockOverrideDto)
   overrides?: Record<string, BlockOverrideDto>;
 }
 
