@@ -300,6 +300,11 @@ function getOverrideEnabled(channelId: string, blockInsert: string): boolean | u
   return channelOverridesMap.value[channelId]?.overrides[blockInsert]?.enabled
 }
 
+function getEffectiveEnabled(channelId: string, block: TemplateBlock): boolean {
+  const overrideEnabled = getOverrideEnabled(channelId, block.insert)
+  return overrideEnabled === undefined ? block.enabled : overrideEnabled
+}
+
 function setOverrideEnabled(channelId: string, blockInsert: string, enabled: boolean | undefined) {
   if (!channelOverridesMap.value[channelId]) {
     channelOverridesMap.value[channelId] = { excluded: false, overrides: {} }
@@ -655,7 +660,7 @@ const allBlocks = computed(() => {
                 v-for="block in allBlocks"
                 :key="block.insert"
                 class="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
-                :class="{ 'opacity-60 grayscale-[0.3]': getOverrideEnabled(activeTab, block.insert) === false }"
+                :class="{ 'opacity-60 grayscale-[0.3]': !getEffectiveEnabled(activeTab, block) }"
               >
                 <div class="flex items-center gap-2 mb-2">
                   <UCheckbox
@@ -672,7 +677,7 @@ const allBlocks = computed(() => {
                   </span>
                 </div>
 
-                <div class="space-y-2" v-if="getOverrideEnabled(activeTab, block.insert) !== false">
+                <div class="space-y-2" v-if="getEffectiveEnabled(activeTab, block)">
                   <!-- Before/After overrides for non-custom blocks -->
                   <template v-if="block.insert !== 'custom' && block.insert !== 'footer'">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
