@@ -83,8 +83,12 @@ function onPasteTags(event: ClipboardEvent) {
   searchTerm.value = ''
 }
 
-function onKeydownCreateByComma(event: KeyboardEvent) {
-  if (event.key !== ',') return
+function onKeydownCreateTag(event: KeyboardEvent) {
+  if (event.isComposing) return
+
+  const isComma = event.key === ',' || event.code === 'Comma'
+  const isEnter = event.key === 'Enter' || event.code === 'Enter' || event.code === 'NumpadEnter'
+  if (!isComma && !isEnter) return
 
   const nextTag = searchTerm.value.trim()
   if (!nextTag) return
@@ -267,7 +271,7 @@ onBeforeUnmount(() => {
       v-model:search-term="searchTerm"
       @create="onCreateTag"
       @paste.capture="onPasteTags"
-      @keydown.capture="onKeydownCreateByComma"
+      @keydown.capture="onKeydownCreateTag"
       multiple
       create-item
       :items="items"

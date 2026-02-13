@@ -1051,7 +1051,9 @@ export class PublicationsService {
                   select: { type: true },
                 })) as any),
               ]
-            : publication.media?.filter(m => m.media).map(m => ({ type: m.media!.type })) || [],
+            : publication.media
+                ?.filter((m: any) => m.media)
+                .map((m: any) => ({ type: m.media!.type })) || [],
           postType: data.postType || publication.postType,
         });
 
@@ -1102,7 +1104,9 @@ export class PublicationsService {
 
         let mediaCount = publication.media?.length || 0;
         let mediaArray =
-          publication.media?.filter(m => m.media).map(m => ({ type: m.media!.type })) || [];
+          publication.media
+            ?.filter((m: any) => m.media)
+            .map((m: any) => ({ type: m.media!.type })) || [];
 
         if (isMediaUpdating) {
           mediaCount = (data.media?.length || 0) + (data.existingMediaIds?.length || 0);
@@ -1502,7 +1506,11 @@ export class PublicationsService {
         },
       });
 
-      if (signature?.projectId !== publication.projectId) {
+      if (!signature) {
+        throw new ForbiddenException('You do not have permission to use this signature');
+      }
+
+      if (signature.projectId !== publication.projectId) {
         throw new ForbiddenException('You do not have permission to use this signature');
       }
 
@@ -1836,7 +1844,7 @@ export class PublicationsService {
         scheduledAt: null,
         media: {
           create:
-            source.media?.map(pm => ({
+            source.media?.map((pm: any) => ({
               mediaId: pm.mediaId,
               order: pm.order,
               hasSpoiler: pm.hasSpoiler,
