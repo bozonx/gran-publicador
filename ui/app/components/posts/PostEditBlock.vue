@@ -837,7 +837,6 @@ async function executePublish() {
                         variant="outline"
                         :disabled="isLocked"
                         :project-id="projectId"
-                        :user-id="user?.id"
                         class="w-full"
                     />
                 </UFormField>

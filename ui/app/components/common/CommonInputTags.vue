@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { formatTagsCsv, normalizeTags, parseTags } from '~/utils/tags'
+import {
+  createSearchRequestTracker,
+  prependCaseInsensitiveUniqueTags,
+  resolveTagSearchScope,
+} from '~/utils/common-input-tags'
 
 const props = withDefaults(defineProps<{
   modelValue: string[] | string | null | undefined
@@ -19,11 +24,18 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string[]): void
 }>()
 
+const { t } = useI18n()
 const api = useApi()
+const toast = useToast()
 const loading = ref(false)
 const searchTerm = ref('')
 const items = ref<string[]>([])
 const isCopying = ref(false)
+const searchRequestTracker = createSearchRequestTracker()
+const activeSearchController = ref<AbortController | null>(null)
+const hasShownScopeConflictWarning = ref(false)
+
+const TAG_LIMIT = 50
 
 function coerceModelValueToArray(value: string[] | string | null | undefined): string[] {
   if (!value) return []
@@ -33,32 +45,32 @@ function coerceModelValueToArray(value: string[] | string | null | undefined): s
 }
 
 function onCreateTag(rawTag: string) {
-  const createdTags = normalizeTags([rawTag])
+  const createdTags = normalizeTags([rawTag], { limit: TAG_LIMIT })
   if (createdTags.length === 0) return
   const createdTag = createdTags[0]
   if (!createdTag) return
 
-  const next = normalizeTags([...value.value, ...createdTags])
+  const next = normalizeTags([...value.value, ...createdTags], { limit: TAG_LIMIT })
   value.value = next
 
-  if (!items.value.includes(createdTag)) {
-    items.value = [createdTag, ...items.value]
-  }
+  items.value = prependCaseInsensitiveUniqueTags({
+    currentItems: items.value,
+    candidateTags: [createdTag],
+  })
 
   searchTerm.value = ''
 }
 
 function addTags(rawTags: string[]) {
-  const next = normalizeTags([...value.value, ...rawTags])
+  const next = normalizeTags([...value.value, ...rawTags], { limit: TAG_LIMIT })
   if (next.length === value.value.length) return
 
   value.value = next
 
-  for (const tag of rawTags) {
-    if (!items.value.includes(tag)) {
-      items.value = [tag, ...items.value]
-    }
-  }
+  items.value = prependCaseInsensitiveUniqueTags({
+    currentItems: items.value,
+    candidateTags: rawTags,
+  })
 }
 
 function onPasteTags(event: ClipboardEvent) {
@@ -89,69 +101,162 @@ async function copyTags() {
 
   isCopying.value = true
   try {
-    await navigator.clipboard.writeText(csv)
+    const copied = await copyTextToClipboard(csv)
+    if (!copied) {
+      toast.add({
+        title: t('common.error'),
+        description: t('post.tagsCopyFailed'),
+        color: 'error',
+      })
+      return
+    }
+
+    toast.add({
+      title: t('common.success'),
+      description: t('post.tagsCopied'),
+      color: 'success',
+    })
   } catch (err) {
     console.error('Failed to copy tags:', err)
+    toast.add({
+      title: t('common.error'),
+      description: t('post.tagsCopyFailed'),
+      color: 'error',
+    })
   } finally {
     isCopying.value = false
   }
 }
 
-function resolveSearchScope(): { projectId?: string; userId?: string } | null {
-  if (props.projectId) {
-    return { projectId: props.projectId }
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (!import.meta.client) return false
+
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // Fallback to execCommand below.
+    }
   }
 
-  if (props.userId) {
-    return { userId: props.userId }
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', 'true')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  let success = false
+  try {
+    success = document.execCommand('copy')
+  } finally {
+    document.body.removeChild(textarea)
   }
 
-  return null
+  return success
+}
+
+function resolveSearchScope() {
+  return resolveTagSearchScope({
+    projectId: props.projectId,
+    userId: props.userId,
+  })
 }
 
 const value = computed<string[]>({
   get() {
-    return normalizeTags(coerceModelValueToArray(props.modelValue))
+    return normalizeTags(coerceModelValueToArray(props.modelValue), { limit: TAG_LIMIT })
   },
   set(next) {
-    emit('update:modelValue', normalizeTags(next))
+    emit('update:modelValue', normalizeTags(next, { limit: TAG_LIMIT }))
   },
 })
 
-async function searchTags(q: string) {
+async function searchTags(q: string, signal?: AbortSignal) {
   if (!q || q.length < 1) return []
 
-  const scope = resolveSearchScope()
-  if (!scope) return []
-  
-  loading.value = true
+  const resolvedScope = resolveSearchScope()
+  if (resolvedScope.reason !== 'ok') {
+    if (resolvedScope.reason === 'conflict' && !hasShownScopeConflictWarning.value) {
+      if (import.meta.dev) {
+        console.warn('CommonInputTags: both projectId and userId were provided, expected exactly one')
+      }
+
+      toast.add({
+        title: t('common.warning'),
+        description: t('post.tagsScopeInvalid'),
+        color: 'warning',
+      })
+      hasShownScopeConflictWarning.value = true
+    }
+    return []
+  }
+
+  hasShownScopeConflictWarning.value = false
+
   try {
     const res = await api.get<{ name: string }[]>('/tags/search', {
+      signal,
       params: {
         q,
-        ...scope,
+        ...resolvedScope.scope,
         limit: 10
       }
     })
     return res.map(t => t.name)
   } catch (err) {
+    if ((err as { message?: string }).message === 'Request aborted') {
+      return []
+    }
+
     console.error('Failed to search tags:', err)
+    toast.add({
+      title: t('common.error'),
+      description: t('common.unexpectedError'),
+      color: 'error',
+    })
     return []
-  } finally {
-    loading.value = false
   }
 }
 
 const debouncedSearch = useDebounceFn(async () => {
-  items.value = await searchTags(searchTerm.value)
+  const q = searchTerm.value.trim()
+  if (!q) return
+
+  activeSearchController.value?.abort()
+  const nextController = api.createAbortController()
+  activeSearchController.value = nextController
+
+  const requestId = searchRequestTracker.next()
+  loading.value = true
+
+  try {
+    const result = await searchTags(q, nextController.signal)
+    if (!searchRequestTracker.isLatest(requestId)) return
+    items.value = result
+  } finally {
+    if (searchRequestTracker.isLatest(requestId)) {
+      loading.value = false
+    }
+  }
 }, 200)
 
 watch(searchTerm, () => {
-  if (!searchTerm.value) {
+  if (!searchTerm.value.trim()) {
+    searchRequestTracker.invalidate()
+    activeSearchController.value?.abort()
+    activeSearchController.value = null
+    loading.value = false
     items.value = []
     return
   }
   debouncedSearch()
+})
+
+onBeforeUnmount(() => {
+  activeSearchController.value?.abort()
 })
 </script>
 
@@ -186,7 +291,7 @@ watch(searchTerm, () => {
       :loading="isCopying"
       @click="copyTags"
     >
-      Copy tags
+      {{ t('common.copy') }}
     </UButton>
   </div>
 </template>
