@@ -311,6 +311,7 @@ export class PublicationsService {
             },
           },
         },
+        tagObjects: true,
       },
     },
     media: {
@@ -343,8 +344,16 @@ export class PublicationsService {
    * Normalize tagObjects relation into a flat tags string array on a publication response.
    */
   private normalizePublicationTags(publication: any): any {
+    const normalizedPosts = Array.isArray(publication.posts)
+      ? publication.posts.map((post: any) => ({
+          ...post,
+          tags: (post.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
+        }))
+      : publication.posts;
+
     return {
       ...publication,
+      posts: normalizedPosts,
       tags: (publication.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
     };
   }
