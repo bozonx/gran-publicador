@@ -488,7 +488,6 @@ async function performSubmit(data: PublicationFormData) {
       tags: data.tags,
       postType: data.postType,
       meta: data.meta || {},
-      language: data.language,
       postDate: data.postDate ? new Date(data.postDate).toISOString() : undefined,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : undefined,
     }

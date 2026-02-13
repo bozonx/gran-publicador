@@ -31,6 +31,32 @@ function coerceModelValueToArray(value: string[] | string | null | undefined): s
   return []
 }
 
+function onCreateTag(rawTag: string) {
+  const createdTags = normalizeTags([rawTag])
+  if (createdTags.length === 0) return
+
+  const next = normalizeTags([...value.value, ...createdTags])
+  value.value = next
+
+  if (!items.value.includes(createdTags[0])) {
+    items.value = [createdTags[0], ...items.value]
+  }
+
+  searchTerm.value = ''
+}
+
+function resolveSearchScope(): { projectId?: string; userId?: string } | null {
+  if (props.projectId) {
+    return { projectId: props.projectId }
+  }
+
+  if (props.userId) {
+    return { userId: props.userId }
+  }
+
+  return null
+}
+
 const value = computed<string[]>({
   get() {
     return normalizeTags(coerceModelValueToArray(props.modelValue))
@@ -43,15 +69,15 @@ const value = computed<string[]>({
 async function searchTags(q: string) {
   if (!q || q.length < 1) return []
 
-  if (!props.projectId && !props.userId) return []
+  const scope = resolveSearchScope()
+  if (!scope) return []
   
   loading.value = true
   try {
     const res = await api.get<{ name: string }[]>('/tags/search', {
       params: {
         q,
-        projectId: props.projectId,
-        userId: props.userId,
+        ...scope,
         limit: 10
       }
     })
@@ -81,6 +107,7 @@ watch(searchTerm, () => {
   <UInputMenu
     v-model="value"
     v-model:search-term="searchTerm"
+    @create="onCreateTag"
     multiple
     create-item
     :items="items"
