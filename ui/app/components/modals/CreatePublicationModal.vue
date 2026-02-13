@@ -90,6 +90,34 @@ const formData = reactive({
   projectTemplateId: '',
 })
 
+const isApplyingAutoChannelSelection = ref(false)
+const hasManualChannelSelection = ref(false)
+const hasManualTemplateSelection = ref(false)
+const hasManualSignatureSelection = ref(false)
+
+watch(
+  () => formData.channelIds,
+  () => {
+    if (isApplyingAutoChannelSelection.value) return
+    hasManualChannelSelection.value = true
+  },
+  { deep: true },
+)
+
+watch(
+  () => formData.projectTemplateId,
+  () => {
+    hasManualTemplateSelection.value = true
+  },
+)
+
+watch(
+  () => formData.authorSignatureId,
+  () => {
+    hasManualSignatureSelection.value = true
+  },
+)
+
 const lastAppliedProjectId = ref<string | null>(props.projectId || null)
 
 const isInitializedForOpen = ref(false)
@@ -132,42 +160,95 @@ watch(() => props.projectId, (newProjectId) => {
 
 
 // Watch for project ID to load channels
-watch(() => formData.projectId, async (newProjectId) => {
-  if (newProjectId) {
-    await Promise.all([
-      fetchChannels({ projectId: newProjectId }),
-      fetchSignatures(newProjectId).then(sigs => { 
-        projectSignatures.value = sigs 
-        // Auto-select first signature from sorted list
-        const userId = user.value?.id
-        if (userId && sigs.length > 0) {
-            const userSigs = sigs.filter(s => s.userId === userId)
-            if (userSigs.length > 0 && userSigs[0]) {
-                formData.authorSignatureId = userSigs[0].id
-            }
-        }
-      }),
-      fetchProjectTemplates(newProjectId).then(tpls => {
-        // Auto-select default template
-        if (tpls.length > 0) {
-          const def = tpls.find(t => t.isDefault) || tpls[0]
-          if (def) formData.projectTemplateId = def.id
-        }
-      }),
-    ])
+watch(
+  () => formData.projectId,
+  async (newProjectId, oldProjectId, onInvalidate) => {
+    let cancelled = false
+    onInvalidate(() => {
+      cancelled = true
+    })
 
-    if (!props.preselectedChannelId) {
-      if (!props.preselectedChannelIds?.length && formData.channelIds.length === 0) {
-        formData.channelIds = channels.value
-          .filter(ch => ch.language === formData.language)
-          .map(ch => ch.id)
+    if (newProjectId && newProjectId !== oldProjectId) {
+      isApplyingAutoChannelSelection.value = true
+      formData.channelIds = []
+      isApplyingAutoChannelSelection.value = false
+
+      if (!props.preselectedChannelId) {
+        formData.authorSignatureId = ''
+        formData.projectTemplateId = ''
+        hasManualSignatureSelection.value = false
+        hasManualTemplateSelection.value = false
       }
+
+      hasManualChannelSelection.value = Boolean(props.preselectedChannelId || props.preselectedChannelIds?.length)
     }
-  } else {
-    channels.value = []
-    formData.channelIds = []
-  }
-}, { immediate: true })
+
+    if (newProjectId) {
+      const [, fetchedSigs] = (await Promise.all([
+        fetchChannels({ projectId: newProjectId }),
+        fetchSignatures(newProjectId),
+        fetchProjectTemplates(newProjectId),
+      ])) as [unknown, ProjectAuthorSignature[], unknown]
+
+      if (cancelled) return
+
+      projectSignatures.value = fetchedSigs
+
+      const userId = user.value?.id
+      const availableSignatureIds = new Set(fetchedSigs.map(s => s.id))
+      if (formData.authorSignatureId && !availableSignatureIds.has(formData.authorSignatureId)) {
+        formData.authorSignatureId = ''
+        hasManualSignatureSelection.value = false
+      }
+      if (!hasManualSignatureSelection.value && userId) {
+        const userSigs = fetchedSigs.filter(s => s.userId === userId)
+        const first = userSigs[0]
+        if (first) formData.authorSignatureId = first.id
+      }
+
+      const availableTemplateIds = new Set(projectTemplates.value.map(t => t.id))
+      if (formData.projectTemplateId && !availableTemplateIds.has(formData.projectTemplateId)) {
+        formData.projectTemplateId = ''
+        hasManualTemplateSelection.value = false
+      }
+
+      if (!hasManualTemplateSelection.value) {
+        const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+        if (def) formData.projectTemplateId = def.id
+      }
+
+      if (!props.preselectedChannelId) {
+        const shouldAutoSelectChannels =
+          !props.preselectedChannelIds?.length
+          && (!hasManualChannelSelection.value || formData.channelIds.length === 0)
+
+        if (shouldAutoSelectChannels) {
+          const nextIds = channels.value
+            .filter(ch => ch.language === formData.language)
+            .map(ch => ch.id)
+
+          const current = formData.channelIds
+          if (current.length !== nextIds.length || current.some((id, idx) => id !== nextIds[idx])) {
+            isApplyingAutoChannelSelection.value = true
+            formData.channelIds = nextIds
+            isApplyingAutoChannelSelection.value = false
+          }
+        }
+      }
+    } else {
+      channels.value = []
+      isApplyingAutoChannelSelection.value = true
+      formData.channelIds = []
+      isApplyingAutoChannelSelection.value = false
+      formData.authorSignatureId = ''
+      formData.projectTemplateId = ''
+      hasManualChannelSelection.value = false
+      hasManualSignatureSelection.value = false
+      hasManualTemplateSelection.value = false
+    }
+  },
+  { immediate: true },
+)
 
 // No longer need type watcher since type is gone
 
@@ -227,16 +308,27 @@ watch([isOpen, () => props.preselectedChannelId], async ([open, preselectedChann
 
 // Watch language changes: clear mismatched channels and auto-select matching ones
 watch(() => formData.language, (newLang) => {
-    // Remove channels that don't match the new language
-    const matchingIds = new Set(
-      channels.value.filter(ch => ch.language === newLang).map(ch => ch.id)
-    )
-    formData.channelIds = formData.channelIds.filter(id => matchingIds.has(id))
+  const matchingIds = new Set(
+    channels.value.filter(ch => ch.language === newLang).map(ch => ch.id)
+  )
 
-    // Auto-select all matching channels if none selected
-    if (formData.channelIds.length === 0 && !props.preselectedChannelId) {
-      formData.channelIds = [...matchingIds]
-    }
+  const filtered = formData.channelIds.filter(id => matchingIds.has(id))
+  if (filtered.length !== formData.channelIds.length) {
+    isApplyingAutoChannelSelection.value = true
+    formData.channelIds = filtered
+    isApplyingAutoChannelSelection.value = false
+  }
+
+  const shouldAutoSelect = !props.preselectedChannelId && !hasManualChannelSelection.value
+  if (shouldAutoSelect && formData.channelIds.length === 0) {
+    const nextIds = channels.value
+      .filter(ch => ch.language === newLang)
+      .map(ch => ch.id)
+
+    isApplyingAutoChannelSelection.value = true
+    formData.channelIds = nextIds
+    isApplyingAutoChannelSelection.value = false
+  }
 })
 
 

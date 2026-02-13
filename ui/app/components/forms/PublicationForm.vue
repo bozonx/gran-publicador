@@ -69,6 +69,34 @@ const languageParam = route.query.language as string | undefined
 const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
 const state = usePublicationFormState(props.publication, languageParam)
 
+const isApplyingAutoChannelSelection = ref(false)
+const hasManualChannelSelection = ref(false)
+const hasManualTemplateSelection = ref(false)
+const hasManualSignatureSelection = ref(false)
+
+watch(
+  () => state.channelIds,
+  () => {
+    if (isApplyingAutoChannelSelection.value) return
+    hasManualChannelSelection.value = true
+  },
+  { deep: true },
+)
+
+watch(
+  () => state.projectTemplateId,
+  () => {
+    hasManualTemplateSelection.value = true
+  },
+)
+
+watch(
+  () => state.authorSignatureId,
+  () => {
+    hasManualSignatureSelection.value = true
+  },
+)
+
 const selectedPlatforms = computed(() => {
   const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
   return state.channelIds.map(id => map.get(id)).filter(Boolean) as any[]
@@ -92,34 +120,122 @@ watch([selectedPlatforms, () => state.postType], () => {
 
 
 
-watch(currentProjectId, async (newId) => {
-    if (newId) {
-        await Promise.all([
-            fetchChannels({ projectId: newId }),
-            fetchPublicationsByProject(newId, { limit: 50 }),
-            fetchSignatures(newId).then(sigs => { projectSignatures.value = sigs }),
-            fetchProjectTemplates(newId).then(() => {
-                // Auto-select template if creating new post
-                if (!isEditMode.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
-                    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
-                    if (def) state.projectTemplateId = def.id
-                }
-            }),
-        ])
-        
-        // Auto-select first signature from sorted list
-        if (!isEditMode.value) {
-            const userId = user.value?.id
-            if (userId && projectSignatures.value.length > 0) {
-                const userSigs = projectSignatures.value.filter(s => s.userId === userId)
-                if (userSigs.length > 0) {
-                  const firstSig = userSigs[0]
-                  if (firstSig) state.authorSignatureId = firstSig.id
-                }
-            }
-        }
+watch(
+  currentProjectId,
+  async (newId, oldId, onInvalidate) => {
+    let cancelled = false
+    onInvalidate(() => {
+      cancelled = true
+    })
+
+    if (!newId) return
+
+    if (!isEditMode.value && oldId && newId !== oldId) {
+      isApplyingAutoChannelSelection.value = true
+      state.channelIds = []
+      isApplyingAutoChannelSelection.value = false
+
+      state.projectTemplateId = ''
+      state.authorSignatureId = ''
+
+      hasManualChannelSelection.value = false
+      hasManualTemplateSelection.value = false
+      hasManualSignatureSelection.value = false
+
+      state.title = ''
+      state.description = ''
+      state.content = ''
+      state.tags = ''
+      state.note = ''
+      state.authorComment = ''
+      state.meta = {}
+      state.postDate = ''
+      state.scheduledAt = ''
+      state.status = 'DRAFT' as any
     }
-})
+
+    const [, , fetchedSigs] = (await Promise.all([
+      fetchChannels({ projectId: newId }),
+      fetchPublicationsByProject(newId, { limit: 50 }),
+      fetchSignatures(newId),
+      fetchProjectTemplates(newId),
+    ])) as [unknown, unknown, ProjectAuthorSignature[], unknown]
+
+    if (cancelled) return
+
+    projectSignatures.value = fetchedSigs
+
+    if (!isEditMode.value) {
+      const userId = user.value?.id
+
+      const availableSignatureIds = new Set(fetchedSigs.map(s => s.id))
+      if (state.authorSignatureId && !availableSignatureIds.has(state.authorSignatureId)) {
+        state.authorSignatureId = ''
+        hasManualSignatureSelection.value = false
+      }
+
+      if (!hasManualSignatureSelection.value && userId) {
+        const userSigs = fetchedSigs.filter(s => s.userId === userId)
+        const firstSig = userSigs[0]
+        if (firstSig) state.authorSignatureId = firstSig.id
+      }
+
+      const availableTemplateIds = new Set(filteredProjectTemplates.value.map(t => t.id))
+      if (state.projectTemplateId && !availableTemplateIds.has(state.projectTemplateId)) {
+        state.projectTemplateId = ''
+        hasManualTemplateSelection.value = false
+      }
+      if (!hasManualTemplateSelection.value) {
+        const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+        state.projectTemplateId = def?.id || ''
+      }
+
+      const shouldAutoSelectChannels = !hasManualChannelSelection.value || state.channelIds.length === 0
+      if (shouldAutoSelectChannels) {
+        const nextIds = channels.value
+          .filter(ch => ch.language === state.language)
+          .map(ch => ch.id)
+
+        const current = state.channelIds
+        if (current.length !== nextIds.length || current.some((id, idx) => id !== nextIds[idx])) {
+          isApplyingAutoChannelSelection.value = true
+          state.channelIds = nextIds
+          isApplyingAutoChannelSelection.value = false
+        }
+      }
+    }
+  },
+)
+
+watch(
+  () => state.language,
+  (newLang) => {
+    if (isEditMode.value) return
+    if (!currentProjectId.value) return
+
+    const matchingIds = new Set(
+      channels.value.filter(ch => ch.language === newLang).map(ch => ch.id),
+    )
+
+    const filtered = state.channelIds.filter(id => matchingIds.has(id))
+    if (filtered.length !== state.channelIds.length) {
+      isApplyingAutoChannelSelection.value = true
+      state.channelIds = filtered
+      isApplyingAutoChannelSelection.value = false
+    }
+
+    const shouldAutoSelect = !hasManualChannelSelection.value
+    if (shouldAutoSelect && state.channelIds.length === 0) {
+      const nextIds = channels.value
+        .filter(ch => ch.language === newLang)
+        .map(ch => ch.id)
+
+      isApplyingAutoChannelSelection.value = true
+      state.channelIds = nextIds
+      isApplyingAutoChannelSelection.value = false
+    }
+  },
+)
 
 // Filter templates by publication language and post type
 const filteredProjectTemplates = computed(() => {
@@ -138,6 +254,7 @@ watch([() => state.language, () => state.postType], () => {
   if (state.projectTemplateId && !filteredProjectTemplates.value.some(t => t.id === state.projectTemplateId)) {
     const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
     state.projectTemplateId = def?.id || ''
+    hasManualTemplateSelection.value = false
   } else if (!state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
     const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
     state.projectTemplateId = def?.id || ''
@@ -239,39 +356,48 @@ const resetToOriginal = () => dirtyState?.resetToOriginal()
 
 // Initial load
 onMounted(async () => {
-    if (currentProjectId.value) {
-        await Promise.all([
-            fetchChannels({ projectId: currentProjectId.value }),
-            fetchPublicationsByProject(currentProjectId.value, { limit: 50 }),
-            fetchSignatures(currentProjectId.value).then(sigs => { 
-                projectSignatures.value = sigs 
-                // Auto-select first signature from sorted list
-                if (!isEditMode.value && state.authorSignatureId === '') {
-                    const userId = user.value?.id
-                    if (userId && sigs.length > 0) {
-                        const userSigs = sigs.filter(s => s.userId === userId)
-                        if (userSigs.length > 0) {
-                            const firstSig = userSigs[0]
-                            if (firstSig) state.authorSignatureId = firstSig.id
-                        }
-                    }
-                }
-            }),
-            fetchProjectTemplates(currentProjectId.value).then(() => {
-                // Auto-select default template if creating new post
-                if (!isEditMode.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
-                    const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
-                    if (def) state.projectTemplateId = def.id
-                }
-            }),
-        ])
+  if (!currentProjectId.value) return
+
+  const projectId = currentProjectId.value
+  const [, , fetchedSigs] = (await Promise.all([
+    fetchChannels({ projectId }),
+    fetchPublicationsByProject(projectId, { limit: 50 }),
+    fetchSignatures(projectId),
+    fetchProjectTemplates(projectId),
+  ])) as [unknown, unknown, ProjectAuthorSignature[], unknown]
+
+  projectSignatures.value = fetchedSigs
+
+  if (!isEditMode.value) {
+    const userId = user.value?.id
+    if (!hasManualSignatureSelection.value && state.authorSignatureId === '' && userId) {
+      const userSigs = fetchedSigs.filter(s => s.userId === userId)
+      const firstSig = userSigs[0]
+      if (firstSig) state.authorSignatureId = firstSig.id
     }
-    
-    if (projects.value.length === 0) {
-        await fetchProjects()
+
+    if (!hasManualTemplateSelection.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
+      const def = filteredProjectTemplates.value.find(t => t.isDefault) || filteredProjectTemplates.value[0]
+      if (def) state.projectTemplateId = def.id
     }
-    
-    nextTick(() => saveOriginalState())
+
+    const shouldAutoSelectChannels = !hasManualChannelSelection.value && state.channelIds.length === 0
+    if (shouldAutoSelectChannels) {
+      const nextIds = channels.value
+        .filter(ch => ch.language === state.language)
+        .map(ch => ch.id)
+
+      isApplyingAutoChannelSelection.value = true
+      state.channelIds = nextIds
+      isApplyingAutoChannelSelection.value = false
+    }
+  }
+
+  if (projects.value.length === 0) {
+    await fetchProjects()
+  }
+
+  nextTick(() => saveOriginalState())
 })
 
 // Auto-save setup

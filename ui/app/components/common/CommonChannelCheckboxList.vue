@@ -34,14 +34,30 @@ const allChannels = computed(() => props.channels !== undefined ? props.channels
 const isLoading = computed(() => props.loading || (props.channels === undefined && isFetching.value))
 
 // Fetch if projectId or language changes
-watch([() => props.projectId, () => props.language], async ([newProj, newLang]) => {
-  if (props.channels === undefined) {
-    await fetchChannels({ 
-      projectId: newProj || undefined,
-      language: newLang || undefined
+watch(
+  [() => props.projectId, () => props.language],
+  async ([newProj, newLang], _old, onInvalidate) => {
+    if (props.channels !== undefined) return
+
+    let cancelled = false
+    onInvalidate(() => {
+      cancelled = true
     })
-  }
-}, { immediate: true })
+
+    if (!newProj) {
+      fetchedChannels.value = []
+      return
+    }
+
+    await fetchChannels({
+      projectId: newProj || undefined,
+      language: newLang || undefined,
+    })
+
+    if (cancelled) return
+  },
+  { immediate: true },
+)
 
 const channelOptions = computed(() => {
   let list = allChannels.value
