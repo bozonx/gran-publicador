@@ -282,7 +282,11 @@
     "vkAccessToken": "Access Token",
     "vkAccessTokenHelp": "Service or user access token for VK API",
     "vkAccessTokenPlaceholder": "vk1.a.abc...",
-    "vkCredentials": "VK Credentials"
+    "vkCredentials": "VK Credentials",
+    "warnings": {
+      "templateExcluded": "Template disabled for this channel",
+      "noSignatureVariant": "No signature variant for channel language"
+    }
   },
   "common": {
     "accessDenied": "Access denied",

@@ -282,7 +282,11 @@
     "vkAccessToken": "Токен доступа",
     "vkAccessTokenHelp": "Сервисный токен или токен пользователя для работы с API ВКонтакте",
     "vkAccessTokenPlaceholder": "vk1.a.abc...",
-    "vkCredentials": "Учётные данные ВКонтакте"
+    "vkCredentials": "Учётные данные ВКонтакте",
+    "warnings": {
+      "templateExcluded": "Шаблон отключён для этого канала",
+      "noSignatureVariant": "Нет варианта подписи для языка канала"
+    }
   },
   "common": {
     "accessDenied": "Доступ запрещён",

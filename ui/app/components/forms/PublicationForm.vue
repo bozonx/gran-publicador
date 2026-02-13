@@ -213,27 +213,14 @@ watch(
     if (isEditMode.value) return
     if (!currentProjectId.value) return
 
-    const matchingIds = new Set(
-      channels.value.filter(ch => ch.language === newLang).map(ch => ch.id),
-    )
+    const nextIds = channels.value
+      .filter(ch => ch.language === newLang)
+      .map(ch => ch.id)
 
-    const filtered = state.channelIds.filter(id => matchingIds.has(id))
-    if (filtered.length !== state.channelIds.length) {
-      isApplyingAutoChannelSelection.value = true
-      state.channelIds = filtered
-      isApplyingAutoChannelSelection.value = false
-    }
-
-    const shouldAutoSelect = !hasManualChannelSelection.value
-    if (shouldAutoSelect && state.channelIds.length === 0) {
-      const nextIds = channels.value
-        .filter(ch => ch.language === newLang)
-        .map(ch => ch.id)
-
-      isApplyingAutoChannelSelection.value = true
-      state.channelIds = nextIds
-      isApplyingAutoChannelSelection.value = false
-    }
+    isApplyingAutoChannelSelection.value = true
+    state.channelIds = nextIds
+    hasManualChannelSelection.value = false
+    isApplyingAutoChannelSelection.value = false
   },
 )
 

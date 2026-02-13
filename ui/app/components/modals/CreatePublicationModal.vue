@@ -306,29 +306,18 @@ watch([isOpen, () => props.preselectedChannelId], async ([open, preselectedChann
   formData.channelIds = [preselectedChannelId]
 })
 
-// Watch language changes: clear mismatched channels and auto-select matching ones
+// Watch language changes: always select all channels matching the new language
 watch(() => formData.language, (newLang) => {
-  const matchingIds = new Set(
-    channels.value.filter(ch => ch.language === newLang).map(ch => ch.id)
-  )
+  if (props.preselectedChannelId) return
 
-  const filtered = formData.channelIds.filter(id => matchingIds.has(id))
-  if (filtered.length !== formData.channelIds.length) {
-    isApplyingAutoChannelSelection.value = true
-    formData.channelIds = filtered
-    isApplyingAutoChannelSelection.value = false
-  }
+  const nextIds = channels.value
+    .filter(ch => ch.language === newLang)
+    .map(ch => ch.id)
 
-  const shouldAutoSelect = !props.preselectedChannelId && !hasManualChannelSelection.value
-  if (shouldAutoSelect && formData.channelIds.length === 0) {
-    const nextIds = channels.value
-      .filter(ch => ch.language === newLang)
-      .map(ch => ch.id)
-
-    isApplyingAutoChannelSelection.value = true
-    formData.channelIds = nextIds
-    isApplyingAutoChannelSelection.value = false
-  }
+  isApplyingAutoChannelSelection.value = true
+  formData.channelIds = nextIds
+  hasManualChannelSelection.value = false
+  isApplyingAutoChannelSelection.value = false
 })
 
 
@@ -367,6 +356,12 @@ const signatureOptions = computed(() => {
       label: variant?.content || sig.id,
     }
   })
+})
+
+// Selected author signatures for channel warnings
+const selectedAuthorSignatures = computed(() => {
+  if (!formData.authorSignatureId) return []
+  return projectSignatures.value.filter(s => s.id === formData.authorSignatureId)
 })
 
 // Filter templates by publication language and post type
@@ -570,6 +565,8 @@ function handleClose() {
           :project-id="formData.projectId"
           :language="formData.language"
           :channels="channels"
+          :selected-template-id="formData.projectTemplateId"
+          :author-signatures="selectedAuthorSignatures"
         />
       </UFormField>
     </form>
