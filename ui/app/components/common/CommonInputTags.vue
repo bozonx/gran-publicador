@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { normalizeTags, parseTags } from '~/utils/tags'
+import { formatTagsCsv, normalizeTags, parseTags } from '~/utils/tags'
 
 const props = withDefaults(defineProps<{
   modelValue: string[] | string | null | undefined
@@ -23,6 +23,7 @@ const api = useApi()
 const loading = ref(false)
 const searchTerm = ref('')
 const items = ref<string[]>([])
+const isCopying = ref(false)
 
 function coerceModelValueToArray(value: string[] | string | null | undefined): string[] {
   if (!value) return []
@@ -34,15 +35,66 @@ function coerceModelValueToArray(value: string[] | string | null | undefined): s
 function onCreateTag(rawTag: string) {
   const createdTags = normalizeTags([rawTag])
   if (createdTags.length === 0) return
+  const createdTag = createdTags[0]
+  if (!createdTag) return
 
   const next = normalizeTags([...value.value, ...createdTags])
   value.value = next
 
-  if (!items.value.includes(createdTags[0])) {
-    items.value = [createdTags[0], ...items.value]
+  if (!items.value.includes(createdTag)) {
+    items.value = [createdTag, ...items.value]
   }
 
   searchTerm.value = ''
+}
+
+function addTags(rawTags: string[]) {
+  const next = normalizeTags([...value.value, ...rawTags])
+  if (next.length === value.value.length) return
+
+  value.value = next
+
+  for (const tag of rawTags) {
+    if (!items.value.includes(tag)) {
+      items.value = [tag, ...items.value]
+    }
+  }
+}
+
+function onPasteTags(event: ClipboardEvent) {
+  const pastedText = event.clipboardData?.getData('text') ?? ''
+  const parsed = normalizeTags(parseTags(pastedText))
+  if (parsed.length === 0) return
+
+  event.preventDefault()
+  addTags(parsed)
+  searchTerm.value = ''
+}
+
+function onKeydownCreateByComma(event: KeyboardEvent) {
+  if (event.key !== ',') return
+
+  const nextTag = searchTerm.value.trim()
+  if (!nextTag) return
+
+  event.preventDefault()
+  onCreateTag(nextTag)
+}
+
+async function copyTags() {
+  if (value.value.length === 0 || isCopying.value) return
+
+  const csv = formatTagsCsv(value.value)
+  if (!csv) return
+
+  isCopying.value = true
+  try {
+    await navigator.clipboard.writeText(csv)
+  } catch (err) {
+    console.error('Failed to copy tags:', err)
+  } finally {
+    isCopying.value = false
+  }
 }
 
 function resolveSearchScope(): { projectId?: string; userId?: string } | null {
@@ -104,21 +156,37 @@ watch(searchTerm, () => {
 </script>
 
 <template>
-  <UInputMenu
-    v-model="value"
-    v-model:search-term="searchTerm"
-    @create="onCreateTag"
-    multiple
-    create-item
-    :items="items"
-    ignore-filter
-    :placeholder="placeholder"
-    :color="color"
-    :variant="variant"
-    :size="size"
-    :class="$props.class"
-    :disabled="disabled"
-    :loading="loading"
-    icon="i-heroicons-tag"
-  />
+  <div class="flex items-start gap-2">
+    <UInputMenu
+      v-model="value"
+      v-model:search-term="searchTerm"
+      @create="onCreateTag"
+      @paste.capture="onPasteTags"
+      @keydown.capture="onKeydownCreateByComma"
+      multiple
+      create-item
+      :items="items"
+      ignore-filter
+      :placeholder="placeholder"
+      :color="color"
+      :variant="variant"
+      :size="size"
+      :class="['flex-1', $props.class]"
+      :disabled="disabled"
+      :loading="loading"
+      icon="i-heroicons-tag"
+    />
+
+    <UButton
+      icon="i-heroicons-clipboard-document"
+      color="neutral"
+      variant="outline"
+      :size="size ?? 'md'"
+      :disabled="disabled || value.length === 0"
+      :loading="isCopying"
+      @click="copyTags"
+    >
+      Copy tags
+    </UButton>
+  </div>
 </template>
