@@ -634,7 +634,12 @@ export class PostsService {
       },
       include: {
         channel: true,
-        publication: true,
+        publication: {
+          include: {
+            tagObjects: true,
+          },
+        },
+        tagObjects: true,
       },
     });
 
