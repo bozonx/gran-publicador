@@ -524,7 +524,7 @@ export class PublicationsService {
                 hasSpoiler: input.hasSpoiler,
               };
             }),
-          ].filter(Boolean),
+          ].filter((x): x is Exclude<typeof x, null> => x !== null),
         },
 
         note: data.note,
