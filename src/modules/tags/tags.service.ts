@@ -9,12 +9,6 @@ export class TagsService {
   async search(query: SearchTagsQueryDto) {
     const { q, projectId, userId, limit = 20 } = query;
 
-    const hasProjectId = Boolean(projectId);
-    const hasUserId = Boolean(userId);
-    if (hasProjectId === hasUserId) {
-      throw new BadRequestException('Exactly one of projectId or userId must be provided');
-    }
-
     const normalizedQ = q ? String(q).trim().toLowerCase() : undefined;
     const take = Math.min(Math.max(Number(limit) || 20, 1), 50);
 

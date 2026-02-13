@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Max, Min, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class SearchTagsQueryDto {
   @IsOptional()
@@ -15,5 +16,9 @@ export class SearchTagsQueryDto {
   userId?: string;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
   limit?: number;
 }

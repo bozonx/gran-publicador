@@ -50,15 +50,18 @@ async function migrateTags() {
         data: {
           tagObjects: {
             connectOrCreate: tags.map(name => {
+              const normalizedName = name.toLowerCase();
               if (item.projectId) {
                 return {
-                  where: { projectId_name: { projectId: item.projectId, name } },
-                  create: { name, projectId: item.projectId },
+                  where: {
+                    projectId_normalizedName: { projectId: item.projectId, normalizedName },
+                  },
+                  create: { name, normalizedName, projectId: item.projectId },
                 };
               } else {
                 return {
-                  where: { userId_name: { userId: item.userId!, name } },
-                  create: { name, userId: item.userId },
+                  where: { userId_normalizedName: { userId: item.userId!, normalizedName } },
+                  create: { name, normalizedName, userId: item.userId },
                 };
               }
             }),
@@ -94,10 +97,13 @@ async function migrateTags() {
         where: { id: pub.id },
         data: {
           tagObjects: {
-            connectOrCreate: tags.map(name => ({
-              where: { projectId_name: { projectId: pub.projectId, name } },
-              create: { name, projectId: pub.projectId },
-            })),
+            connectOrCreate: tags.map(name => {
+              const normalizedName = name.toLowerCase();
+              return {
+                where: { projectId_normalizedName: { projectId: pub.projectId, normalizedName } },
+                create: { name, normalizedName, projectId: pub.projectId },
+              };
+            }),
           },
         },
       });
@@ -130,10 +136,15 @@ async function migrateTags() {
         where: { id: post.id },
         data: {
           tagObjects: {
-            connectOrCreate: tags.map(name => ({
-              where: { projectId_name: { projectId: post.channel.projectId, name } },
-              create: { name, projectId: post.channel.projectId },
-            })),
+            connectOrCreate: tags.map(name => {
+              const normalizedName = name.toLowerCase();
+              return {
+                where: {
+                  projectId_normalizedName: { projectId: post.channel.projectId, normalizedName },
+                },
+                create: { name, normalizedName, projectId: post.channel.projectId },
+              };
+            }),
           },
         },
       });

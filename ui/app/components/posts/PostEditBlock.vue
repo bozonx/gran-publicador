@@ -232,7 +232,7 @@ async function performSave() {
         const newPost = await createPost({
             channelId: formData.channelId,
             publicationId: props.publication.id,
-            tags: formData.tags.length > 0 ? formData.tags : null,
+            tags: formData.tags,
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
             content: normalizedContent,
             meta: formData.meta,
@@ -253,7 +253,7 @@ async function performSave() {
 
         const normalizedContent = isTextContentEmpty(formData.content) ? null : formData.content
         const updatedPost = await updatePost(props.post.id, {
-          tags: formData.tags.length > 0 ? formData.tags : null,
+          tags: formData.tags,
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
           content: normalizedContent,
           meta: formData.meta,

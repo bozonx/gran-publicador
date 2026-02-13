@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Tags: case-sensitive filtering** in ContentItem search — switched from `name` to `normalizedName` with `.toLowerCase()` for both direct tag filter and search-by-tag.
+- **Tags: inconsistent API responses** — Publications API now consistently returns `tags: string[]` alongside `tagObjects` in all endpoints (create, findAll, findAllForUser, findOne, update, copyToProject).
+- **Tags: missing Post DTO validation** — Added `@ArrayMaxSize` and `@MaxLength` validators to `CreatePostDto` and `UpdatePostDto` tags field, matching Publication and ContentItem DTOs.
+- **Tags: migration script** — Fixed `migrate-tags.ts` to use correct unique index names (`projectId_normalizedName`, `userId_normalizedName`) and include `normalizedName` in create data.
+- **Tags: PostEditBlock.vue type safety** — Changed `tags: null` to `tags: []` for proper TypeScript typing when clearing post tags.
+- **Tags: social posting formatter** — Removed unnecessary string↔array round-trip in `DefaultFormatter`; tag names are now formatted directly as `#tag` array.
+- **Tags: SearchTagsQueryDto** — Added `@Type(() => Number)`, `@IsInt`, `@Min(1)`, `@Max(50)` validation for `limit` parameter.
+- **Tags: duplicated scope validation** — Removed redundant scope check from `TagsService.search()` (already validated in controller).
 - **Tag input (CommonInputTags)**: Fixed multiple UX and reliability issues.
   - Added race-safe async suggestions (request invalidation + abort) to prevent stale search results.
   - Enforced strict scope handling for suggestions (`projectId` xor `userId`) to avoid ambiguous behavior.

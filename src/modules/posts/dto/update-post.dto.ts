@@ -1,5 +1,14 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDate, IsOptional, IsString, ValidateIf } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsDate,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
+import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for updating an existing post.
@@ -9,6 +18,8 @@ export class UpdatePostDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_TAGS_COUNT)
+  @MaxLength(VALIDATION_LIMITS.MAX_TAG_LENGTH, { each: true })
   public tags?: string[]; // Can override publication tags
 
   @Type(() => Date)

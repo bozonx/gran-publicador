@@ -279,6 +279,7 @@ describe('PublicationsService (unit)', () => {
         ...createDto,
         createdBy: userId,
         meta: '{}',
+        tagObjects: [{ name: 'test' }, { name: 'demo' }],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -290,6 +291,7 @@ describe('PublicationsService (unit)', () => {
       expect(result).toEqual({
         ...mockPublication,
         meta: {},
+        tags: ['test', 'demo'],
       });
       expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         projectId,
