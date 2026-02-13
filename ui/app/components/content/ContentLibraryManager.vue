@@ -660,10 +660,10 @@ if (props.scope === 'project' && props.projectId) {
         v-if="activeItem"
         ref="editorRef"
         :item="activeItem"
-        @refresh="fetchItems({ reset: true })"
-      />"
         :scope="props.scope"
-        :project-id="props.projectId
+        :project-id="props.projectId"
+        @refresh="fetchItems({ reset: true })"
+      />
       
       <template #footer>
         <div class="flex justify-between items-center w-full">

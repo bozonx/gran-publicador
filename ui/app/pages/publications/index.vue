@@ -549,7 +549,7 @@ async function handleDelete() {
           v-model="selectedTags"
           :placeholder="t('publication.filter.tagsPlaceholder', 'Filter by tags...')"
           :project-id="selectedProjectId || undefined"
-          :user-id="user?.id"
+          :user-id="selectedProjectId ? undefined : user?.id"
           class="w-full sm:w-64"
         />
 

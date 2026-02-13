@@ -12,6 +12,7 @@ interface Props {
   currentSocialMedia?: SocialMedia
   showProject?: boolean
   nameInputRef?: any
+  projectId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -230,6 +231,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
       <CommonInputTags
         v-model="state.tags"
         :placeholder="t('channel.tagsPlaceholder', 'tag1, tag2, tag3')"
+        :project-id="projectId"
         color="neutral"
         variant="outline"
         class="w-full"
