@@ -758,7 +758,7 @@ function handleReset() {
           variant="outline"
           :disabled="isLocked"
           :project-id="currentProjectId"
-          :user-id="user?.id"
+          :user-id="currentProjectId ? undefined : user?.id"
           class="w-full"
         />
       </UFormField>
