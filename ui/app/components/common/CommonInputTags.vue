@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { normalizeTags } from '~/utils/tags'
+import { normalizeTags, parseTags } from '~/utils/tags'
 
 const props = withDefaults(defineProps<{
-  modelValue: string[] | null | undefined
+  modelValue: string[] | string | null | undefined
   placeholder?: string
   color?: 'error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral'
   variant?: 'outline' | 'soft' | 'subtle' | 'ghost'
@@ -24,9 +24,16 @@ const loading = ref(false)
 const searchTerm = ref('')
 const items = ref<string[]>([])
 
+function coerceModelValueToArray(value: string[] | string | null | undefined): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') return parseTags(value)
+  return []
+}
+
 const value = computed<string[]>({
   get() {
-    return normalizeTags(props.modelValue ?? [])
+    return normalizeTags(coerceModelValueToArray(props.modelValue))
   },
   set(next) {
     emit('update:modelValue', normalizeTags(next))
