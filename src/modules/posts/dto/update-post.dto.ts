@@ -28,9 +28,6 @@ export class UpdatePostDto {
   public meta?: any;
 
   @IsOptional()
-  public template?: any;
-
-  @IsOptional()
   public platformOptions?: any;
 
   @ValidateIf((_, value) => value !== null && value !== undefined)

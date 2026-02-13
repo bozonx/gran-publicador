@@ -157,7 +157,6 @@ export class PostSnapshotBuilderService {
         authorSignature: post.authorSignature,
       },
       channel,
-      templateOverride: post.template,
       projectTemplates,
       preferredProjectTemplateId: publication.projectTemplateId ?? null,
     });

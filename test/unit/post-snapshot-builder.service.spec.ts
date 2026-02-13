@@ -71,7 +71,6 @@ describe('PostSnapshotBuilderService', () => {
           content: null,
           tags: null,
           language: null,
-          template: null,
           authorSignature: 'Author Sig',
           channel: {
             socialMedia: 'telegram',
@@ -84,7 +83,6 @@ describe('PostSnapshotBuilderService', () => {
           content: 'Override content',
           tags: 'custom-tag',
           language: 'en-US',
-          template: null,
           authorSignature: null,
           channel: {
             socialMedia: 'vk',
@@ -187,7 +185,6 @@ describe('PostSnapshotBuilderService', () => {
           content: null,
           tags: null,
           language: null,
-          template: null,
           authorSignature: null,
           channel: {
             socialMedia: 'telegram',
@@ -221,7 +218,6 @@ describe('PostSnapshotBuilderService', () => {
           content: null,
           tags: null,
           language: null,
-          template: null,
           authorSignature: null,
           channel: {
             socialMedia: 'telegram',
@@ -256,7 +252,6 @@ describe('PostSnapshotBuilderService', () => {
           content: null,
           tags: null,
           language: null,
-          template: null,
           authorSignature: null,
           channel: {
             socialMedia: 'vk',

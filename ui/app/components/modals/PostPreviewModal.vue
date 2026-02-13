@@ -50,7 +50,6 @@ const previewContent = computed(() => {
       authorSignature: props.post.authorSignature || '',
     },
     props.post.channel || props.post,
-    props.post.template,
     props.projectTemplates,
     pub.projectTemplateId
   )

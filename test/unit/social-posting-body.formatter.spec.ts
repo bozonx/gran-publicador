@@ -99,7 +99,6 @@ describe('SocialPostingBodyFormatter', () => {
     const result = SocialPostingBodyFormatter.format(
       { ...mockData, authorSignature: 'John Doe' },
       channel,
-      null,
       projectTemplates as any,
       'pt-2',
     );
@@ -150,7 +149,6 @@ describe('SocialPostingBodyFormatter', () => {
     const result = SocialPostingBodyFormatter.format(
       { ...mockData, authorSignature: 'John Doe' },
       channel,
-      { id: 'var-excluded' },
       projectTemplates as any,
       'pt-2',
     );
@@ -167,7 +165,6 @@ describe('SocialPostingBodyFormatter', () => {
     const result = SocialPostingBodyFormatter.format(
       dataWithSignature,
       mockChannel,
-      null,
       mockProjectTemplates as any,
     );
 
@@ -212,7 +209,6 @@ describe('SocialPostingBodyFormatter', () => {
     const result = SocialPostingBodyFormatter.format(
       mockData,
       channelWithCustom,
-      null,
       projectTemplates as any,
     );
     expect(result).toBe('Written by {{authorSignature}}');

@@ -112,7 +112,6 @@ export class PostsService {
       scheduledAt?: Date;
       content?: string | null;
       meta?: any;
-      template?: any;
       platformOptions?: any;
       authorSignature?: string;
     },
@@ -186,7 +185,6 @@ export class PostsService {
         scheduledAt: data.scheduledAt,
         content: normalizedOverrideContent ?? null,
         meta: data.meta ?? {},
-        template: data.template ?? null,
         platformOptions: data.platformOptions,
         authorSignature: authorSignature || undefined,
         errorMessage,
@@ -478,7 +476,6 @@ export class PostsService {
       errorMessage?: string | null;
       content?: string | null;
       meta?: any;
-      template?: any;
       platformOptions?: any;
       authorSignature?: string | null;
     },
@@ -599,14 +596,17 @@ export class PostsService {
         errorMessage: data.errorMessage,
         content: data.content,
         meta: data.meta,
-        template: data.template,
         platformOptions: data.platformOptions,
         authorSignature: data.authorSignature,
         tagObjects:
           data.tags !== undefined
-            ? ((await this.tagsService.prepareTagsConnectOrCreate(normalizeTags(data.tags), {
-                projectId: post.channel?.projectId || '',
-              }, true)) as any)
+            ? ((await this.tagsService.prepareTagsConnectOrCreate(
+                normalizeTags(data.tags),
+                {
+                  projectId: post.channel?.projectId || '',
+                },
+                true,
+              )) as any)
             : undefined,
       },
       include: {

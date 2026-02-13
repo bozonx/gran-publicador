@@ -28,15 +28,11 @@ export interface PostingSnapshot {
 
     template: {
       preferredProjectTemplateId?: string | null;
-      overrideVariationId?: string | null;
       resolvedVariationId?: string | null;
       resolvedProjectTemplateId?: string | null;
       resolution:
-        | 'override'
         | 'preferred_template_channel_default'
         | 'preferred_template_first_variation'
-        | 'override_ignored_not_matching_preferred_template'
-        | 'override_ignored_excluded'
         | 'channel_default'
         | 'fallback_default_blocks'
         | 'missing_project_template_fallback';

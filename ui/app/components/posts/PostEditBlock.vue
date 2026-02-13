@@ -12,7 +12,7 @@ import {
     getPostLanguage 
 } from '~/composables/usePosts'
 import type { PostStatus } from '~/types/posts'
-import type { ChannelTemplateVariation } from '~/types/channels'
+ 
 import { useSocialPosting } from '~/composables/useSocialPosting'
 import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
@@ -105,20 +105,6 @@ const overriddenTags = computed(() => {
     return props.post.tags.split(',').filter(t => t.trim())
 })
 
-const currentTemplateName = computed(() => {
-    const template = formData.template
-    if (!template || !template.id) return null
-    
-    // Try to find name in available templates
-    const found = availableTemplates.value.find(t => t.value?.id === template.id)
-    if (found) {
-        // Remove " (Default)" suffix if present for display in header
-        return found.label.replace(/\s\(.*\)$/, '')
-    }
-    
-    return null
-})
-
 const formData = reactive({
   channelId: '', 
   tags: props.post?.tags || '', // Null or empty means use publication tags
@@ -126,7 +112,6 @@ const formData = reactive({
   status: (props.post?.status || 'PENDING') as PostStatus,
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
-  template: (props.post?.template && typeof props.post.template === 'string' ? JSON.parse(props.post.template) : (props.post?.template || null)) as { id: string } | null,
   authorSignature: props.post?.authorSignature || '',
   platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
 })
@@ -235,7 +220,6 @@ async function performSave() {
             scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
             content: normalizedContent,
             meta: formData.meta,
-            template: formData.template,
             authorSignature: formData.authorSignature || null,
             platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
@@ -257,7 +241,6 @@ async function performSave() {
           scheduledAt: formData.scheduledAt ? new Date(formData.scheduledAt).toISOString() : undefined,
           content: normalizedContent,
           meta: formData.meta,
-          template: formData.template,
           authorSignature: formData.authorSignature || null,
           platformOptions: JSON.parse(JSON.stringify(formData.platformOptions))
         }, { silent: true })
@@ -403,80 +386,6 @@ const getChannelPreferences = (channel: any) => {
     return channel.preferences
 }
 
-const availableTemplates = computed(() => {
-    const channel = selectedChannel.value
-    // Check if channel has preferences (type guard)
-    // We must handle cases where preferences is a string (backend raw response)
-    const preferences = getChannelPreferences(channel)
-    
-    if (!preferences?.templates) return []
-    
-    // Filter templates by post type (if specified in template)
-    // If template has specific post type, it must match publication's post type
-    // If template post type is null, it applies to all
-    const publicationPostType = displayType.value
-    
-    const list = (preferences.templates || []).map((template: any) => ({
-        value: { id: template.id },
-        label: template.name + (template.isDefault ? ` (${t('channel.templateIsDefault', 'Default')})` : '')
-    }))
-
-    // Find current default to show in label
-    const defaultTemplate = (preferences.templates || []).find((t: any) => t.isDefault)
-    const defaultLabel =  defaultTemplate ? `${t('channel.templateDefault', 'Default')} (currently '${defaultTemplate.name}')` : t('channel.templateDefault', 'Default (Auto)')
-
-    // Add "Default" option at the top
-    return [
-        { value: null, label: defaultLabel },
-        ...list
-    ]
-})
-
-// Track previous template list to detect actual changes (not just recomputation)
-const previousTemplateIds = ref<Set<string>>(new Set())
-
-watch(availableTemplates, (newTemplates, oldTemplates) => {
-    // If list is empty (loading or no channel), don't reset anything
-    if (newTemplates.length === 0) return
-
-    // Build set of current template IDs (excluding null/default option)
-    const currentIds = new Set(
-        newTemplates
-            .filter(t => t.value && t.value.id)
-            .map(t => t.value!.id)
-    )
-
-    // If this is the first run or the template list hasn't actually changed, skip
-    // We update the tracking set but don't reset the form data
-    if (previousTemplateIds.value.size === 0) {
-        previousTemplateIds.value = currentIds
-        return
-    }
-
-    // Check if the list actually changed (not just recomputed)
-    const listsAreEqual = 
-        currentIds.size === previousTemplateIds.value.size &&
-        Array.from(currentIds).every(id => previousTemplateIds.value.has(id))
-
-    if (listsAreEqual) {
-        // List didn't change content-wise, just recomputed - don't reset
-        return
-    }
-
-    // Update previous list
-    previousTemplateIds.value = currentIds
-
-    // User requested to mark problematic instead of resetting to null
-    // So we don't automatically reset formData.template = null anymore
-})
-
-const isTemplateMissing = computed(() => {
-    if (!formData.template?.id) return false
-    const preferences = getChannelPreferences(selectedChannel.value)
-    if (!preferences?.templates) return true
-    return !preferences.templates.some((t: any) => t.id === formData.template!.id)
-})
-
 // Watchers for external updates
 watch(() => props.post, (newPost, oldPost) => {
     if (!newPost) return
@@ -492,7 +401,6 @@ watch(() => props.post, (newPost, oldPost) => {
     formData.status = newPost.status
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
-    formData.template = (newPost.template && typeof newPost.template === 'string' ? JSON.parse(newPost.template) : (newPost.template || null))
     formData.authorSignature = newPost.authorSignature || ''
     formData.platformOptions = (newPost.platformOptions && typeof newPost.platformOptions === 'string' ? JSON.parse(newPost.platformOptions) : (newPost.platformOptions || {}))
     
@@ -739,19 +647,7 @@ async function executePublish() {
             
             <!-- Collapsed Preview info -->
             <div v-if="isCollapsed" class="space-y-1">
-                <!-- Template & Tags Info -->
-                <div v-if="currentTemplateName || displayTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
-                     <!-- Template Name -->
-                     <UBadge
-                        v-if="currentTemplateName"
-                        variant="subtle"
-                        color="primary"
-                        size="xs"
-                        class="font-medium mr-1"
-                     >
-                        <UIcon name="i-heroicons-squares-2x2" class="w-3 h-3 mr-1" />
-                        {{ currentTemplateName }}
-                     </UBadge>
+                <div v-if="displayTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
 
                      <!-- Author Signature -->
                      <UBadge

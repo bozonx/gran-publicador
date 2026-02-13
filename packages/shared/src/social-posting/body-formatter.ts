@@ -47,18 +47,14 @@ export interface ProjectTemplateData {
 
 export interface TemplateResolutionMeta {
   preferredProjectTemplateId?: string | null;
-  overrideVariationId?: string | null;
   resolvedVariationId?: string | null;
   resolvedProjectTemplateId?: string | null;
   resolution:
-    | 'override'
     | 'preferred_template_channel_default'
     | 'preferred_template_first_variation'
     | 'channel_default'
     | 'fallback_default_blocks'
-    | 'missing_project_template_fallback'
-    | 'override_ignored_not_matching_preferred_template'
-    | 'override_ignored_excluded';
+    | 'missing_project_template_fallback';
   hasOverrides?: boolean;
 }
 
@@ -100,12 +96,10 @@ export class SocialPostingBodyFormatter {
     channel: { preferences?: any };
     projectTemplates?: ProjectTemplateData[];
     preferredProjectTemplateId?: string | null;
-    templateOverride?: { id: string } | null;
   }): { body: string; template: TemplateResolutionMeta };
   static formatWithMeta(
     data: PublicationData,
     channel: { preferences?: any },
-    templateOverride?: { id: string } | null,
     projectTemplates?: ProjectTemplateData[],
     preferredProjectTemplateId?: string | null,
   ): { body: string; template: TemplateResolutionMeta };
@@ -116,11 +110,9 @@ export class SocialPostingBodyFormatter {
           channel: { preferences?: any };
           projectTemplates?: ProjectTemplateData[];
           preferredProjectTemplateId?: string | null;
-          templateOverride?: { id: string } | null;
         }
       | PublicationData,
     channelArg?: { preferences?: any },
-    templateOverrideArg?: { id: string } | null,
     projectTemplatesArg?: ProjectTemplateData[],
     preferredProjectTemplateIdArg?: string | null,
   ): { body: string; template: TemplateResolutionMeta } {
@@ -130,13 +122,11 @@ export class SocialPostingBodyFormatter {
         : {
             data: dataOrOptions as PublicationData,
             channel: channelArg ?? {},
-            templateOverride: templateOverrideArg,
             projectTemplates: projectTemplatesArg,
             preferredProjectTemplateId: preferredProjectTemplateIdArg,
           };
 
-    const { data, channel, projectTemplates, templateOverride, preferredProjectTemplateId } =
-      options;
+    const { data, channel, projectTemplates, preferredProjectTemplateId } = options;
 
     const preferences =
       typeof channel.preferences === 'string'
@@ -157,20 +147,7 @@ export class SocialPostingBodyFormatter {
       ? variations.filter(v => v.projectTemplateId === preferredTplId)
       : variations;
 
-    // 1) Explicit override (if provided)
-    if (templateOverride?.id) {
-      const found = variations.find(v => v.id === templateOverride.id);
-      if (found?.excluded) {
-        resolution = 'override_ignored_excluded';
-      } else if (found && preferredTplId && found.projectTemplateId !== preferredTplId) {
-        resolution = 'override_ignored_not_matching_preferred_template';
-      } else if (found) {
-        variation = found;
-        resolution = 'override';
-      }
-    }
-
-    // 2) Preferred template: choose channel default variation within preferred template
+    // 1) Preferred template: choose channel default variation within preferred template
     if (!variation && preferredTplId) {
       variation = allowedVariations.find(v => v.isDefault && !v.excluded);
       if (variation) {
@@ -178,7 +155,7 @@ export class SocialPostingBodyFormatter {
       }
     }
 
-    // 3) Preferred template: fallback to first non-excluded variation for that template
+    // 2) Preferred template: fallback to first non-excluded variation for that template
     if (!variation && preferredTplId) {
       variation = allowedVariations
         .filter(v => !v.excluded)
@@ -189,7 +166,7 @@ export class SocialPostingBodyFormatter {
       }
     }
 
-    // 4) Generic channel default (no preferred template)
+    // 3) Generic channel default (no preferred template)
     if (!variation && !preferredTplId) {
       variation = variations.find(v => v.isDefault && !v.excluded);
       if (variation) {
@@ -226,7 +203,6 @@ export class SocialPostingBodyFormatter {
       body: this.renderBlocks(data, blocks),
       template: {
         preferredProjectTemplateId: preferredTplId,
-        overrideVariationId: templateOverride?.id ?? null,
         resolvedVariationId: variation?.id ?? null,
         resolvedProjectTemplateId,
         resolution,
@@ -240,12 +216,10 @@ export class SocialPostingBodyFormatter {
     channel: { preferences?: any };
     projectTemplates?: ProjectTemplateData[];
     preferredProjectTemplateId?: string | null;
-    templateOverride?: { id: string } | null;
   }): string;
   static format(
     data: PublicationData,
     channel: { preferences?: any },
-    templateOverride?: { id: string } | null,
     projectTemplates?: ProjectTemplateData[],
     preferredProjectTemplateId?: string | null,
   ): string;
@@ -256,11 +230,9 @@ export class SocialPostingBodyFormatter {
           channel: { preferences?: any };
           projectTemplates?: ProjectTemplateData[];
           preferredProjectTemplateId?: string | null;
-          templateOverride?: { id: string } | null;
         }
       | PublicationData,
     channelArg?: { preferences?: any },
-    templateOverrideArg?: { id: string } | null,
     projectTemplatesArg?: ProjectTemplateData[],
     preferredProjectTemplateIdArg?: string | null,
   ): string {
@@ -271,7 +243,6 @@ export class SocialPostingBodyFormatter {
     return this.formatWithMeta(
       dataOrOptions as PublicationData,
       channelArg ?? {},
-      templateOverrideArg,
       projectTemplatesArg,
       preferredProjectTemplateIdArg,
     ).body;
