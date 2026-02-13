@@ -10,6 +10,7 @@ export interface TemplateBlock {
 }
 
 export interface BlockOverride {
+  enabled?: boolean;
   before?: string;
   after?: string;
   content?: string;
@@ -83,6 +84,7 @@ export class SocialPostingBodyFormatter {
 
       return {
         ...block,
+        enabled: override.enabled !== undefined ? override.enabled : block.enabled,
         before: override.before !== undefined ? override.before : block.before,
         after: override.after !== undefined ? override.after : block.after,
         content: override.content !== undefined ? override.content : block.content,

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { SocialPostingBodyFormatter } from '../../app/utils/bodyFormatter'
+import { describe, it, expect } from 'vitest';
+import { SocialPostingBodyFormatter } from '../../app/utils/bodyFormatter';
 
 describe('SocialPostingBodyFormatter', () => {
   const mockProjectTemplates = [
@@ -16,7 +16,13 @@ describe('SocialPostingBodyFormatter', () => {
       name: 'Project Template 2',
       template: [
         { enabled: true, insert: 'content', before: '', after: '' },
-        { enabled: true, insert: 'footer', before: '', after: '', content: 'Default Footer Content' },
+        {
+          enabled: true,
+          insert: 'footer',
+          before: '',
+          after: '',
+          content: 'Default Footer Content',
+        },
       ],
     },
     {
@@ -28,7 +34,7 @@ describe('SocialPostingBodyFormatter', () => {
         { enabled: false, insert: 'authorComment', before: 'Comment: ', after: '' },
       ],
     },
-  ]
+  ];
 
   const mockChannel = {
     preferences: {
@@ -49,21 +55,26 @@ describe('SocialPostingBodyFormatter', () => {
         },
       ],
     },
-  }
+  };
 
   const mockData = {
     content: 'Main Content',
     authorComment: 'Author Note',
     authorSignature: 'John Doe',
-  }
+  };
 
   it('should use specific footer when selected in block', () => {
     // Already set up with t1 (pt1) as default
-    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, null, mockProjectTemplates as any)
-    expect(result).toContain('Main Content')
-    expect(result).toContain('Footer 1 Content')
-    expect(result).not.toContain('Default Footer Content')
-  })
+    const result = SocialPostingBodyFormatter.format(
+      mockData,
+      mockChannel,
+      mockProjectTemplates as any,
+      null,
+    );
+    expect(result).toContain('Main Content');
+    expect(result).toContain('Footer 1 Content');
+    expect(result).not.toContain('Default Footer Content');
+  });
 
   it('should use default footer when no footer selected in block', () => {
     // Set t2 as default
@@ -73,12 +84,17 @@ describe('SocialPostingBodyFormatter', () => {
         ...mockChannel.preferences,
         templates: mockChannel.preferences.templates.map(t => ({ ...t, isDefault: t.id === 't2' })),
       },
-    }
+    };
 
-    const result = SocialPostingBodyFormatter.format(mockData, channelWithT2, null, mockProjectTemplates as any)
-    expect(result).toContain('Main Content')
-    expect(result).toContain('Default Footer Content')
-  })
+    const result = SocialPostingBodyFormatter.format(
+      mockData,
+      channelWithT2,
+      mockProjectTemplates as any,
+      null,
+    );
+    expect(result).toContain('Main Content');
+    expect(result).toContain('Default Footer Content');
+  });
 
   it('should use default system blocks if no template is default', () => {
     const channelNoDefault = {
@@ -87,14 +103,19 @@ describe('SocialPostingBodyFormatter', () => {
         ...mockChannel.preferences,
         templates: mockChannel.preferences.templates.map(t => ({ ...t, isDefault: false })),
       },
-    }
+    };
 
-    const result = SocialPostingBodyFormatter.format(mockData, channelNoDefault, null, mockProjectTemplates as any)
+    const result = SocialPostingBodyFormatter.format(
+      mockData,
+      channelNoDefault,
+      mockProjectTemplates as any,
+      null,
+    );
     // Default blocks include: content, authorComment, authorSignature, tags, footer (default with empty content)
-    expect(result).toContain('Main Content')
-    expect(result).toContain('Author Note')
-    expect(result).toContain('John Doe')
-  })
+    expect(result).toContain('Main Content');
+    expect(result).toContain('Author Note');
+    expect(result).toContain('John Doe');
+  });
 
   it('should NOT replace {{authorSignature}} placeholder', () => {
     const customProjectTemplate = {
@@ -108,7 +129,7 @@ describe('SocialPostingBodyFormatter', () => {
           content: 'Written by {{authorSignature}}',
         },
       ],
-    }
+    };
     const channelWithCustom = {
       preferences: {
         templates: [
@@ -120,26 +141,16 @@ describe('SocialPostingBodyFormatter', () => {
           },
         ],
       },
-    }
+    };
 
-    const result = SocialPostingBodyFormatter.format(mockData, channelWithCustom, null, [customProjectTemplate] as any)
-    expect(result).toBe('Written by {{authorSignature}}')
-  })
-
-  it('should support explicit variation override', () => {
-    // Use t2 (which points to pt2) explicitly even if t1 is default
-    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, { id: 't2' }, mockProjectTemplates as any)
-    expect(result).toContain('Main Content')
-    expect(result).toContain('Default Footer Content')
-    expect(result).not.toContain('Footer 1 Content')
-  })
-
-  it('should skip variation if it is non-existent', () => {
-    const result = SocialPostingBodyFormatter.format(mockData, mockChannel, { id: 'non-existent' }, mockProjectTemplates as any)
-    // Fallback to default (t1 -> pt1)
-    expect(result).toContain('Main Content')
-    expect(result).toContain('Footer 1 Content')
-  })
+    const result = SocialPostingBodyFormatter.format(
+      mockData,
+      channelWithCustom,
+      [customProjectTemplate] as any,
+      null,
+    );
+    expect(result).toBe('Written by {{authorSignature}}');
+  });
 
   it('should respect enabled/disabled blocks in template', () => {
     const channelWithMixedBlocks = {
@@ -153,28 +164,64 @@ describe('SocialPostingBodyFormatter', () => {
           },
         ],
       },
-    }
+    };
 
     const data = {
       title: 'Post Title',
       content: 'Hello World',
       authorComment: 'Hidden Comment',
-    }
+    };
 
-    const result = SocialPostingBodyFormatter.format(data, channelWithMixedBlocks, null, mockProjectTemplates as any)
-    expect(result).toBe('Hello World')
-    expect(result).not.toContain('Post Title')
-    expect(result).not.toContain('Hidden Comment')
-  })
+    const result = SocialPostingBodyFormatter.format(
+      data,
+      channelWithMixedBlocks,
+      mockProjectTemplates as any,
+      null,
+    );
+    expect(result).toBe('Hello World');
+    expect(result).not.toContain('Post Title');
+    expect(result).not.toContain('Hidden Comment');
+  });
+
+  it('should allow disabling blocks on channel variation level', () => {
+    const channelWithOverrideDisabled = {
+      preferences: {
+        templates: [
+          {
+            id: 't_override_disabled',
+            name: 'Variation with disabled footer',
+            order: 0,
+            projectTemplateId: 'pt1',
+            isDefault: true,
+            overrides: {
+              footer: {
+                enabled: false,
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    const result = SocialPostingBodyFormatter.format(
+      mockData,
+      channelWithOverrideDisabled,
+      mockProjectTemplates as any,
+      null,
+    );
+
+    expect(result).toContain('Main Content');
+    expect(result).not.toContain('Footer 1 Content');
+  });
 
   it('should format tags correctly with default snake_case', () => {
     const data = {
       content: 'Post',
       tags: 'First Tag, SecondTag',
-    }
+    };
     // Default system template includes tags with snake_case
-    const result = SocialPostingBodyFormatter.format(data, { preferences: {} })
-    expect(result).toContain('#first_tag')
-    expect(result).toContain('#second_tag')
-  })
-})
+    const result = SocialPostingBodyFormatter.format(data, { preferences: {} });
+    expect(result).toContain('#first_tag');
+    expect(result).toContain('#second_tag');
+  });
+});

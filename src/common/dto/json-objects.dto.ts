@@ -254,6 +254,10 @@ export class TemplateBlockDto {
 
 export class BlockOverrideDto {
   @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
   @IsString()
   before?: string;
 

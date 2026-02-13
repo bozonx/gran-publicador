@@ -296,6 +296,29 @@ function getOverrideValue(channelId: string, blockInsert: string, field: keyof B
   return (channelOverridesMap.value[channelId]?.overrides[blockInsert]?.[field] as string) ?? ''
 }
 
+function getOverrideEnabled(channelId: string, blockInsert: string): boolean | undefined {
+  return channelOverridesMap.value[channelId]?.overrides[blockInsert]?.enabled
+}
+
+function setOverrideEnabled(channelId: string, blockInsert: string, enabled: boolean | undefined) {
+  if (!channelOverridesMap.value[channelId]) {
+    channelOverridesMap.value[channelId] = { excluded: false, overrides: {} }
+  }
+  const overrides = channelOverridesMap.value[channelId]!.overrides
+  if (!overrides[blockInsert]) {
+    overrides[blockInsert] = {}
+  }
+  if (enabled === undefined) {
+    delete overrides[blockInsert]!.enabled
+    if (Object.keys(overrides[blockInsert]!).length === 0) {
+      delete overrides[blockInsert]
+    }
+  } else {
+    (overrides[blockInsert] as any).enabled = enabled
+  }
+  scheduleChannelSave(channelId)
+}
+
 function setOverrideValue(channelId: string, blockInsert: string, field: keyof BlockOverride, value: string) {
   if (!channelOverridesMap.value[channelId]) {
     channelOverridesMap.value[channelId] = { excluded: false, overrides: {} }
@@ -376,6 +399,10 @@ function resetBlocks() {
 // ─── Enabled blocks for channel tabs ────────────────────────────────
 const enabledBlocks = computed(() => {
   return templateForm.value.template.filter(b => b.enabled)
+})
+
+const allBlocks = computed(() => {
+  return templateForm.value.template
 })
 </script>
 
@@ -625,17 +652,27 @@ const enabledBlocks = computed(() => {
               </p>
 
               <div
-                v-for="block in enabledBlocks"
+                v-for="block in allBlocks"
                 :key="block.insert"
                 class="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
+                :class="{ 'opacity-60 grayscale-[0.3]': getOverrideEnabled(activeTab, block.insert) === false }"
               >
                 <div class="flex items-center gap-2 mb-2">
+                  <UCheckbox
+                    :model-value="getOverrideEnabled(activeTab, block.insert) === undefined ? block.enabled : getOverrideEnabled(activeTab, block.insert)"
+                    color="primary"
+                    :disabled="block.insert === 'content'"
+                    @update:model-value="(v: boolean | 'indeterminate') => {
+                      if (v === 'indeterminate') return
+                      setOverrideEnabled(activeTab, block.insert, v === block.enabled ? undefined : v)
+                    }"
+                  />
                   <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {{ insertOptions.find(o => o.value === block.insert)?.label }}
                   </span>
                 </div>
 
-                <div class="space-y-2">
+                <div class="space-y-2" v-if="getOverrideEnabled(activeTab, block.insert) !== false">
                   <!-- Before/After overrides for non-custom blocks -->
                   <template v-if="block.insert !== 'custom' && block.insert !== 'footer'">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -693,10 +730,6 @@ const enabledBlocks = computed(() => {
                     </UFormField>
                   </template>
                 </div>
-              </div>
-
-              <div v-if="enabledBlocks.length === 0" class="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
-                {{ t('projectTemplates.noEnabledBlocks') }}
               </div>
             </div>
           </template>

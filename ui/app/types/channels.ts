@@ -19,6 +19,7 @@ export interface TemplateBlock {
 }
 
 export interface BlockOverride {
+  enabled?: boolean;
   before?: string;
   after?: string;
   content?: string;

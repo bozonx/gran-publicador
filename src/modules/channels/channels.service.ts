@@ -107,6 +107,9 @@ export class ChannelsService {
           );
         }
         const obj = override as Record<string, unknown>;
+        if (obj.enabled !== undefined && typeof obj.enabled !== 'boolean') {
+          throw new BadRequestException('Channel template overrides contain invalid enabled flag');
+        }
         for (const field of ['before', 'after', 'content']) {
           if (obj[field] !== undefined && typeof obj[field] !== 'string') {
             throw new BadRequestException('Channel template overrides contain non-string field');
