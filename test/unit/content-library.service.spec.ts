@@ -180,7 +180,7 @@ describe('ContentLibraryService (unit)', () => {
 
   describe('create', () => {
     it('should create even when blocks are not provided', async () => {
-      mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1' });
+      mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1', tagObjects: [] });
 
       await expect(
         service.create(
@@ -189,11 +189,11 @@ describe('ContentLibraryService (unit)', () => {
           } as any,
           'user-1',
         ),
-      ).resolves.toEqual({ id: 'ci-1' });
+      ).resolves.toEqual({ id: 'ci-1', tagObjects: [], tags: [] });
     });
 
     it('should create personal item', async () => {
-      mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1' });
+      mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1', tagObjects: [] });
 
       const result = await service.create(
         {
@@ -205,7 +205,7 @@ describe('ContentLibraryService (unit)', () => {
       );
 
       expect(mockPrismaService.contentItem.create).toHaveBeenCalled();
-      expect(result).toEqual({ id: 'ci-1' });
+      expect(result).toEqual({ id: 'ci-1', tagObjects: [], tags: [] });
     });
 
     it('should require projectId for project scope', async () => {

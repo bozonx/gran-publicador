@@ -99,6 +99,17 @@ export class ContentLibraryService {
     */
   }
 
+  /**
+   * Normalize tagObjects relation into a flat tags string array on a content item response.
+   */
+  private normalizeContentItemTags(item: any): any {
+    if (!item) return item;
+    return {
+      ...item,
+      tags: (item.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
+    };
+  }
+
   private async assertContentItemAccess(
     contentItemId: string,
     userId: string,
@@ -345,7 +356,7 @@ export class ContentLibraryService {
     ])) as [any[], number, number];
 
     return {
-      items,
+      items: items.map((item: any) => this.normalizeContentItemTags(item)),
       total,
       totalUnfiltered,
       limit,
@@ -356,7 +367,7 @@ export class ContentLibraryService {
   public async findOne(id: string, userId: string) {
     await this.assertContentItemAccess(id, userId, true);
 
-    return this.prisma.contentItem.findUnique({
+    const item = await this.prisma.contentItem.findUnique({
       where: { id },
       include: {
         tagObjects: true,
@@ -371,6 +382,8 @@ export class ContentLibraryService {
         },
       },
     });
+
+    return this.normalizeContentItemTags(item);
   }
 
   public async remove(id: string, userId: string) {
@@ -440,7 +453,7 @@ export class ContentLibraryService {
       },
     });
 
-    return created;
+    return this.normalizeContentItemTags(created);
   }
 
   public async update(id: string, dto: UpdateContentItemDto, userId: string) {
@@ -457,7 +470,7 @@ export class ContentLibraryService {
       }
     }
 
-    return this.prisma.contentItem.update({
+    const updated = await this.prisma.contentItem.update({
       where: { id },
       data: {
         folderId: dto.folderId,
@@ -488,6 +501,8 @@ export class ContentLibraryService {
         },
       },
     });
+
+    return this.normalizeContentItemTags(updated);
   }
 
   public async archive(id: string, userId: string) {
@@ -1058,16 +1073,29 @@ export class ContentLibraryService {
   }
 
   public async sync(contentItemId: string, dto: SyncContentItemDto, userId: string) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
+    const item = await this.assertContentItemAccess(contentItemId, userId, false);
     await this.assertContentItemMutationAllowed(contentItemId, userId);
 
     return this.prisma.$transaction(async tx => {
-      // 1. Update item metadata
+      // 1. Update item metadata (including tags)
+      const tagData =
+        dto.tags !== undefined
+          ? await this.tagsService.prepareTagsConnectOrCreate(
+              dto.tags ?? [],
+              {
+                projectId: item.projectId ?? undefined,
+                userId: item.userId ?? undefined,
+              },
+              true,
+            )
+          : undefined;
+
       await tx.contentItem.update({
         where: { id: contentItemId },
         data: {
           title: dto.title,
           note: dto.note,
+          tagObjects: tagData,
         },
       });
 
