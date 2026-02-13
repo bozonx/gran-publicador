@@ -26,10 +26,32 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Use @prisma/adapter-pg for PostgreSQL (required for Prisma 7 with config file)
     if (url.startsWith('postgresql://') || url.startsWith('postgres://')) {
-      pool = new Pool({ connectionString: url });
+      const parsedUrl = new URL(url);
+      const isSsl =
+        parsedUrl.searchParams.get('sslmode') === 'require' ||
+        parsedUrl.searchParams.get('ssl') === 'true';
+
+      const poolConfig: pg.PoolConfig = {
+        connectionString: url,
+      };
+
+      // Explicitly enable SSL if requested in URL
+      // This ensures pg driver respects the setting even if connectionString parsing varies
+      if (isSsl) {
+        poolConfig.ssl = {
+          rejectUnauthorized: false, // Allow self-signed or incomplete cert chains typical in some cloud envs
+        };
+        internalLogger.log('🔒 SSL/TLS explicitly enabled for PostgreSQL pool');
+      }
+
+      pool = new Pool(poolConfig);
       const adapter = new PrismaPg(pool);
       clientConfig.adapter = adapter;
+      
       internalLogger.log('🐘 Using PostgreSQL with @prisma/adapter-pg');
+      internalLogger.log(`🔌 Database Host: ${parsedUrl.hostname}`);
+      internalLogger.log(`🔌 Database Name: ${parsedUrl.pathname.slice(1)}`);
+      internalLogger.log(`🔌 Database User: ${parsedUrl.username}`);
     } else {
       throw new Error(
         `Unsupported database protocol. Expected postgresql:// or postgres://, got: ${url.split(':')[0]}`,
@@ -39,8 +61,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     super(clientConfig);
 
     this.pool = pool;
-
-    this.logger.log(`🔌 Database connected via: ${url.split('@').pop()}`); // Log URL without credentials
   }
 
   public async onModuleInit() {
