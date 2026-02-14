@@ -3,7 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { jest } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach, afterAll } from '@jest/globals';
 import { MediaType, StorageType } from '../../src/generated/prisma/index.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { Readable } from 'stream';
@@ -43,6 +43,10 @@ describe('MediaService (unit)', () => {
     timeoutSecs: 5,
     maxFileSizeMb: 10,
     thumbnailQuality: 75,
+    imageOptimizationEnabled: true,
+    imageOptimizationFormat: 'webp',
+    imageOptimizationMaxDimension: 3840,
+    imageOptimizationEffort: 4,
   };
 
   beforeAll(async () => {
@@ -189,6 +193,79 @@ describe('MediaService (unit)', () => {
 
       expect(result.fileId).toBe('storage-id-789');
       expect(result.metadata.size).toBe(4);
+    });
+
+    it('should force env image optimization params in x-optimize header', async () => {
+      const client = mockAgent.get('http://localhost:8083');
+      client
+        .intercept({
+          path: '/api/v1/files',
+          method: 'POST',
+          headers: {
+            'x-optimize': JSON.stringify({
+              quality: 92,
+              stripMetadata: true,
+              format: 'webp',
+              maxDimension: 3840,
+              effort: 4,
+            }),
+          },
+        })
+        .reply(200, {
+          id: 'storage-id-img-1',
+          originalSize: 200,
+          size: 150,
+          mimeType: 'image/webp',
+          checksum: 'hash-img-1',
+          url: 'http://storage/file',
+        });
+
+      const result = await service.uploadFileToStorage(
+        Readable.from([Buffer.from('img')]),
+        'image.jpg',
+        'image/jpeg',
+        undefined,
+        undefined,
+        undefined,
+        {
+          quality: 92,
+          stripMetadata: true,
+          format: 'avif',
+          maxDimension: 1024,
+          effort: 9,
+        },
+      );
+
+      expect(result.fileId).toBe('storage-id-img-1');
+    });
+
+    it('should not send x-optimize when global optimization is disabled', async () => {
+      mockMediaConfig.imageOptimizationEnabled = false;
+
+      const client = mockAgent.get('http://localhost:8083');
+      client
+        .intercept({
+          path: '/api/v1/files',
+          method: 'POST',
+        })
+        .reply(200, {
+          id: 'storage-id-img-2',
+          originalSize: 200,
+          size: 190,
+          mimeType: 'image/jpeg',
+          checksum: 'hash-img-2',
+          url: 'http://storage/file',
+        });
+
+      const result = await service.uploadFileToStorage(
+        Readable.from([Buffer.from('img')]),
+        'image.jpg',
+        'image/jpeg',
+      );
+
+      expect(result.fileId).toBe('storage-id-img-2');
+
+      mockMediaConfig.imageOptimizationEnabled = true;
     });
   });
 

@@ -1,6 +1,8 @@
 import { plainToClass } from 'class-transformer';
-import { IsInt, Min, IsString, IsOptional, Max, IsUrl } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, Min, IsString, IsOptional, Max, IsUrl } from 'class-validator';
 import { registerAs } from '@nestjs/config';
+
+type MediaImageOptimizationFormat = 'webp' | 'avif';
 
 /**
  * Configuration for Media Storage microservice integration.
@@ -52,9 +54,61 @@ export class MediaConfig {
   @Min(1)
   @Max(100)
   public thumbnailQuality?: number;
+
+  /**
+   * Global switch for image optimization in Media Storage requests.
+   */
+  @IsBoolean()
+  public imageOptimizationEnabled: boolean = true;
+
+  /**
+   * Forced output format for optimized images.
+   */
+  @IsIn(['webp', 'avif'])
+  public imageOptimizationFormat: MediaImageOptimizationFormat = 'webp';
+
+  /**
+   * Forced max dimension for optimized images.
+   */
+  @IsInt()
+  @Min(1)
+  public imageOptimizationMaxDimension: number = 3840;
+
+  /**
+   * Forced encoding effort for optimized images.
+   */
+  @IsInt()
+  @Min(0)
+  @Max(9)
+  public imageOptimizationEffort: number = 4;
 }
 
 export default registerAs('media', (): MediaConfig => {
+  const parseBoolean = (value: string | undefined): boolean | undefined => {
+    if (!value) return undefined;
+
+    const normalized = value.trim().toLowerCase();
+    if (
+      normalized === 'true' ||
+      normalized === '1' ||
+      normalized === 'yes' ||
+      normalized === 'on'
+    ) {
+      return true;
+    }
+
+    if (
+      normalized === 'false' ||
+      normalized === '0' ||
+      normalized === 'no' ||
+      normalized === 'off'
+    ) {
+      return false;
+    }
+
+    return undefined;
+  };
+
   const rawConfig: any = {
     serviceUrl: process.env.MEDIA_STORAGE_SERVICE_URL,
     appId: process.env.MEDIA_STORAGE_APP_ID,
@@ -67,6 +121,14 @@ export default registerAs('media', (): MediaConfig => {
       : undefined,
     thumbnailQuality: process.env.THUMBNAIL_QUALITY
       ? parseInt(process.env.THUMBNAIL_QUALITY, 10)
+      : undefined,
+    imageOptimizationEnabled: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_ENABLED),
+    imageOptimizationFormat: process.env.MEDIA_IMAGE_OPTIMIZATION_FORMAT?.toLowerCase(),
+    imageOptimizationMaxDimension: process.env.MEDIA_IMAGE_OPTIMIZATION_MAX_DIMENSION
+      ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_MAX_DIMENSION, 10)
+      : undefined,
+    imageOptimizationEffort: process.env.MEDIA_IMAGE_OPTIMIZATION_EFFORT
+      ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_EFFORT, 10)
       : undefined,
   };
 

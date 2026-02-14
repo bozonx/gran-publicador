@@ -237,6 +237,24 @@ export class MediaService {
     return normalized;
   }
 
+  private buildEffectiveImageOptimization(
+    options?: Record<string, any>,
+  ): Record<string, any> | undefined {
+    const mediaConfig = this.config;
+    if (!mediaConfig.imageOptimizationEnabled) {
+      return undefined;
+    }
+
+    const normalized = this.normalizeCompressionOptions(options);
+
+    return {
+      ...normalized,
+      format: mediaConfig.imageOptimizationFormat,
+      maxDimension: mediaConfig.imageOptimizationMaxDimension,
+      effort: mediaConfig.imageOptimizationEffort,
+    };
+  }
+
   public async replaceFsMediaFile(
     id: string,
     fileStream: Readable,
@@ -260,17 +278,8 @@ export class MediaService {
     }
 
     let effectiveOptimize = optimize;
-    const optimizeDisabled =
-      effectiveOptimize &&
-      typeof effectiveOptimize === 'object' &&
-      ((effectiveOptimize as any).enabled === false ||
-        (effectiveOptimize as any).skipOptimization === true);
 
-    if (optimizeDisabled) {
-      effectiveOptimize = undefined;
-    }
-
-    if (!effectiveOptimize && projectId && !optimizeDisabled) {
+    if (!effectiveOptimize && projectId) {
       try {
         effectiveOptimize = await this.getProjectOptimizationSettings(projectId);
       } catch (error) {
@@ -421,8 +430,7 @@ export class MediaService {
       throw new InternalServerErrorException('Media Storage service is not configured');
     }
 
-    let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
-    if (compression?.enabled === false) compression = undefined;
+    let compression = this.buildEffectiveImageOptimization(optimize);
     if (!mimetype.toLowerCase().startsWith('image/')) {
       compression = undefined;
     }
@@ -512,8 +520,7 @@ export class MediaService {
       if (filename) body.filename = filename;
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;
-      let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
-      if (compression?.enabled === false) compression = undefined;
+      const compression = this.buildEffectiveImageOptimization(optimize);
       if (compression) body.optimize = compression;
 
       const response = await request(`${config.serviceUrl}/files/from-url`, {

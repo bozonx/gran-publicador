@@ -30,6 +30,10 @@ All notable changes to this project will be documented in this file.
 - **Telegram Bot STT**: Fixed voice message transcription always receiving `undefined` language — user's content language is now properly passed through `createContentItemFromMessage` and `addMediaGroupMessageToContentBlock` to `transcribeVoice`.
 
 ### Changed
+- **Media optimization policy**: moved image optimization control for `format`, `maxDimension`, `effort`, and global enable/disable to backend env configuration.
+  - New env vars: `MEDIA_IMAGE_OPTIMIZATION_ENABLED`, `MEDIA_IMAGE_OPTIMIZATION_FORMAT`, `MEDIA_IMAGE_OPTIMIZATION_MAX_DIMENSION`, `MEDIA_IMAGE_OPTIMIZATION_EFFORT`.
+  - Backend now forces `format/maxDimension/effort` from env when optimization is enabled and applies the same policy for upload stream + upload-from-url.
+  - UI project optimization form no longer exposes those env-driven controls.
 - **LLM Publication Fields Generation**: Added per-channel content shortening support.
   - Optional `channels[].maxContentLength` is now forwarded to the LLM instruction block.
   - LLM may return `posts[].content` as a per-channel override only when `publication.content` exceeds the channel limit.

@@ -102,10 +102,7 @@ const filenameInput = ref('')
 const isAddingMedia = ref(false)
 const showExtendedOptions = ref(false)
 const stagedFiles = ref<File[]>([])
-const optimizationSettings = ref<any>({
-  enabled: false,
-  skipOptimization: false
-})
+const optimizationSettings = ref<any>(JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard)))
 
 const currentProjectOptimization = computed(() => {
   return currentProject.value?.preferences?.mediaOptimization
@@ -119,10 +116,7 @@ watch(showExtendedOptions, (val) => {
     } else {
       // Use Standard preset as fallback
       const standard = JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
-      optimizationSettings.value = {
-        ...standard,
-        enabled: true // Enable by default when opening advanced settings if no project default
-      }
+      optimizationSettings.value = standard
     }
   }
 })
@@ -262,17 +256,10 @@ function triggerFileInput() {
 function getDefaultOptimizationParams() {
   const projectOpt = currentProjectOptimization.value
   if (projectOpt) {
-    // If project explicitly says skip, respect it
-    if (projectOpt.skipOptimization) {
-      return { enabled: false, skipOptimization: true }
-    }
-    // If project has custom settings enabled, use them
-    if (projectOpt.enabled) {
-      return JSON.parse(JSON.stringify(projectOpt))
-    }
+    return JSON.parse(JSON.stringify(projectOpt))
   }
   
-  // Otherwise (no project settings or disabled in project), use standard preset
+  // Otherwise (no project settings), use standard preset
   return JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
 }
 
@@ -284,7 +271,7 @@ async function handleFileUpload(event: Event) {
       if (fileInput.value) fileInput.value.value = ''
     } else {
       const defaults = getDefaultOptimizationParams()
-      await uploadFiles(target.files, defaults.enabled ? defaults : undefined)
+      await uploadFiles(target.files, defaults)
     }
   }
 }
@@ -298,12 +285,7 @@ async function uploadFiles(files: FileList | File[], options?: any) {
   
   const progresses = new Array(fileArray.length).fill(0)
   
-  let optimizeParams: any = undefined
-  if (options?.skipOptimization) {
-    optimizeParams = { enabled: false }
-  } else if (options?.enabled) {
-    optimizeParams = options
-  }
+  const optimizeParams = options
 
   try {
     const uploadedMediaItems = await Promise.all(
@@ -348,21 +330,9 @@ async function addMedia() {
     if (sourceType.value === 'URL') {
       // For URL type: download file and save to filesystem with original URL in meta
       const defaults = getDefaultOptimizationParams()
-      let optimizeParams: any = undefined
-      
-      if (showExtendedOptions.value) {
-        if (optimizationSettings.value.skipOptimization) {
-          optimizeParams = { enabled: false }
-        } else if (optimizationSettings.value.enabled) {
-          optimizeParams = optimizationSettings.value
-        }
-      } else {
-        if (defaults.skipOptimization) {
-          optimizeParams = { enabled: false }
-        } else {
-          optimizeParams = defaults 
-        }
-      }
+      const optimizeParams = showExtendedOptions.value
+        ? optimizationSettings.value
+        : defaults
 
       uploadedMedia = await uploadMediaFromUrl(
         sourceInput.value.trim(),

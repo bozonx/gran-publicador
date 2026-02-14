@@ -1,133 +1,125 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Role } from '~/types/roles.types'
-
-
-
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import type { Role } from '~/types/roles.types';
 
 export interface Project {
-  id: string
-  name: string
-  description: string | null
-  ownerId: string
-  archivedAt?: string | null
-  createdAt: string
-  updatedAt: string
+  id: string;
+  name: string;
+  description: string | null;
+  ownerId: string;
+  archivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
   preferences?: {
-    staleChannelsDays?: number
-    mediaOptimization?: MediaOptimizationPreferences
-    [key: string]: any
-  }
+    staleChannelsDays?: number;
+    mediaOptimization?: MediaOptimizationPreferences;
+    [key: string]: any;
+  };
 }
 
 export interface MediaOptimizationPreferences {
-  enabled: boolean
-  format: 'webp' | 'avif'
-  quality: number
-  maxDimension: number
-  lossless: boolean
-  stripMetadata: boolean
-  autoOrient: boolean
-  flatten: string
-  chromaSubsampling: '4:2:0' | '4:4:4'
-  effort: number
-  skipOptimization?: boolean
+  quality: number;
+  lossless: boolean;
+  stripMetadata: boolean;
+  autoOrient: boolean;
+  flatten: string;
+  chromaSubsampling: '4:2:0' | '4:4:4';
 }
 
 export interface ProjectMember {
-  id: string
-  projectId: string
-  userId: string
-  role: Role
-  createdAt: string
+  id: string;
+  projectId: string;
+  userId: string;
+  role: Role;
+  createdAt: string;
 }
 
 export interface ProjectWithOwner extends Project {
   owner?: {
-    id: string
-    fullName: string | null
-    telegramUsername: string | null
-  } | null
+    id: string;
+    fullName: string | null;
+    telegramUsername: string | null;
+  } | null;
 }
 
 export interface ProjectWithRole extends ProjectWithOwner {
-  role?: string
-  memberCount?: number
-  channelCount?: number
-  publicationsCount?: number
-  failedPostsCount?: number
-  staleChannelsCount?: number
-  problemPublicationsCount?: number
-  noCredentialsChannelsCount?: number
-  inactiveChannelsCount?: number
-  lastPublicationAt?: string | null
-  lastPublicationId?: string | null
-  languages?: string[]
+  role?: string;
+  memberCount?: number;
+  channelCount?: number;
+  publicationsCount?: number;
+  failedPostsCount?: number;
+  staleChannelsCount?: number;
+  problemPublicationsCount?: number;
+  noCredentialsChannelsCount?: number;
+  inactiveChannelsCount?: number;
+  lastPublicationAt?: string | null;
+  lastPublicationId?: string | null;
+  languages?: string[];
   channels?: {
-    id: string
-    name: string
-    socialMedia: string
-    isStale?: boolean
-  }[]
+    id: string;
+    name: string;
+    socialMedia: string;
+    isStale?: boolean;
+  }[];
 }
 
 export interface ProjectMemberWithUser extends ProjectMember {
   user: {
-    id: string
-    fullName: string | null
-    telegramUsername: string | null
-    email: string | null
-    avatarUrl: string | null
-  }
+    id: string;
+    fullName: string | null;
+    telegramUsername: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+  };
 }
 
 export const useProjectsStore = defineStore('projects', () => {
-  const projects = ref<ProjectWithRole[]>([])
-  const currentProject = ref<ProjectWithRole | null>(null)
-  const members = ref<ProjectMemberWithUser[]>([])
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
+  const projects = ref<ProjectWithRole[]>([]);
+  const currentProject = ref<ProjectWithRole | null>(null);
+  const members = ref<ProjectMemberWithUser[]>([]);
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
 
   function setProjects(newProjects: ProjectWithRole[]) {
-    projects.value = newProjects
+    projects.value = newProjects;
   }
 
   function setCurrentProject(project: ProjectWithRole | null) {
-    currentProject.value = project
+    currentProject.value = project;
   }
 
   function setMembers(newMembers: ProjectMemberWithUser[]) {
-    members.value = newMembers
+    members.value = newMembers;
   }
 
   function setLoading(loading: boolean) {
-    isLoading.value = loading
+    isLoading.value = loading;
   }
 
   function setError(err: string | null) {
-    error.value = err
+    error.value = err;
   }
 
   function addProject(project: ProjectWithRole) {
-    projects.value = [project, ...projects.value]
+    projects.value = [project, ...projects.value];
   }
 
   function updateProject(projectId: string, data: Partial<ProjectWithRole>) {
-    const index = projects.value.findIndex((b) => b.id === projectId)
+    const index = projects.value.findIndex(b => b.id === projectId);
     if (index !== -1) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      projects.value[index] = { ...projects.value[index], ...(data as any) }
+      projects.value[index] = { ...projects.value[index], ...(data as any) };
     }
     if (currentProject.value?.id === projectId) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      currentProject.value = { ...currentProject.value, ...(data as any) }
+      currentProject.value = { ...currentProject.value, ...(data as any) };
     }
   }
 
   function removeProject(projectId: string) {
-    projects.value = projects.value.filter((b) => b.id !== projectId)
+    projects.value = projects.value.filter(b => b.id !== projectId);
     if (currentProject.value?.id === projectId) {
-      currentProject.value = null
+      currentProject.value = null;
     }
   }
 
@@ -145,5 +137,5 @@ export const useProjectsStore = defineStore('projects', () => {
     addProject,
     updateProject,
     removeProject,
-  }
-})
+  };
+});

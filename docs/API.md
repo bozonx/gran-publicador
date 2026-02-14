@@ -869,11 +869,16 @@ GET /api/v1/users?limit=50&offset=0
 
 Загрузить файл на сервер.
 
+Примечание по оптимизации изображений:
+- backend может принять `optimize` параметры от клиента;
+- если глобальная оптимизация включена, backend всегда форсирует значения `format`, `maxDimension`, `effort` из env (`MEDIA_IMAGE_OPTIMIZATION_*`) перед отправкой в Media Storage.
+
 **Content-Type:** `multipart/form-data`
 
 #### Запрос
 
 - `file` (multipart/field) — загружаемый файл.
+- `optimize` (multipart/field, optional) — JSON-строка с дополнительными параметрами оптимизации.
 
 #### Ответ
 
@@ -902,6 +907,8 @@ GET /api/v1/users?limit=50&offset=0
 - `optimize` (multipart/field, optional) — JSON-строка с параметрами оптимизации (как в `/media/upload`).
 - `projectId` (multipart/field, optional) — UUID проекта для подстановки дефолтных настроек оптимизации.
 
+`format`, `maxDimension`, `effort` при включенной оптимизации форсируются backend из env и не управляются UI.
+
 #### Ответ
 
 Тот же формат, что и при `/media/upload` (обновлённые `storagePath`, `mimeType`, `sizeBytes`, `meta`).
@@ -909,6 +916,8 @@ GET /api/v1/users?limit=50&offset=0
 ### POST /media/upload-from-url
 
 Загрузить файл с внешнего URL (сервер скачает его себе).
+
+Оптимизация изображений работает по той же схеме, что и `/media/upload`: backend форсирует `format`, `maxDimension`, `effort` из env при включенной глобальной оптимизации.
 
 #### Запрос
 

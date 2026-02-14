@@ -30,6 +30,10 @@ This document lists key production configuration options.
 
 - `SOCIAL_POSTING_SERVICE_URL` (required)
 - `MEDIA_STORAGE_SERVICE_URL` (optional, but required for media upload endpoints)
+- `MEDIA_IMAGE_OPTIMIZATION_ENABLED` (optional, default: `true`)
+- `MEDIA_IMAGE_OPTIMIZATION_FORMAT` (optional, default: `webp`, allowed: `webp|avif`)
+- `MEDIA_IMAGE_OPTIMIZATION_MAX_DIMENSION` (optional, default: `3840`)
+- `MEDIA_IMAGE_OPTIMIZATION_EFFORT` (optional, default: `4`, range: `0..9`)
 - `STT_SERVICE_URL` (optional, required for STT/voice transcription features)
 - `STT_SERVICE_API_TOKEN` (optional)
 - `STT_TIMEOUT_MS` (optional)
