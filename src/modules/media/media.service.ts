@@ -252,6 +252,9 @@ export class MediaService {
       format: mediaConfig.imageOptimizationFormat,
       maxDimension: mediaConfig.imageOptimizationMaxDimension,
       effort: mediaConfig.imageOptimizationEffort,
+      quality: mediaConfig.imageOptimizationQuality,
+      chromaSubsampling: mediaConfig.imageOptimizationChromaSubsampling,
+      lossless: mediaConfig.imageOptimizationLossless,
     };
   }
 

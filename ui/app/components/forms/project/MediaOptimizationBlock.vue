@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { FORM_SPACING, FORM_STYLES } from '~/utils/design-tokens'
+import { FORM_STYLES } from '~/utils/design-tokens'
 import type { MediaOptimizationPreferences } from '~/stores/projects'
 
 interface Props {
   modelValue?: MediaOptimizationPreferences
   disabled?: boolean
   hideHeader?: boolean
-  projectDefaults?: MediaOptimizationPreferences
 }
 
 defineProps<Props>()
@@ -30,14 +29,13 @@ function handleUpdate(value: MediaOptimizationPreferences) {
         {{ t('settings.mediaOptimization.title', 'Media Optimization') }}
       </h3>
       <p :class="FORM_STYLES.subtitle">
-        {{ t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media') }}
+        {{ t('settings.mediaOptimization.description', 'Configure default optimization values applied when uploading media') }}
       </p>
     </div>
     
     <FormsProjectMediaOptimizationSettings
       :model-value="modelValue"
       :disabled="disabled"
-      :project-defaults="projectDefaults"
       @update:model-value="handleUpdate"
     />
   </div>

@@ -47,6 +47,9 @@ describe('MediaService (unit)', () => {
     imageOptimizationFormat: 'webp',
     imageOptimizationMaxDimension: 3840,
     imageOptimizationEffort: 4,
+    imageOptimizationQuality: 80,
+    imageOptimizationChromaSubsampling: '4:2:0',
+    imageOptimizationLossless: false,
   };
 
   beforeAll(async () => {
@@ -195,48 +198,26 @@ describe('MediaService (unit)', () => {
       expect(result.metadata.size).toBe(4);
     });
 
-    it('should force env image optimization params in x-optimize header', async () => {
-      const client = mockAgent.get('http://localhost:8083');
-      client
-        .intercept({
-          path: '/api/v1/files',
-          method: 'POST',
-          headers: {
-            'x-optimize': JSON.stringify({
-              quality: 92,
-              stripMetadata: true,
-              format: 'webp',
-              maxDimension: 3840,
-              effort: 4,
-            }),
-          },
-        })
-        .reply(200, {
-          id: 'storage-id-img-1',
-          originalSize: 200,
-          size: 150,
-          mimeType: 'image/webp',
-          checksum: 'hash-img-1',
-          url: 'http://storage/file',
-        });
+    it('should force env image optimization params', async () => {
+      const effective = (service as any).buildEffectiveImageOptimization({
+        quality: 92,
+        stripMetadata: true,
+        format: 'avif',
+        maxDimension: 1024,
+        effort: 9,
+        chromaSubsampling: '4:4:4',
+        lossless: true,
+      });
 
-      const result = await service.uploadFileToStorage(
-        Readable.from([Buffer.from('img')]),
-        'image.jpg',
-        'image/jpeg',
-        undefined,
-        undefined,
-        undefined,
-        {
-          quality: 92,
-          stripMetadata: true,
-          format: 'avif',
-          maxDimension: 1024,
-          effort: 9,
-        },
-      );
-
-      expect(result.fileId).toBe('storage-id-img-1');
+      expect(effective).toMatchObject({
+        stripMetadata: true,
+        format: 'webp',
+        maxDimension: 3840,
+        effort: 4,
+        quality: 80,
+        chromaSubsampling: '4:2:0',
+        lossless: false,
+      });
     });
 
     it('should not send x-optimize when global optimization is disabled', async () => {

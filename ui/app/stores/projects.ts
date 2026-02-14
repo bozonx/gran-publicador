@@ -18,12 +18,9 @@ export interface Project {
 }
 
 export interface MediaOptimizationPreferences {
-  quality: number;
-  lossless: boolean;
   stripMetadata: boolean;
   autoOrient: boolean;
   flatten: string;
-  chromaSubsampling: '4:2:0' | '4:4:4';
 }
 
 export interface ProjectMember {

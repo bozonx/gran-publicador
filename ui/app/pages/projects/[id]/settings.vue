@@ -254,7 +254,7 @@ async function handleTransfer() {
         <UiAppCard
           v-if="canEdit(currentProject)"
           :title="t('settings.mediaOptimization.title', 'Media Optimization')"
-          :description="t('settings.mediaOptimization.description', 'Configure default optimization settings for uploaded media')"
+          :description="t('settings.mediaOptimization.description', 'Configure default optimization values applied when uploading media')"
         >
           <FormsProjectForm
             :project="currentProject"

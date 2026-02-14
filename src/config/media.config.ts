@@ -3,6 +3,7 @@ import { IsBoolean, IsIn, IsInt, Min, IsString, IsOptional, Max, IsUrl } from 'c
 import { registerAs } from '@nestjs/config';
 
 type MediaImageOptimizationFormat = 'webp' | 'avif';
+type MediaImageOptimizationChromaSubsampling = '4:2:0' | '4:4:4';
 
 /**
  * Configuration for Media Storage microservice integration.
@@ -81,6 +82,26 @@ export class MediaConfig {
   @Min(0)
   @Max(9)
   public imageOptimizationEffort: number = 4;
+
+  /**
+   * Forced compression quality for optimized images.
+   */
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  public imageOptimizationQuality: number = 80;
+
+  /**
+   * Forced chroma subsampling for optimized images.
+   */
+  @IsIn(['4:2:0', '4:4:4'])
+  public imageOptimizationChromaSubsampling: MediaImageOptimizationChromaSubsampling = '4:2:0';
+
+  /**
+   * Forced lossless mode for optimized images.
+   */
+  @IsBoolean()
+  public imageOptimizationLossless: boolean = false;
 }
 
 export default registerAs('media', (): MediaConfig => {
@@ -130,6 +151,11 @@ export default registerAs('media', (): MediaConfig => {
     imageOptimizationEffort: process.env.MEDIA_IMAGE_OPTIMIZATION_EFFORT
       ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_EFFORT, 10)
       : undefined,
+    imageOptimizationQuality: process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY
+      ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY, 10)
+      : undefined,
+    imageOptimizationChromaSubsampling: process.env.MEDIA_IMAGE_OPTIMIZATION_CHROMA_SUBSAMPLING,
+    imageOptimizationLossless: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_LOSSLESS),
   };
 
   // Remove undefined and NaN values to let class defaults take over

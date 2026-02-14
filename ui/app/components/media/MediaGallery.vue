@@ -4,7 +4,7 @@ import type { CreateMediaInput } from '~/composables/useMedia'
 import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
-import { MEDIA_OPTIMIZATION_PRESETS } from '~/utils/media-presets'
+import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAutosave } from '~/composables/useAutosave'
 
@@ -102,7 +102,7 @@ const filenameInput = ref('')
 const isAddingMedia = ref(false)
 const showExtendedOptions = ref(false)
 const stagedFiles = ref<File[]>([])
-const optimizationSettings = ref<any>(JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard)))
+const optimizationSettings = ref<any>(JSON.parse(JSON.stringify(DEFAULT_MEDIA_OPTIMIZATION_SETTINGS)))
 
 const currentProjectOptimization = computed(() => {
   return currentProject.value?.preferences?.mediaOptimization
@@ -114,9 +114,7 @@ watch(showExtendedOptions, (val) => {
     if (currentProjectOptimization.value) {
       optimizationSettings.value = JSON.parse(JSON.stringify(currentProjectOptimization.value))
     } else {
-      // Use Standard preset as fallback
-      const standard = JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
-      optimizationSettings.value = standard
+      optimizationSettings.value = JSON.parse(JSON.stringify(DEFAULT_MEDIA_OPTIMIZATION_SETTINGS))
     }
   }
 })
@@ -259,8 +257,7 @@ function getDefaultOptimizationParams() {
     return JSON.parse(JSON.stringify(projectOpt))
   }
   
-  // Otherwise (no project settings), use standard preset
-  return JSON.parse(JSON.stringify(MEDIA_OPTIMIZATION_PRESETS.standard))
+  return JSON.parse(JSON.stringify(DEFAULT_MEDIA_OPTIMIZATION_SETTINGS))
 }
 
 async function handleFileUpload(event: Event) {
@@ -1151,7 +1148,6 @@ const mediaValidation = computed(() => {
           <div v-if="showExtendedOptions" class="border-t border-gray-200 dark:border-gray-700 pt-6">
             <FormsProjectMediaOptimizationBlock 
               v-model="optimizationSettings"
-              :project-defaults="currentProjectOptimization"
             />
           </div>
 
