@@ -13,6 +13,7 @@ import { mapStatusGroupToApiStatus, type PublicationsStatusGroupFilter } from '.
 import { DEFAULT_PAGE_SIZE } from '~/constants'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
+import { normalizeTags } from '~/utils/tags'
 
 definePageMeta({
   middleware: 'auth',
@@ -288,6 +289,12 @@ const filteredCount = computed(() => totalCount.value)
 // Client-side filters removed - data comes filtered from backend
 const filteredPublications = computed(() => publications.value)
 
+const publicationTagsSuggestions = computed(() => {
+  return normalizeTags(
+    publications.value.flatMap(publication => publication.tags ?? []),
+  )
+})
+
 const showPagination = computed(() => {
     return totalCount.value > limit.value
 })
@@ -544,10 +551,11 @@ async function handleDelete() {
           class="w-full sm:w-48"
         />
 
-        <!-- Tags Filter (InputTags) -->
-        <CommonInputTags
+        <!-- Tags Filter -->
+        <PublicationsTagsFilter
           v-model="selectedTags"
           :placeholder="t('publication.filter.tagsPlaceholder', 'Filter by tags...')"
+          :publication-tags="publicationTagsSuggestions"
           :project-id="selectedProjectId || undefined"
           :user-id="selectedProjectId ? undefined : user?.id"
           class="w-full sm:w-64"
