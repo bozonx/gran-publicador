@@ -142,13 +142,6 @@ describe('MediaService (unit)', () => {
           url: 'http://storage/file',
         });
 
-      client
-        .intercept({
-          path: '/api/v1/files/storage-id-123/confirm',
-          method: 'POST',
-        })
-        .reply(200, {});
-
       const result = await service.uploadFileToStorage(stream, filename, mimetype);
       expect(result.fileId).toBe('storage-id-123');
       expect(result.metadata.checksum).toBe('hash');
@@ -166,6 +159,36 @@ describe('MediaService (unit)', () => {
       await expect(
         service.uploadFileToStorage(Readable.from([Buffer.from('')]), 'f', 'm'),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should send x-file-size header when file size is provided', async () => {
+      const client = mockAgent.get('http://localhost:8083');
+      client
+        .intercept({
+          path: '/api/v1/files',
+          method: 'POST',
+          headers: {
+            'x-file-size': '4',
+          },
+        })
+        .reply(200, {
+          id: 'storage-id-789',
+          originalSize: 4,
+          size: 4,
+          mimeType: 'text/plain',
+          checksum: 'hash789',
+          url: 'http://storage/file',
+        });
+
+      const result = await service.uploadFileToStorage(
+        Readable.from([Buffer.from('test')]),
+        'test.txt',
+        'text/plain',
+        4,
+      );
+
+      expect(result.fileId).toBe('storage-id-789');
+      expect(result.metadata.size).toBe(4);
     });
   });
 
@@ -188,13 +211,6 @@ describe('MediaService (unit)', () => {
           checksum: 'hash123',
           url: 'http://storage/file',
         });
-
-      client
-        .intercept({
-          path: '/api/v1/files/storage-id-456/confirm',
-          method: 'POST',
-        })
-        .reply(200, {});
 
       const result = await service.uploadFileFromUrl(url, filename);
       expect(result.fileId).toBe('storage-id-456');
@@ -256,13 +272,6 @@ describe('MediaService (unit)', () => {
           checksum: 'hash',
           url: 'http://storage/file',
         });
-
-      client
-        .intercept({
-          path: `/api/v1/files/${newStoragePath}/confirm`,
-          method: 'POST',
-        })
-        .reply(200, {});
 
       client
         .intercept({

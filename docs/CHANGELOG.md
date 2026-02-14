@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Media Storage integration: raw stream upload API** — switched backend upload proxy from multipart/form-data to raw stream (`POST /files`) with header-based params (`x-filename`, `x-metadata`, `x-optimize`, `x-file-size` when provided), removed deprecated `/confirm` call, and aligned metadata mapping with the new response shape (`optimization.params`, `original.*`, `status`, `exif`).
+- **Media upload forms** — frontend now sends `fileSize` in multipart fields for upload/replace so backend can forward exact byte size to Media Storage (`x-file-size`) without buffering the whole file.
 - **Tags: case-sensitive filtering** in ContentItem search — switched from `name` to `normalizedName` with `.toLowerCase()` for both direct tag filter and search-by-tag.
 - **Tags: inconsistent API responses** — Publications API now consistently returns `tags: string[]` alongside `tagObjects` in all endpoints (create, findAll, findAllForUser, findOne, update, copyToProject).
 - **Tags: missing Post DTO validation** — Added `@ArrayMaxSize` and `@MaxLength` validators to `CreatePostDto` and `UpdatePostDto` tags field, matching Publication and ContentItem DTOs.

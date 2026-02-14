@@ -122,6 +122,45 @@ export class MediaService {
     return (meta as Record<string, any>) || {};
   }
 
+  private parsePositiveInteger(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return Math.trunc(value);
+    }
+
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return undefined;
+    }
+
+    return parsed;
+  }
+
+  private mapStorageMetadata(result: Record<string, any>): Record<string, any> {
+    const optimizedSize =
+      this.parsePositiveInteger(result.size) ?? this.parsePositiveInteger(result.originalSize) ?? 0;
+
+    return {
+      originalSize:
+        this.parsePositiveInteger(result.originalSize) ??
+        this.parsePositiveInteger(result.original?.size) ??
+        optimizedSize,
+      size: optimizedSize,
+      width: this.parsePositiveInteger(result.width),
+      height: this.parsePositiveInteger(result.height),
+      mimeType: result.mimeType ?? result.original?.mimeType ?? 'application/octet-stream',
+      originalMimeType: result.original?.mimeType ?? result.originalMimeType,
+      optimizationParams: result.optimization?.params ?? result.optimizationParams,
+      checksum: result.checksum ?? result.original?.checksum,
+      url: result.url,
+      exif: result.exif,
+      status: result.status,
+    };
+  }
+
   private isConnectionError(error: unknown): boolean {
     const err = error as { code?: string; cause?: { code?: string } };
     return (
@@ -206,6 +245,7 @@ export class MediaService {
     userId?: string,
     optimize?: Record<string, any>,
     projectId?: string,
+    fileSizeBytes?: number,
   ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     if (userId) await this.checkMediaAccess(id, userId);
 
@@ -245,6 +285,7 @@ export class MediaService {
       fileStream,
       filename,
       mimetype,
+      fileSizeBytes,
       userId,
       undefined,
       effectiveOptimize,
@@ -366,37 +407,11 @@ export class MediaService {
     return this.prisma.media.delete({ where: { id } });
   }
 
-  private async confirmFileInStorage(fileId: string): Promise<void> {
-    const config = this.config;
-    if (!config.serviceUrl) return;
-
-    try {
-      const headers: Record<string, string> = {};
-      if (config.apiToken) {
-        headers['Authorization'] = `Bearer ${config.apiToken}`;
-      }
-
-      const response = await request(`${config.serviceUrl}/files/${fileId}/confirm`, {
-        method: 'POST',
-        headers,
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
-      });
-
-      if (response.statusCode >= 400) {
-        const errorBody = await response.body.json().catch(() => ({}));
-        throw new BadGatewayException(
-          `Media Storage confirmation error: ${(errorBody as any).message || 'Microservice error'}`,
-        );
-      }
-    } catch (error) {
-      this.handleMicroserviceError(error, 'file confirmation');
-    }
-  }
-
   async uploadFileToStorage(
     fileStream: Readable,
     filename: string,
     mimetype: string,
+    fileSizeBytes?: number,
     userId?: string,
     purpose?: string,
     optimize?: Record<string, any>,
@@ -406,34 +421,55 @@ export class MediaService {
       throw new InternalServerErrorException('Media Storage service is not configured');
     }
 
-    // Use form-data library for streaming support
-    const FormData = (await import('form-data')).default;
-    const formData = new FormData();
-    formData.append('appId', config.appId);
-    if (userId) formData.append('userId', userId);
-    if (purpose) formData.append('purpose', purpose);
-
     let compression = optimize ? this.normalizeCompressionOptions(optimize) : undefined;
     if (compression?.enabled === false) compression = undefined;
     if (!mimetype.toLowerCase().startsWith('image/')) {
       compression = undefined;
     }
-    if (compression) formData.append('optimize', JSON.stringify(compression));
+
+    const metaHeader: Record<string, string> = {
+      appId: config.appId,
+    };
+    if (userId) {
+      metaHeader.userId = userId;
+    }
+    if (purpose) {
+      metaHeader.purpose = purpose;
+    }
 
     this.logger.debug(
       `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
     );
 
-    // Stream the file directly
-    formData.append('file', fileStream, { filename, contentType: mimetype });
-
     try {
-      const formHeaders = formData.getHeaders();
+      const rawMimeType = mimetype?.trim() || 'application/octet-stream';
+      const headers: Record<string, string> = {
+        'x-filename': filename,
+        'Content-Type': rawMimeType,
+        'x-mime-type': rawMimeType,
+      };
+
+      if (Object.keys(metaHeader).length > 0) {
+        headers['x-metadata'] = JSON.stringify(metaHeader);
+      }
+
+      if (compression) {
+        headers['x-optimize'] = JSON.stringify(compression);
+      }
+
+      if (
+        typeof fileSizeBytes === 'number' &&
+        Number.isFinite(fileSizeBytes) &&
+        fileSizeBytes > 0
+      ) {
+        headers['x-file-size'] = String(Math.trunc(fileSizeBytes));
+      }
+
       const response = await request(`${config.serviceUrl}/files`, {
         method: 'POST',
-        body: formData,
+        body: fileStream,
         headers: {
-          ...formHeaders,
+          ...headers,
           ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
         },
         headersTimeout: (config.timeoutSecs || 60) * 1000,
@@ -448,24 +484,11 @@ export class MediaService {
         throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
       }
 
-      const result = (await response.body.json()) as any;
-
-      // Confirm the file to make it ready for download
-      await this.confirmFileInStorage(result.id);
+      const result = (await response.body.json()) as Record<string, any>;
 
       return {
         fileId: result.id,
-        metadata: {
-          originalSize: result.originalSize,
-          size: result.size,
-          width: result.width,
-          height: result.height,
-          mimeType: result.mimeType,
-          originalMimeType: result.originalMimeType,
-          optimizationParams: result.optimizationParams,
-          checksum: result.checksum,
-          url: result.url,
-        },
+        metadata: this.mapStorageMetadata(result),
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'file upload');
@@ -511,24 +534,11 @@ export class MediaService {
         throw new BadGatewayException(`Media Storage error: ${errorMessage}`);
       }
 
-      const result = (await response.body.json()) as any;
-
-      // Confirm the file to make it ready for download
-      await this.confirmFileInStorage(result.id);
+      const result = (await response.body.json()) as Record<string, any>;
 
       return {
         fileId: result.id,
-        metadata: {
-          originalSize: result.originalSize,
-          size: result.size,
-          width: result.width,
-          height: result.height,
-          mimeType: result.mimeType,
-          originalMimeType: result.originalMimeType,
-          optimizationParams: result.optimizationParams,
-          checksum: result.checksum,
-          url: result.url,
-        },
+        metadata: this.mapStorageMetadata(result),
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'URL upload');
@@ -564,24 +574,11 @@ export class MediaService {
         );
       }
 
-      const result = (await response.body.json()) as any;
-
-      // Confirm the file to make it ready for download
-      await this.confirmFileInStorage(result.id);
+      const result = (await response.body.json()) as Record<string, any>;
 
       return {
         fileId: result.id,
-        metadata: {
-          originalSize: result.originalSize,
-          size: result.size,
-          width: result.width,
-          height: result.height,
-          mimeType: result.mimeType,
-          originalMimeType: result.originalMimeType,
-          optimizationParams: result.optimizationParams,
-          checksum: result.checksum,
-          url: result.url,
-        },
+        metadata: this.mapStorageMetadata(result),
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'file reprocess');

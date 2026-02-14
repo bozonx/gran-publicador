@@ -87,11 +87,20 @@ export class MediaController {
       }
     }
 
+    let fileSizeBytes: number | undefined;
+    if (fields?.fileSize) {
+      const value = Number.parseInt(getFieldValue(fields.fileSize), 10);
+      if (Number.isFinite(value) && value > 0) {
+        fileSizeBytes = value;
+      }
+    }
+
     // Upload to Media Storage using stream
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(
       fileStream,
       part.filename,
       part.mimetype,
+      fileSizeBytes,
       req.user.userId,
       undefined,
       optimize,
@@ -138,6 +147,7 @@ export class MediaController {
 
     let optimize: Record<string, any> | undefined;
     let projectId: string | undefined;
+    let fileSizeBytes: number | undefined;
     const fields = (part as any).fields;
     const getFieldValue = (field: any) => field?.value;
 
@@ -154,6 +164,13 @@ export class MediaController {
       if (fields.projectId) {
         projectId = getFieldValue(fields.projectId);
       }
+
+      if (fields.fileSize) {
+        const value = Number.parseInt(getFieldValue(fields.fileSize), 10);
+        if (Number.isFinite(value) && value > 0) {
+          fileSizeBytes = value;
+        }
+      }
     }
 
     return this.mediaService.replaceFsMediaFile(
@@ -164,6 +181,7 @@ export class MediaController {
       req.user.userId,
       optimize,
       projectId,
+      fileSizeBytes,
     );
   }
 

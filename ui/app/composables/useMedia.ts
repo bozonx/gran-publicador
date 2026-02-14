@@ -87,6 +87,8 @@ export function useMedia() {
         formData.append('optimize', JSON.stringify(optimize));
       }
 
+      formData.append('fileSize', String(file.size));
+
       formData.append('file', file);
 
       return await api.post<MediaItem>(`/media/${id}/replace-file`, formData);
@@ -154,8 +156,9 @@ export function useMedia() {
 
       if (optimize) {
         formData.append('optimize', JSON.stringify(optimize));
-      } else {
       }
+
+      formData.append('fileSize', String(file.size));
 
       formData.append('file', file);
 
