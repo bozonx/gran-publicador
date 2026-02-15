@@ -93,19 +93,11 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
           :label="t('settings.mediaOptimization.flatten', 'Flatten Transparency Color')"
           :help="t('settings.mediaOptimization.flattenHelp', 'Hex color to fill transparency (e.g., #ffffff). Leave empty to keep transparency.')"
         >
-          <div class="flex gap-2">
-            <UInput
-              :model-value="state.flatten"
-              :disabled="disabled"
-              placeholder="#ffffff"
-              @update:model-value="(val: string) => updateField('flatten', val)"
-            />
-            <div 
-              v-if="state.flatten && /^#[0-9A-F]{6}$/i.test(state.flatten)"
-              class="w-10 h-10 rounded border border-gray-200 dark:border-gray-700 shrink-0"
-              :style="{ backgroundColor: state.flatten }"
-            ></div>
-          </div>
+          <CommonHexColorPicker
+            :model-value="state.flatten"
+            :disabled="disabled"
+            @update:model-value="(val: string) => updateField('flatten', val)"
+          />
         </UFormField>
       </div>
     </div>
