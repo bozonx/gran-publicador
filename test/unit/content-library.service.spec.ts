@@ -115,13 +115,13 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
-          data: { projectId: 'p1', userId: null, folderId: null },
+          data: { projectId: 'p1', userId: null, groupId: null },
         }),
       );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-2' },
-          data: { projectId: 'p1', userId: null, folderId: null },
+          data: { projectId: 'p1', userId: null, groupId: null },
         }),
       );
 
@@ -148,13 +148,13 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
-          data: { projectId: null, userId: 'user-1', folderId: null },
+          data: { projectId: null, userId: 'user-1', groupId: null },
         }),
       );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-2' },
-          data: { projectId: null, userId: 'user-1', folderId: null },
+          data: { projectId: null, userId: 'user-1', groupId: null },
         }),
       );
 
@@ -280,7 +280,7 @@ describe('ContentLibraryService (unit)', () => {
     it('should validate groupId access and apply group filter', async () => {
       mockPrismaService.contentLibraryTab.findUnique.mockResolvedValue({
         id: 'f-1',
-        type: 'FOLDER',
+        type: 'GROUP',
         userId: 'user-1',
         projectId: null,
       });
@@ -297,7 +297,7 @@ describe('ContentLibraryService (unit)', () => {
           where: expect.objectContaining({
             AND: [
               {
-                OR: [{ folderId: 'f-1' }, { groups: { some: { tabId: 'f-1' } } }],
+                OR: [{ groupId: 'f-1' }, { groups: { some: { tabId: 'f-1' } } }],
               },
             ],
           }),
@@ -309,7 +309,7 @@ describe('ContentLibraryService (unit)', () => {
   describe('tabs', () => {
     it('listTabs should return tabs ordered by order for personal scope', async () => {
       mockPrismaService.contentLibraryTab.findMany.mockResolvedValue([
-        { id: 't-1', type: 'FOLDER' },
+        { id: 't-1', type: 'GROUP' },
       ]);
 
       await expect(service.listTabs({ scope: 'personal' } as any, 'user-1')).resolves.toEqual([

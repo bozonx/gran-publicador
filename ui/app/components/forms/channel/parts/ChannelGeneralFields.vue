@@ -2,6 +2,7 @@
 import type { ChannelWithProject } from '~/types/channels'
 import type { SocialMedia } from '~/types/socialMedia'
 import { FORM_STYLES } from '~/utils/design-tokens'
+import { formatTagsCsv, parseTags } from '~/utils/tags'
 
 interface Props {
   state: any
@@ -26,6 +27,13 @@ const {
   getSocialMediaIcon,
   getSocialMediaColor,
 } = useChannels()
+
+const tagsModel = computed<string[]>({
+  get: () => parseTags(props.state.tags),
+  set: (value) => {
+    props.state.tags = formatTagsCsv(value)
+  },
+})
 
 /**
  * Get identifier placeholder based on selected social media
@@ -229,7 +237,7 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
       :help="t('channel.tagsHelp', 'Channel tags for publication orientation')"
     >
       <CommonInputTags
-        v-model="state.tags"
+        v-model="tagsModel"
         :placeholder="t('channel.tagsPlaceholder', 'tag1, tag2, tag3')"
         :project-id="projectId"
         color="neutral"

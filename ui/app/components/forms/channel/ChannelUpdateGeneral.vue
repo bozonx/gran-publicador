@@ -32,7 +32,7 @@ const state = reactive({
   channelIdentifier: props.channel.channelIdentifier,
   language: props.channel.language,
   projectId: props.channel.projectId,
-  tags: parseTags(props.channel.tags),
+  tags: props.channel.tags || '',
 })
 
 // Schema - extract only relevant parts or use full schema?
@@ -55,11 +55,18 @@ const schema = computed(() => {
     })
 })
 
+const tagsModel = computed<string[]>({
+  get: () => parseTags(state.tags),
+  set: (value) => {
+    state.tags = formatTagsCsv(value)
+  },
+})
+
 const isDirty = computed(() => {
     return state.name !== props.channel.name ||
            state.description !== (props.channel.description || '') ||
            state.channelIdentifier !== props.channel.channelIdentifier ||
-           formatTagsCsv(state.tags) !== (props.channel.tags || '')
+           state.tags !== (props.channel.tags || '')
 })
 
 async function performUpdate(data: any, silent: boolean = false) {
@@ -90,7 +97,7 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } 
       name: state.name,
       description: state.description || null,
       channelIdentifier: state.channelIdentifier,
-      tags: formatTagsCsv(state.tags) || null,
+      tags: state.tags || null,
     }
     await performUpdate(updateData, true)
     return { saved: true }
@@ -105,7 +112,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
       name: event.data.name,
       description: event.data.description || null,
       channelIdentifier: event.data.channelIdentifier,
-      tags: formatTagsCsv(event.data.tags) || null,
+      tags: event.data.tags || null,
     }
 
     await performUpdate(updateData, false)

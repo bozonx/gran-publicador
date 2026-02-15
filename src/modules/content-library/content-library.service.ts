@@ -115,13 +115,13 @@ export class ContentLibraryService {
     userId: string,
     allowArchived = true,
   ) {
-    const item = await this.prisma.contentItem.findUnique({
+    const item: any = await (this.prisma.contentItem as any).findUnique({
       where: { id: contentItemId },
       select: {
         id: true,
         userId: true,
         projectId: true,
-        folderId: true,
+        groupId: true,
         archivedAt: true,
         title: true,
       },
@@ -162,7 +162,7 @@ export class ContentLibraryService {
       throw new NotFoundException('Group not found');
     }
 
-    if (tab.type !== 'FOLDER') {
+    if ((tab.type as any) !== 'GROUP') {
       throw new BadRequestException('Tab is not a group');
     }
 
@@ -371,7 +371,7 @@ export class ContentLibraryService {
       where.AND = [
         ...(where.AND ?? []),
         {
-          OR: [{ folderId: query.groupId }, { groups: { some: { tabId: query.groupId } } }],
+          OR: [{ groupId: query.groupId }, { groups: { some: { tabId: query.groupId } } }],
         },
       ];
     }
@@ -431,7 +431,7 @@ export class ContentLibraryService {
           archivedAt: null,
           ...(query.groupId
             ? {
-                OR: [{ folderId: query.groupId }, { groups: { some: { tabId: query.groupId } } }],
+                OR: [{ groupId: query.groupId }, { groups: { some: { tabId: query.groupId } } }],
               }
             : {}),
         } as any,
@@ -500,7 +500,7 @@ export class ContentLibraryService {
       data: {
         userId: dto.scope === 'personal' ? userId : null,
         projectId: dto.scope === 'project' ? dto.projectId! : null,
-        folderId: dto.groupId ?? null,
+        groupId: dto.groupId ?? null,
         groups: dto.groupId
           ? {
               create: [{ tabId: dto.groupId }],
@@ -579,10 +579,10 @@ export class ContentLibraryService {
         }
       }
 
-      return tx.contentItem.update({
+      return (tx.contentItem as any).update({
         where: { id },
         data: {
-          folderId: dto.groupId,
+          groupId: dto.groupId,
           title: dto.title,
           tagObjects:
             dto.tags !== undefined
@@ -990,18 +990,18 @@ export class ContentLibraryService {
 
         await this.prisma.$transaction(
           authorizedIds.map(id =>
-            this.prisma.contentItem.update({
+            (this.prisma.contentItem as any).update({
               where: { id },
               data: dto.projectId
                 ? {
                     projectId: dto.projectId,
                     userId: null,
-                    folderId: null,
+                    groupId: null,
                   }
                 : {
                     projectId: null,
                     userId,
-                    folderId: null,
+                    groupId: null,
                   },
             }),
           ),
@@ -1368,10 +1368,7 @@ export class ContentLibraryService {
       orderBy: { order: 'asc' },
     });
 
-    return tabs.map((tab: any) => ({
-      ...tab,
-      type: tab.type === 'FOLDER' ? 'GROUP' : tab.type,
-    }));
+    return tabs;
   }
 
   public async createTab(
@@ -1421,7 +1418,7 @@ export class ContentLibraryService {
 
           return (tx.contentLibraryTab as any).create({
             data: {
-              type: dto.type === 'GROUP' ? 'FOLDER' : 'SAVED_VIEW',
+              type: dto.type,
               title: dto.title,
               userId: dto.scope === 'personal' ? userId : null,
               projectId: dto.scope === 'project' ? dto.projectId! : null,
@@ -1455,7 +1452,7 @@ export class ContentLibraryService {
       requireMutationPermission: true,
     });
 
-    if (tab.type !== 'FOLDER' && dto.parentId !== undefined) {
+    if ((tab.type as any) !== 'GROUP' && dto.parentId !== undefined) {
       throw new BadRequestException('Only groups can have parent groups');
     }
 
@@ -1516,10 +1513,10 @@ export class ContentLibraryService {
         update: {},
       });
 
-      if (!item.folderId) {
-        await tx.contentItem.update({
+      if ((item as any).groupId == null) {
+        await (tx.contentItem as any).update({
           where: { id: contentItemId },
-          data: { folderId: dto.groupId },
+          data: { groupId: dto.groupId },
         });
       }
     });
@@ -1554,16 +1551,16 @@ export class ContentLibraryService {
         },
       });
 
-      if (item.folderId === groupId) {
+      if ((item as any).groupId === groupId) {
         const nextPrimary = await (tx as any).contentItemGroup.findFirst({
           where: { contentItemId },
           orderBy: { createdAt: 'asc' },
           select: { tabId: true },
         });
 
-        await tx.contentItem.update({
+        await (tx.contentItem as any).update({
           where: { id: contentItemId },
-          data: { folderId: nextPrimary?.tabId ?? null },
+          data: { groupId: nextPrimary?.tabId ?? null },
         });
       }
     });

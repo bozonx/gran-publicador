@@ -32,7 +32,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Content Library terminology/API contract**:
   - UI/API now uses **Group** terminology (`GROUP`, `groupId`) instead of folder wording.
-  - Backend keeps backward-compatible persistence mapping to existing DB enum/column (`FOLDER`, `folderId`) during transition.
+  - Backend/Prisma model also migrated to `GROUP` / `groupId` naming.
 - **Content Library toolbar**:
   - Removed non-functional view mode toggle (library remains card-only).
   - Added informational tooltip explaining group behavior and safe deletion semantics (deleting a group does not delete content items).

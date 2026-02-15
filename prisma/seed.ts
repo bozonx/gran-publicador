@@ -292,7 +292,7 @@ async function main() {
   const contentLibraryTabs = [
     {
       id: 'tab10000-0000-4000-8000-000000000001',
-      type: ContentLibraryTabType.FOLDER,
+      type: ContentLibraryTabType.GROUP,
       title: 'Common Assets',
       projectId: projectData[0].id,
       order: 0,
@@ -1044,7 +1044,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
       _tags: ['nuxt', 'future', 'speculation'],
-      folderId: 'tab10000-0000-4000-8000-000000000001',
+      groupId: 'tab10000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
       blocks: [
         {
@@ -1062,7 +1062,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
       _tags: ['image', 'asset'],
-      folderId: 'tab10000-0000-4000-8000-000000000001',
+      groupId: 'tab10000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
       blocks: [
         {

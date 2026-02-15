@@ -12,7 +12,7 @@ datasource db {
 }
 
 enum ContentLibraryTabType {
-  FOLDER
+  GROUP
   SAVED_VIEW
 }
 
@@ -134,7 +134,7 @@ model ContentLibraryTab {
   parent  ContentLibraryTab? @relation("ContentLibraryTabHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children ContentLibraryTab[] @relation("ContentLibraryTabHierarchy")
 
-  folderItems ContentItem[] @relation("ContentItemPrimaryGroup")
+  groupItems ContentItem[] @relation("ContentItemPrimaryGroup")
   contentItemGroups ContentItemGroup[]
 
   @@index([userId, order])
@@ -325,7 +325,7 @@ model ContentItem {
   userId    String?  @map("user_id")
   projectId String?  @map("project_id")
 
-  folderId  String?  @map("folder_id")
+  groupId   String?  @map("group_id")
 
   title     String?
   note      String?
@@ -337,7 +337,7 @@ model ContentItem {
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  folder  ContentLibraryTab? @relation("ContentItemPrimaryGroup", fields: [folderId], references: [id], onDelete: SetNull)
+  group   ContentLibraryTab? @relation("ContentItemPrimaryGroup", fields: [groupId], references: [id], onDelete: SetNull)
 
   blocks ContentBlock[]
   groups ContentItemGroup[]
@@ -346,7 +346,7 @@ model ContentItem {
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
-  @@index([folderId, createdAt])
+  @@index([groupId, createdAt])
   @@index([archivedAt])
   @@map("content_items")
 }
