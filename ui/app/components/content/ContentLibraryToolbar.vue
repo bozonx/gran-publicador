@@ -199,8 +199,29 @@ function onDrop(event: DragEvent) {
       >
       <slot />
       <div class="flex flex-col gap-4">
-        <div class="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center pb-2 border-b border-gray-100 dark:border-gray-800">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <UInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" icon="i-heroicons-magnifying-glass" class="w-full" />
+          <PublicationsTagsFilter
+            v-model="selectedTags"
+            :placeholder="t('contentLibrary.filter.filterByTags')"
+            :publication-tags="availableTags"
+            :project-id="projectId"
+            :user-id="userId"
+            class="w-full"
+          />
           <div class="flex items-center gap-2">
+            <USelectMenu v-model="sortBy" :items="sortOptions" value-key="id" label-key="label" class="flex-1" :searchable="false">
+              <template #leading>
+                <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
+              </template>
+            </USelectMenu>
+            <UButton :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
+          </div>
+        </div>
+
+        <div v-if="activeTab" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+          <div class="flex items-center gap-2 px-1 text-sm text-gray-500">
             <template v-if="archiveStatus === 'active'">
               <UButton
                 color="primary"
@@ -225,35 +246,9 @@ function onDrop(event: DragEvent) {
               <CommonInfoTooltip :text="t('contentLibrary.actions.uploadMediaTooltip')" />
             </template>
           </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <UInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" icon="i-heroicons-magnifying-glass" class="w-full" />
-          <PublicationsTagsFilter
-            v-model="selectedTags"
-            :placeholder="t('contentLibrary.filter.filterByTags')"
-            :publication-tags="availableTags"
-            :project-id="projectId"
-            :user-id="userId"
-            class="w-full"
-          />
-          <div class="flex items-center gap-2">
-            <USelectMenu v-model="sortBy" :items="sortOptions" value-key="id" label-key="label" class="flex-1" :searchable="false">
-              <template #leading>
-                <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
-              </template>
-            </USelectMenu>
-            <UButton :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
-          </div>
-        </div>
-
-        <!-- Footer: Info & Actions -->
-        <div v-if="activeTab" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <div class="flex items-center gap-2 px-1 text-sm text-gray-500">
-             <CommonInfoTooltip :text="t('contentLibrary.actions.groupsInfoTooltip')" placement="right" />
-          </div>
 
           <div class="flex items-center gap-3">
+            <CommonInfoTooltip :text="t('contentLibrary.actions.groupsInfoTooltip')" />
             <UButton color="neutral" variant="ghost" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
               {{ t('common.rename') }}
             </UButton>

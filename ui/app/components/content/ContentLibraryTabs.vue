@@ -297,7 +297,7 @@ defineExpose({
             :variant="highlightedTabId === tab.id ? 'solid' : 'outline'"
             size="sm"
             :icon="getTabIcon(tab.type)"
-            class="drag-handle cursor-move max-w-full"
+            class="drag-handle cursor-pointer max-w-full"
             @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
           >
             <span class="truncate max-w-48 sm:max-w-64">

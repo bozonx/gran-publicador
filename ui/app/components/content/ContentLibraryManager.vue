@@ -1517,7 +1517,7 @@ if (props.scope === 'project' && props.projectId) {
             </template>
             <template #group-node-label="{ item }">
               <span
-                class="flex-1 truncate text-sm py-1 transition-colors"
+                class="flex-1 truncate text-sm py-1 transition-colors cursor-pointer"
                 :class="selectedGroupTreeNodeId === getGroupTreeNodeValue(item)
                   ? 'text-primary-600 dark:text-primary-300'
                   : 'text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300'"
