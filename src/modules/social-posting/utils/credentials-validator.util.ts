@@ -48,7 +48,7 @@ export function validatePlatformCredentials(
 
   const requiredFields = config.credentials?.filter(f => f.required) ?? [];
   for (const field of requiredFields) {
-    const value = (credentials as any)[field.key];
+    const value = credentials[field.key];
     const hasValue = value !== undefined && value !== null && String(value).trim().length > 0;
     if (!hasValue) {
       errors.push(`Missing required credential field: ${field.key}`);

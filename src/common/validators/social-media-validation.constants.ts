@@ -1,7 +1,7 @@
-import { MediaType, PostType, SocialMedia } from '../../generated/prisma/index.js';
+import { MediaType, type PostType, type SocialMedia } from '../../generated/prisma/index.js';
 import {
   getPostTypeConfig,
-  MediaType as SharedMediaType,
+  type MediaType as SharedMediaType,
   PostType as SharedPostType,
   SocialMedia as SharedSocialMedia,
 } from '@gran/shared/social-media-platforms';

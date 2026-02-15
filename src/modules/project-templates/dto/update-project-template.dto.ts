@@ -26,7 +26,6 @@ export class UpdateProjectTemplateDto {
   @IsOptional()
   public postType?: PostType | null;
 
-
   @IsString()
   @IsOptional()
   @ValidateIf((o: any, v: any) => v !== null)

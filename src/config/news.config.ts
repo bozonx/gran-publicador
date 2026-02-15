@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsString, IsUrl, IsOptional, Min } from 'class-validator';
+import { IsString, IsUrl, IsOptional } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -21,15 +21,6 @@ export class NewsConfig {
   @IsOptional()
   @IsString()
   public apiToken?: string;
-
-  /**
-   * Interval in minutes for checking news notifications.
-   * Defined by NEWS_NOTIFICATION_INTERVAL_MINUTES environment variable.
-   * Default: 10
-   */
-  @IsOptional()
-  @Min(0)
-  public notificationIntervalMinutes: number = 10;
 
   /**
    * Maximum lookback window in hours for news scheduler.
@@ -66,9 +57,6 @@ export default registerAs('news', (): NewsConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.NEWS_SERVICE_URL || 'http://news-microservice:8088',
     apiToken: process.env.NEWS_SERVICE_API_TOKEN,
-    notificationIntervalMinutes: process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES
-      ? parseInt(process.env.NEWS_NOTIFICATION_INTERVAL_MINUTES, 10)
-      : 10,
     schedulerLookbackHours: process.env.NEWS_SCHEDULER_LOOKBACK_HOURS
       ? parseInt(process.env.NEWS_SCHEDULER_LOOKBACK_HOURS, 10)
       : 3,

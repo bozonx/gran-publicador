@@ -71,7 +71,9 @@ export class LlmService {
   }
 
   private getRequestTimeoutMs(): number {
-    return (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000;
+    return (
+      (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000
+    );
   }
 
   private async callLlmRouter(

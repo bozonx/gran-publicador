@@ -176,8 +176,12 @@ export class PublicationsController {
     const controller = new AbortController();
     const rawReq: any = (req as any).raw ?? (req as any).req ?? req;
 
-    rawReq?.on?.('aborted', () => controller.abort());
-    rawReq?.on?.('close', () => controller.abort());
+    rawReq?.on?.('aborted', () => {
+      controller.abort();
+    });
+    rawReq?.on?.('close', () => {
+      controller.abort();
+    });
 
     return this.publicationsService.chatWithLlm(id, req.user.userId, dto, {
       signal: controller.signal,

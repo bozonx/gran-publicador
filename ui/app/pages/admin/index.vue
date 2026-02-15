@@ -8,7 +8,7 @@ definePageMeta({
   middleware: ['auth', 'admin'],
 })
 
-const { t, d } = useI18n()
+const { t } = useI18n()
 const toast = useToast()
 
 // Tab management
@@ -30,45 +30,58 @@ const tabs = computed<AdminTab[]>(() => [
     icon: 'i-heroicons-users',
   },
   {
-    key: 'config',
-    label: t('admin.tabs.config'),
-    icon: 'i-heroicons-cog-6-tooth',
+    key: 'maintenance',
+    label: t('admin.tabs.maintenance'),
+    icon: 'i-heroicons-wrench-screwdriver',
   },
 ])
 
-const { fetchConfig, updateConfig, loading: configLoading, error: configError } = useConfig()
-const yamlContent = ref('')
-const isSaving = ref(false)
+const { runPublications, runNews, runMaintenance } = useAdminMaintenance()
+const isRunningPublications = ref(false)
+const isRunningNews = ref(false)
+const isRunningMaintenance = ref(false)
 
-async function loadYamlConfig() {
+async function handleRunPublications() {
+  isRunningPublications.value = true
   try {
-    yamlContent.value = await fetchConfig()
-  } catch (e) {
-    console.error('Failed to load config', e)
-  }
-}
-
-async function handleSaveConfig() {
-  isSaving.value = true
-  try {
-    await updateConfig(yamlContent.value)
+    await runPublications()
     toast.add({
       title: t('common.success'),
-      description: t('admin.config.saved'),
+      description: t('admin.maintenance.publicationsSuccess'),
       color: 'success',
     })
-  } catch (e) {
-    console.error('Failed to save config', e)
   } finally {
-    isSaving.value = false
+    isRunningPublications.value = false
   }
 }
 
-watch(selectedTab, (newTab) => {
-  if (newTab === 'config' && !yamlContent.value) {
-    loadYamlConfig()
+async function handleRunNews() {
+  isRunningNews.value = true
+  try {
+    await runNews()
+    toast.add({
+      title: t('common.success'),
+      description: t('admin.maintenance.newsSuccess'),
+      color: 'success',
+    })
+  } finally {
+    isRunningNews.value = false
   }
-})
+}
+
+async function handleRunMaintenance() {
+  isRunningMaintenance.value = true
+  try {
+    await runMaintenance()
+    toast.add({
+      title: t('common.success'),
+      description: t('admin.maintenance.runAllSuccess'),
+      color: 'success',
+    })
+  } finally {
+    isRunningMaintenance.value = false
+  }
+}
 
 // Users management
 const columns = computed<TableColumn<UserWithStats>[]>(() => [
@@ -460,47 +473,51 @@ const hasActiveFilters = computed(() => {
       </div>
     </div>
 
-    <!-- Config Tab -->
-    <div v-if="selectedTab === 'config'">
+    <!-- Maintenance Tab -->
+    <div v-if="selectedTab === 'maintenance'">
       <div class="mb-6">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-          {{ t('admin.tabs.config') }}
+          {{ t('admin.tabs.maintenance') }}
         </h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('admin.config.description') }}
+          {{ t('admin.maintenance.description') }}
         </p>
       </div>
 
       <div class="app-card p-6">
-        <div v-if="configLoading && !yamlContent" class="flex items-center justify-center py-12">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 animate-spin" />
-        </div>
-        
-        <div v-else>
-          <div v-if="configError" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p class="text-red-700 dark:text-red-300">{{ configError }}</p>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UButton
+            color="primary"
+            variant="soft"
+            icon="i-heroicons-paper-airplane"
+            :loading="isRunningPublications"
+            @click="handleRunPublications"
+          >
+            {{ t('admin.maintenance.runPublications') }}
+          </UButton>
 
-          <div class="mb-4">
-            <UTextarea
-              v-model="yamlContent"
-              :rows="20"
-              autoresize
-              class="font-mono text-sm w-full"
-              :placeholder="t('admin.config.placeholder')"
-            />
-          </div>
+          <UButton
+            color="primary"
+            variant="soft"
+            icon="i-heroicons-bell-alert"
+            :loading="isRunningNews"
+            @click="handleRunNews"
+          >
+            {{ t('admin.maintenance.runNewsNotifications') }}
+          </UButton>
 
-          <div class="flex justify-end">
-            <UButton
-              color="primary"
-              :loading="isSaving"
-              icon="i-heroicons-check-circle"
-              @click="handleSaveConfig"
-            >
-              {{ t('common.save') }}
-            </UButton>
-          </div>
+          <UButton
+            color="warning"
+            icon="i-heroicons-wrench-screwdriver"
+            :loading="isRunningMaintenance"
+            @click="handleRunMaintenance"
+          >
+            {{ t('admin.maintenance.runAll') }}
+          </UButton>
+
+          <p class="text-sm text-gray-500 dark:text-gray-400 md:col-span-2">
+            {{ t('admin.maintenance.runAllHint') }}
+          </p>
         </div>
       </div>
     </div>

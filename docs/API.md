@@ -382,13 +382,20 @@ x-api-key: gp_<TOKEN_VALUE>
 
 ## System API (Schedulers)
 
-Принудительный запуск фоновых задач. Требует `X-System-Token`.
+Ручной запуск задач публикации и обслуживания.
 
-### POST `/system/schedulers/publications/trigger`
-Запуск планировщика публикаций (обработка очереди постов).
+Поддерживается два способа авторизации:
+- `X-System-Token` (для system-to-system вызовов)
+- обычная пользовательская JWT-сессия с правами администратора приложения
 
-### POST `/system/schedulers/news/trigger`
-Запуск планировщика новостей (сбор и уведомления).
+### POST `/system/schedulers/publications/run`
+Запуск обработки публикаций, у которых наступило время публикации.
+
+### POST `/system/schedulers/news/run`
+Запуск проверки новостей и генерации уведомлений.
+
+### POST `/system/schedulers/maintenance/run`
+Запуск полного обслуживания: публикации + новости + очистка старых уведомлений.
 
 ---
 
@@ -956,46 +963,99 @@ GET /api/v1/users?limit=50&offset=0
 
 ### Аутентификация
 
-Для доступа к System API **обязательно** требуется заголовок `X-System-Token`.
-Значение токена должно совпадать с переменной окружения `SYSTEM_API_SECRET`.
+Для доступа к System API используется один из вариантов:
+
+1. `X-System-Token`:
+   - значение токена должно совпадать с переменной окружения `SYSTEM_API_SECRET`
+2. JWT-сессия пользователя:
+   - пользователь должен иметь флаг `isAdmin=true`
 
 ```http
 X-System-Token: your-secure-system-secret
 ```
 
-Кроме того, по умолчанию доступ разрешен только из локальных сетей и localhost. Это поведение можно изменить в конфигурации.
+Для запросов с `X-System-Token` дополнительно действует ограничение по локальной сети (localhost/RFC1918), если включён `SYSTEM_API_IP_RESTRICTION_ENABLED`.
 
-### POST /system/schedulers/publications/trigger
+### POST /system/schedulers/publications/run
 
-Принудительный запуск планировщика публикаций.
+Ручной запуск публикаций, для которых наступило время отправки.
 
 #### Запрос
 ```http
-POST /api/v1/system/schedulers/publications/trigger
+POST /api/v1/system/schedulers/publications/run
 ```
 
 #### Ответ
 ```json
 {
-  "status": "triggered",
-  "scheduler": "publications"
+  "status": "completed",
+  "scheduler": "publications",
+  "result": {
+    "skipped": false,
+    "expiredPublicationsCount": 0,
+    "expiredPostsCount": 0,
+    "triggeredPublicationsCount": 2
+  }
 }
 ```
 
-### POST /system/schedulers/news/trigger
+### POST /system/schedulers/news/run
 
-Принудительный запуск планировщика новостей.
+Ручной запуск проверки новостей и уведомлений.
 
 #### Запрос
 ```http
-POST /api/v1/system/schedulers/news/trigger
+POST /api/v1/system/schedulers/news/run
 ```
 
 #### Ответ
 ```json
 {
-  "status": "triggered",
-  "scheduler": "news"
+  "status": "completed",
+  "scheduler": "news",
+  "result": {
+    "skipped": false,
+    "checkedQueriesCount": 3,
+    "failedQueriesCount": 0,
+    "queriesWithNewItemsCount": 1,
+    "createdNotificationsCount": 2
+  }
+}
+```
+
+### POST /system/schedulers/maintenance/run
+
+Полный ручной запуск обслуживания (публикации + новости + очистка уведомлений).
+
+#### Запрос
+```http
+POST /api/v1/system/schedulers/maintenance/run
+```
+
+#### Ответ
+```json
+{
+  "status": "completed",
+  "scheduler": "maintenance",
+  "result": {
+    "publications": {
+      "skipped": false,
+      "expiredPublicationsCount": 0,
+      "expiredPostsCount": 0,
+      "triggeredPublicationsCount": 2
+    },
+    "news": {
+      "skipped": false,
+      "checkedQueriesCount": 3,
+      "failedQueriesCount": 0,
+      "queriesWithNewItemsCount": 1,
+      "createdNotificationsCount": 2
+    },
+    "notificationsCleanup": {
+      "cleanupDays": 30,
+      "deletedCount": 12
+    }
+  }
 }
 ```
 

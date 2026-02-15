@@ -1,76 +1,41 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { PostStatus, PublicationStatus, NotificationType } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SocialPostingService } from './social-posting.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AppConfig } from '../../config/app.config.js';
 
+export interface PublicationSchedulerRunResult {
+  skipped: boolean;
+  reason?: string;
+  expiredPublicationsCount: number;
+  expiredPostsCount: number;
+  triggeredPublicationsCount: number;
+}
+
 @Injectable()
-export class PublicationSchedulerService implements OnModuleInit, OnModuleDestroy {
+export class PublicationSchedulerService {
   private readonly logger = new Logger(PublicationSchedulerService.name);
   private isProcessing = false;
-  private initialTimeout: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly socialPostingService: SocialPostingService,
     private readonly configService: ConfigService,
-    private readonly schedulerRegistry: SchedulerRegistry,
     private readonly notifications: NotificationsService,
   ) {}
 
-  onModuleInit() {
-    const appConfig = this.configService.get<AppConfig>('app')!;
-    this.logger.log(`Date source of truth: ${new Date().toISOString()}`);
-
-    const intervalSeconds = appConfig.schedulerIntervalSeconds;
-    if (intervalSeconds === 0) {
-      this.logger.log('Publication Scheduler is DISABLED (interval is 0)');
-      return;
-    }
-
-    const intervalMs = intervalSeconds * 1000;
-
-    // Align start to the next interval boundary for better precision
-    const now = Date.now();
-    const delay = intervalMs - (now % intervalMs);
-
-    this.logger.log(`Aligning scheduler: first run in ${delay}ms`);
-
-    this.initialTimeout = setTimeout(() => {
-      void this.handleCron();
-      const interval = setInterval(() => {
-        void this.handleCron();
-      }, intervalMs);
-      this.schedulerRegistry.addInterval('publication-scheduler', interval);
-    }, delay);
-
-    this.logger.log(
-      `Publication Scheduler initialized with dynamic interval ${appConfig.schedulerIntervalSeconds}s and window ${appConfig.schedulerWindowMinutes}m`,
-    );
-  }
-
-  onModuleDestroy() {
-    if (this.initialTimeout) {
-      clearTimeout(this.initialTimeout);
-      this.initialTimeout = null;
-    }
-
-    try {
-      if (this.schedulerRegistry.doesExist('interval', 'publication-scheduler')) {
-        this.schedulerRegistry.deleteInterval('publication-scheduler');
-      }
-    } catch (e) {
-      // Ignore errors if interval doesn't exist
-    }
-  }
-
-  public async handleCron() {
+  public async runNow(): Promise<PublicationSchedulerRunResult> {
     if (this.isProcessing) {
       this.logger.debug('Skipping scheduler run (previous run still in progress)');
-      return;
+      return {
+        skipped: true,
+        reason: 'already_processing',
+        expiredPublicationsCount: 0,
+        expiredPostsCount: 0,
+        triggeredPublicationsCount: 0,
+      };
     }
 
     this.isProcessing = true;
@@ -80,18 +45,32 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
       const windowStart = new Date(now.getTime() - appConfig.schedulerWindowMinutes * 60000);
 
       // 1. Blindly mark expired publications and posts
-      await this.markExpired(windowStart);
+      const expiredStats = await this.markExpired(windowStart);
 
       // 2. Process publications that are ready
-      await this.processScheduledPublications(now);
+      const triggeredPublicationsCount = await this.processScheduledPublications(now);
+
+      return {
+        skipped: false,
+        expiredPublicationsCount: expiredStats.expiredPublicationsCount,
+        expiredPostsCount: expiredStats.expiredPostsCount,
+        triggeredPublicationsCount,
+      };
     } catch (error: any) {
       this.logger.error(`Error in scheduler run: ${error.message}`, error.stack);
+      throw error;
     } finally {
       this.isProcessing = false;
     }
   }
 
-  private async markExpired(windowStart: Date) {
+  private async markExpired(windowStart: Date): Promise<{
+    expiredPublicationsCount: number;
+    expiredPostsCount: number;
+  }> {
+    let expiredPublicationsCount = 0;
+    let expiredPostsCount = 0;
+
     // 1. Find and Mark Publications
     const pubsToExpire = await this.prisma.publication.findMany({
       where: {
@@ -108,6 +87,8 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
         where: { id: { in: pubsToExpire.map(p => p.id) } },
         data: { status: PublicationStatus.EXPIRED },
       });
+      expiredPublicationsCount = expiredPubs.count;
+
       if (expiredPubs.count > 0) {
         this.logger.log(`Marked ${expiredPubs.count} publications as EXPIRED`);
 
@@ -160,14 +141,20 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
           errorMessage: 'EXPIRED',
         },
       });
+      expiredPostsCount = expiredPosts.count;
 
       if (expiredPosts.count > 0) {
         this.logger.log(`Marked ${expiredPosts.count} posts as EXPIRED`);
       }
     }
+
+    return {
+      expiredPublicationsCount,
+      expiredPostsCount,
+    };
   }
 
-  private async processScheduledPublications(now: Date) {
+  private async processScheduledPublications(now: Date): Promise<number> {
     // Fetch publications that are SCHEDULED and due
     // IMPORTANT: Order by scheduledAt ASC to ensure "Part 1" goes before "Part 2"
     // Also including createdAt as secondary sort for identical scheduledAt times
@@ -187,18 +174,24 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
       orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
     });
 
-    if (publications.length === 0) return;
+    if (publications.length === 0) return 0;
 
     this.logger.debug(`Found ${publications.length} publications to trigger`);
+    let triggeredPublicationsCount = 0;
 
     // Sequential trigger to maintain strict delivery order
     // This is crucial for multi-part messages in the same channel
     for (const pub of publications) {
-      await this.triggerPublication(pub.id);
+      const isTriggered = await this.triggerPublication(pub.id);
+      if (isTriggered) {
+        triggeredPublicationsCount += 1;
+      }
     }
+
+    return triggeredPublicationsCount;
   }
 
-  private async triggerPublication(publicationId: string) {
+  private async triggerPublication(publicationId: string): Promise<boolean> {
     try {
       // Atomic status update to prevent race conditions
       // Update from SCHEDULED -> PROCESSING
@@ -218,9 +211,13 @@ export class PublicationSchedulerService implements OnModuleInit, OnModuleDestro
         this.logger.log(`Triggering publication ${publicationId}`);
         // Run publication using existing service logic, skipping lock check
         await this.socialPostingService.publishPublication(publicationId, { skipLock: true });
+        return true;
       }
+
+      return false;
     } catch (error: any) {
       this.logger.error(`Failed to trigger publication ${publicationId}: ${error.message}`);
+      return false;
     }
   }
 }

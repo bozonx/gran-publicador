@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Schedulers execution model**: removed all internal interval/cron background launches for publications, news notifications, and notifications cleanup.
+  - Added synchronous manual run endpoints with execution results:
+    - `POST /system/schedulers/publications/run`
+    - `POST /system/schedulers/news/run`
+    - `POST /system/schedulers/maintenance/run`
+  - System endpoints now support two auth modes: `X-System-Token` (with local network restriction when enabled) **or** authenticated app user with `isAdmin=true`.
+  - Removed obsolete env vars: `SCHEDULER_INTERVAL_SECONDS`, `NEWS_NOTIFICATION_INTERVAL_MINUTES`.
+  - Admin UI tab **Configuration** replaced by **Maintenance** with manual run buttons for publications, news notifications, and full maintenance.
+
 ### Fixed
 - **Media Storage integration: raw stream upload API** — switched backend upload proxy from multipart/form-data to raw stream (`POST /files`) with header-based params (`x-filename`, `x-metadata`, `x-optimize`, `x-file-size` when provided), removed deprecated `/confirm` call, and aligned metadata mapping with the new response shape (`optimization.params`, `original.*`, `status`, `exif`).
 - **Media upload forms** — frontend now sends `fileSize` in multipart fields for upload/replace so backend can forward exact byte size to Media Storage (`x-file-size`) without buffering the whole file.

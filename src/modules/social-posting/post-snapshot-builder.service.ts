@@ -56,23 +56,23 @@ export class PostSnapshotBuilderService {
       orderBy: { order: 'asc' },
     });
 
-    const snapshotMedia = this.buildMediaSnapshot((publication as any).media);
+    const snapshotMedia = this.buildMediaSnapshot(publication.media);
     const now = new Date();
     const nowIso = now.toISOString();
 
     const publicationTagsString = formatTagsCsv(
-      (publication as any).tagObjects?.map((t: any) => t?.name).filter(Boolean),
+      publication.tagObjects?.map((t: any) => t?.name).filter(Boolean),
     );
 
     for (const post of posts) {
       const postTagsStringRaw = formatTagsCsv(
-        (post as any).tagObjects?.map((t: any) => t?.name).filter(Boolean),
+        post.tagObjects?.map((t: any) => t?.name).filter(Boolean),
       );
       const tagsString = postTagsStringRaw || publicationTagsString || null;
 
       const { body, bodyFormat, template } = this.buildBody(
         post,
-        (post as any).channel,
+        post.channel,
         publication,
         projectTemplates,
         tagsString,
@@ -88,7 +88,7 @@ export class PostSnapshotBuilderService {
           publicationId: publication.id,
           postId: post.id,
           channelId: post.channelId,
-          platform: (post as any).channel?.socialMedia,
+          platform: post.channel?.socialMedia,
           inputs: {
             title: publication.title,
             content: post.content || publication.content,

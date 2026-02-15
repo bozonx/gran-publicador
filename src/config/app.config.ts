@@ -144,15 +144,6 @@ export class AppConfig {
   public shutdownTimeoutSeconds!: number;
 
   /**
-   * Scheduler interval in seconds.
-   * Defined by SCHEDULER_INTERVAL_SECONDS environment variable.
-   * Default: 60
-   */
-  @IsInt()
-  @Min(0)
-  public schedulerIntervalSeconds!: number;
-
-  /**
    * Scheduler window for publications in minutes.
    * Defined by SCHEDULER_WINDOW_MINUTES environment variable.
    * Default: 10
@@ -206,7 +197,6 @@ export default registerAs('app', (): AppConfig => {
     shutdownTimeoutSeconds: parseInt(process.env.SHUTDOWN_TIMEOUT_SECONDS ?? '30', 10),
 
     // Scheduler Config
-    schedulerIntervalSeconds: parseInt(process.env.SCHEDULER_INTERVAL_SECONDS ?? '60', 10),
     schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
     microserviceRequestTimeoutSeconds: parseInt(
       process.env.MICROSERVICE_REQUEST_TIMEOUT_SECONDS ?? '30',

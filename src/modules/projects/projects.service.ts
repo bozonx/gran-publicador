@@ -52,7 +52,7 @@ export class ProjectsService {
       const requiredFields = config?.credentials?.filter(f => f.required) ?? [];
       if (requiredFields.length > 0) {
         for (const f of requiredFields) {
-          const value = (creds as any)[f.key];
+          const value = creds[f.key];
           if (!value || String(value).trim().length === 0) {
             return true;
           }

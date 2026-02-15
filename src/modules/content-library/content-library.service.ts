@@ -1668,7 +1668,7 @@ export class ContentLibraryService {
         update: {},
       });
 
-      if ((item as any).groupId == null) {
+      if (item.groupId == null) {
         await (tx.contentItem as any).update({
           where: { id: contentItemId },
           data: { groupId: dto.groupId },
@@ -1706,7 +1706,7 @@ export class ContentLibraryService {
         },
       });
 
-      if ((item as any).groupId === groupId) {
+      if (item.groupId === groupId) {
         const nextPrimary = await (tx as any).contentItemGroup.findFirst({
           where: { contentItemId },
           orderBy: { createdAt: 'asc' },

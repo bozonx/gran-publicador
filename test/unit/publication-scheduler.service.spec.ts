@@ -1,11 +1,10 @@
 import { ConfigService } from '@nestjs/config';
-import { jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PublicationSchedulerService } from '../../src/modules/social-posting/publication-scheduler.service.js';
 import { SocialPostingService } from '../../src/modules/social-posting/social-posting.service.js';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { SchedulerRegistry } from '@nestjs/schedule';
 import { PostStatus, PublicationStatus } from '../../src/generated/prisma/index.js';
 
 // Mock ConfigService
@@ -13,7 +12,6 @@ const mockConfigService = {
   get: jest.fn(key => {
     if (key === 'app') {
       return {
-        schedulerIntervalSeconds: 60,
         schedulerWindowMinutes: 10,
       };
     }
@@ -41,12 +39,6 @@ const mockSocialPostingService = {
   publishPublication: jest.fn(),
 };
 
-// Mock SchedulerRegistry
-const mockSchedulerRegistry = {
-  addInterval: jest.fn(),
-  deleteInterval: jest.fn(),
-};
-
 // Mock NotificationsService
 const mockNotificationsService = {
   create: jest.fn() as any,
@@ -65,7 +57,6 @@ describe('PublicationSchedulerService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: SocialPostingService, useValue: mockSocialPostingService },
-        { provide: SchedulerRegistry, useValue: mockSchedulerRegistry },
         { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
@@ -95,7 +86,7 @@ describe('PublicationSchedulerService', () => {
     mockPrismaService.post.findMany.mockResolvedValue([]);
     mockPrismaService.publication.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.handleCron();
+    await service.runNow();
 
     expect(prisma.publication.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ['pub1'] } },
@@ -115,7 +106,7 @@ describe('PublicationSchedulerService', () => {
     mockPrismaService.post.findMany.mockResolvedValue([]);
     mockPrismaService.publication.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.handleCron();
+    await service.runNow();
 
     expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub1', {
       skipLock: true,
@@ -139,7 +130,7 @@ describe('PublicationSchedulerService', () => {
     mockPrismaService.post.updateMany.mockResolvedValue({ count: 1 });
     mockPrismaService.publication.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.handleCron();
+    await service.runNow();
 
     expect(prisma.post.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ['post1'] } },
@@ -162,7 +153,7 @@ describe('PublicationSchedulerService', () => {
     mockPrismaService.post.findMany.mockResolvedValue([]);
     mockPrismaService.publication.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.handleCron();
+    await service.runNow();
 
     expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub1', {
       skipLock: true,

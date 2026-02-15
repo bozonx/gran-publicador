@@ -36,8 +36,8 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
 
     // Add tags as separate field if present
     const tagNames: string[] =
-      (post as any).tagObjects?.map((t: any) => t?.name).filter(Boolean) ??
-      (publication as any).tagObjects?.map((t: any) => t?.name).filter(Boolean) ??
+      post.tagObjects?.map((t: any) => t?.name).filter(Boolean) ??
+      publication.tagObjects?.map((t: any) => t?.name).filter(Boolean) ??
       [];
 
     if (tagNames.length > 0) {

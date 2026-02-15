@@ -259,7 +259,7 @@ pnpm dev
 | `LISTEN_PORT` | Нет | Порт сервера (по умолчанию `8080`) |
 | `LOG_LEVEL` | Нет | Уровень логирования (`debug`, `info`, `warn`, `error`) |
 | `REDIS_ENABLED` | Нет | Использовать ли Redis (по умолчанию `true`) |
-| `SCHEDULER_INTERVAL_SECONDS` | Нет | Интервал планировщика (0 — отключить) |
+| `SCHEDULER_WINDOW_MINUTES` | Нет | Окно обработки просроченных/запланированных публикаций |
 | `SYSTEM_API_SECRET` | Нет | Секрет для системных эндпоинтов |
 | `SHUTDOWN_TIMEOUT_SECONDS` | Нет | Таймаут graceful shutdown (сек) |
 

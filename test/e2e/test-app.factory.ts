@@ -65,7 +65,6 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
               maxFileSize: 52428800,
             },
             shutdownTimeoutSeconds: 30,
-            schedulerIntervalSeconds: 60,
             schedulerWindowMinutes: 10,
             microserviceRequestTimeoutSeconds: 30,
             timezone: 'UTC',

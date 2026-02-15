@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsService } from './notifications.service.js';
 
 @Injectable()
@@ -12,13 +11,16 @@ export class NotificationsScheduler {
     private readonly configService: ConfigService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async handleCleanup() {
+  public async runCleanupNow() {
     this.logger.debug('Starting notifications cleanup job');
 
     // Get cleanup days from config, default to 30
     const cleanupDays = this.configService.get<number>('NOTIFICATIONS_CLEANUP_DAYS', 30);
 
-    await this.notificationsService.cleanupOldNotifications(cleanupDays);
+    const result = await this.notificationsService.cleanupOldNotifications(cleanupDays);
+    return {
+      cleanupDays,
+      deletedCount: result.count,
+    };
   }
 }

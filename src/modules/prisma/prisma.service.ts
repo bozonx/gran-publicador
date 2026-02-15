@@ -47,7 +47,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       pool = new Pool(poolConfig);
       const adapter = new PrismaPg(pool);
       clientConfig.adapter = adapter;
-      
+
       internalLogger.log('🐘 Using PostgreSQL with @prisma/adapter-pg');
       internalLogger.log(`🔌 Database Host: ${parsedUrl.hostname}`);
       internalLogger.log(`🔌 Database Name: ${parsedUrl.pathname.slice(1)}`);

@@ -1,4 +1,4 @@
-import { SocialMedia, PostType, MediaType } from '../../generated/prisma/index.js';
+import { type SocialMedia, type PostType, MediaType } from '../../generated/prisma/index.js';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';

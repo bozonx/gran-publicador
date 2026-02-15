@@ -8,10 +8,16 @@
     "banConfirm": "Are you sure you want to ban this user?",
     "banReason": "Ban reason",
     "banUser": "Ban user",
-    "config": {
-      "description": "Edit configuration (app-config.yaml)",
-      "placeholder": "Paste YAML here...",
-      "saved": "Configuration saved"
+    "maintenance": {
+      "description": "Run scheduled jobs and maintenance tasks manually",
+      "newsSuccess": "News notifications check completed",
+      "publicationsSuccess": "Publication scheduler run completed",
+      "runAll": "Run full maintenance",
+      "runAllHint": "Runs publications, news notifications, and notifications cleanup in one request.",
+      "runAllSuccess": "Full maintenance completed",
+      "runNewsNotifications": "Run news notifications",
+      "runPublications": "Run publications",
+      "notificationsCleanupSuccess": "Notifications cleanup completed"
     },
     "deleteUserConfirm": "This action cannot be undone. Checks related to projects and content will be removed.",
     "deleteUserTitle": "Delete user permanently?",
@@ -32,7 +38,7 @@
     "revokeAdminConfirm": "Are you sure you want to revoke admin rights from this user?",
     "searchUsers": "Search users...",
     "tabs": {
-      "config": "Configuration",
+      "maintenance": "Maintenance",
       "users": "Users"
     },
     "unban": "Unban",

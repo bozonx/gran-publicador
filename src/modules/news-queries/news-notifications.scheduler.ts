@@ -1,5 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectsService } from '../projects/projects.service.js';
@@ -7,8 +6,17 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { I18nService } from 'nestjs-i18n';
 import { NewsConfig } from '../../config/news.config.js';
 
+export interface NewsNotificationsRunResult {
+  skipped: boolean;
+  reason?: string;
+  checkedQueriesCount: number;
+  failedQueriesCount: number;
+  queriesWithNewItemsCount: number;
+  createdNotificationsCount: number;
+}
+
 @Injectable()
-export class NewsNotificationsScheduler implements OnModuleInit {
+export class NewsNotificationsScheduler {
   private readonly logger = new Logger(NewsNotificationsScheduler.name);
   private isProcessing = false;
 
@@ -17,34 +25,20 @@ export class NewsNotificationsScheduler implements OnModuleInit {
     private readonly projectsService: ProjectsService,
     private readonly notificationsService: NotificationsService,
     private readonly i18n: I18nService,
-    private readonly schedulerRegistry: SchedulerRegistry,
     private readonly configService: ConfigService,
   ) {}
 
-  onModuleInit() {
-    const config = this.configService.get<NewsConfig>('news');
-    const intervalMinutes = config?.notificationIntervalMinutes ?? 10;
-
-    if (intervalMinutes === 0) {
-      this.logger.log('News notifications check is DISABLED (interval is 0)');
-      return;
-    }
-
-    this.logger.log(`Scheduling news notifications check every ${intervalMinutes} minutes`);
-
-    const interval = setInterval(
-      () => {
-        void this.handleNewsNotifications();
-      },
-      intervalMinutes * 60 * 1000,
-    );
-    this.schedulerRegistry.addInterval('news-notifications', interval);
-  }
-
-  public async handleNewsNotifications() {
+  public async runNow(): Promise<NewsNotificationsRunResult> {
     if (this.isProcessing) {
       this.logger.debug('Skipping news notifications check (previous run still in progress)');
-      return;
+      return {
+        skipped: true,
+        reason: 'already_processing',
+        checkedQueriesCount: 0,
+        failedQueriesCount: 0,
+        queriesWithNewItemsCount: 0,
+        createdNotificationsCount: 0,
+      };
     }
 
     this.isProcessing = true;
@@ -70,21 +64,41 @@ export class NewsNotificationsScheduler implements OnModuleInit {
 
       this.logger.debug(`Found ${queries.length} active queries to check`);
 
+      let failedQueriesCount = 0;
+      let queriesWithNewItemsCount = 0;
+      let createdNotificationsCount = 0;
+
       for (const query of queries) {
         try {
-          await this.processQuery(query);
+          const result = await this.processQuery(query);
+          if (result.hasNewItems) {
+            queriesWithNewItemsCount += 1;
+          }
+          createdNotificationsCount += result.createdNotificationsCount;
         } catch (error: any) {
+          failedQueriesCount += 1;
           this.logger.error(
             `Failed to process news notifications for query ${query.id}: ${error.message}`,
           );
         }
       }
+
+      return {
+        skipped: false,
+        checkedQueriesCount: queries.length,
+        failedQueriesCount,
+        queriesWithNewItemsCount,
+        createdNotificationsCount,
+      };
     } finally {
       this.isProcessing = false;
     }
   }
 
-  private async processQuery(query: any) {
+  private async processQuery(query: any): Promise<{
+    hasNewItems: boolean;
+    createdNotificationsCount: number;
+  }> {
     const config = this.configService.get<NewsConfig>('news');
     const lookbackHours = config?.schedulerLookbackHours || 3;
     const settings = query.settings || {};
@@ -231,6 +245,16 @@ export class NewsNotificationsScheduler implements OnModuleInit {
           settings: newSettings,
         },
       });
+
+      return {
+        hasNewItems: true,
+        createdNotificationsCount: usersToNotify.size,
+      };
     }
+
+    return {
+      hasNewItems: false,
+      createdNotificationsCount: 0,
+    };
   }
 }

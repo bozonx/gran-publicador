@@ -140,7 +140,7 @@ export class PublicationsService {
     options: { signal?: AbortSignal } = {},
   ) {
     const publication = await this.findOne(publicationId, userId);
-    const meta = this.parseMetaJson((publication as any).meta);
+    const meta = this.parseMetaJson(publication.meta);
 
     const chatMeta = this.parseMetaJson(meta.llmPublicationContentGenerationChat);
     const storedMessages = this.normalizeChatMessages(chatMeta.messages);
@@ -564,7 +564,7 @@ export class PublicationsService {
         tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
           normalizeTags(data.tags ?? []),
           {
-            projectId: data.projectId!,
+            projectId: data.projectId,
           },
         ),
       },
@@ -953,7 +953,7 @@ export class PublicationsService {
     const mergedMeta =
       data.meta !== undefined
         ? {
-            ...this.parseMetaJson((publication as any).meta),
+            ...this.parseMetaJson(publication.meta),
             ...this.parseMetaJson(data.meta),
           }
         : undefined;
@@ -1833,9 +1833,9 @@ export class PublicationsService {
         description: source.description,
         authorComment: source.authorComment,
         content: source.content,
-        tagObjects: (source as any).tagObjects?.length
+        tagObjects: source.tagObjects?.length
           ? {
-              connect: (source as any).tagObjects.map((t: any) => ({ id: t.id })),
+              connect: source.tagObjects.map((t: any) => ({ id: t.id })),
             }
           : undefined,
         postType: source.postType,
@@ -1846,7 +1846,7 @@ export class PublicationsService {
           source.postType as PostType,
           source.projectTemplateId ?? undefined,
         ),
-        meta: (source.meta as any) || {},
+        meta: source.meta || {},
         note: source.note,
         postDate: source.postDate,
         status: PublicationStatus.DRAFT,

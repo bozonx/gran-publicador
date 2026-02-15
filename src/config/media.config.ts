@@ -174,7 +174,9 @@ export default registerAs('media', (): MediaConfig => {
       : undefined,
     imageOptimizationChromaSubsampling: process.env.MEDIA_IMAGE_OPTIMIZATION_CHROMA_SUBSAMPLING,
     imageOptimizationLossless: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_LOSSLESS),
-    imageOptimizationStripMetadata: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_STRIP_METADATA),
+    imageOptimizationStripMetadata: parseBoolean(
+      process.env.MEDIA_IMAGE_OPTIMIZATION_STRIP_METADATA,
+    ),
     imageOptimizationAutoOrient: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_AUTO_ORIENT),
     imageOptimizationFlatten: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_FLATTEN),
   };
