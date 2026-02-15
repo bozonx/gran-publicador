@@ -43,6 +43,64 @@ const tabById = computed(() => {
   return new Map(tabs.value.map(tab => [tab.id, tab]))
 })
 
+const groupChildrenByParentId = computed(() => {
+  const result = new Map<string, ContentLibraryTab[]>()
+
+  for (const tab of tabs.value) {
+    if (tab.type !== 'GROUP' || !tab.parentId) {
+      continue
+    }
+
+    const children = result.get(tab.parentId) ?? []
+    children.push(tab)
+    result.set(tab.parentId, children)
+  }
+
+  return result
+})
+
+const groupRecursiveItemsCount = computed(() => {
+  const memo = new Map<string, number>()
+
+  const countForGroup = (groupId: string, trail: Set<string>): number => {
+    if (memo.has(groupId)) {
+      return memo.get(groupId) ?? 0
+    }
+
+    if (trail.has(groupId)) {
+      return 0
+    }
+
+    const group = tabById.value.get(groupId)
+    if (!group || group.type !== 'GROUP') {
+      return 0
+    }
+
+    const nextTrail = new Set(trail)
+    nextTrail.add(groupId)
+
+    let total = Number(group.directItemsCount ?? 0)
+    const children = groupChildrenByParentId.value.get(groupId) ?? []
+
+    for (const child of children) {
+      total += countForGroup(child.id, nextTrail)
+    }
+
+    memo.set(groupId, total)
+    return total
+  }
+
+  for (const tab of tabs.value) {
+    if (tab.type !== 'GROUP') {
+      continue
+    }
+
+    countForGroup(tab.id, new Set<string>())
+  }
+
+  return memo
+})
+
 const resolveTopLevelTabId = (tabId: string | null | undefined): string | null => {
   if (!tabId) {
     return null
@@ -69,14 +127,6 @@ const resolveTopLevelTabId = (tabId: string | null | undefined): string | null =
 }
 
 const highlightedTabId = computed(() => resolveTopLevelTabId(activeTabId.value))
-
-const currentActiveTab = computed(() => {
-  if (!activeTabId.value) {
-    return null
-  }
-
-  return tabs.value.find(tab => tab.id === activeTabId.value) ?? null
-})
 
 const getStorageKey = () => {
   return `content-library-tab-${props.scope}-${props.projectId || 'global'}`
@@ -121,15 +171,10 @@ const fetchTabs = async () => {
 
 const handleCreateTab = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string }) => {
   try {
-    const parentId = data.type === 'GROUP' && currentActiveTab.value?.type === 'GROUP'
-      ? currentActiveTab.value.id
-      : undefined
-
     const newTab = await createTab({
       scope: props.scope,
       projectId: props.projectId,
       type: data.type,
-      parentId,
       title: data.title,
       config: {},
     })
@@ -199,7 +244,8 @@ const getTabLabel = (tab: ContentLibraryTab) => {
     return tab.title
   }
 
-  return `${tab.title} (${Number(tab.directItemsCount ?? 0)})`
+  const totalRecursiveCount = groupRecursiveItemsCount.value.get(tab.id) ?? Number(tab.directItemsCount ?? 0)
+  return `${tab.title} (${totalRecursiveCount})`
 }
 
 watch(() => props.projectId, () => {

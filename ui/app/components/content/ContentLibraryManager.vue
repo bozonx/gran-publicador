@@ -120,6 +120,29 @@ interface GroupTreeNode extends TreeItem {
   children?: GroupTreeNode[]
 }
 
+const handleSidebarGroupNodeSelect = (tabId: string) => {
+  selectedGroupTreeNodeId.value = tabId
+  handleSelectGroupTab(tabId)
+}
+
+const getGroupTreeNodeValue = (node: unknown): string => {
+  if (!node || typeof node !== 'object' || !('value' in node)) {
+    return ''
+  }
+
+  const value = (node as { value?: unknown }).value
+  return typeof value === 'string' ? value : ''
+}
+
+const getGroupTreeNodeLabel = (node: unknown): string => {
+  if (!node || typeof node !== 'object' || !('label' in node)) {
+    return ''
+  }
+
+  const label = (node as { label?: unknown }).label
+  return typeof label === 'string' ? label : ''
+}
+
 const formatGroupTreeLabel = (tab: ContentLibraryTab) => {
   const directItemsCount = Number(tab.directItemsCount ?? 0)
   return `${tab.title} (${directItemsCount})`
@@ -215,10 +238,6 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
       value: tab.id,
       slot: 'group-node',
       defaultExpanded: true,
-      onSelect: () => {
-        selectedGroupTreeNodeId.value = tab.id
-        handleSelectGroupTab(tab.id)
-      },
       children: buildTree(tab.id),
     }))
   }
@@ -228,10 +247,6 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
     value: rootGroup.id,
     slot: 'group-node',
     defaultExpanded: true,
-    onSelect: () => {
-      selectedGroupTreeNodeId.value = rootGroup.id
-      handleSelectGroupTab(rootGroup.id)
-    },
     children: buildTree(rootGroup.id),
   }]
 })
@@ -593,23 +608,37 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   isLoading.value = true
   error.value = null
   try {
-    const res = await api.get<any>('/content-library/items', {
-      params: {
-        scope: props.scope === 'personal' ? 'personal' : 'project',
-        projectId: props.scope === 'project' ? props.projectId : undefined,
-        groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
-        search: q.value || undefined,
-        limit,
-        offset: offset.value,
-        archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
-        includeArchived: false,
-        sortBy: sortBy.value,
-        sortOrder: sortOrder.value,
-        tags: selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
-      },
-    })
+    const baseParams = {
+      scope: props.scope === 'personal' ? 'personal' : 'project',
+      projectId: props.scope === 'project' ? props.projectId : undefined,
+      archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
+      includeArchived: false,
+    }
+
+    const [res, globalRes] = await Promise.all([
+      api.get<any>('/content-library/items', {
+        params: {
+          ...baseParams,
+          groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
+          search: q.value || undefined,
+          limit,
+          offset: offset.value,
+          sortBy: sortBy.value,
+          sortOrder: sortOrder.value,
+          tags: selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
+        },
+      }),
+      api.get<any>('/content-library/items', {
+        params: {
+          ...baseParams,
+          limit: 1,
+          offset: 0,
+        },
+      }),
+    ])
+
     total.value = res.total
-    totalUnfiltered.value = res.totalUnfiltered || res.total
+    totalUnfiltered.value = globalRes.total
     if (offset.value === 0) {
       items.value = res.items
     } else {
@@ -1179,14 +1208,16 @@ if (props.scope === 'project' && props.projectId) {
       @delete-tab="openDeleteTabModal"
       @toggle-sort-order="toggleSortOrder"
     >
-      <ContentLibraryTabs
-        ref="contentLibraryTabsRef"
-        v-model="activeTabId"
-        :scope="scope"
-        :project-id="props.projectId"
-        @update:active-tab="activeTab = $event"
-        @update:tabs="tabs = $event"
-      />
+      <template #tabs>
+        <ContentLibraryTabs
+          ref="contentLibraryTabsRef"
+          v-model="activeTabId"
+          :scope="scope"
+          :project-id="props.projectId"
+          @update:active-tab="activeTab = $event"
+          @update:tabs="tabs = $event"
+        />
+      </template>
     </ContentLibraryToolbar>
 
     <div
@@ -1266,8 +1297,24 @@ if (props.scope === 'project' && props.projectId) {
             {{ t('contentLibrary.groupsTree.empty') }}
           </div>
           <UTree v-else :items="sidebarGroupTreeItems">
+            <template #group-node="{ item }">
+              <span v-if="!getGroupTreeNodeValue(item)" class="text-gray-500 dark:text-gray-400">
+                {{ getGroupTreeNodeLabel(item) }}
+              </span>
+              <button
+                v-else
+                type="button"
+                class="w-full rounded px-1 py-0.5 text-left transition-colors"
+                :class="selectedGroupTreeNodeId === getGroupTreeNodeValue(item)
+                  ? 'text-primary-600 dark:text-primary-300'
+                  : 'text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300'"
+                @click.stop="handleSidebarGroupNodeSelect(getGroupTreeNodeValue(item))"
+              >
+                {{ getGroupTreeNodeLabel(item) }}
+              </button>
+            </template>
             <template #group-node-trailing="{ item }">
-              <UDropdownMenu :items="getGroupNodeMenuItems(item.value)">
+              <UDropdownMenu :items="getGroupNodeMenuItems(getGroupTreeNodeValue(item))">
                 <UButton
                   color="neutral"
                   variant="ghost"

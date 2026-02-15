@@ -153,6 +153,8 @@ function onDrop(event: DragEvent) {
       </div>
     </div>
 
+    <slot name="tabs" />
+
     <!-- Toolbar Card -->
     <div
       class="relative overflow-hidden app-card-lg space-y-4 border transition-all duration-300"
