@@ -127,8 +127,38 @@ const inlineSubgroupTitle = ref('')
 const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
 
 const allScopeGroupTabs = computed(() => tabs.value.filter(tab => tab.type === 'GROUP'))
+const tabsById = computed(() => new Map(tabs.value.map(tab => [tab.id, tab])))
+
+const activeRootGroupId = computed(() => {
+  if (activeTab.value?.type !== 'GROUP') {
+    return null
+  }
+
+  let cursor: ContentLibraryTab | undefined = activeTab.value
+  const visited = new Set<string>()
+
+  while (cursor?.parentId && !visited.has(cursor.id)) {
+    visited.add(cursor.id)
+    const parent = tabsById.value.get(cursor.parentId)
+    if (!parent || parent.type !== 'GROUP') {
+      break
+    }
+    cursor = parent
+  }
+
+  return cursor?.id ?? null
+})
 
 const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
+  if (!activeRootGroupId.value) {
+    return []
+  }
+
+  const rootGroup = tabsById.value.get(activeRootGroupId.value)
+  if (!rootGroup || rootGroup.type !== 'GROUP') {
+    return []
+  }
+
   const byParent = new Map<string, ContentLibraryTab[]>()
 
   for (const tab of allScopeGroupTabs.value) {
@@ -152,7 +182,16 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
     }))
   }
 
-  return buildTree('')
+  return [{
+    label: rootGroup.title,
+    value: rootGroup.id,
+    defaultExpanded: true,
+    onSelect: () => {
+      selectedGroupTreeNodeId.value = rootGroup.id
+      handleSelectGroupTab(rootGroup.id)
+    },
+    children: buildTree(rootGroup.id),
+  }]
 })
 
 const toGroupActionLabel = computed(() =>

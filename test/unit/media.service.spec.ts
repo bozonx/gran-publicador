@@ -3,7 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { jest, describe, it, expect, beforeAll, beforeEach, afterAll } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from '@jest/globals';
 import { MediaType, StorageType } from '../../src/generated/prisma/index.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { Readable } from 'stream';
@@ -50,6 +50,9 @@ describe('MediaService (unit)', () => {
     imageOptimizationQuality: 80,
     imageOptimizationChromaSubsampling: '4:2:0',
     imageOptimizationLossless: false,
+    imageOptimizationStripMetadata: true,
+    imageOptimizationAutoOrient: false,
+    imageOptimizationFlatten: true,
   };
 
   beforeAll(async () => {
@@ -214,7 +217,7 @@ describe('MediaService (unit)', () => {
       expect(effective).toMatchObject({
         stripMetadata: true,
         autoOrient: false,
-        flatten: { background: '#FFFFFF' },
+        flatten: '#FFFFFF',
         format: 'webp',
         maxDimension: 3840,
         effort: 4,

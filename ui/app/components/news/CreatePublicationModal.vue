@@ -241,6 +241,7 @@ async function handleNext() {
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
       language: lang,
       imageUrl: sd.image || undefined,
+      content: sourceTextContent,
       meta: {
         newsData: otherData
       }

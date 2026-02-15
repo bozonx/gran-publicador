@@ -30,6 +30,46 @@ const activeTabId = computed({
   set: (value) => emit('update:modelValue', value),
 })
 
+const topLevelTabs = computed<ContentLibraryTab[]>({
+  get: () => tabs.value.filter(tab => tab.type === 'SAVED_VIEW' || !tab.parentId),
+  set: (nextTopLevelTabs) => {
+    const topLevelIds = new Set(nextTopLevelTabs.map(tab => tab.id))
+    const nestedTabs = tabs.value.filter(tab => !topLevelIds.has(tab.id))
+    tabs.value = [...nextTopLevelTabs, ...nestedTabs]
+  },
+})
+
+const tabById = computed(() => {
+  return new Map(tabs.value.map(tab => [tab.id, tab]))
+})
+
+const resolveTopLevelTabId = (tabId: string | null | undefined): string | null => {
+  if (!tabId) {
+    return null
+  }
+
+  let cursor = tabById.value.get(tabId)
+  if (!cursor) {
+    return null
+  }
+
+  if (cursor.type === 'SAVED_VIEW') {
+    return cursor.id
+  }
+
+  while (cursor.parentId) {
+    const parent = tabById.value.get(cursor.parentId)
+    if (!parent) {
+      break
+    }
+    cursor = parent
+  }
+
+  return cursor.id
+}
+
+const highlightedTabId = computed(() => resolveTopLevelTabId(activeTabId.value))
+
 const currentActiveTab = computed(() => {
   if (!activeTabId.value) {
     return null
@@ -49,19 +89,27 @@ const fetchTabs = async () => {
   try {
     tabs.value = await listTabs(props.scope, props.scope === 'project' ? props.projectId : undefined)
     emit('update:tabs', tabs.value)
+
+    if (activeTabId.value) {
+      const currentActiveTab = tabs.value.find(t => t.id === activeTabId.value)
+      if (currentActiveTab) {
+        emit('update:activeTab', currentActiveTab)
+      }
+    }
     
     // Restore from localStorage
     const savedTabId = localStorage.getItem(getStorageKey())
-    const tabToRestore = savedTabId ? tabs.value.find(t => t.id === savedTabId) : null
+    const resolvedSavedTabId = resolveTopLevelTabId(savedTabId)
+    const tabToRestore = resolvedSavedTabId ? topLevelTabs.value.find(t => t.id === resolvedSavedTabId) : null
 
     if (tabToRestore) {
       activeTabId.value = tabToRestore.id
       emit('update:activeTab', tabToRestore)
     } else {
       // Auto-select first tab if none selected or restored
-      if (!activeTabId.value && tabs.value.length > 0 && tabs.value[0]) {
-        activeTabId.value = tabs.value[0].id
-        emit('update:activeTab', tabs.value[0])
+      if (!activeTabId.value && topLevelTabs.value.length > 0 && topLevelTabs.value[0]) {
+        activeTabId.value = topLevelTabs.value[0].id
+        emit('update:activeTab', topLevelTabs.value[0])
       }
     }
   } catch (e: any) {
@@ -153,8 +201,9 @@ watch(() => props.projectId, () => {
 })
 
 watch(activeTabId, (newId) => {
-  if (newId) {
-    localStorage.setItem(getStorageKey(), newId)
+  const idToSave = resolveTopLevelTabId(newId)
+  if (idToSave) {
+    localStorage.setItem(getStorageKey(), idToSave)
   }
 })
 
@@ -178,20 +227,20 @@ defineExpose({
   <div class="space-y-3">
     <div class="flex flex-wrap items-center gap-2 pb-2">
       <VueDraggable
-        v-model="tabs"
+        v-model="topLevelTabs"
         :animation="200"
         handle=".drag-handle"
         class="flex flex-wrap items-center gap-2 flex-1 min-w-0"
         @end="handleReorder"
       >
         <div
-          v-for="tab in tabs"
+          v-for="tab in topLevelTabs"
           :key="tab.id"
           class="flex items-center gap-1 min-w-0"
         >
           <UButton
-            :color="getTabColor(tab.type, activeTabId === tab.id)"
-            :variant="activeTabId === tab.id ? 'solid' : 'outline'"
+            :color="getTabColor(tab.type, highlightedTabId === tab.id)"
+            :variant="highlightedTabId === tab.id ? 'solid' : 'outline'"
             size="sm"
             :icon="getTabIcon(tab.type)"
             class="drag-handle cursor-move max-w-full"
