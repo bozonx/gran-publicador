@@ -1127,12 +1127,14 @@ const resolveTabForConfigPersistence = (): ContentLibraryTab | null => {
     return null
   }
 
-  if (activeTab.value.type !== 'GROUP') {
-    return activeTab.value
+  const canonicalTab = tabsById.value.get(activeTab.value.id) ?? activeTab.value
+
+  if (canonicalTab.type !== 'GROUP') {
+    return canonicalTab
   }
 
-  const rootId = getGroupRootTabId(activeTab.value)
-  return tabsById.value.get(rootId) ?? activeTab.value
+  const rootId = getGroupRootTabId(canonicalTab)
+  return tabsById.value.get(rootId) ?? canonicalTab
 }
 
 const persistActiveTabConfig = async () => {
@@ -1279,7 +1281,7 @@ watch(activeTab, async (newTab, oldTab) => {
 
 watch([q, selectedTags, sortBy, sortOrder], () => {
   debouncedPersistActiveTabConfig()
-})
+}, { deep: true })
 
 onMounted(() => {
   window.addEventListener('dragenter', handleWindowDragEnter)
