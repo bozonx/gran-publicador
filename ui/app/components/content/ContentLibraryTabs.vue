@@ -194,6 +194,14 @@ const getTabColor = (type: 'GROUP' | 'SAVED_VIEW', isActive: boolean) => {
   return type === 'GROUP' ? 'neutral' : 'neutral'
 }
 
+const getTabLabel = (tab: ContentLibraryTab) => {
+  if (tab.type !== 'GROUP') {
+    return tab.title
+  }
+
+  return `${tab.title} (${Number(tab.directItemsCount ?? 0)})`
+}
+
 watch(() => props.projectId, () => {
   if (props.scope === 'project') {
     fetchTabs()
@@ -247,7 +255,7 @@ defineExpose({
             @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
           >
             <span class="truncate max-w-48 sm:max-w-64">
-              {{ tab.title }}
+              {{ getTabLabel(tab) }}
             </span>
           </UButton>
         </div>

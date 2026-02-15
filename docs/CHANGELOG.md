@@ -13,8 +13,19 @@ All notable changes to this project will be documented in this file.
   - System endpoints now support two auth modes: `X-System-Token` (with local network restriction when enabled) **or** authenticated app user with `isAdmin=true`.
   - Removed obsolete env vars: `SCHEDULER_INTERVAL_SECONDS`, `NEWS_NOTIFICATION_INTERVAL_MINUTES`.
   - Admin UI tab **Configuration** replaced by **Maintenance** with manual run buttons for publications, news notifications, and full maintenance.
+- **Content Library groups API contract**:
+  - Removed direct unlink endpoint `DELETE /content-library/items/:id/groups/:groupId`.
+  - Items can no longer be detached from groups directly; use move operations instead.
+  - Group deletion now explicitly moves primary group assignments to root (`groupId = null`) and removes relations to the deleted group in a transaction.
 
 ### Fixed
+- **Content Library groups UX**:
+  - Groups tree sidebar is now rendered only when active tab type is `GROUP`.
+  - Group node menu now hides delete action for root groups (root group remains non-deletable in backend and UI).
+  - Group deletion now navigates to parent group both from tree actions and top toolbar actions.
+  - Group labels now display direct items count (non-archived) in both top tabs and sidebar tree.
+- **Content Library upload target group consistency**:
+  - Drag-and-drop and upload button flows now lock target `groupId` at upload start to avoid accidental reassignment when active tab changes during multi-file upload.
 - **News notifications duplicate delivery**: replaced query-level watermarking with per-user per-query state (`news_notification_user_states`) so already delivered news do not reappear in later notifications for the same user.
 - **News queries access control**: added explicit project access checks for list/create/update/reorder/delete operations in `NewsQueriesService`.
 - **News query creation bug**: `isNotificationEnabled` is now persisted to the dedicated DB column instead of leaking into JSON settings.

@@ -282,40 +282,6 @@ export class ContentLibraryController {
     return this.contentLibraryService.linkItemToGroup(contentItemId, dto, req.user.userId);
   }
 
-  @Delete('items/:id/groups/:groupId')
-  public async unlinkItemFromGroup(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('groupId') groupId: string,
-    @Query() query: FindContentLibraryTabsQueryDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-
-    if (
-      query.scope === 'project' &&
-      query.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(
-        query.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
-    }
-
-    return this.contentLibraryService.unlinkItemFromGroup(
-      contentItemId,
-      groupId,
-      query,
-      req.user.userId,
-    );
-  }
-
   @Post('items/:id/archive')
   public async archive(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);

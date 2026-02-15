@@ -2,6 +2,7 @@ export interface ContentLibraryTab {
   id: string;
   type: 'GROUP' | 'SAVED_VIEW';
   title: string;
+  directItemsCount?: number;
   userId: string | null;
   projectId: string | null;
   parentId: string | null;

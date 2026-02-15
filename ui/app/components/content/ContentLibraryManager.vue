@@ -120,6 +120,25 @@ interface GroupTreeNode extends TreeItem {
   children?: GroupTreeNode[]
 }
 
+const formatGroupTreeLabel = (tab: ContentLibraryTab) => {
+  const directItemsCount = Number(tab.directItemsCount ?? 0)
+  return `${tab.title} (${directItemsCount})`
+}
+
+const canDeleteTab = (tab: ContentLibraryTab | null | undefined) => {
+  if (!tab) {
+    return false
+  }
+
+  if (tab.type === 'GROUP' && !tab.parentId) {
+    return false
+  }
+
+  return true
+}
+
+const canDeleteActiveTab = computed(() => canDeleteTab(activeTab.value))
+
 const isToGroupModalOpen = ref(false)
 const isLoadingGroupTabs = ref(false)
 const isApplyingToGroup = ref(false)
@@ -192,7 +211,7 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
   const buildTree = (parentId: string): GroupTreeNode[] => {
     const children = (byParent.get(parentId) ?? []).sort((a, b) => a.order - b.order)
     return children.map((tab) => ({
-      label: tab.title,
+      label: formatGroupTreeLabel(tab),
       value: tab.id,
       slot: 'group-node',
       defaultExpanded: true,
@@ -205,7 +224,7 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
   }
 
   return [{
-    label: rootGroup.title,
+    label: formatGroupTreeLabel(rootGroup),
     value: rootGroup.id,
     slot: 'group-node',
     defaultExpanded: true,
@@ -343,6 +362,7 @@ const uploadContentFiles = async (files: File[]) => {
   }
 
   isUploadingFiles.value = true
+  const targetGroupId = activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined
   try {
     let successCount = 0
     let errorCount = 0
@@ -357,7 +377,7 @@ const uploadContentFiles = async (files: File[]) => {
           await api.post('/content-library/items', {
             scope: props.scope,
             projectId: props.scope === 'project' ? props.projectId : undefined,
-            groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
+            groupId: targetGroupId,
             title: file.name,
             blocks: [{ text, order: 0, meta: {}, media: [] }]
           })
@@ -372,7 +392,7 @@ const uploadContentFiles = async (files: File[]) => {
           await api.post('/content-library/items', {
             scope: props.scope,
             projectId: props.scope === 'project' ? props.projectId : undefined,
-            groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
+            groupId: targetGroupId,
             title: file.name,
             blocks: [{ text: '', order: 0, meta: {}, media: [{ mediaId: media.id, order: 0, hasSpoiler: false }] }]
           })
@@ -505,21 +525,23 @@ const handleDeleteGroupFromTree = async () => {
 
 const getGroupNodeMenuItems = (tabId: string) => {
   const targetTab = tabsById.value.get(tabId)
-  const canDelete = !!targetTab?.parentId
-
-  return [[
+  const menuItems: Array<{ label: string; icon: string; onSelect: () => void }> = [
     {
       label: t('contentLibrary.tabs.createSubgroup'),
       icon: 'i-heroicons-folder-plus',
       onSelect: () => openTreeCreateModal(tabId),
     },
-    {
+  ]
+
+  if (canDeleteTab(targetTab)) {
+    menuItems.push({
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
-      disabled: !canDelete,
       onSelect: () => openTreeDeleteModal(tabId),
-    },
-  ]]
+    })
+  }
+
+  return [menuItems]
 }
 
 function handleWindowDragEnter(event: DragEvent) {
@@ -773,12 +795,22 @@ const openDeleteTabModal = () => {
 
 const handleDeleteTab = async () => {
   if (!activeTab.value) return
+  const tabToDelete = activeTab.value
+  const parentId = tabToDelete.parentId
   isDeletingTab.value = true
   try {
-    await deleteTab(activeTab.value.id, props.scope, props.projectId)
+    await deleteTab(tabToDelete.id, props.scope, props.projectId)
     contentLibraryTabsRef.value?.fetchTabs()
-    activeTab.value = null
-    activeTabId.value = null
+
+    const parentTab = parentId ? tabs.value.find(tab => tab.id === parentId) : null
+    if (parentTab) {
+      activeTab.value = parentTab
+      activeTabId.value = parentTab.id
+    } else {
+      activeTab.value = null
+      activeTabId.value = null
+    }
+
     isDeleteTabConfirmModalOpen.value = false
   } catch (e: any) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete group'), color: 'error' })
@@ -1139,6 +1171,7 @@ if (props.scope === 'project' && props.projectId) {
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
       :is-window-file-drag-active="isWindowFileDragActive"
+      :can-delete-active-tab="canDeleteActiveTab"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
@@ -1156,7 +1189,10 @@ if (props.scope === 'project' && props.projectId) {
       />
     </ContentLibraryToolbar>
 
-    <div class="mt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+    <div
+      class="mt-6 grid grid-cols-1 gap-6 items-start"
+      :class="isActiveGroupTab ? 'xl:grid-cols-[minmax(0,1fr)_20rem]' : 'xl:grid-cols-1'"
+    >
       <div>
         <!-- Items Grid -->
         <div v-if="isLoading && items.length === 0" class="flex justify-center py-8">
@@ -1218,7 +1254,7 @@ if (props.scope === 'project' && props.projectId) {
         </div>
       </div>
 
-      <aside class="app-card-lg border border-gray-200/70 dark:border-gray-700/70 space-y-4">
+      <aside v-if="isActiveGroupTab" class="app-card-lg border border-gray-200/70 dark:border-gray-700/70 space-y-4">
         <div class="space-y-3">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
             {{ t('contentLibrary.groupsTree.title') }}

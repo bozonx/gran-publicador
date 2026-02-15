@@ -201,7 +201,7 @@ export class ContentLibraryService {
   }) {
     const tab = await this.prisma.contentLibraryTab.findUnique({
       where: { id: options.tabId },
-      select: { id: true, type: true, userId: true, projectId: true },
+      select: { id: true, type: true, userId: true, projectId: true, parentId: true },
     });
 
     if (!tab) {
@@ -1523,7 +1523,38 @@ export class ContentLibraryService {
       orderBy: { order: 'asc' },
     });
 
-    return tabs;
+    const groupTabIds = tabs.filter(tab => (tab.type as any) === 'GROUP').map(tab => tab.id);
+    if (groupTabIds.length === 0) {
+      return tabs;
+    }
+
+    const groupCounts = await (this.prisma.contentItemGroup as any).groupBy({
+      by: ['tabId'],
+      where: {
+        tabId: { in: groupTabIds },
+        contentItem: {
+          archivedAt: null,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const countByGroupId = new Map<string, number>(
+      groupCounts.map((row: any) => [row.tabId as string, Number(row?._count?._all ?? 0)]),
+    );
+
+    return tabs.map(tab => {
+      if ((tab.type as any) !== 'GROUP') {
+        return tab;
+      }
+
+      return {
+        ...tab,
+        directItemsCount: countByGroupId.get(tab.id) ?? 0,
+      };
+    });
   }
 
   public async createTab(
@@ -1679,56 +1710,12 @@ export class ContentLibraryService {
     return this.findOne(contentItemId, userId);
   }
 
-  public async unlinkItemFromGroup(
-    contentItemId: string,
-    groupId: string,
-    options: { scope: 'personal' | 'project'; projectId?: string },
-    userId: string,
-  ) {
-    const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
-    this.assertItemScopeMatches({
-      item,
-      scope: options.scope,
-      projectId: options.projectId,
-    });
-    await this.assertGroupTabAccess({
-      groupId,
-      scope: options.scope,
-      projectId: options.projectId,
-      userId,
-    });
-
-    await this.prisma.$transaction(async tx => {
-      await (tx as any).contentItemGroup.deleteMany({
-        where: {
-          contentItemId,
-          tabId: groupId,
-        },
-      });
-
-      if (item.groupId === groupId) {
-        const nextPrimary = await (tx as any).contentItemGroup.findFirst({
-          where: { contentItemId },
-          orderBy: { createdAt: 'asc' },
-          select: { tabId: true },
-        });
-
-        await (tx.contentItem as any).update({
-          where: { id: contentItemId },
-          data: { groupId: nextPrimary?.tabId ?? null },
-        });
-      }
-    });
-
-    return this.findOne(contentItemId, userId);
-  }
-
   public async deleteTab(
     tabId: string,
     options: { scope: 'personal' | 'project'; projectId?: string },
     userId: string,
   ) {
-    await this.assertTabAccess({
+    const tab = await this.assertTabAccess({
       tabId,
       scope: options.scope,
       projectId: options.projectId,
@@ -1736,7 +1723,28 @@ export class ContentLibraryService {
       requireMutationPermission: true,
     });
 
-    return this.prisma.contentLibraryTab.delete({ where: { id: tabId } });
+    if ((tab.type as any) === 'GROUP' && tab.parentId == null) {
+      throw new BadRequestException('Root group cannot be deleted');
+    }
+
+    if ((tab.type as any) !== 'GROUP') {
+      return this.prisma.contentLibraryTab.delete({ where: { id: tabId } });
+    }
+
+    return this.prisma.$transaction(async tx => {
+      // Move items from removed group to root.
+      await tx.contentItem.updateMany({
+        where: { groupId: tabId },
+        data: { groupId: null },
+      });
+
+      // Remove all group relations to the deleted group.
+      await (tx as any).contentItemGroup.deleteMany({
+        where: { tabId },
+      });
+
+      return tx.contentLibraryTab.delete({ where: { id: tabId } });
+    });
   }
 
   public async reorderTabs(

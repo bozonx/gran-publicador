@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { jest } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ContentLibraryService } from '../../src/modules/content-library/content-library.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -19,6 +19,7 @@ describe('ContentLibraryService (unit)', () => {
       count: jest.fn() as any,
       findUnique: jest.fn() as any,
       update: jest.fn() as any,
+      updateMany: jest.fn() as any,
       delete: jest.fn() as any,
       deleteMany: jest.fn() as any,
     },
@@ -26,6 +27,7 @@ describe('ContentLibraryService (unit)', () => {
       upsert: jest.fn() as any,
       deleteMany: jest.fn() as any,
       findFirst: jest.fn() as any,
+      groupBy: jest.fn() as any,
     },
     contentLibraryTab: {
       findUnique: jest.fn() as any,
@@ -431,13 +433,16 @@ describe('ContentLibraryService (unit)', () => {
   });
 
   describe('tabs', () => {
-    it('listTabs should return tabs ordered by order for personal scope', async () => {
+    it('listTabs should return tabs ordered by order for personal scope with direct items count', async () => {
       mockPrismaService.contentLibraryTab.findMany.mockResolvedValue([
         { id: 't-1', type: 'GROUP' },
       ]);
+      mockPrismaService.contentItemGroup.groupBy.mockResolvedValue([
+        { tabId: 't-1', _count: { _all: 3 } },
+      ]);
 
       await expect(service.listTabs({ scope: 'personal' } as any, 'user-1')).resolves.toEqual([
-        { id: 't-1', type: 'GROUP' },
+        { id: 't-1', type: 'GROUP', directItemsCount: 3 },
       ]);
 
       expect(mockPrismaService.contentLibraryTab.findMany).toHaveBeenCalledWith(
@@ -446,6 +451,55 @@ describe('ContentLibraryService (unit)', () => {
           orderBy: { order: 'asc' },
         }),
       );
+      expect(mockPrismaService.contentItemGroup.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['tabId'],
+          where: expect.objectContaining({
+            tabId: { in: ['t-1'] },
+          }),
+        }),
+      );
+    });
+
+    it('deleteTab should reject deleting a root group', async () => {
+      mockPrismaService.contentLibraryTab.findUnique.mockResolvedValue({
+        id: 'root-group',
+        type: 'GROUP',
+        userId: 'user-1',
+        projectId: null,
+        parentId: null,
+      });
+
+      await expect(
+        service.deleteTab('root-group', { scope: 'personal' } as any, 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('deleteTab should move deleted group items to root and remove group links', async () => {
+      mockPrismaService.contentLibraryTab.findUnique.mockResolvedValue({
+        id: 'child-group',
+        type: 'GROUP',
+        userId: 'user-1',
+        projectId: null,
+        parentId: 'root-group',
+      });
+      mockPrismaService.contentItem.updateMany.mockResolvedValue({ count: 2 });
+      mockPrismaService.contentItemGroup.deleteMany.mockResolvedValue({ count: 3 });
+      mockPrismaService.contentLibraryTab.delete.mockResolvedValue({ id: 'child-group' });
+
+      const result = await service.deleteTab('child-group', { scope: 'personal' } as any, 'user-1');
+
+      expect(mockPrismaService.contentItem.updateMany).toHaveBeenCalledWith({
+        where: { groupId: 'child-group' },
+        data: { groupId: null },
+      });
+      expect(mockPrismaService.contentItemGroup.deleteMany).toHaveBeenCalledWith({
+        where: { tabId: 'child-group' },
+      });
+      expect(mockPrismaService.contentLibraryTab.delete).toHaveBeenCalledWith({
+        where: { id: 'child-group' },
+      });
+      expect(result).toEqual({ id: 'child-group' });
     });
 
     it('createTab should require projectId for project scope', async () => {

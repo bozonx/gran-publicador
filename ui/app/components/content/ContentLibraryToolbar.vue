@@ -14,6 +14,7 @@ defineProps<{
   sortOrderIcon: string
   sortOrderLabel: string
   isWindowFileDragActive?: boolean
+  canDeleteActiveTab?: boolean
 }>()
 
 const q = defineModel<string>('q')
@@ -227,7 +228,7 @@ function onDrop(event: DragEvent) {
               <UButton color="neutral" variant="ghost" size="sm" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
                 {{ t('common.rename') }}
               </UButton>
-              <UButton color="error" variant="ghost" size="sm" icon="i-heroicons-trash" @click="emit('delete-tab')">
+              <UButton v-if="canDeleteActiveTab !== false" color="error" variant="ghost" size="sm" icon="i-heroicons-trash" @click="emit('delete-tab')">
                 {{ t('common.delete') }}
               </UButton>
             </template>
