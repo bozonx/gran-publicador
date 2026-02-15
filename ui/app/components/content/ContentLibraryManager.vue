@@ -76,6 +76,22 @@ function toggleSortOrder() {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
 }
 
+watch(sortOrder, () => {
+  if (isRestoringConfig.value) {
+    return
+  }
+
+  persistActiveTabConfig()
+})
+
+watch(sortBy, () => {
+  if (isRestoringConfig.value) {
+    return
+  }
+
+  persistActiveTabConfig()
+})
+
 const selectedIds = ref<string[]>([])
 const isBulkDeleting = ref(false)
 const isBulkOperationModalOpen = ref(false)
@@ -599,7 +615,10 @@ function handleWindowDrop(event: DragEvent) {
   resetWindowDragState()
 }
 
+let fetchItemsRequestId = 0
+
 const fetchItems = async (opts?: { reset?: boolean }) => {
+  const requestId = ++fetchItemsRequestId
   if (props.scope === 'project' && !props.projectId) return
   if (opts?.reset) {
     offset.value = 0
@@ -637,6 +656,10 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       }),
     ])
 
+    if (requestId !== fetchItemsRequestId) {
+      return
+    }
+
     total.value = res.total
     totalUnfiltered.value = globalRes.total
     if (offset.value === 0) {
@@ -645,9 +668,15 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       items.value = [...items.value, ...res.items]
     }
   } catch (e: any) {
+    if (requestId !== fetchItemsRequestId) {
+      return
+    }
+
     error.value = getApiErrorMessage(e, 'Failed to load content library')
   } finally {
-    isLoading.value = false
+    if (requestId === fetchItemsRequestId) {
+      isLoading.value = false
+    }
   }
 }
 
@@ -1083,6 +1112,7 @@ const persistActiveTabConfig = async () => {
   }
 
   try {
+    const activeTabIdToUpdate = activeTab.value.id
     await updateTab(activeTab.value.id, {
       scope: props.scope,
       projectId: props.projectId,
@@ -1092,9 +1122,32 @@ const persistActiveTabConfig = async () => {
       ...activeTab.value,
       config: nextConfig,
     }
+
+    tabs.value = tabs.value.map((tab) => (
+      tab.id === activeTabIdToUpdate
+        ? { ...tab, config: nextConfig }
+        : tab
+    ))
+
+    const tabsComponentTabs = contentLibraryTabsRef.value?.tabs
+    if (tabsComponentTabs?.value && Array.isArray(tabsComponentTabs.value)) {
+      tabsComponentTabs.value = tabsComponentTabs.value.map((tab: ContentLibraryTab) => (
+        tab.id === activeTabIdToUpdate
+          ? { ...tab, config: nextConfig }
+          : tab
+      ))
+    }
   } catch {
     // Ignore persistence errors to keep browsing uninterrupted
   }
+}
+
+const handleActiveTabUpdate = async (nextTab: ContentLibraryTab | null) => {
+  if (activeTab.value?.id !== nextTab?.id) {
+    await persistActiveTabConfig()
+  }
+
+  activeTab.value = nextTab
 }
 
 const debouncedPersistActiveTabConfig = useDebounceFn(persistActiveTabConfig, 350)
@@ -1214,7 +1267,7 @@ if (props.scope === 'project' && props.projectId) {
           v-model="activeTabId"
           :scope="scope"
           :project-id="props.projectId"
-          @update:active-tab="activeTab = $event"
+          @update:active-tab="handleActiveTabUpdate($event)"
           @update:tabs="tabs = $event"
         />
       </template>
@@ -1304,13 +1357,14 @@ if (props.scope === 'project' && props.projectId) {
               <button
                 v-else
                 type="button"
-                class="w-full rounded px-1 py-0.5 text-left transition-colors"
+                class="flex flex-1 min-w-0 items-center gap-2 rounded px-1 py-0.5 text-left transition-colors"
                 :class="selectedGroupTreeNodeId === getGroupTreeNodeValue(item)
                   ? 'text-primary-600 dark:text-primary-300'
                   : 'text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300'"
                 @click.stop="handleSidebarGroupNodeSelect(getGroupTreeNodeValue(item))"
               >
-                {{ getGroupTreeNodeLabel(item) }}
+                <UIcon name="i-heroicons-folder" class="h-4 w-4 shrink-0" />
+                <span class="truncate">{{ getGroupTreeNodeLabel(item) }}</span>
               </button>
             </template>
             <template #group-node-trailing="{ item }">
