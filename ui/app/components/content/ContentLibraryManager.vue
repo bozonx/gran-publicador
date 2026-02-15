@@ -715,13 +715,18 @@ if (props.scope === 'project' && props.projectId) {
         </div>
         
         <!-- Select All -->
-        <div v-if="items.length > 0" class="flex items-center gap-4 px-2">
+        <div v-if="items.length > 0" class="flex items-center justify-between gap-4 px-2">
           <UCheckbox
             :model-value="isAllSelected"
             :indeterminate="isSomeSelected"
             :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
             @update:model-value="toggleSelectAll"
           />
+
+          <div v-if="isUploadingFiles" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-primary-500 animate-spin" />
+            <span>{{ t('common.loading') }}</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

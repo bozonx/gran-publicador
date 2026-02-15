@@ -157,13 +157,25 @@ function onDrop(event: DragEvent) {
 
     <!-- Toolbar Card -->
     <div
-      class="app-card-lg space-y-4 transition-colors"
-      :class="isDropZoneActive ? 'ring-2 ring-primary-500/60 bg-primary-50/30 dark:bg-primary-900/10' : ''"
+      class="relative overflow-hidden app-card-lg space-y-4 border border-gray-200/70 dark:border-gray-700/70 transition-all duration-200"
+      :class="isDropZoneActive
+        ? 'ring-2 ring-primary-500/70 border-primary-400 bg-linear-to-br from-primary-50/90 via-primary-100/40 to-emerald-50/30 dark:from-primary-900/30 dark:via-primary-900/15 dark:to-emerald-900/10 shadow-lg shadow-primary-500/20 scale-[1.01]'
+        : ''"
       @dragenter="onDragEnter"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
       @drop="onDrop"
     >
+      <div
+        v-if="isDropZoneActive"
+        class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+      >
+        <div class="inline-flex items-center gap-2 rounded-xl border border-primary-400/70 bg-white/90 dark:bg-gray-900/85 px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 shadow-md">
+          <UIcon name="i-heroicons-arrow-up-tray" class="w-4 h-4" />
+          <span>{{ t('media.dropHere') }}</span>
+        </div>
+      </div>
+
       <input
         ref="fileInputRef"
         type="file"
