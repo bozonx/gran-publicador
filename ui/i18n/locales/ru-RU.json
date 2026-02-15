@@ -394,7 +394,6 @@
   "contentLibrary": {
     "actions": {
       "addBlock": "Добавить блок",
-      "bulkUpload": "Загрузить пачкой",
       "copyToItem": "Скопировать в новый айтем",
       "copyToItemSuccess": "Медиа скопировано в новый элемент",
       "createEmpty": "Создать",
@@ -407,7 +406,13 @@
       "moveToTrashSuccess": "Элемент перемещен в корзину",
       "purgeArchived": "Очистить корзину",
       "purgeConfirmDescription": "Вы уверены, что хотите навсегда удалить все элементы из корзины? Это действие нельзя отменить.",
-      "purgeConfirmTitle": "Очистить корзину?"
+      "purgeConfirmTitle": "Очистить корзину?",
+      "uploadMedia": "Загрузить медиа",
+      "uploadMediaFailed": "Не удалось загрузить {count} файлов.",
+      "uploadMediaInProgress": "Загрузка уже выполняется. Дождитесь завершения текущей операции.",
+      "uploadMediaPartial": "Загружено файлов: {successCount}, с ошибкой: {errorCount}.",
+      "uploadMediaSuccess": "Файлов успешно загружено: {count}.",
+      "uploadMediaTooltip": "Сюда можно перетаскивать файлы. Текстовые файлы (.txt, .md) автоматически преобразуются в текстовые блоки контента."
     },
     "badgeCountTooltip": "Общее количество элементов",
     "block": "Блок {index}",
@@ -425,18 +430,6 @@
       "personalScope": "Личная область (вне проектов)",
       "selectProject": "Выберите проект...",
       "success": "Операция выполнена для {count} элементов"
-    },
-    "bulkUploadModal": {
-      "done": "Готово",
-      "dropHelp": "Перенесите файлы сюда или нажмите для выбора",
-      "status": {
-        "creating": "Создание",
-        "error": "Ошибка",
-        "pending": "Ожидание",
-        "success": "Успешно",
-        "uploading": "Загрузка"
-      },
-      "title": "Массовая загрузка"
     },
     "editTitle": "Редактировать элемент контента",
     "empty": "Материалов пока нет",

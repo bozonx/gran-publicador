@@ -8,7 +8,6 @@ import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
 import ContentItemEditor from './ContentItemEditor.vue'
 import ContentItemCard from './ContentItemCard.vue'
-import BulkUploadModal from '~/components/forms/content/BulkUploadModal.vue'
 import AppModal from '~/components/ui/AppModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import UiLoadingSpinner from '~/components/ui/LoadingSpinner.vue'
@@ -33,10 +32,9 @@ const route = useRoute()
 const router = useRouter()
 const api = useApi()
 const toast = useToast()
-const { user } = useAuth()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
 const { updateTab, deleteTab } = useContentLibraryTabs()
-const { formatDateShort } = useFormatters()
+const { uploadMedia } = useMedia()
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -117,8 +115,151 @@ const isPurging = ref(false)
 const isStartCreating = ref(false)
 const isEditModalOpen = ref(false)
 const activeItem = ref<any | null>(null)
+const isUploadingFiles = ref(false)
+const isWindowFileDragActive = ref(false)
+const windowDragDepth = ref(0)
 
-const isBulkUploadModalOpen = ref(false)
+function isFileDrag(event: DragEvent): boolean {
+  return event.dataTransfer?.types?.includes('Files') ?? false
+}
+
+function resetWindowDragState() {
+  isWindowFileDragActive.value = false
+  windowDragDepth.value = 0
+}
+
+const readFileAsText = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsText(file)
+  })
+}
+
+const uploadContentFiles = async (files: File[]) => {
+  if (!files.length || (props.scope === 'project' && !props.projectId)) {
+    return
+  }
+
+  if (isUploadingFiles.value) {
+    toast.add({
+      title: t('common.warning'),
+      description: t('contentLibrary.actions.uploadMediaInProgress'),
+      color: 'warning'
+    })
+    return
+  }
+
+  isUploadingFiles.value = true
+  try {
+    let successCount = 0
+    let errorCount = 0
+
+    for (const file of files) {
+      try {
+        const ext = file.name.split('.').pop()?.toLowerCase()
+        const isText = ['txt', 'md'].includes(ext || '')
+
+        if (isText) {
+          const text = await readFileAsText(file)
+          await api.post('/content-library/items', {
+            scope: props.scope,
+            projectId: props.scope === 'project' ? props.projectId : undefined,
+            folderId: activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined,
+            title: file.name,
+            blocks: [{ text, order: 0, meta: {}, media: [] }]
+          })
+        } else {
+          const media = await uploadMedia(
+            file,
+            undefined,
+            undefined,
+            props.scope === 'project' ? props.projectId : undefined
+          )
+
+          await api.post('/content-library/items', {
+            scope: props.scope,
+            projectId: props.scope === 'project' ? props.projectId : undefined,
+            folderId: activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined,
+            title: file.name,
+            blocks: [{ text: '', order: 0, meta: {}, media: [{ mediaId: media.id, order: 0, hasSpoiler: false }] }]
+          })
+        }
+
+        successCount += 1
+      } catch {
+        errorCount += 1
+      }
+    }
+
+    if (successCount > 0) {
+      await fetchItems({ reset: true })
+    }
+
+    if (errorCount === 0) {
+      toast.add({
+        title: t('common.success'),
+        description: t('contentLibrary.actions.uploadMediaSuccess', { count: successCount }),
+        color: 'success'
+      })
+    } else if (successCount > 0) {
+      toast.add({
+        title: t('common.warning'),
+        description: t('contentLibrary.actions.uploadMediaPartial', { successCount, errorCount }),
+        color: 'warning'
+      })
+    } else {
+      toast.add({
+        title: t('common.error'),
+        description: t('contentLibrary.actions.uploadMediaFailed', { count: errorCount }),
+        color: 'error'
+      })
+    }
+  } finally {
+    isUploadingFiles.value = false
+  }
+}
+
+function handleWindowDragEnter(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  windowDragDepth.value += 1
+  isWindowFileDragActive.value = true
+}
+
+function handleWindowDragOver(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  isWindowFileDragActive.value = true
+}
+
+function handleWindowDragLeave(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  windowDragDepth.value = Math.max(0, windowDragDepth.value - 1)
+  if (windowDragDepth.value === 0) {
+    isWindowFileDragActive.value = false
+  }
+}
+
+function handleWindowDrop(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  resetWindowDragState()
+}
 
 const fetchItems = async (opts?: { reset?: boolean }) => {
   if (props.scope === 'project' && !props.projectId) return
@@ -475,6 +616,20 @@ watch(activeTab, async (newTab, oldTab) => {
   }
 })
 
+onMounted(() => {
+  window.addEventListener('dragenter', handleWindowDragEnter)
+  window.addEventListener('dragover', handleWindowDragOver)
+  window.addEventListener('dragleave', handleWindowDragLeave)
+  window.addEventListener('drop', handleWindowDrop)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('dragenter', handleWindowDragEnter)
+  window.removeEventListener('dragover', handleWindowDragOver)
+  window.removeEventListener('dragleave', handleWindowDragLeave)
+  window.removeEventListener('drop', handleWindowDrop)
+})
+
 onMounted(async () => {
   const raw = route.query.contentItemId
   const contentItemId = typeof raw === 'string' ? raw : undefined
@@ -531,9 +686,10 @@ if (props.scope === 'project' && props.projectId) {
       :current-sort-option="currentSortOption"
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
+      :is-window-file-drag-active="isWindowFileDragActive"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
-      @bulk-upload="isBulkUploadModalOpen = true"
+      @upload-files="uploadContentFiles"
       @rename-tab="openRenameTabModal"
       @delete-tab="openDeleteTabModal"
       @toggle-sort-order="toggleSortOrder"
@@ -688,14 +844,6 @@ if (props.scope === 'project' && props.projectId) {
       </template>
     </AppModal>
     
-    <BulkUploadModal
-      v-model:open="isBulkUploadModalOpen"
-      :scope="scope"
-      :project-id="projectId"
-      :folder-id="activeTab?.type === 'FOLDER' ? activeTab.id : undefined"
-      @uploaded="fetchItems({ reset: true })"
-    />
-
     <!-- Move to Project Modal -->
     <AppModal
       v-model:open="isMoveToProjectModalOpen"

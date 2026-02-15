@@ -13,6 +13,7 @@ const props = defineProps<{
   currentSortOption?: any
   sortOrderIcon: string
   sortOrderLabel: string
+  isWindowFileDragActive?: boolean
 }>()
 
 const q = defineModel<string>('q')
@@ -25,13 +26,84 @@ const emit = defineEmits<{
   (e: 'update:archiveStatus', value: 'active' | 'archived'): void
   (e: 'purge'): void
   (e: 'create'): void
-  (e: 'bulk-upload'): void
+  (e: 'upload-files', files: File[]): void
   (e: 'rename-tab'): void
   (e: 'delete-tab'): void
   (e: 'toggle-sort-order'): void
 }>()
 
 const { t } = useI18n()
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const isDropZoneActiveLocal = ref(false)
+const dragDepth = ref(0)
+
+const isDropZoneActive = computed(() => isDropZoneActiveLocal.value || Boolean(props.isWindowFileDragActive))
+
+function isFileDrag(event: DragEvent): boolean {
+  return event.dataTransfer?.types?.includes('Files') ?? false
+}
+
+function triggerFilePicker() {
+  fileInputRef.value?.click()
+}
+
+function emitSelectedFiles(fileList: FileList | null | undefined) {
+  if (!fileList?.length) {
+    return
+  }
+
+  emit('upload-files', Array.from(fileList))
+}
+
+function onFileInputChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  emitSelectedFiles(input.files)
+  input.value = ''
+}
+
+function onDragEnter(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  dragDepth.value += 1
+  isDropZoneActiveLocal.value = true
+}
+
+function onDragOver(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  isDropZoneActiveLocal.value = true
+}
+
+function onDragLeave(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  dragDepth.value = Math.max(0, dragDepth.value - 1)
+
+  if (dragDepth.value === 0) {
+    isDropZoneActiveLocal.value = false
+  }
+}
+
+function onDrop(event: DragEvent) {
+  if (!isFileDrag(event)) {
+    return
+  }
+
+  event.preventDefault()
+  dragDepth.value = 0
+  isDropZoneActiveLocal.value = false
+  emitSelectedFiles(event.dataTransfer?.files)
+}
 </script>
 
 <template>
@@ -84,7 +156,21 @@ const { t } = useI18n()
     </div>
 
     <!-- Toolbar Card -->
-    <div class="app-card-lg space-y-4">
+    <div
+      class="app-card-lg space-y-4 transition-colors"
+      :class="isDropZoneActive ? 'ring-2 ring-primary-500/60 bg-primary-50/30 dark:bg-primary-900/10' : ''"
+      @dragenter="onDragEnter"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
+    >
+      <input
+        ref="fileInputRef"
+        type="file"
+        multiple
+        class="hidden"
+        @change="onFileInputChange"
+      >
       <slot />
       <div class="flex flex-col gap-4">
         <div class="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center pb-2 border-b border-gray-100 dark:border-gray-800">
@@ -105,10 +191,12 @@ const { t } = useI18n()
                 size="sm"
                 variant="outline"
                 icon="i-heroicons-cloud-arrow-up"
-                @click="emit('bulk-upload')"
+                @click="triggerFilePicker"
               >
-                {{ t('contentLibrary.actions.bulkUpload') }}
+                {{ t('contentLibrary.actions.uploadMedia') }}
               </UButton>
+
+              <CommonInfoTooltip :text="t('contentLibrary.actions.uploadMediaTooltip')" />
             </template>
           </div>
 

@@ -393,7 +393,6 @@
   "contentLibrary": {
     "actions": {
       "addBlock": "Add block",
-      "bulkUpload": "Bulk Upload",
       "copyToItem": "Copy to new item",
       "copyToItemSuccess": "Media copied to a new item",
       "createEmpty": "Create",
@@ -406,7 +405,13 @@
       "moveToTrashSuccess": "Item moved to trash",
       "purgeArchived": "Empty trash",
       "purgeConfirmDescription": "Are you sure you want to permanently delete all items from the trash? This action cannot be undone.",
-      "purgeConfirmTitle": "Empty trash?"
+      "purgeConfirmTitle": "Empty trash?",
+      "uploadMedia": "Upload media",
+      "uploadMediaFailed": "Failed to upload {count} files.",
+      "uploadMediaInProgress": "Upload is already in progress. Please wait until it finishes.",
+      "uploadMediaPartial": "Uploaded {successCount} files, failed: {errorCount}.",
+      "uploadMediaSuccess": "Uploaded {count} files successfully.",
+      "uploadMediaTooltip": "You can drag and drop files into this toolbar area. Text files (.txt, .md) will be converted into content text blocks automatically."
     },
     "badgeCountTooltip": "Total number of items",
     "block": "Block {index}",
@@ -424,18 +429,6 @@
       "personalScope": "Personal Scope (No Project)",
       "selectProject": "Select project...",
       "success": "Operation completed for {count} items"
-    },
-    "bulkUploadModal": {
-      "done": "Done",
-      "dropHelp": "Drop files here or click to select",
-      "status": {
-        "creating": "Creating",
-        "error": "Error",
-        "pending": "Pending",
-        "success": "Success",
-        "uploading": "Uploading"
-      },
-      "title": "Bulk Upload"
     },
     "editTitle": "Edit content item",
     "empty": "No items yet",
