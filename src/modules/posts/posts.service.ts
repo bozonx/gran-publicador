@@ -210,6 +210,7 @@ export class PostsService {
           {
             projectId: channel.projectId,
           },
+          'PUBLICATIONS',
         ),
       },
       include: {
@@ -628,6 +629,7 @@ export class PostsService {
                 {
                   projectId: post.channel?.projectId || '',
                 },
+                'PUBLICATIONS',
                 true,
               )
             : undefined,

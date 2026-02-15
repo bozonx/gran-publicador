@@ -25,6 +25,7 @@ const props = defineProps<{
   item: ContentItem
   scope: 'project' | 'personal'
   projectId?: string
+  groupId?: string
 }>()
 
 const emit = defineEmits<{
@@ -198,7 +199,10 @@ defineExpose({
       <CommonInputTags
         v-model="editForm.tags"
         :placeholder="t('contentLibrary.fields.tagsPlaceholder')"
+        :scope="props.scope"
         :project-id="props.scope === 'project' ? props.projectId : undefined"
+        :search-endpoint="'/content-library/tags/search'"
+        :group-id="props.groupId"
         :user-id="props.scope === 'personal' ? user?.id : undefined"
         class="w-full"
       />

@@ -4,6 +4,8 @@ import {
   Delete,
   Get,
   Param,
+  DefaultValuePipe,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -215,6 +217,7 @@ export class ContentLibraryController {
     @Request() req: UnifiedAuthRequest,
     @Query('scope') scope: 'personal' | 'project',
     @Query('projectId') projectId?: string,
+    @Query('groupId') groupId?: string,
   ) {
     if (scope === 'project' && projectId && req.user.allProjects === false && req.user.projectIds) {
       ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
@@ -223,7 +226,37 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.getAvailableTags(scope, projectId, req.user.userId);
+    return this.contentLibraryService.getAvailableTags(scope, projectId, req.user.userId, groupId);
+  }
+
+  @Get('tags/search')
+  public async searchTags(
+    @Request() req: UnifiedAuthRequest,
+    @Query('q') q: string,
+    @Query('scope') scope: 'personal' | 'project',
+    @Query('projectId') projectId: string | undefined,
+    @Query('groupId') groupId?: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+  ) {
+    if (scope === 'project' && projectId && req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    const tags = await this.contentLibraryService.searchAvailableTags(
+      {
+        q,
+        scope,
+        projectId,
+        groupId,
+        limit,
+      },
+      req.user.userId,
+    );
+
+    return (tags ?? []).map(name => ({ name }));
   }
 
   @Post('items')

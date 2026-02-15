@@ -840,6 +840,7 @@ async function executePublish() {
                     <CommonInputTags
                         v-model="formData.tags"
                         :placeholder="t('post.tagsPlaceholder')"
+                        :search-endpoint="'/publications/tags/search'"
                         color="neutral"
                         variant="outline"
                         :disabled="isLocked"

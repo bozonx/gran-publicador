@@ -734,6 +734,7 @@ const fetchAvailableTags = async () => {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
         projectId: props.scope === 'project' ? props.projectId : undefined,
+        groupId: activeRootGroupId.value ?? undefined,
       }
     })
     availableTags.value = tags
@@ -1391,6 +1392,7 @@ if (props.scope === 'project' && props.projectId) {
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
+      :group-id="activeRootGroupId ?? undefined"
       :total-unfiltered="totalUnfiltered"
       :current-project="currentProject"
       :is-purging="isPurging"
@@ -1669,6 +1671,7 @@ if (props.scope === 'project' && props.projectId) {
         :item="activeItem"
         :scope="props.scope"
         :project-id="props.projectId"
+        :group-id="activeRootGroupId ?? undefined"
         @refresh="fetchItems({ reset: true })"
       />
       

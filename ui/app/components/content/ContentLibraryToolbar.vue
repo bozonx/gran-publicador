@@ -16,6 +16,7 @@ defineProps<{
   isWindowFileDragActive?: boolean
   canDeleteActiveTab?: boolean
   userId?: string
+  groupId?: string
 }>()
 
 const q = defineModel<string>('q')
@@ -208,6 +209,9 @@ function onDrop(event: DragEvent) {
             :publication-tags="availableTags"
             :project-id="projectId"
             :user-id="userId"
+            :scope="scope"
+            :group-id="groupId"
+            :search-endpoint="'/content-library/tags/search'"
             class="w-full"
           />
           <div class="flex items-center gap-2">

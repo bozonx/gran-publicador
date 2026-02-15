@@ -232,17 +232,14 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
     <!-- Channel tags (only for edit mode) -->
     <UFormField
       v-if="isEditMode"
-      name="tags"
       :label="t('channel.tags', 'Tags')"
       :help="t('channel.tagsHelp', 'Channel tags for publication orientation')"
     >
       <CommonInputTags
         v-model="tagsModel"
         :placeholder="t('channel.tagsPlaceholder', 'tag1, tag2, tag3')"
+        :search-endpoint="'/publications/tags/search'"
         :project-id="projectId"
-        color="neutral"
-        variant="outline"
-        class="w-full"
       />
     </UFormField>
   </div>

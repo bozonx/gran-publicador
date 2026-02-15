@@ -16,12 +16,16 @@ const props = withDefaults(
     placeholder?: string;
     projectId?: string;
     userId?: string;
+    scope?: 'personal' | 'project';
+    groupId?: string;
+    searchEndpoint?: string;
     disabled?: boolean;
     class?: any;
   }>(),
   {
     placeholder: '',
     publicationTags: () => [],
+    searchEndpoint: '/publications/tags/search',
   },
 );
 
@@ -78,6 +82,35 @@ function resolveSearchScope() {
 async function searchTags(q: string, signal?: AbortSignal) {
   if (!q || q.length < 1) return [];
 
+  if (props.scope) {
+    try {
+      const res = await api.get<{ name: string }[]>(props.searchEndpoint, {
+        signal,
+        params: {
+          q,
+          scope: props.scope,
+          projectId: props.scope === 'project' ? props.projectId : undefined,
+          groupId: props.groupId,
+          limit: 20,
+        },
+      });
+
+      return normalizeTags(res.map(tag => tag.name), { limit: TAG_LIMIT });
+    } catch (err) {
+      if ((err as { message?: string }).message === 'Request aborted') {
+        return [];
+      }
+
+      console.error('Failed to search tags:', err);
+      toast.add({
+        title: t('common.error'),
+        description: t('common.unexpectedError'),
+        color: 'error',
+      });
+      return [];
+    }
+  }
+
   const resolvedScope = resolveSearchScope();
   if (resolvedScope.reason !== 'ok') {
     if (resolvedScope.reason === 'conflict' && !hasShownScopeConflictWarning.value) {
@@ -101,11 +134,12 @@ async function searchTags(q: string, signal?: AbortSignal) {
   hasShownScopeConflictWarning.value = false;
 
   try {
-    const res = await api.get<{ name: string }[]>('/tags/search', {
+    const res = await api.get<{ name: string }[]>(props.searchEndpoint, {
       signal,
       params: {
         q,
         ...resolvedScope.scope,
+        groupId: props.groupId,
         limit: 20,
       },
     });

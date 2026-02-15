@@ -507,10 +507,14 @@ export class ContentLibraryService {
             }
           : undefined,
         title: dto.title,
-        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(dto.tags ?? [], {
-          projectId: dto.scope === 'project' ? dto.projectId : undefined,
-          userId: dto.scope === 'personal' ? userId : undefined,
-        }),
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+          dto.tags ?? [],
+          {
+            projectId: dto.scope === 'project' ? dto.projectId : undefined,
+            userId: dto.scope === 'personal' ? userId : undefined,
+          },
+          'CONTENT_LIBRARY',
+        ),
         note: dto.note,
         blocks: {
           create: (dto.blocks ?? []).map((b, idx) => ({
@@ -592,6 +596,7 @@ export class ContentLibraryService {
                     projectId: item.projectId ?? undefined,
                     userId: item.userId ?? undefined,
                   },
+                  'CONTENT_LIBRARY',
                   true,
                 )
               : undefined,
@@ -1357,6 +1362,7 @@ export class ContentLibraryService {
                 projectId: item.projectId ?? undefined,
                 userId: item.userId ?? undefined,
               },
+              'CONTENT_LIBRARY',
               true,
             )
           : undefined;
@@ -1472,6 +1478,7 @@ export class ContentLibraryService {
     scope: 'project' | 'personal',
     projectId: string | undefined,
     userId: string,
+    groupId?: string,
   ) {
     if (scope === 'project') {
       if (!projectId) {
@@ -1480,20 +1487,100 @@ export class ContentLibraryService {
       await this.permissions.checkProjectAccess(projectId, userId, true);
     }
 
+    if (groupId) {
+      await this.assertGroupTabAccess({
+        groupId,
+        scope,
+        projectId: scope === 'project' ? projectId : undefined,
+        userId,
+      });
+    }
+
     const tags = await this.prisma.tag.findMany({
-      where:
-        scope === 'project'
+      where: {
+        ...(scope === 'project'
           ? {
               projectId: projectId!,
-              contentItems: { some: {} },
             }
           : {
               userId,
               projectId: null,
-              contentItems: { some: {} },
-            },
+            }),
+        domain: 'CONTENT_LIBRARY' as any,
+        contentItems: groupId
+          ? {
+              some: {
+                OR: [{ groupId }, { groups: { some: { tabId: groupId } } }],
+              },
+            }
+          : { some: {} },
+      } as any,
       select: { name: true },
       orderBy: { name: 'asc' },
+    });
+
+    return tags.map(t => t.name);
+  }
+
+  public async searchAvailableTags(
+    query: {
+      q: string;
+      scope: 'personal' | 'project';
+      projectId?: string;
+      groupId?: string;
+      limit?: number;
+    },
+    userId: string,
+  ) {
+    const take = Math.min(Math.max(Number(query.limit) || 20, 1), 50);
+    const normalizedQ = String(query.q ?? '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedQ) return [];
+
+    if (query.scope === 'project') {
+      if (!query.projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectAccess(query.projectId, userId, true);
+    }
+
+    if (query.groupId) {
+      await this.assertGroupTabAccess({
+        groupId: query.groupId,
+        scope: query.scope,
+        projectId: query.scope === 'project' ? query.projectId : undefined,
+        userId,
+      });
+    }
+
+    const where: any = {
+      AND: [{ domain: 'CONTENT_LIBRARY' }, { normalizedName: { startsWith: normalizedQ } }],
+    };
+
+    if (query.scope === 'project') {
+      where.AND.push({ projectId: query.projectId });
+    } else {
+      where.AND.push({ userId, projectId: null });
+    }
+
+    if (query.groupId) {
+      where.AND.push({
+        contentItems: {
+          some: {
+            OR: [{ groupId: query.groupId }, { groups: { some: { tabId: query.groupId } } }],
+          },
+        },
+      });
+    } else {
+      where.AND.push({ contentItems: { some: {} } });
+    }
+
+    const tags = await this.prisma.tag.findMany({
+      where,
+      take,
+      orderBy: { name: 'asc' },
+      select: { name: true },
     });
 
     return tags.map(t => t.name);

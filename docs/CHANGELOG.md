@@ -24,6 +24,10 @@ All notable changes to this project will be documented in this file.
   - Group node menu now hides delete action for root groups (root group remains non-deletable in backend and UI).
   - Group deletion now navigates to parent group both from tree actions and top toolbar actions.
   - Group labels now display direct items count (non-archived) in both top tabs and sidebar tree.
+- **Tags domains separation**:
+  - Content Library tag suggestions and search are now isolated from Publications/Posts tags.
+  - Publications/Posts tag suggestions and search are now isolated from Content Library tags.
+  - Content Library group tag suggestions/search are scoped to the active root group tab.
 - **Content Library upload target group consistency**:
   - Drag-and-drop and upload button flows now lock target `groupId` at upload start to avoid accidental reassignment when active tab changes during multi-file upload.
 - **News notifications duplicate delivery**: replaced query-level watermarking with per-user per-query state (`news_notification_user_states`) so already delivered news do not reappear in later notifications for the same user.

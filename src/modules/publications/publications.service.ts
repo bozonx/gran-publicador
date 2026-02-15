@@ -566,6 +566,7 @@ export class PublicationsService {
           {
             projectId: data.projectId,
           },
+          'PUBLICATIONS',
         ),
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
@@ -1237,6 +1238,7 @@ export class PublicationsService {
                 {
                   projectId: publication.projectId!,
                 },
+                'PUBLICATIONS',
                 true,
               )
             : undefined,

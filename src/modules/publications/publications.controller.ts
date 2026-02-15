@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   DefaultValuePipe,
@@ -18,6 +19,7 @@ import { PublicationStatus, SocialMedia } from '../../generated/prisma/index.js'
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
 import { ParsePublicationStatusPipe } from '../../common/pipes/parse-publication-status.pipe.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
 import {
@@ -35,6 +37,7 @@ import {
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
+import { TagsService } from '../tags/tags.service.js';
 
 /**
  * Controller for managing publications (content that can be distributed to multiple channels).
@@ -47,7 +50,60 @@ export class PublicationsController {
   constructor(
     private readonly publicationsService: PublicationsService,
     private readonly socialPostingService: SocialPostingService,
+    private readonly tagsService: TagsService,
+    private readonly permissions: PermissionsService,
   ) {}
+
+  @Get('tags/search')
+  public async searchTags(
+    @Request() req: UnifiedAuthRequest,
+    @Query('q') q: string,
+    @Query('projectId') projectId?: string,
+    @Query('userId') userId?: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+  ) {
+    const hasProjectId = Boolean(projectId);
+    const hasUserId = Boolean(userId);
+    if (hasProjectId === hasUserId) {
+      throw new BadRequestException('Exactly one of projectId or userId must be provided');
+    }
+
+    if (userId) {
+      if (userId !== req.user.userId) {
+        throw new BadRequestException('userId must match the authenticated user');
+      }
+
+      const tags = await this.tagsService.searchByDomain({
+        q,
+        userId,
+        limit,
+        domain: 'PUBLICATIONS',
+      });
+      return (tags ?? []).map((t: any) => ({ name: t.name }));
+    }
+
+    if (req.user.allProjects !== undefined) {
+      ApiTokenGuard.validateProjectScope(
+        projectId!,
+        req.user.allProjects,
+        req.user.projectIds ?? [],
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
+    } else {
+      await this.permissions.checkProjectAccess(projectId!, req.user.userId);
+    }
+
+    const tags = await this.tagsService.searchByDomain({
+      q,
+      projectId: projectId!,
+      limit,
+      domain: 'PUBLICATIONS',
+    });
+    return (tags ?? []).map((t: any) => ({ name: t.name }));
+  }
 
   /**
    * Create a new publication.

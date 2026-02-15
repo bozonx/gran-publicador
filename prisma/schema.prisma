@@ -709,6 +709,11 @@ enum StorageType {
   TELEGRAM // Telegram servers (not stored locally)
 }
 
+enum TagDomain {
+  CONTENT_LIBRARY
+  PUBLICATIONS
+}
+
 model ProjectTemplate {
   id        String    @id @default(uuid())
   projectId String    @map("project_id")
@@ -736,6 +741,7 @@ model Tag {
   normalizedName String @map("normalized_name")
   projectId String?  @map("project_id")
   userId    String?  @map("user_id")
+  domain    TagDomain @default(PUBLICATIONS)
 
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -747,8 +753,8 @@ model Tag {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([projectId, normalizedName])
-  @@unique([userId, normalizedName])
+  @@unique([projectId, domain, normalizedName])
+  @@unique([userId, domain, normalizedName])
   @@index([normalizedName])
   @@map("tags")
 }

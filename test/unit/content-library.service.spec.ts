@@ -60,6 +60,9 @@ describe('ContentLibraryService (unit)', () => {
     project: {
       findUnique: jest.fn() as any,
     } as any,
+    tag: {
+      findMany: jest.fn() as any,
+    },
     $transaction: jest.fn() as any,
   };
 
@@ -92,6 +95,63 @@ describe('ContentLibraryService (unit)', () => {
     }).compile();
 
     service = moduleRef.get<ContentLibraryService>(ContentLibraryService);
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('getAvailableTags', () => {
+    it('should filter by CONTENT_LIBRARY domain and scope (project)', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.tag.findMany.mockResolvedValue([{ name: 'Tag A' }, { name: 'Tag B' }]);
+
+      const res = await service.getAvailableTags('project', 'p1', 'user-1');
+
+      expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith('p1', 'user-1', true);
+      expect(mockPrismaService.tag.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            projectId: 'p1',
+            domain: 'CONTENT_LIBRARY',
+            contentItems: { some: {} },
+          }),
+        }),
+      );
+      expect(res).toEqual(['Tag A', 'Tag B']);
+    });
+
+    it('should scope tags to group when groupId is provided', async () => {
+      const assertGroupTabAccessSpy = jest
+        .spyOn(service as any, 'assertGroupTabAccess')
+        .mockResolvedValue({ id: 'g1' });
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.tag.findMany.mockResolvedValue([{ name: 'GroupTag' }]);
+
+      const res = await service.getAvailableTags('project', 'p1', 'user-1', 'g1');
+
+      expect(assertGroupTabAccessSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          groupId: 'g1',
+          scope: 'project',
+          projectId: 'p1',
+          userId: 'user-1',
+        }),
+      );
+      expect(mockPrismaService.tag.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            domain: 'CONTENT_LIBRARY',
+            contentItems: {
+              some: {
+                OR: [{ groupId: 'g1' }, { groups: { some: { tabId: 'g1' } } }],
+              },
+            },
+          }),
+        }),
+      );
+      expect(res).toEqual(['GroupTag']);
+    });
   });
 
   describe('bulkOperation', () => {

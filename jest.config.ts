@@ -18,7 +18,7 @@ const config: Config = {
   extensionsToTreatAsEsm: ['.ts'],
 
   // Parallel test execution - use 50% of CPU cores locally, limit to 2 in CI
-  maxWorkers: process.env.CI ? 2 : '50%',
+  maxWorkers: process.env.CI ? 2 : '25%',
   // Stop test execution on first failure in CI for faster feedback
   bail: process.env.CI ? 1 : 0,
   // Verbose output in CI for better debugging
