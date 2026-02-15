@@ -3,12 +3,18 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateNewsQueryDto } from './dto/create-news-query.dto.js';
 import { UpdateNewsQueryDto } from './dto/update-news-query.dto.js';
 import { ReorderNewsQueriesDto } from './dto/reorder-news-queries.dto.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
 
 @Injectable()
 export class NewsQueriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
-  async findAll(projectId: string) {
+  async findAll(projectId: string, userId: string) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
     const queries = await this.prisma.projectNewsQuery.findMany({
       where: { projectId },
       orderBy: { order: 'asc' },
@@ -45,7 +51,9 @@ export class NewsQueriesService {
     }));
   }
 
-  async create(projectId: string, dto: CreateNewsQueryDto) {
+  async create(projectId: string, userId: string, dto: CreateNewsQueryDto) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
     // If setting as default, unset others
 
     // Get max order
@@ -55,14 +63,15 @@ export class NewsQueriesService {
     });
     const order = (lastItem?.order ?? -1) + 1;
 
-    // Separate clean settings from meta
-    const { name, ...settings } = dto;
+    // Separate clean settings from notification flag and name
+    const { name, isNotificationEnabled, ...settings } = dto;
 
     const query = await this.prisma.projectNewsQuery.create({
       data: {
         projectId,
         name,
         order,
+        isNotificationEnabled: isNotificationEnabled ?? false,
         settings: settings as any,
       },
     });
@@ -70,7 +79,9 @@ export class NewsQueriesService {
     return this.mapToResponse(query);
   }
 
-  async update(id: string, projectId: string, dto: UpdateNewsQueryDto) {
+  async update(id: string, projectId: string, userId: string, dto: UpdateNewsQueryDto) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
     const query = await this.prisma.projectNewsQuery.findUnique({
       where: { id },
     });
@@ -97,7 +108,9 @@ export class NewsQueriesService {
     return this.mapToResponse(updated);
   }
 
-  async remove(id: string, projectId: string) {
+  async remove(id: string, projectId: string, userId: string) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
     const query = await this.prisma.projectNewsQuery.findUnique({
       where: { id },
     });
@@ -110,7 +123,9 @@ export class NewsQueriesService {
     return { success: true };
   }
 
-  async reorder(projectId: string, dto: ReorderNewsQueriesDto) {
+  async reorder(projectId: string, userId: string, dto: ReorderNewsQueriesDto) {
+    await this.permissions.checkProjectAccess(projectId, userId);
+
     // Verify that all IDs belong to the project
     const count = await this.prisma.projectNewsQuery.count({
       where: {

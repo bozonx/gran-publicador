@@ -5,6 +5,8 @@ import { ProjectsService } from '../projects/projects.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { I18nService } from 'nestjs-i18n';
 import { NewsConfig } from '../../config/news.config.js';
+import { Prisma } from '../../generated/prisma/index.js';
+import { randomUUID } from 'crypto';
 
 export interface NewsNotificationsRunResult {
   skipped: boolean;
@@ -15,10 +17,18 @@ export interface NewsNotificationsRunResult {
   createdNotificationsCount: number;
 }
 
+interface NewsNotificationState {
+  userId: string;
+  queryId: string;
+  lastSentSavedAt: Date;
+  lastSentNewsId: string;
+}
+
 @Injectable()
 export class NewsNotificationsScheduler {
   private readonly logger = new Logger(NewsNotificationsScheduler.name);
   private isProcessing = false;
+  private readonly distributedLockName = 'news_notifications_scheduler_lock';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -34,6 +44,19 @@ export class NewsNotificationsScheduler {
       return {
         skipped: true,
         reason: 'already_processing',
+        checkedQueriesCount: 0,
+        failedQueriesCount: 0,
+        queriesWithNewItemsCount: 0,
+        createdNotificationsCount: 0,
+      };
+    }
+
+    const hasDistributedLock = await this.tryAcquireDistributedLock();
+    if (!hasDistributedLock) {
+      this.logger.debug('Skipping news notifications check (distributed lock not acquired)');
+      return {
+        skipped: true,
+        reason: 'distributed_lock_not_acquired',
         checkedQueriesCount: 0,
         failedQueriesCount: 0,
         queriesWithNewItemsCount: 0,
@@ -92,6 +115,7 @@ export class NewsNotificationsScheduler {
       };
     } finally {
       this.isProcessing = false;
+      await this.releaseDistributedLock();
     }
   }
 
@@ -101,20 +125,127 @@ export class NewsNotificationsScheduler {
   }> {
     const config = this.configService.get<NewsConfig>('news');
     const lookbackHours = config?.schedulerLookbackHours || 3;
+    const fetchLimit = config?.schedulerFetchLimit || 100;
     const settings = query.settings || {};
 
     // Calculate cutoff time
     const cutoffDate = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
+    const usersToNotify = this.getUsersToNotify(query);
+    if (usersToNotify.size === 0) {
+      return {
+        hasNewItems: false,
+        createdNotificationsCount: 0,
+      };
+    }
 
-    const lastCheckedAt = query.lastCheckedAt ? new Date(query.lastCheckedAt) : null;
-    const lastId = settings.lastId || null;
+    const existingStates = await this.getUserStates(query.id, Array.from(usersToNotify.keys()));
+
+    const stateByUserId = new Map(existingStates.map(state => [state.userId, state]));
+
+    let hasNewItems = false;
+    let createdNotificationsCount = 0;
+
+    for (const [userId, lang] of usersToNotify.entries()) {
+      const existingState = stateByUserId.get(userId);
+      const { items, newestItem } = await this.fetchNewItemsForUser({
+        query,
+        settings,
+        userId,
+        existingState,
+        cutoffDate,
+        fetchLimit,
+      });
+
+      if (items.length === 0 || !newestItem) {
+        continue;
+      }
+
+      hasNewItems = true;
+      this.logger.log(
+        `Found ${items.length} new news for user ${userId}, project ${query.projectId}, query ${query.name}`,
+      );
+
+      const titlesList = items
+        .slice(0, 5)
+        .map((item: any) => `• ${item.title}`)
+        .join('\n');
+      const suffix = items.length > 5 ? `\n... (+${items.length - 5})` : '';
+
+      const messageBase = this.i18n.t('notifications.NEW_NEWS_MESSAGE', {
+        lang,
+        args: {
+          count: items.length,
+          queryName: query.name,
+        },
+      });
+
+      const notification = await this.notificationsService.create({
+        userId,
+        type: 'NEW_NEWS' as any,
+        title: this.i18n.t('notifications.NEW_NEWS_TITLE', {
+          lang,
+          args: { queryName: query.name },
+        }),
+        message: `${messageBase}\n\n${titlesList}${suffix}`,
+        meta: {
+          projectId: query.projectId,
+          queryId: query.id,
+          newsCount: items.length,
+          firstNewsTitle: items[0]?.title,
+          firstNewsId: items[0]?._id,
+        },
+      });
+
+      if (notification) {
+        createdNotificationsCount += 1;
+      }
+
+      await this.upsertUserState({
+        userId,
+        queryId: query.id,
+        lastSentSavedAt: new Date(newestItem._savedAt),
+        lastSentNewsId: newestItem._id,
+      });
+    }
+
+    return {
+      hasNewItems,
+      createdNotificationsCount,
+    };
+  }
+
+  private getUsersToNotify(query: any): Map<string, string> {
+    const usersToNotify = new Map<string, string>();
+
+    if (query.project.owner) {
+      usersToNotify.set(query.project.owner.id, query.project.owner.uiLanguage || 'en-US');
+    }
+
+    if (query.project.members) {
+      query.project.members.forEach((member: any) => {
+        if (member.user) {
+          usersToNotify.set(member.user.id, member.user.uiLanguage || 'en-US');
+        }
+      });
+    }
+
+    return usersToNotify;
+  }
+
+  private async fetchNewItemsForUser(params: {
+    query: any;
+    settings: Record<string, any>;
+    userId: string;
+    existingState?: NewsNotificationState;
+    cutoffDate: Date;
+    fetchLimit: number;
+  }): Promise<{ items: any[]; newestItem: any | null }> {
+    const { query, settings, userId, existingState, cutoffDate, fetchLimit } = params;
 
     const allItems: any[] = [];
     let currentCursor: string | null = null;
     let hasMore = true;
     const limit = 20;
-
-    // Use a temporary variable to store the "newest" item we find across all pages
     let newestItemEver: any = null;
 
     while (hasMore) {
@@ -127,134 +258,121 @@ export class NewsNotificationsScheduler {
         sources: settings.sources,
         minScore: settings.minScore,
         limit,
-        orderBy: 'savedAt', // Always order by savedAt to ensure deterministic incremental polling
+        orderBy: 'savedAt',
       };
 
       if (currentCursor) {
-        // According to API: Do not mix cursor with afterSavedAt/afterId
         searchParams.cursor = currentCursor;
+      } else if (existingState && existingState.lastSentSavedAt > cutoffDate) {
+        searchParams.afterSavedAt = existingState.lastSentSavedAt.toISOString();
+        searchParams.afterId = existingState.lastSentNewsId;
       } else {
-        // Watermark logic for the first page
-        if (lastCheckedAt && lastCheckedAt > cutoffDate) {
-          searchParams.afterSavedAt = lastCheckedAt.toISOString();
-          if (lastId) {
-            searchParams.afterId = lastId;
-          }
-        } else {
-          // Fallback: start fresh from cutoff
-          searchParams.savedFrom = cutoffDate.toISOString();
-        }
+        searchParams.savedFrom = cutoffDate.toISOString();
       }
 
-      // Call service
       const results = (await this.projectsService.searchNews(
         query.projectId,
-        query.project.ownerId,
+        userId,
         searchParams,
       )) as any;
       const items = results.items || (Array.isArray(results) ? results : []);
 
       if (items.length > 0) {
         allItems.push(...items);
-
-        // Track the absolutely newest item (which should be items[0] in the first batch since it's sorted DESC)
         if (!newestItemEver) {
           newestItemEver = items[0];
         }
       }
 
-      // Pagination logic
       currentCursor = results.nextCursor || null;
-      // Continue if we have a cursor and we actually got some items (to avoid infinite loops)
       hasMore = !!currentCursor && items.length > 0;
 
-      // Safety break to avoid fetching thousands of items in one run
-      if (allItems.length >= (config?.schedulerFetchLimit || 100)) {
+      if (allItems.length >= fetchLimit) {
         this.logger.warn(
-          `Reached fetch limit (${config?.schedulerFetchLimit || 100}) for query ${query.id}, stopping pagination`,
+          `Reached fetch limit (${fetchLimit}) for query ${query.id}, user ${userId}, stopping pagination`,
         );
         hasMore = false;
       }
     }
 
-    if (allItems.length > 0) {
-      this.logger.log(
-        `Found ${allItems.length} new news for project ${query.projectId}, query ${query.name}`,
-      );
+    return {
+      items: allItems,
+      newestItem: newestItemEver,
+    };
+  }
 
-      // Notify owner and members
-      const usersToNotify = new Map<string, string>(); // userId -> uiLanguage
-
-      if (query.project.owner) {
-        usersToNotify.set(query.project.owner.id, query.project.owner.uiLanguage || 'en-US');
-      }
-
-      if (query.project.members) {
-        query.project.members.forEach((m: any) => {
-          if (m.user) {
-            usersToNotify.set(m.user.id, m.user.uiLanguage || 'en-US');
-          }
-        });
-      }
-
-      // Prepare titles for the message (list from the beginning of allItems, which are newest)
-      const titlesList = allItems
-        .slice(0, 5)
-        .map((item: any) => `• ${item.title}`)
-        .join('\n');
-      const suffix = allItems.length > 5 ? `\n... (+${allItems.length - 5})` : '';
-
-      for (const [userId, lang] of usersToNotify.entries()) {
-        const messageBase = this.i18n.t('notifications.NEW_NEWS_MESSAGE', {
-          lang,
-          args: {
-            count: allItems.length,
-            queryName: query.name,
-          },
-        });
-
-        await this.notificationsService.create({
-          userId,
-          type: 'NEW_NEWS' as any,
-          title: this.i18n.t('notifications.NEW_NEWS_TITLE', {
-            lang,
-            args: { queryName: query.name },
-          }),
-          message: `${messageBase}\n\n${titlesList}${suffix}`,
-          meta: {
-            projectId: query.projectId,
-            queryId: query.id,
-            newsCount: allItems.length,
-            firstNewsTitle: allItems[0]?.title,
-          },
-        });
-      }
-
-      // Update state
-      // newestItemEver holds the newest item from the very first batch (since we use orderBy: 'savedAt' DESC)
-      const newLastCheckedAt = new Date(newestItemEver._savedAt);
-      const newLastId = newestItemEver._id;
-
-      // Preserve existing settings explicitly and update lastId
-      const newSettings = { ...settings, lastId: newLastId };
-
-      await this.prisma.projectNewsQuery.update({
-        where: { id: query.id },
-        data: {
-          lastCheckedAt: newLastCheckedAt,
-          settings: newSettings,
-        },
-      });
-
-      return {
-        hasNewItems: true,
-        createdNotificationsCount: usersToNotify.size,
-      };
+  private async getUserStates(
+    queryId: string,
+    userIds: string[],
+  ): Promise<NewsNotificationState[]> {
+    if (userIds.length === 0) {
+      return [];
     }
 
-    return {
-      hasNewItems: false,
-      createdNotificationsCount: 0,
-    };
+    return this.prisma.$queryRaw<NewsNotificationState[]>`
+      SELECT
+        user_id AS "userId",
+        query_id AS "queryId",
+        last_sent_saved_at AS "lastSentSavedAt",
+        last_sent_news_id AS "lastSentNewsId"
+      FROM news_notification_user_states
+      WHERE query_id = ${queryId}
+        AND user_id IN (${Prisma.join(userIds)})
+    `;
+  }
+
+  private async upsertUserState(state: NewsNotificationState): Promise<void> {
+    const stateId = randomUUID();
+
+    await this.prisma.$executeRaw`
+      INSERT INTO news_notification_user_states (
+        id,
+        user_id,
+        query_id,
+        last_sent_saved_at,
+        last_sent_news_id,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        ${stateId},
+        ${state.userId},
+        ${state.queryId},
+        ${state.lastSentSavedAt},
+        ${state.lastSentNewsId},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (user_id, query_id)
+      DO UPDATE SET
+        last_sent_saved_at = EXCLUDED.last_sent_saved_at,
+        last_sent_news_id = EXCLUDED.last_sent_news_id,
+        updated_at = NOW()
+    `;
+  }
+
+  private async tryAcquireDistributedLock(): Promise<boolean> {
+    try {
+      const rows = (await (this.prisma as any).$queryRawUnsafe(
+        'SELECT pg_try_advisory_lock(hashtext($1)) AS locked',
+        this.distributedLockName,
+      )) as Array<{ locked: boolean }>;
+
+      return rows[0]?.locked === true;
+    } catch (error: any) {
+      this.logger.error(`Failed to acquire news scheduler distributed lock: ${error.message}`);
+      return false;
+    }
+  }
+
+  private async releaseDistributedLock(): Promise<void> {
+    try {
+      await (this.prisma as any).$queryRawUnsafe(
+        'SELECT pg_advisory_unlock(hashtext($1))',
+        this.distributedLockName,
+      );
+    } catch (error: any) {
+      this.logger.error(`Failed to release news scheduler distributed lock: ${error.message}`);
+    }
   }
 }

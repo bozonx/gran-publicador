@@ -3,7 +3,7 @@ import { Logger, NotFoundException } from '@nestjs/common';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { NotificationsGateway } from '../../src/modules/notifications/notifications.gateway.js';
-import { jest } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { NotificationType } from '../../src/generated/prisma/index.js';
 import { TelegramBotService } from '../../src/modules/telegram-bot/telegram-bot.service.js';
 import { UsersService } from '../../src/modules/users/users.service.js';
@@ -22,6 +22,9 @@ describe('NotificationsService (unit)', () => {
       deleteMany: jest.fn() as any,
       count: jest.fn() as any,
     },
+    user: {
+      findUnique: jest.fn() as any,
+    },
   };
 
   const mockGateway = {
@@ -37,7 +40,12 @@ describe('NotificationsService (unit)', () => {
   };
 
   const mockUsersService = {
-    getNotificationPreferences: (jest.fn() as any).mockResolvedValue({}),
+    getNotificationPreferences: (jest.fn() as any).mockResolvedValue({
+      SYSTEM: { internal: true, telegram: false },
+      NEW_NEWS: { internal: true, telegram: false },
+      PUBLICATION_FAILED: { internal: true, telegram: false },
+      PROJECT_INVITE: { internal: true, telegram: false },
+    }),
   };
 
   beforeAll(async () => {
@@ -103,6 +111,28 @@ describe('NotificationsService (unit)', () => {
         },
       });
       expect(mockGateway.sendToUser).toHaveBeenCalledWith(dto.userId, mockNotification);
+    });
+
+    it('should skip internal notification creation when internal channel is disabled', async () => {
+      const dto = {
+        userId: 'user-1',
+        type: NotificationType.NEW_NEWS,
+        title: 'News',
+        message: 'Message',
+      };
+
+      mockUsersService.getNotificationPreferences.mockResolvedValue({
+        SYSTEM: { internal: true, telegram: false },
+        NEW_NEWS: { internal: false, telegram: false },
+        PUBLICATION_FAILED: { internal: true, telegram: false },
+        PROJECT_INVITE: { internal: true, telegram: false },
+      });
+
+      const result = await service.create(dto as any);
+
+      expect(result).toBeNull();
+      expect(mockPrismaService.notification.create).not.toHaveBeenCalled();
+      expect(mockGateway.sendToUser).not.toHaveBeenCalled();
     });
   });
 

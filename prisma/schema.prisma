@@ -54,6 +54,7 @@ model User {
   authorSignatures ProjectAuthorSignature[]
   contentLibraryTabs ContentLibraryTab[]
   tags               Tag[]
+  newsNotificationStates NewsNotificationUserState[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -163,10 +164,29 @@ model ProjectNewsQuery {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notificationUserStates NewsNotificationUserState[]
 
   @@index([projectId])
   @@index([isNotificationEnabled, lastCheckedAt]) // Index for worker polling
   @@map("project_news_queries")
+}
+
+model NewsNotificationUserState {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  queryId String @map("query_id")
+  lastSentSavedAt DateTime @map("last_sent_saved_at")
+  lastSentNewsId String @map("last_sent_news_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query ProjectNewsQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, queryId])
+  @@index([queryId])
+  @@index([userId])
+  @@map("news_notification_user_states")
 }
 
 model Role {

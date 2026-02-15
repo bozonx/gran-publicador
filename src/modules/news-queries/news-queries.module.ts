@@ -6,11 +6,12 @@ import { NewsNotificationsScheduler } from './news-notifications.scheduler.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { ProjectsModule } from '../projects/projects.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { PermissionsService } from '../../common/services/permissions.service.js';
 
 @Module({
   imports: [PrismaModule, ProjectsModule, NotificationsModule],
   controllers: [NewsQueriesController, GlobalNewsQueriesController],
-  providers: [NewsQueriesService, NewsNotificationsScheduler],
+  providers: [NewsQueriesService, NewsNotificationsScheduler, PermissionsService],
   exports: [NewsQueriesService, NewsNotificationsScheduler],
 })
 export class NewsQueriesModule {}

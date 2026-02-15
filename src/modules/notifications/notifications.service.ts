@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsGateway } from './notifications.gateway.js';
 import { CreateNotificationDto, NotificationFilterDto } from './dto/index.js';
-import { NotificationType, Prisma } from '../../generated/prisma/index.js';
+import { Prisma } from '../../generated/prisma/index.js';
 import { TelegramBotService } from '../telegram-bot/telegram-bot.service.js';
 import { UsersService } from '../users/users.service.js';
 
@@ -22,26 +22,40 @@ export class NotificationsService {
       throw new Error('Missing required notification fields');
     }
 
-    const client = tx || this.prisma;
-    const notification = await client.notification.create({
-      data: {
-        userId: data.userId,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        meta: (data.meta || {}) as any,
-      },
-    });
+    const preferences = await this.usersService.getNotificationPreferences(data.userId);
+    const channelPreferences = preferences[data.type];
+    const isInternalEnabled = channelPreferences?.internal ?? true;
+    const isTelegramEnabled = channelPreferences?.telegram ?? true;
 
-    // Notify user via WebSocket safely
-    try {
-      this.gateway.sendToUser(data.userId, notification);
-    } catch (error: any) {
-      this.logger.error(`Failed to send notification via WebSocket: ${error.message}`);
+    let notification: any = null;
+
+    if (isInternalEnabled) {
+      const client = tx || this.prisma;
+      notification = await client.notification.create({
+        data: {
+          userId: data.userId,
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          meta: (data.meta || {}) as any,
+        },
+      });
+
+      // Notify user via WebSocket safely
+      try {
+        this.gateway.sendToUser(data.userId, notification);
+      } catch (error: any) {
+        this.logger.error(`Failed to send notification via WebSocket: ${error.message}`);
+      }
+    } else {
+      this.logger.debug(
+        `Internal notifications disabled for user ${data.userId}, type ${data.type}`,
+      );
     }
 
-    // Send to Telegram if enabled in user preferences
-    await this.sendTelegramNotification(data.userId, data.type, data.title, data.message);
+    if (isTelegramEnabled) {
+      await this.sendTelegramNotification(data.userId, data.title, data.message);
+    }
 
     return notification;
   }
@@ -149,24 +163,14 @@ export class NotificationsService {
   }
 
   /**
-   * Send notification to Telegram if user has enabled it for this notification type.
+   * Send notification to Telegram channel.
    */
   private async sendTelegramNotification(
     userId: string,
-    type: NotificationType,
     title: string,
     message: string,
   ): Promise<void> {
     try {
-      // Get user notification preferences
-      const preferences = await this.usersService.getNotificationPreferences(userId);
-
-      // Check if Telegram notifications are enabled for this type
-      if (!preferences[type]?.telegram) {
-        this.logger.debug(`Telegram notifications disabled for user ${userId}, type ${type}`);
-        return;
-      }
-
       // Get user's Telegram ID
       const user = await this.prisma.user.findUnique({
         where: { id: userId },

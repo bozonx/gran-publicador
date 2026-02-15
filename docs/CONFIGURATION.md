@@ -29,6 +29,10 @@ This document lists key production configuration options.
 ## External services
 
 - `SOCIAL_POSTING_SERVICE_URL` (required)
+- `NEWS_SERVICE_URL` (required for news search/notifications)
+- `NEWS_SERVICE_API_TOKEN` (optional)
+- `NEWS_SCHEDULER_LOOKBACK_HOURS` (optional, default: `3`)
+- `NEWS_SCHEDULER_FETCH_LIMIT` (optional, default: `100`)
 - `MEDIA_STORAGE_SERVICE_URL` (optional, but required for media upload endpoints)
 - `MEDIA_IMAGE_OPTIMIZATION_ENABLED` (optional, default: `true`)
 - `MEDIA_IMAGE_OPTIMIZATION_FORMAT` (optional, default: `webp`, allowed: `webp|avif`)
@@ -46,6 +50,11 @@ This document lists key production configuration options.
 - `STT_SEND_USER_LANGUAGE` (optional, default: `true`)
 - `STT_RESTORE_PUNCTUATION` (optional)
 - `STT_FORMAT_TEXT` (optional)
+
+## Maintenance schedulers
+
+- News notifications are run manually via system endpoint: `POST /system/schedulers/news/run`
+- There is no standalone interval env variable for news notifications.
 
 ## UI / LLM
 

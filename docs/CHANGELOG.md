@@ -15,6 +15,10 @@ All notable changes to this project will be documented in this file.
   - Admin UI tab **Configuration** replaced by **Maintenance** with manual run buttons for publications, news notifications, and full maintenance.
 
 ### Fixed
+- **News notifications duplicate delivery**: replaced query-level watermarking with per-user per-query state (`news_notification_user_states`) so already delivered news do not reappear in later notifications for the same user.
+- **News queries access control**: added explicit project access checks for list/create/update/reorder/delete operations in `NewsQueriesService`.
+- **News query creation bug**: `isNotificationEnabled` is now persisted to the dedicated DB column instead of leaking into JSON settings.
+- **Notification channel preferences**: internal notifications now respect `preferences.notifications.<TYPE>.internal` and are skipped when disabled.
 - **Media Storage integration: raw stream upload API** — switched backend upload proxy from multipart/form-data to raw stream (`POST /files`) with header-based params (`x-filename`, `x-metadata`, `x-optimize`, `x-file-size` when provided), removed deprecated `/confirm` call, and aligned metadata mapping with the new response shape (`optimization.params`, `original.*`, `status`, `exif`).
 - **Media upload forms** — frontend now sends `fileSize` in multipart fields for upload/replace so backend can forward exact byte size to Media Storage (`x-file-size`) without buffering the whole file.
 - **Tags: case-sensitive filtering** in ContentItem search — switched from `name` to `normalizedName` with `.toLowerCase()` for both direct tag filter and search-by-tag.
