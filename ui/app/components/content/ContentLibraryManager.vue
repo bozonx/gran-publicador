@@ -1450,23 +1450,33 @@ if (props.scope === 'project' && props.projectId) {
           <div v-if="sidebarGroupTreeItems.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
             {{ t('contentLibrary.groupsTree.empty') }}
           </div>
-          <UTree v-else :items="sidebarGroupTreeItems">
-            <template #group-node="{ item }">
-              <span v-if="!getGroupTreeNodeValue(item)" class="text-gray-500 dark:text-gray-400">
-                {{ getGroupTreeNodeLabel(item) }}
-              </span>
-              <button
-                v-else
-                type="button"
-                class="flex flex-1 min-w-0 items-center gap-2 rounded px-1 py-0.5 text-left transition-colors"
+          <UTree
+            v-else
+            :items="sidebarGroupTreeItems"
+            :ui="{
+              item: 'cursor-pointer'
+            }"
+          >
+            <template #group-node-leading="{ expanded, handleToggle }">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                :icon="expanded ? 'i-heroicons-folder-open' : 'i-heroicons-folder'"
+                class="p-0.5"
+                @click.stop="handleToggle"
+              />
+            </template>
+            <template #group-node-label="{ item }">
+              <span
+                class="flex-1 truncate text-sm py-1 transition-colors"
                 :class="selectedGroupTreeNodeId === getGroupTreeNodeValue(item)
                   ? 'text-primary-600 dark:text-primary-300'
                   : 'text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300'"
                 @click.stop="handleSidebarGroupNodeSelect(getGroupTreeNodeValue(item))"
               >
-                <UIcon name="i-heroicons-folder" class="h-4 w-4 shrink-0" />
-                <span class="truncate">{{ getGroupTreeNodeLabel(item) }}</span>
-              </button>
+                {{ getGroupTreeNodeLabel(item) }}
+              </span>
             </template>
             <template #group-node-trailing="{ item }">
               <UDropdownMenu :items="getGroupNodeMenuItems(getGroupTreeNodeValue(item))">
