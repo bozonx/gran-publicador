@@ -257,12 +257,12 @@ x-api-key: gp_<TOKEN_VALUE>
 | :--- | :--- | :---: | :--- |
 | `scope` | string | Да | `personal` или `project` |
 | `projectId` | UUID | Нет* | Обязателен при `scope=project` |
-| `search` | string | Нет | Поиск по `title`, `note`, `tags`, `blocks.text` |
+| `search` | string | Нет | Поиск по `title`, `note`, `tags`, `text` |
 | `limit` | number | Нет | Лимит (см. [Пагинация](#пагинация-query-параметры)) |
 | `offset` | number | Нет | Смещение (см. [Пагинация](#пагинация-query-параметры)) |
 | `includeArchived` | boolean | Нет | Включить архивные вместе с активными |
 | `archivedOnly` | boolean | Нет | Вернуть только архивные |
-| `includeBlocks` | boolean | Нет | Включить `blocks` в ответ (по умолчанию `true`). Для ускорения списков можно передать `false` |
+| `includeMedia` | boolean | Нет | Включить `media` в ответ (по умолчанию `true`). Для ускорения списков можно передать `false` |
 
 ### POST `/content-library/items`
 
@@ -277,9 +277,11 @@ x-api-key: gp_<TOKEN_VALUE>
 | `title` | string | Нет | Заголовок |
 | `tags` | string[] | Нет | Массив тегов |
 | `note` | string | Нет | Заметка |
-| `blocks` | array | Нет | Список блоков контента |
+| `text` | string | Нет | Текст элемента |
+| `meta` | object | Нет | JSON метаданные элемента |
+| `media` | array | Нет | Список привязанных медиа (links) |
 
-Примечание: пустые элементы/блоки допустимы (создаются UI сразу при нажатии "создать").
+Примечание: пустые элементы допустимы (создаются UI сразу при нажатии "создать").
 
 ### PATCH `/content-library/items/:id`
 

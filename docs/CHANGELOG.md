@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Content Library: removed Content Blocks**: Content items now store `text`, `meta` and `media` directly on `ContentItem`.
+  - Removed `ContentBlock` / `ContentBlockMedia` models and all related endpoints.
+  - Content merge now concatenates texts with `\n\n---\n\n` and merges media links.
+  - List endpoint query flag renamed from `includeBlocks` to `includeMedia`.
+
+### Changed
 - **Schedulers execution model**: removed all internal interval/cron background launches for publications, news notifications, and notifications cleanup.
   - Added synchronous manual run endpoints with execution results:
     - `POST /system/schedulers/publications/run`

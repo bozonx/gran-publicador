@@ -58,7 +58,7 @@ describe('SocialPostingBodyFormatter', () => {
     authorSignature: 'John Doe',
   };
 
-  it('should use specific footer when selected in block', () => {
+  it('should use specific footer when selected in template', () => {
     // pt1 is default project template
     const result = SocialPostingBodyFormatter.format(
       mockData,
@@ -71,7 +71,7 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).not.toContain('Default Footer Content');
   });
 
-  it('should use default footer when no footer selected in block', () => {
+  it('should use default footer when no footer selected in template', () => {
     // Preferred template pt2 should be selected when explicitly provided
     const result = SocialPostingBodyFormatter.format(
       mockData,
@@ -83,7 +83,7 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).toContain('Default Footer Content');
   });
 
-  it('should use default system blocks if no template is default', () => {
+  it('should use default system template blocks if no template is default', () => {
     const result = SocialPostingBodyFormatter.format(
       mockData,
       { preferences: {} },
@@ -128,7 +128,7 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).toBe('Written by {{authorSignature}}');
   });
 
-  it('should respect enabled/disabled blocks in template', () => {
+  it('should respect enabled/disabled template blocks', () => {
     const channelWithMixedBlocks = {
       preferences: {
         templates: [
@@ -156,7 +156,7 @@ describe('SocialPostingBodyFormatter', () => {
     expect(result).not.toContain('Hidden Comment');
   });
 
-  it('should allow disabling blocks on channel variation level', () => {
+  it('should allow disabling template blocks on channel variation level', () => {
     const channelWithOverrideDisabled = {
       preferences: {
         templates: [
