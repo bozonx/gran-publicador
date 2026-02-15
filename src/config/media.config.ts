@@ -102,6 +102,24 @@ export class MediaConfig {
    */
   @IsBoolean()
   public imageOptimizationLossless: boolean = false;
+
+  /**
+   * Strip metadata from optimized images.
+   */
+  @IsBoolean()
+  public imageOptimizationStripMetadata: boolean = true;
+
+  /**
+   * Auto-orient image based on EXIF.
+   */
+  @IsBoolean()
+  public imageOptimizationAutoOrient: boolean = false;
+
+  /**
+   * Flatten alpha layer onto a white background.
+   */
+  @IsBoolean()
+  public imageOptimizationFlatten: boolean = true;
 }
 
 export default registerAs('media', (): MediaConfig => {
@@ -156,6 +174,9 @@ export default registerAs('media', (): MediaConfig => {
       : undefined,
     imageOptimizationChromaSubsampling: process.env.MEDIA_IMAGE_OPTIMIZATION_CHROMA_SUBSAMPLING,
     imageOptimizationLossless: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_LOSSLESS),
+    imageOptimizationStripMetadata: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_STRIP_METADATA),
+    imageOptimizationAutoOrient: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_AUTO_ORIENT),
+    imageOptimizationFlatten: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_FLATTEN),
   };
 
   // Remove undefined and NaN values to let class defaults take over

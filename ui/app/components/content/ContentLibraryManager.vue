@@ -41,6 +41,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 const activeTabId = ref<string | null>(null)
 const activeTab = ref<ContentLibraryTab | null>(null)
+const tabs = ref<ContentLibraryTab[]>([])
 const q = ref('')
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
@@ -125,6 +126,30 @@ const groupBulkMode = ref<GroupBulkMode>('MOVE_TO_GROUP')
 const inlineSubgroupTitle = ref('')
 const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
 
+const activeGroupBreadcrumbs = computed(() => {
+  if (activeTab.value?.type !== 'GROUP') {
+    return [] as Array<{ id: string; title: string }>
+  }
+
+  const tabById = new Map(tabs.value.map(tab => [tab.id, tab]))
+  const chain: Array<{ id: string; title: string }> = []
+  const visited = new Set<string>()
+  let cursor: ContentLibraryTab | undefined = activeTab.value
+
+  while (cursor && cursor.type === 'GROUP' && !visited.has(cursor.id)) {
+    chain.push({ id: cursor.id, title: cursor.title })
+    visited.add(cursor.id)
+
+    if (!cursor.parentId) {
+      break
+    }
+
+    cursor = tabById.get(cursor.parentId)
+  }
+
+  return chain.reverse()
+})
+
 const toGroupActionLabel = computed(() =>
   groupBulkMode.value === 'MOVE_TO_GROUP'
     ? t('contentLibrary.bulk.moveMode')
@@ -189,19 +214,21 @@ const filteredGroupTreeItems = computed<GroupTreeNode[]>(() => {
   }
 
   const filterTree = (nodes: GroupTreeNode[]): GroupTreeNode[] => {
-    return nodes
-      .map((node) => {
-        const children = node.children ? filterTree(node.children as GroupTreeNode[]) : []
-        const matches = node.label.toLowerCase().includes(query)
-        if (matches || children.length > 0) {
-          return {
-            ...node,
-            children,
-          }
-        }
-        return null
-      })
-      .filter((node): node is GroupTreeNode => node !== null)
+    const result: GroupTreeNode[] = []
+
+    for (const node of nodes) {
+      const children = node.children ? filterTree(node.children as GroupTreeNode[]) : []
+      const matches = node.label.toLowerCase().includes(query)
+
+      if (matches || children.length > 0) {
+        result.push({
+          ...node,
+          children,
+        })
+      }
+    }
+
+    return result
   }
 
   return filterTree(groupTreeItems.value)
@@ -791,6 +818,20 @@ const handleCreatePublication = (item: any) => {
   isCreatePublicationModalOpen.value = true
 }
 
+const handleSelectBreadcrumbTab = (tabId: string) => {
+  if (activeTabId.value === tabId) {
+    return
+  }
+
+  const targetTab = tabs.value.find(tab => tab.id === tabId)
+  if (!targetTab) {
+    return
+  }
+
+  activeTabId.value = targetTab.id
+  activeTab.value = targetTab
+}
+
 const openEditModal = (item: any) => {
   activeItem.value = item
   isEditModalOpen.value = true
@@ -958,6 +999,7 @@ if (props.scope === 'project' && props.projectId) {
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
       :is-window-file-drag-active="isWindowFileDragActive"
+      :tab-breadcrumbs="activeGroupBreadcrumbs"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
@@ -965,6 +1007,7 @@ if (props.scope === 'project' && props.projectId) {
       @rename-tab="openRenameTabModal"
       @delete-tab="openDeleteTabModal"
       @toggle-sort-order="toggleSortOrder"
+      @select-breadcrumb-tab="handleSelectBreadcrumbTab"
     >
       <ContentLibraryTabs
         ref="contentLibraryTabsRef"
@@ -972,6 +1015,7 @@ if (props.scope === 'project' && props.projectId) {
         :scope="scope"
         :project-id="props.projectId"
         @update:active-tab="activeTab = $event"
+        @update:tabs="tabs = $event"
       />
     </ContentLibraryToolbar>
 

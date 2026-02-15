@@ -255,6 +255,9 @@ export class MediaService {
       quality: mediaConfig.imageOptimizationQuality,
       chromaSubsampling: mediaConfig.imageOptimizationChromaSubsampling,
       lossless: mediaConfig.imageOptimizationLossless,
+      stripMetadata: mediaConfig.imageOptimizationStripMetadata,
+      autoOrient: mediaConfig.imageOptimizationAutoOrient,
+      flatten: mediaConfig.imageOptimizationFlatten ? { background: '#FFFFFF' } : undefined,
     };
   }
 

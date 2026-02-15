@@ -201,7 +201,9 @@ describe('MediaService (unit)', () => {
     it('should force env image optimization params', async () => {
       const effective = (service as any).buildEffectiveImageOptimization({
         quality: 92,
-        stripMetadata: true,
+        stripMetadata: false,
+        autoOrient: true,
+        flatten: false,
         format: 'avif',
         maxDimension: 1024,
         effort: 9,
@@ -211,6 +213,8 @@ describe('MediaService (unit)', () => {
 
       expect(effective).toMatchObject({
         stripMetadata: true,
+        autoOrient: false,
+        flatten: { background: '#FFFFFF' },
         format: 'webp',
         maxDimension: 3840,
         effort: 4,

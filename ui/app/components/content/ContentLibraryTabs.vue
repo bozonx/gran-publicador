@@ -13,6 +13,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: string | null]
   'update:activeTab': [tab: ContentLibraryTab | null]
+  'update:tabs': [tabs: ContentLibraryTab[]]
 }>()
 
 const { t } = useI18n()
@@ -29,6 +30,14 @@ const activeTabId = computed({
   set: (value) => emit('update:modelValue', value),
 })
 
+const currentActiveTab = computed(() => {
+  if (!activeTabId.value) {
+    return null
+  }
+
+  return tabs.value.find(tab => tab.id === activeTabId.value) ?? null
+})
+
 const getStorageKey = () => {
   return `content-library-tab-${props.scope}-${props.projectId || 'global'}`
 }
@@ -39,6 +48,7 @@ const fetchTabs = async () => {
   isLoading.value = true
   try {
     tabs.value = await listTabs(props.scope, props.scope === 'project' ? props.projectId : undefined)
+    emit('update:tabs', tabs.value)
     
     // Restore from localStorage
     const savedTabId = localStorage.getItem(getStorageKey())
@@ -63,10 +73,15 @@ const fetchTabs = async () => {
 
 const handleCreateTab = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string }) => {
   try {
+    const parentId = data.type === 'GROUP' && currentActiveTab.value?.type === 'GROUP'
+      ? currentActiveTab.value.id
+      : undefined
+
     const newTab = await createTab({
       scope: props.scope,
       projectId: props.projectId,
       type: data.type,
+      parentId,
       title: data.title,
       config: {},
     })

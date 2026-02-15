@@ -110,6 +110,14 @@ function isQueryCollapsed(queryId: string): boolean {
   return collapsedQueries.value.get(queryId) ?? true
 }
 
+// Ensure settings are expanded after creation or when navigating via Configure button
+watch(() => route.query.id, (newId) => {
+  if (newId) {
+    collapsedQueries.value.set(newId as string, false)
+    saveCollapseState()
+  }
+}, { immediate: true })
+
 function handleCreatePublication(item: NewsItem) {
   selectedNewsUrl.value = item.url
   selectedNewsItem.value = item
@@ -522,9 +530,11 @@ const sourcesTooltipText = computed(() => {
           <!-- Collapsed Summary View -->
           <div v-if="isQueryCollapsed(currentQuery.id)" class="px-6 pb-6 space-y-3">
             <!-- Search Query Preview -->
-            <div v-if="currentQuery.q" class="text-sm text-gray-600 dark:text-gray-400">
-              <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('news.searchPlaceholder') }}:</span>
-              {{ currentQuery.q.length > 150 ? currentQuery.q.slice(0, 150) + '...' : currentQuery.q }}
+            <div v-if="currentQuery.q" class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+              <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4 mt-0.5 shrink-0" />
+              <span class="truncate">
+                {{ currentQuery.q.length > 200 ? currentQuery.q.slice(0, 200) + '...' : currentQuery.q }}
+              </span>
             </div>
 
             <!-- Key Parameters -->
@@ -549,6 +559,18 @@ const sourcesTooltipText = computed(() => {
                 <span>
                   {{ currentQuery.savedFrom || '...' }} — {{ currentQuery.savedTo || '...' }}
                 </span>
+              </div>
+
+              <!-- Sources -->
+              <div v-if="currentQuery.sources" class="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md border border-gray-200 dark:border-gray-700">
+                <UIcon name="i-heroicons-globe-alt" class="w-3.5 h-3.5" />
+                <span class="truncate max-w-[200px]">{{ currentQuery.sources }}</span>
+              </div>
+
+              <!-- Source Tags -->
+              <div v-if="currentQuery.sourceTags" class="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md border border-gray-200 dark:border-gray-700">
+                <UIcon name="i-heroicons-tag" class="w-3.5 h-3.5" />
+                <span class="truncate max-w-[200px]">{{ currentQuery.sourceTags }}</span>
               </div>
 
               <!-- Min Score -->
