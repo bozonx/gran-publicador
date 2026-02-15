@@ -6,7 +6,6 @@ import {
   PublicationStatus,
   NotificationType,
   RelationGroupType,
-  ContentLibraryTabType,
 } from '../src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
@@ -292,7 +291,7 @@ async function main() {
   const contentLibraryTabs = [
     {
       id: 'tab10000-0000-4000-8000-000000000001',
-      type: ContentLibraryTabType.GROUP,
+      type: 'GROUP',
       title: 'Common Assets',
       projectId: projectData[0].id,
       order: 0,
@@ -300,7 +299,7 @@ async function main() {
     },
     {
       id: 'tab10000-0000-4000-8000-000000000002',
-      type: ContentLibraryTabType.SAVED_VIEW,
+      type: 'SAVED_VIEW',
       title: 'Recent Images',
       projectId: projectData[0].id,
       order: 1,
@@ -311,8 +310,8 @@ async function main() {
   for (const tab of contentLibraryTabs) {
     await prisma.contentLibraryTab.upsert({
       where: { id: tab.id },
-      update: tab,
-      create: tab,
+      update: tab as any,
+      create: tab as any,
     });
   }
 
