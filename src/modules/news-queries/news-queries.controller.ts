@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Delete, Patch, UseGuards, Req } fro
 import { NewsQueriesService } from './news-queries.service.js';
 import { CreateNewsQueryDto } from './dto/create-news-query.dto.js';
 import { UpdateNewsQueryDto } from './dto/update-news-query.dto.js';
+import { ReorderNewsQueriesDto } from './dto/reorder-news-queries.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 
 @Controller('projects/:projectId/news-queries')
@@ -12,6 +13,11 @@ export class NewsQueriesController {
   @Get()
   findAll(@Param('projectId') projectId: string) {
     return this.newsQueriesService.findAll(projectId);
+  }
+
+  @Patch('reorder')
+  reorder(@Param('projectId') projectId: string, @Body() reorderDto: ReorderNewsQueriesDto) {
+    return this.newsQueriesService.reorder(projectId, reorderDto);
   }
 
   @Post()

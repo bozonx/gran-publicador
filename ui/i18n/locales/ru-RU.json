@@ -456,7 +456,9 @@
     },
     "groupsTree": {
       "createAtRoot": "Создавать в корне",
+      "deleteConfirmDescription": "Удалить группу \"{title}\"? После удаления вы перейдете на уровень выше.",
       "empty": "Группы пока не созданы",
+      "nodeMenuAriaLabel": "Открыть действия группы",
       "rootLabel": "Корневой уровень",
       "selectedParentHint": "Родитель новой группы: {title}",
       "title": "Дерево групп"

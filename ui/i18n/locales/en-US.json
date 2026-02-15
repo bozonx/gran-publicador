@@ -455,7 +455,9 @@
     },
     "groupsTree": {
       "createAtRoot": "Create at root",
+      "deleteConfirmDescription": "Delete group \"{title}\"? You will be moved to its parent group.",
       "empty": "No groups yet",
+      "nodeMenuAriaLabel": "Open group actions",
       "rootLabel": "Root level",
       "selectedParentHint": "New group parent: {title}",
       "title": "Groups tree"

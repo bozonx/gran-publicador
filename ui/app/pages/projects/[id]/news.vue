@@ -48,7 +48,7 @@ const toast = useToast()
 const projectId = computed(() => route.params.id as string)
 
 const { currentProject, fetchProject, updateProject, isLoading: isProjectLoading } = useProjects()
-const { news, isLoading: isNewsLoading, error, searchNews, hasMore, getQueries, createQuery, updateQuery, deleteQuery } = useNews()
+const { news, isLoading: isNewsLoading, error, searchNews, hasMore, getQueries, createQuery, updateQuery, deleteQuery, reorderQueries } = useNews()
 const { fetchPublicationsByProject } = usePublications()
 const { user } = useAuth()
 
@@ -384,6 +384,23 @@ async function confirmDeleteTab() {
   }
 }
 
+// Handle tab reordering
+async function handleTabsUpdate(newItems: any[]) {
+  // Update local list to reflect new order immediately
+  newsQueries.value = newItems as NewsQuery[]
+  
+  // Extract IDs in new order
+  const ids = newItems.map(item => item.id)
+  
+  // Save to backend
+  try {
+    await reorderQueries(ids)
+  } catch (e) {
+    console.error('Failed to save tab order:', e)
+    // Ideally revert the change here if failed
+  }
+}
+
 // Format date
 function formatDate(dateString: string) {
   try {
@@ -445,8 +462,9 @@ const sourcesTooltipText = computed(() => {
       <!-- Draggable Tabs Header -->
       <AppTabs
         v-model="selectedQueryId"
-        v-model:items="newsQueries"
+        :items="newsQueries"
         draggable
+        @update:items="handleTabsUpdate"
       >
         <template #tab-trailing="{ item, selected }">
            <UIcon 

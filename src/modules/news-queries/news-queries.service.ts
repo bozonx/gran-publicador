@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateNewsQueryDto } from './dto/create-news-query.dto.js';
 import { UpdateNewsQueryDto } from './dto/update-news-query.dto.js';
+import { ReorderNewsQueriesDto } from './dto/reorder-news-queries.dto.js';
 
 @Injectable()
 export class NewsQueriesService {
@@ -106,6 +107,32 @@ export class NewsQueriesService {
     }
 
     await this.prisma.projectNewsQuery.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async reorder(projectId: string, dto: ReorderNewsQueriesDto) {
+    // Verify that all IDs belong to the project
+    const count = await this.prisma.projectNewsQuery.count({
+      where: {
+        projectId,
+        id: { in: dto.ids },
+      },
+    });
+
+    if (count !== dto.ids.length) {
+      throw new NotFoundException('Some queries not found or do not belong to the project');
+    }
+
+    // Execute updates in transaction
+    await this.prisma.$transaction(
+      dto.ids.map((id, index) =>
+        this.prisma.projectNewsQuery.update({
+          where: { id },
+          data: { order: index },
+        }),
+      ),
+    );
+
     return { success: true };
   }
 

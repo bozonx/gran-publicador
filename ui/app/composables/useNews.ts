@@ -250,6 +250,18 @@ export const useNews = () => {
     }
   };
 
+  const reorderQueries = async (ids: string[], customProjectId?: string) => {
+    const pId = customProjectId || projectId.value;
+    if (!pId) return false;
+    try {
+      await api.patch(`/projects/${pId}/news-queries/reorder`, { ids });
+      return true;
+    } catch (err: any) {
+      logger.error('Failed to reorder news queries', err);
+      return false;
+    }
+  };
+
   return {
     news,
     isLoading,
@@ -263,5 +275,6 @@ export const useNews = () => {
     deleteQuery,
     getDefaultQueries,
     updateNewsQueryOrder,
+    reorderQueries,
   };
 };

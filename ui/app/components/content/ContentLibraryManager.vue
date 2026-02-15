@@ -104,8 +104,13 @@ const isDeleteTabConfirmModalOpen = ref(false)
 const isRenamingTab = ref(false)
 const isDeletingTab = ref(false)
 const selectedGroupTreeNodeId = ref<string | null>(null)
-const sidebarGroupTitle = ref('')
-const isCreatingSidebarGroup = ref(false)
+const isTreeCreateModalOpen = ref(false)
+const treeCreateParentId = ref<string | null>(null)
+const treeCreateTitle = ref('')
+const isCreatingTreeGroup = ref(false)
+const isTreeDeleteConfirmModalOpen = ref(false)
+const treeDeleteTargetId = ref<string | null>(null)
+const isDeletingTreeGroup = ref(false)
 
 type GroupBulkMode = 'MOVE_TO_GROUP' | 'LINK_TO_GROUP'
 
@@ -128,6 +133,22 @@ const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
 
 const allScopeGroupTabs = computed(() => tabs.value.filter(tab => tab.type === 'GROUP'))
 const tabsById = computed(() => new Map(tabs.value.map(tab => [tab.id, tab])))
+
+const treeCreateParentLabel = computed(() => {
+  if (!treeCreateParentId.value) {
+    return '-'
+  }
+
+  return tabsById.value.get(treeCreateParentId.value)?.title ?? '-'
+})
+
+const treeDeleteTargetLabel = computed(() => {
+  if (!treeDeleteTargetId.value) {
+    return '-'
+  }
+
+  return tabsById.value.get(treeDeleteTargetId.value)?.title ?? '-'
+})
 
 const activeRootGroupId = computed(() => {
   if (activeTab.value?.type !== 'GROUP') {
@@ -173,6 +194,7 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
     return children.map((tab) => ({
       label: tab.title,
       value: tab.id,
+      slot: 'group-node',
       defaultExpanded: true,
       onSelect: () => {
         selectedGroupTreeNodeId.value = tab.id
@@ -185,6 +207,7 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
   return [{
     label: rootGroup.title,
     value: rootGroup.id,
+    slot: 'group-node',
     defaultExpanded: true,
     onSelect: () => {
       selectedGroupTreeNodeId.value = rootGroup.id
@@ -389,19 +412,30 @@ const uploadContentFiles = async (files: File[]) => {
   }
 }
 
-const handleCreateGroupFromSidebar = async () => {
-  const title = sidebarGroupTitle.value.trim()
-  if (!title) {
+const openTreeCreateModal = (parentId: string) => {
+  const parentTab = tabsById.value.get(parentId)
+  if (!parentTab || parentTab.type !== 'GROUP') {
     return
   }
 
-  isCreatingSidebarGroup.value = true
+  treeCreateParentId.value = parentId
+  treeCreateTitle.value = ''
+  isTreeCreateModalOpen.value = true
+}
+
+const handleCreateGroupFromTreeModal = async () => {
+  const title = treeCreateTitle.value.trim()
+  if (!treeCreateParentId.value || !title) {
+    return
+  }
+
+  isCreatingTreeGroup.value = true
   try {
     const newTab = await createTab({
       scope: props.scope,
       projectId: props.projectId,
       type: 'GROUP',
-      parentId: selectedGroupTreeNodeId.value ?? undefined,
+      parentId: treeCreateParentId.value,
       title,
       config: {},
     })
@@ -410,14 +444,82 @@ const handleCreateGroupFromSidebar = async () => {
     activeTabId.value = newTab.id
     activeTab.value = newTab
     selectedGroupTreeNodeId.value = newTab.id
-    sidebarGroupTitle.value = ''
     selectedIds.value = []
+    isTreeCreateModalOpen.value = false
     await fetchItems({ reset: true })
   } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create group'), color: 'error' })
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create subgroup'), color: 'error' })
   } finally {
-    isCreatingSidebarGroup.value = false
+    isCreatingTreeGroup.value = false
   }
+}
+
+const openTreeDeleteModal = (tabId: string) => {
+  const targetTab = tabsById.value.get(tabId)
+  if (!targetTab || targetTab.type !== 'GROUP' || !targetTab.parentId) {
+    return
+  }
+
+  treeDeleteTargetId.value = tabId
+  isTreeDeleteConfirmModalOpen.value = true
+}
+
+const handleDeleteGroupFromTree = async () => {
+  if (!treeDeleteTargetId.value) {
+    return
+  }
+
+  const targetTab = tabsById.value.get(treeDeleteTargetId.value)
+  if (!targetTab) {
+    return
+  }
+
+  const parentId = targetTab.parentId
+  isDeletingTreeGroup.value = true
+  try {
+    await deleteTab(targetTab.id, props.scope, props.projectId)
+    await contentLibraryTabsRef.value?.fetchTabs()
+
+    if (parentId) {
+      const parentTab = tabs.value.find(tab => tab.id === parentId)
+      if (parentTab) {
+        activeTabId.value = parentTab.id
+        activeTab.value = parentTab
+      }
+    }
+
+    if (!parentId) {
+      activeTabId.value = null
+      activeTab.value = null
+    }
+
+    selectedIds.value = []
+    isTreeDeleteConfirmModalOpen.value = false
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete group'), color: 'error' })
+  } finally {
+    isDeletingTreeGroup.value = false
+  }
+}
+
+const getGroupNodeMenuItems = (tabId: string) => {
+  const targetTab = tabsById.value.get(tabId)
+  const canDelete = !!targetTab?.parentId
+
+  return [[
+    {
+      label: t('contentLibrary.tabs.createSubgroup'),
+      icon: 'i-heroicons-folder-plus',
+      onSelect: () => openTreeCreateModal(tabId),
+    },
+    {
+      label: t('common.delete'),
+      icon: 'i-heroicons-trash',
+      disabled: !canDelete,
+      onSelect: () => openTreeDeleteModal(tabId),
+    },
+  ]]
 }
 
 function handleWindowDragEnter(event: DragEvent) {
@@ -1121,46 +1223,26 @@ if (props.scope === 'project' && props.projectId) {
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
             {{ t('contentLibrary.groupsTree.title') }}
           </h3>
-
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('contentLibrary.groupsTree.selectedParentHint', { title: selectedGroupTreeNodeId ? (tabs.find(tab => tab.id === selectedGroupTreeNodeId)?.title || '-') : t('contentLibrary.groupsTree.rootLabel') }) }}
-          </p>
-
-          <div class="flex items-center gap-2">
-            <UInput
-              v-model="sidebarGroupTitle"
-              class="flex-1"
-              :placeholder="t('contentLibrary.tabs.titlePlaceholder')"
-              @keydown.enter="handleCreateGroupFromSidebar"
-            />
-            <UButton
-              color="primary"
-              :loading="isCreatingSidebarGroup"
-              :disabled="!sidebarGroupTitle.trim()"
-              @click="handleCreateGroupFromSidebar"
-            >
-              {{ t('common.create') }}
-            </UButton>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              :disabled="selectedGroupTreeNodeId === null"
-              @click="selectedGroupTreeNodeId = null"
-            >
-              {{ t('contentLibrary.groupsTree.createAtRoot') }}
-            </UButton>
-          </div>
         </div>
 
         <div class="rounded-md border border-gray-200 dark:border-gray-800 p-3 max-h-128 overflow-auto">
           <div v-if="sidebarGroupTreeItems.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
             {{ t('contentLibrary.groupsTree.empty') }}
           </div>
-          <UTree v-else :items="sidebarGroupTreeItems" />
+          <UTree v-else :items="sidebarGroupTreeItems">
+            <template #group-node-trailing="{ item }">
+              <UDropdownMenu :items="getGroupNodeMenuItems(item.value)">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-ellipsis-horizontal"
+                  :aria-label="t('contentLibrary.groupsTree.nodeMenuAriaLabel')"
+                  @click.stop
+                />
+              </UDropdownMenu>
+            </template>
+          </UTree>
         </div>
       </aside>
     </div>
@@ -1201,6 +1283,44 @@ if (props.scope === 'project' && props.projectId) {
       icon="i-heroicons-square-3-stack-3d"
       :loading="isBulkDeleting"
       @confirm="executeBulkOperation"
+    />
+
+    <AppModal
+      v-model:open="isTreeCreateModalOpen"
+      :title="t('contentLibrary.tabs.createSubgroupTitle')"
+      :description="t('contentLibrary.groupsTree.selectedParentHint', { title: treeCreateParentLabel })"
+      :ui="{ content: 'w-full max-w-md' }"
+      @close="isTreeCreateModalOpen = false"
+    >
+      <UFormField :label="t('common.title')">
+        <UInput v-model="treeCreateTitle" autofocus @keydown.enter="handleCreateGroupFromTreeModal" />
+      </UFormField>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isTreeCreateModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isCreatingTreeGroup"
+          :disabled="!treeCreateTitle.trim()"
+          @click="handleCreateGroupFromTreeModal"
+        >
+          {{ t('common.create') }}
+        </UButton>
+      </template>
+    </AppModal>
+
+    <UiConfirmModal
+      v-if="isTreeDeleteConfirmModalOpen"
+      v-model:open="isTreeDeleteConfirmModalOpen"
+      :title="t('contentLibrary.tabs.deleteTitle')"
+      :description="t('contentLibrary.groupsTree.deleteConfirmDescription', { title: treeDeleteTargetLabel })"
+      :confirm-text="t('common.delete')"
+      color="error"
+      icon="i-heroicons-trash"
+      :loading="isDeletingTreeGroup"
+      @confirm="handleDeleteGroupFromTree"
     />
 
     <!-- Bulk Bar -->
