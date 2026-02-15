@@ -453,6 +453,13 @@
       "titleHelp": "Optional title for easier identification",
       "titlePlaceholder": "Product announcement, Weekly update..."
     },
+    "groupsTree": {
+      "createAtRoot": "Create at root",
+      "empty": "No groups yet",
+      "rootLabel": "Root level",
+      "selectedParentHint": "New group parent: {title}",
+      "title": "Groups tree"
+    },
     "filter": {
       "active": "Active",
       "archived": "Trash",

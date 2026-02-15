@@ -53,7 +53,11 @@ const { fetchPublicationsByProject } = usePublications()
 const { user } = useAuth()
 
 const newsQueries = ref<NewsQuery[]>([])
-const selectedQueryId = ref('')
+
+// Tab and Collapse state management
+const selectedQueryId = useLocalStorage<string>(`project-${projectId.value}-news-selected-query`, '')
+const collapsedQueries = ref<Map<string, boolean>>(new Map())
+
 const isAddModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
@@ -69,40 +73,10 @@ const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<NewsItem | null>(null)
 const processedNewsMap = ref<Record<string, string>>({}) // newsId -> publicationId
 
-// Collapse state management
-const COLLAPSE_STATE_STORAGE_KEY = 'news-queries-collapse-state'
-const collapsedQueries = ref<Map<string, boolean>>(new Map())
-
-// Load collapse state from localStorage
-function loadCollapseState() {
-  if (!import.meta.client) return
-  try {
-    const stored = localStorage.getItem(COLLAPSE_STATE_STORAGE_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      collapsedQueries.value = new Map(Object.entries(parsed))
-    }
-  } catch (e) {
-    console.error('Failed to load collapse state:', e)
-  }
-}
-
-// Save collapse state to localStorage
-function saveCollapseState() {
-  if (!import.meta.client) return
-  try {
-    const obj = Object.fromEntries(collapsedQueries.value)
-    localStorage.setItem(COLLAPSE_STATE_STORAGE_KEY, JSON.stringify(obj))
-  } catch (e) {
-    console.error('Failed to save collapse state:', e)
-  }
-}
-
 // Toggle collapse state for a query
 function toggleCollapse(queryId: string) {
   const current = collapsedQueries.value.get(queryId) ?? true
   collapsedQueries.value.set(queryId, !current)
-  saveCollapseState()
 }
 
 // Check if query is collapsed
@@ -110,11 +84,10 @@ function isQueryCollapsed(queryId: string): boolean {
   return collapsedQueries.value.get(queryId) ?? true
 }
 
-// Ensure settings are expanded after creation or when navigating via Configure button
+// Ensure settings are expanded when navigating via Configure button (with id in URL)
 watch(() => route.query.id, (newId) => {
   if (newId) {
     collapsedQueries.value.set(newId as string, false)
-    saveCollapseState()
   }
 }, { immediate: true })
 
@@ -145,8 +118,6 @@ async function initQueries() {
       await fetchProject(projectId.value)
     }
 
-    // Load collapse state from localStorage
-    loadCollapseState()
 
     // Load publications to mark processed news
     loadProcessedNews()
@@ -164,9 +135,8 @@ async function initQueries() {
             collapsedQueries.value.set(q.id, true)
           }
         })
-        saveCollapseState()
         
-        // Select query by ID from URL if provided, otherwise first one
+        // Select query by ID from URL if provided, otherwise stored, otherwise first one
         const queryIdParam = route.query.id as string
         if (queryIdParam) {
           const found = queries.find(q => q.id === queryIdParam)
@@ -175,8 +145,12 @@ async function initQueries() {
           } else {
             selectedQueryId.value = queries[0].id
           }
-        } else if (!selectedQueryId.value) {
-          selectedQueryId.value = queries[0].id
+        } else {
+          // Check if stored value is still valid
+          const exists = queries.some(q => q.id === selectedQueryId.value)
+          if (!exists) {
+            selectedQueryId.value = queries[0].id
+          }
         }
       }
       
@@ -338,7 +312,6 @@ async function addTab() {
     
     // Set newly created query as expanded (not collapsed)
     collapsedQueries.value.set(created.id, false)
-    saveCollapseState()
     
     await nextTick()
     

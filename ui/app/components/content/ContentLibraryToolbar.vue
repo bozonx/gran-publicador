@@ -1,10 +1,5 @@
 <script setup lang="ts">
-interface GroupBreadcrumb {
-  id: string
-  title: string
-}
-
-const props = defineProps<{
+defineProps<{
   scope: 'project' | 'personal'
   projectId?: string
   totalUnfiltered: number
@@ -19,7 +14,6 @@ const props = defineProps<{
   sortOrderIcon: string
   sortOrderLabel: string
   isWindowFileDragActive?: boolean
-  tabBreadcrumbs?: GroupBreadcrumb[]
 }>()
 
 const q = defineModel<string>('q')
@@ -32,11 +26,9 @@ const emit = defineEmits<{
   (e: 'purge'): void
   (e: 'create'): void
   (e: 'upload-files', files: File[]): void
-  (e: 'create-subgroup'): void
   (e: 'rename-tab'): void
   (e: 'delete-tab'): void
   (e: 'toggle-sort-order'): void
-  (e: 'select-breadcrumb-tab', tabId: string): void
 }>()
 
 const { t } = useI18n()
@@ -202,28 +194,6 @@ function onDrop(event: DragEvent) {
         @change="onFileInputChange"
       >
       <slot />
-      <div
-        v-if="(tabBreadcrumbs?.length || 0) > 0"
-        class="flex flex-wrap items-center gap-1 rounded-lg border border-gray-200/80 bg-gray-50/80 px-3 py-2 text-sm text-gray-600 dark:border-gray-700/70 dark:bg-gray-800/50 dark:text-gray-300"
-      >
-        <template v-for="(crumb, index) in tabBreadcrumbs" :key="crumb.id">
-          <UButton
-            :variant="index === tabBreadcrumbs!.length - 1 ? 'soft' : 'ghost'"
-            color="neutral"
-            size="xs"
-            :disabled="index === tabBreadcrumbs!.length - 1"
-            class="max-w-56"
-            @click="emit('select-breadcrumb-tab', crumb.id)"
-          >
-            <span class="truncate">{{ crumb.title }}</span>
-          </UButton>
-          <UIcon
-            v-if="index < tabBreadcrumbs!.length - 1"
-            name="i-heroicons-chevron-right"
-            class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500"
-          />
-        </template>
-      </div>
       <div class="flex flex-col gap-4">
         <div class="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center pb-2 border-b border-gray-100 dark:border-gray-800">
           <div class="flex items-center gap-2">
@@ -254,16 +224,6 @@ function onDrop(event: DragEvent) {
 
           <div class="flex items-center gap-2">
             <template v-if="activeTab">
-              <UButton
-                v-if="archiveStatus === 'active' && activeTab.type === 'GROUP'"
-                color="primary"
-                variant="soft"
-                size="sm"
-                icon="i-heroicons-folder-plus"
-                @click="emit('create-subgroup')"
-              >
-                {{ t('contentLibrary.tabs.createSubgroup') }}
-              </UButton>
               <UButton color="neutral" variant="ghost" size="sm" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
                 {{ t('common.rename') }}
               </UButton>

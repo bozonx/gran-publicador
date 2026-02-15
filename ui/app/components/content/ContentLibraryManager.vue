@@ -100,12 +100,12 @@ const publicationData = ref({
 const contentLibraryTabsRef = ref<any>(null)
 const isRenameTabModalOpen = ref(false)
 const newTabTitle = ref('')
-const isCreateSubgroupModalOpen = ref(false)
-const newSubgroupTitle = ref('')
 const isDeleteTabConfirmModalOpen = ref(false)
 const isRenamingTab = ref(false)
-const isCreatingSubgroup = ref(false)
 const isDeletingTab = ref(false)
+const selectedGroupTreeNodeId = ref<string | null>(null)
+const sidebarGroupTitle = ref('')
+const isCreatingSidebarGroup = ref(false)
 
 type GroupBulkMode = 'MOVE_TO_GROUP' | 'LINK_TO_GROUP'
 
@@ -126,28 +126,33 @@ const groupBulkMode = ref<GroupBulkMode>('MOVE_TO_GROUP')
 const inlineSubgroupTitle = ref('')
 const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
 
-const activeGroupBreadcrumbs = computed(() => {
-  if (activeTab.value?.type !== 'GROUP') {
-    return [] as Array<{ id: string; title: string }>
+const allScopeGroupTabs = computed(() => tabs.value.filter(tab => tab.type === 'GROUP'))
+
+const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
+  const byParent = new Map<string, ContentLibraryTab[]>()
+
+  for (const tab of allScopeGroupTabs.value) {
+    const parentId = tab.parentId ?? ''
+    const current = byParent.get(parentId) ?? []
+    current.push(tab)
+    byParent.set(parentId, current)
   }
 
-  const tabById = new Map(tabs.value.map(tab => [tab.id, tab]))
-  const chain: Array<{ id: string; title: string }> = []
-  const visited = new Set<string>()
-  let cursor: ContentLibraryTab | undefined = activeTab.value
-
-  while (cursor && cursor.type === 'GROUP' && !visited.has(cursor.id)) {
-    chain.push({ id: cursor.id, title: cursor.title })
-    visited.add(cursor.id)
-
-    if (!cursor.parentId) {
-      break
-    }
-
-    cursor = tabById.get(cursor.parentId)
+  const buildTree = (parentId: string): GroupTreeNode[] => {
+    const children = (byParent.get(parentId) ?? []).sort((a, b) => a.order - b.order)
+    return children.map((tab) => ({
+      label: tab.title,
+      value: tab.id,
+      defaultExpanded: true,
+      onSelect: () => {
+        selectedGroupTreeNodeId.value = tab.id
+        handleSelectGroupTab(tab.id)
+      },
+      children: buildTree(tab.id),
+    }))
   }
 
-  return chain.reverse()
+  return buildTree('')
 })
 
 const toGroupActionLabel = computed(() =>
@@ -345,32 +350,34 @@ const uploadContentFiles = async (files: File[]) => {
   }
 }
 
-const handleCreateSubgroup = async () => {
-  if (!isActiveGroupTab.value || !activeTab.value || !newSubgroupTitle.value.trim()) {
+const handleCreateGroupFromSidebar = async () => {
+  const title = sidebarGroupTitle.value.trim()
+  if (!title) {
     return
   }
 
-  isCreatingSubgroup.value = true
+  isCreatingSidebarGroup.value = true
   try {
     const newTab = await createTab({
       scope: props.scope,
       projectId: props.projectId,
       type: 'GROUP',
-      parentId: activeTab.value.id,
-      title: newSubgroupTitle.value.trim(),
+      parentId: selectedGroupTreeNodeId.value ?? undefined,
+      title,
       config: {},
     })
 
     await contentLibraryTabsRef.value?.fetchTabs()
     activeTabId.value = newTab.id
     activeTab.value = newTab
+    selectedGroupTreeNodeId.value = newTab.id
+    sidebarGroupTitle.value = ''
     selectedIds.value = []
-    isCreateSubgroupModalOpen.value = false
     await fetchItems({ reset: true })
   } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create subgroup'), color: 'error' })
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create group'), color: 'error' })
   } finally {
-    isCreatingSubgroup.value = false
+    isCreatingSidebarGroup.value = false
   }
 }
 
@@ -604,15 +611,6 @@ const openRenameTabModal = () => {
   isRenameTabModalOpen.value = true
 }
 
-const openCreateSubgroupModal = () => {
-  if (!isActiveGroupTab.value || !activeTab.value) {
-    return
-  }
-
-  newSubgroupTitle.value = ''
-  isCreateSubgroupModalOpen.value = true
-}
-
 const handleRenameTab = async () => {
   if (!activeTab.value || !newTabTitle.value.trim()) return
   isRenamingTab.value = true
@@ -818,7 +816,7 @@ const handleCreatePublication = (item: any) => {
   isCreatePublicationModalOpen.value = true
 }
 
-const handleSelectBreadcrumbTab = (tabId: string) => {
+const handleSelectGroupTab = (tabId: string) => {
   if (activeTabId.value === tabId) {
     return
   }
@@ -912,6 +910,7 @@ const restoreTabSettings = () => {
 
 watch(activeTab, async (newTab, oldTab) => {
   if (newTab?.id !== oldTab?.id) {
+    selectedGroupTreeNodeId.value = newTab?.type === 'GROUP' ? newTab.id : null
     selectedIds.value = []
     isToGroupModalOpen.value = false
     if (newTab) restoreTabSettings()
@@ -999,15 +998,12 @@ if (props.scope === 'project' && props.projectId) {
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
       :is-window-file-drag-active="isWindowFileDragActive"
-      :tab-breadcrumbs="activeGroupBreadcrumbs"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
-      @create-subgroup="openCreateSubgroupModal"
       @rename-tab="openRenameTabModal"
       @delete-tab="openDeleteTabModal"
       @toggle-sort-order="toggleSortOrder"
-      @select-breadcrumb-tab="handleSelectBreadcrumbTab"
     >
       <ContentLibraryTabs
         ref="contentLibraryTabsRef"
@@ -1019,65 +1015,117 @@ if (props.scope === 'project' && props.projectId) {
       />
     </ContentLibraryToolbar>
 
-      <!-- Items Grid -->
-      <div v-if="isLoading && items.length === 0" class="mt-6 flex justify-center py-8">
-        <UiLoadingSpinner />
+    <div class="mt-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
+      <div>
+        <!-- Items Grid -->
+        <div v-if="isLoading && items.length === 0" class="flex justify-center py-8">
+          <UiLoadingSpinner />
+        </div>
+
+        <div v-else class="space-y-4">
+          <CommonFoundCount :count="total" :show="q.length > 0 || selectedTags.length > 0" class="mb-2" />
+          <div v-if="error" class="mt-4 text-red-600 dark:text-red-400">
+            {{ error }}
+          </div>
+
+          <!-- Select All -->
+          <div v-if="items.length > 0" class="flex items-center justify-between gap-4 px-2">
+            <UCheckbox
+              :model-value="isAllSelected"
+              :indeterminate="isSomeSelected"
+              :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
+              @update:model-value="toggleSelectAll"
+            />
+
+            <div v-if="isUploadingFiles" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-primary-500 animate-spin" />
+              <span>{{ t('common.loading') }}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ContentItemCard
+              v-for="item in items"
+              :key="item.id"
+              :item="item"
+              :selected="selectedIds.includes(item.id)"
+              :is-archiving="isArchivingId === item.id"
+              :is-restoring="isRestoringId === item.id"
+              @click="openEditModal(item)"
+              @toggle-selection="toggleSelection"
+              @archive="archiveItem"
+              @restore="restoreItem"
+              @create-publication="handleCreatePublication"
+            />
+          </div>
+
+          <div v-if="items.length === 0" class="py-10 text-center text-gray-500 dark:text-gray-400">
+            {{ t('contentLibrary.empty', 'No items yet') }}
+          </div>
+
+          <div v-if="hasMore" class="pt-2 flex justify-center">
+            <UButton
+              :loading="isLoading"
+              variant="outline"
+              color="neutral"
+              icon="i-heroicons-arrow-down"
+              @click="loadMore"
+            >
+              {{ t('common.loadMore', 'Load more') }}
+            </UButton>
+          </div>
+        </div>
       </div>
 
-      <div v-else class="mt-6 space-y-4">
-        <CommonFoundCount :count="total" :show="q.length > 0 || selectedTags.length > 0" class="mb-2" />
-        <div v-if="error" class="mt-4 text-red-600 dark:text-red-400">
-          {{ error }}
-        </div>
-        
-        <!-- Select All -->
-        <div v-if="items.length > 0" class="flex items-center justify-between gap-4 px-2">
-          <UCheckbox
-            :model-value="isAllSelected"
-            :indeterminate="isSomeSelected"
-            :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
-            @update:model-value="toggleSelectAll"
-          />
+      <aside class="app-card-lg border border-gray-200/70 dark:border-gray-700/70 space-y-4">
+        <div class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+            {{ t('contentLibrary.groupsTree.title') }}
+          </h3>
 
-          <div v-if="isUploadingFiles" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-primary-500 animate-spin" />
-            <span>{{ t('common.loading') }}</span>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {{ t('contentLibrary.groupsTree.selectedParentHint', { title: selectedGroupTreeNodeId ? (tabs.find(tab => tab.id === selectedGroupTreeNodeId)?.title || '-') : t('contentLibrary.groupsTree.rootLabel') }) }}
+          </p>
+
+          <div class="flex items-center gap-2">
+            <UInput
+              v-model="sidebarGroupTitle"
+              class="flex-1"
+              :placeholder="t('contentLibrary.tabs.titlePlaceholder')"
+              @keydown.enter="handleCreateGroupFromSidebar"
+            />
+            <UButton
+              color="primary"
+              :loading="isCreatingSidebarGroup"
+              :disabled="!sidebarGroupTitle.trim()"
+              @click="handleCreateGroupFromSidebar"
+            >
+              {{ t('common.create') }}
+            </UButton>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :disabled="selectedGroupTreeNodeId === null"
+              @click="selectedGroupTreeNodeId = null"
+            >
+              {{ t('contentLibrary.groupsTree.createAtRoot') }}
+            </UButton>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ContentItemCard
-            v-for="item in items"
-            :key="item.id"
-            :item="item"
-            :selected="selectedIds.includes(item.id)"
-            :is-archiving="isArchivingId === item.id"
-            :is-restoring="isRestoringId === item.id"
-            @click="openEditModal(item)"
-            @toggle-selection="toggleSelection"
-            @archive="archiveItem"
-            @restore="restoreItem"
-            @create-publication="handleCreatePublication"
-          />
+        <div class="rounded-md border border-gray-200 dark:border-gray-800 p-3 max-h-128 overflow-auto">
+          <div v-if="sidebarGroupTreeItems.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+            {{ t('contentLibrary.groupsTree.empty') }}
+          </div>
+          <UTree v-else :items="sidebarGroupTreeItems" />
         </div>
+      </aside>
+    </div>
 
-        <div v-if="items.length === 0" class="py-10 text-center text-gray-500 dark:text-gray-400">
-          {{ t('contentLibrary.empty', 'No items yet') }}
-        </div>
-
-        <div v-if="hasMore" class="pt-2 flex justify-center">
-          <UButton
-            :loading="isLoading"
-            variant="outline"
-            color="neutral"
-            icon="i-heroicons-arrow-down"
-            @click="loadMore"
-          >
-            {{ t('common.loadMore', 'Load more') }}
-          </UButton>
-        </div>
-      </div>
-    
 
     <!-- Modals -->
     <UiConfirmModal
@@ -1292,26 +1340,6 @@ if (props.scope === 'project' && props.projectId) {
           @click="handleBulkToGroup"
         >
           {{ toGroupActionLabel }}
-        </UButton>
-      </template>
-    </AppModal>
-
-    <AppModal
-      v-model:open="isCreateSubgroupModalOpen"
-      :title="t('contentLibrary.tabs.createSubgroupTitle')"
-      :ui="{ content: 'w-full max-w-md' }"
-      @close="isCreateSubgroupModalOpen = false"
-    >
-      <UFormField :label="t('common.title')">
-        <UInput v-model="newSubgroupTitle" autofocus @keydown.enter="handleCreateSubgroup" />
-      </UFormField>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isCreateSubgroupModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton color="primary" :loading="isCreatingSubgroup" :disabled="!newSubgroupTitle.trim()" @click="handleCreateSubgroup">
-          {{ t('common.create') }}
         </UButton>
       </template>
     </AppModal>
