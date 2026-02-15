@@ -127,6 +127,10 @@ const isCreatingTreeGroup = ref(false)
 const isTreeDeleteConfirmModalOpen = ref(false)
 const treeDeleteTargetId = ref<string | null>(null)
 const isDeletingTreeGroup = ref(false)
+const isTreeRenameModalOpen = ref(false)
+const treeRenameTargetId = ref<string | null>(null)
+const treeRenameTitle = ref('')
+const isRenamingTreeGroup = ref(false)
 
 type GroupBulkMode = 'MOVE_TO_GROUP' | 'LINK_TO_GROUP'
 
@@ -505,6 +509,46 @@ const handleCreateGroupFromTreeModal = async () => {
   }
 }
 
+const openTreeRenameModal = (tabId: string) => {
+  const targetTab = tabsById.value.get(tabId)
+  if (!targetTab || targetTab.type !== 'GROUP' || !targetTab.parentId) {
+    return
+  }
+
+  treeRenameTargetId.value = tabId
+  treeRenameTitle.value = targetTab.title
+  isTreeRenameModalOpen.value = true
+}
+
+const handleRenameGroupFromTree = async () => {
+  const title = treeRenameTitle.value.trim()
+  if (!treeRenameTargetId.value || !title) {
+    return
+  }
+
+  isRenamingTreeGroup.value = true
+  try {
+    const updatedTab = await updateTab(treeRenameTargetId.value, {
+      scope: props.scope,
+      projectId: props.projectId,
+      title,
+    })
+
+    await contentLibraryTabsRef.value?.fetchTabs()
+    
+    // Update active tab if it matches renamed one
+    if (activeTabId.value === treeRenameTargetId.value) {
+      activeTab.value = updatedTab
+    }
+
+    isTreeRenameModalOpen.value = false
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename subgroup'), color: 'error' })
+  } finally {
+    isRenamingTreeGroup.value = false
+  }
+}
+
 const openTreeDeleteModal = (tabId: string) => {
   const targetTab = tabsById.value.get(tabId)
   if (!targetTab || targetTab.type !== 'GROUP' || !targetTab.parentId) {
@@ -563,6 +607,14 @@ const getGroupNodeMenuItems = (tabId: string) => {
       onSelect: () => openTreeCreateModal(tabId),
     },
   ]
+
+  if (targetTab?.parentId) {
+    menuItems.push({
+      label: t('common.rename'),
+      icon: 'i-heroicons-pencil-square',
+      onSelect: () => openTreeRenameModal(tabId),
+    })
+  }
 
   if (canDeleteTab(targetTab)) {
     menuItems.push({
@@ -1555,6 +1607,31 @@ if (props.scope === 'project' && props.projectId) {
           @click="handleCreateGroupFromTreeModal"
         >
           {{ t('common.create') }}
+        </UButton>
+      </template>
+    </AppModal>
+
+    <AppModal
+      v-model:open="isTreeRenameModalOpen"
+      :title="t('contentLibrary.tabs.renameTitle', 'Rename group')"
+      :ui="{ content: 'w-full max-w-md' }"
+      @close="isTreeRenameModalOpen = false"
+    >
+      <UFormField :label="t('common.title', 'Title')">
+        <UInput v-model="treeRenameTitle" autofocus @keydown.enter="handleRenameGroupFromTree" />
+      </UFormField>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isTreeRenameModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isRenamingTreeGroup"
+          :disabled="!treeRenameTitle.trim()"
+          @click="handleRenameGroupFromTree"
+        >
+          {{ t('common.save') }}
         </UButton>
       </template>
     </AppModal>
