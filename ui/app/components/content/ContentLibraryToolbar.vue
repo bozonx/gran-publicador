@@ -15,10 +15,11 @@ defineProps<{
   sortOrderLabel: string
   isWindowFileDragActive?: boolean
   canDeleteActiveTab?: boolean
+  userId?: string
 }>()
 
 const q = defineModel<string>('q')
-const selectedTags = defineModel<string[]>('selectedTags')
+const selectedTags = defineModel<string>('selectedTags')
 const sortBy = defineModel<string>('sortBy')
 const sortOrder = defineModel<'asc' | 'desc'>('sortOrder')
 
@@ -241,7 +242,14 @@ function onDrop(event: DragEvent) {
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <UInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" icon="i-heroicons-magnifying-glass" class="w-full" />
-          <USelectMenu v-model="selectedTags" :items="availableTags" multiple :placeholder="t('contentLibrary.filter.filterByTags')" class="w-full" icon="i-heroicons-tag" searchable />
+          <PublicationsTagsFilter
+            v-model="selectedTags"
+            :placeholder="t('contentLibrary.filter.filterByTags')"
+            :publication-tags="availableTags"
+            :project-id="projectId"
+            :user-id="userId"
+            class="w-full"
+          />
           <div class="flex items-center gap-2">
             <USelectMenu v-model="sortBy" :items="sortOptions" value-key="id" label-key="label" class="flex-1" :searchable="false">
               <template #leading>

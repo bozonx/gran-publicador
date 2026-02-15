@@ -50,7 +50,7 @@ const total = ref(0)
 const totalUnfiltered = ref(0)
 const items = ref<any[]>([])
 const availableTags = ref<string[]>([])
-const selectedTags = ref<string[]>([])
+const selectedTags = ref<string>('')
 
 const sortBy = ref<'createdAt' | 'title'>('createdAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
@@ -644,7 +644,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
           offset: offset.value,
           sortBy: sortBy.value,
           sortOrder: sortOrder.value,
-          tags: selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
+          tags: selectedTags.value || undefined,
         },
       }),
       api.get<any>('/content-library/items', {
@@ -1210,7 +1210,7 @@ const restoreTabSettings = () => {
   const configSource = resolveTabForConfigPersistence() ?? activeTab.value
   const config = (configSource.config as any) || {}
   q.value = activeTab.value.type === 'SAVED_VIEW' ? (config.search || '') : ''
-  selectedTags.value = activeTab.value.type === 'SAVED_VIEW' ? (config.tags || []) : []
+  selectedTags.value = activeTab.value.type === 'SAVED_VIEW' ? (config.tags || '') : ''
   if (config.sortBy) sortBy.value = config.sortBy
   if (config.sortOrder) sortOrder.value = config.sortOrder
   setTimeout(() => { isRestoringConfig.value = false }, 100)
@@ -1271,7 +1271,7 @@ watch(activeTab, async (newTab, oldTab) => {
     }
     else {
       q.value = ''
-      selectedTags.value = []
+      selectedTags.value = ''
       sortBy.value = 'createdAt'
       sortOrder.value = 'desc'
     }
@@ -1320,7 +1320,7 @@ watch(() => props.projectId, (newVal) => {
 })
 
 watch(() => props.scope, () => {
-  selectedTags.value = []
+  selectedTags.value = ''
   fetchAvailableTags()
   fetchItems({ reset: true })
 })
@@ -1354,6 +1354,7 @@ if (props.scope === 'project' && props.projectId) {
       :sort-order-label="sortOrderLabel"
       :is-window-file-drag-active="isWindowFileDragActive"
       :can-delete-active-tab="canDeleteActiveTab"
+      :user-id="useAuth()?.user?.value?.id"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
