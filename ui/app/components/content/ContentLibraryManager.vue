@@ -1079,6 +1079,28 @@ const handleCloseModal = async () => {
 
 const isRestoringConfig = ref(false)
 
+const getGroupRootTabId = (tab: ContentLibraryTab): string => {
+  let cursor: ContentLibraryTab | undefined = tab
+  const visited = new Set<string>()
+
+  while (cursor?.type === 'GROUP' && cursor.parentId && !visited.has(cursor.id)) {
+    visited.add(cursor.id)
+    const parent = tabsById.value.get(cursor.parentId)
+    if (!parent || parent.type !== 'GROUP') {
+      break
+    }
+    cursor = parent
+  }
+
+  return cursor?.id ?? tab.id
+}
+
+const isRestoringGroupSelection = ref(false)
+
+const getGroupSelectionStorageKey = (rootGroupId: string) => {
+  return `content-library-last-group-${props.scope}-${props.projectId || 'global'}-${rootGroupId}`
+}
+
 const buildTabConfig = () => {
   if (!activeTab.value) {
     return {}
@@ -1100,47 +1122,75 @@ const buildTabConfig = () => {
   return baseConfig
 }
 
+const resolveTabForConfigPersistence = (): ContentLibraryTab | null => {
+  if (!activeTab.value) {
+    return null
+  }
+
+  if (activeTab.value.type !== 'GROUP') {
+    return activeTab.value
+  }
+
+  const rootId = getGroupRootTabId(activeTab.value)
+  return tabsById.value.get(rootId) ?? activeTab.value
+}
+
 const persistActiveTabConfig = async () => {
-  if (!activeTab.value || isRestoringConfig.value) {
+  const persistenceTab = resolveTabForConfigPersistence()
+  if (!persistenceTab || isRestoringConfig.value) {
     return
   }
 
   const nextConfig = buildTabConfig()
-  const currentConfig = activeTab.value.config || {}
+  const currentConfig = persistenceTab.config || {}
   if (JSON.stringify(currentConfig) === JSON.stringify(nextConfig)) {
     return
   }
 
   try {
-    const activeTabIdToUpdate = activeTab.value.id
-    await updateTab(activeTab.value.id, {
+    const tabIdToUpdate = persistenceTab.id
+    await updateTab(tabIdToUpdate, {
       scope: props.scope,
       projectId: props.projectId,
       config: nextConfig,
     })
-    activeTab.value = {
-      ...activeTab.value,
-      config: nextConfig,
+    if (activeTab.value?.id === tabIdToUpdate) {
+      activeTab.value = {
+        ...activeTab.value,
+        config: nextConfig,
+      }
     }
 
-    tabs.value = tabs.value.map((tab) => (
-      tab.id === activeTabIdToUpdate
+    tabs.value = tabs.value.map((tab) =>
+      tab.id === tabIdToUpdate
         ? { ...tab, config: nextConfig }
-        : tab
-    ))
+        : tab,
+    )
 
     const tabsComponentTabs = contentLibraryTabsRef.value?.tabs
     if (tabsComponentTabs?.value && Array.isArray(tabsComponentTabs.value)) {
       tabsComponentTabs.value = tabsComponentTabs.value.map((tab: ContentLibraryTab) => (
-        tab.id === activeTabIdToUpdate
+        tab.id === tabIdToUpdate
           ? { ...tab, config: nextConfig }
           : tab
       ))
     }
-  } catch {
-    // Ignore persistence errors to keep browsing uninterrupted
+  } catch (e: any) {
+    console.warn('Failed to persist content library tab config', e)
+
+    const now = Date.now()
+    if (!lastConfigPersistToastAt.value || now - lastConfigPersistToastAt.value > 5000) {
+      lastConfigPersistToastAt.value = now
+      toast.add({
+        title: t('common.error'),
+        description: getApiErrorMessage(e, 'Failed to save tab settings'),
+        color: 'error',
+      })
+    }
   }
 }
+
+const lastConfigPersistToastAt = ref<number | null>(null)
 
 const handleActiveTabUpdate = async (nextTab: ContentLibraryTab | null) => {
   if (activeTab.value?.id !== nextTab?.id) {
@@ -1155,7 +1205,8 @@ const debouncedPersistActiveTabConfig = useDebounceFn(persistActiveTabConfig, 35
 const restoreTabSettings = () => {
   if (!activeTab.value) return
   isRestoringConfig.value = true
-  const config = activeTab.value.config as any || {}
+  const configSource = resolveTabForConfigPersistence() ?? activeTab.value
+  const config = (configSource.config as any) || {}
   q.value = activeTab.value.type === 'SAVED_VIEW' ? (config.search || '') : ''
   selectedTags.value = activeTab.value.type === 'SAVED_VIEW' ? (config.tags || []) : []
   if (config.sortBy) sortBy.value = config.sortBy
@@ -1163,12 +1214,59 @@ const restoreTabSettings = () => {
   setTimeout(() => { isRestoringConfig.value = false }, 100)
 }
 
+const persistLastSelectedGroupNode = (tab: ContentLibraryTab) => {
+  if (tab.type !== 'GROUP') {
+    return
+  }
+
+  const rootId = getGroupRootTabId(tab)
+  localStorage.setItem(getGroupSelectionStorageKey(rootId), tab.id)
+}
+
+const restoreLastSelectedGroupNode = (rootTab: ContentLibraryTab) => {
+  if (rootTab.type !== 'GROUP') {
+    return
+  }
+
+  const rootId = getGroupRootTabId(rootTab)
+  const savedId = localStorage.getItem(getGroupSelectionStorageKey(rootId))
+  if (!savedId || savedId === rootTab.id) {
+    return
+  }
+
+  const savedTab = tabsById.value.get(savedId)
+  if (!savedTab || savedTab.type !== 'GROUP') {
+    return
+  }
+
+  isRestoringGroupSelection.value = true
+  selectedGroupTreeNodeId.value = savedTab.id
+  activeTabId.value = savedTab.id
+  activeTab.value = savedTab
+  setTimeout(() => { isRestoringGroupSelection.value = false }, 50)
+}
+
 watch(activeTab, async (newTab, oldTab) => {
   if (newTab?.id !== oldTab?.id) {
-    selectedGroupTreeNodeId.value = newTab?.type === 'GROUP' ? newTab.id : null
+    if (!isRestoringGroupSelection.value) {
+      selectedGroupTreeNodeId.value = newTab?.type === 'GROUP' ? newTab.id : null
+    }
     selectedIds.value = []
     isToGroupModalOpen.value = false
-    if (newTab) restoreTabSettings()
+    if (newTab) {
+      if (newTab.type === 'GROUP') {
+        if (!isRestoringGroupSelection.value && !newTab.parentId) {
+          restoreLastSelectedGroupNode(newTab)
+          return
+        }
+
+        if (newTab.parentId) {
+          persistLastSelectedGroupNode(newTab)
+        }
+      }
+
+      restoreTabSettings()
+    }
     else {
       q.value = ''
       selectedTags.value = []
