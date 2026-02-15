@@ -38,8 +38,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const isDropZoneActiveLocal = ref(false)
 const dragDepth = ref(0)
 
-const isDropZoneActive = computed(() => isDropZoneActiveLocal.value || Boolean(props.isWindowFileDragActive))
-
 function isFileDrag(event: DragEvent): boolean {
   return event.dataTransfer?.types?.includes('Files') ?? false
 }
@@ -157,24 +155,37 @@ function onDrop(event: DragEvent) {
 
     <!-- Toolbar Card -->
     <div
-      class="relative overflow-hidden app-card-lg space-y-4 border border-gray-200/70 dark:border-gray-700/70 transition-all duration-200"
-      :class="isDropZoneActive
-        ? 'ring-2 ring-primary-500/70 border-primary-400 bg-linear-to-br from-primary-50/90 via-primary-100/40 to-emerald-50/30 dark:from-primary-900/30 dark:via-primary-900/15 dark:to-emerald-900/10 shadow-lg shadow-primary-500/20 scale-[1.01]'
-        : ''"
+      class="relative overflow-hidden app-card-lg space-y-4 border transition-all duration-300"
+      :class="[
+        isDropZoneActiveLocal
+          ? 'ring-2 ring-primary-500/70 border-primary-400 bg-linear-to-br from-primary-50/90 via-primary-100/40 to-emerald-50/30 dark:from-primary-900/30 dark:via-primary-900/15 dark:to-emerald-900/10 shadow-lg shadow-primary-500/20 scale-[1.01]'
+          : isWindowFileDragActive
+            ? 'border-primary-400/50 border-dashed bg-primary-50/20 dark:bg-primary-900/10 shadow-md ring-2 ring-primary-500/10'
+            : 'border-gray-200/70 dark:border-gray-700/70'
+      ]"
       @dragenter="onDragEnter"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
       @drop="onDrop"
     >
-      <div
-        v-if="isDropZoneActive"
-        class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
       >
-        <div class="inline-flex items-center gap-2 rounded-xl border border-primary-400/70 bg-white/90 dark:bg-gray-900/85 px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 shadow-md">
-          <UIcon name="i-heroicons-arrow-up-tray" class="w-4 h-4" />
-          <span>{{ t('media.dropHere') }}</span>
+        <div
+          v-if="isDropZoneActiveLocal"
+          class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/10 dark:bg-black/10 backdrop-blur-[1px]"
+        >
+          <div class="inline-flex items-center gap-2 rounded-xl border border-primary-400/70 bg-white/95 dark:bg-gray-900/90 px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 shadow-xl ring-4 ring-primary-500/10">
+            <UIcon name="i-heroicons-arrow-up-tray" class="w-5 h-5 animate-bounce" />
+            <span>{{ t('media.dropHere') }}</span>
+          </div>
         </div>
-      </div>
+      </Transition>
 
       <input
         ref="fileInputRef"
