@@ -225,19 +225,6 @@ function onDrop(event: DragEvent) {
               <CommonInfoTooltip :text="t('contentLibrary.actions.uploadMediaTooltip')" />
             </template>
           </div>
-
-          <div class="flex items-center gap-2">
-            <template v-if="activeTab">
-              <UButton color="neutral" variant="ghost" size="sm" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
-                {{ t('common.rename') }}
-              </UButton>
-              <UButton v-if="canDeleteActiveTab !== false" color="error" variant="ghost" size="sm" icon="i-heroicons-trash" @click="emit('delete-tab')">
-                {{ t('common.delete') }}
-              </UButton>
-            </template>
-            <div v-if="activeTab" class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
-            <CommonInfoTooltip :text="t('contentLibrary.actions.groupsInfoTooltip')" />
-          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -257,6 +244,23 @@ function onDrop(event: DragEvent) {
               </template>
             </USelectMenu>
             <UButton :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
+          </div>
+        </div>
+
+        <!-- Footer: Info & Actions -->
+        <div v-if="activeTab" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+          <div class="flex items-center gap-2 px-1 text-sm text-gray-500">
+             <UIcon name="i-heroicons-bell" class="w-5 h-5 text-gray-400" />
+             <span class="max-md:hidden">{{ t('contentLibrary.actions.groupsInfoTooltip') }}</span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
+              {{ t('common.rename') }}
+            </UButton>
+            <UButton v-if="canDeleteActiveTab !== false" color="error" variant="ghost" icon="i-heroicons-trash" @click="emit('delete-tab')">
+              {{ t('common.delete') }}
+            </UButton>
           </div>
         </div>
       </div>

@@ -173,10 +173,6 @@ const canDeleteTab = (tab: ContentLibraryTab | null | undefined) => {
     return false
   }
 
-  if (tab.type === 'GROUP' && !tab.parentId) {
-    return false
-  }
-
   return true
 }
 

@@ -1723,27 +1723,42 @@ export class ContentLibraryService {
       requireMutationPermission: true,
     });
 
-    if ((tab.type as any) === 'GROUP' && tab.parentId == null) {
-      throw new BadRequestException('Root group cannot be deleted');
-    }
-
     if ((tab.type as any) !== 'GROUP') {
       return this.prisma.contentLibraryTab.delete({ where: { id: tabId } });
     }
 
     return this.prisma.$transaction(async tx => {
-      // Move items from removed group to root.
+      // Find all descendant groups recursively to delete them as well
+      const allIdsToDelete = [tabId];
+      let currentParentIds = [tabId];
+
+      while (currentParentIds.length > 0) {
+        const children = await tx.contentLibraryTab.findMany({
+          where: { parentId: { in: currentParentIds } },
+          select: { id: true },
+        });
+
+        if (children.length === 0) break;
+
+        const childIds = children.map(c => c.id);
+        allIdsToDelete.push(...childIds);
+        currentParentIds = childIds;
+      }
+
+      // Move items from all groups being deleted to root.
       await tx.contentItem.updateMany({
-        where: { groupId: tabId },
+        where: { groupId: { in: allIdsToDelete } },
         data: { groupId: null },
       });
 
-      // Remove all group relations to the deleted group.
+      // Remove all group relations for the deleted groups.
       await (tx as any).contentItemGroup.deleteMany({
-        where: { tabId },
+        where: { tabId: { in: allIdsToDelete } },
       });
 
-      return tx.contentLibraryTab.delete({ where: { id: tabId } });
+      return tx.contentLibraryTab.deleteMany({
+        where: { id: { in: allIdsToDelete } },
+      });
     });
   }
 
