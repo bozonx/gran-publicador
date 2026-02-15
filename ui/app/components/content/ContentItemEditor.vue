@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { ref, toRef, watch } from 'vue'
-import { VueDraggable } from 'vue-draggable-plus'
 import { normalizeTags } from '~/utils/tags'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
-import ContentBlockEditor from '~/components/forms/content/ContentBlockEditor.vue'
 
-interface ContentBlock {
+interface ContentItemMediaLink {
   id?: string
-  text?: string | null
-  order: number
-  meta?: Record<string, unknown>
-  media?: any[]
+  mediaId?: string
+  order?: number
+  hasSpoiler?: boolean
+  media?: any
 }
 
 interface ContentItem {
@@ -18,7 +16,9 @@ interface ContentItem {
   title: string | null
   note: string | null
   tags: string[]
-  blocks: ContentBlock[]
+  text?: string | null
+  meta?: Record<string, unknown>
+  media?: ContentItemMediaLink[]
 }
 
 const props = defineProps<{
@@ -46,12 +46,10 @@ const editForm = ref({
   title: props.item.title || '',
   tags: normalizeTags(props.item.tags || []),
   note: props.item.note || '',
-  blocks: JSON.parse(JSON.stringify(props.item.blocks || [])).sort((a: any, b: any) => a.order - b.order),
+  text: props.item.text || '',
+  meta: JSON.parse(JSON.stringify(props.item.meta || {})),
+  media: JSON.parse(JSON.stringify(props.item.media || [])).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)),
 })
-
-if (editForm.value.blocks.length === 0) {
-  editForm.value.blocks.push({ text: '', order: 0, media: [] })
-}
 
 const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: toRef(() => editForm.value),
@@ -64,61 +62,51 @@ const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, r
 })
 
 const saveItem = async (formData: typeof editForm.value) => {
-  // Atomic update of both item meta and its blocks
+  // Atomic update of item meta and content
   await api.post(`/content-library/items/${formData.id}/sync`, {
     title: formData.title || null,
     tags: formData.tags,
     note: formData.note || null,
-    blocks: formData.blocks.map((b: ContentBlock, i: number) => ({
-      id: b.id,
-      text: b.text?.trim() || '',
-      order: i,
-      mediaIds: (b.media || []).map((m: any) => m.mediaId || m.id)
-    }))
+    text: formData.text?.trim() || '',
+    meta: formData.meta || {},
+    media: (formData.media || []).map((m: any, idx: number) => ({
+      mediaId: m.mediaId || m.id,
+      hasSpoiler: m.hasSpoiler ? true : undefined,
+      order: idx,
+    })),
   })
 }
 
-const addBlock = () => {
-  editForm.value.blocks.push({ text: '', order: editForm.value.blocks.length, media: [] })
-}
-
-const removeBlock = (index: number) => {
-  editForm.value.blocks.splice(index, 1)
-}
-
-const handleReorder = () => {
-  editForm.value.blocks.forEach((b: ContentBlock, i: number) => { b.order = i })
-}
-
-const detachBlock = async (index: number) => {
-  const block = editForm.value.blocks[index]
-  if (!block || !block.id) return
-  try {
-    await api.post(`/content-library/items/${editForm.value.id}/blocks/${block.id}/detach`)
-    editForm.value.blocks.splice(index, 1)
-    toast.add({ title: t('common.success'), color: 'success' })
-    emit('refresh')
-  } catch (e: any) {
-    toast.add({
-      title: t('common.error'),
-      description: getApiErrorMessage(e, 'Failed to detach block'),
-      color: 'error'
-    })
+async function onAddMedia(media: any[]) {
+  const current = editForm.value.media || []
+  const next = current.slice()
+  for (const item of media) {
+    const mediaId = item?.id
+    if (!mediaId) continue
+    if (next.some((x: any) => (x.mediaId || x.id) === mediaId)) continue
+    next.push({ mediaId, hasSpoiler: item.hasSpoiler ? true : undefined, order: next.length })
   }
+  editForm.value.media = next
 }
 
-const refreshActiveItem = async () => {
-  try {
-    const item = await api.get<ContentItem>(`/content-library/items/${editForm.value.id}`)
-    editForm.value.blocks.forEach((localBlock: ContentBlock) => {
-      if (!localBlock.id) return
-      const freshBlock = item.blocks?.find((b: ContentBlock) => b.id === localBlock.id)
-      if (freshBlock) localBlock.media = freshBlock.media
-    })
-    emit('refresh')
-  } catch (e) {
-    console.error('Failed to refresh item', e)
-  }
+async function onReorderMedia(reorderData: any[]) {
+  editForm.value.media = (reorderData || []).map((x: any, idx: number) => ({ ...x, order: idx }))
+}
+
+async function onUpdateLinkMedia(_mediaLinkId: string, data: any) {
+  const mediaId = data?.mediaId || data?.id
+  if (!mediaId) return
+  editForm.value.media = (editForm.value.media || []).map((m: any) =>
+    (m.mediaId || m.id) === mediaId ? { ...m, ...data } : m,
+  )
+}
+
+async function onCopyMedia(_mediaLinkId: string) {
+  toast.add({
+    title: t('common.error'),
+    description: t('common.saveError'),
+    color: 'error'
+  })
 }
 
 defineExpose({
@@ -128,43 +116,32 @@ defineExpose({
 
 <template>
   <div class="space-y-6">
-    <!-- Blocks Section -->
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <UIcon name="i-heroicons-paper-clip" class="w-4 h-4" />
-          {{ t('contentLibrary.sections.blocks') }}
-        </h3>
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="outline"
-          icon="i-heroicons-plus"
-          @click="addBlock()"
-        >
-          {{ t('contentLibrary.actions.addBlock') }}
-        </UButton>
-      </div>
+    <UFormField :label="t('contentLibrary.fields.text')" class="w-full">
+      <EditorTiptapEditor
+        :model-value="editForm.text"
+        :placeholder="t('contentLibrary.fields.textPlaceholder')"
+        :min-height="150"
+        @update:model-value="(v: any) => (editForm.text = v)"
+      />
+    </UFormField>
 
-      <VueDraggable
-        v-model="editForm.blocks"
-        handle=".drag-handle"
-        class="space-y-3"
-        @end="handleReorder"
-      >
-        <div v-for="(block, index) in editForm.blocks" :key="block.id || index">
-          <ContentBlockEditor
-            :model-value="editForm.blocks[index]!"
-            :index="index"
-            :content-item-id="editForm.id"
-            :show-detach="editForm.blocks.length > 1"
-            @update:model-value="editForm.blocks[index] = $event"
-            @remove="removeBlock(index)"
-            @detach="detachBlock(index)"
-            @refresh="refreshActiveItem"
-          />
-        </div>
-      </VueDraggable>
+    <div class="pt-2">
+      <MediaGallery
+        :media="editForm.media || []"
+        :editable="true"
+        :on-add="onAddMedia"
+        :on-reorder="onReorderMedia"
+        :on-update-link="onUpdateLinkMedia"
+        :on-copy="onCopyMedia"
+      />
+    </div>
+
+    <div class="mt-2">
+      <CommonMetadataEditor
+        :model-value="editForm.meta || {}"
+        :label="t('common.meta')"
+        @update:model-value="(newMeta: any) => (editForm.meta = newMeta)"
+      />
     </div>
 
     <!-- Title Field -->

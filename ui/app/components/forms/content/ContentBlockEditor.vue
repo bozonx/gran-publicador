@@ -119,6 +119,12 @@ const toggleCollapse = () => {
 
 <template>
   <div class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm transition-all">
+    <div class="p-4 text-sm text-gray-600 dark:text-gray-300">
+      {{ t('common.error') }}
+    </div>
+  </div>
+
+  <div v-if="false" class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm transition-all">
     <!-- Header/Handle -->
     <div 
       class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 cursor-move border-b border-gray-200 dark:border-gray-800"
@@ -129,7 +135,7 @@ const toggleCollapse = () => {
         <span class="font-medium text-sm text-gray-700 dark:text-gray-300 truncate">
           {{ t('contentLibrary.block', { index: index + 1 }) }}
           <span v-if="props.modelValue.text" class="ml-2 font-normal text-gray-400 dark:text-gray-500 italic">
-            - {{ props.modelValue.text.slice(0, 40) }}{{ props.modelValue.text.length > 40 ? '...' : '' }}
+            - {{ (props.modelValue.text ?? '').slice(0, 40) }}{{ (props.modelValue.text ?? '').length > 40 ? '...' : '' }}
           </span>
         </span>
       </div>

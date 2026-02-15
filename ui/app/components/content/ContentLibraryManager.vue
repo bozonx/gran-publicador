@@ -410,7 +410,9 @@ const uploadContentFiles = async (files: File[]) => {
             projectId: props.scope === 'project' ? props.projectId : undefined,
             groupId: targetGroupId,
             title: file.name,
-            blocks: [{ text, order: 0, meta: {}, media: [] }]
+            text,
+            meta: {},
+            media: [],
           })
         } else {
           const media = await uploadMedia(
@@ -425,7 +427,9 @@ const uploadContentFiles = async (files: File[]) => {
             projectId: props.scope === 'project' ? props.projectId : undefined,
             groupId: targetGroupId,
             title: file.name,
-            blocks: [{ text: '', order: 0, meta: {}, media: [{ mediaId: media.id, order: 0, hasSpoiler: false }] }]
+            text: '',
+            meta: {},
+            media: [{ mediaId: media.id, order: 0, hasSpoiler: false }],
           })
         }
 
@@ -792,7 +796,9 @@ const createAndEdit = async () => {
     const payload: any = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
       groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
-      blocks: [{ text: '', order: 0, media: [] }]
+      text: '',
+      meta: {},
+      media: [],
     }
     if (props.scope === 'project') payload.projectId = props.projectId
     const res = await api.post<any>('/content-library/items', payload)
@@ -1082,13 +1088,13 @@ const handleMerge = () => {
 }
 
 const handleCreatePublication = (item: any) => {
-  const texts = (item.blocks || []).map((b: any) => sanitizeContentPreserveMarkdown(b.text || '').trim()).filter(Boolean)
+  const text = sanitizeContentPreserveMarkdown(item.text || '').trim()
   createPublicationModalProjectId.value = props.scope === 'project' ? props.projectId : undefined
   createPublicationModalAllowProjectSelection.value = props.scope === 'personal'
   publicationData.value = {
     title: (item.title || '').toString().trim(),
-    content: texts.join('\n\n'),
-    mediaIds: (item.blocks || []).flatMap((b: any) => (b.media || []).map((m: any) => ({ id: m.mediaId }))).filter((m: any) => !!m.id),
+    content: text,
+    mediaIds: (item.media || []).map((m: any) => ({ id: m.mediaId || m.id })).filter((m: any) => !!m.id),
     tags: item.tags || [],
     note: item.note || '',
     contentItemIds: [item.id]

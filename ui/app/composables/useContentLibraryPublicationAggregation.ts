@@ -13,12 +13,8 @@ export interface ContentLibraryValidationLimits {
 }
 
 function isItemEmptyForPublication(item: any): boolean {
-  const hasAnyText = (item.blocks || []).some(
-    (b: any) => stripHtmlAndSpecialChars(b.text || '').trim().length > 0,
-  );
-  const hasAnyMedia = (item.blocks || []).some((b: any) =>
-    (b.media || []).some((m: any) => !!m.mediaId),
-  );
+  const hasAnyText = stripHtmlAndSpecialChars(item.text || '').trim().length > 0;
+  const hasAnyMedia = (item.media || []).some((m: any) => !!(m.mediaId || m.id));
   const hasAnyNote = stripHtmlAndSpecialChars(item.note || '').trim().length > 0;
   const hasAnyTitle = (item.title || '').toString().trim().length > 0;
 
@@ -56,11 +52,12 @@ export function aggregateSelectedItemsToPublicationOrThrow(
   const noteParts: string[] = [];
   const allTags: string[] = [];
 
-  // mediaId -> chosen media input (chosen from the latest block.order)
+  // mediaId -> chosen media input (first-seen order)
   const mediaPick = new Map<
     string,
-    { input: { id: string; hasSpoiler?: boolean }; blockOrder: number }
+    { input: { id: string; hasSpoiler?: boolean }; seenAt: number }
   >();
+  let seenCounter = 0;
 
   const projectIds = new Set<string>();
 
@@ -77,26 +74,19 @@ export function aggregateSelectedItemsToPublicationOrThrow(
       if (typeof tag === 'string') allTags.push(tag);
     }
 
-    const sortedBlocks = (item.blocks || [])
+    const itemText = sanitizeContentPreserveMarkdown(item.text || '').trim();
+    if (itemText) contentParts.push(itemText);
+
+    const sortedMedia = (item.media || [])
       .slice()
       .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
-    for (const block of sortedBlocks) {
-      const blockText = sanitizeContentPreserveMarkdown(block.text || '').trim();
-      if (blockText) contentParts.push(blockText);
+    for (const link of sortedMedia) {
+      const mediaId = link?.mediaId || link?.id;
+      if (!mediaId) continue;
 
-      const blockOrder = Number(block.order ?? 0);
-      const sortedMedia = (block.media || [])
-        .slice()
-        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
-      for (const link of sortedMedia) {
-        const mediaId = link?.mediaId;
-        if (!mediaId) continue;
-
-        const candidate = { id: mediaId, hasSpoiler: link.hasSpoiler ? true : undefined };
-        const prev = mediaPick.get(mediaId);
-        if (!prev || blockOrder >= prev.blockOrder) {
-          mediaPick.set(mediaId, { input: candidate, blockOrder });
-        }
+      const candidate = { id: mediaId, hasSpoiler: link.hasSpoiler ? true : undefined };
+      if (!mediaPick.has(mediaId)) {
+        mediaPick.set(mediaId, { input: candidate, seenAt: seenCounter++ });
       }
     }
   }
@@ -108,7 +98,7 @@ export function aggregateSelectedItemsToPublicationOrThrow(
   const tags = normalizePublicationTags(allTags, limits.MAX_TAGS_COUNT);
 
   const media = Array.from(mediaPick.values())
-    .sort((a, b) => a.blockOrder - b.blockOrder)
+    .sort((a, b) => a.seenAt - b.seenAt)
     .map(x => x.input);
 
   if (title.length > limits.MAX_TITLE_LENGTH) {

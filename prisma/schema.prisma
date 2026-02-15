@@ -350,6 +350,9 @@ model ContentItem {
   title     String?
   note      String?
 
+  text      String?  @db.Text
+  meta      Json     @default("{}")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   archivedAt DateTime? @map("archived_at")
@@ -359,7 +362,7 @@ model ContentItem {
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   group   ContentLibraryTab? @relation("ContentItemPrimaryGroup", fields: [groupId], references: [id], onDelete: SetNull)
 
-  blocks ContentBlock[]
+  media ContentItemMedia[]
   groups ContentItemGroup[]
   publications PublicationContentItem[]
   tagObjects   Tag[]
@@ -386,36 +389,20 @@ model ContentItemGroup {
   @@map("content_item_groups")
 }
 
-model ContentBlock {
+model ContentItemMedia {
   id            String   @id @default(uuid())
   contentItemId String   @map("content_item_id")
-  text          String?  @db.Text
+  mediaId       String   @map("media_id")
   order         Int      @default(0)
-  meta          Json
+  hasSpoiler    Boolean  @default(false) @map("has_spoiler")
   createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  contentItem ContentItem        @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-  media      ContentBlockMedia[]
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  media       Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@index([contentItemId])
-  @@map("content_blocks")
-}
-
-model ContentBlockMedia {
-  id             String   @id @default(uuid())
-  contentBlockId String   @map("content_block_id")
-  mediaId        String   @map("media_id")
-  order          Int      @default(0)
-  hasSpoiler     Boolean  @default(false) @map("has_spoiler")
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  contentBlock ContentBlock @relation(fields: [contentBlockId], references: [id], onDelete: Cascade)
-  media        Media        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-
-  @@index([contentBlockId])
   @@index([mediaId])
-  @@map("content_block_media")
+  @@map("content_item_media")
 }
 
 model PublicationContentItem {
@@ -529,7 +516,7 @@ model Media {
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   publicationMedia PublicationMedia[]
-  contentBlockMedia ContentBlockMedia[]
+  contentItemMedia ContentItemMedia[]
 
   @@index([type])
   @@index([storageType])

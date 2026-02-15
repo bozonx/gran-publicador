@@ -929,13 +929,9 @@ export class MediaService {
         publicationMedia: {
           include: { publication: { select: { projectId: true, createdBy: true } } },
         },
-        contentBlockMedia: {
+        contentItemMedia: {
           include: {
-            contentBlock: {
-              include: {
-                contentItem: { select: { projectId: true, userId: true } },
-              },
-            },
+            contentItem: { select: { projectId: true, userId: true } },
           },
         },
       },
@@ -948,7 +944,7 @@ export class MediaService {
     // For now, if it's not attached to anything, we allow access if the user is authenticated (which they are if they reached here).
     if (
       (!media.publicationMedia || media.publicationMedia.length === 0) &&
-      (!media.contentBlockMedia || media.contentBlockMedia.length === 0)
+      (!media.contentItemMedia || media.contentItemMedia.length === 0)
     ) {
       return;
     }
@@ -969,8 +965,8 @@ export class MediaService {
     }
 
     // Check content library associations
-    for (const cbm of media.contentBlockMedia) {
-      const item = cbm.contentBlock.contentItem;
+    for (const cim of media.contentItemMedia) {
+      const item = cim.contentItem;
       if (item.projectId) {
         try {
           await this.permissions.checkProjectAccess(item.projectId, userId);

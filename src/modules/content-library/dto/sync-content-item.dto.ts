@@ -1,35 +1,20 @@
-import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsInt,
   IsOptional,
   IsString,
   IsUUID,
-  ValidateNested,
   MaxLength,
   ArrayMaxSize,
+  IsObject,
 } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
-class SyncContentBlockItemDto {
-  @IsOptional()
+class ContentItemMediaInputDto {
   @IsUUID()
-  id?: string;
+  public mediaId!: string;
 
   @IsOptional()
-  @IsString()
-  text?: string;
-
-  @IsInt()
-  order!: number;
-
-  @IsOptional()
-  meta?: Record<string, any>;
-
-  @IsOptional()
-  @IsArray()
-  @IsUUID('all', { each: true })
-  mediaIds?: string[];
+  public hasSpoiler?: boolean;
 }
 
 export class SyncContentItemDto {
@@ -50,8 +35,23 @@ export class SyncContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   note?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
+  text?: string;
+
+  @IsObject()
+  @IsOptional()
+  meta?: Record<string, any>;
+
+  @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SyncContentBlockItemDto)
-  blocks!: SyncContentBlockItemDto[];
+  @IsUUID('all', { each: true })
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
+  mediaIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
+  media?: ContentItemMediaInputDto[];
 }

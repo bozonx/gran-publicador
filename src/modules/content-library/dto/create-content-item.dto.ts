@@ -8,11 +8,19 @@ import {
   IsString,
   IsUUID,
   MaxLength,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
-import { ContentBlockDto } from './content-block.dto.js';
+
+class ContentItemMediaInputDto {
+  @IsUUID()
+  public mediaId!: string;
+
+  @IsOptional()
+  public hasSpoiler?: boolean;
+
+  @IsOptional()
+  public order?: number;
+}
 
 export class CreateContentItemDto {
   @IsIn(['personal', 'project'])
@@ -44,10 +52,17 @@ export class CreateContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ContentBlockDto)
   @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_SOURCE_TEXTS)
-  public blocks?: ContentBlockDto[];
+  @IsString()
+  @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
+  public text?: string;
+
+  @IsObject()
+  @IsOptional()
+  public meta?: Record<string, any>;
+
+  @IsArray()
+  @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
+  public media?: ContentItemMediaInputDto[];
 }

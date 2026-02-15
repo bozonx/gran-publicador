@@ -84,19 +84,16 @@ async function handleArchive(item: any) {
 }
 
 function handleCreatePublication(item: any) {
-  const texts = (item.blocks || [])
-    .map((b: any) => sanitizeContentPreserveMarkdown(b.text || '').trim())
-    .filter(Boolean)
+  const text = sanitizeContentPreserveMarkdown(item.text || '').trim()
   
   createPublicationModalProjectId.value = undefined
   createPublicationModalAllowProjectSelection.value = true
   
   publicationData.value = {
     title: (item.title || '').toString().trim(),
-    content: texts.join('\n\n'),
-    mediaIds: (item.blocks || [])
-      .flatMap((b: any) => (b.media || [])
-      .map((m: any) => ({ id: m.mediaId })))
+    content: text,
+    mediaIds: (item.media || [])
+      .map((m: any) => ({ id: m.mediaId || m.id }))
       .filter((m: any) => !!m.id),
     tags: item.tags || [],
     note: item.note || '',

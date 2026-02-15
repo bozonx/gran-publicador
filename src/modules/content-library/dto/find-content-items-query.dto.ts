@@ -70,7 +70,7 @@ export class FindContentItemsQueryDto {
     if (typeof value === 'string') return value.toLowerCase() === 'true';
     return Boolean(value);
   })
-  public includeBlocks?: boolean;
+  public includeMedia?: boolean;
 
   @IsString({ each: true })
   @IsOptional()

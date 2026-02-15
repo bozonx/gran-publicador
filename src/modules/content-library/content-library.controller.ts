@@ -19,10 +19,7 @@ import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ContentLibraryService } from './content-library.service.js';
 import {
-  AttachContentBlockMediaDto,
-  UpdateContentBlockMediaLinkDto,
   BulkOperationDto,
-  CreateContentBlockDto,
   CreateContentItemDto,
   CreateContentLibraryTabDto,
   FindContentItemsQueryDto,
@@ -30,11 +27,7 @@ import {
   LinkContentItemGroupDto,
   UpdateContentLibraryTabDto,
   ReorderContentLibraryTabsDto,
-  ReorderContentBlockMediaDto,
-  ReorderContentBlocksDto,
   UpdateContentItemDto,
-  UpdateContentBlockDto,
-  SyncContentBlocksDto,
   SyncContentItemDto,
 } from './dto/index.js';
 
@@ -356,149 +349,6 @@ export class ContentLibraryController {
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
     return this.contentLibraryService.remove(id, req.user.userId);
-  }
-
-  @Post('items/:id/blocks')
-  public async createBlock(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Body() dto: CreateContentBlockDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.createBlock(contentItemId, dto, req.user.userId);
-  }
-
-  @Patch('items/:id/blocks/:blockId')
-  public async updateBlock(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-    @Body() dto: UpdateContentBlockDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.updateBlock(contentItemId, blockId, dto, req.user.userId);
-  }
-
-  @Delete('items/:id/blocks/:blockId')
-  public async removeBlock(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.removeBlock(contentItemId, blockId, req.user.userId);
-  }
-
-  @Patch('items/:id/blocks/reorder')
-  public async reorderBlocks(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Body() dto: ReorderContentBlocksDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.reorderBlocks(contentItemId, dto, req.user.userId);
-  }
-
-  @Post('items/:id/blocks/:blockId/media')
-  public async attachBlockMedia(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-    @Body() dto: AttachContentBlockMediaDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.attachBlockMedia(
-      contentItemId,
-      blockId,
-      dto,
-      req.user.userId,
-    );
-  }
-
-  @Delete('items/:id/blocks/:blockId/media/:mediaLinkId')
-  public async detachBlockMedia(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-    @Param('mediaLinkId') mediaLinkId: string,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.detachBlockMedia(
-      contentItemId,
-      blockId,
-      mediaLinkId,
-      req.user.userId,
-    );
-  }
-
-  @Patch('items/:id/blocks/:blockId/media/reorder')
-  public async reorderBlockMedia(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-    @Body() dto: ReorderContentBlockMediaDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.reorderBlockMedia(
-      contentItemId,
-      blockId,
-      dto,
-      req.user.userId,
-    );
-  }
-
-  @Patch('items/:id/blocks/:blockId/media/:mediaLinkId')
-  public async updateBlockMediaLink(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-    @Param('mediaLinkId') mediaLinkId: string,
-    @Body() dto: UpdateContentBlockMediaLinkDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.updateBlockMediaLink(
-      contentItemId,
-      blockId,
-      mediaLinkId,
-      dto,
-      req.user.userId,
-    );
-  }
-
-  @Post('items/:id/blocks/:blockId/detach')
-  public async detachBlock(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.detachBlock(contentItemId, blockId, req.user.userId);
-  }
-
-  @Post('items/:id/blocks/sync')
-  public async syncBlocks(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Body() dto: SyncContentBlocksDto,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.syncBlocks(contentItemId, dto, req.user.userId);
-  }
-
-  @Post('items/:id/blocks/:blockId/media/:mediaLinkId/copy-to-item')
-  public async copyMediaToItem(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') contentItemId: string,
-    @Param('blockId') blockId: string,
-    @Param('mediaLinkId') mediaLinkId: string,
-  ) {
-    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.copyMediaToItem(
-      contentItemId,
-      blockId,
-      mediaLinkId,
-      req.user.userId,
-    );
   }
 
   @Post('items/:id/sync')

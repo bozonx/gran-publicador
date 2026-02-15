@@ -212,7 +212,7 @@ export class TelegramBotUpdate {
 
       const mgid = message.media_group_id;
       if (mgid) {
-        const created = await this.addMediaGroupMessageToContentBlock({
+        const created = await this.addMediaGroupMessageToContentItem({
           ctx,
           userId: user.id,
           telegramUserId: from.id,
@@ -266,12 +266,10 @@ export class TelegramBotUpdate {
     const user = await this.usersService.findByTelegramId(BigInt(telegramUserId));
     if (!user) return false;
 
-    const existing = await (this.prisma as any).contentBlock.findFirst({
+    const existing = await (this.prisma as any).contentItem.findFirst({
       where: {
-        contentItem: {
-          userId: user.id,
-          projectId: null,
-        },
+        userId: user.id,
+        projectId: null,
         AND: [
           {
             meta: {
@@ -361,14 +359,7 @@ export class TelegramBotUpdate {
           groupId: null,
           title,
           note: null,
-        },
-      });
-
-      const block = await (tx as any).contentBlock.create({
-        data: {
-          contentItemId: item.id,
           text: finalText || null,
-          order: 0,
           meta: meta as any,
         },
       });
@@ -392,9 +383,9 @@ export class TelegramBotUpdate {
           },
         });
 
-        await (tx as any).contentBlockMedia.create({
+        await (tx as any).contentItemMedia.create({
           data: {
-            contentBlockId: block.id,
+            contentItemId: item.id,
             mediaId: createdMedia.id,
             order,
             hasSpoiler: !!m.hasSpoiler,
@@ -408,7 +399,7 @@ export class TelegramBotUpdate {
     });
   }
 
-  private async addMediaGroupMessageToContentBlock(options: {
+  private async addMediaGroupMessageToContentItem(options: {
     ctx: Context;
     userId: string;
     telegramUserId: number;
@@ -431,22 +422,20 @@ export class TelegramBotUpdate {
       language,
     } = options;
 
-    const existingBlock = await (this.prisma as any).contentBlock.findFirst({
+    const existingItem = await (this.prisma as any).contentItem.findFirst({
       where: {
-        contentItem: {
-          userId,
-          projectId: null,
-        },
+        userId,
+        projectId: null,
         meta: {
           path: ['telegram', 'mediaGroupId'],
           equals: mediaGroupId,
         },
       },
-      select: { id: true, contentItemId: true },
+      select: { id: true },
       orderBy: { createdAt: 'asc' },
     });
 
-    if (!existingBlock) {
+    if (!existingItem) {
       const created = await this.createContentItemFromMessage({
         ctx,
         userId,
@@ -464,13 +453,13 @@ export class TelegramBotUpdate {
     if (voiceMedia.length > 0) {
       const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, language);
       if (transcribed) {
-        const current = await (this.prisma as any).contentBlock.findUnique({
-          where: { id: existingBlock.id },
+        const current = await (this.prisma as any).contentItem.findUnique({
+          where: { id: existingItem.id },
           select: { text: true },
         });
         const nextText = current?.text ? `${current.text}\n\n${transcribed}` : transcribed;
-        await (this.prisma as any).contentBlock.update({
-          where: { id: existingBlock.id },
+        await (this.prisma as any).contentItem.update({
+          where: { id: existingItem.id },
           data: { text: nextText },
         });
       }
@@ -480,19 +469,19 @@ export class TelegramBotUpdate {
     const allMediaToSave = [...supportedMedia, ...voiceMedia];
 
     if (allMediaToSave.length === 0) {
-      return { reportCreated: false, contentItemId: existingBlock.contentItemId };
+      return { reportCreated: false, contentItemId: existingItem.id };
     }
 
-    const maxOrderAgg = await (this.prisma as any).contentBlockMedia.aggregate({
-      where: { contentBlockId: existingBlock.id },
+    const maxOrderAgg = await (this.prisma as any).contentItemMedia.aggregate({
+      where: { contentItemId: existingItem.id },
       _max: { order: true },
     });
     let nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
 
     for (const m of allMediaToSave) {
-      const alreadyAttached = await (this.prisma as any).contentBlockMedia.findFirst({
+      const alreadyAttached = await (this.prisma as any).contentItemMedia.findFirst({
         where: {
-          contentBlockId: existingBlock.id,
+          contentItemId: existingItem.id,
           media: {
             storageType: StorageType.TELEGRAM,
             storagePath: m.fileId,
@@ -522,9 +511,9 @@ export class TelegramBotUpdate {
         },
       });
 
-      await (this.prisma as any).contentBlockMedia.create({
+      await (this.prisma as any).contentItemMedia.create({
         data: {
-          contentBlockId: existingBlock.id,
+          contentItemId: existingItem.id,
           mediaId: createdMedia.id,
           order: nextOrder,
           hasSpoiler: !!m.hasSpoiler,
@@ -533,7 +522,7 @@ export class TelegramBotUpdate {
       nextOrder++;
     }
 
-    return { reportCreated: false, contentItemId: existingBlock.contentItemId };
+    return { reportCreated: false, contentItemId: existingItem.id };
   }
 
   /**

@@ -14,11 +14,6 @@ interface ContentItemMediaLink {
   order: number
 }
 
-interface ContentBlock {
-  text?: string | null
-  media?: Array<{ media?: MediaItemLikeLoose }>
-}
-
 interface ContentItem {
   id: string
   title?: string | null
@@ -26,7 +21,8 @@ interface ContentItem {
   tags?: string[]
   createdAt: string
   archivedAt?: string | null
-  blocks?: ContentBlock[]
+  text?: string | null
+  media?: Array<{ mediaId?: string; hasSpoiler?: boolean; order?: number; media?: MediaItemLikeLoose }>
 }
 
 const props = defineProps<{
@@ -53,19 +49,13 @@ const authStore = useAuthStore()
 const formatTags = (tags?: string[]) => (tags && tags.length > 0 ? tags.join(', ') : '')
 
 const getAllItemMedia = (item: ContentItem): ContentItemMediaLink[] => {
-  const mediaLinks: ContentItemMediaLink[] = []
-  let order = 0
-  
-  for (const block of (item.blocks || [])) {
-    for (const m of (block.media || [])) {
-      mediaLinks.push({
-        media: m.media,
-        order: order++
-      })
-    }
-  }
-  
-  return mediaLinks
+  return (item.media || [])
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((m) => ({
+      media: m.media,
+      order: m.order ?? 0,
+    }))
 }
 
 function toMediaItemLike(media?: MediaItemLikeLoose): MediaItemLike | undefined {
@@ -89,15 +79,17 @@ const thumbData = computed(() => {
 })
 
 const getItemTextBlocks = (item: ContentItem): string[] => {
-  const texts = (item.blocks || [])
-    .map(b => stripHtmlAndSpecialChars(b.text).trim())
-    .filter(Boolean)
-    
+  const texts: string[] = []
+  const itemText = stripHtmlAndSpecialChars(item.text || '').trim()
+  if (itemText) {
+    texts.push(itemText)
+  }
+
   if (texts.length === 0 && item.note) {
     const noteClean = stripHtmlAndSpecialChars(item.note).trim()
     if (noteClean) texts.push(noteClean)
   }
-  
+
   return texts
 }
 
@@ -212,9 +204,9 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
         </div>
 
         <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1" :title="t('contentLibrary.blocksCount', { count: item.blocks?.length || 0 })">
+          <div class="flex items-center gap-1" :title="t('contentLibrary.blocksCount', { count: 1 })">
             <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
-            <span>{{ item.blocks?.length || 0 }}</span>
+            <span>1</span>
           </div>
           <div class="flex items-center gap-1" :title="t('contentLibrary.mediaCount', { count: getAllItemMedia(item).length })">
             <UIcon name="i-heroicons-photo" class="w-3.5 h-3.5" />

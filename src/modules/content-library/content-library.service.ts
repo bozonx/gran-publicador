@@ -10,21 +10,16 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import {
-  AttachContentBlockMediaDto,
-  UpdateContentBlockMediaLinkDto,
   BulkOperationDto,
-  CreateContentBlockDto,
   CreateContentItemDto,
   CreateContentLibraryTabDto,
   FindContentItemsQueryDto,
-  ReorderContentBlockMediaDto,
-  ReorderContentBlocksDto,
   UpdateContentItemDto,
-  UpdateContentBlockDto,
   BulkOperationType,
-  SyncContentBlocksDto,
   SyncContentItemDto,
 } from './dto/index.js';
+
+const TEXT_MERGE_SEPARATOR = '\n\n---\n\n';
 
 @Injectable()
 export class ContentLibraryService {
@@ -79,24 +74,20 @@ export class ContentLibraryService {
     return Array.from(new Set(normalized));
   }
 
-  private ensureHasAnyContent(input: { blocks?: Array<{ text?: unknown; media?: unknown[] }> }) {
+  private ensureHasAnyContent(_input: { text?: unknown; mediaIds?: unknown[]; media?: unknown[] }) {
     // Validation disabled to allow creating empty items
-    /*
-    const blocks = input.blocks ?? [];
-    if (blocks.length === 0) {
-      throw new BadRequestException('At least one content block is required');
-    }
+  }
 
-    const hasAnyNonEmptyBlock = blocks.some(b => {
-      const hasText = typeof b.text === 'string' && b.text.trim().length > 0;
-      const hasMedia = (b.media?.length ?? 0) > 0;
-      return hasText || hasMedia;
-    });
+  private normalizeItemText(text?: unknown): string | null {
+    if (typeof text !== 'string') return null;
+    const trimmed = text.trim();
+    return trimmed.length > 0 ? trimmed : '';
+  }
 
-    if (!hasAnyNonEmptyBlock) {
-      throw new BadRequestException('At least one content block must contain text or media');
-    }
-    */
+  private mapIncomingMediaIds(dto: { mediaIds?: string[]; media?: Array<{ mediaId: string }> }) {
+    if (dto.mediaIds) return dto.mediaIds;
+    if (dto.media) return dto.media.map(m => m.mediaId);
+    return undefined;
   }
 
   /**
@@ -385,6 +376,7 @@ export class ContentLibraryService {
       where.OR = [
         { title: { contains: query.search, mode: 'insensitive' } },
         { note: { contains: query.search, mode: 'insensitive' } },
+        { text: { contains: query.search, mode: 'insensitive' } },
         ...(tagTokens.length > 0
           ? ([
               {
@@ -394,11 +386,10 @@ export class ContentLibraryService {
               },
             ] as any)
           : []),
-        { blocks: { some: { text: { contains: query.search, mode: 'insensitive' } } } },
       ];
     }
 
-    const includeBlocks = query.includeBlocks !== false;
+    const includeMedia = query.includeMedia !== false;
 
     const [items, total, totalUnfiltered] = (await Promise.all([
       this.prisma.contentItem.findMany({
@@ -406,22 +397,17 @@ export class ContentLibraryService {
         orderBy: { [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc' },
         take: limit,
         skip: offset,
-        ...(includeBlocks
-          ? {
-              include: {
-                tagObjects: true,
-                blocks: {
+        include: {
+          tagObjects: true,
+          ...(includeMedia
+            ? {
+                media: {
                   orderBy: { order: 'asc' },
-                  include: {
-                    media: {
-                      orderBy: { order: 'asc' },
-                      include: { media: true },
-                    },
-                  },
+                  include: { media: true },
                 },
-              },
-            }
-          : {}),
+              }
+            : {}),
+        },
       }),
       this.prisma.contentItem.count({ where }),
       this.prisma.contentItem.count({
@@ -454,14 +440,9 @@ export class ContentLibraryService {
       where: { id },
       include: {
         tagObjects: true,
-        blocks: {
+        media: {
           orderBy: { order: 'asc' },
-          include: {
-            media: {
-              orderBy: { order: 'asc' },
-              include: { media: true },
-            },
-          },
+          include: { media: true },
         },
       },
     });
@@ -478,7 +459,7 @@ export class ContentLibraryService {
   }
 
   public async create(dto: CreateContentItemDto, userId: string) {
-    this.ensureHasAnyContent({ blocks: dto.blocks });
+    this.ensureHasAnyContent({ text: dto.text, media: dto.media });
 
     if (dto.scope === 'project') {
       if (!dto.projectId) {
@@ -516,31 +497,26 @@ export class ContentLibraryService {
           'CONTENT_LIBRARY',
         ),
         note: dto.note,
-        blocks: {
-          create: (dto.blocks ?? []).map((b, idx) => ({
-            text: b.text,
-            order: b.order ?? idx,
-            meta: (b.meta ?? {}) as any,
-            media: {
-              create: (b.media ?? []).map((m, mediaIdx) => ({
-                mediaId: m.mediaId,
-                order: m.order ?? mediaIdx,
-                hasSpoiler: !!m.hasSpoiler,
-              })),
-            },
-          })),
-        },
+        text: this.normalizeItemText(dto.text),
+        meta: (dto.meta ?? {}) as any,
+        media: dto.media
+          ? {
+              create: dto.media
+                .slice()
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                .map((m, idx) => ({
+                  mediaId: m.mediaId,
+                  order: m.order ?? idx,
+                  hasSpoiler: !!m.hasSpoiler,
+                })),
+            }
+          : undefined,
       },
       include: {
         tagObjects: true,
-        blocks: {
+        media: {
           orderBy: { order: 'asc' },
-          include: {
-            media: {
-              orderBy: { order: 'asc' },
-              include: { media: true },
-            },
-          },
+          include: { media: true },
         },
       },
     });
@@ -604,14 +580,9 @@ export class ContentLibraryService {
         },
         include: {
           tagObjects: true,
-          blocks: {
+          media: {
             orderBy: { order: 'asc' },
-            include: {
-              media: {
-                orderBy: { order: 'asc' },
-                include: { media: true },
-              },
-            },
+            include: { media: true },
           },
         },
       });
@@ -667,277 +638,6 @@ export class ContentLibraryService {
     });
 
     return { deletedCount: result.count };
-  }
-
-  public async createBlock(contentItemId: string, dto: CreateContentBlockDto, userId: string) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    // Validation disabled to allow creating empty blocks from UI
-    /*
-    const hasText = (dto.text ?? '').trim().length > 0;
-    const hasMedia = (dto.media?.length ?? 0) > 0;
-    if (!hasText && !hasMedia) {
-      throw new BadRequestException('Block must contain text or media');
-    }
-    */
-
-    return this.withSerializableRetry('createBlock', () =>
-      this.prisma.$transaction(
-        async tx => {
-          const maxOrderAgg = await (tx as any).contentBlock.aggregate({
-            where: { contentItemId },
-            _max: { order: true },
-          });
-          const nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
-
-          return (tx as any).contentBlock.create({
-            data: {
-              contentItemId,
-              text: dto.text,
-              order: dto.order ?? nextOrder,
-              meta: (dto.meta ?? {}) as any,
-              media: {
-                create: (dto.media ?? []).map((m, idx) => ({
-                  mediaId: m.mediaId,
-                  order: m.order ?? idx,
-                  hasSpoiler: !!m.hasSpoiler,
-                })),
-              },
-            },
-            include: {
-              media: { orderBy: { order: 'asc' }, include: { media: true } },
-            },
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      ),
-    );
-  }
-
-  public async updateBlock(
-    contentItemId: string,
-    blockId: string,
-    dto: UpdateContentBlockDto,
-    userId: string,
-  ) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    return (this.prisma as any).contentBlock.update({
-      where: { id: blockId },
-      data: {
-        text: dto.text,
-        order: dto.order,
-        meta: dto.meta ? (dto.meta as any) : undefined,
-      },
-      include: {
-        media: { orderBy: { order: 'asc' }, include: { media: true } },
-      },
-    });
-  }
-
-  public async removeBlock(contentItemId: string, blockId: string, userId: string) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    return (this.prisma as any).contentBlock.delete({ where: { id: blockId } });
-  }
-
-  public async reorderBlocks(contentItemId: string, dto: ReorderContentBlocksDto, userId: string) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const ids = dto.blocks.map(b => b.id);
-    const existing = await (this.prisma as any).contentBlock.findMany({
-      where: { id: { in: ids }, contentItemId },
-      select: { id: true },
-    });
-
-    if (existing.length !== ids.length) {
-      throw new NotFoundException('Some blocks not found');
-    }
-
-    await this.prisma.$transaction(
-      dto.blocks.map(b =>
-        (this.prisma as any).contentBlock.update({
-          where: { id: b.id },
-          data: { order: b.order },
-        }),
-      ),
-    );
-
-    return { success: true };
-  }
-
-  public async updateBlockMediaLink(
-    contentItemId: string,
-    blockId: string,
-    mediaLinkId: string,
-    dto: UpdateContentBlockMediaLinkDto,
-    userId: string,
-  ) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    const link = await (this.prisma as any).contentBlockMedia.findUnique({
-      where: { id: mediaLinkId },
-      select: { id: true, contentBlockId: true },
-    });
-
-    if (link?.contentBlockId !== blockId) {
-      throw new NotFoundException('Content block media not found');
-    }
-
-    return (this.prisma as any).contentBlockMedia.update({
-      where: { id: mediaLinkId },
-      data: {
-        hasSpoiler: dto.hasSpoiler,
-        order: dto.order,
-      },
-      include: { media: true },
-    });
-  }
-
-  public async attachBlockMedia(
-    contentItemId: string,
-    blockId: string,
-    dto: AttachContentBlockMediaDto,
-    userId: string,
-  ) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    const media = await this.prisma.media.findUnique({
-      where: { id: dto.mediaId },
-      select: { id: true },
-    });
-    if (!media) {
-      throw new NotFoundException('Media not found');
-    }
-
-    return this.withSerializableRetry('attachBlockMedia', () =>
-      this.prisma.$transaction(
-        async tx => {
-          const maxOrderAgg = await (tx as any).contentBlockMedia.aggregate({
-            where: { contentBlockId: blockId },
-            _max: { order: true },
-          });
-          const nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
-
-          return (tx as any).contentBlockMedia.create({
-            data: {
-              contentBlockId: blockId,
-              mediaId: dto.mediaId,
-              order: dto.order ?? nextOrder,
-              hasSpoiler: !!dto.hasSpoiler,
-            },
-            include: { media: true },
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      ),
-    );
-  }
-
-  public async detachBlockMedia(
-    contentItemId: string,
-    blockId: string,
-    mediaLinkId: string,
-    userId: string,
-  ) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    const link = await (this.prisma as any).contentBlockMedia.findUnique({
-      where: { id: mediaLinkId },
-      select: { id: true, contentBlockId: true },
-    });
-
-    if (link?.contentBlockId !== blockId) {
-      throw new NotFoundException('Content block media not found');
-    }
-
-    return (this.prisma as any).contentBlockMedia.delete({ where: { id: mediaLinkId } });
-  }
-
-  public async reorderBlockMedia(
-    contentItemId: string,
-    blockId: string,
-    dto: ReorderContentBlockMediaDto,
-    userId: string,
-  ) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    const ids = dto.media.map(m => m.id);
-    const existing = await (this.prisma as any).contentBlockMedia.findMany({
-      where: { id: { in: ids }, contentBlockId: blockId },
-      select: { id: true },
-    });
-
-    if (existing.length !== ids.length) {
-      throw new NotFoundException('Some media links not found');
-    }
-
-    await this.prisma.$transaction(
-      dto.media.map(m =>
-        (this.prisma as any).contentBlockMedia.update({
-          where: { id: m.id },
-          data: { order: m.order },
-        }),
-      ),
-    );
-
-    return { success: true };
   }
 
   public async bulkOperation(userId: string, dto: BulkOperationDto) {
@@ -1036,7 +736,10 @@ export class ContentLibraryService {
 
         const items = await (this.prisma.contentItem as any).findMany({
           where: { id: { in: authorizedIds } },
-          include: { blocks: true },
+          include: {
+            tagObjects: true,
+            media: { orderBy: { order: 'asc' } },
+          },
         });
 
         const targetItem = items.find((i: any) => i.id === targetId);
@@ -1058,6 +761,38 @@ export class ContentLibraryService {
         const allTags = items.flatMap((i: any) => i.tags || []);
         const newTags = this.normalizeTags(allTags);
 
+        // 4. Combine Text
+        const allTexts = items
+          .map((i: any) => (typeof i.text === 'string' ? i.text.trim() : ''))
+          .filter(Boolean);
+        const newText = allTexts.join(TEXT_MERGE_SEPARATOR) || null;
+
+        // 5. Combine Media
+        const mediaPick = new Map<
+          string,
+          { mediaId: string; hasSpoiler: boolean; firstSeenAt: number }
+        >();
+        let seenCounter = 0;
+        for (const i of items) {
+          for (const link of i.media ?? []) {
+            if (!link?.mediaId) continue;
+            if (!mediaPick.has(link.mediaId)) {
+              mediaPick.set(link.mediaId, {
+                mediaId: link.mediaId,
+                hasSpoiler: !!link.hasSpoiler,
+                firstSeenAt: seenCounter++,
+              });
+            }
+          }
+        }
+        const mergedMedia = Array.from(mediaPick.values())
+          .sort((a, b) => a.firstSeenAt - b.firstSeenAt)
+          .map((m, idx) => ({
+            mediaId: m.mediaId,
+            order: idx,
+            hasSpoiler: m.hasSpoiler,
+          }));
+
         await this.prisma.$transaction(async tx => {
           // Update target item
           await (tx.contentItem as any).update({
@@ -1066,29 +801,20 @@ export class ContentLibraryService {
               title: newTitle,
               note: newNote,
               tags: newTags,
+              text: newText,
             },
           });
 
-          // Re-order and move blocks
-          const currentMaxOrderAgg = await (tx as any).contentBlock.aggregate({
-            where: { contentItemId: targetId },
-            _max: { order: true },
-          });
-          let currentOrder = (currentMaxOrderAgg._max.order ?? -1) + 1;
-
-          for (const source of sourceItems) {
-            const sortedSourceBlocks = (source.blocks || []).sort(
-              (a: any, b: any) => a.order - b.order,
-            );
-            for (const block of sortedSourceBlocks) {
-              await (tx as any).contentBlock.update({
-                where: { id: block.id },
-                data: {
-                  contentItemId: targetId,
-                  order: currentOrder++,
-                },
-              });
-            }
+          await (tx as any).contentItemMedia.deleteMany({ where: { contentItemId: targetId } });
+          if (mergedMedia.length > 0) {
+            await (tx as any).contentItemMedia.createMany({
+              data: mergedMedia.map(m => ({
+                contentItemId: targetId,
+                mediaId: m.mediaId,
+                order: m.order,
+                hasSpoiler: m.hasSpoiler,
+              })),
+            });
           }
 
           // Delete source items
@@ -1255,99 +981,6 @@ export class ContentLibraryService {
     }
   }
 
-  public async detachBlock(contentItemId: string, blockId: string, userId: string) {
-    const sourceItem = await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true, text: true },
-    });
-
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    return this.prisma.$transaction(async tx => {
-      const newItem = await (tx.contentItem as any).create({
-        data: {
-          userId: sourceItem.userId,
-          projectId: sourceItem.projectId,
-          title: block.text?.slice(0, 50) || 'Detached Block',
-          note: null,
-        },
-      });
-
-      await (tx as any).contentBlock.update({
-        where: { id: blockId },
-        data: {
-          contentItemId: newItem.id,
-          order: 0,
-        },
-      });
-
-      return newItem;
-    });
-  }
-
-  public async copyMediaToItem(
-    contentItemId: string,
-    blockId: string,
-    mediaLinkId: string,
-    userId: string,
-  ) {
-    const sourceItem = await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    const block = await (this.prisma as any).contentBlock.findUnique({
-      where: { id: blockId },
-      select: { id: true, contentItemId: true },
-    });
-    if (block?.contentItemId !== contentItemId) {
-      throw new NotFoundException('Content block not found');
-    }
-
-    const link = await (this.prisma as any).contentBlockMedia.findUnique({
-      where: { id: mediaLinkId },
-      select: { id: true, contentBlockId: true, mediaId: true, order: true, hasSpoiler: true },
-    });
-
-    if (link?.contentBlockId !== blockId) {
-      throw new NotFoundException('Content block media not found');
-    }
-
-    return this.prisma.$transaction(async tx => {
-      const newItem = await (tx.contentItem as any).create({
-        data: {
-          userId: sourceItem.userId,
-          projectId: sourceItem.projectId,
-          title: `Copy of media from ${sourceItem.title || 'unnamed item'}`,
-          note: null,
-          blocks: {
-            create: [
-              {
-                text: '',
-                order: 0,
-                meta: {},
-                media: {
-                  create: [
-                    {
-                      mediaId: link.mediaId,
-                      order: 0,
-                      hasSpoiler: link.hasSpoiler,
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      });
-
-      return newItem;
-    });
-  }
-
   public async sync(contentItemId: string, dto: SyncContentItemDto, userId: string) {
     const item = await this.assertContentItemAccess(contentItemId, userId, false);
     await this.assertContentItemMutationAllowed(contentItemId, userId);
@@ -1373,105 +1006,32 @@ export class ContentLibraryService {
           title: dto.title,
           note: dto.note,
           tagObjects: tagData,
+          text: this.normalizeItemText(dto.text),
+          meta: dto.meta ? (dto.meta as any) : undefined,
         },
       });
 
-      // 2. Sync blocks
-      const results = await this.performBlocksSync(tx, contentItemId, dto.blocks);
-
-      return results;
-    });
-  }
-
-  public async syncBlocks(contentItemId: string, dto: SyncContentBlocksDto, userId: string) {
-    await this.assertContentItemAccess(contentItemId, userId, false);
-    await this.assertContentItemMutationAllowed(contentItemId, userId);
-
-    return this.prisma.$transaction(async tx => {
-      return this.performBlocksSync(tx, contentItemId, dto.blocks);
-    });
-  }
-
-  private async performBlocksSync(tx: any, contentItemId: string, blocks: any[]) {
-    const existingBlocks = await tx.contentBlock.findMany({
-      where: { contentItemId },
-      select: { id: true },
-    });
-
-    const existingIds = new Set(existingBlocks.map((b: { id: string }) => b.id));
-    const incomingIds = new Set(blocks.map((b: any) => b.id).filter(Boolean));
-
-    // Delete blocks that are no longer present
-    const toDelete = existingBlocks
-      .filter((b: { id: string }) => !incomingIds.has(b.id))
-      .map((b: { id: string }) => b.id);
-    if (toDelete.length > 0) {
-      await tx.contentBlock.deleteMany({
-        where: { id: { in: toDelete } },
-      });
-    }
-
-    const results = [];
-
-    for (const b of blocks) {
-      const blockData = {
-        text: b.text,
-        order: b.order,
-        meta: b.meta ?? {},
-      };
-
-      let blockId = b.id;
-      let syncResult;
-
-      if (blockId && existingIds.has(blockId)) {
-        // Update existing block
-        syncResult = await tx.contentBlock.update({
-          where: { id: blockId },
-          data: blockData,
-          include: {
-            media: { select: { id: true, mediaId: true } },
-          },
-        });
-      } else {
-        // Create new block
-        syncResult = await tx.contentBlock.create({
-          data: {
-            ...blockData,
-            contentItemId,
-          },
-          include: {
-            media: { select: { id: true, mediaId: true } },
-          },
-        });
-        blockId = syncResult.id;
-      }
-
-      // Sync block media if provided
-      if (b.mediaIds) {
-        const existingMediaLinks = syncResult.media;
-        const incomingMediaIds = b.mediaIds;
-
-        // Simple sync: delete all and recreate or match by mediaId
-        // To be safe and simple, let's delete existing and recreate in order
-        await tx.contentBlockMedia.deleteMany({
-          where: { contentBlockId: blockId },
-        });
-
+      const incomingMediaIds = this.mapIncomingMediaIds(dto);
+      if (incomingMediaIds) {
+        await (tx as any).contentItemMedia.deleteMany({ where: { contentItemId } });
         if (incomingMediaIds.length > 0) {
-          await tx.contentBlockMedia.createMany({
-            data: incomingMediaIds.map((mediaId: string, idx: number) => ({
-              contentBlockId: blockId,
+          const spoilerByMediaId = new Map<string, boolean>();
+          for (const m of dto.media ?? []) {
+            spoilerByMediaId.set(m.mediaId, !!m.hasSpoiler);
+          }
+          await (tx as any).contentItemMedia.createMany({
+            data: incomingMediaIds.map((mediaId, idx) => ({
+              contentItemId,
               mediaId,
               order: idx,
+              hasSpoiler: spoilerByMediaId.get(mediaId) ?? false,
             })),
           });
         }
       }
 
-      results.push(syncResult);
-    }
-
-    return results;
+      return this.findOne(contentItemId, userId);
+    });
   }
 
   public async getAvailableTags(
