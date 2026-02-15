@@ -30,6 +30,15 @@ All notable changes to this project will be documented in this file.
 - **Telegram Bot STT**: Fixed voice message transcription always receiving `undefined` language — user's content language is now properly passed through `createContentItemFromMessage` and `addMediaGroupMessageToContentBlock` to `transcribeVoice`.
 
 ### Changed
+- **Content Library terminology/API contract**:
+  - UI/API now uses **Group** terminology (`GROUP`, `groupId`) instead of folder wording.
+  - Backend keeps backward-compatible persistence mapping to existing DB enum/column (`FOLDER`, `folderId`) during transition.
+- **Content Library toolbar**:
+  - Removed non-functional view mode toggle (library remains card-only).
+  - Added informational tooltip explaining group behavior and safe deletion semantics (deleting a group does not delete content items).
+- **Content Library tab config persistence**:
+  - For `GROUP` tabs, only sorting is persisted.
+  - For `SAVED_VIEW` tabs, sorting + search + tag filters are persisted.
 - **Media optimization policy**: moved image optimization control for `format`, `maxDimension`, `effort`, `quality`, `chromaSubsampling`, `lossless`, and global enable/disable to backend env configuration.
   - New env vars: `MEDIA_IMAGE_OPTIMIZATION_ENABLED`, `MEDIA_IMAGE_OPTIMIZATION_FORMAT`, `MEDIA_IMAGE_OPTIMIZATION_MAX_DIMENSION`, `MEDIA_IMAGE_OPTIMIZATION_EFFORT`, `MEDIA_IMAGE_OPTIMIZATION_QUALITY`, `MEDIA_IMAGE_OPTIMIZATION_CHROMA_SUBSAMPLING`, `MEDIA_IMAGE_OPTIMIZATION_LOSSLESS`.
   - Backend now forces those values from env when optimization is enabled and applies the same policy for upload stream + upload-from-url.

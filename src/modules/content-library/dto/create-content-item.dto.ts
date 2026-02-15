@@ -24,7 +24,7 @@ export class CreateContentItemDto {
 
   @IsUUID()
   @IsOptional()
-  public folderId?: string;
+  public groupId?: string;
 
   @IsString()
   @IsOptional()

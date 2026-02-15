@@ -1,38 +1,38 @@
 export interface ContentLibraryTab {
-  id: string
-  type: 'FOLDER' | 'SAVED_VIEW'
-  title: string
-  userId: string | null
-  projectId: string | null
-  order: number
-  config: Record<string, any>
-  createdAt: string
-  updatedAt: string
+  id: string;
+  type: 'GROUP' | 'SAVED_VIEW';
+  title: string;
+  userId: string | null;
+  projectId: string | null;
+  order: number;
+  config: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateTabDto {
-  scope: 'personal' | 'project'
-  projectId?: string
-  type: 'FOLDER' | 'SAVED_VIEW'
-  title: string
-  config?: Record<string, any>
+  scope: 'personal' | 'project';
+  projectId?: string;
+  type: 'GROUP' | 'SAVED_VIEW';
+  title: string;
+  config?: Record<string, any>;
 }
 
 export interface UpdateTabDto {
-  scope: 'personal' | 'project'
-  projectId?: string
-  title?: string
-  config?: Record<string, any>
+  scope: 'personal' | 'project';
+  projectId?: string;
+  title?: string;
+  config?: Record<string, any>;
 }
 
 export interface ReorderTabsDto {
-  scope: 'personal' | 'project'
-  projectId?: string
-  ids: string[]
+  scope: 'personal' | 'project';
+  projectId?: string;
+  ids: string[];
 }
 
 export const useContentLibraryTabs = () => {
-  const api = useApi()
+  const api = useApi();
 
   const listTabs = async (scope: 'personal' | 'project', projectId?: string) => {
     return api.get<ContentLibraryTab[]>('/content-library/tabs', {
@@ -40,16 +40,16 @@ export const useContentLibraryTabs = () => {
         scope,
         projectId: scope === 'project' ? projectId : undefined,
       },
-    })
-  }
+    });
+  };
 
   const createTab = async (dto: CreateTabDto) => {
-    return api.post<ContentLibraryTab>('/content-library/tabs', dto)
-  }
+    return api.post<ContentLibraryTab>('/content-library/tabs', dto);
+  };
 
   const updateTab = async (tabId: string, dto: UpdateTabDto) => {
-    return api.patch<ContentLibraryTab>(`/content-library/tabs/${tabId}`, dto)
-  }
+    return api.patch<ContentLibraryTab>(`/content-library/tabs/${tabId}`, dto);
+  };
 
   const deleteTab = async (tabId: string, scope: 'personal' | 'project', projectId?: string) => {
     return api.delete(`/content-library/tabs/${tabId}`, {
@@ -57,12 +57,12 @@ export const useContentLibraryTabs = () => {
         scope,
         projectId: scope === 'project' ? projectId : undefined,
       },
-    })
-  }
+    });
+  };
 
   const reorderTabs = async (dto: ReorderTabsDto) => {
-    return api.patch('/content-library/tabs/reorder', dto)
-  }
+    return api.patch('/content-library/tabs/reorder', dto);
+  };
 
   return {
     listTabs,
@@ -70,5 +70,5 @@ export const useContentLibraryTabs = () => {
     updateTab,
     deleteTab,
     reorderTabs,
-  }
-}
+  };
+};

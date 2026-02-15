@@ -1,4 +1,12 @@
-import { IsIn, IsObject, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class UpdateContentLibraryTabDto {
@@ -8,6 +16,11 @@ export class UpdateContentLibraryTabDto {
   @IsUUID()
   @IsOptional()
   public projectId?: string;
+
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  @IsOptional()
+  public parentId?: string | null;
 
   @IsString()
   @IsOptional()

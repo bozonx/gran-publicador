@@ -14,7 +14,7 @@ export class UpdateContentItemDto {
   @ValidateIf((_, value) => value !== null)
   @IsUUID()
   @IsOptional()
-  public folderId?: string | null;
+  public groupId?: string | null;
 
   @IsString()
   @IsOptional()

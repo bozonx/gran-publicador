@@ -50,13 +50,6 @@ const items = ref<any[]>([])
 const availableTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
 
-const viewModeStorageKey = computed(() => {
-  const projectPart = props.projectId ? `:${props.projectId}` : ''
-  return `content-library:view-mode:${props.scope}${projectPart}`
-})
-
-const { viewMode } = useViewMode(viewModeStorageKey.value)
-
 const sortBy = ref<'createdAt' | 'title'>('createdAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 
@@ -166,7 +159,7 @@ const uploadContentFiles = async (files: File[]) => {
           await api.post('/content-library/items', {
             scope: props.scope,
             projectId: props.scope === 'project' ? props.projectId : undefined,
-            folderId: activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined,
+            groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
             title: file.name,
             blocks: [{ text, order: 0, meta: {}, media: [] }]
           })
@@ -181,7 +174,7 @@ const uploadContentFiles = async (files: File[]) => {
           await api.post('/content-library/items', {
             scope: props.scope,
             projectId: props.scope === 'project' ? props.projectId : undefined,
-            folderId: activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined,
+            groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
             title: file.name,
             blocks: [{ text: '', order: 0, meta: {}, media: [{ mediaId: media.id, order: 0, hasSpoiler: false }] }]
           })
@@ -274,7 +267,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
         projectId: props.scope === 'project' ? props.projectId : undefined,
-        folderId: (activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined),
+        groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
         search: q.value || undefined,
         limit,
         offset: offset.value,
@@ -361,7 +354,7 @@ const createAndEdit = async () => {
   try {
     const payload: any = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
-      folderId: activeTab.value?.type === 'FOLDER' ? activeTab.value.id : undefined,
+      groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
       blocks: [{ text: '', order: 0, media: [] }]
     }
     if (props.scope === 'project') payload.projectId = props.projectId
@@ -459,7 +452,7 @@ const handleRenameTab = async () => {
     contentLibraryTabsRef.value?.fetchTabs()
     isRenameTabModalOpen.value = false
   } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename tab'), color: 'error' })
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename group'), color: 'error' })
   } finally {
     isRenamingTab.value = false
   }
@@ -480,7 +473,7 @@ const handleDeleteTab = async () => {
     activeTabId.value = null
     isDeleteTabConfirmModalOpen.value = false
   } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete tab'), color: 'error' })
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete group'), color: 'error' })
   } finally {
     isDeletingTab.value = false
   }
@@ -591,12 +584,61 @@ const handleCloseModal = async () => {
 
 const isRestoringConfig = ref(false)
 
+const buildTabConfig = () => {
+  if (!activeTab.value) {
+    return {}
+  }
+
+  const baseConfig = {
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+  }
+
+  if (activeTab.value.type === 'SAVED_VIEW') {
+    return {
+      ...baseConfig,
+      search: q.value,
+      tags: selectedTags.value,
+    }
+  }
+
+  return baseConfig
+}
+
+const persistActiveTabConfig = async () => {
+  if (!activeTab.value || isRestoringConfig.value) {
+    return
+  }
+
+  const nextConfig = buildTabConfig()
+  const currentConfig = activeTab.value.config || {}
+  if (JSON.stringify(currentConfig) === JSON.stringify(nextConfig)) {
+    return
+  }
+
+  try {
+    await updateTab(activeTab.value.id, {
+      scope: props.scope,
+      projectId: props.projectId,
+      config: nextConfig,
+    })
+    activeTab.value = {
+      ...activeTab.value,
+      config: nextConfig,
+    }
+  } catch {
+    // Ignore persistence errors to keep browsing uninterrupted
+  }
+}
+
+const debouncedPersistActiveTabConfig = useDebounceFn(persistActiveTabConfig, 350)
+
 const restoreTabSettings = () => {
   if (!activeTab.value) return
   isRestoringConfig.value = true
   const config = activeTab.value.config as any || {}
-  q.value = config.search || ''
-  selectedTags.value = config.tags || []
+  q.value = activeTab.value.type === 'SAVED_VIEW' ? (config.search || '') : ''
+  selectedTags.value = activeTab.value.type === 'SAVED_VIEW' ? (config.tags || []) : []
   if (config.sortBy) sortBy.value = config.sortBy
   if (config.sortOrder) sortOrder.value = config.sortOrder
   setTimeout(() => { isRestoringConfig.value = false }, 100)
@@ -614,6 +656,10 @@ watch(activeTab, async (newTab, oldTab) => {
     }
     fetchItems({ reset: true })
   }
+})
+
+watch([q, selectedTags, sortBy, sortOrder], () => {
+  debouncedPersistActiveTabConfig()
 })
 
 onMounted(() => {
@@ -672,7 +718,6 @@ if (props.scope === 'project' && props.projectId) {
       v-model:selected-tags="selectedTags"
       v-model:sort-by="sortBy"
       v-model:sort-order="sortOrder"
-      v-model:view-mode="viewMode"
       v-model:archive-status="archiveStatus"
       :scope="scope"
       :project-id="projectId"
@@ -898,7 +943,7 @@ if (props.scope === 'project' && props.projectId) {
     <!-- Rename Tab Modal -->
     <AppModal
       v-model:open="isRenameTabModalOpen"
-      :title="t('contentLibrary.tabs.renameTitle', 'Rename tab')"
+      :title="t('contentLibrary.tabs.renameTitle', 'Rename group')"
       :ui="{ content: 'w-full max-w-md' }"
       @close="isRenameTabModalOpen = false"
     >
@@ -920,8 +965,8 @@ if (props.scope === 'project' && props.projectId) {
     <UiConfirmModal
       v-if="isDeleteTabConfirmModalOpen"
       v-model:open="isDeleteTabConfirmModalOpen"
-      :title="t('contentLibrary.tabs.deleteTitle', 'Delete tab')"
-      :description="t('contentLibrary.tabs.deleteDescription', 'Are you sure you want to delete this tab? This action cannot be undone.')"
+      :title="t('contentLibrary.tabs.deleteTitle', 'Delete group')"
+      :description="t('contentLibrary.tabs.deleteDescription', 'Are you sure you want to delete this group? This action cannot be undone.')"
       :confirm-text="t('common.delete')"
       color="error"
       icon="i-heroicons-trash"

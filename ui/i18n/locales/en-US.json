@@ -411,7 +411,8 @@
       "uploadMediaInProgress": "Upload is already in progress. Please wait until it finishes.",
       "uploadMediaPartial": "Uploaded {successCount} files, failed: {errorCount}.",
       "uploadMediaSuccess": "Uploaded {count} files successfully.",
-      "uploadMediaTooltip": "You can drag and drop files into this toolbar area. Text files (.txt, .md) will be converted into content text blocks automatically."
+      "uploadMediaTooltip": "You can drag and drop files into this toolbar area. Text files (.txt, .md) will be converted into content text blocks automatically.",
+      "groupsInfoTooltip": "Groups are used only for organizing content items. Items are always shown as cards. Deleting a group does not delete the content items inside it."
     },
     "badgeCountTooltip": "Total number of items",
     "block": "Block {index}",
@@ -456,21 +457,21 @@
     "subtitlePersonal": "Personal scope",
     "subtitleProject": "Project scope",
     "tabs": {
-      "create": "Create tab",
-      "createError": "Failed to create tab",
-      "createTitle": "Create new tab",
-      "deleteDescription": "Are you sure you want to delete this tab? This action cannot be undone.",
-      "deleteError": "Failed to delete tab",
-      "deleteSuccess": "Tab deleted successfully",
-      "deleteTitle": "Delete tab",
-      "renameTitle": "Rename tab",
-      "reorderError": "Failed to reorder tabs",
-      "selectTypePrompt": "Select tab type:",
-      "titlePlaceholder": "Enter tab name...",
+      "create": "Create group",
+      "createError": "Failed to create group",
+      "createTitle": "Create new group",
+      "deleteDescription": "Are you sure you want to delete this group? This action cannot be undone.",
+      "deleteError": "Failed to delete group",
+      "deleteSuccess": "Group deleted successfully",
+      "deleteTitle": "Delete group",
+      "renameTitle": "Rename group",
+      "reorderError": "Failed to reorder groups",
+      "selectTypePrompt": "Select type:",
+      "titlePlaceholder": "Enter name...",
       "types": {
-        "folder": {
-          "description": "Organize content items into a dedicated folder. Items can only belong to one folder.",
-          "title": "Folder"
+        "group": {
+          "description": "Organize content items into a dedicated group.",
+          "title": "Group"
         },
         "savedView": {
           "description": "Create a filtered view with custom sorting and filters across your entire library.",

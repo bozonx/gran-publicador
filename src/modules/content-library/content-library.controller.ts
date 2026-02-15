@@ -25,6 +25,7 @@ import {
   CreateContentLibraryTabDto,
   FindContentItemsQueryDto,
   FindContentLibraryTabsQueryDto,
+  LinkContentItemGroupDto,
   UpdateContentLibraryTabDto,
   ReorderContentLibraryTabsDto,
   ReorderContentBlockMediaDto,
@@ -256,6 +257,63 @@ export class ContentLibraryController {
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
     return this.contentLibraryService.update(id, dto, req.user.userId);
+  }
+
+  @Post('items/:id/groups')
+  public async linkItemToGroup(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Body() dto: LinkContentItemGroupDto,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+
+    if (
+      dto.scope === 'project' &&
+      dto.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+
+    return this.contentLibraryService.linkItemToGroup(contentItemId, dto, req.user.userId);
+  }
+
+  @Delete('items/:id/groups/:groupId')
+  public async unlinkItemFromGroup(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Param('groupId') groupId: string,
+    @Query() query: FindContentLibraryTabsQueryDto,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+
+    if (
+      query.scope === 'project' &&
+      query.projectId &&
+      req.user.allProjects === false &&
+      req.user.projectIds
+    ) {
+      ApiTokenGuard.validateProjectScope(
+        query.projectId,
+        req.user.allProjects,
+        req.user.projectIds,
+        {
+          userId: req.user.userId,
+          tokenId: req.user.tokenId,
+        },
+      );
+    }
+
+    return this.contentLibraryService.unlinkItemFromGroup(
+      contentItemId,
+      groupId,
+      query,
+      req.user.userId,
+    );
   }
 
   @Post('items/:id/archive')

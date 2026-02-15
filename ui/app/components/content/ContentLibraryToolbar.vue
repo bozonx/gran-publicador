@@ -20,7 +20,6 @@ const q = defineModel<string>('q')
 const selectedTags = defineModel<string[]>('selectedTags')
 const sortBy = defineModel<string>('sortBy')
 const sortOrder = defineModel<'asc' | 'desc'>('sortOrder')
-const viewMode = defineModel<any>('viewMode')
 
 const emit = defineEmits<{
   (e: 'update:archiveStatus', value: 'active' | 'archived'): void
@@ -233,7 +232,7 @@ function onDrop(event: DragEvent) {
               </UButton>
             </template>
             <div v-if="activeTab" class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
-            <CommonViewToggle v-model="viewMode" />
+            <CommonInfoTooltip :text="t('contentLibrary.actions.groupsInfoTooltip')" />
           </div>
         </div>
 

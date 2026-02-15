@@ -9,8 +9,12 @@ export class CreateContentLibraryTabDto {
   @IsOptional()
   public projectId?: string;
 
-  @IsIn(['FOLDER', 'SAVED_VIEW'])
-  public type!: 'FOLDER' | 'SAVED_VIEW';
+  @IsIn(['GROUP', 'SAVED_VIEW'])
+  public type!: 'GROUP' | 'SAVED_VIEW';
+
+  @IsUUID()
+  @IsOptional()
+  public parentId?: string;
 
   @IsString()
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)

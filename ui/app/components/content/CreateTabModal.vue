@@ -8,12 +8,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'create': [data: { type: 'FOLDER' | 'SAVED_VIEW'; title: string }]
+  'create': [data: { type: 'GROUP' | 'SAVED_VIEW'; title: string }]
 }>()
 
 const { t } = useI18n()
 
-const selectedType = ref<'FOLDER' | 'SAVED_VIEW' | null>(null)
+const selectedType = ref<'GROUP' | 'SAVED_VIEW' | null>(null)
 const title = ref('')
 
 const isOpen = computed({
@@ -65,7 +65,7 @@ watch(() => props.open, (val) => {
         <div class="grid grid-cols-1 gap-3">
           <button
             class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-left group"
-            @click="selectedType = 'FOLDER'"
+            @click="selectedType = 'GROUP'"
           >
             <div class="flex items-start gap-3">
               <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
@@ -73,10 +73,10 @@ watch(() => props.open, (val) => {
               </div>
               <div class="flex-1">
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-1">
-                  {{ t('contentLibrary.tabs.types.folder.title') }}
+                  {{ t('contentLibrary.tabs.types.group.title') }}
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ t('contentLibrary.tabs.types.folder.description') }}
+                  {{ t('contentLibrary.tabs.types.group.description') }}
                 </p>
               </div>
             </div>
@@ -105,8 +105,8 @@ watch(() => props.open, (val) => {
 
       <div v-else class="space-y-4">
         <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <UIcon :name="selectedType === 'FOLDER' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'" class="w-4 h-4" />
-          <span>{{ t(`contentLibrary.tabs.types.${selectedType === 'FOLDER' ? 'folder' : 'savedView'}.title`) }}</span>
+          <UIcon :name="selectedType === 'GROUP' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'" class="w-4 h-4" />
+          <span>{{ t(`contentLibrary.tabs.types.${selectedType === 'GROUP' ? 'group' : 'savedView'}.title`) }}</span>
         </div>
 
         <UInput

@@ -61,7 +61,7 @@ const fetchTabs = async () => {
   }
 }
 
-const handleCreateTab = async (data: { type: 'FOLDER' | 'SAVED_VIEW'; title: string }) => {
+const handleCreateTab = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string }) => {
   try {
     const newTab = await createTab({
       scope: props.scope,
@@ -122,13 +122,13 @@ const handleReorder = async () => {
   }
 }
 
-const getTabIcon = (type: 'FOLDER' | 'SAVED_VIEW') => {
-  return type === 'FOLDER' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'
+const getTabIcon = (type: 'GROUP' | 'SAVED_VIEW') => {
+  return type === 'GROUP' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'
 }
 
-const getTabColor = (type: 'FOLDER' | 'SAVED_VIEW', isActive: boolean) => {
+const getTabColor = (type: 'GROUP' | 'SAVED_VIEW', isActive: boolean) => {
   if (isActive) return 'primary'
-  return type === 'FOLDER' ? 'neutral' : 'neutral'
+  return type === 'GROUP' ? 'neutral' : 'neutral'
 }
 
 watch(() => props.projectId, () => {
@@ -182,7 +182,7 @@ defineExpose({
             class="drag-handle cursor-move max-w-full"
             @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
           >
-            <span class="truncate max-w-[12rem] sm:max-w-[16rem]">
+            <span class="truncate max-w-48 sm:max-w-64">
               {{ tab.title }}
             </span>
           </UButton>
