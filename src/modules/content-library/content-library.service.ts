@@ -943,11 +943,16 @@ export class ContentLibraryService {
     }
 
     const authorizedIds: string[] = [];
+    const authorizedItems = new Map<
+      string,
+      { id: string; userId: string | null; projectId: string | null; groupId: string | null }
+    >();
 
     for (const id of ids) {
       try {
-        await this.assertContentItemMutationAllowed(id, userId);
+        const item = await this.assertContentItemMutationAllowed(id, userId);
         authorizedIds.push(id);
+        authorizedItems.set(id, item);
       } catch (e) {
         this.logger.warn(
           `User ${userId} attempted bulk ${operation} on item ${id} without permission`,
@@ -1088,6 +1093,156 @@ export class ContentLibraryService {
         });
 
         return { count: authorizedIds.length, targetId };
+      }
+
+      case BulkOperationType.LINK_TO_GROUP: {
+        if (!dto.groupId) {
+          throw new BadRequestException('groupId is required for LINK_TO_GROUP operation');
+        }
+
+        const targetGroup = await this.prisma.contentLibraryTab.findUnique({
+          where: { id: dto.groupId },
+          select: { id: true, type: true, projectId: true },
+        });
+
+        if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+          throw new BadRequestException('Target group not found');
+        }
+
+        const targetScope: 'personal' | 'project' = targetGroup.projectId ? 'project' : 'personal';
+        const targetProjectId = targetGroup.projectId ?? undefined;
+
+        await this.assertGroupTabAccess({
+          groupId: dto.groupId,
+          scope: targetScope,
+          projectId: targetProjectId,
+          userId,
+        });
+
+        for (const id of authorizedIds) {
+          const item = authorizedItems.get(id);
+          if (!item) {
+            continue;
+          }
+
+          this.assertItemScopeMatches({
+            item,
+            scope: targetScope,
+            projectId: targetProjectId,
+          });
+        }
+
+        await this.prisma.$transaction(async tx => {
+          for (const id of authorizedIds) {
+            await (tx as any).contentItemGroup.upsert({
+              where: {
+                contentItemId_tabId: {
+                  contentItemId: id,
+                  tabId: dto.groupId!,
+                },
+              },
+              create: {
+                contentItemId: id,
+                tabId: dto.groupId!,
+              },
+              update: {},
+            });
+
+            const item = authorizedItems.get(id);
+            if (item?.groupId == null) {
+              await (tx.contentItem as any).update({
+                where: { id },
+                data: { groupId: dto.groupId },
+              });
+            }
+          }
+        });
+
+        return { count: authorizedIds.length };
+      }
+
+      case BulkOperationType.MOVE_TO_GROUP: {
+        if (!dto.groupId) {
+          throw new BadRequestException('groupId is required for MOVE_TO_GROUP operation');
+        }
+        if (!dto.sourceGroupId) {
+          throw new BadRequestException('sourceGroupId is required for MOVE_TO_GROUP operation');
+        }
+
+        const targetGroup = await this.prisma.contentLibraryTab.findUnique({
+          where: { id: dto.groupId },
+          select: { id: true, type: true, projectId: true },
+        });
+
+        if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+          throw new BadRequestException('Target group not found');
+        }
+
+        const targetScope: 'personal' | 'project' = targetGroup.projectId ? 'project' : 'personal';
+        const targetProjectId = targetGroup.projectId ?? undefined;
+
+        await this.assertGroupTabAccess({
+          groupId: dto.groupId,
+          scope: targetScope,
+          projectId: targetProjectId,
+          userId,
+        });
+        await this.assertGroupTabAccess({
+          groupId: dto.sourceGroupId,
+          scope: targetScope,
+          projectId: targetProjectId,
+          userId,
+        });
+
+        for (const id of authorizedIds) {
+          const item = authorizedItems.get(id);
+          if (!item) {
+            continue;
+          }
+
+          this.assertItemScopeMatches({
+            item,
+            scope: targetScope,
+            projectId: targetProjectId,
+          });
+        }
+
+        await this.prisma.$transaction(async tx => {
+          for (const id of authorizedIds) {
+            if (dto.sourceGroupId !== dto.groupId) {
+              await (tx as any).contentItemGroup.deleteMany({
+                where: {
+                  contentItemId: id,
+                  tabId: dto.sourceGroupId,
+                },
+              });
+            }
+
+            await (tx as any).contentItemGroup.upsert({
+              where: {
+                contentItemId_tabId: {
+                  contentItemId: id,
+                  tabId: dto.groupId!,
+                },
+              },
+              create: {
+                contentItemId: id,
+                tabId: dto.groupId!,
+              },
+              update: {},
+            });
+
+            const item = authorizedItems.get(id);
+            if (item && (item.groupId === dto.sourceGroupId || item.groupId == null)) {
+              await (tx.contentItem as any).update({
+                where: { id },
+                data: { groupId: dto.groupId },
+              });
+            }
+          }
+        });
+
+        return { count: authorizedIds.length };
       }
 
       default:

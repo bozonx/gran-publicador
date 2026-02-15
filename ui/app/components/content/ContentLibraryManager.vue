@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { TreeItem } from '@nuxt/ui'
 import { type ContentLibraryTab } from '~/composables/useContentLibraryTabs'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
@@ -33,7 +34,7 @@ const router = useRouter()
 const api = useApi()
 const toast = useToast()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
-const { updateTab, deleteTab } = useContentLibraryTabs()
+const { listTabs, createTab, updateTab, deleteTab } = useContentLibraryTabs()
 const { uploadMedia } = useMedia()
 
 const isLoading = ref(false)
@@ -98,10 +99,113 @@ const publicationData = ref({
 const contentLibraryTabsRef = ref<any>(null)
 const isRenameTabModalOpen = ref(false)
 const newTabTitle = ref('')
+const isCreateSubgroupModalOpen = ref(false)
+const newSubgroupTitle = ref('')
 const isDeleteTabConfirmModalOpen = ref(false)
-const tabToDelete = ref<any>(null)
 const isRenamingTab = ref(false)
+const isCreatingSubgroup = ref(false)
 const isDeletingTab = ref(false)
+
+type GroupBulkMode = 'MOVE_TO_GROUP' | 'LINK_TO_GROUP'
+
+interface GroupTreeNode extends TreeItem {
+  label: string
+  value: string
+  children?: GroupTreeNode[]
+}
+
+const isToGroupModalOpen = ref(false)
+const isLoadingGroupTabs = ref(false)
+const isApplyingToGroup = ref(false)
+const isCreatingInlineSubgroup = ref(false)
+const allGroupTabs = ref<ContentLibraryTab[]>([])
+const toGroupSearchQuery = ref('')
+const toGroupTargetId = ref<string | null>(null)
+const groupBulkMode = ref<GroupBulkMode>('MOVE_TO_GROUP')
+const inlineSubgroupTitle = ref('')
+const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
+
+const toGroupActionLabel = computed(() =>
+  groupBulkMode.value === 'MOVE_TO_GROUP'
+    ? t('contentLibrary.bulk.moveMode')
+    : t('contentLibrary.bulk.linkMode'),
+)
+
+const groupTreeItems = computed<GroupTreeNode[]>(() => {
+  if (!isActiveGroupTab.value || !activeTab.value) {
+    return []
+  }
+
+  const rootId = activeTab.value.id
+  const descendants = new Set<string>([rootId])
+  const queue = [rootId]
+
+  while (queue.length > 0) {
+    const parentId = queue.shift()
+    if (!parentId) {
+      continue
+    }
+
+    for (const tab of allGroupTabs.value) {
+      if (tab.parentId === parentId && !descendants.has(tab.id)) {
+        descendants.add(tab.id)
+        queue.push(tab.id)
+      }
+    }
+  }
+
+  const byParent = new Map<string, ContentLibraryTab[]>()
+  for (const tab of allGroupTabs.value) {
+    if (!descendants.has(tab.id) || tab.id === rootId) {
+      continue
+    }
+
+    const parentId = tab.parentId ?? ''
+    const current = byParent.get(parentId) ?? []
+    current.push(tab)
+    byParent.set(parentId, current)
+  }
+
+  const buildTree = (parentId: string): GroupTreeNode[] => {
+    const children = (byParent.get(parentId) ?? []).sort((a, b) => a.order - b.order)
+    return children.map((tab) => ({
+      label: tab.title,
+      value: tab.id,
+      defaultExpanded: true,
+      onSelect: () => {
+        toGroupTargetId.value = tab.id
+      },
+      children: buildTree(tab.id),
+    }))
+  }
+
+  return buildTree(rootId)
+})
+
+const filteredGroupTreeItems = computed<GroupTreeNode[]>(() => {
+  const query = toGroupSearchQuery.value.trim().toLowerCase()
+  if (!query) {
+    return groupTreeItems.value
+  }
+
+  const filterTree = (nodes: GroupTreeNode[]): GroupTreeNode[] => {
+    return nodes
+      .map((node) => {
+        const children = node.children ? filterTree(node.children as GroupTreeNode[]) : []
+        const matches = node.label.toLowerCase().includes(query)
+        if (matches || children.length > 0) {
+          return {
+            ...node,
+            children,
+          }
+        }
+        return null
+      })
+      .filter((node): node is GroupTreeNode => node !== null)
+  }
+
+  return filterTree(groupTreeItems.value)
+})
 
 const isPurgeConfirmModalOpen = ref(false)
 const isPurging = ref(false)
@@ -211,6 +315,35 @@ const uploadContentFiles = async (files: File[]) => {
     }
   } finally {
     isUploadingFiles.value = false
+  }
+}
+
+const handleCreateSubgroup = async () => {
+  if (!isActiveGroupTab.value || !activeTab.value || !newSubgroupTitle.value.trim()) {
+    return
+  }
+
+  isCreatingSubgroup.value = true
+  try {
+    const newTab = await createTab({
+      scope: props.scope,
+      projectId: props.projectId,
+      type: 'GROUP',
+      parentId: activeTab.value.id,
+      title: newSubgroupTitle.value.trim(),
+      config: {},
+    })
+
+    await contentLibraryTabsRef.value?.fetchTabs()
+    activeTabId.value = newTab.id
+    activeTab.value = newTab
+    selectedIds.value = []
+    isCreateSubgroupModalOpen.value = false
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create subgroup'), color: 'error' })
+  } finally {
+    isCreatingSubgroup.value = false
   }
 }
 
@@ -444,6 +577,15 @@ const openRenameTabModal = () => {
   isRenameTabModalOpen.value = true
 }
 
+const openCreateSubgroupModal = () => {
+  if (!isActiveGroupTab.value || !activeTab.value) {
+    return
+  }
+
+  newSubgroupTitle.value = ''
+  isCreateSubgroupModalOpen.value = true
+}
+
 const handleRenameTab = async () => {
   if (!activeTab.value || !newTabTitle.value.trim()) return
   isRenamingTab.value = true
@@ -522,6 +664,89 @@ const executeMoveToProject = async () => {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, `Failed to move items`), color: 'error' })
   } finally {
     isBulkDeleting.value = false
+  }
+}
+
+const fetchGroupTabs = async () => {
+  if (props.scope === 'project' && !props.projectId) {
+    return
+  }
+
+  isLoadingGroupTabs.value = true
+  try {
+    const tabs = await listTabs(props.scope, props.projectId)
+    allGroupTabs.value = tabs.filter(tab => tab.type === 'GROUP')
+  } finally {
+    isLoadingGroupTabs.value = false
+  }
+}
+
+const handleOpenToGroupModal = async () => {
+  if (!isActiveGroupTab.value || !activeTab.value || selectedIds.value.length === 0) {
+    return
+  }
+
+  toGroupTargetId.value = null
+  toGroupSearchQuery.value = ''
+  groupBulkMode.value = 'MOVE_TO_GROUP'
+  inlineSubgroupTitle.value = ''
+  await fetchGroupTabs()
+  isToGroupModalOpen.value = true
+}
+
+const handleCreateInlineSubgroup = async () => {
+  if (!isActiveGroupTab.value || !activeTab.value || !inlineSubgroupTitle.value.trim()) {
+    return
+  }
+
+  isCreatingInlineSubgroup.value = true
+  try {
+    const newTab = await createTab({
+      scope: props.scope,
+      projectId: props.projectId,
+      type: 'GROUP',
+      parentId: activeTab.value.id,
+      title: inlineSubgroupTitle.value.trim(),
+      config: {},
+    })
+
+    await fetchGroupTabs()
+    toGroupTargetId.value = newTab.id
+    inlineSubgroupTitle.value = ''
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create subgroup'), color: 'error' })
+  } finally {
+    isCreatingInlineSubgroup.value = false
+  }
+}
+
+const handleBulkToGroup = async () => {
+  if (!activeTab.value || !toGroupTargetId.value || selectedIds.value.length === 0) {
+    return
+  }
+
+  isApplyingToGroup.value = true
+  const operation = groupBulkMode.value
+  try {
+    await api.post('/content-library/bulk', {
+      ids: selectedIds.value,
+      operation,
+      groupId: toGroupTargetId.value,
+      sourceGroupId: operation === 'MOVE_TO_GROUP' ? activeTab.value.id : undefined,
+    })
+
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.bulk.success', { count: selectedIds.value.length }),
+      color: 'success',
+    })
+    selectedIds.value = []
+    isToGroupModalOpen.value = false
+    await fetchItems({ reset: true })
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to add items to group'), color: 'error' })
+  } finally {
+    isApplyingToGroup.value = false
   }
 }
 
@@ -647,6 +872,7 @@ const restoreTabSettings = () => {
 watch(activeTab, async (newTab, oldTab) => {
   if (newTab?.id !== oldTab?.id) {
     selectedIds.value = []
+    isToGroupModalOpen.value = false
     if (newTab) restoreTabSettings()
     else {
       q.value = ''
@@ -735,6 +961,7 @@ if (props.scope === 'project' && props.projectId) {
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
+      @create-subgroup="openCreateSubgroupModal"
       @rename-tab="openRenameTabModal"
       @delete-tab="openDeleteTabModal"
       @toggle-sort-order="toggleSortOrder"
@@ -849,8 +1076,10 @@ if (props.scope === 'project' && props.projectId) {
     <ContentLibraryBulkBar
       :selected-ids="selectedIds"
       :archive-status="archiveStatus"
+      :is-group-tab="isActiveGroupTab"
       @archive="handleBulkAction('ARCHIVE')"
       @move="handleMoveToProject"
+      @to-group="handleOpenToGroupModal"
       @merge="handleMerge"
       @create-publication="handleCreatePublicationFromSelection"
       @clear="selectedIds = []"
@@ -939,6 +1168,109 @@ if (props.scope === 'project' && props.projectId) {
       :prefilled-note="publicationData.note"
       :prefilled-content-item-ids="publicationData.contentItemIds"
     />
+
+    <AppModal
+      v-model:open="isToGroupModalOpen"
+      :title="t('contentLibrary.bulk.toGroupTitle')"
+      :description="t('contentLibrary.bulk.toGroupDescription', { count: selectedIds.length })"
+      :ui="{ content: 'w-full max-w-2xl' }"
+      @close="isToGroupModalOpen = false"
+    >
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <UButton
+            size="sm"
+            :variant="groupBulkMode === 'MOVE_TO_GROUP' ? 'solid' : 'outline'"
+            color="primary"
+            @click="groupBulkMode = 'MOVE_TO_GROUP'"
+          >
+            {{ t('contentLibrary.bulk.moveMode') }}
+          </UButton>
+          <UButton
+            size="sm"
+            :variant="groupBulkMode === 'LINK_TO_GROUP' ? 'solid' : 'outline'"
+            color="neutral"
+            @click="groupBulkMode = 'LINK_TO_GROUP'"
+          >
+            {{ t('contentLibrary.bulk.linkMode') }}
+          </UButton>
+        </div>
+
+        <UInput
+          v-model="toGroupSearchQuery"
+          icon="i-heroicons-magnifying-glass"
+          :placeholder="t('contentLibrary.bulk.searchGroups')"
+        />
+
+        <div class="rounded-md border border-gray-200 dark:border-gray-800 p-3 max-h-72 overflow-auto">
+          <div v-if="isLoadingGroupTabs" class="py-4 flex justify-center">
+            <UiLoadingSpinner />
+          </div>
+          <div v-else-if="filteredGroupTreeItems.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+            {{ t('contentLibrary.bulk.noGroupsInContext') }}
+          </div>
+          <UTree v-else :items="filteredGroupTreeItems" />
+        </div>
+
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ t('contentLibrary.bulk.selectedGroupHint', { groupId: toGroupTargetId || '-' }) }}
+        </p>
+
+        <UFormField :label="t('contentLibrary.bulk.createSubgroupLabel')">
+          <div class="flex items-center gap-2">
+            <UInput
+              v-model="inlineSubgroupTitle"
+              class="flex-1"
+              :placeholder="t('contentLibrary.tabs.titlePlaceholder')"
+              @keydown.enter="handleCreateInlineSubgroup"
+            />
+            <UButton
+              color="neutral"
+              variant="outline"
+              :loading="isCreatingInlineSubgroup"
+              :disabled="!inlineSubgroupTitle.trim()"
+              @click="handleCreateInlineSubgroup"
+            >
+              {{ t('common.create') }}
+            </UButton>
+          </div>
+        </UFormField>
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isToGroupModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isApplyingToGroup"
+          :disabled="!toGroupTargetId"
+          @click="handleBulkToGroup"
+        >
+          {{ toGroupActionLabel }}
+        </UButton>
+      </template>
+    </AppModal>
+
+    <AppModal
+      v-model:open="isCreateSubgroupModalOpen"
+      :title="t('contentLibrary.tabs.createSubgroupTitle')"
+      :ui="{ content: 'w-full max-w-md' }"
+      @close="isCreateSubgroupModalOpen = false"
+    >
+      <UFormField :label="t('common.title')">
+        <UInput v-model="newSubgroupTitle" autofocus @keydown.enter="handleCreateSubgroup" />
+      </UFormField>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isCreateSubgroupModalOpen = false">
+          {{ t('common.cancel') }}
+        </UButton>
+        <UButton color="primary" :loading="isCreatingSubgroup" :disabled="!newSubgroupTitle.trim()" @click="handleCreateSubgroup">
+          {{ t('common.create') }}
+        </UButton>
+      </template>
+    </AppModal>
 
     <!-- Rename Tab Modal -->
     <AppModal

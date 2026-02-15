@@ -2,11 +2,13 @@
 const props = defineProps<{
   selectedIds: string[]
   archiveStatus: 'active' | 'archived'
+  isGroupTab: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'archive'): void
   (e: 'move'): void
+  (e: 'to-group'): void
   (e: 'merge'): void
   (e: 'create-publication'): void
   (e: 'clear'): void
@@ -51,6 +53,18 @@ const { t } = useI18n()
           @click="emit('move')"
         >
           {{ t('contentLibrary.bulk.move') }}
+        </UButton>
+
+        <UButton
+          v-if="archiveStatus === 'active' && isGroupTab"
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-folder-plus"
+          size="sm"
+          class="text-white hover:bg-gray-700"
+          @click="emit('to-group')"
+        >
+          {{ t('contentLibrary.bulk.toGroup') }}
         </UButton>
 
         <UButton

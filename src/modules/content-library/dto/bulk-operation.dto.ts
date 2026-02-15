@@ -7,6 +7,8 @@ export enum BulkOperationType {
   UNARCHIVE = 'UNARCHIVE',
   SET_PROJECT = 'SET_PROJECT',
   MERGE = 'MERGE',
+  LINK_TO_GROUP = 'LINK_TO_GROUP',
+  MOVE_TO_GROUP = 'MOVE_TO_GROUP',
 }
 
 export class BulkOperationDto {
@@ -22,4 +24,12 @@ export class BulkOperationDto {
   @IsOptional()
   @IsUUID()
   projectId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  groupId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  sourceGroupId?: string;
 }

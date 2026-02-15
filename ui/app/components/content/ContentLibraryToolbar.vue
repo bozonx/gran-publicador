@@ -26,6 +26,7 @@ const emit = defineEmits<{
   (e: 'purge'): void
   (e: 'create'): void
   (e: 'upload-files', files: File[]): void
+  (e: 'create-subgroup'): void
   (e: 'rename-tab'): void
   (e: 'delete-tab'): void
   (e: 'toggle-sort-order'): void
@@ -224,6 +225,16 @@ function onDrop(event: DragEvent) {
 
           <div class="flex items-center gap-2">
             <template v-if="activeTab">
+              <UButton
+                v-if="archiveStatus === 'active' && activeTab.type === 'GROUP'"
+                color="primary"
+                variant="soft"
+                size="sm"
+                icon="i-heroicons-folder-plus"
+                @click="emit('create-subgroup')"
+              >
+                {{ t('contentLibrary.tabs.createSubgroup') }}
+              </UButton>
               <UButton color="neutral" variant="ghost" size="sm" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
                 {{ t('common.rename') }}
               </UButton>

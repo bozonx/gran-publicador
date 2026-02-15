@@ -33,6 +33,11 @@ All notable changes to this project will be documented in this file.
 - **Content Library terminology/API contract**:
   - UI/API now uses **Group** terminology (`GROUP`, `groupId`) instead of folder wording.
   - Backend/Prisma model also migrated to `GROUP` / `groupId` naming.
+- **Content Library groups workflow**:
+  - Added quick subgroup creation from active `GROUP` tab with immediate navigation into the new subgroup.
+  - Added bulk **To group** action (available only in `GROUP` tabs) with context-scoped tree selection.
+  - Added bulk modes: `MOVE_TO_GROUP` (detach only from current active group) and `LINK_TO_GROUP` (add extra relation).
+  - Added inline subgroup creation inside the **To group** modal (always under current active group).
 - **Content Library toolbar**:
   - Removed non-functional view mode toggle (library remains card-only).
   - Added informational tooltip explaining group behavior and safe deletion semantics (deleting a group does not delete content items).

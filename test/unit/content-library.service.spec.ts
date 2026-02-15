@@ -160,6 +160,130 @@ describe('ContentLibraryService (unit)', () => {
 
       expect(res).toEqual({ count: 2 });
     });
+
+    it('LINK_TO_GROUP should add group relations and keep existing primary group when set', async () => {
+      mockPrismaService.contentItem.findUnique
+        .mockResolvedValueOnce({
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          groupId: null,
+          archivedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'ci-2',
+          userId: 'user-1',
+          projectId: null,
+          groupId: 'g-existing',
+          archivedAt: null,
+        });
+
+      mockPrismaService.contentLibraryTab.findUnique
+        .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', projectId: null })
+        .mockResolvedValueOnce({
+          id: 'g-target',
+          type: 'GROUP',
+          userId: 'user-1',
+          projectId: null,
+        });
+
+      const res = await service.bulkOperation('user-1', {
+        ids: ['ci-1', 'ci-2'],
+        operation: BulkOperationType.LINK_TO_GROUP,
+        groupId: 'g-target',
+      } as any);
+
+      expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledTimes(2);
+      expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            contentItemId_tabId: {
+              contentItemId: 'ci-1',
+              tabId: 'g-target',
+            },
+          },
+        }),
+      );
+
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-1' },
+          data: { groupId: 'g-target' },
+        }),
+      );
+      expect(res).toEqual({ count: 2 });
+    });
+
+    it('MOVE_TO_GROUP should require sourceGroupId', async () => {
+      mockPrismaService.contentItem.findUnique.mockResolvedValueOnce({
+        id: 'ci-1',
+        userId: 'user-1',
+        projectId: null,
+        groupId: 'g-source',
+        archivedAt: null,
+      });
+
+      await expect(
+        service.bulkOperation('user-1', {
+          ids: ['ci-1'],
+          operation: BulkOperationType.MOVE_TO_GROUP,
+          groupId: 'g-target',
+        } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('MOVE_TO_GROUP should unlink only source group and set target as primary when needed', async () => {
+      mockPrismaService.contentItem.findUnique
+        .mockResolvedValueOnce({
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          groupId: 'g-source',
+          archivedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'ci-2',
+          userId: 'user-1',
+          projectId: null,
+          groupId: 'g-other',
+          archivedAt: null,
+        });
+
+      mockPrismaService.contentLibraryTab.findUnique
+        .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', projectId: null })
+        .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', userId: 'user-1', projectId: null })
+        .mockResolvedValueOnce({
+          id: 'g-source',
+          type: 'GROUP',
+          userId: 'user-1',
+          projectId: null,
+        });
+
+      const res = await service.bulkOperation('user-1', {
+        ids: ['ci-1', 'ci-2'],
+        operation: BulkOperationType.MOVE_TO_GROUP,
+        groupId: 'g-target',
+        sourceGroupId: 'g-source',
+      } as any);
+
+      expect(mockPrismaService.contentItemGroup.deleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { contentItemId: 'ci-1', tabId: 'g-source' } }),
+      );
+      expect(mockPrismaService.contentItemGroup.deleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { contentItemId: 'ci-2', tabId: 'g-source' } }),
+      );
+      expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledTimes(2);
+
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-1' },
+          data: { groupId: 'g-target' },
+        }),
+      );
+      expect(res).toEqual({ count: 2 });
+    });
   });
 
   afterAll(async () => {

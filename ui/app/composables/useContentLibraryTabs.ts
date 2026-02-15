@@ -4,6 +4,7 @@ export interface ContentLibraryTab {
   title: string;
   userId: string | null;
   projectId: string | null;
+  parentId: string | null;
   order: number;
   config: Record<string, any>;
   createdAt: string;
@@ -14,6 +15,7 @@ export interface CreateTabDto {
   scope: 'personal' | 'project';
   projectId?: string;
   type: 'GROUP' | 'SAVED_VIEW';
+  parentId?: string;
   title: string;
   config?: Record<string, any>;
 }
