@@ -1,5 +1,5 @@
 import { TelegramBotUpdate } from '../../src/modules/telegram-bot/telegram-bot.update.js';
-import { jest } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 
 describe('TelegramBotUpdate', () => {
   const createCtx = (overrides: any = {}) => {
@@ -20,14 +20,11 @@ describe('TelegramBotUpdate', () => {
     const prisma: any = {
       contentItem: {
         create: jest.fn(() => ({ id: 'ci1' })),
-      },
-      contentBlock: {
-        create: jest.fn(() => ({ id: 'cb1' })),
         findFirst: jest.fn(() => null),
         findUnique: jest.fn(() => ({ text: null })),
         update: jest.fn(() => ({})),
       },
-      contentBlockMedia: {
+      contentItemMedia: {
         create: jest.fn(() => ({})),
         aggregate: jest.fn(() => ({ _max: { order: null } })),
         findFirst: jest.fn(() => null),
@@ -196,10 +193,11 @@ describe('TelegramBotUpdate', () => {
     await (update as any).userQueues.get(100)?.onIdle();
     expect(ctx1.reply).toHaveBeenCalledWith('telegram.content_item_created');
 
-    deps.prisma.contentBlock.findFirst.mockResolvedValueOnce({
-      id: 'cbExisting',
-      contentItemId: 'ci1',
+    deps.prisma.contentItem.findFirst.mockResolvedValueOnce({
+      id: 'ci1',
     });
+
+    deps.prisma.contentItemMedia.findFirst.mockResolvedValueOnce(null);
 
     const ctx2 = createCtx({
       message: {
@@ -213,7 +211,7 @@ describe('TelegramBotUpdate', () => {
     await update.onMessage(ctx2);
     await (update as any).userQueues.get(100)?.onIdle();
     expect(ctx2.reply).not.toHaveBeenCalled();
-    expect(deps.prisma.contentBlockMedia.create).toHaveBeenCalled();
+    expect(deps.prisma.contentItemMedia.create).toHaveBeenCalled();
   });
 
   it('rejects unsupported message type', async () => {
@@ -245,7 +243,7 @@ describe('TelegramBotUpdate', () => {
   it('does not create duplicates for the same telegram message', async () => {
     const deps = createDeps();
 
-    deps.prisma.contentBlock.findFirst.mockResolvedValueOnce({ id: 'cbExisting' });
+    deps.prisma.contentItem.findFirst.mockResolvedValueOnce({ id: 'ciExisting' });
 
     const update = new TelegramBotUpdate(
       deps.usersService,

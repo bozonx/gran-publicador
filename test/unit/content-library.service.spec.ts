@@ -37,23 +37,6 @@ describe('ContentLibraryService (unit)', () => {
       delete: jest.fn() as any,
       aggregate: jest.fn() as any,
     },
-    contentBlock: {
-      aggregate: jest.fn() as any,
-      create: jest.fn() as any,
-      findUnique: jest.fn() as any,
-      findMany: jest.fn() as any,
-      update: jest.fn() as any,
-      delete: jest.fn() as any,
-    },
-    contentBlockMedia: {
-      aggregate: jest.fn() as any,
-      create: jest.fn() as any,
-      findUnique: jest.fn() as any,
-      findMany: jest.fn() as any,
-      update: jest.fn() as any,
-      delete: jest.fn() as any,
-      deleteMany: jest.fn() as any,
-    },
     media: {
       findUnique: jest.fn() as any,
     },
@@ -390,7 +373,7 @@ describe('ContentLibraryService (unit)', () => {
         {
           scope: 'personal',
           title: 't',
-          blocks: [{ text: 'hello' }],
+          text: 'hello',
         } as any,
         'user-1',
       );
@@ -404,7 +387,7 @@ describe('ContentLibraryService (unit)', () => {
         service.create(
           {
             scope: 'project',
-            blocks: [{ text: 'hello' }],
+            text: 'hello',
           } as any,
           'user-1',
         ),
@@ -419,7 +402,7 @@ describe('ContentLibraryService (unit)', () => {
         {
           scope: 'project',
           projectId: 'p1',
-          blocks: [{ text: 'hello' }],
+          text: 'hello',
         } as any,
         'user-1',
       );

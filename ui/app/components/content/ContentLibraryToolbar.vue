@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   scope: 'project' | 'personal'
   projectId?: string
   totalUnfiltered: number
@@ -236,18 +236,6 @@ const infoTooltipText = computed(() => {
         </div>
 
         <div v-if="activeTab" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <div class="flex items-center gap-2 px-1 text-sm text-gray-500">
-            <UButton color="neutral" variant="ghost" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
-              {{ t('common.rename') }}
-            </UButton>
-            
-            <CommonInfoTooltip :text="infoTooltipText" />
-
-            <UButton v-if="canDeleteActiveTab !== false" color="error" variant="ghost" icon="i-heroicons-trash" @click="emit('delete-tab')">
-              {{ t('common.delete') }}
-            </UButton>
-          </div>
-
           <div class="flex items-center gap-3">
             <template v-if="archiveStatus === 'active'">
               <UButton
@@ -270,6 +258,18 @@ const infoTooltipText = computed(() => {
                 {{ t('contentLibrary.actions.uploadMedia') }}
               </UButton>
             </template>
+          </div>
+
+          <div class="flex items-center gap-2 px-1 text-sm text-gray-500">
+            <UButton color="neutral" variant="ghost" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
+              {{ t('common.rename') }}
+            </UButton>
+            
+            <CommonInfoTooltip :text="infoTooltipText" />
+
+            <UButton v-if="canDeleteActiveTab !== false" color="error" variant="ghost" icon="i-heroicons-trash" @click="emit('delete-tab')">
+              {{ t('common.delete') }}
+            </UButton>
           </div>
         </div>
       </div>

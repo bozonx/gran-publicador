@@ -43,8 +43,8 @@ async function main() {
 
   // Content Library cleanup
   await prisma.publicationContentItem.deleteMany({});
-  await prisma.contentBlockMedia.deleteMany({});
-  await prisma.contentBlock.deleteMany({});
+  await prisma.contentItemMedia.deleteMany({});
+  await prisma.contentItemGroup.deleteMany({});
   await prisma.contentItem.deleteMany({});
   await prisma.contentLibraryTab.deleteMany({});
 
@@ -1045,15 +1045,9 @@ async function main() {
       _tags: ['nuxt', 'future', 'speculation'],
       groupId: 'tab10000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
-      blocks: [
-        {
-          id: 'cblk1111-1111-4111-8111-111111111111',
-          text: 'Nuxt 5 might introduce native AI integration...',
-          order: 0,
-          meta: {},
-          media: [],
-        },
-      ],
+      text: 'Nuxt 5 might introduce native AI integration...',
+      meta: {},
+      media: [],
     },
     {
       id: 'cccc1111-1111-4111-8111-111111111112',
@@ -1063,20 +1057,13 @@ async function main() {
       _tags: ['image', 'asset'],
       groupId: 'tab10000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
-      blocks: [
+      text: null,
+      meta: {},
+      media: [
         {
-          id: 'cblk1111-1111-4111-8111-111111111112',
-          text: null,
+          mediaId: mediaSamples[0].id,
           order: 0,
-          meta: {},
-          media: [
-            {
-              id: 'cbm11111-1111-4111-8111-111111111111',
-              mediaId: mediaSamples[0].id,
-              order: 0,
-              hasSpoiler: false,
-            },
-          ],
+          hasSpoiler: false,
         },
       ],
     },
@@ -1087,20 +1074,13 @@ async function main() {
       title: 'Travel Log Segment',
       _tags: ['travel', 'raw'],
       note: null,
-      blocks: [
+      text: 'Arrived in Tokyo at 5 AM. The city was already awake.',
+      meta: {},
+      media: [
         {
-          id: 'cblk1111-1111-4111-8111-111111111113',
-          text: 'Arrived in Tokyo at 5 AM. The city was already awake.',
-          order: 0,
-          meta: {},
-          media: [
-            {
-              id: 'cbm11111-1111-4111-8111-111111111112',
-              mediaId: mediaSamples[1].id,
-              order: 1,
-              hasSpoiler: false,
-            },
-          ],
+          mediaId: mediaSamples[1].id,
+          order: 1,
+          hasSpoiler: false,
         },
       ],
     },
@@ -1112,15 +1092,9 @@ async function main() {
       _tags: ['archived', 'example'],
       note: 'This item is archived to test trash flow',
       archivedBy: devUser.id,
-      blocks: [
-        {
-          id: 'cblk1111-1111-4111-8111-111111111114',
-          text: 'This content item is in archive.',
-          order: 0,
-          meta: {},
-          media: [],
-        },
-      ],
+      text: 'This content item is in archive.',
+      meta: {},
+      media: [],
     },
     {
       id: 'cccc1111-1111-4111-8111-111111111115',
@@ -1129,20 +1103,14 @@ async function main() {
       title: 'Personal: Quick snippet',
       _tags: ['personal', 'snippet'],
       note: null,
-      blocks: [
-        {
-          id: 'cblk1111-1111-4111-8111-111111111115',
-          text: 'Personal library item example.',
-          order: 0,
-          meta: {},
-          media: [],
-        },
-      ],
+      text: 'Personal library item example.',
+      meta: {},
+      media: [],
     },
   ];
 
   for (const item of contentItems) {
-    const { blocks, _tags, ...itemData } = item as any;
+    const { media, _tags, ...itemData } = item as any;
     const tagObjects = _tags
       ? {
           connectOrCreate: _tags.map((name: string) => {
@@ -1164,27 +1132,19 @@ async function main() {
       create: { ...itemData, tagObjects },
     });
 
-    for (const block of blocks) {
-      const { media, ...blockData } = block;
-      await prisma.contentBlock.upsert({
-        where: { id: block.id },
-        update: blockData,
-        create: {
-          ...blockData,
-          contentItemId: item.id,
-        },
+    await prisma.contentItemMedia.deleteMany({ where: { contentItemId: item.id } });
+    if (Array.isArray(media) && media.length > 0) {
+      await prisma.contentItemMedia.createMany({
+        data: media
+          .slice()
+          .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+          .map((m: any, idx: number) => ({
+            contentItemId: item.id,
+            mediaId: m.mediaId,
+            order: m.order ?? idx,
+            hasSpoiler: !!m.hasSpoiler,
+          })),
       });
-
-      for (const m of media) {
-        await prisma.contentBlockMedia.upsert({
-          where: { id: m.id },
-          update: m,
-          create: {
-            ...m,
-            contentBlockId: block.id,
-          },
-        });
-      }
     }
   }
 
