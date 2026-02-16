@@ -401,6 +401,7 @@ describe('ContentLibraryService (unit)', () => {
           data: expect.objectContaining({
             title: 'A | B',
             text: 't1\n\n---\n\nt2',
+            note: 'keep-note\n\n---\n\nshould-not-merge',
             meta: { a: 1, mergedContentItems: [{ b: 2 }] },
             tagObjects: { set: [] },
           }),

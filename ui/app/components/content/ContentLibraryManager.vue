@@ -146,6 +146,7 @@ const handleSidebarGroupNodeSelect = (tabId: string) => {
   const targetTab = tabsById.value.get(tabId)
   if (targetTab?.type === 'GROUP' && !targetTab.parentId) {
     skipAutoRestoreLastSelectedGroupNodeOnce.value = true
+    localStorage.setItem(getGroupSelectionStorageKey(tabId), tabId)
   }
   handleSelectGroupTab(tabId)
 }
@@ -677,6 +678,11 @@ let fetchItemsRequestId = 0
 const fetchItems = async (opts?: { reset?: boolean }) => {
   const requestId = ++fetchItemsRequestId
   if (props.scope === 'project' && !props.projectId) return
+
+  if (activeTabId.value && !activeTab.value && !tabsById.value.get(activeTabId.value)) {
+    return
+  }
+
   if (opts?.reset) {
     offset.value = 0
     items.value = []
@@ -684,6 +690,9 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   isLoading.value = true
   error.value = null
   try {
+    const resolvedActiveTab = activeTab.value ?? (activeTabId.value ? (tabsById.value.get(activeTabId.value) ?? null) : null)
+    const resolvedGroupId = resolvedActiveTab?.type === 'GROUP' ? resolvedActiveTab.id : undefined
+
     const baseParams = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
       projectId: props.scope === 'project' ? props.projectId : undefined,
@@ -695,7 +704,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       api.get<any>('/content-library/items', {
         params: {
           ...baseParams,
-          groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
+          groupId: resolvedGroupId,
           search: q.value || undefined,
           limit,
           offset: offset.value,
@@ -739,7 +748,14 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
 
 const fetchAvailableTags = async () => {
   try {
-    const groupIdForTags = activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined
+    if (!activeTab.value) {
+      return
+    }
+
+    if (isActiveGroupTab.value && !activeRootGroupId.value) {
+      return
+    }
+    const groupIdForTags = activeRootGroupId.value ?? undefined
     const tags = await api.get<string[]>('/content-library/tags', {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
@@ -752,6 +768,12 @@ const fetchAvailableTags = async () => {
     console.error('Failed to fetch available tags', e)
   }
 }
+
+watch(activeRootGroupId, (next, prev) => {
+  if (next && next !== prev) {
+    fetchAvailableTags()
+  }
+})
 
 const loadMore = async () => {
   if (isLoading.value || !hasMore.value) return
@@ -779,6 +801,9 @@ const isAllSelected = computed(() => items.value.length > 0 && items.value.every
 const isSomeSelected = computed(() => selectedIds.value.length > 0 && !isAllSelected.value)
 
 function toggleSelectAll() {
+  if (items.value.length === 0) {
+    return
+  }
   if (isAllSelected.value) {
     selectedIds.value = []
   } else {
@@ -1157,6 +1182,7 @@ const handleCloseModal = async () => {
 }
 
 const isRestoringConfig = ref(false)
+const isInitialDataLoaded = ref(false)
 
 const getGroupRootTabId = (tab: ContentLibraryTab): string => {
   let cursor: ContentLibraryTab | undefined = tab
@@ -1279,6 +1305,10 @@ const handleActiveTabUpdate = async (nextTab: ContentLibraryTab | null) => {
   }
 
   activeTab.value = nextTab
+
+  if (nextTab?.type === 'GROUP' && !nextTab.parentId) {
+    localStorage.setItem(getGroupSelectionStorageKey(nextTab.id), nextTab.id)
+  }
 }
 
 const debouncedPersistActiveTabConfig = useDebounceFn(persistActiveTabConfig, 350)
@@ -1359,8 +1389,38 @@ watch(activeTab, async (newTab, oldTab) => {
       sortOrder.value = 'desc'
     }
     fetchItems({ reset: true })
+    fetchAvailableTags()
   }
 })
+
+watch([activeTabId, tabs], () => {
+  if (!activeTabId.value || activeTab.value?.id === activeTabId.value) {
+    return
+  }
+
+  const next = tabs.value.find(t => t.id === activeTabId.value) ?? null
+  if (next) {
+    activeTab.value = next
+  }
+})
+
+watch([activeTab, tabs], () => {
+  if (isInitialDataLoaded.value) {
+    return
+  }
+
+  if (tabs.value.length === 0) {
+    return
+  }
+
+  if (!activeTab.value) {
+    return
+  }
+
+  isInitialDataLoaded.value = true
+  fetchAvailableTags()
+  fetchItems({ reset: true })
+}, { immediate: true })
 
 watch([q, selectedTags, sortBy, sortOrder], () => {
   debouncedPersistActiveTabConfig()
@@ -1408,8 +1468,6 @@ watch(() => props.scope, () => {
   fetchItems({ reset: true })
 })
 
-fetchAvailableTags()
-fetchItems({ reset: true })
 if (props.scope === 'project' && props.projectId) {
   fetchProject(props.projectId)
 }
@@ -1475,10 +1533,11 @@ if (props.scope === 'project' && props.projectId) {
           </div>
 
           <!-- Select All -->
-          <div v-if="items.length > 0" class="flex items-center justify-between gap-4 px-2">
+          <div class="flex items-center justify-between gap-4 px-2">
             <UCheckbox
               :model-value="isAllSelected"
               :indeterminate="isSomeSelected"
+              :disabled="items.length === 0"
               :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
               @update:model-value="toggleSelectAll"
             />

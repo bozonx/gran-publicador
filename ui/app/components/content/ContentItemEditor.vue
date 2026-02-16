@@ -94,19 +94,54 @@ async function onReorderMedia(reorderData: any[]) {
 }
 
 async function onUpdateLinkMedia(_mediaLinkId: string, data: any) {
-  const mediaId = data?.mediaId || data?.id
-  if (!mediaId) return
+  const linkId = _mediaLinkId
+  if (!linkId) return
   editForm.value.media = (editForm.value.media || []).map((m: any) =>
-    (m.mediaId || m.id) === mediaId ? { ...m, ...data } : m,
+    m.id === linkId ? { ...m, ...data } : m,
   )
 }
 
 async function onCopyMedia(_mediaLinkId: string) {
-  toast.add({
-    title: t('common.error'),
-    description: t('common.saveError'),
-    color: 'error'
-  })
+  const linkId = _mediaLinkId
+  if (!linkId) {
+    return
+  }
+
+  const link = (editForm.value.media || []).find((m: any) => m.id === linkId)
+  const mediaId = link?.mediaId || link?.media?.id || null
+  if (!mediaId) {
+    toast.add({
+      title: t('common.error'),
+      description: t('common.saveError'),
+      color: 'error'
+    })
+    return
+  }
+
+  try {
+    await api.post('/content-library/items', {
+      scope: props.scope,
+      projectId: props.scope === 'project' ? props.projectId : undefined,
+      groupId: props.groupId,
+      title: '',
+      text: '',
+      meta: {},
+      media: [{ mediaId, order: 0, hasSpoiler: link?.hasSpoiler ? true : false }],
+    })
+
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.actions.copyToItemSuccess'),
+      color: 'success'
+    })
+    emit('refresh')
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, 'Failed to copy media'),
+      color: 'error'
+    })
+  }
 }
 
 defineExpose({

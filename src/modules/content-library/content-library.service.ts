@@ -759,6 +759,11 @@ export class ContentLibraryService {
           .filter(Boolean);
         const newText = mergedTextParts.join(TEXT_MERGE_SEPARATOR) || null;
 
+        const mergedNoteParts = items
+          .map((i: any) => (typeof i.note === 'string' ? i.note.trim() : ''))
+          .filter(Boolean);
+        const newNote = mergedNoteParts.join(TEXT_MERGE_SEPARATOR) || null;
+
         const mergedTagNames = items.flatMap((i: any) =>
           (i.tagObjects ?? []).map((t: any) => t.name),
         );
@@ -769,13 +774,23 @@ export class ContentLibraryService {
             ? (targetItem.meta as Record<string, any>)
             : {}
         ) as Record<string, any>;
+        const existingMerged = Array.isArray((targetMeta as any).mergedContentItems)
+          ? (targetMeta as any).mergedContentItems
+          : [];
         const removedMetas = sourceItems
           .map((i: any) => i?.meta)
-          .filter((m: any) => typeof m === 'object' && m !== null);
-        const newMeta = {
-          ...targetMeta,
-          mergedContentItems: removedMetas,
-        };
+          .filter((m: any) => typeof m === 'object' && m !== null)
+          .filter((m: any) => Object.keys(m as any).length > 0);
+        const nextMerged = [...existingMerged, ...removedMetas];
+        const newMeta =
+          nextMerged.length > 0
+            ? {
+                ...targetMeta,
+                mergedContentItems: nextMerged,
+              }
+            : {
+                ...targetMeta,
+              };
 
         // 5. Combine Media
         const mediaPick = new Map<
@@ -810,6 +825,7 @@ export class ContentLibraryService {
             data: {
               title: newTitle,
               text: newText,
+              note: newNote,
               meta: newMeta as any,
               tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
                 newTags,
