@@ -68,10 +68,9 @@ const saveItem = async (formData: typeof editForm.value) => {
     note: formData.note || null,
     text: formData.text?.trim() || '',
     meta: formData.meta || {},
-    media: (formData.media || []).map((m: any, idx: number) => ({
+    media: (formData.media || []).map((m: any) => ({
       mediaId: m.mediaId || m.media?.id,
       hasSpoiler: m.hasSpoiler ? true : undefined,
-      order: idx,
     })),
   })
 }
@@ -89,7 +88,30 @@ async function onAddMedia(media: any[]) {
 }
 
 async function onReorderMedia(reorderData: any[]) {
-  editForm.value.media = (reorderData || []).map((x: any, idx: number) => ({ ...x, order: idx }))
+  const current = editForm.value.media || []
+  const byId = new Map<string, any>()
+  for (const item of current) {
+    if (item?.id) {
+      byId.set(item.id, item)
+    }
+  }
+
+  const next: any[] = []
+  for (let i = 0; i < (reorderData || []).length; i += 1) {
+    const id = reorderData[i]?.id
+    const existing = id ? byId.get(id) : undefined
+    if (existing) {
+      next.push({ ...existing, order: i })
+      byId.delete(id)
+    }
+  }
+
+  // Preserve items that were not present in reorderData (defensive).
+  for (const item of byId.values()) {
+    next.push({ ...item, order: next.length })
+  }
+
+  editForm.value.media = next
 }
 
 async function onUpdateLinkMedia(_mediaLinkId: string, data: any) {
