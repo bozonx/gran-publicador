@@ -71,7 +71,7 @@ const isUploadingFiles = ref(false)
 const isStartCreating = ref(false)
 
 // Utils
-const { isDropZoneActive: isWindowFileDragActive, onDragEnter, onDragOver, onDragLeave, onDrop } = useContentFileUpload((files) => uploadContentFiles(files))
+const isWindowFileDragActive = computed(() => false)
 
 // Sorting Options
 const sortOptions = computed(() => [
@@ -153,7 +153,7 @@ const fetchAvailableTags = async () => {
       params: {
         scope: props.scope,
         projectId: props.projectId,
-        groupId: activeCollection.value.id,
+        groupId: activeCollection.value.type === 'GROUP' ? activeCollection.value.id : undefined,
       }
     })
     if (requestId !== fetchAvailableTagsRequestId) return
@@ -210,14 +210,51 @@ const VALIDATION_LIMITS = {
   MAX_TITLE_LENGTH: 500,
 }
 
+const isCreatePublicationModalOpen = ref(false)
+const createPublicationModalProjectId = ref<string | undefined>(undefined)
+const createPublicationModalAllowProjectSelection = ref(false)
+const publicationData = ref({
+  title: '',
+  content: '',
+  mediaIds: [] as Array<{ id: string; hasSpoiler?: boolean }>,
+  tags: [] as string[],
+  note: '',
+  contentItemIds: [] as string[],
+})
+
+const openCreatePublicationModalForItems = (selected: any[]) => {
+  const data = aggregateSelectedItemsToPublicationOrThrow(selected, VALIDATION_LIMITS)
+
+  const projectId = data.projectId ?? (props.scope === 'project' ? props.projectId : undefined)
+  createPublicationModalProjectId.value = projectId
+  createPublicationModalAllowProjectSelection.value = data.allowProjectSelection || !projectId
+
+  publicationData.value = {
+    title: data.title,
+    content: data.content,
+    mediaIds: data.media,
+    tags: data.tags,
+    note: data.note,
+    contentItemIds: data.contentItemIds,
+  }
+  isCreatePublicationModalOpen.value = true
+}
+
 const handleCreatePublication = (item: any) => {
-    try {
-        const data = aggregateSelectedItemsToPublicationOrThrow([item], VALIDATION_LIMITS)
-        // In a real app, this would open a publication editor
-        toast.add({ title: 'Not implemented', description: 'Publication editor opening logic here' })
-    } catch (e: any) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create publication'), color: 'error' })
-    }
+  try {
+    openCreatePublicationModalForItems([item])
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create publication'), color: 'error' })
+  }
+}
+
+const handleCreatePublicationFromSelection = () => {
+  try {
+    const selected = items.value.filter(i => selectedIds.value.includes(i.id))
+    openCreatePublicationModalForItems(selected)
+  } catch (e: any) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create publication'), color: 'error' })
+  }
 }
 
 const isBulkOperating = ref(false)
@@ -369,19 +406,7 @@ onMounted(() => { fetchItems() })
 </script>
 
 <template>
-  <div 
-    class="relative"
-    @dragenter="onDragEnter"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
-  >
-    <div v-if="isWindowFileDragActive" class="fixed inset-0 z-50 bg-primary-500/10 backdrop-blur-sm flex items-center justify-center p-8 pointer-events-none">
-      <div class="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-2xl border-2 border-dashed border-primary-500 flex flex-col items-center gap-4">
-        <UIcon name="i-heroicons-cloud-arrow-up" class="w-16 h-16 text-primary-500 animate-bounce" />
-        <p class="text-xl font-bold text-gray-900 dark:text-white">{{ t('contentLibrary.actions.dropFilesToUpload') }}</p>
-      </div>
-    </div>
+  <div class="relative">
 
     <ContentLibraryToolbar
       :scope="scope"
@@ -475,7 +500,7 @@ onMounted(() => { fetchItems() })
       @purge="handleBulkDeleteForever"
       @move="handleOpenMoveModal(selectedIds)"
       @merge="handleMerge"
-      @create-publication="() => { if (selectedIds.length > 0) handleCreatePublication(items.find(i => i.id === selectedIds[0])) }"
+      @create-publication="handleCreatePublicationFromSelection"
       @clear="selectedIds = []"
     />
 
@@ -510,6 +535,19 @@ onMounted(() => { fetchItems() })
       @execute-move="handleExecuteMoveItems"
       @rename-collection="handleRenameCollection"
       @delete-collection="handleDeleteCollection"
+    />
+
+    <ModalsCreatePublicationModal
+      v-if="isCreatePublicationModalOpen"
+      v-model:open="isCreatePublicationModalOpen"
+      :project-id="createPublicationModalProjectId"
+      :allow-project-selection="createPublicationModalAllowProjectSelection"
+      :prefilled-title="publicationData.title"
+      :prefilled-content="publicationData.content"
+      :prefilled-media-ids="publicationData.mediaIds"
+      :prefilled-tags="publicationData.tags"
+      :prefilled-note="publicationData.note"
+      :prefilled-content-item-ids="publicationData.contentItemIds"
     />
   </div>
 </template>

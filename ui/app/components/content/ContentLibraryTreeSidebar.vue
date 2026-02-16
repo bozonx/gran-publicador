@@ -80,6 +80,28 @@ const hasTreeChildren = (node: unknown): boolean => {
   return Array.isArray((node as any)?.children) && (node as any).children.length > 0
 }
 
+const expanded = ref<string[]>([])
+
+const getPathToRoot = (id: string): string[] => {
+  const out: string[] = []
+  let cursor: ContentCollection | undefined = collectionsById.value.get(id)
+  const visited = new Set<string>()
+
+  while (cursor && cursor.type === 'GROUP' && !visited.has(cursor.id)) {
+    visited.add(cursor.id)
+    out.push(cursor.id)
+
+    if (!cursor.parentId) break
+    cursor = collectionsById.value.get(cursor.parentId)
+  }
+  return out
+}
+
+watch(activeRootGroupId, (next) => {
+  if (!next) return
+  expanded.value = Array.from(new Set([...expanded.value, next]))
+}, { immediate: true })
+
 // Tree Actions Logic
 const isTreeCreateModalOpen = ref(false)
 const treeCreateParentId = ref<string | null>(null)
@@ -128,6 +150,9 @@ const handleCreateGroupFromTreeModal = async () => {
       title,
       config: {},
     })
+
+    const path = getPathToRoot(treeCreateParentId.value)
+    expanded.value = Array.from(new Set([...expanded.value, ...path]))
 
     emit('refresh-collections')
     emit('select-node', newCollection.id)
@@ -253,7 +278,9 @@ const getGroupNodeMenuItems = (collectionId: string) => {
       </div>
       <UTree
         v-else
+        v-model:expanded="expanded"
         :items="sidebarGroupTreeItems"
+        :get-key="(i: any) => i.value"
         :ui="{ item: 'cursor-pointer' }"
       >
         <template #group-node-leading="{ item, expanded, handleToggle }">
