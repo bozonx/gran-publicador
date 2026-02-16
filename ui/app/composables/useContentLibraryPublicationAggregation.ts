@@ -17,8 +17,11 @@ function isItemEmptyForPublication(item: any): boolean {
   const hasAnyMedia = (item.media || []).some((m: any) => !!(m.mediaId || m.id));
   const hasAnyNote = stripHtmlAndSpecialChars(item.note || '').trim().length > 0;
   const hasAnyTitle = (item.title || '').toString().trim().length > 0;
+  const hasAnyTags =
+    Array.isArray(item.tags) &&
+    item.tags.some((t: any) => typeof t === 'string' && t.trim().length > 0);
 
-  return !(hasAnyText || hasAnyMedia || hasAnyNote || hasAnyTitle);
+  return !(hasAnyText || hasAnyMedia || hasAnyNote || hasAnyTitle || hasAnyTags);
 }
 
 function normalizePublicationTags(rawTags: string[], maxCount: number): string[] {
@@ -67,7 +70,7 @@ export function aggregateSelectedItemsToPublicationOrThrow(
     const title = (item.title || '').toString().trim();
     if (title) titleParts.push(title);
 
-    const note = (item.note || '').toString().trim();
+    const note = sanitizeContentPreserveMarkdown(item.note || '').trim();
     if (note) noteParts.push(note);
 
     for (const tag of item.tags || []) {
@@ -93,7 +96,7 @@ export function aggregateSelectedItemsToPublicationOrThrow(
 
   const title = titleParts.join(' | ');
   const content = contentParts.join(PUBLICATION_SEPARATOR);
-  const note = Array.from(new Set(noteParts)).join(PUBLICATION_SEPARATOR);
+  const note = noteParts.join(PUBLICATION_SEPARATOR);
 
   const tags = normalizePublicationTags(allTags, limits.MAX_TAGS_COUNT);
 

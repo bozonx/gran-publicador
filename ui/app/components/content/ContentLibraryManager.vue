@@ -2,7 +2,6 @@
 import { type ContentCollection } from '~/composables/useContentCollections'
 import { getApiErrorMessage } from '~/utils/error'
 import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
-import { useContentFileUpload } from '~/composables/useContentFileUpload'
 import { parseTags } from '~/utils/tags'
 import { buildDescendantsTree, getRootGroupId } from '~/composables/useContentLibraryGroupsTree'
 import ContentCollections from './ContentCollections.vue'
@@ -31,7 +30,6 @@ const error = ref<string | null>(null)
 const activeCollectionId = ref<string | null>(null)
 const activeCollection = ref<ContentCollection | null>(null)
 const collections = ref<ContentCollection[]>([])
-const q = ref('')
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
 const offset = ref(0)
@@ -39,10 +37,77 @@ const total = ref(0)
 const totalUnfiltered = ref(0)
 const items = ref<any[]>([])
 const availableTags = ref<string[]>([])
-const selectedTags = ref<string>('')
-const sortBy = ref<'createdAt' | 'title'>('createdAt')
-const sortOrder = ref<'asc' | 'desc'>('desc')
 const selectedIds = ref<string[]>([])
+
+interface ContentLibraryTabState {
+  q: string
+  selectedTags: string
+  sortBy: 'createdAt' | 'title'
+  sortOrder: 'asc' | 'desc'
+  hasRestoredFromStorage: boolean
+}
+
+const tabStateByCollectionId = reactive<Record<string, ContentLibraryTabState>>({})
+
+const DEFAULT_TAB_STATE: Omit<ContentLibraryTabState, 'hasRestoredFromStorage'> = {
+  q: '',
+  selectedTags: '',
+  sortBy: 'createdAt',
+  sortOrder: 'desc',
+}
+
+const getTabKey = (collectionId: string | null) => collectionId ?? '__default__'
+
+const ensureTabState = (collectionId: string | null) => {
+  const key = getTabKey(collectionId)
+  if (!tabStateByCollectionId[key]) {
+    tabStateByCollectionId[key] = {
+      ...DEFAULT_TAB_STATE,
+      hasRestoredFromStorage: false,
+    }
+  }
+  return tabStateByCollectionId[key]
+}
+
+const getTabStorageKey = (collectionId: string) => {
+  return `content-library-tab-state-${props.scope}-${props.projectId || 'global'}-${collectionId}`
+}
+
+const q = computed<string>({
+  get() {
+    return ensureTabState(activeCollectionId.value).q
+  },
+  set(next) {
+    ensureTabState(activeCollectionId.value).q = next
+  },
+})
+
+const selectedTags = computed<string>({
+  get() {
+    return ensureTabState(activeCollectionId.value).selectedTags
+  },
+  set(next) {
+    ensureTabState(activeCollectionId.value).selectedTags = next
+  },
+})
+
+const sortBy = computed<'createdAt' | 'title'>({
+  get() {
+    return ensureTabState(activeCollectionId.value).sortBy
+  },
+  set(next) {
+    ensureTabState(activeCollectionId.value).sortBy = next
+  },
+})
+
+const sortOrder = computed<'asc' | 'desc'>({
+  get() {
+    return ensureTabState(activeCollectionId.value).sortOrder
+  },
+  set(next) {
+    ensureTabState(activeCollectionId.value).sortOrder = next
+  },
+})
 
 const selectedTagsArray = computed(() => parseTags(selectedTags.value))
 
@@ -70,9 +135,6 @@ const isRestoringId = ref<string | null>(null)
 const isUploadingFiles = ref(false)
 const isStartCreating = ref(false)
 
-// Utils
-const isWindowFileDragActive = computed(() => false)
-
 // Sorting Options
 const sortOptions = computed(() => [
   { id: 'createdAt', label: t('common.createdAt'), icon: 'i-heroicons-calendar-days' },
@@ -82,6 +144,59 @@ const currentSortOption = computed(() => sortOptions.value.find(opt => opt.id ==
 const sortOrderIcon = computed(() => sortOrder.value === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down')
 const sortOrderLabel = computed(() => sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc'))
 function toggleSortOrder() { sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc' }
+
+const restoreTabStateFromStorage = (collection: ContentCollection) => {
+  const state = ensureTabState(collection.id)
+  if (state.hasRestoredFromStorage) return
+  state.hasRestoredFromStorage = true
+
+  const raw = localStorage.getItem(getTabStorageKey(collection.id))
+  if (!raw) return
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<ContentLibraryTabState>
+    if (collection.type === 'SAVED_VIEW') {
+      if (typeof parsed.q === 'string') state.q = parsed.q
+      if (typeof parsed.selectedTags === 'string') state.selectedTags = parsed.selectedTags
+      if (parsed.sortBy === 'createdAt' || parsed.sortBy === 'title') state.sortBy = parsed.sortBy
+      if (parsed.sortOrder === 'asc' || parsed.sortOrder === 'desc') state.sortOrder = parsed.sortOrder
+      return
+    }
+
+    if (collection.type === 'GROUP') {
+      if (parsed.sortBy === 'createdAt' || parsed.sortBy === 'title') state.sortBy = parsed.sortBy
+      if (parsed.sortOrder === 'asc' || parsed.sortOrder === 'desc') state.sortOrder = parsed.sortOrder
+    }
+  } catch {
+    // ignore invalid storage
+  }
+}
+
+const persistActiveTabStateToStorage = () => {
+  const collection = activeCollection.value
+  if (!collection) return
+  if (collection.type !== 'SAVED_VIEW' && collection.type !== 'GROUP') return
+
+  const state = ensureTabState(collection.id)
+  if (!state.hasRestoredFromStorage) return
+
+  const payload: Partial<ContentLibraryTabState> = {}
+  if (collection.type === 'SAVED_VIEW') {
+    payload.q = state.q
+    payload.selectedTags = state.selectedTags
+    payload.sortBy = state.sortBy
+    payload.sortOrder = state.sortOrder
+  } else if (collection.type === 'GROUP') {
+    payload.sortBy = state.sortBy
+    payload.sortOrder = state.sortOrder
+  }
+
+  try {
+    localStorage.setItem(getTabStorageKey(collection.id), JSON.stringify(payload))
+  } catch {
+    // ignore quota / disabled storage
+  }
+}
 
 // Group Tree helpers for Move Modal
 const groupTreeItems = computed(() => {
@@ -167,7 +282,14 @@ const fetchAvailableTags = async () => {
 // Watchers
 watch(() => q.value, () => { selectedIds.value = []; debouncedFetch() })
 watch([archiveStatus, selectedTags, sortBy, sortOrder], () => fetchItems({ reset: true }))
-watch(activeCollection, (next, prev) => { if (next?.id !== prev?.id) { fetchAvailableTags(); fetchItems({ reset: true }) } })
+watch(activeCollection, (next, prev) => {
+  if (next?.id !== prev?.id) {
+    if (next) restoreTabStateFromStorage(next)
+    fetchAvailableTags()
+    fetchItems({ reset: true })
+  }
+})
+watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => persistActiveTabStateToStorage())
 const debouncedFetch = useDebounceFn(() => fetchItems({ reset: true }), 350)
 const hasMore = computed(() => items.value.length < total.value)
 
@@ -308,11 +430,17 @@ const deleteItemForever = async (id: string) => {
 }
 
 const handleSelectGroupCollection = (id: string) => {
-    const c = collectionsById.value.get(id)
-    if (c) {
-        activeCollectionId.value = id
-        activeCollection.value = c
-    }
+  if (!id) {
+    activeCollectionId.value = null
+    activeCollection.value = null
+    return
+  }
+
+  const c = collectionsById.value.get(id)
+  if (!c) return
+
+  activeCollectionId.value = id
+  activeCollection.value = c
 }
 
 const handleActiveCollectionUpdate = (c: ContentCollection | null) => {
@@ -428,7 +556,6 @@ onMounted(() => { fetchItems() })
       :current-sort-option="currentSortOption"
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
-      :is-window-file-drag-active="isWindowFileDragActive"
       :can-delete-active-collection="!!activeCollection"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"

@@ -130,6 +130,7 @@ const toolbarMenuItems = computed(() => {
 
       <div class="flex items-center gap-2 shrink-0 pt-1">
         <UButton
+          class="cursor-pointer"
           variant="ghost" 
           :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
           size="sm"
@@ -140,6 +141,7 @@ const toolbarMenuItems = computed(() => {
         
         <UButton
           v-if="archiveStatus === 'archived'"
+          class="cursor-pointer"
           size="sm"
           color="error"
           variant="ghost"
@@ -221,10 +223,11 @@ const toolbarMenuItems = computed(() => {
               active-variant="solid"
               variant="outline"
             />
-            <UButton :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
+            <UButton class="cursor-pointer" :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
 
             <UDropdownMenu v-if="toolbarMenuItems.length > 0" :items="toolbarMenuItems">
               <UButton
+                class="cursor-pointer"
                 color="neutral"
                 variant="ghost"
                 icon="i-heroicons-ellipsis-horizontal"
@@ -239,6 +242,7 @@ const toolbarMenuItems = computed(() => {
           <div class="flex items-center gap-3">
             <template v-if="archiveStatus === 'active'">
               <UButton
+                class="cursor-pointer"
                 color="primary"
                 size="sm"
                 icon="i-heroicons-plus"
@@ -249,6 +253,7 @@ const toolbarMenuItems = computed(() => {
               </UButton>
 
               <UButton
+                class="cursor-pointer"
                 color="neutral"
                 size="sm"
                 variant="outline"

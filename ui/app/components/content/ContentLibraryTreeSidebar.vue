@@ -82,6 +82,19 @@ const hasTreeChildren = (node: unknown): boolean => {
 
 const expanded = ref<string[]>([])
 
+const selected = ref<GroupTreeNode | null>(null)
+
+const findNodeById = (nodes: GroupTreeNode[], id: string): GroupTreeNode | null => {
+  for (const n of nodes) {
+    if (n.value === id) return n
+    if (n.children && n.children.length > 0) {
+      const found = findNodeById(n.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 const getPathToRoot = (id: string): string[] => {
   const out: string[] = []
   let cursor: ContentCollection | undefined = collectionsById.value.get(id)
@@ -101,6 +114,25 @@ watch(activeRootGroupId, (next) => {
   if (!next) return
   expanded.value = Array.from(new Set([...expanded.value, next]))
 }, { immediate: true })
+
+watch(
+  () => props.selectedNodeId,
+  (next) => {
+    if (!next) {
+      selected.value = null
+      return
+    }
+    selected.value = findNodeById(sidebarGroupTreeItems.value, next)
+  },
+  { immediate: true },
+)
+
+watch(selected, (next) => {
+  const id = next?.value ?? ''
+  if (id && id !== props.selectedNodeId) {
+    emit('select-node', id)
+  }
+})
 
 // Tree Actions Logic
 const isTreeCreateModalOpen = ref(false)
@@ -278,6 +310,7 @@ const getGroupNodeMenuItems = (collectionId: string) => {
       </div>
       <UTree
         v-else
+        v-model="selected"
         v-model:expanded="expanded"
         :items="sidebarGroupTreeItems"
         :get-key="(i: any) => i.value"
@@ -296,11 +329,10 @@ const getGroupNodeMenuItems = (collectionId: string) => {
         </template>
         <template #group-node-label="{ item }">
           <span
-            class="flex-1 truncate text-sm py-1 transition-colors cursor-pointer"
+            class="flex-1 truncate text-sm py-1 transition-colors"
             :class="selectedNodeId === getGroupTreeNodeValue(item)
               ? 'text-primary-600 dark:text-primary-300'
               : 'text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300'"
-            @click.stop="emit('select-node', getGroupTreeNodeValue(item))"
           >
             {{ getGroupTreeNodeLabel(item) }}
           </span>

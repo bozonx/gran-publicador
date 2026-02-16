@@ -67,6 +67,7 @@ function isSelected(value: any) {
       :title="option.title"
       class="focus:z-10 rounded-none! transition-all duration-200 justify-center whitespace-normal h-auto py-2"
       :class="[
+        !(disabled || option.disabled) ? 'cursor-pointer' : '',
         orientation === 'horizontal' 
           ? 'first:rounded-s-lg! last:rounded-e-lg!' 
           : 'first:rounded-t-lg! last:rounded-b-lg!',
