@@ -8,6 +8,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'archive'): void
   (e: 'restore'): void
+  (e: 'purge'): void
   (e: 'move'): void
   (e: 'to-group'): void
   (e: 'merge'): void
@@ -43,6 +44,17 @@ const { t } = useI18n()
             @click="emit('restore')"
           >
             {{ t('common.restore', 'Restore') }}
+          </UButton>
+
+          <UButton
+            color="error"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('purge')"
+          >
+            {{ t('common.deleteForever', 'Delete forever') }}
           </UButton>
         </template>
 

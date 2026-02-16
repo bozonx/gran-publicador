@@ -246,20 +246,23 @@ const toolbarMenuItems = computed(() => {
       <slot />
       <div class="flex flex-col gap-4">
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <UInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" icon="i-heroicons-magnifying-glass" class="w-full" />
-          <PublicationsTagsFilter
-            v-model="selectedTags"
-            :placeholder="t('contentLibrary.filter.filterByTags')"
-            :publication-tags="availableTags"
-            :project-id="projectId"
-            :user-id="userId"
-            :scope="scope"
-            :group-id="groupId"
-            :search-endpoint="'/content-library/tags/search'"
-            class="w-full"
-          />
-          <div class="flex items-center gap-2">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex flex-col gap-3 sm:flex-row sm:flex-1 sm:min-w-0">
+            <UInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" icon="i-heroicons-magnifying-glass" class="w-full sm:flex-1 sm:min-w-0" />
+            <PublicationsTagsFilter
+              v-model="selectedTags"
+              :placeholder="t('contentLibrary.filter.filterByTags')"
+              :publication-tags="availableTags"
+              :project-id="projectId"
+              :user-id="userId"
+              :scope="scope"
+              :group-id="groupId"
+              :search-endpoint="'/content-library/tags/search'"
+              class="w-full sm:flex-1 sm:min-w-0"
+            />
+          </div>
+
+          <div class="flex items-center justify-end gap-2 shrink-0 flex-nowrap">
             <UiAppButtonGroup
               v-model="sortBy"
               :options="sortByToggleOptions"

@@ -12,7 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | null]
-  'update:activeTab': [tab: ContentLibraryTab | null]
+  'update:active-tab': [tab: ContentLibraryTab | null]
   'update:tabs': [tabs: ContentLibraryTab[]]
 }>()
 
@@ -143,7 +143,7 @@ const fetchTabs = async () => {
     if (activeTabId.value) {
       const currentActiveTab = tabs.value.find(t => t.id === activeTabId.value)
       if (currentActiveTab) {
-        emit('update:activeTab', currentActiveTab)
+        emit('update:active-tab', currentActiveTab)
       }
     }
     
@@ -154,12 +154,12 @@ const fetchTabs = async () => {
 
     if (tabToRestore) {
       activeTabId.value = tabToRestore.id
-      emit('update:activeTab', tabToRestore)
+      emit('update:active-tab', tabToRestore)
     } else {
       // Auto-select first tab if none selected or restored
       if (!activeTabId.value && topLevelTabs.value.length > 0 && topLevelTabs.value[0]) {
         activeTabId.value = topLevelTabs.value[0].id
-        emit('update:activeTab', topLevelTabs.value[0])
+        emit('update:active-tab', topLevelTabs.value[0])
       }
     }
   } catch (e: any) {
@@ -181,7 +181,7 @@ const handleCreateTab = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: stri
     
     await fetchTabs()
     activeTabId.value = newTab.id
-    emit('update:activeTab', newTab)
+    emit('update:active-tab', newTab)
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
@@ -197,7 +197,7 @@ const handleDeleteTab = async (tabId: string) => {
     
     if (activeTabId.value === tabId) {
       activeTabId.value = null
-      emit('update:activeTab', null)
+      emit('update:active-tab', null)
     }
     
     await fetchTabs()
@@ -263,7 +263,7 @@ watch(activeTabId, (newId) => {
 
 watch(() => props.scope, () => {
   activeTabId.value = null
-  emit('update:activeTab', null)
+  emit('update:active-tab', null)
   fetchTabs()
 })
 
@@ -298,7 +298,7 @@ defineExpose({
             size="sm"
             :icon="getTabIcon(tab.type)"
             class="drag-handle cursor-pointer max-w-full"
-            @click="() => { activeTabId = tab.id; emit('update:activeTab', tab) }"
+            @click="() => { activeTabId = tab.id; emit('update:active-tab', tab) }"
           >
             <span class="truncate max-w-48 sm:max-w-64">
               {{ getTabLabel(tab) }}

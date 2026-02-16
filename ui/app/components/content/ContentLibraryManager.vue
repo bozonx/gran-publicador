@@ -900,6 +900,11 @@ const handleBulkAction = async (operation: 'ARCHIVE' | 'UNARCHIVE') => {
   await executeBulkOperation()
 }
 
+const handleBulkDeleteForever = async () => {
+  bulkOperationType.value = 'DELETE'
+  await executeBulkOperation()
+}
+
 const executeBulkOperation = async () => {
   if (selectedIds.value.length === 0) return
   const operation = bulkOperationType.value
@@ -1516,7 +1521,7 @@ if (props.scope === 'project' && props.projectId) {
           v-model="activeTabId"
           :scope="scope"
           :project-id="props.projectId"
-          @update:activeTab="handleActiveTabUpdate($event)"
+          @update:active-tab="handleActiveTabUpdate($event)"
           @update:tabs="tabs = $event"
         />
       </template>
@@ -1753,6 +1758,7 @@ if (props.scope === 'project' && props.projectId) {
       :is-group-tab="isActiveGroupTab"
       @archive="handleBulkAction('ARCHIVE')"
       @restore="handleBulkAction('UNARCHIVE')"
+      @purge="handleBulkDeleteForever"
       @move="handleMoveToProject"
       @to-group="handleOpenToGroupModal"
       @merge="handleMerge"

@@ -46,6 +46,22 @@ const { t } = useI18n()
 const { formatDateShort, truncateContent } = useFormatters()
 const authStore = useAuthStore()
 
+const actionsMenuItems = computed(() => {
+  if (props.hideActions || props.item.archivedAt) {
+    return []
+  }
+
+  return [
+    [
+      {
+        label: t('contentLibrary.actions.moveToTrash'),
+        icon: 'i-heroicons-trash',
+        onSelect: () => emit('archive', props.item),
+      },
+    ],
+  ]
+})
+
 const formatTags = (tags?: string[]) => (tags && tags.length > 0 ? tags.join(', ') : '')
 
 const getAllItemMedia = (item: ContentItem): ContentItemMediaLink[] => {
@@ -132,17 +148,19 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
       </div>
 
       <div v-if="!hideActions" class="flex items-center gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-        <UButton
-          v-if="!item.archivedAt"
-          size="xs"
-          color="warning"
-          variant="ghost"
-          icon="i-heroicons-trash"
-          :loading="isArchiving"
-          :title="t('contentLibrary.actions.moveToTrash')"
-          class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          @click.stop="emit('archive', item)"
-        />
+        <UDropdownMenu v-if="actionsMenuItems.length > 0" :items="actionsMenuItems">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-horizontal"
+            :title="t('common.more')"
+            :aria-label="t('common.more')"
+            class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            @click.stop
+          />
+        </UDropdownMenu>
+
         <UButton
           v-if="!item.archivedAt"
           size="xs"
@@ -153,6 +171,7 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
           class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           @click.stop="emit('create-publication', item)"
         />
+
         <UButton
           v-else
           size="xs"
