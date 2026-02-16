@@ -11,27 +11,27 @@ definePageMeta({
 const { t } = useI18n()
 const toast = useToast()
 
-// Tab management
-const selectedTab = ref('users')
+// Collection management
+const selectedCollection = ref('users')
 
 const authStore = useAuthStore()
 const { user: currentUser } = storeToRefs(authStore)
 
-interface AdminTab {
+interface AdminCollection {
   key: string
   label: string
   icon: string
 }
 
-const tabs = computed<AdminTab[]>(() => [
+const collections = computed<AdminCollection[]>(() => [
   {
     key: 'users',
-    label: t('admin.tabs.users'),
+    label: t('admin.collections.users'),
     icon: 'i-heroicons-users',
   },
   {
     key: 'maintenance',
-    label: t('admin.tabs.maintenance'),
+    label: t('admin.collections.maintenance'),
     icon: 'i-heroicons-wrench-screwdriver',
   },
 ])
@@ -255,29 +255,29 @@ const hasActiveFilters = computed(() => {
       </p>
     </div>
 
-    <!-- Tabs -->
+    <!-- Collections -->
     <div class="mb-6">
       <nav class="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         <button
-          v-for="tab in tabs"
-          :key="tab.key"
+          v-for="collection in collections"
+          :key="collection.key"
           class="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors"
           :class="[
-            selectedTab === tab.key
+            selectedCollection === collection.key
               ? 'border-primary-600 text-primary-600 dark:text-primary-400'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
           ]"
-          @click="selectedTab = tab.key"
+          @click="selectedCollection = collection.key"
         >
-          <UIcon :name="tab.icon" class="w-5 h-5" />
-          <span>{{ tab.label }}</span>
+          <UIcon :name="collection.icon" class="w-5 h-5" />
+          <span>{{ collection.label }}</span>
         </button>
       </nav>
     </div>
 
-    <!-- Users Tab -->
-    <div v-if="selectedTab === 'users'">
-      <!-- Tab header -->
+    <!-- Users Collection -->
+    <div v-if="selectedCollection === 'users'">
+      <!-- Collection header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
@@ -473,11 +473,11 @@ const hasActiveFilters = computed(() => {
       </div>
     </div>
 
-    <!-- Maintenance Tab -->
-    <div v-if="selectedTab === 'maintenance'">
+    <!-- Maintenance Collection -->
+    <div v-if="selectedCollection === 'maintenance'">
       <div class="mb-6">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-          {{ t('admin.tabs.maintenance') }}
+          {{ t('admin.collections.maintenance') }}
         </h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {{ t('admin.maintenance.description') }}

@@ -20,7 +20,7 @@ const FOCUSABLE_SELECTOR = [
   'select:not([disabled])',
   'button:not([disabled])',
   'a[href]',
-  '[tabindex]:not([tabindex="-1"])',
+  '[collectionindex]:not([collectionindex="-1"])',
   '[contenteditable="true"]',
 ].join(',');
 

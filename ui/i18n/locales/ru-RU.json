@@ -37,7 +37,7 @@
     "revokeAdmin": "Снять права админа",
     "revokeAdminConfirm": "Вы уверены, что хотите снять права администратора с этого пользователя?",
     "searchUsers": "Поиск пользователей...",
-    "tabs": {
+    "collections": {
       "maintenance": "Обслуживание",
       "users": "Пользователи"
     },
@@ -482,7 +482,7 @@
     },
     "subtitlePersonal": "Личное",
     "subtitleProject": "Проект",
-    "tabs": {
+    "collections": {
       "create": "Создать группу",
       "createSubgroup": "Создать группу",
       "createSubgroupTitle": "Создать группу",
@@ -716,12 +716,12 @@
     "users": "Пользователи"
   },
   "news": {
-    "addTab": "Добавить вкладку",
+    "addCollection": "Добавить вкладку",
     "createFirstQuery": "Создать подборку",
-    "deleteTabConfirm": "Вы уверены, что хотите удалить этот поисковый запрос?",
+    "deleteCollectionConfirm": "Вы уверены, что хотите удалить этот поисковый запрос?",
     "description": "Подборки новостей по темам проектов для создания публикаций",
-    "editTab": "Редактировать вкладку",
-    "editTabDescription": "Измените название вкладки для этого поискового запроса",
+    "editCollection": "Редактировать вкладку",
+    "editCollectionDescription": "Измените название вкладки для этого поискового запроса",
     "filterBySource": "Фильтр по источнику",
     "howToConfigure": "Включите уведомления для запросов новостей в настройках проекта, чтобы они появились здесь.",
     "items": "Элементы новостей",
@@ -754,8 +754,8 @@
     "sources": "Источники",
     "sourcesDescription": "Список доступных источников новостей для фильтрации.",
     "sourcesSelected": "Выбрано источников",
-    "tabName": "Название вкладки",
-    "tabNamePlaceholder": "Введите название вкладки",
+    "collectionName": "Название вкладки",
+    "collectionNamePlaceholder": "Введите название вкладки",
     "title": "Новости",
     "viewOriginal": "Посмотреть оригинал"
   },
@@ -816,7 +816,7 @@
     "footerContent": "Текст подвала",
     "newTemplateName": "Новый шаблон",
     "done": "Готово",
-    "projectTab": "Проект",
+    "projectCollection": "Проект",
     "language": "Язык",
     "excludeChannel": "Исключить канал",
     "excludeChannelHelp": "Шаблон не будет применяться к этому каналу",

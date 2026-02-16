@@ -438,7 +438,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         return;
       }
 
-      // Check if this is a reference change (e.g., switching tabs)
+      // Check if this is a reference change (e.g., switching collections)
       // vs actual data modification
       const isReferenceChange =
         oldValue && newValue !== oldValue && (oldValue as any).id !== (newValue as any).id;
@@ -470,7 +470,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           });
         }
 
-        // This is a tab switch or similar - update saved state without saving for the NEW value
+        // This is a collection switch or similar - update saved state without saving for the NEW value
         lastSavedState.value = deepCloneOrNull(newValue);
         baselineInitialized = true;
         isDirty.value = false;
@@ -521,7 +521,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     }
   }
 
-  // Browser unload guard - prevent closing tab while saving
+  // Browser unload guard - prevent closing collection while saving
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
     if (saveStatus.value === 'saving' || isDirty.value) {
       e.preventDefault();

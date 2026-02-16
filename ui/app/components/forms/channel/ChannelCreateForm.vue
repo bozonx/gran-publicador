@@ -131,9 +131,9 @@ function focusFirstField(): void {
     const el = (target?.$el instanceof HTMLElement ? target.$el : target) as HTMLElement | null
     if (!el) continue
 
-    const focusable = el.matches('input,textarea,select,button,[tabindex]:not([tabindex="-1"])')
+    const focusable = el.matches('input,textarea,select,button,[collectionindex]:not([collectionindex="-1"])')
       ? el
-      : el.querySelector<HTMLElement>('input,textarea,select,button,[tabindex]:not([tabindex="-1"])')
+      : el.querySelector<HTMLElement>('input,textarea,select,button,[collectionindex]:not([collectionindex="-1"])')
 
     if (!focusable) continue
 

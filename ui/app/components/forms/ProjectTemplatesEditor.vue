@@ -77,8 +77,8 @@ const isModalOpen = ref(false)
 const editingTemplate = ref<ProjectTemplate | null>(null)
 const isCreating = ref(false)
 
-// Active tab: 'project' or channel id
-const activeTab = ref<string>('project')
+// Active collection: 'project' or channel id
+const activeCollection = ref<string>('project')
 
 // Autosave form data for project-level template
 const templateForm = ref({
@@ -102,10 +102,10 @@ const filteredChannels = computed(() => {
   })
 })
 
-// ─── Tab items ──────────────────────────────────────────────────────
-const tabItems = computed(() => {
+// ─── Collection items ──────────────────────────────────────────────────────
+const collectionItems = computed(() => {
   const items: Array<{ value: string; label: string; icon?: string }> = [
-    { value: 'project', label: t('projectTemplates.projectTab'), icon: 'i-heroicons-cog-6-tooth' },
+    { value: 'project', label: t('projectTemplates.projectCollection'), icon: 'i-heroicons-cog-6-tooth' },
   ]
   filteredChannels.value.forEach(ch => {
     const isExcluded = channelOverridesMap.value[ch.id]?.excluded
@@ -185,7 +185,7 @@ function openEditModal(tpl: ProjectTemplate) {
     contentBlock.enabled = true
   }
 
-  activeTab.value = 'project'
+  activeCollection.value = 'project'
 
   // Load channel overrides for this template
   loadChannelOverrides(tpl.id)
@@ -237,7 +237,7 @@ async function saveChannelOverrides(channelId: string) {
       overrides: overrideData.overrides,
     })
 
-    // Keep local state in sync so switching tabs / reopening modal reflects saved data
+    // Keep local state in sync so switching collections / reopening modal reflects saved data
     const chIdx = projectChannels.value.findIndex(ch => ch.id === channelId)
     if (chIdx !== -1) {
       projectChannels.value[chIdx] = {
@@ -363,7 +363,7 @@ function resetBlocks() {
   templateForm.value.template = getDefaultBlocks()
 }
 
-// ─── Enabled blocks for channel tabs ────────────────────────────────
+// ─── Enabled blocks for channel collections ────────────────────────────────
 const enabledBlocks = computed(() => {
   return templateForm.value.template.filter(b => b.enabled)
 })
@@ -471,23 +471,23 @@ const allBlocks = computed(() => {
       </template>
 
       <div class="space-y-4">
-        <!-- Tabs -->
+        <!-- Collections -->
         <AppTabs
-          :items="tabItems.map(i => ({ id: i.value, label: i.label, icon: i.icon }))"
-          :model-value="activeTab"
-          @update:model-value="activeTab = $event as string"
+          :items="collectionItems.map(i => ({ id: i.value, label: i.label, icon: i.icon }))"
+          :model-value="activeCollection"
+          @update:model-value="activeCollection = $event as string"
         >
           <template #tab="{ item, selected, select }">
             <UTooltip :text="item.label">
               <UButton
                 :variant="selected ? 'soft' : 'ghost'"
-                :color="activeTab !== item.id && isChannelExcluded(item.id) ? 'error' : (selected ? 'primary' : 'neutral')"
+                :color="activeCollection !== item.id && isChannelExcluded(item.id) ? 'error' : (selected ? 'primary' : 'neutral')"
                 size="sm"
                 class="transition-all duration-200"
                 @click="select"
               >
                 <template v-if="item.icon" #leading>
-                  <UIcon :name="item.icon" :class="['w-4 h-4', activeTab !== item.id && isChannelExcluded(item.id) ? 'text-red-500' : '']" />
+                  <UIcon :name="item.icon" :class="['w-4 h-4', activeCollection !== item.id && isChannelExcluded(item.id) ? 'text-red-500' : '']" />
                 </template>
                 <span v-if="item.id === 'project'">{{ item.label }}</span>
                 <template v-if="item.id !== 'project' && isChannelExcluded(item.id)" #trailing>
@@ -498,8 +498,8 @@ const allBlocks = computed(() => {
           </template>
         </AppTabs>
 
-        <!-- Project Tab -->
-        <div v-if="activeTab === 'project'" class="space-y-6">
+        <!-- Project Collection -->
+        <div v-if="activeCollection === 'project'" class="space-y-6">
           <!-- Basic fields -->
           <div class="space-y-4">
             <UFormField :label="t('channel.templateName')" required>
@@ -574,20 +574,20 @@ const allBlocks = computed(() => {
 
         </div>
 
-        <!-- Channel Tab -->
+        <!-- Channel Collection -->
         <div v-else class="space-y-4">
-          <template v-if="filteredChannels.find(ch => ch.id === activeTab)">
+          <template v-if="filteredChannels.find(ch => ch.id === activeCollection)">
             <!-- Exclude channel toggle -->
             <div
               class="flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer"
-              :class="isChannelExcluded(activeTab)
+              :class="isChannelExcluded(activeCollection)
                 ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50'
                 : 'bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700/50'"
-              @click="toggleChannelExcluded(activeTab)"
+              @click="toggleChannelExcluded(activeCollection)"
             >
-              <UCheckbox :model-value="isChannelExcluded(activeTab)" color="error" @click.stop="toggleChannelExcluded(activeTab)" />
+              <UCheckbox :model-value="isChannelExcluded(activeCollection)" color="error" @click.stop="toggleChannelExcluded(activeCollection)" />
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium" :class="isChannelExcluded(activeTab) ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white'">
+                <div class="text-sm font-medium" :class="isChannelExcluded(activeCollection) ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white'">
                   {{ t('projectTemplates.excludeChannel') }}
                 </div>
                 <div class="text-xs text-gray-500">
@@ -597,7 +597,7 @@ const allBlocks = computed(() => {
             </div>
 
             <!-- Block overrides (only if not excluded) -->
-            <div v-if="!isChannelExcluded(activeTab)" class="space-y-4">
+            <div v-if="!isChannelExcluded(activeCollection)" class="space-y-4">
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('channel.textOverridesHelp') }}
               </p>
@@ -606,16 +606,16 @@ const allBlocks = computed(() => {
                 v-for="block in allBlocks"
                 :key="block.insert"
                 class="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg"
-                :class="{ 'opacity-60 grayscale-[0.3]': !getEffectiveEnabled(activeTab, block) }"
+                :class="{ 'opacity-60 grayscale-[0.3]': !getEffectiveEnabled(activeCollection, block) }"
               >
                 <div class="flex items-center gap-2 mb-2">
                   <UCheckbox
-                    :model-value="getOverrideEnabled(activeTab, block.insert) === undefined ? block.enabled : getOverrideEnabled(activeTab, block.insert)"
+                    :model-value="getOverrideEnabled(activeCollection, block.insert) === undefined ? block.enabled : getOverrideEnabled(activeCollection, block.insert)"
                     color="primary"
                     :disabled="block.insert === 'content'"
                     @update:model-value="(v: boolean | 'indeterminate') => {
                       if (v === 'indeterminate') return
-                      setOverrideEnabled(activeTab, block.insert, v === block.enabled ? undefined : v)
+                      setOverrideEnabled(activeCollection, block.insert, v === block.enabled ? undefined : v)
                     }"
                   />
                   <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -623,30 +623,30 @@ const allBlocks = computed(() => {
                   </span>
                 </div>
 
-                <div class="space-y-2" v-if="getEffectiveEnabled(activeTab, block)">
+                <div class="space-y-2" v-if="getEffectiveEnabled(activeCollection, block)">
                   <!-- Before/After overrides for non-custom blocks -->
                   <template v-if="block.insert !== 'custom' && block.insert !== 'footer'">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <UFormField :label="t('channel.templateBefore')" class="w-full">
                         <UTextarea
-                          :model-value="getOverrideValue(activeTab, block.insert, 'before')"
+                          :model-value="getOverrideValue(activeCollection, block.insert, 'before')"
                           :rows="2"
                           :max-rows="10"
                           class="font-mono text-xs w-full"
                           :placeholder="block.before || t('channel.noOverride')"
                           autoresize
-                          @update:model-value="(v: string) => setOverrideValue(activeTab, block.insert, 'before', v)"
+                          @update:model-value="(v: string) => setOverrideValue(activeCollection, block.insert, 'before', v)"
                         />
                       </UFormField>
                       <UFormField :label="t('channel.templateAfter')" class="w-full">
                         <UTextarea
-                          :model-value="getOverrideValue(activeTab, block.insert, 'after')"
+                          :model-value="getOverrideValue(activeCollection, block.insert, 'after')"
                           :rows="2"
                           :max-rows="10"
                           class="font-mono text-xs w-full"
                           :placeholder="block.after || t('channel.noOverride')"
                           autoresize
-                          @update:model-value="(v: string) => setOverrideValue(activeTab, block.insert, 'after', v)"
+                          @update:model-value="(v: string) => setOverrideValue(activeCollection, block.insert, 'after', v)"
                         />
                       </UFormField>
                     </div>
@@ -656,12 +656,12 @@ const allBlocks = computed(() => {
                   <template v-if="block.insert === 'tags'">
                     <UFormField :label="t('channel.templateTagCase')" class="w-full">
                       <USelectMenu
-                        :model-value="getOverrideValue(activeTab, block.insert, 'tagCase') || block.tagCase || 'none'"
+                        :model-value="getOverrideValue(activeCollection, block.insert, 'tagCase') || block.tagCase || 'none'"
                         :items="tagCaseOptions"
                         value-key="value"
                         label-key="label"
                         class="w-full"
-                        @update:model-value="(v: string) => setOverrideValue(activeTab, block.insert, 'tagCase', v === (block.tagCase || 'none') ? '' : v)"
+                        @update:model-value="(v: string) => setOverrideValue(activeCollection, block.insert, 'tagCase', v === (block.tagCase || 'none') ? '' : v)"
                       />
                     </UFormField>
                   </template>
@@ -670,13 +670,13 @@ const allBlocks = computed(() => {
                   <template v-if="block.insert === 'custom' || block.insert === 'footer'">
                     <UFormField :label="block.insert === 'footer' ? t('projectTemplates.footerContent') : t('channel.templateInsertCustom')" class="w-full">
                       <UTextarea
-                        :model-value="getOverrideValue(activeTab, block.insert, 'content')"
+                        :model-value="getOverrideValue(activeCollection, block.insert, 'content')"
                         :rows="2"
                         :max-rows="10"
                         class="font-mono text-xs w-full"
                         :placeholder="block.content || t('channel.noOverride')"
                         autoresize
-                        @update:model-value="(v: string) => setOverrideValue(activeTab, block.insert, 'content', v)"
+                        @update:model-value="(v: string) => setOverrideValue(activeCollection, block.insert, 'content', v)"
                       />
                     </UFormField>
                   </template>

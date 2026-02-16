@@ -8,17 +8,17 @@ definePageMeta({
 const { t } = useI18n();
 const { stats, loading, fetchStats, fetchArchivedEntities, restoreEntity, deletePermanently } = useArchive();
 
-const activeTab = ref(ArchiveEntityType.PROJECT);
+const activeCollection = ref(ArchiveEntityType.PROJECT);
 const entities = ref<any[]>([]);
 
-const tabs = computed(() => [
+const collections = computed(() => [
     { label: t('archive.projects'), value: ArchiveEntityType.PROJECT, count: stats.value?.projects || 0 },
     { label: t('archive.channels'), value: ArchiveEntityType.CHANNEL, count: stats.value?.channels || 0 },
     { label: t('archive.publications'), value: ArchiveEntityType.PUBLICATION, count: stats.value?.publications || 0 },
 ]);
 
 const loadEntities = async () => {
-    entities.value = await fetchArchivedEntities(activeTab.value);
+    entities.value = await fetchArchivedEntities(activeCollection.value);
 };
 
 onMounted(async () => {
@@ -26,16 +26,16 @@ onMounted(async () => {
     await loadEntities();
 });
 
-watch(activeTab, loadEntities);
+watch(activeCollection, loadEntities);
 
 const handleRestore = async (id: string) => {
-    await restoreEntity(activeTab.value, id);
+    await restoreEntity(activeCollection.value, id);
     await loadEntities();
 };
 
 const handleDelete = async (id: string) => {
     if (confirm(t('archive.delete_confirm_permanent'))) {
-        await deletePermanently(activeTab.value, id);
+        await deletePermanently(activeCollection.value, id);
         await loadEntities();
     }
 };
@@ -71,7 +71,7 @@ const columns = computed(() => [
         </header>
 
         <UContainer>
-            <UTabs v-model="activeTab" :items="tabs" class="w-full">
+            <UCollections v-model="activeCollection" :items="collections" class="w-full">
                 <template #default="{ item, index, selected }">
                     <div class="flex items-center gap-2 px-3 py-1.5 transition-all duration-200" :class="[selected ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300']">
                         <span>{{ item.label }}</span>
@@ -80,14 +80,14 @@ const columns = computed(() => [
                         </UBadge>
                     </div>
                 </template>
-            </UTabs>
+            </UCollections>
 
             <div class="mt-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden min-h-[400px]">
                 <UTable :loading="loading" :rows="entities" :columns="columns" class="w-full">
                     <template #name-data="{ row }">
                         <div class="flex items-center gap-3 py-2">
                             <UIcon 
-                                :name="activeTab === ArchiveEntityType.PROJECT ? 'i-heroicons-folder' : activeTab === ArchiveEntityType.CHANNEL ? 'i-heroicons-megaphone' : activeTab === ArchiveEntityType.PUBLICATION ? 'i-heroicons-document-text' : 'i-heroicons-chat-bubble-left-right'" 
+                                :name="activeCollection === ArchiveEntityType.PROJECT ? 'i-heroicons-folder' : activeCollection === ArchiveEntityType.CHANNEL ? 'i-heroicons-megaphone' : activeCollection === ArchiveEntityType.PUBLICATION ? 'i-heroicons-document-text' : 'i-heroicons-chat-bubble-left-right'" 
                                 class="w-5 h-5 text-primary-500 opacity-80"
                             />
                             <span class="font-medium text-gray-900 dark:text-white">{{ getEntityName(row) }}</span>

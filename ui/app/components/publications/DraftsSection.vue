@@ -7,23 +7,23 @@ interface Props {
   loading: boolean
   viewAllTo: string
   showProjectInfo?: boolean
-  // If provided, controls the title. If not, dynamic title based on activeTab is used.
+  // If provided, controls the title. If not, dynamic title based on activeCollection is used.
   title?: string 
   // 'DRAFT' or 'READY'
-  activeTab?: string 
+  activeCollection?: string 
   showToggle?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showProjectInfo: false,
   title: '',
-  activeTab: 'DRAFT',
+  activeCollection: 'DRAFT',
   showToggle: true
 })
 
 const emit = defineEmits<{
   (e: 'delete', publication: PublicationWithRelations): void
-  (e: 'update:activeTab', tab: string): void
+  (e: 'update:activeCollection', collection: string): void
 }>()
 
 const { t } = useI18n()
@@ -33,7 +33,7 @@ function goToPublication(pub: PublicationWithRelations) {
   router.push(`/publications/${pub.id}`)
 }
 
-const isDraft = computed(() => props.activeTab === 'DRAFT')
+const isDraft = computed(() => props.activeCollection === 'DRAFT')
 
 const displayTitle = computed(() => {
   if (props.title) return props.title
@@ -48,12 +48,12 @@ const displayTitle = computed(() => {
         <!-- Toggle for Drafts/Ready -->
         <CommonViewToggle
             v-if="showToggle"
-            :model-value="activeTab"
+            :model-value="activeCollection"
             :options="[
                 { value: 'DRAFT', label: t('publicationStatus.draft') },
                 { value: 'READY', label: t('publicationStatus.ready') }
             ]"
-            @update:model-value="emit('update:activeTab', $event)"
+            @update:model-value="emit('update:activeCollection', $event)"
         />
 
         <div class="flex items-center gap-2">

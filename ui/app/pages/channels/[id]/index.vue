@@ -231,11 +231,11 @@ onMounted(async () => {
     }
 })
 
-const activeDraftsTab = ref('DRAFT')
-const currentDraftsPublications = computed(() => activeDraftsTab.value === 'DRAFT' ? draftPublications.value : readyPublications.value)
-const currentDraftsTotal = computed(() => activeDraftsTab.value === 'DRAFT' ? draftsCount.value : readyCount.value)
-const currentDraftsLoading = computed(() => activeDraftsTab.value === 'DRAFT' ? draftsLoading.value : isReadyLoading.value)
-const currentDraftsViewAllLink = computed(() => `/publications?channelId=${channelId.value}&status=${activeDraftsTab.value}`)
+const activeDraftsCollection = ref('DRAFT')
+const currentDraftsPublications = computed(() => activeDraftsCollection.value === 'DRAFT' ? draftPublications.value : readyPublications.value)
+const currentDraftsTotal = computed(() => activeDraftsCollection.value === 'DRAFT' ? draftsCount.value : readyCount.value)
+const currentDraftsLoading = computed(() => activeDraftsCollection.value === 'DRAFT' ? draftsLoading.value : isReadyLoading.value)
+const currentDraftsViewAllLink = computed(() => `/publications?channelId=${channelId.value}&status=${activeDraftsCollection.value}`)
 
 function goToPost(postId: string) {
   // Find the post to get its publicationId
@@ -301,7 +301,7 @@ async function handleDeletePublication() {
   if (success) {
     showDeletePublicationModal.value = false
     publicationToDelete.value = null
-    if (activeDraftsTab.value === 'DRAFT') {
+    if (activeDraftsCollection.value === 'DRAFT') {
         fetchDrafts(projectId.value, { 
             channelId: channelId.value, 
             status: 'DRAFT', 
@@ -599,7 +599,7 @@ const channelProblems = computed(() => {
             </div>
 
             <PublicationsDraftsSection
-                v-model:active-tab="activeDraftsTab"
+                v-model:active-collection="activeDraftsCollection"
                 :publications="currentDraftsPublications"
                 :total-count="currentDraftsTotal"
                 :loading="currentDraftsLoading"

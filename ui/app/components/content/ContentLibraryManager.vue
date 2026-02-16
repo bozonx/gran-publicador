@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { TreeItem } from '@nuxt/ui'
-import { type ContentLibraryTab } from '~/composables/useContentLibraryTabs'
+import { type ContentCollection } from '~/composables/useContentCollections'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
 import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
-import ContentLibraryTabs from './ContentLibraryTabs.vue'
+import ContentCollections from './ContentCollections.vue'
 import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
 import ContentItemEditor from './ContentItemEditor.vue'
@@ -34,14 +34,14 @@ const router = useRouter()
 const api = useApi()
 const toast = useToast()
 const { projects, currentProject, fetchProject, fetchProjects } = useProjects()
-const { listTabs, createTab, updateTab, deleteTab } = useContentLibraryTabs()
+const { listCollections, createCollection, updateCollection, deleteCollection } = useContentCollections()
 const { uploadMedia } = useMedia()
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-const activeTabId = ref<string | null>(null)
-const activeTab = ref<ContentLibraryTab | null>(null)
-const tabs = ref<ContentLibraryTab[]>([])
+const activeCollectionId = ref<string | null>(null)
+const activeCollection = ref<ContentCollection | null>(null)
+const collections = ref<ContentCollection[]>([])
 const q = ref('')
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
@@ -81,7 +81,7 @@ watch(sortOrder, () => {
     return
   }
 
-  persistActiveTabConfig()
+  persistActiveCollectionConfig()
 })
 
 watch(sortBy, () => {
@@ -89,7 +89,7 @@ watch(sortBy, () => {
     return
   }
 
-  persistActiveTabConfig()
+  persistActiveCollectionConfig()
 })
 
 const selectedIds = ref<string[]>([])
@@ -103,7 +103,7 @@ const isRestoringId = ref<string | null>(null)
 
 const isMoveModalOpen = ref(false)
 const moveItemsIds = ref<string[]>([])
-const allGroupTabs = ref<ContentLibraryTab[]>([])
+const allGroupCollections = ref<ContentCollection[]>([])
 
 const isCreatePublicationModalOpen = ref(false)
 const createPublicationModalProjectId = ref<string | undefined>(undefined)
@@ -117,12 +117,12 @@ const publicationData = ref({
   contentItemIds: [] as string[]
 })
 
-const contentLibraryTabsRef = ref<any>(null)
-const isRenameTabModalOpen = ref(false)
-const newTabTitle = ref('')
-const isDeleteTabConfirmModalOpen = ref(false)
-const isRenamingTab = ref(false)
-const isDeletingTab = ref(false)
+const contentCollectionsRef = ref<any>(null)
+const isRenameCollectionModalOpen = ref(false)
+const newCollectionTitle = ref('')
+const isDeleteCollectionConfirmModalOpen = ref(false)
+const isRenamingCollection = ref(false)
+const isDeletingCollection = ref(false)
 const selectedGroupTreeNodeId = ref<string | null>(null)
 const skipAutoRestoreLastSelectedGroupNodeOnce = ref(false)
 const isTreeCreateModalOpen = ref(false)
@@ -144,14 +144,14 @@ interface GroupTreeNode extends TreeItem {
   children?: GroupTreeNode[]
 }
 
-const handleSidebarGroupNodeSelect = (tabId: string) => {
-  selectedGroupTreeNodeId.value = tabId
-  const targetTab = tabsById.value.get(tabId)
-  if (targetTab?.type === 'GROUP' && !targetTab.parentId) {
+const handleSidebarGroupNodeSelect = (collectionId: string) => {
+  selectedGroupTreeNodeId.value = collectionId
+  const targetCollection = collectionsById.value.get(collectionId)
+  if (targetCollection?.type === 'GROUP' && !targetCollection.parentId) {
     skipAutoRestoreLastSelectedGroupNodeOnce.value = true
-    localStorage.setItem(getGroupSelectionStorageKey(tabId), tabId)
+    localStorage.setItem(getGroupSelectionStorageKey(collectionId), collectionId)
   }
-  handleSelectGroupTab(tabId)
+  handleSelectGroupCollection(collectionId)
 }
 
 const getGroupTreeNodeValue = (node: unknown): string => {
@@ -181,32 +181,32 @@ const hasTreeChildren = (node: unknown): boolean => {
   return Array.isArray(children) && children.length > 0
 }
 
-const formatGroupTreeLabel = (tab: ContentLibraryTab) => {
-  const directItemsCount = Number(tab.directItemsCount ?? 0)
-  return `${tab.title} (${directItemsCount})`
+const formatGroupTreeLabel = (collection: ContentCollection) => {
+  const directItemsCount = Number(collection.directItemsCount ?? 0)
+  return `${collection.title} (${directItemsCount})`
 }
 
-const canDeleteTab = (tab: ContentLibraryTab | null | undefined) => {
-  if (!tab) {
+const canDeleteCollection = (collection: ContentCollection | null | undefined) => {
+  if (!collection) {
     return false
   }
 
   return true
 }
 
-const canDeleteActiveTab = computed(() => canDeleteTab(activeTab.value))
+const canDeleteActiveCollection = computed(() => canDeleteCollection(activeCollection.value))
 
-const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
+const isActiveGroupCollection = computed(() => activeCollection.value?.type === 'GROUP')
 
-const allScopeGroupTabs = computed(() => tabs.value.filter(tab => tab.type === 'GROUP'))
-const tabsById = computed(() => new Map(tabs.value.map(tab => [tab.id, tab])))
+const allScopeGroupCollections = computed(() => collections.value.filter(collection => collection.type === 'GROUP'))
+const collectionsById = computed(() => new Map(collections.value.map(collection => [collection.id, collection])))
 
 const treeCreateParentLabel = computed(() => {
   if (!treeCreateParentId.value) {
     return '-'
   }
 
-  return tabsById.value.get(treeCreateParentId.value)?.title ?? '-'
+  return collectionsById.value.get(treeCreateParentId.value)?.title ?? '-'
 })
 
 const treeDeleteTargetLabel = computed(() => {
@@ -214,20 +214,20 @@ const treeDeleteTargetLabel = computed(() => {
     return '-'
   }
 
-  return tabsById.value.get(treeDeleteTargetId.value)?.title ?? '-'
+  return collectionsById.value.get(treeDeleteTargetId.value)?.title ?? '-'
 })
 
 const activeRootGroupId = computed(() => {
-  if (activeTab.value?.type !== 'GROUP') {
+  if (activeCollection.value?.type !== 'GROUP') {
     return null
   }
 
-  let cursor: ContentLibraryTab | undefined = activeTab.value
+  let cursor: ContentCollection | undefined = activeCollection.value
   const visited = new Set<string>()
 
   while (cursor?.parentId && !visited.has(cursor.id)) {
     visited.add(cursor.id)
-    const parent = tabsById.value.get(cursor.parentId)
+    const parent = collectionsById.value.get(cursor.parentId)
     if (!parent || parent.type !== 'GROUP') {
       break
     }
@@ -242,28 +242,28 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
     return []
   }
 
-  const rootGroup = tabsById.value.get(activeRootGroupId.value)
+  const rootGroup = collectionsById.value.get(activeRootGroupId.value)
   if (!rootGroup || rootGroup.type !== 'GROUP') {
     return []
   }
 
-  const byParent = new Map<string, ContentLibraryTab[]>()
+  const byParent = new Map<string, ContentCollection[]>()
 
-  for (const tab of allScopeGroupTabs.value) {
-    const parentId = tab.parentId ?? ''
+  for (const collection of allScopeGroupCollections.value) {
+    const parentId = collection.parentId ?? ''
     const current = byParent.get(parentId) ?? []
-    current.push(tab)
+    current.push(collection)
     byParent.set(parentId, current)
   }
 
   const buildTree = (parentId: string): GroupTreeNode[] => {
     const children = (byParent.get(parentId) ?? []).sort((a, b) => a.order - b.order)
-    return children.map((tab) => ({
-      label: formatGroupTreeLabel(tab),
-      value: tab.id,
+    return children.map((collection) => ({
+      label: formatGroupTreeLabel(collection),
+      value: collection.id,
       slot: 'group-node',
       defaultExpanded: true,
-      children: buildTree(tab.id),
+      children: buildTree(collection.id),
     }))
   }
 
@@ -278,11 +278,11 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
 
 
 const groupTreeItems = computed<GroupTreeNode[]>(() => {
-  if (!isActiveGroupTab.value || !activeTab.value) {
+  if (!isActiveGroupCollection.value || !activeCollection.value) {
     return []
   }
 
-  const rootId = activeTab.value.id
+  const rootId = activeCollection.value.id
   const descendants = new Set<string>([rootId])
   const queue = [rootId]
 
@@ -292,33 +292,33 @@ const groupTreeItems = computed<GroupTreeNode[]>(() => {
       continue
     }
 
-    for (const tab of allGroupTabs.value) {
-      if (tab.parentId === parentId && !descendants.has(tab.id)) {
-        descendants.add(tab.id)
-        queue.push(tab.id)
+    for (const collection of allGroupCollections.value) {
+      if (collection.parentId === parentId && !descendants.has(collection.id)) {
+        descendants.add(collection.id)
+        queue.push(collection.id)
       }
     }
   }
 
-  const byParent = new Map<string, ContentLibraryTab[]>()
-  for (const tab of allGroupTabs.value) {
-    if (!descendants.has(tab.id) || tab.id === rootId) {
+  const byParent = new Map<string, ContentCollection[]>()
+  for (const collection of allGroupCollections.value) {
+    if (!descendants.has(collection.id) || collection.id === rootId) {
       continue
     }
 
-    const parentId = tab.parentId ?? ''
+    const parentId = collection.parentId ?? ''
     const current = byParent.get(parentId) ?? []
-    current.push(tab)
+    current.push(collection)
     byParent.set(parentId, current)
   }
 
   const buildTree = (parentId: string): GroupTreeNode[] => {
     const children = (byParent.get(parentId) ?? []).sort((a, b) => a.order - b.order)
-    return children.map((tab) => ({
-      label: tab.title,
-      value: tab.id,
+    return children.map((collection) => ({
+      label: collection.title,
+      value: collection.id,
       defaultExpanded: true,
-      children: buildTree(tab.id),
+      children: buildTree(collection.id),
     }))
   }
 
@@ -368,7 +368,7 @@ const uploadContentFiles = async (files: File[]) => {
   }
 
   isUploadingFiles.value = true
-  const targetGroupId = activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined
+  const targetGroupId = activeCollection.value?.type === 'GROUP' ? activeCollection.value.id : undefined
   try {
     let successCount = 0
     let errorCount = 0
@@ -443,8 +443,8 @@ const uploadContentFiles = async (files: File[]) => {
 }
 
 const openTreeCreateModal = (parentId: string) => {
-  const parentTab = tabsById.value.get(parentId)
-  if (!parentTab || parentTab.type !== 'GROUP') {
+  const parentCollection = collectionsById.value.get(parentId)
+  if (!parentCollection || parentCollection.type !== 'GROUP') {
     return
   }
 
@@ -461,7 +461,7 @@ const handleCreateGroupFromTreeModal = async () => {
 
   isCreatingTreeGroup.value = true
   try {
-    const newTab = await createTab({
+    const newCollection = await createCollection({
       scope: props.scope,
       projectId: props.projectId,
       type: 'GROUP',
@@ -470,10 +470,10 @@ const handleCreateGroupFromTreeModal = async () => {
       config: {},
     })
 
-    await contentLibraryTabsRef.value?.fetchTabs()
-    activeTabId.value = newTab.id
-    activeTab.value = newTab
-    selectedGroupTreeNodeId.value = newTab.id
+    await contentCollectionsRef.value?.fetchCollections()
+    activeCollectionId.value = newCollection.id
+    activeCollection.value = newCollection
+    selectedGroupTreeNodeId.value = newCollection.id
     selectedIds.value = []
     isTreeCreateModalOpen.value = false
     await fetchItems({ reset: true })
@@ -484,14 +484,14 @@ const handleCreateGroupFromTreeModal = async () => {
   }
 }
 
-const openTreeRenameModal = (tabId: string) => {
-  const targetTab = tabsById.value.get(tabId)
-  if (!targetTab || targetTab.type !== 'GROUP' || !targetTab.parentId) {
+const openTreeRenameModal = (collectionId: string) => {
+  const targetCollection = collectionsById.value.get(collectionId)
+  if (!targetCollection || targetCollection.type !== 'GROUP' || !targetCollection.parentId) {
     return
   }
 
-  treeRenameTargetId.value = tabId
-  treeRenameTitle.value = targetTab.title
+  treeRenameTargetId.value = collectionId
+  treeRenameTitle.value = targetCollection.title
   isTreeRenameModalOpen.value = true
 }
 
@@ -503,17 +503,17 @@ const handleRenameGroupFromTree = async () => {
 
   isRenamingTreeGroup.value = true
   try {
-    const updatedTab = await updateTab(treeRenameTargetId.value, {
+    const updatedCollection = await updateCollection(treeRenameTargetId.value, {
       scope: props.scope,
       projectId: props.projectId,
       title,
     })
 
-    await contentLibraryTabsRef.value?.fetchTabs()
+    await contentCollectionsRef.value?.fetchCollections()
     
-    // Update active tab if it matches renamed one
-    if (activeTabId.value === treeRenameTargetId.value) {
-      activeTab.value = updatedTab
+    // Update active collection if it matches renamed one
+    if (activeCollectionId.value === treeRenameTargetId.value) {
+      activeCollection.value = updatedCollection
     }
 
     isTreeRenameModalOpen.value = false
@@ -524,13 +524,13 @@ const handleRenameGroupFromTree = async () => {
   }
 }
 
-const openTreeDeleteModal = (tabId: string) => {
-  const targetTab = tabsById.value.get(tabId)
-  if (!targetTab || targetTab.type !== 'GROUP' || !targetTab.parentId) {
+const openTreeDeleteModal = (collectionId: string) => {
+  const targetCollection = collectionsById.value.get(collectionId)
+  if (!targetCollection || targetCollection.type !== 'GROUP' || !targetCollection.parentId) {
     return
   }
 
-  treeDeleteTargetId.value = tabId
+  treeDeleteTargetId.value = collectionId
   isTreeDeleteConfirmModalOpen.value = true
 }
 
@@ -539,28 +539,28 @@ const handleDeleteGroupFromTree = async () => {
     return
   }
 
-  const targetTab = tabsById.value.get(treeDeleteTargetId.value)
-  if (!targetTab) {
+  const targetCollection = collectionsById.value.get(treeDeleteTargetId.value)
+  if (!targetCollection) {
     return
   }
 
-  const parentId = targetTab.parentId
+  const parentId = targetCollection.parentId
   isDeletingTreeGroup.value = true
   try {
-    await deleteTab(targetTab.id, props.scope, props.projectId)
-    await contentLibraryTabsRef.value?.fetchTabs()
+    await deleteCollection(targetCollection.id, props.scope, props.projectId)
+    await contentCollectionsRef.value?.fetchCollections()
 
     if (parentId) {
-      const parentTab = tabs.value.find(tab => tab.id === parentId)
-      if (parentTab) {
-        activeTabId.value = parentTab.id
-        activeTab.value = parentTab
+      const parentCollection = collections.value.find(collection => collection.id === parentId)
+      if (parentCollection) {
+        activeCollectionId.value = parentCollection.id
+        activeCollection.value = parentCollection
       }
     }
 
     if (!parentId) {
-      activeTabId.value = null
-      activeTab.value = null
+      activeCollectionId.value = null
+      activeCollection.value = null
     }
 
     selectedIds.value = []
@@ -573,29 +573,29 @@ const handleDeleteGroupFromTree = async () => {
   }
 }
 
-const getGroupNodeMenuItems = (tabId: string) => {
-  const targetTab = tabsById.value.get(tabId)
+const getGroupNodeMenuItems = (collectionId: string) => {
+  const targetCollection = collectionsById.value.get(collectionId)
   const menuItems: Array<{ label: string; icon: string; onSelect: () => void }> = [
     {
-      label: t('contentLibrary.tabs.createSubgroup'),
+      label: t('contentLibrary.collections.createSubgroup'),
       icon: 'i-heroicons-folder-plus',
-      onSelect: () => openTreeCreateModal(tabId),
+      onSelect: () => openTreeCreateModal(collectionId),
     },
   ]
 
-  if (targetTab?.parentId) {
+  if (targetCollection?.parentId) {
     menuItems.push({
       label: t('common.rename'),
       icon: 'i-heroicons-pencil-square',
-      onSelect: () => openTreeRenameModal(tabId),
+      onSelect: () => openTreeRenameModal(collectionId),
     })
   }
 
-  if (targetTab?.parentId && canDeleteTab(targetTab)) {
+  if (targetCollection?.parentId && canDeleteCollection(targetCollection)) {
     menuItems.push({
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
-      onSelect: () => openTreeDeleteModal(tabId),
+      onSelect: () => openTreeDeleteModal(collectionId),
     })
   }
 
@@ -648,7 +648,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   const requestId = ++fetchItemsRequestId
   if (props.scope === 'project' && !props.projectId) return
 
-  if (activeTabId.value && !activeTab.value && !tabsById.value.get(activeTabId.value)) {
+  if (activeCollectionId.value && !activeCollection.value && !collectionsById.value.get(activeCollectionId.value)) {
     return
   }
 
@@ -659,8 +659,8 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   isLoading.value = true
   error.value = null
   try {
-    const resolvedActiveTab = activeTab.value ?? (activeTabId.value ? (tabsById.value.get(activeTabId.value) ?? null) : null)
-    const resolvedGroupId = resolvedActiveTab?.type === 'GROUP' ? resolvedActiveTab.id : undefined
+    const resolvedActiveCollection = activeCollection.value ?? (activeCollectionId.value ? (collectionsById.value.get(activeCollectionId.value) ?? null) : null)
+    const resolvedGroupId = resolvedActiveCollection?.type === 'GROUP' ? resolvedActiveCollection.id : undefined
 
     const baseParams = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
@@ -717,11 +717,11 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
 
 const fetchAvailableTags = async () => {
   try {
-    if (!activeTab.value) {
+    if (!activeCollection.value) {
       return
     }
 
-    const groupIdForTags = activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined
+    const groupIdForTags = activeCollection.value?.type === 'GROUP' ? activeCollection.value.id : undefined
     const tags = await api.get<string[]>('/content-library/tags', {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
@@ -735,7 +735,7 @@ const fetchAvailableTags = async () => {
   }
 }
 
-watch(activeTab, (next, prev) => {
+watch(activeCollection, (next, prev) => {
   if (next?.id && next.id !== prev?.id) {
     fetchAvailableTags()
   }
@@ -792,7 +792,7 @@ const createAndEdit = async () => {
   try {
     const payload: any = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
-      groupId: activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined,
+      groupId: activeCollection.value?.type === 'GROUP' ? activeCollection.value.id : undefined,
       text: '',
       meta: {},
       media: [],
@@ -883,57 +883,57 @@ const executeBulkOperation = async () => {
   }
 }
 
-const openRenameTabModal = () => {
-  const tab = resolveRootGroupTabForActions()
-  if (!tab) return
-  newTabTitle.value = tab.title
-  isRenameTabModalOpen.value = true
+const openRenameCollectionModal = () => {
+  const collection = resolveRootGroupCollectionForActions()
+  if (!collection) return
+  newCollectionTitle.value = collection.title
+  isRenameCollectionModalOpen.value = true
 }
 
-const handleRenameTab = async () => {
-  const tab = resolveRootGroupTabForActions()
-  if (!tab || !newTabTitle.value.trim()) return
-  isRenamingTab.value = true
+const handleRenameCollection = async () => {
+  const collection = resolveRootGroupCollectionForActions()
+  if (!collection || !newCollectionTitle.value.trim()) return
+  isRenamingCollection.value = true
   try {
-    await updateTab(tab.id, { scope: props.scope, projectId: props.projectId, title: newTabTitle.value })
-    contentLibraryTabsRef.value?.fetchTabs()
-    isRenameTabModalOpen.value = false
+    await updateCollection(collection.id, { scope: props.scope, projectId: props.projectId, title: newCollectionTitle.value })
+    contentCollectionsRef.value?.fetchCollections()
+    isRenameCollectionModalOpen.value = false
   } catch (e: any) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename group'), color: 'error' })
   } finally {
-    isRenamingTab.value = false
+    isRenamingCollection.value = false
   }
 }
 
-const openDeleteTabModal = () => {
-  const tab = resolveRootGroupTabForActions()
-  if (!tab) return
-  isDeleteTabConfirmModalOpen.value = true
+const openDeleteCollectionModal = () => {
+  const collection = resolveRootGroupCollectionForActions()
+  if (!collection) return
+  isDeleteCollectionConfirmModalOpen.value = true
 }
 
-const handleDeleteTab = async () => {
-  const tabToDelete = resolveRootGroupTabForActions()
-  if (!tabToDelete) return
-  const parentId = tabToDelete.parentId
-  isDeletingTab.value = true
+const handleDeleteCollection = async () => {
+  const collectionToDelete = resolveRootGroupCollectionForActions()
+  if (!collectionToDelete) return
+  const parentId = collectionToDelete.parentId
+  isDeletingCollection.value = true
   try {
-    await deleteTab(tabToDelete.id, props.scope, props.projectId)
-    contentLibraryTabsRef.value?.fetchTabs()
+    await deleteCollection(collectionToDelete.id, props.scope, props.projectId)
+    contentCollectionsRef.value?.fetchCollections()
 
-    const parentTab = parentId ? tabs.value.find(tab => tab.id === parentId) : null
-    if (parentTab) {
-      activeTab.value = parentTab
-      activeTabId.value = parentTab.id
+    const parentCollection = parentId ? collections.value.find(collection => collection.id === parentId) : null
+    if (parentCollection) {
+      activeCollection.value = parentCollection
+      activeCollectionId.value = parentCollection.id
     } else {
-      activeTab.value = null
-      activeTabId.value = null
+      activeCollection.value = null
+      activeCollectionId.value = null
     }
 
-    isDeleteTabConfirmModalOpen.value = false
+    isDeleteCollectionConfirmModalOpen.value = false
   } catch (e: any) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete group'), color: 'error' })
   } finally {
-    isDeletingTab.value = false
+    isDeletingCollection.value = false
   }
 }
 
@@ -951,14 +951,14 @@ useModalAutoFocus({
 })
 
 
-const fetchGroupTabs = async () => {
+const fetchGroupCollections = async () => {
   if (props.scope === 'project' && !props.projectId) {
     return
   }
 
   try {
-    const tabs = await listTabs(props.scope, props.projectId)
-    allGroupTabs.value = tabs.filter(tab => tab.type === 'GROUP')
+    const collections = await listCollections(props.scope, props.projectId)
+    allGroupCollections.value = collections.filter(collection => collection.type === 'GROUP')
   } finally {
     // Done
   }
@@ -968,8 +968,8 @@ const handleOpenMoveModal = async (ids: string[]) => {
   if (ids.length === 0) return
   moveItemsIds.value = ids
   
-  if (allGroupTabs.value.length === 0) {
-    await fetchGroupTabs()
+  if (allGroupCollections.value.length === 0) {
+    await fetchGroupCollections()
   }
   
   if (projects.value.length === 0) {
@@ -1055,31 +1055,31 @@ const handleCreatePublication = (item: any) => {
   isCreatePublicationModalOpen.value = true
 }
 
- const resolveRootGroupTabForActions = (): ContentLibraryTab | null => {
-   if (!activeTab.value) {
+ const resolveRootGroupCollectionForActions = (): ContentCollection | null => {
+   if (!activeCollection.value) {
      return null
    }
-   if (activeTab.value.type !== 'GROUP') {
-     return activeTab.value
+   if (activeCollection.value.type !== 'GROUP') {
+     return activeCollection.value
    }
    if (!activeRootGroupId.value) {
-     return activeTab.value
+     return activeCollection.value
    }
-   return tabsById.value.get(activeRootGroupId.value) ?? activeTab.value
+   return collectionsById.value.get(activeRootGroupId.value) ?? activeCollection.value
  }
 
-const handleSelectGroupTab = (tabId: string) => {
-  if (activeTabId.value === tabId) {
+const handleSelectGroupCollection = (collectionId: string) => {
+  if (activeCollectionId.value === collectionId) {
     return
   }
 
-  const targetTab = tabs.value.find(tab => tab.id === tabId)
-  if (!targetTab) {
+  const targetCollection = collections.value.find(collection => collection.id === collectionId)
+  if (!targetCollection) {
     return
   }
 
-  activeTabId.value = targetTab.id
-  activeTab.value = targetTab
+  activeCollectionId.value = targetCollection.id
+  activeCollection.value = targetCollection
 }
 
 const openEditModal = (item: any) => {
@@ -1101,20 +1101,20 @@ const handleCloseModal = async () => {
 const isRestoringConfig = ref(false)
 const isInitialDataLoaded = ref(false)
 
-const getGroupRootTabId = (tab: ContentLibraryTab): string => {
-  let cursor: ContentLibraryTab | undefined = tab
+const getGroupRootCollectionId = (collection: ContentCollection): string => {
+  let cursor: ContentCollection | undefined = collection
   const visited = new Set<string>()
 
   while (cursor?.type === 'GROUP' && cursor.parentId && !visited.has(cursor.id)) {
     visited.add(cursor.id)
-    const parent = tabsById.value.get(cursor.parentId)
+    const parent = collectionsById.value.get(cursor.parentId)
     if (!parent || parent.type !== 'GROUP') {
       break
     }
     cursor = parent
   }
 
-  return cursor?.id ?? tab.id
+  return cursor?.id ?? collection.id
 }
 
 const isRestoringGroupSelection = ref(false)
@@ -1123,8 +1123,8 @@ const getGroupSelectionStorageKey = (rootGroupId: string) => {
   return `content-library-last-group-${props.scope}-${props.projectId || 'global'}-${rootGroupId}`
 }
 
-const buildTabConfig = () => {
-  if (!activeTab.value) {
+const buildCollectionConfig = () => {
+  if (!activeCollection.value) {
     return {}
   }
 
@@ -1133,7 +1133,7 @@ const buildTabConfig = () => {
     sortOrder: sortOrder.value,
   }
 
-  if (activeTab.value.type === 'SAVED_VIEW') {
+  if (activeCollection.value.type === 'SAVED_VIEW') {
     return {
       ...baseConfig,
       search: q.value,
@@ -1144,70 +1144,70 @@ const buildTabConfig = () => {
   return baseConfig
 }
 
-const resolveTabForConfigPersistence = (): ContentLibraryTab | null => {
-  if (!activeTab.value) {
+const resolveCollectionForConfigPersistence = (): ContentCollection | null => {
+  if (!activeCollection.value) {
     return null
   }
 
-  const canonicalTab = tabsById.value.get(activeTab.value.id) ?? activeTab.value
+  const canonicalCollection = collectionsById.value.get(activeCollection.value.id) ?? activeCollection.value
 
-  if (canonicalTab.type !== 'GROUP') {
-    return canonicalTab
+  if (canonicalCollection.type !== 'GROUP') {
+    return canonicalCollection
   }
 
-  const rootId = getGroupRootTabId(canonicalTab)
-  return tabsById.value.get(rootId) ?? canonicalTab
+  const rootId = getGroupRootCollectionId(canonicalCollection)
+  return collectionsById.value.get(rootId) ?? canonicalCollection
 }
 
-const persistActiveTabConfig = async () => {
-  const persistenceTab = resolveTabForConfigPersistence()
-  if (!persistenceTab || isRestoringConfig.value) {
+const persistActiveCollectionConfig = async () => {
+  const persistenceCollection = resolveCollectionForConfigPersistence()
+  if (!persistenceCollection || isRestoringConfig.value) {
     return
   }
 
-  const nextConfig = buildTabConfig()
-  const currentConfig = persistenceTab.config || {}
+  const nextConfig = buildCollectionConfig()
+  const currentConfig = persistenceCollection.config || {}
   if (JSON.stringify(currentConfig) === JSON.stringify(nextConfig)) {
     return
   }
 
   try {
-    const tabIdToUpdate = persistenceTab.id
-    await updateTab(tabIdToUpdate, {
+    const collectionIdToUpdate = persistenceCollection.id
+    await updateCollection(collectionIdToUpdate, {
       scope: props.scope,
       projectId: props.projectId,
       config: nextConfig,
     })
-    if (activeTab.value?.id === tabIdToUpdate) {
-      activeTab.value = {
-        ...activeTab.value,
+    if (activeCollection.value?.id === collectionIdToUpdate) {
+      activeCollection.value = {
+        ...activeCollection.value,
         config: nextConfig,
       }
     }
 
-    tabs.value = tabs.value.map((tab) =>
-      tab.id === tabIdToUpdate
-        ? { ...tab, config: nextConfig }
-        : tab,
+    collections.value = collections.value.map((collection) =>
+      collection.id === collectionIdToUpdate
+        ? { ...collection, config: nextConfig }
+        : collection,
     )
 
-    const tabsComponentTabs = contentLibraryTabsRef.value?.tabs
-    if (tabsComponentTabs?.value && Array.isArray(tabsComponentTabs.value)) {
-      tabsComponentTabs.value = tabsComponentTabs.value.map((tab: ContentLibraryTab) => (
-        tab.id === tabIdToUpdate
-          ? { ...tab, config: nextConfig }
-          : tab
+    const collectionsComponentCollections = contentCollectionsRef.value?.collections
+    if (collectionsComponentCollections?.value && Array.isArray(collectionsComponentCollections.value)) {
+      collectionsComponentCollections.value = collectionsComponentCollections.value.map((collection: ContentCollection) => (
+        collection.id === collectionIdToUpdate
+          ? { ...collection, config: nextConfig }
+          : collection
       ))
     }
   } catch (e: any) {
-    console.warn('Failed to persist content library tab config', e)
+    console.warn('Failed to persist content library collection config', e)
 
     const now = Date.now()
     if (!lastConfigPersistToastAt.value || now - lastConfigPersistToastAt.value > 5000) {
       lastConfigPersistToastAt.value = now
       toast.add({
         title: t('common.error'),
-        description: getApiErrorMessage(e, 'Failed to save tab settings'),
+        description: getApiErrorMessage(e, 'Failed to save collection settings'),
         color: 'error',
       })
     }
@@ -1216,87 +1216,87 @@ const persistActiveTabConfig = async () => {
 
 const lastConfigPersistToastAt = ref<number | null>(null)
 
-const handleActiveTabUpdate = async (nextTab: ContentLibraryTab | null) => {
-  if (activeTab.value?.id !== nextTab?.id) {
-    await persistActiveTabConfig()
+const handleActiveCollectionUpdate = async (nextCollection: ContentCollection | null) => {
+  if (activeCollection.value?.id !== nextCollection?.id) {
+    await persistActiveCollectionConfig()
   }
 
-  activeTab.value = nextTab
+  activeCollection.value = nextCollection
 
-  if (nextTab?.type === 'GROUP' && !nextTab.parentId) {
-    localStorage.setItem(getGroupSelectionStorageKey(nextTab.id), nextTab.id)
+  if (nextCollection?.type === 'GROUP' && !nextCollection.parentId) {
+    localStorage.setItem(getGroupSelectionStorageKey(nextCollection.id), nextCollection.id)
   }
 }
 
-const debouncedPersistActiveTabConfig = useDebounceFn(persistActiveTabConfig, 350)
+const debouncedPersistActiveCollectionConfig = useDebounceFn(persistActiveCollectionConfig, 350)
 
-const restoreTabSettings = () => {
-  if (!activeTab.value) return
+const restoreCollectionSettings = () => {
+  if (!activeCollection.value) return
   isRestoringConfig.value = true
-  const configSource = resolveTabForConfigPersistence() ?? activeTab.value
+  const configSource = resolveCollectionForConfigPersistence() ?? activeCollection.value
   const config = (configSource.config as any) || {}
-  q.value = activeTab.value.type === 'SAVED_VIEW' ? (config.search || '') : ''
-  selectedTags.value = activeTab.value.type === 'SAVED_VIEW' ? (config.tags || '') : ''
+  q.value = activeCollection.value.type === 'SAVED_VIEW' ? (config.search || '') : ''
+  selectedTags.value = activeCollection.value.type === 'SAVED_VIEW' ? (config.tags || '') : ''
   if (config.sortBy) sortBy.value = config.sortBy
   if (config.sortOrder) sortOrder.value = config.sortOrder
   setTimeout(() => { isRestoringConfig.value = false }, 100)
 }
 
-const persistLastSelectedGroupNode = (tab: ContentLibraryTab) => {
-  if (tab.type !== 'GROUP') {
+const persistLastSelectedGroupNode = (collection: ContentCollection) => {
+  if (collection.type !== 'GROUP') {
     return
   }
 
-  const rootId = getGroupRootTabId(tab)
-  localStorage.setItem(getGroupSelectionStorageKey(rootId), tab.id)
+  const rootId = getGroupRootCollectionId(collection)
+  localStorage.setItem(getGroupSelectionStorageKey(rootId), collection.id)
 }
 
-const restoreLastSelectedGroupNode = (rootTab: ContentLibraryTab) => {
-  if (rootTab.type !== 'GROUP') {
+const restoreLastSelectedGroupNode = (rootCollection: ContentCollection) => {
+  if (rootCollection.type !== 'GROUP') {
     return
   }
 
-  const rootId = getGroupRootTabId(rootTab)
+  const rootId = getGroupRootCollectionId(rootCollection)
   const savedId = localStorage.getItem(getGroupSelectionStorageKey(rootId))
-  if (!savedId || savedId === rootTab.id) {
+  if (!savedId || savedId === rootCollection.id) {
     return
   }
 
-  const savedTab = tabsById.value.get(savedId)
-  if (!savedTab || savedTab.type !== 'GROUP') {
+  const savedCollection = collectionsById.value.get(savedId)
+  if (!savedCollection || savedCollection.type !== 'GROUP') {
     return
   }
 
   isRestoringGroupSelection.value = true
-  selectedGroupTreeNodeId.value = savedTab.id
-  activeTabId.value = savedTab.id
-  activeTab.value = savedTab
+  selectedGroupTreeNodeId.value = savedCollection.id
+  activeCollectionId.value = savedCollection.id
+  activeCollection.value = savedCollection
   setTimeout(() => { isRestoringGroupSelection.value = false }, 50)
 }
 
-watch(activeTab, async (newTab, oldTab) => {
-  if (newTab?.id !== oldTab?.id) {
+watch(activeCollection, async (newCollection, oldCollection) => {
+  if (newCollection?.id !== oldCollection?.id) {
     if (!isRestoringGroupSelection.value) {
-      selectedGroupTreeNodeId.value = newTab?.type === 'GROUP' ? newTab.id : null
+      selectedGroupTreeNodeId.value = newCollection?.type === 'GROUP' ? newCollection.id : null
     }
     selectedIds.value = []
-    if (newTab) {
-      if (newTab.type === 'GROUP') {
-        if (!isRestoringGroupSelection.value && !newTab.parentId) {
+    if (newCollection) {
+      if (newCollection.type === 'GROUP') {
+        if (!isRestoringGroupSelection.value && !newCollection.parentId) {
           if (skipAutoRestoreLastSelectedGroupNodeOnce.value) {
             skipAutoRestoreLastSelectedGroupNodeOnce.value = false
           } else {
-            restoreLastSelectedGroupNode(newTab)
+            restoreLastSelectedGroupNode(newCollection)
             return
           }
         }
 
-        if (newTab.parentId) {
-          persistLastSelectedGroupNode(newTab)
+        if (newCollection.parentId) {
+          persistLastSelectedGroupNode(newCollection)
         }
       }
 
-      restoreTabSettings()
+      restoreCollectionSettings()
     }
     else {
       q.value = ''
@@ -1309,27 +1309,27 @@ watch(activeTab, async (newTab, oldTab) => {
   }
 })
 
-watch([activeTabId, tabs], () => {
-  if (!activeTabId.value || activeTab.value?.id === activeTabId.value) {
+watch([activeCollectionId, collections], () => {
+  if (!activeCollectionId.value || activeCollection.value?.id === activeCollectionId.value) {
     return
   }
 
-  const next = tabs.value.find(t => t.id === activeTabId.value) ?? null
+  const next = collections.value.find(t => t.id === activeCollectionId.value) ?? null
   if (next) {
-    activeTab.value = next
+    activeCollection.value = next
   }
 })
 
-watch([activeTab, tabs], () => {
+watch([activeCollection, collections], () => {
   if (isInitialDataLoaded.value) {
     return
   }
 
-  if (tabs.value.length === 0) {
+  if (collections.value.length === 0) {
     return
   }
 
-  if (!activeTab.value) {
+  if (!activeCollection.value) {
     return
   }
 
@@ -1339,7 +1339,7 @@ watch([activeTab, tabs], () => {
 }, { immediate: true })
 
 watch([q, selectedTags, sortBy, sortOrder], () => {
-  debouncedPersistActiveTabConfig()
+  debouncedPersistActiveCollectionConfig()
 }, { deep: true })
 
 onMounted(() => {
@@ -1400,11 +1400,11 @@ if (props.scope === 'project' && props.projectId) {
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
-      :group-id="activeTab?.type === 'GROUP' ? activeTab.id : undefined"
+      :group-id="activeCollection?.type === 'GROUP' ? activeCollection.id : undefined"
       :total-unfiltered="totalUnfiltered"
       :current-project="currentProject"
       :is-purging="isPurging"
-      :active-tab="activeTab"
+      :active-collection="activeCollection"
       :is-start-creating="isStartCreating"
       :available-tags="availableTags"
       :sort-options="sortOptions"
@@ -1412,29 +1412,29 @@ if (props.scope === 'project' && props.projectId) {
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
       :is-window-file-drag-active="isWindowFileDragActive"
-      :can-delete-active-tab="canDeleteActiveTab"
+      :can-delete-active-collection="canDeleteActiveCollection"
       @purge="isPurgeConfirmModalOpen = true"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
-      @rename-tab="openRenameTabModal"
-      @delete-tab="openDeleteTabModal"
+      @rename-collection="openRenameCollectionModal"
+      @delete-collection="openDeleteCollectionModal"
       @toggle-sort-order="toggleSortOrder"
     >
-      <template #tabs>
-        <ContentLibraryTabs
-          ref="contentLibraryTabsRef"
-          v-model="activeTabId"
+      <template #collections>
+        <ContentCollections
+          ref="contentCollectionsRef"
+          v-model="activeCollectionId"
           :scope="scope"
           :project-id="props.projectId"
-          @update:active-tab="handleActiveTabUpdate($event)"
-          @update:tabs="tabs = $event"
+          @update:active-collection="handleActiveCollectionUpdate($event)"
+          @update:collections="collections = $event"
         />
       </template>
     </ContentLibraryToolbar>
 
     <div
       class="mt-6 grid grid-cols-1 gap-6 items-start"
-      :class="isActiveGroupTab ? 'xl:grid-cols-[minmax(0,1fr)_20rem]' : 'xl:grid-cols-1'"
+      :class="isActiveGroupCollection ? 'xl:grid-cols-[minmax(0,1fr)_20rem]' : 'xl:grid-cols-1'"
     >
       <div>
         <!-- Items Grid -->
@@ -1499,7 +1499,7 @@ if (props.scope === 'project' && props.projectId) {
         </div>
       </div>
 
-      <aside v-if="isActiveGroupTab" class="app-card-lg border border-gray-200/70 dark:border-gray-700/70 space-y-4">
+      <aside v-if="isActiveGroupCollection" class="app-card-lg border border-gray-200/70 dark:border-gray-700/70 space-y-4">
         <div class="space-y-3">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
             {{ t('contentLibrary.groupsTree.title') }}
@@ -1596,7 +1596,7 @@ if (props.scope === 'project' && props.projectId) {
 
     <UiAppModal
       v-model:open="isTreeCreateModalOpen"
-      :title="t('contentLibrary.tabs.createSubgroupTitle')"
+      :title="t('contentLibrary.collections.createSubgroupTitle')"
       :description="t('contentLibrary.groupsTree.selectedParentHint', { title: treeCreateParentLabel })"
       :ui="{ content: 'w-full max-w-md' }"
       @close="isTreeCreateModalOpen = false"
@@ -1622,7 +1622,7 @@ if (props.scope === 'project' && props.projectId) {
 
     <UiAppModal
       v-model:open="isTreeRenameModalOpen"
-      :title="t('contentLibrary.tabs.renameTitle', 'Rename group')"
+      :title="t('contentLibrary.collections.renameTitle', 'Rename group')"
       :ui="{ content: 'w-full max-w-md' }"
       @close="isTreeRenameModalOpen = false"
     >
@@ -1648,7 +1648,7 @@ if (props.scope === 'project' && props.projectId) {
     <UiConfirmModal
       v-if="isTreeDeleteConfirmModalOpen"
       v-model:open="isTreeDeleteConfirmModalOpen"
-      :title="t('contentLibrary.tabs.deleteTitle')"
+      :title="t('contentLibrary.collections.deleteTitle')"
       :description="t('contentLibrary.groupsTree.deleteConfirmDescription', { title: treeDeleteTargetLabel })"
       :confirm-text="t('common.delete')"
       color="error"
@@ -1661,7 +1661,7 @@ if (props.scope === 'project' && props.projectId) {
     <ContentLibraryBulkBar
       :selected-ids="selectedIds"
       :archive-status="archiveStatus"
-      :is-group-tab="isActiveGroupTab"
+      :is-group-collection="isActiveGroupCollection"
       @archive="handleBulkAction('ARCHIVE')"
       @restore="handleBulkAction('UNARCHIVE')"
       @purge="handleBulkDeleteForever"
@@ -1716,45 +1716,45 @@ if (props.scope === 'project' && props.projectId) {
       :ids="moveItemsIds"
       :scope="props.scope"
       :project-id="props.projectId"
-      :active-tab="activeTab"
-      :tabs="allGroupTabs"
+      :active-collection="activeCollection"
+      :collections="allGroupCollections"
       :projects="projects"
       :folder-tree-items="groupTreeItems"
       @move="handleExecuteMoveItems"
     />
 
-    <!-- Rename Tab Modal -->
+    <!-- Rename Collection Modal -->
     <UiAppModal
-      v-model:open="isRenameTabModalOpen"
-      :title="t('contentLibrary.tabs.renameTitle', 'Rename group')"
+      v-model:open="isRenameCollectionModalOpen"
+      :title="t('contentLibrary.collections.renameTitle', 'Rename group')"
       :ui="{ content: 'w-full max-w-md' }"
-      @close="isRenameTabModalOpen = false"
+      @close="isRenameCollectionModalOpen = false"
     >
         <UFormField :label="t('common.title', 'Title')">
-            <UInput v-model="newTabTitle" autofocus @keydown.enter="handleRenameTab" />
+            <UInput v-model="newCollectionTitle" autofocus @keydown.enter="handleRenameCollection" />
         </UFormField>
 
         <template #footer>
-             <UButton color="neutral" variant="ghost" @click="isRenameTabModalOpen = false">
+             <UButton color="neutral" variant="ghost" @click="isRenameCollectionModalOpen = false">
                 {{ t('common.cancel') }}
              </UButton>
-             <UButton color="primary" :loading="isRenamingTab" @click="handleRenameTab">
+             <UButton color="primary" :loading="isRenamingCollection" @click="handleRenameCollection">
                 {{ t('common.save') }}
              </UButton>
         </template>
     </UiAppModal>
 
-    <!-- Delete Tab Modal -->
+    <!-- Delete Collection Modal -->
     <UiConfirmModal
-      v-if="isDeleteTabConfirmModalOpen"
-      v-model:open="isDeleteTabConfirmModalOpen"
-      :title="t('contentLibrary.tabs.deleteTitle', 'Delete group')"
-      :description="t('contentLibrary.tabs.deleteDescription', 'Are you sure you want to delete this group? This action cannot be undone.')"
+      v-if="isDeleteCollectionConfirmModalOpen"
+      v-model:open="isDeleteCollectionConfirmModalOpen"
+      :title="t('contentLibrary.collections.deleteTitle', 'Delete group')"
+      :description="t('contentLibrary.collections.deleteDescription', 'Are you sure you want to delete this group? This action cannot be undone.')"
       :confirm-text="t('common.delete')"
       color="error"
       icon="i-heroicons-trash"
-      :loading="isDeletingTab"
-      @confirm="handleDeleteTab"
+      :loading="isDeletingCollection"
+      @confirm="handleDeleteCollection"
     />
   </div>
 </template>

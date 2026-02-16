@@ -110,11 +110,11 @@ async function initialFetch() {
   ])
 }
 
-const activeDraftsTab = ref('DRAFT')
-const currentDraftsPublications = computed(() => activeDraftsTab.value === 'DRAFT' ? draftPublications.value : readyPublications.value)
-const currentDraftsTotal = computed(() => activeDraftsTab.value === 'DRAFT' ? draftTotal.value : readyTotal.value)
-const isCurrentDraftsLoading = computed(() => activeDraftsTab.value === 'DRAFT' ? isDraftsLoading.value : isReadyLoading.value)
-const currentDraftsViewAllLink = computed(() => `/publications?projectId=${projectId.value}&status=${activeDraftsTab.value}`)
+const activeDraftsCollection = ref('DRAFT')
+const currentDraftsPublications = computed(() => activeDraftsCollection.value === 'DRAFT' ? draftPublications.value : readyPublications.value)
+const currentDraftsTotal = computed(() => activeDraftsCollection.value === 'DRAFT' ? draftTotal.value : readyTotal.value)
+const isCurrentDraftsLoading = computed(() => activeDraftsCollection.value === 'DRAFT' ? isDraftsLoading.value : isReadyLoading.value)
+const currentDraftsViewAllLink = computed(() => `/publications?projectId=${projectId.value}&status=${activeDraftsCollection.value}`)
 
 function handleChannelCreatedEvent(channel: any) {
   if (channel && channel.projectId === projectId.value) {
@@ -222,7 +222,7 @@ async function handleDelete() {
   if (success) {
     showDeleteModal.value = false
     publicationToDelete.value = null
-    if (activeDraftsTab.value === 'DRAFT') {
+    if (activeDraftsCollection.value === 'DRAFT') {
       fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 })
     } else {
       fetchReady(projectId.value, { status: 'READY', limit: 5 })
@@ -433,7 +433,7 @@ async function handleDelete() {
       <div class="space-y-6 mt-6">
         <PublicationsDraftsSection
           
-          v-model:active-tab="activeDraftsTab"
+          v-model:active-collection="activeDraftsCollection"
           :publications="currentDraftsPublications"
           :total-count="currentDraftsTotal"
           :loading="isCurrentDraftsLoading"

@@ -2,7 +2,7 @@
 const props = defineProps<{
   selectedIds: string[]
   archiveStatus: 'active' | 'archived'
-  isGroupTab: boolean
+  isGroupCollection: boolean
 }>()
 
 const emit = defineEmits<{

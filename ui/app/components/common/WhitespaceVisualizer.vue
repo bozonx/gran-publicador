@@ -64,7 +64,7 @@ const visualizedChunks = computed(() => {
       <span 
         v-else-if="chunk.type === 'space'" 
         class="inline-flex items-center justify-center w-3 h-4 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold"
-        :title="chunk.content === '⇥' ? 'Tab' : 'Space'"
+        :title="chunk.content === '⇥' ? 'Collection' : 'Space'"
       >
         {{ chunk.content }}
       </span>

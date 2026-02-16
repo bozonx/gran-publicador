@@ -21,12 +21,12 @@ import { ContentLibraryService } from './content-library.service.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
-  CreateContentLibraryTabDto,
+  CreateContentCollectionDto,
   FindContentItemsQueryDto,
-  FindContentLibraryTabsQueryDto,
+  FindContentCollectionsQueryDto,
   LinkContentItemGroupDto,
-  UpdateContentLibraryTabDto,
-  ReorderContentLibraryTabsDto,
+  UpdateContentCollectionDto,
+  ReorderContentCollectionsDto,
   UpdateContentItemDto,
   SyncContentItemDto,
 } from './dto/index.js';
@@ -87,10 +87,10 @@ export class ContentLibraryController {
     return this.contentLibraryService.findAll(query, req.user.userId);
   }
 
-  @Get('tabs')
-  public async listTabs(
+  @Get('collections')
+  public async listCollections(
     @Request() req: UnifiedAuthRequest,
-    @Query() query: FindContentLibraryTabsQueryDto,
+    @Query() query: FindContentCollectionsQueryDto,
   ) {
     if (
       query.scope === 'project' &&
@@ -109,13 +109,13 @@ export class ContentLibraryController {
       );
     }
 
-    return this.contentLibraryService.listTabs(query, req.user.userId);
+    return this.contentLibraryService.listCollections(query, req.user.userId);
   }
 
-  @Post('tabs')
-  public async createTab(
+  @Post('collections')
+  public async createCollection(
     @Request() req: UnifiedAuthRequest,
-    @Body() dto: CreateContentLibraryTabDto,
+    @Body() dto: CreateContentCollectionDto,
   ) {
     if (
       dto.scope === 'project' &&
@@ -135,14 +135,14 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.createTab(dto, req.user.userId);
+    return this.contentLibraryService.createCollection(dto, req.user.userId);
   }
 
-  @Patch('tabs/:id')
-  public async updateTab(
+  @Patch('collections/:id')
+  public async updateCollection(
     @Request() req: UnifiedAuthRequest,
-    @Param('id') tabId: string,
-    @Body() dto: UpdateContentLibraryTabDto,
+    @Param('id') collectionId: string,
+    @Body() dto: UpdateContentCollectionDto,
   ) {
     if (
       dto.scope === 'project' &&
@@ -156,14 +156,14 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.updateTab(tabId, dto, req.user.userId);
+    return this.contentLibraryService.updateCollection(collectionId, dto, req.user.userId);
   }
 
-  @Delete('tabs/:id')
-  public async deleteTab(
+  @Delete('collections/:id')
+  public async deleteCollection(
     @Request() req: UnifiedAuthRequest,
-    @Param('id') tabId: string,
-    @Query() query: FindContentLibraryTabsQueryDto,
+    @Param('id') collectionId: string,
+    @Query() query: FindContentCollectionsQueryDto,
   ) {
     if (
       query.scope === 'project' &&
@@ -182,13 +182,13 @@ export class ContentLibraryController {
       );
     }
 
-    return this.contentLibraryService.deleteTab(tabId, query, req.user.userId);
+    return this.contentLibraryService.deleteCollection(collectionId, query, req.user.userId);
   }
 
-  @Patch('tabs/reorder')
-  public async reorderTabs(
+  @Patch('collections/reorder')
+  public async reorderCollections(
     @Request() req: UnifiedAuthRequest,
-    @Body() dto: ReorderContentLibraryTabsDto,
+    @Body() dto: ReorderContentCollectionsDto,
   ) {
     if (
       dto.scope === 'project' &&
@@ -202,7 +202,7 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.reorderTabs(dto, req.user.userId);
+    return this.contentLibraryService.reorderCollections(dto, req.user.userId);
   }
 
   @Get('tags')

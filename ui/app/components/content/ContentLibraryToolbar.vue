@@ -6,7 +6,7 @@ const props = defineProps<{
   currentProject?: any
   archiveStatus: 'active' | 'archived'
   isPurging: boolean
-  activeTab?: any
+  activeCollection?: any
   isStartCreating: boolean
   availableTags: string[]
   sortOptions: any[]
@@ -14,7 +14,7 @@ const props = defineProps<{
   sortOrderIcon: string
   sortOrderLabel: string
   isWindowFileDragActive?: boolean
-  canDeleteActiveTab?: boolean
+  canDeleteActiveCollection?: boolean
   userId?: string
   groupId?: string
 }>()
@@ -29,8 +29,8 @@ const emit = defineEmits<{
   (e: 'purge'): void
   (e: 'create'): void
   (e: 'upload-files', files: File[]): void
-  (e: 'rename-tab'): void
-  (e: 'delete-tab'): void
+  (e: 'rename-collection'): void
+  (e: 'delete-collection'): void
   (e: 'toggle-sort-order'): void
 }>()
 
@@ -107,10 +107,10 @@ function onDrop(event: DragEvent) {
 const infoTooltipText = computed(() => {
   const parts = [t('contentLibrary.actions.uploadMediaTooltip')]
 
-  if (props.activeTab?.type === 'GROUP') {
+  if (props.activeCollection?.type === 'GROUP') {
     parts.push(t('contentLibrary.actions.groupsInfoTooltip'))
-  } else if (props.activeTab?.type === 'SAVED_VIEW') {
-    parts.push(t('contentLibrary.tabs.types.savedView.description'))
+  } else if (props.activeCollection?.type === 'SAVED_VIEW') {
+    parts.push(t('contentLibrary.collections.types.savedView.description'))
   }
 
   return parts.join('\n\n')
@@ -127,21 +127,21 @@ const sortByToggleOptions = computed(() => {
 const toolbarMenuItems = computed(() => {
   const items: any[] = []
 
-  if (props.activeTab) {
+  if (props.activeCollection) {
     items.push([
       {
         label: t('common.rename'),
         icon: 'i-heroicons-pencil-square',
-        onSelect: () => emit('rename-tab'),
+        onSelect: () => emit('rename-collection'),
       },
     ])
 
-    if (props.canDeleteActiveTab !== false) {
+    if (props.canDeleteActiveCollection !== false) {
       items.push([
         {
           label: t('common.delete'),
           icon: 'i-heroicons-trash',
-          onSelect: () => emit('delete-tab'),
+          onSelect: () => emit('delete-collection'),
         },
       ])
     }
@@ -200,7 +200,7 @@ const toolbarMenuItems = computed(() => {
       </div>
     </div>
 
-    <slot name="tabs" />
+    <slot name="collections" />
 
     <!-- Toolbar Card -->
     <div
@@ -283,7 +283,7 @@ const toolbarMenuItems = computed(() => {
           </div>
         </div>
 
-        <div v-if="activeTab" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div v-if="activeCollection" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
           <div class="flex items-center gap-3">
             <template v-if="archiveStatus === 'active'">
               <UButton

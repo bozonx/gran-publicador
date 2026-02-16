@@ -11,7 +11,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ContentLibraryTabType {
+enum ContentCollectionType {
   GROUP
   SAVED_VIEW
 }
@@ -58,7 +58,7 @@ model User {
   llmPromptTemplates LlmPromptTemplate[]
   llmSystemPromptHidden LlmSystemPromptHidden[]
   authorSignatures ProjectAuthorSignature[]
-  contentLibraryTabs ContentLibraryTab[]
+  contentCollections ContentCollection[]
   tags               Tag[]
   newsNotificationStates NewsNotificationUserState[]
 
@@ -112,7 +112,7 @@ model Project {
   llmPromptTemplates LlmPromptTemplate[]
   apiTokens    ApiTokenProject[]
   roles        Role[]
-  contentLibraryTabs ContentLibraryTab[]
+  contentCollections ContentCollection[]
   relationGroups PublicationRelationGroup[]
   projectTemplates ProjectTemplate[]
   authorSignatures ProjectAuthorSignature[]
@@ -121,9 +121,9 @@ model Project {
   @@map("projects")
 }
 
-model ContentLibraryTab {
+model ContentCollection {
   id        String  @id @default(uuid())
-  type      ContentLibraryTabType
+  type      ContentCollectionType
   title     String
 
   groupType ContentLibraryGroupType? @map("group_type")
@@ -140,8 +140,8 @@ model ContentLibraryTab {
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent  ContentLibraryTab? @relation("ContentLibraryTabHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children ContentLibraryTab[] @relation("ContentLibraryTabHierarchy")
+  parent  ContentCollection? @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ContentCollection[] @relation("ContentCollectionHierarchy")
 
   groupItems ContentItem[] @relation("ContentItemPrimaryGroup")
   contentItemGroups ContentItemGroup[]
@@ -149,7 +149,7 @@ model ContentLibraryTab {
   @@index([userId, order])
   @@index([projectId, order])
   @@index([parentId, order])
-  @@map("content_library_tabs")
+  @@map("content_collections")
 }
 
 model ProjectNewsQuery {
@@ -368,7 +368,7 @@ model ContentItem {
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  group   ContentLibraryTab? @relation("ContentItemPrimaryGroup", fields: [groupId], references: [id], onDelete: SetNull)
+  group   ContentCollection? @relation("ContentItemPrimaryGroup", fields: [groupId], references: [id], onDelete: SetNull)
 
   media ContentItemMedia[]
   groups ContentItemGroup[]
@@ -385,15 +385,15 @@ model ContentItem {
 model ContentItemGroup {
   id            String   @id @default(uuid())
   contentItemId String   @map("content_item_id")
-  tabId         String   @map("tab_id")
+  collectionId         String   @map("collection_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
   contentItem ContentItem       @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-  tab        ContentLibraryTab  @relation(fields: [tabId], references: [id], onDelete: Cascade)
+  collection        ContentCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
-  @@unique([contentItemId, tabId])
+  @@unique([contentItemId, collectionId])
   @@index([contentItemId])
-  @@index([tabId])
+  @@index([collectionId])
   @@map("content_item_groups")
 }
 

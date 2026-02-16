@@ -14,7 +14,7 @@ const { t, d } = useI18n()
 const { user } = useAuth()
 const { news, isLoading: isNewsLoading, error, searchNews, getDefaultQueries, hasMore, updateNewsQueryOrder } = useNews()
 
-const activeTabId = useLocalStorage<string>('news-active-tab-id', '')
+const activeCollectionId = useLocalStorage<string>('news-active-collection-id', '')
 const isCreateModalOpen = ref(false)
 const selectedNewsUrl = ref('')
 const selectedNewsItem = ref<any | null>(null)
@@ -28,7 +28,7 @@ function handleCreatePublication(item: any) {
   isCreateModalOpen.value = true
 }
 
-const tabs = computed(() => {
+const collections = computed(() => {
   return trackedQueries.value.map(q => ({
     label: `${q.projectName} - ${q.name}`,
     slot: 'content',
@@ -38,7 +38,7 @@ const tabs = computed(() => {
 
 const currentTrackedQuery = computed(() => {
   if (trackedQueries.value.length === 0) return null
-  return trackedQueries.value.find(q => q.id === activeTabId.value) || null
+  return trackedQueries.value.find(q => q.id === activeCollectionId.value) || null
 })
 
 const isLoading = computed(() => isInitialLoading.value || isNewsLoading.value)
@@ -103,12 +103,12 @@ async function loadMore() {
   }
 }
 
-watch(activeTabId, () => {
+watch(activeCollectionId, () => {
   handleSearch()
 })
 
-async function handleTabsUpdate(newItems: any[]) {
-  // newItems contains the tabs in new order
+async function handleCollectionsUpdate(newItems: any[]) {
+  // newItems contains the collections in new order
   const newOrder = newItems.map(t => t.id)
   
   // Reorder trackedQueries to match newOrder
@@ -158,17 +158,17 @@ onMounted(async () => {
       if (projectIdParam) {
         const matching = trackedQueries.value.find(q => q.projectId === projectIdParam)
         if (matching) {
-          activeTabId.value = matching.id
+          activeCollectionId.value = matching.id
           found = true
         }
       }
       
       if (!found) {
-        // Validation: Check if stored activeTabId exists in the current queries
-        const exists = Boolean(activeTabId.value) && trackedQueries.value.some(q => q.id === activeTabId.value)
+        // Validation: Check if stored activeCollectionId exists in the current queries
+        const exists = Boolean(activeCollectionId.value) && trackedQueries.value.some(q => q.id === activeCollectionId.value)
         if (!exists) {
           // If not exists (or empty), default to first
-          activeTabId.value = trackedQueries.value[0].id
+          activeCollectionId.value = trackedQueries.value[0].id
         }
       }
       
@@ -219,14 +219,14 @@ function formatScore(score: number) {
       </p>
     </div>
 
-    <!-- Tabs System -->
+    <!-- Collections System -->
     <div v-if="trackedQueries.length > 0" class="space-y-6">
       <AppTabs 
-        v-model="activeTabId" 
-        :items="tabs" 
+        v-model="activeCollectionId" 
+        :items="collections" 
         :draggable="true"
         class="w-full"
-        @update:items="handleTabsUpdate"
+        @update:items="handleCollectionsUpdate"
       />
 
       <div v-if="currentTrackedQuery" class="space-y-4">

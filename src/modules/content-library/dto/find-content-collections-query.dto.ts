@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsUUID } from 'class-validator';
 
-export class FindContentLibraryTabsQueryDto {
+export class FindContentCollectionsQueryDto {
   @IsIn(['personal', 'project'])
   public scope!: 'personal' | 'project';
 

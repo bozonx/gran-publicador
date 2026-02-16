@@ -162,7 +162,7 @@ export class UsersService {
             notifications: getDefaultNotificationPreferences(),
           }),
         ),
-        contentLibraryTabs: {
+        contentCollections: {
           create: {
             type: 'SAVED_VIEW',
             title: 'All items',

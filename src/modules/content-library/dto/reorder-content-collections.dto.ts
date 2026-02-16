@@ -1,7 +1,7 @@
 import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsUUID } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
-export class ReorderContentLibraryTabsDto {
+export class ReorderContentCollectionsDto {
   @IsIn(['personal', 'project'])
   public scope!: 'personal' | 'project';
 

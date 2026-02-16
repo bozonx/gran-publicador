@@ -31,7 +31,7 @@ interface NewsQuery {
   isNotificationEnabled: boolean
 }
 
-interface NewsTabItem {
+interface NewsCollectionItem {
   label: string
   id: string
   slot: string
@@ -54,17 +54,17 @@ const { user } = useAuth()
 
 const newsQueries = ref<NewsQuery[]>([])
 
-// Tab and Collapse state management
+// Collection and Collapse state management
 const selectedQueryId = useLocalStorage<string>(`project-${projectId.value}-news-selected-query`, '')
 const collapsedQueries = ref<Map<string, boolean>>(new Map())
 
 const isAddModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
-const editingTabId = ref('')
-const editingTabName = ref('')
-const deletingTabId = ref('')
-const newTabName = ref('')
+const editingCollectionId = ref('')
+const editingCollectionName = ref('')
+const deletingCollectionId = ref('')
+const newCollectionName = ref('')
 const isDeleting = ref(false)
 const isLoadMoreLoading = ref(false)
 const isQueriesLoading = ref(true)
@@ -234,7 +234,7 @@ async function loadMore() {
   }
 }
 
-// Watch tab changes to refresh news
+// Watch collection changes to refresh news
 watch(selectedQueryId, async (newId) => {
   if (newId) {
     handleSearch()
@@ -292,12 +292,12 @@ watch(
   { deep: true }
 )
 
-// Add new search tab
-async function addTab() {
-  if (!newTabName.value.trim()) return
+// Add new search collection
+async function addCollection() {
+  if (!newCollectionName.value.trim()) return
   
   const newQuery = {
-    name: newTabName.value,
+    name: newCollectionName.value,
     q: '',
     mode: 'hybrid' as const,
     minScore: 0.5,
@@ -315,35 +315,35 @@ async function addTab() {
     
     await nextTick()
     
-    // Select the new tab
+    // Select the new collection
     selectedQueryId.value = created.id
     
-    newTabName.value = ''
+    newCollectionName.value = ''
     isAddModalOpen.value = false
   } catch (e) {
-    console.error('Failed to create tab:', e)
+    console.error('Failed to create collection:', e)
   }
 }
 
 // Open edit modal
 function openEditModal(id: string, name: string) {
-  editingTabId.value = id
-  editingTabName.value = name
+  editingCollectionId.value = id
+  editingCollectionName.value = name
   isEditModalOpen.value = true
 }
 
-// Save tab name from modal
-async function saveTabName() {
-  if (!editingTabName.value.trim()) return
+// Save collection name from modal
+async function saveCollectionName() {
+  if (!editingCollectionName.value.trim()) return
   
-  const query = newsQueries.value.find(q => q.id === editingTabId.value)
+  const query = newsQueries.value.find(q => q.id === editingCollectionId.value)
   if (query) {
     // Optimistic update
     const oldName = query.name
-    query.name = editingTabName.value
+    query.name = editingCollectionName.value
     
     try {
-      await updateQuery(query.id, { name: editingTabName.value })
+      await updateQuery(query.id, { name: editingCollectionName.value })
     } catch (e) {
       query.name = oldName // Revert on error
       console.error(e)
@@ -355,23 +355,23 @@ async function saveTabName() {
 // Open delete confirmation modal
 // Open delete confirmation modal
 function openDeleteModal(id: string) {
-  deletingTabId.value = id
+  deletingCollectionId.value = id
   isDeleteModalOpen.value = true
 }
 
-// Delete tab after confirmation
-async function confirmDeleteTab() {
-  if (!deletingTabId.value) return
+// Delete collection after confirmation
+async function confirmDeleteCollection() {
+  if (!deletingCollectionId.value) return
   
   isDeleting.value = true
   try {
-    await deleteQuery(deletingTabId.value)
+    await deleteQuery(deletingCollectionId.value)
     
-    const index = newsQueries.value.findIndex(q => q.id === deletingTabId.value)
+    const index = newsQueries.value.findIndex(q => q.id === deletingCollectionId.value)
     if (index !== -1) {
       newsQueries.value.splice(index, 1)
-      if (selectedQueryId.value === deletingTabId.value) {
-        // If we deleted the active tab, select the previous one or the first one
+      if (selectedQueryId.value === deletingCollectionId.value) {
+        // If we deleted the active collection, select the previous one or the first one
         selectedQueryId.value = newsQueries.value[Math.max(0, index - 1)]?.id || ''
       }
     }
@@ -380,12 +380,12 @@ async function confirmDeleteTab() {
   } finally {
     isDeleting.value = false
     isDeleteModalOpen.value = false
-    deletingTabId.value = ""
+    deletingCollectionId.value = ""
   }
 }
 
-// Handle tab reordering
-async function handleTabsUpdate(newItems: any[]) {
+// Handle collection reordering
+async function handleCollectionsUpdate(newItems: any[]) {
   // Update local list to reflect new order immediately
   newsQueries.value = newItems as NewsQuery[]
   
@@ -396,7 +396,7 @@ async function handleTabsUpdate(newItems: any[]) {
   try {
     await reorderQueries(ids)
   } catch (e) {
-    console.error('Failed to save tab order:', e)
+    console.error('Failed to save collection order:', e)
     // Ideally revert the change here if failed
   }
 }
@@ -456,15 +456,15 @@ const sourcesTooltipText = computed(() => {
 
     </div>
 
-    <!-- Tabs System -->
+    <!-- Collections System -->
     <div v-if="newsQueries.length > 0" class="flex flex-col gap-6">
       
-      <!-- Draggable Tabs Header -->
+      <!-- Draggable Collections Header -->
       <AppTabs
         v-model="selectedQueryId"
         :items="newsQueries"
         draggable
-        @update:items="handleTabsUpdate"
+        @update:items="handleCollectionsUpdate"
       >
         <template #tab-trailing="{ item, selected }">
            <UIcon 
@@ -486,7 +486,7 @@ const sourcesTooltipText = computed(() => {
         </template>
       </AppTabs>
 
-      <!-- Tab Content -->
+      <!-- Collection Content -->
       <div v-if="currentQuery" class="space-y-6">
         <!-- Search settings card -->
         <div 
@@ -857,16 +857,16 @@ const sourcesTooltipText = computed(() => {
       <UiLoadingSpinner size="xl" color="primary" />
     </div>
 
-    <!-- Add Tab Modal -->
+    <!-- Add Collection Modal -->
     <AppModal 
       v-model:open="isAddModalOpen"
-      :title="t('news.addTab')"
+      :title="t('news.addCollection')"
     >
-      <form class="space-y-4" @submit.prevent="addTab">
-        <UFormField :label="t('news.tabName')">
+      <form class="space-y-4" @submit.prevent="addCollection">
+        <UFormField :label="t('news.collectionName')">
           <UInput
-            v-model="newTabName"
-            :placeholder="t('news.tabNamePlaceholder')"
+            v-model="newCollectionName"
+            :placeholder="t('news.collectionNamePlaceholder')"
             autofocus
             size="lg"
           />
@@ -883,7 +883,7 @@ const sourcesTooltipText = computed(() => {
           <UButton
             type="submit"
             color="primary"
-            :disabled="!newTabName.trim()"
+            :disabled="!newCollectionName.trim()"
           >
             {{ t('common.create') }}
           </UButton>
@@ -891,17 +891,17 @@ const sourcesTooltipText = computed(() => {
       </form>
     </AppModal>
 
-    <!-- Edit Tab Modal -->
+    <!-- Edit Collection Modal -->
     <AppModal 
       v-model:open="isEditModalOpen"
-      :title="t('news.editTab')"
-      :description="t('news.editTabDescription')"
+      :title="t('news.editCollection')"
+      :description="t('news.editCollectionDescription')"
     >
-      <form class="space-y-4" @submit.prevent="saveTabName">
-        <UFormField :label="t('news.tabName')">
+      <form class="space-y-4" @submit.prevent="saveCollectionName">
+        <UFormField :label="t('news.collectionName')">
           <UInput
-            v-model="editingTabName"
-            :placeholder="t('news.tabNamePlaceholder')"
+            v-model="editingCollectionName"
+            :placeholder="t('news.collectionNamePlaceholder')"
             autofocus
             size="lg"
           />
@@ -918,7 +918,7 @@ const sourcesTooltipText = computed(() => {
           <UButton
             type="submit"
             color="primary"
-            :disabled="!editingTabName.trim()"
+            :disabled="!editingCollectionName.trim()"
           >
             {{ t('common.save') }}
           </UButton>
@@ -926,16 +926,16 @@ const sourcesTooltipText = computed(() => {
       </form>
     </AppModal>
 
-    <!-- Delete Tab Confirmation Modal -->
+    <!-- Delete Collection Confirmation Modal -->
     <UiConfirmModal
       v-model:open="isDeleteModalOpen"
       :title="t('common.confirmDelete')"
-      :description="t('news.deleteTabConfirm')"
+      :description="t('news.deleteCollectionConfirm')"
       :confirm-text="t('common.delete')"
       color="error"
       icon="i-heroicons-trash"
       :loading="isDeleting"
-      @confirm="confirmDeleteTab"
+      @confirm="confirmDeleteCollection"
     />
 
     <NewsCreatePublicationModal

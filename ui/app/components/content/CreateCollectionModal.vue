@@ -65,13 +65,13 @@ watch(() => props.open, (val) => {
 <template>
   <AppModal
     v-model:open="isOpen"
-    :title="t('contentLibrary.tabs.createTitle')"
+    :title="t('contentLibrary.collections.createTitle')"
     @close="handleClose"
   >
     <div class="space-y-6">
       <div v-if="!selectedType" class="space-y-4">
         <p class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('contentLibrary.tabs.selectTypePrompt') }}
+          {{ t('contentLibrary.collections.selectTypePrompt') }}
         </p>
 
         <div class="grid grid-cols-1 gap-3">
@@ -85,10 +85,10 @@ watch(() => props.open, (val) => {
               </div>
               <div class="flex-1">
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-1">
-                  {{ t('contentLibrary.tabs.types.group.title') }}
+                  {{ t('contentLibrary.collections.types.group.title') }}
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ t('contentLibrary.tabs.types.group.description') }}
+                  {{ t('contentLibrary.collections.types.group.description') }}
                 </p>
               </div>
             </div>
@@ -104,10 +104,10 @@ watch(() => props.open, (val) => {
               </div>
               <div class="flex-1">
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-1">
-                  {{ t('contentLibrary.tabs.types.savedView.title') }}
+                  {{ t('contentLibrary.collections.types.savedView.title') }}
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ t('contentLibrary.tabs.types.savedView.description') }}
+                  {{ t('contentLibrary.collections.types.savedView.description') }}
                 </p>
               </div>
             </div>
@@ -118,7 +118,7 @@ watch(() => props.open, (val) => {
       <div v-else class="space-y-4">
         <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <UIcon :name="selectedType === 'GROUP' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'" class="w-4 h-4" />
-          <span>{{ t(`contentLibrary.tabs.types.${selectedType === 'GROUP' ? 'group' : 'savedView'}.title`) }}</span>
+          <span>{{ t(`contentLibrary.collections.types.${selectedType === 'GROUP' ? 'group' : 'savedView'}.title`) }}</span>
         </div>
 
         <div
@@ -126,24 +126,24 @@ watch(() => props.open, (val) => {
           class="space-y-2"
         >
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ t('contentLibrary.tabs.groupVisibility.label') }}
+            {{ t('contentLibrary.collections.groupVisibility.label') }}
           </p>
           <USelectMenu
             v-model="selectedGroupType"
             :items="[
-              { label: t('contentLibrary.tabs.groupVisibility.projectUser'), value: 'PROJECT_USER' },
-              { label: t('contentLibrary.tabs.groupVisibility.projectShared'), value: 'PROJECT_SHARED' },
+              { label: t('contentLibrary.collections.groupVisibility.projectUser'), value: 'PROJECT_USER' },
+              { label: t('contentLibrary.collections.groupVisibility.projectShared'), value: 'PROJECT_SHARED' },
             ]"
             value-key="value"
             label-key="label"
-            :placeholder="t('contentLibrary.tabs.groupVisibility.placeholder')"
+            :placeholder="t('contentLibrary.collections.groupVisibility.placeholder')"
             class="w-full"
           />
         </div>
 
         <UInput
           v-model="title"
-          :placeholder="t('contentLibrary.tabs.titlePlaceholder')"
+          :placeholder="t('contentLibrary.collections.titlePlaceholder')"
           autofocus
           @keydown.enter="handleCreate"
         />

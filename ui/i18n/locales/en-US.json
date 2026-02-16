@@ -37,7 +37,7 @@
     "revokeAdmin": "Revoke admin",
     "revokeAdminConfirm": "Are you sure you want to revoke admin rights from this user?",
     "searchUsers": "Search users...",
-    "tabs": {
+    "collections": {
       "maintenance": "Maintenance",
       "users": "Users"
     },
@@ -481,7 +481,7 @@
     },
     "subtitlePersonal": "Personal scope",
     "subtitleProject": "Project scope",
-    "tabs": {
+    "collections": {
       "create": "Create group",
       "createSubgroup": "Create subgroup",
       "createSubgroupTitle": "Create subgroup",
@@ -708,12 +708,12 @@
     "users": "Users"
   },
   "news": {
-    "addTab": "Add tab",
+    "addCollection": "Add collection",
     "createFirstQuery": "Create collection",
-    "deleteTabConfirm": "Are you sure you want to delete this search query?",
+    "deleteCollectionConfirm": "Are you sure you want to delete this search query?",
     "description": "News collections by project topics for creating publications",
-    "editTab": "Edit tab",
-    "editTabDescription": "Change the tab name for this search query",
+    "editCollection": "Edit collection",
+    "editCollectionDescription": "Change the collection name for this search query",
     "filterBySource": "Filter by source",
     "howToConfigure": "Configure default news queries in project settings.",
     "items": "News items",
@@ -746,8 +746,8 @@
     "sources": "Sources",
     "sourcesDescription": "List of available news sources for filtering.",
     "sourcesSelected": "Sources selected",
-    "tabName": "Tab name",
-    "tabNamePlaceholder": "Enter tab name",
+    "collectionName": "Collection name",
+    "collectionNamePlaceholder": "Enter collection name",
     "title": "News",
     "viewOriginal": "View Original"
   },
@@ -806,13 +806,13 @@
     "footerContent": "Footer text",
     "newTemplateName": "New Template",
     "done": "Done",
-    "projectTab": "Project",
+    "projectCollection": "Project",
     "language": "Language",
     "excludeChannel": "Exclude channel",
     "excludeChannelHelp": "This template won't apply to this channel",
     "noChannelsForLanguage": "No channels for this language",
-    "noEnabledBlocks": "No enabled blocks. Enable blocks on the Project tab.",
-    "blocksHint": "Enable or disable blocks and reorder them. Text fields are configured per channel in channel tabs."
+    "noEnabledBlocks": "No enabled blocks. Enable blocks on the Project collection.",
+    "blocksHint": "Enable or disable blocks and reorder them. Text fields are configured per channel in channel collections."
   },
   "post": {
     "authorComment": "Author comment",

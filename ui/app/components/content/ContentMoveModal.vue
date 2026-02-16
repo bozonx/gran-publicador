@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { ContentLibraryTab } from '~/composables/useContentLibraryTabs'
+import type { ContentCollection } from '~/composables/useContentCollections'
 
 interface Props {
   ids: string[]
   scope: 'personal' | 'project'
   projectId?: string
-  activeTab?: ContentLibraryTab | null
-  tabs: ContentLibraryTab[]
+  activeCollection?: ContentCollection | null
+  collections: ContentCollection[]
   projects: any[]
   folderTreeItems: any[]
 }
@@ -23,8 +23,8 @@ const { t } = useI18n()
 const accordionItems = computed(() => {
   const items = []
 
-  // 1. In folder (only if current tab is GROUP)
-  if (props.activeTab?.type === 'GROUP') {
+  // 1. In folder (only if current collection is GROUP)
+  if (props.activeCollection?.type === 'GROUP') {
     items.push({
       label: t('contentLibrary.moveModal.toFolder'),
       icon: 'i-heroicons-folder',
@@ -51,11 +51,11 @@ const accordionItems = computed(() => {
 })
 
 const collectionOptions = computed(() => {
-  return props.tabs
-    .filter(tab => tab.type === 'GROUP' && tab.id !== props.activeTab?.id)
-    .map(tab => ({
-      label: tab.title,
-      value: tab.id
+  return props.collections
+    .filter(collection => collection.type === 'GROUP' && collection.id !== props.activeCollection?.id)
+    .map(collection => ({
+      label: collection.title,
+      value: collection.id
     }))
 })
 
@@ -75,7 +75,7 @@ function handleMoveToGroup(node: any) {
   emit('move', {
     operation: 'MOVE_TO_GROUP',
     targetId,
-    sourceGroupId: props.activeTab?.id
+    sourceGroupId: props.activeCollection?.id
   })
   isOpen.value = false
 }
@@ -86,7 +86,7 @@ function handleMoveToCollection(collection: any) {
   emit('move', {
     operation: 'MOVE_TO_GROUP',
     targetId: collection.value,
-    sourceGroupId: props.activeTab?.id
+    sourceGroupId: props.activeCollection?.id
   })
   isOpen.value = false
 }

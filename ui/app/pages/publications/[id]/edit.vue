@@ -289,7 +289,7 @@ function handleCancel() {
   goBack()
 }
 
-const tabs = computed(() => [
+const collections = computed(() => [
   { label: t('common.view', 'View'), icon: 'i-heroicons-eye', to: `/publications/${publicationId.value}` },
   { label: t('common.edit', 'Edit'), icon: 'i-heroicons-pencil-square', to: `/publications/${publicationId.value}/edit` }
 ])
@@ -778,22 +778,22 @@ async function executePublish(force: boolean) {
 
 <template>
   <div class="w-full">
-    <!-- Tab Switcher -->
+    <!-- Collection Switcher -->
     <div class="mb-8 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+      <nav class="-mb-px flex space-x-8" aria-label="Collections">
         <NuxtLink
-          v-for="tab in tabs"
-          :key="tab.to"
-          :to="tab.to"
+          v-for="collection in collections"
+          :key="collection.to"
+          :to="collection.to"
           class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors"
           :class="[
-            route.path === tab.to
+            route.path === collection.to
               ? 'border-primary-500 text-primary-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
-          <UIcon :name="tab.icon" class="mr-2 h-5 w-5" :class="[route.path === tab.to ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500']" />
-          {{ tab.label }}
+          <UIcon :name="collection.icon" class="mr-2 h-5 w-5" :class="[route.path === collection.to ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500']" />
+          {{ collection.label }}
         </NuxtLink>
       </nav>
 
@@ -1031,7 +1031,7 @@ async function executePublish(force: boolean) {
         <!-- Block 1: Publication Info & Actions (Non-collapsible) -->
         <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 shadow-sm">
             <div class="p-6">
-                <!-- Actions moved to tabs row -->
+                <!-- Actions moved to collections row -->
 
                 <!-- Metadata Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">

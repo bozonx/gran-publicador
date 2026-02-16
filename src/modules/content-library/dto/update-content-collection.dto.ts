@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
-export class CreateContentLibraryTabDto {
+export class UpdateContentCollectionDto {
   @IsIn(['personal', 'project'])
   public scope!: 'personal' | 'project';
 
@@ -17,21 +17,15 @@ export class CreateContentLibraryTabDto {
   @IsOptional()
   public projectId?: string;
 
-  @IsIn(['GROUP', 'SAVED_VIEW'])
-  public type!: 'GROUP' | 'SAVED_VIEW';
-
-  @ValidateIf(o => o.type === 'GROUP')
-  @IsIn(['PERSONAL_USER', 'PROJECT_USER', 'PROJECT_SHARED'])
-  @IsOptional()
-  public groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
-
+  @ValidateIf((_, value) => value !== null)
   @IsUUID()
   @IsOptional()
-  public parentId?: string;
+  public parentId?: string | null;
 
   @IsString()
+  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  public title!: string;
+  public title?: string;
 
   @IsObject()
   @IsOptional()

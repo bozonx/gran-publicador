@@ -46,7 +46,7 @@ async function main() {
   await prisma.contentItemMedia.deleteMany({});
   await prisma.contentItemGroup.deleteMany({});
   await prisma.contentItem.deleteMany({});
-  await prisma.contentLibraryTab.deleteMany({});
+  await prisma.contentCollection.deleteMany({});
 
   await prisma.media.deleteMany({});
   await prisma.publication.deleteMany({});
@@ -286,11 +286,11 @@ async function main() {
     });
   }
 
-  // 3.2 CONTENT LIBRARY TABS
-  console.log('  Generating content library tabs...');
-  const contentLibraryTabs = [
+  // 3.2 CONTENT COLLECTIONS
+  console.log('  Generating content collections...');
+  const contentCollections = [
     {
-      id: 'tab10000-0000-4000-8000-000000000001',
+      id: 'collection10000-0000-4000-8000-000000000001',
       type: 'GROUP',
       title: 'Common Assets',
       projectId: projectData[0].id,
@@ -298,7 +298,7 @@ async function main() {
       config: {},
     },
     {
-      id: 'tab10000-0000-4000-8000-000000000002',
+      id: 'collection10000-0000-4000-8000-000000000002',
       type: 'SAVED_VIEW',
       title: 'Recent Images',
       projectId: projectData[0].id,
@@ -307,11 +307,11 @@ async function main() {
     },
   ];
 
-  for (const tab of contentLibraryTabs) {
-    await prisma.contentLibraryTab.upsert({
-      where: { id: tab.id },
-      update: tab as any,
-      create: tab as any,
+  for (const collection of contentCollections) {
+    await prisma.contentCollection.upsert({
+      where: { id: collection.id },
+      update: collection as any,
+      create: collection as any,
     });
   }
 
@@ -1043,7 +1043,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
       _tags: ['nuxt', 'future', 'speculation'],
-      groupId: 'tab10000-0000-4000-8000-000000000001',
+      groupId: 'collection10000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
       text: 'Nuxt 5 might introduce native AI integration...',
       meta: {},
@@ -1055,7 +1055,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
       _tags: ['image', 'asset'],
-      groupId: 'tab10000-0000-4000-8000-000000000001',
+      groupId: 'collection10000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
       text: null,
       meta: {},
