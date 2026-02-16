@@ -35,6 +35,7 @@ const limit = 20
 const offset = ref(0)
 const total = ref(0)
 const totalUnfiltered = ref(0)
+const totalInScope = ref(0)
 const items = ref<any[]>([])
 const availableTags = ref<string[]>([])
 const selectedIds = ref<string[]>([])
@@ -243,6 +244,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         sortOrder: sortOrder.value,
         tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value : undefined,
         includeTotalUnfiltered: offset.value === 0 ? true : undefined,
+        includeTotalInScope: offset.value === 0 ? true : undefined,
       },
     })
     if (requestId !== fetchItemsRequestId) return
@@ -250,6 +252,9 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
     total.value = res.total
     if (typeof res.totalUnfiltered === 'number') totalUnfiltered.value = res.totalUnfiltered
     else if (offset.value === 0) totalUnfiltered.value = res.total
+
+    if (typeof res.totalInScope === 'number') totalInScope.value = res.totalInScope
+    else if (offset.value === 0) totalInScope.value = (res.totalUnfiltered ?? res.total)
 
     if (offset.value === 0) items.value = res.items
     else items.value = [...items.value, ...res.items]
@@ -575,6 +580,7 @@ onMounted(() => { fetchItems() })
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
       :group-id="activeCollection?.type === 'GROUP' ? activeCollection.id : undefined"
       :total-unfiltered="totalUnfiltered"
+      :total-in-scope="totalInScope"
       :current-project="currentProject"
       v-model:archiveStatus="archiveStatus"
       v-model:q="q"

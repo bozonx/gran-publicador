@@ -205,6 +205,8 @@ export class ContentItemsService {
       query.includeTotalUnfiltered === true ||
       (query.includeTotalUnfiltered === undefined && offset === 0);
 
+    const shouldIncludeTotalInScope = query.includeTotalInScope === true;
+
     const baseQueries: Array<Promise<any>> = [
       this.prisma.contentItem.findMany({
         where,
@@ -243,16 +245,27 @@ export class ContentItemsService {
       );
     }
 
-    const [items, total, totalUnfiltered] = (await Promise.all(baseQueries)) as [
-      any[],
-      number,
-      number | undefined,
-    ];
+    if (shouldIncludeTotalInScope) {
+      baseQueries.push(
+        this.prisma.contentItem.count({
+          where: {
+            userId: query.scope === 'personal' ? userId : undefined,
+            projectId: query.scope === 'project' ? query.projectId : undefined,
+            archivedAt: null,
+          } as any,
+        }),
+      );
+    }
+
+    const [items, total, totalUnfiltered, totalInScope] = (await Promise.all(
+      baseQueries,
+    )) as [any[], number, number | undefined, number | undefined];
 
     return {
       items: items.map((item: any) => this.normalizeContentItemTags(item)),
       total,
       totalUnfiltered,
+      totalInScope,
       limit,
       offset,
     };

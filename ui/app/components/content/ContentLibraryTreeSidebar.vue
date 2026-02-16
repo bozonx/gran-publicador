@@ -56,17 +56,19 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
     return []
   }
 
+  const mapNode = (node: any): GroupTreeNode => ({
+    ...node,
+    slot: 'group-node',
+    children: node.children ? node.children.map(mapNode) : undefined,
+  })
+
   const items = buildGroupTreeFromRoot({
     rootId: activeRootGroupId.value,
     allGroupCollections: allScopeGroupCollections.value,
     labelFn: (c) => formatGroupTreeLabel(c as any),
   })
 
-  return items.map((item) => ({
-    ...item,
-    slot: 'group-node',
-    children: item.children as any,
-  })) as any
+  return items.map(mapNode)
 })
 
 const getGroupTreeNodeValue = (node: unknown): string => {

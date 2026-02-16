@@ -168,19 +168,6 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
       </div>
 
       <div v-if="!hideActions" class="flex items-center gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-        <UDropdownMenu v-if="actionsMenuItems.length > 0" :items="actionsMenuItems">
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-ellipsis-horizontal"
-            :title="t('common.more')"
-            :aria-label="t('common.more')"
-            class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            @click.stop
-          />
-        </UDropdownMenu>
-
         <UButton
           v-if="!item.archivedAt"
           size="xs"
@@ -203,6 +190,19 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
           class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           @click.stop="emit('restore', item.id)"
         />
+
+        <UDropdownMenu v-if="actionsMenuItems.length > 0" :items="actionsMenuItems">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-horizontal"
+            :title="t('common.more')"
+            :aria-label="t('common.more')"
+            class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            @click.stop
+          />
+        </UDropdownMenu>
       </div>
     </div>
 

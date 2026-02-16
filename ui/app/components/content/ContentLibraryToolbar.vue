@@ -3,6 +3,7 @@ const props = defineProps<{
   scope: 'project' | 'personal'
   projectId?: string
   totalUnfiltered: number
+  totalInScope: number
   currentProject?: any
   archiveStatus: 'active' | 'archived'
   isPurging: boolean
@@ -110,7 +111,7 @@ const toolbarMenuItems = computed(() => {
       <div class="min-w-0">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
           {{ scope === 'personal' ? t('contentLibrary.title') : t('project.contentLibrary') }}
-          <CommonCountBadge :count="totalUnfiltered" :title="t('contentLibrary.badgeCountTooltip')" />
+          <CommonCountBadge :count="totalInScope" :title="t('contentLibrary.badgeCountTooltip')" />
         </h1>
         
         <template v-if="scope === 'project'">
