@@ -229,8 +229,7 @@ const handleBulkAction = async (type: 'ARCHIVE' | 'UNARCHIVE') => {
     await api.post('/content-library/bulk', {
       ids: selectedIds.value,
       operation: type,
-      scope: props.scope,
-      projectId: props.projectId,
+      projectId: props.scope === 'project' ? props.projectId : undefined,
     })
     await fetchItems({ reset: true })
     selectedIds.value = []
@@ -248,8 +247,7 @@ const executeBulkOperation = async () => {
         await api.post('/content-library/bulk', {
           ids: selectedIds.value,
           operation: bulkOperationType.value,
-          scope: props.scope,
-          projectId: props.projectId,
+          projectId: props.scope === 'project' ? props.projectId : undefined,
         })
         await fetchItems({ reset: true })
         selectedIds.value = []
@@ -300,12 +298,15 @@ const purgeArchived = async () => {
 
 const handleExecuteMoveItems = async (data: any) => {
     try {
+        const bulkProjectId = data.targetProjectId
+          ? data.targetProjectId
+          : (props.scope === 'project' ? props.projectId : undefined)
+
         await api.post('/content-library/bulk', {
             operation: data.targetProjectId ? 'SET_PROJECT' : 'LINK_TO_GROUP',
             ids: moveItemsIds.value,
             groupId: data.targetGroupId,
-            projectId: data.targetProjectId,
-            scope: props.scope
+            projectId: bulkProjectId,
         })
         await fetchItems({ reset: true })
         isMoveModalOpen.value = false; moveItemsIds.value = []
