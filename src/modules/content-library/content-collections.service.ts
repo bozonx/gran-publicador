@@ -555,13 +555,38 @@ export class ContentCollectionsService {
       return this.prisma.contentCollection.delete({ where: { id: collectionId } });
     }
 
-    // CTE optimized deletion
     return this.prisma.$transaction(async tx => {
-      // Find all descendant groups recursively and delete them
-      // PostgreSQL CTE optimized deletion
+      // Subgroup deletion: keep descendants, move their parent to the level above.
+      // Also move direct item-group links to the parent group (or orphan if parent is missing).
+      if (collection.parentId) {
+        const parentId = collection.parentId;
+
+        await tx.$executeRaw`
+          UPDATE content_item_groups AS g
+          SET collection_id = ${parentId}
+          WHERE g.collection_id = ${collectionId}
+            AND NOT EXISTS (
+              SELECT 1
+              FROM content_item_groups AS g2
+              WHERE g2.content_item_id = g.content_item_id
+                AND g2.collection_id = ${parentId}
+            )
+        `;
+
+        await tx.contentItemGroup.deleteMany({ where: { collectionId } });
+
+        await tx.contentCollection.updateMany({
+          where: { parentId: collectionId },
+          data: { parentId },
+        });
+
+        return tx.contentCollection.delete({ where: { id: collectionId } });
+      }
+
+      // Root group deletion: delete the whole subtree and orphan items by removing links.
       await tx.$executeRaw`
         WITH RECURSIVE children AS (
-          SELECT id FROM content_collections WHERE id = ${collectionId}::uuid
+          SELECT id FROM content_collections WHERE id = ${collectionId}
           UNION ALL
           SELECT c.id FROM content_collections c JOIN children p ON c.parent_id = p.id
         )
@@ -570,7 +595,7 @@ export class ContentCollectionsService {
 
       return tx.$executeRaw`
         WITH RECURSIVE children AS (
-          SELECT id FROM content_collections WHERE id = ${collectionId}::uuid
+          SELECT id FROM content_collections WHERE id = ${collectionId}
           UNION ALL
           SELECT c.id FROM content_collections c JOIN children p ON c.parent_id = p.id
         )

@@ -87,9 +87,9 @@ const hasTreeChildren = (node: unknown): boolean => {
 
 const expanded = ref<string[]>([])
 
-const selected = ref<GroupTreeNode | null>(null)
+const selected = ref<GroupTreeNode | undefined>(undefined)
 
-const findNodeById = (nodes: GroupTreeNode[], id: string): GroupTreeNode | null => {
+const findNodeById = (nodes: GroupTreeNode[], id: string): GroupTreeNode | undefined => {
   for (const n of nodes) {
     if (n.value === id) return n
     if (n.children && n.children.length > 0) {
@@ -97,7 +97,7 @@ const findNodeById = (nodes: GroupTreeNode[], id: string): GroupTreeNode | null 
       if (found) return found
     }
   }
-  return null
+  return undefined
 }
 
 const getPathToRoot = (id: string): string[] => {
@@ -124,7 +124,7 @@ watch(
   () => props.selectedNodeId,
   (next) => {
     if (!next) {
-      selected.value = null
+      selected.value = undefined
       return
     }
     selected.value = findNodeById(sidebarGroupTreeItems.value, next)
@@ -136,6 +136,7 @@ watch(selected, (next) => {
   const id = next?.value ?? ''
   if (id && id !== props.selectedNodeId) {
     emit('select-node', id)
+    emit('refresh-items', { reset: true })
   }
 })
 

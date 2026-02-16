@@ -29,6 +29,7 @@ const isLoading = ref(false)
 const error = ref<string | null>(null)
 const activeCollectionId = ref<string | null>(null)
 const activeCollection = ref<ContentCollection | null>(null)
+const selectedGroupId = ref<string | null>(null)
 const collections = ref<ContentCollection[]>([])
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
@@ -236,7 +237,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         scope: props.scope,
         projectId: props.projectId,
         archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
-        groupId: activeCollection.value?.type === 'GROUP' ? activeCollection.value.id : undefined,
+        groupId: activeCollection.value?.type === 'GROUP' ? (selectedGroupId.value ?? activeCollection.value.id) : undefined,
         search: q.value || undefined,
         limit,
         offset: offset.value,
@@ -273,7 +274,7 @@ const fetchAvailableTags = async () => {
       params: {
         scope: props.scope,
         projectId: props.projectId,
-        groupId: activeCollection.value.type === 'GROUP' ? activeCollection.value.id : undefined,
+        groupId: activeCollection.value.type === 'GROUP' ? (selectedGroupId.value ?? activeCollection.value.id) : undefined,
       }
     })
     if (requestId !== fetchAvailableTagsRequestId) return
@@ -290,6 +291,11 @@ watch([archiveStatus, selectedTags, sortBy, sortOrder], () => fetchItems({ reset
 watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
     if (next) restoreTabStateFromStorage(next)
+    if (next?.type === 'GROUP') {
+      selectedGroupId.value = next.id
+    } else {
+      selectedGroupId.value = null
+    }
     fetchAvailableTags()
     fetchItems({ reset: true })
   }
@@ -307,7 +313,10 @@ const uploadContentFiles = async (files: File[]) => {
   if (!files.length || (props.scope === 'project' && !props.projectId)) return
   if (isUploadingFiles.value) return
   isUploadingFiles.value = true
-  const targetGroupId = activeCollection.value?.type === 'GROUP' ? activeCollection.value.id : undefined
+  const targetGroupId =
+    activeCollection.value?.type === 'GROUP'
+      ? (selectedGroupId.value ?? activeCollection.value.id)
+      : undefined
   try {
     for (const file of files) {
       const ext = file.name.split('.').pop()?.toLowerCase()
@@ -436,21 +445,24 @@ const deleteItemForever = async (id: string) => {
 
 const handleSelectGroupCollection = (id: string) => {
   if (!id) {
-    activeCollectionId.value = null
-    activeCollection.value = null
+    selectedGroupId.value = null
     return
   }
 
   const c = collectionsById.value.get(id)
   if (!c) return
 
-  activeCollectionId.value = id
-  activeCollection.value = c
+  selectedGroupId.value = id
 }
 
 const handleActiveCollectionUpdate = (c: ContentCollection | null) => {
     activeCollection.value = c
     activeCollectionId.value = c?.id ?? null
+    if (c?.type === 'GROUP') {
+      selectedGroupId.value = c.id
+    } else {
+      selectedGroupId.value = null
+    }
 }
 
 const purgeArchived = async () => {
@@ -485,7 +497,9 @@ const handleExecuteMoveItems = async (data: any) => {
             ids: moveItemsIds.value,
             groupId: targetGroupId || undefined,
             projectId: bulkProjectId,
-            sourceGroupId: operation === 'MOVE_TO_GROUP' ? activeCollection.value?.id : undefined
+            sourceGroupId: operation === 'MOVE_TO_GROUP'
+              ? (selectedGroupId.value ?? activeCollection.value?.id)
+              : undefined
         })
         await fetchItems({ reset: true })
         isMoveModalOpen.value = false; moveItemsIds.value = []
@@ -578,7 +592,7 @@ onMounted(() => { fetchItems() })
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
-      :group-id="activeCollection?.type === 'GROUP' ? activeCollection.id : undefined"
+      :group-id="activeCollection?.type === 'GROUP' ? (selectedGroupId ?? activeCollection.id) : undefined"
       :total-unfiltered="totalUnfiltered"
       :total-in-scope="totalInScope"
       :current-project="currentProject"
@@ -650,7 +664,7 @@ onMounted(() => { fetchItems() })
         :project-id="projectId"
         :collections="collections"
         :active-collection="activeCollection"
-        :selected-node-id="activeCollectionId"
+        :selected-node-id="selectedGroupId"
         @select-node="handleSelectGroupCollection"
         @refresh-collections="() => contentCollectionsRef?.fetchCollections()"
         @refresh-items="fetchItems"

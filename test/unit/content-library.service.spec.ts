@@ -180,13 +180,13 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
-          data: { projectId: 'p1', userId: null },
+          data: expect.objectContaining({ projectId: 'p1', userId: null, tagObjects: { set: [] } }),
         }),
       );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-2' },
-          data: { projectId: 'p1', userId: null },
+          data: expect.objectContaining({ projectId: 'p1', userId: null, tagObjects: { set: [] } }),
         }),
       );
 
@@ -214,13 +214,21 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
-          data: { projectId: null, userId: 'user-1' },
+          data: expect.objectContaining({
+            projectId: null,
+            userId: 'user-1',
+            tagObjects: { set: [] },
+          }),
         }),
       );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-2' },
-          data: { projectId: null, userId: 'user-1' },
+          data: expect.objectContaining({
+            projectId: null,
+            userId: 'user-1',
+            tagObjects: { set: [] },
+          }),
         }),
       );
 
@@ -702,7 +710,7 @@ describe('ContentLibraryService (unit)', () => {
       );
     });
 
-    it('deleteCollection should reject deleting a root group', async () => {
+    it('deleteCollection should delete root group subtree and orphan items (executeRaw x2)', async () => {
       jest.spyOn(service as any, 'assertCollectionAccess').mockResolvedValue({
         id: 'root-group',
         type: 'GROUP',
@@ -711,27 +719,79 @@ describe('ContentLibraryService (unit)', () => {
         parentId: null,
       });
 
+      mockPrismaService.contentCollection.findUnique.mockResolvedValueOnce({
+        id: 'root-group',
+        type: 'GROUP',
+        groupType: 'PERSONAL_USER',
+        userId: 'user-1',
+        projectId: null,
+        parentId: null,
+      });
+
+      const executeRaw = (jest.fn() as any)
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 1 });
+
       mockPrismaService.$transaction.mockImplementationOnce(async (fn: any) => {
         return fn({
-          $executeRaw: (jest.fn() as any)
-            .mockResolvedValueOnce(0)
-            .mockResolvedValueOnce({ count: 1 }),
-          contentCollection: {
-            findMany: (jest.fn() as any).mockResolvedValue([]),
-            deleteMany: (jest.fn() as any).mockResolvedValue({ count: 1 }),
-          },
-          contentItem: {
-            updateMany: (jest.fn() as any).mockResolvedValue({ count: 0 }),
-          },
-          contentItemGroup: {
-            deleteMany: (jest.fn() as any).mockResolvedValue({ count: 0 }),
-          },
+          $executeRaw: executeRaw,
         });
       });
 
       await expect(
         service.deleteCollection('root-group', { scope: 'personal' } as any, 'user-1'),
       ).resolves.toEqual({ count: 1 });
+
+      expect(executeRaw).toHaveBeenCalledTimes(2);
+    });
+
+    it('deleteCollection should delete subgroup, move direct items to parent and reparent children', async () => {
+      jest.spyOn(service as any, 'assertCollectionAccess').mockResolvedValue({
+        id: 'sub-group',
+        type: 'GROUP',
+        userId: 'user-1',
+        projectId: null,
+        parentId: 'parent-group',
+      });
+
+      mockPrismaService.contentCollection.findUnique.mockResolvedValueOnce({
+        id: 'sub-group',
+        type: 'GROUP',
+        groupType: 'PERSONAL_USER',
+        userId: 'user-1',
+        projectId: null,
+        parentId: 'parent-group',
+      });
+
+      const executeRaw = (jest.fn() as any).mockResolvedValue({ count: 1 });
+      const deleteMany = (jest.fn() as any).mockResolvedValue({ count: 3 });
+      const updateMany = (jest.fn() as any).mockResolvedValue({ count: 2 });
+      const del = (jest.fn() as any).mockResolvedValue({ id: 'sub-group' });
+
+      mockPrismaService.$transaction.mockImplementationOnce(async (fn: any) => {
+        return fn({
+          $executeRaw: executeRaw,
+          contentItemGroup: {
+            deleteMany,
+          },
+          contentCollection: {
+            updateMany,
+            delete: del,
+          },
+        });
+      });
+
+      await expect(
+        service.deleteCollection('sub-group', { scope: 'personal' } as any, 'user-1'),
+      ).resolves.toEqual({ id: 'sub-group' });
+
+      expect(executeRaw).toHaveBeenCalledTimes(1);
+      expect(deleteMany).toHaveBeenCalledWith({ where: { collectionId: 'sub-group' } });
+      expect(updateMany).toHaveBeenCalledWith({
+        where: { parentId: 'sub-group' },
+        data: { parentId: 'parent-group' },
+      });
+      expect(del).toHaveBeenCalledWith({ where: { id: 'sub-group' } });
     });
 
     it('reorderCollections should reject ids outside scope', async () => {
