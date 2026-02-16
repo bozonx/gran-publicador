@@ -14,8 +14,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const selectedType = ref<'GROUP' | 'SAVED_VIEW' | null>(null)
-const selectedGroupType = ref<'PROJECT_USER' | 'PROJECT_SHARED' | null>(null)
+const selectedType = ref<'GROUP' | 'SAVED_VIEW' | undefined>(undefined)
+const selectedGroupType = ref<'PROJECT_USER' | 'PROJECT_SHARED' | undefined>(undefined)
 const title = ref('')
 
 const isOpen = computed({
@@ -27,7 +27,7 @@ const canProceed = computed(() => {
   if (!selectedType.value) return false
   if (title.value.trim().length === 0) return false
   if (selectedType.value === 'GROUP' && props.scope === 'project') {
-    return selectedGroupType.value !== null
+    return selectedGroupType.value !== undefined
   }
   return true
 })
@@ -36,7 +36,7 @@ const handleCreate = () => {
   if (!canProceed.value || !selectedType.value) return
   
   emit('create', {
-    type: selectedType.value,
+    type: selectedType.value as 'GROUP' | 'SAVED_VIEW',
     title: title.value.trim(),
     ...(selectedType.value === 'GROUP' && props.scope === 'project' && selectedGroupType.value
       ? { groupType: selectedGroupType.value }
@@ -48,15 +48,15 @@ const handleCreate = () => {
 
 const handleClose = () => {
   isOpen.value = false
-  selectedType.value = null
-  selectedGroupType.value = null
+  selectedType.value = undefined
+  selectedGroupType.value = undefined
   title.value = ''
 }
 
 watch(() => props.open, (val) => {
   if (!val) {
-    selectedType.value = null
-    selectedGroupType.value = null
+    selectedType.value = undefined
+    selectedGroupType.value = undefined
     title.value = ''
   }
 })
@@ -128,13 +128,16 @@ watch(() => props.open, (val) => {
           <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ t('contentLibrary.tabs.groupVisibility.label') }}
           </p>
-          <USelect
+          <USelectMenu
             v-model="selectedGroupType"
-            :options="[
+            :items="[
               { label: t('contentLibrary.tabs.groupVisibility.projectUser'), value: 'PROJECT_USER' },
               { label: t('contentLibrary.tabs.groupVisibility.projectShared'), value: 'PROJECT_SHARED' },
             ]"
+            value-key="value"
+            label-key="label"
             :placeholder="t('contentLibrary.tabs.groupVisibility.placeholder')"
+            class="w-full"
           />
         </div>
 
@@ -149,7 +152,7 @@ watch(() => props.open, (val) => {
           <UButton
             color="neutral"
             variant="outline"
-            @click="selectedType = null"
+            @click="selectedType = undefined"
           >
             {{ t('common.back') }}
           </UButton>

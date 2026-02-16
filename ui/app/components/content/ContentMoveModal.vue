@@ -140,7 +140,9 @@ function handleMoveToPersonal() {
         <template #to-collection>
           <div class="p-4 space-y-2">
             <USelectMenu
-              :options="collectionOptions"
+              :items="collectionOptions"
+              value-key="value"
+              label-key="label"
               searchable
               :placeholder="t('contentLibrary.bulk.searchGroups')"
               @update:model-value="handleMoveToCollection"
@@ -155,7 +157,9 @@ function handleMoveToPersonal() {
         <template #to-project>
           <div class="p-4 space-y-4">
             <USelectMenu
-              :options="projectOptions"
+              :items="projectOptions"
+              value-key="value"
+              label-key="label"
               searchable
               :placeholder="t('contentLibrary.bulk.selectProject')"
               @update:model-value="handleMoveToProject"
