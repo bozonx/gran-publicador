@@ -37,72 +37,24 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const isDropZoneActiveLocal = ref(false)
-const dragDepth = ref(0)
-
-function isFileDrag(event: DragEvent): boolean {
-  return event.dataTransfer?.types?.includes('Files') ?? false
-}
+const { 
+  isDropZoneActive: isDropZoneActiveLocal, 
+  onDragEnter, 
+  onDragOver, 
+  onDragLeave, 
+  onDrop 
+} = useContentFileUpload((files) => emit('upload-files', files))
 
 function triggerFilePicker() {
   fileInputRef.value?.click()
 }
 
-function emitSelectedFiles(fileList: FileList | null | undefined) {
-  if (!fileList?.length) {
-    return
-  }
-
-  emit('upload-files', Array.from(fileList))
-}
-
 function onFileInputChange(event: Event) {
   const input = event.target as HTMLInputElement
-  emitSelectedFiles(input.files)
+  if (input.files?.length) {
+    emit('upload-files', Array.from(input.files))
+  }
   input.value = ''
-}
-
-function onDragEnter(event: DragEvent) {
-  if (!isFileDrag(event)) {
-    return
-  }
-
-  event.preventDefault()
-  dragDepth.value += 1
-  isDropZoneActiveLocal.value = true
-}
-
-function onDragOver(event: DragEvent) {
-  if (!isFileDrag(event)) {
-    return
-  }
-
-  event.preventDefault()
-  isDropZoneActiveLocal.value = true
-}
-
-function onDragLeave(event: DragEvent) {
-  if (!isFileDrag(event)) {
-    return
-  }
-
-  event.preventDefault()
-  dragDepth.value = Math.max(0, dragDepth.value - 1)
-
-  if (dragDepth.value === 0) {
-    isDropZoneActiveLocal.value = false
-  }
-}
-
-function onDrop(event: DragEvent) {
-  if (!isFileDrag(event)) {
-    return
-  }
-
-  event.preventDefault()
-  dragDepth.value = 0
-  isDropZoneActiveLocal.value = false
-  emitSelectedFiles(event.dataTransfer?.files)
 }
 const infoTooltipText = computed(() => {
   const parts = [t('contentLibrary.actions.uploadMediaTooltip')]

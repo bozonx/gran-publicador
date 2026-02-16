@@ -64,7 +64,7 @@ const groupRecursiveItemsCount = computed(() => {
 
   const countForGroup = (groupId: string, trail: Set<string>): number => {
     if (memo.has(groupId)) {
-      return memo.get(groupId) ?? 0
+      return memo.get(groupId)!
     }
 
     if (trail.has(groupId)) {
@@ -76,26 +76,23 @@ const groupRecursiveItemsCount = computed(() => {
       return 0
     }
 
-    const nextTrail = new Set(trail)
-    nextTrail.add(groupId)
-
+    trail.add(groupId)
     let total = Number(group.directItemsCount ?? 0)
     const children = groupChildrenByParentId.value.get(groupId) ?? []
 
     for (const child of children) {
-      total += countForGroup(child.id, nextTrail)
+      total += countForGroup(child.id, trail)
     }
 
+    trail.delete(groupId)
     memo.set(groupId, total)
     return total
   }
 
   for (const collection of collections.value) {
-    if (collection.type !== 'GROUP') {
-      continue
+    if (collection.type === 'GROUP') {
+      countForGroup(collection.id, new Set<string>())
     }
-
-    countForGroup(collection.id, new Set<string>())
   }
 
   return memo

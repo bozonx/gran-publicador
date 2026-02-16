@@ -6,10 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
+import { ContentCollectionsService } from './content-collections.service.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -22,38 +22,15 @@ import {
 const TEXT_MERGE_SEPARATOR = '\n\n---\n\n';
 
 @Injectable()
-export class ContentLibraryService {
-  private readonly logger = new Logger(ContentLibraryService.name);
+export class ContentItemsService {
+  private readonly logger = new Logger(ContentItemsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionsService,
     private readonly tagsService: TagsService,
+    private readonly collectionsService: ContentCollectionsService,
   ) {}
-
-  private async withSerializableRetry<T>(operationName: string, fn: () => Promise<T>): Promise<T> {
-    const maxRetries = 3;
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        return await fn();
-      } catch (error: any) {
-        const isRetryable =
-          error?.code === 'P2034' ||
-          (typeof error?.message === 'string' &&
-            (error.message.includes('deadlock') || error.message.includes('could not serialize')));
-
-        if (!isRetryable || attempt === maxRetries - 1) {
-          throw error;
-        }
-
-        this.logger.warn(
-          `Retrying serializable transaction for ${operationName} (attempt ${attempt + 2}/${maxRetries})`,
-        );
-      }
-    }
-
-    throw new Error(`Unreachable: serializable retry loop exhausted for ${operationName}`);
-  }
 
   private normalizeSearchTokens(search: string): string[] {
     return search
@@ -74,10 +51,6 @@ export class ContentLibraryService {
     return Array.from(new Set(normalized));
   }
 
-  private ensureHasAnyContent(_input: { text?: unknown; mediaIds?: unknown[]; media?: unknown[] }) {
-    // Validation disabled to allow creating empty items
-  }
-
   private normalizeItemText(text?: unknown): string | null {
     if (typeof text !== 'string') return null;
     const trimmed = text.trim();
@@ -90,9 +63,6 @@ export class ContentLibraryService {
     return undefined;
   }
 
-  /**
-   * Normalize tagObjects relation into a flat tags string array on a content item response.
-   */
   private normalizeContentItemTags(item: any): any {
     if (!item) return item;
     return {
@@ -101,12 +71,12 @@ export class ContentLibraryService {
     };
   }
 
-  private async assertContentItemAccess(
+  public async assertContentItemAccess(
     contentItemId: string,
     userId: string,
     allowArchived = true,
   ) {
-    const item: any = await (this.prisma.contentItem as any).findUnique({
+    const item = await this.prisma.contentItem.findUnique({
       where: { id: contentItemId },
       select: {
         id: true,
@@ -137,204 +107,7 @@ export class ContentLibraryService {
     return item;
   }
 
-  private async assertGroupTabAccess(options: {
-    groupId: string;
-    scope: 'personal' | 'project';
-    projectId?: string;
-    userId: string;
-  }) {
-    const collection = await this.prisma.contentCollection.findUnique({
-      where: { id: options.groupId },
-      select: { id: true, type: true, groupType: true, userId: true, projectId: true },
-    });
-
-    if (!collection) {
-      throw new NotFoundException('Group not found');
-    }
-
-    if ((collection.type as any) !== 'GROUP') {
-      throw new BadRequestException('Tab is not a group');
-    }
-
-    const resolvedGroupType = this.resolveGroupType(collection);
-
-    if (options.scope === 'personal') {
-      if (resolvedGroupType !== 'PERSONAL_USER') {
-        throw new ForbiddenException('You do not have access to this group');
-      }
-      if (collection.userId !== options.userId) {
-        throw new ForbiddenException('You do not have access to this group');
-      }
-      return collection;
-    }
-
-    if (!options.projectId) {
-      throw new BadRequestException('projectId is required for project scope');
-    }
-
-    if (collection.projectId !== options.projectId) {
-      throw new ForbiddenException('Group does not belong to this project');
-    }
-
-    await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
-
-    if (resolvedGroupType === 'PROJECT_USER' && collection.userId !== options.userId) {
-      throw new ForbiddenException('You do not have access to this group');
-    }
-
-    return collection;
-  }
-
-  private resolveGroupType(collection: {
-    type: unknown;
-    groupType?: unknown;
-    userId: string | null;
-    projectId: string | null;
-  }): 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' {
-    if ((collection.type as any) !== 'GROUP') {
-      throw new BadRequestException('Tab is not a group');
-    }
-
-    if (
-      collection.groupType === 'PERSONAL_USER' ||
-      collection.groupType === 'PROJECT_USER' ||
-      collection.groupType === 'PROJECT_SHARED'
-    ) {
-      return collection.groupType;
-    }
-
-    // Backward compatibility for older records without groupType.
-    if (collection.userId !== null && collection.projectId === null) {
-      return 'PERSONAL_USER';
-    }
-    if (collection.userId === null && collection.projectId !== null) {
-      return 'PROJECT_SHARED';
-    }
-
-    throw new BadRequestException('Invalid group scope configuration');
-  }
-
-  private async assertNotViewer(projectId: string, userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { isAdmin: true },
-    });
-    if (user?.isAdmin) {
-      return;
-    }
-
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        ownerId: true,
-        members: {
-          where: { userId },
-          select: { role: { select: { systemType: true } } },
-        },
-      },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-    if (project.ownerId === userId) {
-      return;
-    }
-    if (project.members.length === 0) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
-
-    const roleSystemType = project.members[0]?.role?.systemType;
-    if (roleSystemType === SystemRoleType.VIEWER) {
-      throw new ForbiddenException('Viewers cannot perform this action');
-    }
-  }
-
-  private async assertProjectOwnerOrAdmin(projectId: string, userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { isAdmin: true },
-    });
-    if (user?.isAdmin) {
-      return;
-    }
-    await this.assertProjectOwner(projectId, userId);
-  }
-
-  private async assertCollectionAccess(options: {
-    collectionId: string;
-    scope: 'personal' | 'project';
-    projectId?: string;
-    userId: string;
-    requireMutationPermission?: boolean;
-  }) {
-    const collection = await this.prisma.contentCollection.findUnique({
-      where: { id: options.collectionId },
-      select: {
-        id: true,
-        type: true,
-        groupType: true,
-        userId: true,
-        projectId: true,
-        parentId: true,
-      },
-    });
-
-    if (!collection) {
-      throw new NotFoundException('Tab not found');
-    }
-
-    if (options.scope === 'personal') {
-      if (collection.projectId !== null || collection.userId !== options.userId) {
-        throw new ForbiddenException('You do not have access to this collection');
-      }
-
-      if ((collection.type as any) === 'GROUP') {
-        const groupType = this.resolveGroupType(collection);
-        if (groupType !== 'PERSONAL_USER') {
-          throw new ForbiddenException('You do not have access to this collection');
-        }
-      }
-      return collection;
-    }
-
-    if (!options.projectId) {
-      throw new BadRequestException('projectId is required for project scope');
-    }
-
-    if (collection.projectId !== options.projectId) {
-      throw new ForbiddenException('Tab does not belong to this project');
-    }
-
-    await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
-
-    if ((collection.type as any) === 'SAVED_VIEW') {
-      if (collection.userId !== options.userId) {
-        throw new ForbiddenException('You do not have access to this collection');
-      }
-      if (options.requireMutationPermission) {
-        await this.assertNotViewer(options.projectId, options.userId);
-      }
-      return collection;
-    }
-
-    const groupType = this.resolveGroupType(collection);
-    if (groupType === 'PROJECT_USER' && collection.userId !== options.userId) {
-      throw new ForbiddenException('You do not have access to this collection');
-    }
-
-    if (options.requireMutationPermission) {
-      if (groupType === 'PROJECT_SHARED') {
-        await this.assertProjectOwnerOrAdmin(options.projectId, options.userId);
-      } else {
-        await this.assertNotViewer(options.projectId, options.userId);
-      }
-    }
-
-    return collection;
-  }
-
-  private async assertContentItemMutationAllowed(contentItemId: string, userId: string) {
+  public async assertContentItemMutationAllowed(contentItemId: string, userId: string) {
     const item = await this.assertContentItemAccess(contentItemId, userId, true);
 
     if (item.projectId) {
@@ -346,87 +119,6 @@ export class ContentLibraryService {
 
   private async assertProjectContentMutationAllowed(projectId: string, userId: string) {
     await this.permissions.checkProjectPermission(projectId, userId, ['ADMIN', 'EDITOR']);
-  }
-
-  private async assertProjectOwner(projectId: string, userId: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: { ownerId: true },
-    });
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-    if (project.ownerId !== userId) {
-      throw new ForbiddenException('Only project owner can perform this action');
-    }
-  }
-
-  private async resolveParentGroupId(options: {
-    parentId?: string | null;
-    scope: 'personal' | 'project';
-    projectId?: string;
-    userId: string;
-    childGroupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
-  }): Promise<string | null | undefined> {
-    if (options.parentId === undefined) {
-      return undefined;
-    }
-
-    if (options.parentId === null) {
-      return null;
-    }
-
-    const parent = await this.assertGroupTabAccess({
-      groupId: options.parentId,
-      scope: options.scope,
-      projectId: options.projectId,
-      userId: options.userId,
-    });
-
-    if (options.childGroupType) {
-      const parentGroupType = this.resolveGroupType(parent as any);
-      if (parentGroupType !== options.childGroupType) {
-        throw new BadRequestException('Cannot mix group types in one hierarchy');
-      }
-    }
-
-    return parent.id;
-  }
-
-  private async ensureNoTabCycle(options: { collectionId: string; parentId: string }) {
-    const [res] = (await this.prisma.$queryRaw<Array<{ has_target: boolean; has_cycle: boolean }>>`
-      WITH RECURSIVE parents AS (
-        SELECT
-          id,
-          parent_id,
-          ARRAY[id] AS path,
-          FALSE AS cycle
-        FROM content_collections
-        WHERE id = ${options.parentId}::uuid
-
-        UNION ALL
-
-        SELECT
-          c.id,
-          c.parent_id,
-          p.path || c.id,
-          c.id = ANY(p.path) AS cycle
-        FROM content_collections c
-        JOIN parents p ON c.id = p.parent_id
-        WHERE p.cycle = FALSE
-      )
-      SELECT
-        EXISTS(SELECT 1 FROM parents WHERE id = ${options.collectionId}::uuid) AS has_target,
-        EXISTS(SELECT 1 FROM parents WHERE cycle = TRUE) AS has_cycle
-    `) as Array<{ has_target: boolean; has_cycle: boolean }>;
-
-    if (res?.has_cycle) {
-      throw new BadRequestException('Invalid group hierarchy');
-    }
-
-    if (res?.has_target) {
-      throw new BadRequestException('Cannot move group into its descendant');
-    }
   }
 
   private assertItemScopeMatches(options: {
@@ -476,7 +168,7 @@ export class ContentLibraryService {
     }
 
     if (query.groupId) {
-      await this.assertGroupTabAccess({
+      await this.collectionsService.assertGroupAccess({
         groupId: query.groupId,
         scope: query.scope,
         projectId: query.projectId,
@@ -592,8 +284,6 @@ export class ContentLibraryService {
   }
 
   public async create(dto: CreateContentItemDto, userId: string) {
-    this.ensureHasAnyContent({ text: dto.text, media: dto.media });
-
     if (dto.scope === 'project') {
       if (!dto.projectId) {
         throw new BadRequestException('projectId is required for project scope');
@@ -602,7 +292,7 @@ export class ContentLibraryService {
     }
 
     if (dto.groupId) {
-      await this.assertGroupTabAccess({
+      await this.collectionsService.assertGroupAccess({
         groupId: dto.groupId,
         scope: dto.scope,
         projectId: dto.projectId,
@@ -661,7 +351,7 @@ export class ContentLibraryService {
 
     if (dto.groupId !== undefined && dto.groupId !== null) {
       if (dto.groupId) {
-        await this.assertGroupTabAccess({
+        await this.collectionsService.assertGroupAccess({
           groupId: dto.groupId,
           scope: item.projectId ? 'project' : 'personal',
           projectId: item.projectId ?? undefined,
@@ -747,7 +437,7 @@ export class ContentLibraryService {
   }
 
   public async purgeArchivedByProject(projectId: string, userId: string) {
-    await this.assertProjectOwner(projectId, userId);
+    await this.collectionsService.assertProjectOwner(projectId, userId);
 
     const result = await this.prisma.contentItem.deleteMany({
       where: {
@@ -769,6 +459,112 @@ export class ContentLibraryService {
     });
 
     return { deletedCount: result.count };
+  }
+
+  public async getAvailableTags(
+    scope: 'project' | 'personal',
+    projectId: string | undefined,
+    userId: string,
+    groupId?: string,
+  ) {
+    if (scope === 'project') {
+      if (!projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectAccess(projectId, userId, true);
+    }
+
+    if (groupId) {
+      await this.collectionsService.assertGroupAccess({
+        groupId,
+        scope,
+        projectId: scope === 'project' ? projectId : undefined,
+        userId,
+      });
+    }
+
+    const tags = await this.prisma.tag.findMany({
+      where: {
+        ...(scope === 'personal' ? { userId } : { projectId }),
+        domain: 'CONTENT_LIBRARY',
+        contentItems: groupId
+          ? {
+              some: {
+                groups: { some: { collectionId: groupId } },
+              },
+            }
+          : { some: {} },
+      },
+      select: { name: true },
+      distinct: ['name'],
+      orderBy: { name: 'asc' },
+    });
+
+    return tags.map(t => t.name);
+  }
+
+  public async searchAvailableTags(
+    query: {
+      q: string;
+      limit?: number;
+      scope: 'personal' | 'project';
+      projectId?: string;
+      groupId?: string;
+    },
+    userId: string,
+  ) {
+    const take = Math.min(Math.max(Number(query.limit) || 20, 1), 50);
+    const normalizedQ = String(query.q ?? '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedQ) return [];
+
+    if (query.scope === 'project') {
+      if (!query.projectId) {
+        throw new BadRequestException('projectId is required for project scope');
+      }
+      await this.permissions.checkProjectAccess(query.projectId, userId, true);
+    }
+
+    if (query.groupId) {
+      await this.collectionsService.assertGroupAccess({
+        groupId: query.groupId,
+        scope: query.scope,
+        projectId: query.scope === 'project' ? query.projectId : undefined,
+        userId,
+      });
+    }
+
+    const where: any = {
+      AND: [{ domain: 'CONTENT_LIBRARY' }, { normalizedName: { startsWith: normalizedQ } }],
+    };
+
+    if (query.scope === 'project') {
+      where.AND.push({ projectId: query.projectId });
+    } else {
+      where.AND.push({ userId, projectId: null });
+    }
+
+    if (query.groupId) {
+      where.AND.push({
+        contentItems: {
+          some: {
+            groups: { some: { collectionId: query.groupId } },
+          },
+        },
+      });
+    } else {
+      where.AND.push({ contentItems: { some: {} } });
+    }
+
+    const tags = await this.prisma.tag.findMany({
+      where,
+      take,
+      orderBy: { name: 'asc' },
+      select: { name: true },
+    });
+
+    return tags.map(t => t.name);
   }
 
   public async bulkOperation(userId: string, dto: BulkOperationDto) {
@@ -915,11 +711,10 @@ export class ContentLibraryService {
           throw new BadRequestException('At least two items are required for merging');
         }
 
-        // Use the first item as target (usually the most recent one by default order)
         const targetId = authorizedIds[0];
         const sourceIds = authorizedIds.slice(1);
 
-        const items = await (this.prisma.contentItem as any).findMany({
+        const fullItems = await (this.prisma.contentItem as any).findMany({
           where: { id: { in: authorizedIds } },
           include: {
             tagObjects: true,
@@ -927,29 +722,29 @@ export class ContentLibraryService {
           },
         });
 
-        const targetItem = items.find((i: any) => i.id === targetId);
-        const sourceItems = items.filter((i: any) => i.id !== targetId);
+        const targetItem = fullItems.find((i: any) => i.id === targetId);
+        const sourceItems = fullItems.filter((i: any) => i.id !== targetId);
 
         if (!targetItem) {
           throw new NotFoundException('Target item not found');
         }
 
-        const mergedTitleParts = items
+        const mergedTitleParts = fullItems
           .map((i: any) => (typeof i.title === 'string' ? i.title.trim() : ''))
           .filter(Boolean);
         const newTitle = Array.from(new Set(mergedTitleParts)).join(' | ') || null;
 
-        const mergedTextParts = items
+        const mergedTextParts = fullItems
           .map((i: any) => (typeof i.text === 'string' ? i.text.trim() : ''))
           .filter(Boolean);
         const newText = mergedTextParts.join(TEXT_MERGE_SEPARATOR) || null;
 
-        const mergedNoteParts = items
+        const mergedNoteParts = fullItems
           .map((i: any) => (typeof i.note === 'string' ? i.note.trim() : ''))
           .filter(Boolean);
         const newNote = mergedNoteParts.join(TEXT_MERGE_SEPARATOR) || null;
 
-        const mergedTagNames = items.flatMap((i: any) =>
+        const mergedTagNames = fullItems.flatMap((i: any) =>
           (i.tagObjects ?? []).map((t: any) => t.name),
         );
         const newTags = this.normalizeTags(mergedTagNames);
@@ -976,13 +771,12 @@ export class ContentLibraryService {
                 ...targetMeta,
               };
 
-        // 5. Combine Media
         const mediaPick = new Map<
           string,
           { mediaId: string; hasSpoiler: boolean; firstSeenAt: number }
         >();
         let seenCounter = 0;
-        for (const i of items) {
+        for (const i of fullItems) {
           for (const link of i.media ?? []) {
             if (!link?.mediaId) continue;
             if (!mediaPick.has(link.mediaId)) {
@@ -1003,7 +797,6 @@ export class ContentLibraryService {
           }));
 
         await this.prisma.$transaction(async tx => {
-          // Update target item
           await (tx.contentItem as any).update({
             where: { id: targetId },
             data: {
@@ -1035,7 +828,6 @@ export class ContentLibraryService {
             });
           }
 
-          // Delete source items
           await tx.contentItem.deleteMany({
             where: { id: { in: sourceIds } },
           });
@@ -1061,7 +853,7 @@ export class ContentLibraryService {
         const targetScope: 'personal' | 'project' = targetGroup.projectId ? 'project' : 'personal';
         const targetProjectId = targetGroup.projectId ?? undefined;
 
-        await this.assertGroupTabAccess({
+        await this.collectionsService.assertGroupAccess({
           groupId: dto.groupId,
           scope: targetScope,
           projectId: targetProjectId,
@@ -1070,9 +862,7 @@ export class ContentLibraryService {
 
         for (const id of authorizedIds) {
           const item = authorizedItems.get(id);
-          if (!item) {
-            continue;
-          }
+          if (!item) continue;
 
           this.assertItemScopeMatches({
             item,
@@ -1122,13 +912,13 @@ export class ContentLibraryService {
         const targetScope: 'personal' | 'project' = targetGroup.projectId ? 'project' : 'personal';
         const targetProjectId = targetGroup.projectId ?? undefined;
 
-        await this.assertGroupTabAccess({
+        await this.collectionsService.assertGroupAccess({
           groupId: dto.groupId,
           scope: targetScope,
           projectId: targetProjectId,
           userId,
         });
-        await this.assertGroupTabAccess({
+        await this.collectionsService.assertGroupAccess({
           groupId: dto.sourceGroupId,
           scope: targetScope,
           projectId: targetProjectId,
@@ -1137,9 +927,7 @@ export class ContentLibraryService {
 
         for (const id of authorizedIds) {
           const item = authorizedItems.get(id);
-          if (!item) {
-            continue;
-          }
+          if (!item) continue;
 
           this.assertItemScopeMatches({
             item,
@@ -1183,12 +971,46 @@ export class ContentLibraryService {
     }
   }
 
+  public async linkItemToGroup(
+    contentItemId: string,
+    dto: { scope: 'personal' | 'project'; projectId?: string; groupId: string },
+    userId: string,
+  ) {
+    const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
+    this.assertItemScopeMatches({
+      item,
+      scope: dto.scope,
+      projectId: dto.projectId,
+    });
+    await this.collectionsService.assertGroupAccess({
+      groupId: dto.groupId,
+      scope: dto.scope,
+      projectId: dto.projectId,
+      userId,
+    });
+
+    await (this.prisma as any).contentItemGroup.upsert({
+      where: {
+        contentItemId_collectionId: {
+          contentItemId,
+          collectionId: dto.groupId,
+        },
+      },
+      create: {
+        contentItemId,
+        collectionId: dto.groupId,
+      },
+      update: {},
+    });
+
+    return this.findOne(contentItemId, userId);
+  }
+
   public async sync(contentItemId: string, dto: SyncContentItemDto, userId: string) {
     const item = await this.assertContentItemAccess(contentItemId, userId, false);
     await this.assertContentItemMutationAllowed(contentItemId, userId);
 
     return this.prisma.$transaction(async tx => {
-      // 1. Update item metadata (including tags)
       const tagData =
         dto.tags !== undefined
           ? await this.tagsService.prepareTagsConnectOrCreate(
@@ -1234,476 +1056,5 @@ export class ContentLibraryService {
 
       return this.findOne(contentItemId, userId);
     });
-  }
-
-  public async getAvailableTags(
-    scope: 'project' | 'personal',
-    projectId: string | undefined,
-    userId: string,
-    groupId?: string,
-  ) {
-    if (scope === 'project') {
-      if (!projectId) {
-        throw new BadRequestException('projectId is required for project scope');
-      }
-      await this.permissions.checkProjectAccess(projectId, userId, true);
-    }
-
-    if (groupId) {
-      await this.assertGroupTabAccess({
-        groupId,
-        scope,
-        projectId: scope === 'project' ? projectId : undefined,
-        userId,
-      });
-    }
-
-    const tags = await this.prisma.tag.findMany({
-      where: {
-        ...(scope === 'personal' ? { userId } : { projectId }),
-        domain: 'CONTENT_LIBRARY',
-        contentItems: groupId
-          ? {
-              some: {
-                groups: { some: { collectionId: groupId } },
-              },
-            }
-          : { some: {} },
-      },
-      select: { name: true },
-      distinct: ['name'],
-      orderBy: { name: 'asc' },
-    });
-
-    return tags.map(t => t.name);
-  }
-
-  public async searchAvailableTags(
-    query: {
-      q: string;
-      limit?: number;
-      scope: 'personal' | 'project';
-      projectId?: string;
-      groupId?: string;
-    },
-    userId: string,
-  ) {
-    const take = Math.min(Math.max(Number(query.limit) || 20, 1), 50);
-    const normalizedQ = String(query.q ?? '')
-      .trim()
-      .toLowerCase();
-    if (!normalizedQ) return [];
-
-    if (query.scope === 'project') {
-      if (!query.projectId) {
-        throw new BadRequestException('projectId is required for project scope');
-      }
-      await this.permissions.checkProjectAccess(query.projectId, userId, true);
-    }
-
-    if (query.groupId) {
-      await this.assertGroupTabAccess({
-        groupId: query.groupId,
-        scope: query.scope,
-        projectId: query.scope === 'project' ? query.projectId : undefined,
-        userId,
-      });
-    }
-
-    const where: any = {
-      AND: [{ domain: 'CONTENT_LIBRARY' }, { normalizedName: { startsWith: normalizedQ } }],
-    };
-
-    if (query.scope === 'project') {
-      where.AND.push({ projectId: query.projectId });
-    } else {
-      where.AND.push({ userId, projectId: null });
-    }
-
-    if (query.groupId) {
-      where.AND.push({
-        contentItems: {
-          some: {
-            groups: { some: { collectionId: query.groupId } },
-          },
-        },
-      });
-    } else {
-      where.AND.push({ contentItems: { some: {} } });
-    }
-
-    const tags = await this.prisma.tag.findMany({
-      where,
-      take,
-      orderBy: { name: 'asc' },
-      select: { name: true },
-    });
-
-    return tags.map(t => t.name);
-  }
-
-  public async listCollections(
-    query: { scope: 'personal' | 'project'; projectId?: string },
-    userId: string,
-  ) {
-    if (query.scope === 'project') {
-      if (!query.projectId) {
-        throw new BadRequestException('projectId is required for project scope');
-      }
-      await this.permissions.checkProjectAccess(query.projectId, userId, true);
-    }
-
-    const where: any = {};
-    if (query.scope === 'personal') {
-      where.userId = userId;
-      where.projectId = null;
-    } else {
-      // In project scope:
-      // - groups: shared + user-owned
-      // - saved views: always personal to user within the project
-      where.OR = [
-        {
-          projectId: query.projectId,
-          type: 'GROUP',
-          OR: [
-            { groupType: 'PROJECT_SHARED', userId: null },
-            { groupType: 'PROJECT_USER', userId },
-          ],
-        },
-        {
-          projectId: query.projectId,
-          type: 'GROUP',
-          // Backward-compatibility for existing shared groups without groupType
-          groupType: null,
-          userId: null,
-        },
-        {
-          projectId: query.projectId,
-          type: 'SAVED_VIEW',
-          userId,
-        },
-      ];
-    }
-
-    const collections = await this.prisma.contentCollection.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            contentItemGroups: {
-              where: {
-                contentItem: { archivedAt: null },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { order: 'asc' },
-    });
-
-    return collections.map(collection => {
-      if (collection.type !== 'GROUP') {
-        return collection;
-      }
-
-      return {
-        ...collection,
-        directItemsCount: (collection as any)._count?.contentItemGroups ?? 0,
-      };
-    });
-  }
-
-  public async createCollection(
-    dto: {
-      scope: 'personal' | 'project';
-      projectId?: string;
-      type: 'GROUP' | 'SAVED_VIEW';
-      groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
-      parentId?: string;
-      title: string;
-      config?: unknown;
-    },
-    userId: string,
-  ) {
-    if (dto.scope === 'project') {
-      if (!dto.projectId) {
-        throw new BadRequestException('projectId is required for project scope');
-      }
-      await this.permissions.checkProjectAccess(dto.projectId, userId, true);
-      await this.assertNotViewer(dto.projectId, userId);
-    }
-
-    if (dto.type === 'GROUP') {
-      const groupType =
-        dto.scope === 'personal' ? 'PERSONAL_USER' : (dto.groupType ?? 'PROJECT_USER');
-
-      if (dto.scope === 'personal') {
-        if (dto.groupType && dto.groupType !== 'PERSONAL_USER') {
-          throw new BadRequestException('Invalid groupType for personal scope');
-        }
-      } else {
-        if (groupType === 'PROJECT_SHARED') {
-          await this.assertProjectOwnerOrAdmin(dto.projectId!, userId);
-        }
-      }
-    } else {
-      if (dto.groupType) {
-        throw new BadRequestException('groupType is only allowed for GROUP collections');
-      }
-    }
-
-    const scopeWhere: any =
-      dto.scope === 'personal'
-        ? { userId, projectId: null }
-        : {
-            projectId: dto.projectId,
-            OR: [
-              {
-                type: 'GROUP',
-                OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
-              },
-              { type: 'GROUP', groupType: null, userId: null },
-              { type: 'SAVED_VIEW', userId },
-            ],
-          };
-
-    if (dto.type !== 'GROUP' && dto.parentId) {
-      throw new BadRequestException('Only groups can have parent groups');
-    }
-
-    const resolvedChildGroupType: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' | undefined =
-      dto.type === 'GROUP'
-        ? dto.scope === 'personal'
-          ? 'PERSONAL_USER'
-          : (dto.groupType ?? 'PROJECT_USER')
-        : undefined;
-
-    const parentId =
-      dto.type === 'GROUP'
-        ? await this.resolveParentGroupId({
-            parentId: dto.parentId,
-            scope: dto.scope,
-            projectId: dto.projectId,
-            userId,
-            childGroupType: resolvedChildGroupType,
-          })
-        : null;
-
-    return this.withSerializableRetry('createCollection', () =>
-      this.prisma.$transaction(
-        async tx => {
-          const maxOrder = await tx.contentCollection.aggregate({
-            where: scopeWhere,
-            _max: { order: true },
-          });
-
-          const nextOrder = (maxOrder?._max?.order ?? -1) + 1;
-
-          return (tx.contentCollection as any).create({
-            data: {
-              type: dto.type,
-              title: dto.title,
-              groupType: dto.type === 'GROUP' ? (resolvedChildGroupType as any) : null,
-              userId:
-                dto.scope === 'personal'
-                  ? userId
-                  : dto.type === 'SAVED_VIEW'
-                    ? userId
-                    : resolvedChildGroupType === 'PROJECT_SHARED'
-                      ? null
-                      : userId,
-              projectId: dto.scope === 'project' ? dto.projectId! : null,
-              parentId,
-              order: nextOrder,
-              config: (dto.config ?? {}) as any,
-            },
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      ),
-    );
-  }
-
-  public async updateCollection(
-    collectionId: string,
-    dto: {
-      scope: 'personal' | 'project';
-      projectId?: string;
-      parentId?: string | null;
-      title?: string;
-      config?: unknown;
-    },
-    userId: string,
-  ) {
-    const collection = await this.assertCollectionAccess({
-      collectionId,
-      scope: dto.scope,
-      projectId: dto.projectId,
-      userId,
-      requireMutationPermission: true,
-    });
-
-    if ((collection.type as any) !== 'GROUP' && dto.parentId !== undefined) {
-      throw new BadRequestException('Only groups can have parent groups');
-    }
-
-    const childGroupType =
-      (collection.type as any) === 'GROUP' ? this.resolveGroupType(collection as any) : undefined;
-
-    const parentId = await this.resolveParentGroupId({
-      parentId: dto.parentId,
-      scope: dto.scope,
-      projectId: dto.projectId,
-      userId,
-      childGroupType,
-    });
-
-    if (parentId === collection.id) {
-      throw new BadRequestException('Group cannot be parent of itself');
-    }
-    if (parentId) {
-      await this.ensureNoTabCycle({ collectionId, parentId });
-    }
-
-    return (this.prisma.contentCollection as any).update({
-      where: { id: collection.id },
-      data: {
-        parentId,
-        title: dto.title,
-        config: dto.config as any,
-      },
-    });
-  }
-
-  public async linkItemToGroup(
-    contentItemId: string,
-    dto: { scope: 'personal' | 'project'; projectId?: string; groupId: string },
-    userId: string,
-  ) {
-    const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
-    this.assertItemScopeMatches({
-      item,
-      scope: dto.scope,
-      projectId: dto.projectId,
-    });
-    await this.assertGroupTabAccess({
-      groupId: dto.groupId,
-      scope: dto.scope,
-      projectId: dto.projectId,
-      userId,
-    });
-
-    await (this.prisma as any).contentItemGroup.upsert({
-      where: {
-        contentItemId_collectionId: {
-          contentItemId,
-          collectionId: dto.groupId,
-        },
-      },
-      create: {
-        contentItemId,
-        collectionId: dto.groupId,
-      },
-      update: {},
-    });
-
-    return this.findOne(contentItemId, userId);
-  }
-
-  public async deleteCollection(
-    collectionId: string,
-    options: { scope: 'personal' | 'project'; projectId?: string },
-    userId: string,
-  ) {
-    const collection = await this.assertCollectionAccess({
-      collectionId,
-      scope: options.scope,
-      projectId: options.projectId,
-      userId,
-      requireMutationPermission: true,
-    });
-
-    if ((collection.type as any) !== 'GROUP') {
-      return this.prisma.contentCollection.delete({ where: { id: collectionId } });
-    }
-
-    return this.prisma.$transaction(async tx => {
-      // Find all descendant groups recursively to delete them as well
-      const allIdsToDelete = [collectionId];
-      let currentParentIds = [collectionId];
-
-      while (currentParentIds.length > 0) {
-        const children = await tx.contentCollection.findMany({
-          where: { parentId: { in: currentParentIds } },
-          select: { id: true },
-        });
-
-        if (children.length === 0) break;
-
-        const childIds = children.map(c => c.id);
-        allIdsToDelete.push(...childIds);
-        currentParentIds = childIds;
-      }
-
-      // Remove all group relations for the deleted groups.
-      await (tx as any).contentItemGroup.deleteMany({
-        where: { collectionId: { in: allIdsToDelete } },
-      });
-
-      return tx.contentCollection.deleteMany({
-        where: { id: { in: allIdsToDelete } },
-      });
-    });
-  }
-
-  public async reorderCollections(
-    dto: { scope: 'personal' | 'project'; projectId?: string; ids: string[] },
-    userId: string,
-  ) {
-    if (dto.scope === 'project') {
-      if (!dto.projectId) {
-        throw new BadRequestException('projectId is required for project scope');
-      }
-      await this.permissions.checkProjectAccess(dto.projectId, userId, true);
-      await this.assertNotViewer(dto.projectId, userId);
-    }
-
-    const where: any =
-      dto.scope === 'personal'
-        ? { userId, projectId: null }
-        : {
-            projectId: dto.projectId,
-            OR: [
-              {
-                type: 'GROUP',
-                OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
-              },
-              { type: 'GROUP', groupType: null, userId: null },
-              { type: 'SAVED_VIEW', userId },
-            ],
-          };
-
-    const existing = await this.prisma.contentCollection.findMany({
-      where,
-      select: { id: true },
-    });
-
-    const existingIds = new Set(existing.map((t: any) => t.id));
-    for (const id of dto.ids) {
-      if (!existingIds.has(id)) {
-        throw new BadRequestException('Tabs list contains invalid id');
-      }
-    }
-
-    await this.prisma.$transaction(
-      dto.ids.map((id, idx) =>
-        this.prisma.contentCollection.update({
-          where: { id },
-          data: { order: idx },
-        }),
-      ),
-    );
-
-    return { ok: true };
   }
 }

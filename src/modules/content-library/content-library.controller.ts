@@ -17,7 +17,8 @@ import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ContentLibraryService } from './content-library.service.js';
+import { ContentCollectionsService } from './content-collections.service.js';
+import { ContentItemsService } from './content-items.service.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -35,7 +36,8 @@ import {
 @UseGuards(JwtOrApiTokenGuard)
 export class ContentLibraryController {
   constructor(
-    private readonly contentLibraryService: ContentLibraryService,
+    private readonly collectionsService: ContentCollectionsService,
+    private readonly itemsService: ContentItemsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -117,7 +119,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
 
-    return this.contentLibraryService.findAll(query, req.user.userId);
+    return this.itemsService.findAll(query, req.user.userId);
   }
 
   @Get('collections')
@@ -129,7 +131,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
 
-    return this.contentLibraryService.listCollections(query, req.user.userId);
+    return this.collectionsService.listCollections(query, req.user.userId);
   }
 
   @Post('collections')
@@ -141,7 +143,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
-    return this.contentLibraryService.createCollection(dto, req.user.userId);
+    return this.collectionsService.createCollection(dto, req.user.userId);
   }
 
   @Patch('collections/:id')
@@ -154,7 +156,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
-    return this.contentLibraryService.updateCollection(collectionId, dto, req.user.userId);
+    return this.collectionsService.updateCollection(collectionId, dto, req.user.userId);
   }
 
   @Delete('collections/:id')
@@ -167,7 +169,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
 
-    return this.contentLibraryService.deleteCollection(collectionId, query, req.user.userId);
+    return this.collectionsService.deleteCollection(collectionId, query, req.user.userId);
   }
 
   @Patch('collections/reorder')
@@ -179,7 +181,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
-    return this.contentLibraryService.reorderCollections(dto, req.user.userId);
+    return this.collectionsService.reorderCollections(dto, req.user.userId);
   }
 
   @Get('tags')
@@ -193,7 +195,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, projectId);
     }
 
-    return this.contentLibraryService.getAvailableTags(scope, projectId, req.user.userId, groupId);
+    return this.itemsService.getAvailableTags(scope, projectId, req.user.userId, groupId);
   }
 
   @Get('tags/search')
@@ -209,7 +211,7 @@ export class ContentLibraryController {
       this.validateQueryProjectScopeOrThrow(req, projectId);
     }
 
-    const tags = await this.contentLibraryService.searchAvailableTags(
+    const tags = await this.itemsService.searchAvailableTags(
       {
         q,
         scope,
@@ -237,13 +239,13 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.create(dto, req.user.userId);
+    return this.itemsService.create(dto, req.user.userId);
   }
 
   @Get('items/:id')
   public async findOne(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
-    return this.contentLibraryService.findOne(id, req.user.userId);
+    return this.itemsService.findOne(id, req.user.userId);
   }
 
   @Patch('items/:id')
@@ -253,7 +255,7 @@ export class ContentLibraryController {
     @Body() dto: UpdateContentItemDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
-    return this.contentLibraryService.update(id, dto, req.user.userId);
+    return this.itemsService.update(id, dto, req.user.userId);
   }
 
   @Post('items/:id/groups')
@@ -276,19 +278,19 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.linkItemToGroup(contentItemId, dto, req.user.userId);
+    return this.itemsService.linkItemToGroup(contentItemId, dto, req.user.userId);
   }
 
   @Post('items/:id/archive')
   public async archive(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
-    return this.contentLibraryService.archive(id, req.user.userId);
+    return this.itemsService.archive(id, req.user.userId);
   }
 
   @Post('items/:id/restore')
   public async restore(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
-    return this.contentLibraryService.restore(id, req.user.userId);
+    return this.itemsService.restore(id, req.user.userId);
   }
 
   @Post('projects/:projectId/purge-archived')
@@ -303,25 +305,25 @@ export class ContentLibraryController {
       });
     }
 
-    return this.contentLibraryService.purgeArchivedByProject(projectId, req.user.userId);
+    return this.itemsService.purgeArchivedByProject(projectId, req.user.userId);
   }
 
   @Post('personal/purge-archived')
   public async purgeArchivedPersonal(@Request() req: UnifiedAuthRequest) {
-    return this.contentLibraryService.purgeArchivedPersonal(req.user.userId);
+    return this.itemsService.purgeArchivedPersonal(req.user.userId);
   }
 
   @Post('bulk')
   public async bulkOperation(@Request() req: UnifiedAuthRequest, @Body() dto: BulkOperationDto) {
     await this.validateBulkContentItemsProjectScopeOrThrow(req, dto.ids);
     this.validateQueryProjectScopeOrThrow(req, dto.projectId);
-    return this.contentLibraryService.bulkOperation(req.user.userId, dto);
+    return this.itemsService.bulkOperation(req.user.userId, dto);
   }
 
   @Delete('items/:id')
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);
-    return this.contentLibraryService.remove(id, req.user.userId);
+    return this.itemsService.remove(id, req.user.userId);
   }
 
   @Post('items/:id/sync')
@@ -331,6 +333,6 @@ export class ContentLibraryController {
     @Body() dto: SyncContentItemDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
-    return this.contentLibraryService.sync(contentItemId, dto, req.user.userId);
+    return this.itemsService.sync(contentItemId, dto, req.user.userId);
   }
 }
