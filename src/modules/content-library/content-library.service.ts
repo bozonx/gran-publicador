@@ -749,23 +749,33 @@ export class ContentLibraryService {
           throw new NotFoundException('Target item not found');
         }
 
-        // 1. Combine Titles
-        const allTitles = items.map((i: any) => i.title?.trim()).filter(Boolean);
-        const newTitle = Array.from(new Set(allTitles)).join(' | ') || null;
+        const mergedTitleParts = items
+          .map((i: any) => (typeof i.title === 'string' ? i.title.trim() : ''))
+          .filter(Boolean);
+        const newTitle = Array.from(new Set(mergedTitleParts)).join(' | ') || null;
 
-        // 2. Combine Notes
-        const allNotes = items.map((i: any) => i.note?.trim()).filter(Boolean);
-        const newNote = allNotes.join('\n\n---\n\n') || null;
-
-        // 3. Combine Tags (Unique)
-        const allTags = items.flatMap((i: any) => i.tags || []);
-        const newTags = this.normalizeTags(allTags);
-
-        // 4. Combine Text
-        const allTexts = items
+        const mergedTextParts = items
           .map((i: any) => (typeof i.text === 'string' ? i.text.trim() : ''))
           .filter(Boolean);
-        const newText = allTexts.join(TEXT_MERGE_SEPARATOR) || null;
+        const newText = mergedTextParts.join(TEXT_MERGE_SEPARATOR) || null;
+
+        const mergedTagNames = items.flatMap((i: any) =>
+          (i.tagObjects ?? []).map((t: any) => t.name),
+        );
+        const newTags = this.normalizeTags(mergedTagNames);
+
+        const targetMeta = (
+          typeof targetItem.meta === 'object' && targetItem.meta !== null
+            ? (targetItem.meta as Record<string, any>)
+            : {}
+        ) as Record<string, any>;
+        const removedMetas = sourceItems
+          .map((i: any) => i?.meta)
+          .filter((m: any) => typeof m === 'object' && m !== null);
+        const newMeta = {
+          ...targetMeta,
+          mergedContentItems: removedMetas,
+        };
 
         // 5. Combine Media
         const mediaPick = new Map<
@@ -799,9 +809,17 @@ export class ContentLibraryService {
             where: { id: targetId },
             data: {
               title: newTitle,
-              note: newNote,
-              tags: newTags,
               text: newText,
+              meta: newMeta as any,
+              tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+                newTags,
+                {
+                  projectId: targetItem.projectId ?? undefined,
+                  userId: targetItem.userId ?? undefined,
+                },
+                'CONTENT_LIBRARY',
+                true,
+              ),
             },
           });
 

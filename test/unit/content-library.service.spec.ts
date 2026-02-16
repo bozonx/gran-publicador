@@ -329,6 +329,104 @@ describe('ContentLibraryService (unit)', () => {
       );
       expect(res).toEqual({ count: 2 });
     });
+
+    it('MERGE should keep first item, merge title/text/tags/media and store removed meta list', async () => {
+      mockPrismaService.contentItem.findUnique
+        .mockResolvedValueOnce({
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          groupId: null,
+          archivedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'ci-2',
+          userId: 'user-1',
+          projectId: null,
+          groupId: null,
+          archivedAt: null,
+        });
+
+      mockPrismaService.contentItem.findMany.mockResolvedValue([
+        {
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          title: 'A',
+          note: 'keep-note',
+          text: 't1',
+          meta: { a: 1 },
+          tagObjects: [{ name: 'Tag1' }],
+          media: [{ mediaId: 'm1', order: 0, hasSpoiler: false }],
+        },
+        {
+          id: 'ci-2',
+          userId: 'user-1',
+          projectId: null,
+          title: 'B',
+          note: 'should-not-merge',
+          text: 't2',
+          meta: { b: 2 },
+          tagObjects: [{ name: 'Tag2' }],
+          media: [{ mediaId: 'm2', order: 0, hasSpoiler: true }],
+        },
+      ]);
+
+      mockTagsService.prepareTagsConnectOrCreate.mockResolvedValue({ set: [] });
+
+      const deleteManyMedia = jest.fn() as any;
+      const createManyMedia = jest.fn() as any;
+
+      mockPrismaService.$transaction.mockImplementationOnce(async (fn: any) => {
+        return fn({
+          contentItem: {
+            update: mockPrismaService.contentItem.update,
+            deleteMany: mockPrismaService.contentItem.deleteMany,
+          },
+          contentItemMedia: {
+            deleteMany: deleteManyMedia,
+            createMany: createManyMedia,
+          },
+        });
+      });
+
+      const res = await service.bulkOperation('user-1', {
+        ids: ['ci-1', 'ci-2'],
+        operation: BulkOperationType.MERGE,
+      } as any);
+
+      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ci-1' },
+          data: expect.objectContaining({
+            title: 'A | B',
+            text: 't1\n\n---\n\nt2',
+            meta: { a: 1, mergedContentItems: [{ b: 2 }] },
+            tagObjects: { set: [] },
+          }),
+        }),
+      );
+
+      expect(mockTagsService.prepareTagsConnectOrCreate).toHaveBeenCalledWith(
+        expect.arrayContaining(['tag1', 'tag2']),
+        expect.objectContaining({ userId: 'user-1', projectId: undefined }),
+        'CONTENT_LIBRARY',
+        true,
+      );
+
+      expect(deleteManyMedia).toHaveBeenCalledWith({ where: { contentItemId: 'ci-1' } });
+      expect(createManyMedia).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({ contentItemId: 'ci-1', mediaId: 'm1' }),
+          expect.objectContaining({ contentItemId: 'ci-1', mediaId: 'm2', hasSpoiler: true }),
+        ]),
+      });
+
+      expect(mockPrismaService.contentItem.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['ci-2'] } },
+      });
+      expect(res).toEqual({ count: 2, targetId: 'ci-1' });
+    });
   });
 
   afterAll(async () => {

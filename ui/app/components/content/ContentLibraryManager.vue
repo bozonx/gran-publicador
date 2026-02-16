@@ -120,6 +120,7 @@ const isDeleteTabConfirmModalOpen = ref(false)
 const isRenamingTab = ref(false)
 const isDeletingTab = ref(false)
 const selectedGroupTreeNodeId = ref<string | null>(null)
+const skipAutoRestoreLastSelectedGroupNodeOnce = ref(false)
 const isTreeCreateModalOpen = ref(false)
 const treeCreateParentId = ref<string | null>(null)
 const treeCreateTitle = ref('')
@@ -142,6 +143,10 @@ interface GroupTreeNode extends TreeItem {
 
 const handleSidebarGroupNodeSelect = (tabId: string) => {
   selectedGroupTreeNodeId.value = tabId
+  const targetTab = tabsById.value.get(tabId)
+  if (targetTab?.type === 'GROUP' && !targetTab.parentId) {
+    skipAutoRestoreLastSelectedGroupNodeOnce.value = true
+  }
   handleSelectGroupTab(tabId)
 }
 
@@ -734,11 +739,12 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
 
 const fetchAvailableTags = async () => {
   try {
+    const groupIdForTags = activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined
     const tags = await api.get<string[]>('/content-library/tags', {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
         projectId: props.scope === 'project' ? props.projectId : undefined,
-        groupId: activeRootGroupId.value ?? undefined,
+        groupId: groupIdForTags,
       }
     })
     availableTags.value = tags
@@ -882,16 +888,18 @@ const executeBulkOperation = async () => {
 }
 
 const openRenameTabModal = () => {
-  if (!activeTab.value) return
-  newTabTitle.value = activeTab.value.title
+  const tab = resolveRootGroupTabForActions()
+  if (!tab) return
+  newTabTitle.value = tab.title
   isRenameTabModalOpen.value = true
 }
 
 const handleRenameTab = async () => {
-  if (!activeTab.value || !newTabTitle.value.trim()) return
+  const tab = resolveRootGroupTabForActions()
+  if (!tab || !newTabTitle.value.trim()) return
   isRenamingTab.value = true
   try {
-    await updateTab(activeTab.value.id, { scope: props.scope, projectId: props.projectId, title: newTabTitle.value })
+    await updateTab(tab.id, { scope: props.scope, projectId: props.projectId, title: newTabTitle.value })
     contentLibraryTabsRef.value?.fetchTabs()
     isRenameTabModalOpen.value = false
   } catch (e: any) {
@@ -902,13 +910,14 @@ const handleRenameTab = async () => {
 }
 
 const openDeleteTabModal = () => {
-  if (!activeTab.value) return
+  const tab = resolveRootGroupTabForActions()
+  if (!tab) return
   isDeleteTabConfirmModalOpen.value = true
 }
 
 const handleDeleteTab = async () => {
-  if (!activeTab.value) return
-  const tabToDelete = activeTab.value
+  const tabToDelete = resolveRootGroupTabForActions()
+  if (!tabToDelete) return
   const parentId = tabToDelete.parentId
   isDeletingTab.value = true
   try {
@@ -1094,13 +1103,28 @@ const handleCreatePublication = (item: any) => {
   publicationData.value = {
     title: (item.title || '').toString().trim(),
     content: text,
-    mediaIds: (item.media || []).map((m: any) => ({ id: m.mediaId || m.id })).filter((m: any) => !!m.id),
+    mediaIds: (item.media || [])
+      .map((m: any) => ({ id: m.mediaId || m.media?.id || null, hasSpoiler: m.hasSpoiler ? true : undefined }))
+      .filter((m: any) => !!m.id),
     tags: item.tags || [],
     note: item.note || '',
     contentItemIds: [item.id]
   }
   isCreatePublicationModalOpen.value = true
 }
+
+ const resolveRootGroupTabForActions = (): ContentLibraryTab | null => {
+   if (!activeTab.value) {
+     return null
+   }
+   if (activeTab.value.type !== 'GROUP') {
+     return activeTab.value
+   }
+   if (!activeRootGroupId.value) {
+     return activeTab.value
+   }
+   return tabsById.value.get(activeRootGroupId.value) ?? activeTab.value
+ }
 
 const handleSelectGroupTab = (tabId: string) => {
   if (activeTabId.value === tabId) {
@@ -1313,8 +1337,12 @@ watch(activeTab, async (newTab, oldTab) => {
     if (newTab) {
       if (newTab.type === 'GROUP') {
         if (!isRestoringGroupSelection.value && !newTab.parentId) {
-          restoreLastSelectedGroupNode(newTab)
-          return
+          if (skipAutoRestoreLastSelectedGroupNodeOnce.value) {
+            skipAutoRestoreLastSelectedGroupNodeOnce.value = false
+          } else {
+            restoreLastSelectedGroupNode(newTab)
+            return
+          }
         }
 
         if (newTab.parentId) {

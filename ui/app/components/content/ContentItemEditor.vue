@@ -116,34 +116,6 @@ defineExpose({
 
 <template>
   <div class="space-y-6">
-    <UFormField :label="t('contentLibrary.fields.text')" class="w-full">
-      <EditorTiptapEditor
-        :model-value="editForm.text"
-        :placeholder="t('contentLibrary.fields.textPlaceholder')"
-        :min-height="150"
-        @update:model-value="(v: any) => (editForm.text = v)"
-      />
-    </UFormField>
-
-    <div class="pt-2">
-      <MediaGallery
-        :media="editForm.media || []"
-        :editable="true"
-        :on-add="onAddMedia"
-        :on-reorder="onReorderMedia"
-        :on-update-link="onUpdateLinkMedia"
-        :on-copy="onCopyMedia"
-      />
-    </div>
-
-    <div class="mt-2">
-      <CommonMetadataEditor
-        :model-value="editForm.meta || {}"
-        :label="t('common.meta')"
-        @update:model-value="(newMeta: any) => (editForm.meta = newMeta)"
-      />
-    </div>
-
     <!-- Title Field -->
     <UFormField 
       :label="t('contentLibrary.fields.title', 'Title')"
@@ -171,6 +143,15 @@ defineExpose({
       />
     </UFormField>
 
+    <UFormField :label="t('contentLibrary.fields.text')" class="w-full">
+      <EditorTiptapEditor
+        :model-value="editForm.text"
+        :placeholder="t('contentLibrary.fields.textPlaceholder')"
+        :min-height="150"
+        @update:model-value="(v: any) => (editForm.text = v)"
+      />
+    </UFormField>
+
     <!-- Tags Field -->
     <UFormField :label="t('contentLibrary.fields.tags')" class="w-full">
       <CommonInputTags
@@ -185,6 +166,17 @@ defineExpose({
       />
     </UFormField>
 
+    <div class="pt-2">
+      <MediaGallery
+        :media="editForm.media || []"
+        :editable="true"
+        :on-add="onAddMedia"
+        :on-reorder="onReorderMedia"
+        :on-update-link="onUpdateLinkMedia"
+        :on-copy="onCopyMedia"
+      />
+    </div>
+
     <!-- Note Field -->
     <UFormField :label="t('contentLibrary.fields.note')" class="w-full">
       <UTextarea 
@@ -194,5 +186,13 @@ defineExpose({
         class="w-full"
       />
     </UFormField>
+
+    <div class="mt-2">
+      <CommonMetadataEditor
+        :model-value="editForm.meta || {}"
+        :label="t('common.meta')"
+        @update:model-value="(newMeta: any) => (editForm.meta = newMeta)"
+      />
+    </div>
   </div>
 </template>
