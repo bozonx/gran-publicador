@@ -169,6 +169,15 @@ const getGroupTreeNodeLabel = (node: unknown): string => {
   return typeof label === 'string' ? label : ''
 }
 
+const hasTreeChildren = (node: unknown): boolean => {
+  if (!node || typeof node !== 'object' || !('children' in node)) {
+    return false
+  }
+
+  const children = (node as any).children
+  return Array.isArray(children) && children.length > 0
+}
+
 const formatGroupTreeLabel = (tab: ContentLibraryTab) => {
   const directItemsCount = Number(tab.directItemsCount ?? 0)
   return `${tab.title} (${directItemsCount})`
@@ -622,7 +631,7 @@ const getGroupNodeMenuItems = (tabId: string) => {
     })
   }
 
-  if (canDeleteTab(targetTab)) {
+  if (targetTab?.parentId && canDeleteTab(targetTab)) {
     menuItems.push({
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
@@ -1597,8 +1606,9 @@ if (props.scope === 'project' && props.projectId) {
               item: 'cursor-pointer'
             }"
           >
-            <template #group-node-leading="{ expanded, handleToggle }">
+            <template #group-node-leading="{ item, expanded, handleToggle }">
               <UButton
+                v-if="hasTreeChildren(item)"
                 variant="ghost"
                 color="neutral"
                 size="xs"
@@ -1742,6 +1752,7 @@ if (props.scope === 'project' && props.projectId) {
       :archive-status="archiveStatus"
       :is-group-tab="isActiveGroupTab"
       @archive="handleBulkAction('ARCHIVE')"
+      @restore="handleBulkAction('UNARCHIVE')"
       @move="handleMoveToProject"
       @to-group="handleOpenToGroupModal"
       @merge="handleMerge"

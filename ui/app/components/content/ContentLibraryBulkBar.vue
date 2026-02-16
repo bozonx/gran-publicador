@@ -7,6 +7,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'archive'): void
+  (e: 'restore'): void
   (e: 'move'): void
   (e: 'to-group'): void
   (e: 'merge'): void
@@ -32,63 +33,77 @@ const { t } = useI18n()
       </span>
 
       <div class="flex items-center gap-2">
-        <UButton
-          v-if="archiveStatus === 'active'"
-          color="warning"
-          variant="ghost"
-          icon="i-heroicons-archive-box"
-          size="sm"
-          class="text-white hover:bg-gray-700"
-          @click="emit('archive')"
-        >
-          {{ t('contentLibrary.bulk.moveToTrash') }}
-        </UButton>
+        <template v-if="archiveStatus === 'archived'">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-uturn-left"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('restore')"
+          >
+            {{ t('common.restore', 'Restore') }}
+          </UButton>
+        </template>
 
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-folder-open"
-          size="sm"
-          class="text-white hover:bg-gray-700"
-          @click="emit('move')"
-        >
-          {{ t('contentLibrary.bulk.move') }}
-        </UButton>
+        <template v-else>
+          <UButton
+            color="warning"
+            variant="ghost"
+            icon="i-heroicons-archive-box"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('archive')"
+          >
+            {{ t('contentLibrary.bulk.moveToTrash') }}
+          </UButton>
 
-        <UButton
-          v-if="archiveStatus === 'active' && isGroupTab"
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-folder-plus"
-          size="sm"
-          class="text-white hover:bg-gray-700"
-          @click="emit('to-group')"
-        >
-          {{ t('contentLibrary.bulk.toGroup') }}
-        </UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-folder-open"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('move')"
+          >
+            {{ t('contentLibrary.bulk.move') }}
+          </UButton>
 
-        <UButton
-          v-if="selectedIds.length >= 2"
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-square-3-stack-3d"
-          size="sm"
-          class="text-white hover:bg-gray-700"
-          @click="emit('merge')"
-        >
-          {{ t('contentLibrary.bulk.merge') }}
-        </UButton>
+          <UButton
+            v-if="isGroupTab"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-folder-plus"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('to-group')"
+          >
+            {{ t('contentLibrary.bulk.toGroup') }}
+          </UButton>
 
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-paper-airplane"
-          size="sm"
-          class="text-white hover:bg-gray-700"
-          @click="emit('create-publication')"
-        >
-          {{ t('contentLibrary.bulk.createPublication') }}
-        </UButton>
+          <UButton
+            v-if="selectedIds.length >= 2"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-square-3-stack-3d"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('merge')"
+          >
+            {{ t('contentLibrary.bulk.merge') }}
+          </UButton>
+
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-paper-airplane"
+            size="sm"
+            class="text-white hover:bg-gray-700"
+            @click="emit('create-publication')"
+          >
+            {{ t('contentLibrary.bulk.createPublication') }}
+          </UButton>
+        </template>
       </div>
 
       <UButton

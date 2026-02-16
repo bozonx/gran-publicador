@@ -132,7 +132,7 @@ const toolbarMenuItems = computed(() => {
       {
         label: t('common.rename'),
         icon: 'i-heroicons-pencil-square',
-        click: () => emit('rename-tab'),
+        onSelect: () => emit('rename-tab'),
       },
     ])
 
@@ -141,7 +141,7 @@ const toolbarMenuItems = computed(() => {
         {
           label: t('common.delete'),
           icon: 'i-heroicons-trash',
-          click: () => emit('delete-tab'),
+          onSelect: () => emit('delete-tab'),
         },
       ])
     }
@@ -154,7 +154,7 @@ const toolbarMenuItems = computed(() => {
 <template>
   <div class="space-y-6">
     <!-- Header Section -->
-    <div class="flex items-start justify-between gap-4">
+    <div class="flex items-start justify-between gap-4 w-full">
       <div class="min-w-0">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
           {{ scope === 'personal' ? t('contentLibrary.title') : t('project.contentLibrary') }}
