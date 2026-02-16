@@ -3,6 +3,7 @@ import type { TreeItem } from '@nuxt/ui'
 import { type ContentCollection } from '~/composables/useContentCollections'
 import { getApiErrorMessage } from '~/utils/error'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import { buildGroupTreeFromRoot, getRootGroupId } from '~/composables/useContentLibraryGroupsTree'
 
 interface GroupTreeNode extends TreeItem {
   label: string
@@ -36,19 +37,10 @@ const activeRootGroupId = computed(() => {
     return null
   }
 
-  let cursor: ContentCollection | undefined = props.activeCollection
-  const visited = new Set<string>()
-
-  while (cursor?.parentId && !visited.has(cursor.id)) {
-    visited.add(cursor.id)
-    const parent = collectionsById.value.get(cursor.parentId)
-    if (!parent || parent.type !== 'GROUP') {
-      break
-    }
-    cursor = parent
-  }
-
-  return cursor?.id ?? null
+  return getRootGroupId({
+    activeGroupId: props.activeCollection.id,
+    collectionsById: collectionsById.value as any,
+  })
 })
 
 const formatGroupTreeLabel = (collection: ContentCollection) => {
@@ -61,38 +53,17 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
     return []
   }
 
-  const rootGroup = collectionsById.value.get(activeRootGroupId.value)
-  if (!rootGroup || rootGroup.type !== 'GROUP') {
-    return []
-  }
+  const items = buildGroupTreeFromRoot({
+    rootId: activeRootGroupId.value,
+    allGroupCollections: allScopeGroupCollections.value,
+    labelFn: (c) => formatGroupTreeLabel(c as any),
+  })
 
-  const byParent = new Map<string, ContentCollection[]>()
-
-  for (const collection of allScopeGroupCollections.value) {
-    const parentId = collection.parentId ?? ''
-    const current = byParent.get(parentId) ?? []
-    current.push(collection)
-    byParent.set(parentId, current)
-  }
-
-  const buildTree = (parentId: string): GroupTreeNode[] => {
-    const children = (byParent.get(parentId) ?? []).sort((a, b) => a.order - b.order)
-    return children.map((collection) => ({
-      label: formatGroupTreeLabel(collection),
-      value: collection.id,
-      slot: 'group-node',
-      defaultExpanded: true,
-      children: buildTree(collection.id),
-    }))
-  }
-
-  return [{
-    label: formatGroupTreeLabel(rootGroup),
-    value: rootGroup.id,
+  return items.map((item) => ({
+    ...item,
     slot: 'group-node',
-    defaultExpanded: true,
-    children: buildTree(rootGroup.id),
-  }]
+    children: item.children as any,
+  })) as any
 })
 
 const getGroupTreeNodeValue = (node: unknown): string => {

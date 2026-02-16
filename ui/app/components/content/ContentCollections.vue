@@ -25,6 +25,10 @@ const isLoading = ref(false)
 const isCreateModalOpen = ref(false)
 const isReordering = ref(false)
 
+const hasRestoredFromStorage = ref(false)
+const hasUserSelection = ref(false)
+let fetchCollectionsRequestId = 0
+
 const activeCollectionId = computed({
   get: () => props.modelValue ?? null,
   set: (value) => emit('update:modelValue', value),
@@ -130,11 +134,13 @@ const getStorageKey = () => {
 }
 
 const fetchCollections = async () => {
+  const requestId = ++fetchCollectionsRequestId
   if (props.scope === 'project' && !props.projectId) return
 
   isLoading.value = true
   try {
     collections.value = await listCollections(props.scope, props.scope === 'project' ? props.projectId : undefined)
+    if (requestId !== fetchCollectionsRequestId) return
     emit('update:collections', collections.value)
 
     if (activeCollectionId.value) {
@@ -144,25 +150,35 @@ const fetchCollections = async () => {
       }
     }
     
-    // Restore from localStorage
-    const savedCollectionId = localStorage.getItem(getStorageKey())
-    const resolvedSavedCollectionId = resolveTopLevelCollectionId(savedCollectionId)
-    const collectionToRestore = resolvedSavedCollectionId ? topLevelCollections.value.find(t => t.id === resolvedSavedCollectionId) : null
+    if (!hasRestoredFromStorage.value && !hasUserSelection.value) {
+      hasRestoredFromStorage.value = true
 
-    if (collectionToRestore) {
-      activeCollectionId.value = collectionToRestore.id
-      emit('update:active-collection', collectionToRestore)
-    } else {
-      // Auto-select first collection if none selected or restored
-      if (!activeCollectionId.value && topLevelCollections.value.length > 0 && topLevelCollections.value[0]) {
-        activeCollectionId.value = topLevelCollections.value[0].id
-        emit('update:active-collection', topLevelCollections.value[0])
+      const savedCollectionId = localStorage.getItem(getStorageKey())
+      const resolvedSavedCollectionId = resolveTopLevelCollectionId(savedCollectionId)
+      const collectionToRestore = resolvedSavedCollectionId
+        ? topLevelCollections.value.find(t => t.id === resolvedSavedCollectionId)
+        : null
+
+      if (collectionToRestore) {
+        activeCollectionId.value = collectionToRestore.id
+        emit('update:active-collection', collectionToRestore)
+      } else {
+        if (!activeCollectionId.value && topLevelCollections.value.length > 0 && topLevelCollections.value[0]) {
+          activeCollectionId.value = topLevelCollections.value[0].id
+          emit('update:active-collection', topLevelCollections.value[0])
+        }
       }
     }
   } catch (e: any) {
-    console.error('Failed to fetch collections', e)
+    toast.add({
+      title: t('common.error'),
+      description: t('common.unexpectedError'),
+      color: 'error',
+    })
   } finally {
-    isLoading.value = false
+    if (requestId === fetchCollectionsRequestId) {
+      isLoading.value = false
+    }
   }
 }
 
@@ -296,7 +312,7 @@ defineExpose({
             size="sm"
             :icon="getCollectionIcon(collection.type)"
             class="drag-handle cursor-pointer max-w-full"
-            @click="() => { activeCollectionId = collection.id; emit('update:active-collection', collection) }"
+            @click="() => { hasUserSelection = true; activeCollectionId = collection.id; emit('update:active-collection', collection) }"
           >
             <span class="truncate max-w-48 sm:max-w-64">
               {{ getCollectionLabel(collection) }}

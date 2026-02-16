@@ -11,6 +11,7 @@ const props = defineProps<{
   hasMore: boolean
   total: number
   totalUnfiltered: number
+  archiveStatus: 'active' | 'archived'
   q: string
   selectedTags: string
   error: string | null
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   'open-edit': [item: any]
   'archive': [id: string]
   'restore': [id: string]
+  'delete-forever': [id: string]
   'create-publication': [item: any]
   'move': [ids: string[]]
 }>()
@@ -71,13 +73,15 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
           v-for="item in items"
           :key="item.id"
           :item="item"
+          :archive-status="archiveStatus"
           :selected="selectedIds.includes(item.id)"
           :is-archiving="isArchivingId === item.id"
           :is-restoring="isRestoringId === item.id"
           @click="emit('open-edit', item)"
           @toggle-selection="emit('toggle-selection', $event)"
-          @archive="emit('archive', $event)"
+          @archive="emit('archive', $event.id)"
           @restore="emit('restore', $event)"
+          @delete-forever="emit('delete-forever', $event)"
           @create-publication="emit('create-publication', $event)"
           @move="emit('move', [$event.id])"
         />

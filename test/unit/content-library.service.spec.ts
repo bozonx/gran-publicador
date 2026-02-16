@@ -3,6 +3,8 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ContentLibraryService } from '../../src/modules/content-library/content-library.service.js';
+import { ContentCollectionsService } from '../../src/modules/content-library/content-collections.service.js';
+import { ContentItemsService } from '../../src/modules/content-library/content-items.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
@@ -51,6 +53,7 @@ describe('ContentLibraryService (unit)', () => {
     },
     $transaction: jest.fn() as any,
     $queryRaw: jest.fn() as any,
+    $executeRaw: jest.fn() as any,
   };
 
   const mockPermissionsService = {
@@ -63,9 +66,13 @@ describe('ContentLibraryService (unit)', () => {
   };
 
   beforeAll(async () => {
+    mockPrismaService.$transaction.mockImplementation(async (fn: any) => fn(mockPrismaService));
+
     moduleRef = await Test.createTestingModule({
       providers: [
         ContentLibraryService,
+        ContentItemsService,
+        ContentCollectionsService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
@@ -114,6 +121,13 @@ describe('ContentLibraryService (unit)', () => {
         .spyOn(service as any, 'assertGroupTabAccess')
         .mockResolvedValue({ id: 'g1' });
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.contentCollection.findUnique.mockResolvedValue({
+        id: 'g1',
+        type: 'GROUP',
+        groupType: 'PROJECT_SHARED',
+        userId: null,
+        projectId: 'p1',
+      });
       mockPrismaService.tag.findMany.mockResolvedValue([{ name: 'GroupTag' }]);
 
       const res = await service.getAvailableTags('project', 'p1', 'user-1', 'g1');
@@ -699,6 +713,9 @@ describe('ContentLibraryService (unit)', () => {
 
       mockPrismaService.$transaction.mockImplementationOnce(async (fn: any) => {
         return fn({
+          $executeRaw: (jest.fn() as any)
+            .mockResolvedValueOnce(0)
+            .mockResolvedValueOnce({ count: 1 }),
           contentCollection: {
             findMany: (jest.fn() as any).mockResolvedValue([]),
             deleteMany: (jest.fn() as any).mockResolvedValue({ count: 1 }),

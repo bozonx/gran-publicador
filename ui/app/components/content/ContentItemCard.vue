@@ -27,6 +27,7 @@ interface ContentItem {
 
 const props = defineProps<{
   item: ContentItem
+  archiveStatus?: 'active' | 'archived'
   selected?: boolean
   isArchiving?: boolean
   isRestoring?: boolean
@@ -39,6 +40,7 @@ const emit = defineEmits<{
   (e: 'toggleSelection', itemId: string): void
   (e: 'archive', item: ContentItem): void
   (e: 'restore', itemId: string): void
+  (e: 'delete-forever', itemId: string): void
   (e: 'create-publication', item: ContentItem): void
   (e: 'move', item: ContentItem): void
 }>()
@@ -48,8 +50,20 @@ const { formatDateShort, truncateContent } = useFormatters()
 const authStore = useAuthStore()
 
 const actionsMenuItems = computed(() => {
-  if (props.hideActions || props.item.archivedAt) {
+  if (props.hideActions) {
     return []
+  }
+
+  if (props.archiveStatus === 'archived' || props.item.archivedAt) {
+    return [
+      [
+        {
+          label: t('common.deleteForever', 'Delete forever'),
+          icon: 'i-heroicons-trash',
+          onSelect: () => emit('delete-forever', props.item.id),
+        },
+      ],
+    ]
   }
 
   return [
@@ -60,7 +74,7 @@ const actionsMenuItems = computed(() => {
         onSelect: () => emit('move', props.item),
       },
       {
-        label: t('contentLibrary.actions.moveToTrash'),
+        label: t('contentLibrary.actions.moveToTrash', 'Move to trash'),
         icon: 'i-heroicons-trash',
         onSelect: () => emit('archive', props.item),
       },

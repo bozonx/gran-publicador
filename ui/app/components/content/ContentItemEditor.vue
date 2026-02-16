@@ -2,6 +2,7 @@
 import { ref, toRef, watch } from 'vue'
 import { normalizeTags } from '~/utils/tags'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { getApiErrorMessage } from '~/utils/error'
 
 interface ContentItemMediaLink {
   id?: string
@@ -33,8 +34,6 @@ const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'create-publication', item: ContentItem): void
 }>()
-
-import { getApiErrorMessage } from '~/utils/error'
 
 const { t } = useI18n()
 const { user } = useAuth()

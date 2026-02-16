@@ -67,7 +67,7 @@ const { t } = useI18n()
             class="text-white hover:bg-gray-700"
             @click="emit('archive')"
           >
-            {{ t('contentLibrary.bulk.moveToTrash') }}
+            {{ t('contentLibrary.actions.moveToTrash', 'Move to trash') }}
           </UButton>
 
           <UButton

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { type ContentCollection } from '~/composables/useContentCollections'
-import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
 import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
 import { useContentFileUpload } from '~/composables/useContentFileUpload'
+import { parseTags } from '~/utils/tags'
+import { buildDescendantsTree, getRootGroupId } from '~/composables/useContentLibraryGroupsTree'
 import ContentCollections from './ContentCollections.vue'
 import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
@@ -20,7 +21,7 @@ const { t } = useI18n()
 const api = useApi()
 const toast = useToast()
 const { projects, currentProject } = useProjects()
-const { listCollections, createCollection, updateCollection, deleteCollection } = useContentCollections()
+const { updateCollection, deleteCollection } = useContentCollections()
 const { uploadMedia } = useMedia()
 
 // State
@@ -42,6 +43,8 @@ const selectedTags = ref<string>('')
 const sortBy = ref<'createdAt' | 'title'>('createdAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const selectedIds = ref<string[]>([])
+
+const selectedTagsArray = computed(() => parseTags(selectedTags.value))
 
 const allScopeGroupCollections = computed(() => collections.value.filter(c => c.type === 'GROUP'))
 const collectionsById = computed(() => new Map(collections.value.map(c => [c.id, c])))
@@ -83,52 +86,20 @@ function toggleSortOrder() { sortOrder.value = sortOrder.value === 'asc' ? 'desc
 // Group Tree helpers for Move Modal
 const groupTreeItems = computed(() => {
   if (activeCollection.value?.type !== 'GROUP') return []
-  
-  const rootId = activeCollection.value.id
-  const descendants = new Set<string>([rootId])
-  const queue = [rootId]
 
-  while (queue.length > 0) {
-    const parentId = queue.shift()
-    if (!parentId) continue
-    for (const c of allScopeGroupCollections.value) {
-      if (c.parentId === parentId && !descendants.has(c.id)) {
-        descendants.add(c.id)
-        queue.push(c.id)
-      }
-    }
-  }
-
-  const byParent = new Map<string, ContentCollection[]>()
-  for (const c of allScopeGroupCollections.value) {
-    if (!descendants.has(c.id) || c.id === rootId) continue
-    const pid = c.parentId ?? ''
-    const current = byParent.get(pid) ?? []
-    current.push(c)
-    byParent.set(pid, current)
-  }
-
-  const buildTree = (pid: string): any[] => {
-    const children = (byParent.get(pid) ?? []).sort((a, b) => a.order - b.order)
-    return children.map((c) => ({
-      label: c.title,
-      value: c.id,
-      defaultExpanded: true,
-      children: buildTree(c.id),
-    }))
-  }
-  return buildTree(rootId)
+  return buildDescendantsTree({
+    rootId: activeCollection.value.id,
+    allGroupCollections: allScopeGroupCollections.value,
+    labelFn: (c) => c.title,
+  })
 })
 
 const activeRootGroupId = computed(() => {
   if (activeCollection.value?.type !== 'GROUP') return undefined
-  let cursor: ContentCollection | undefined = activeCollection.value
-  while (cursor?.parentId) {
-    const parent = collectionsById.value.get(cursor.parentId)
-    if (!parent || parent.type !== 'GROUP') break
-    cursor = parent
-  }
-  return cursor?.id ?? undefined
+  return getRootGroupId({
+    activeGroupId: activeCollection.value.id,
+    collectionsById: collectionsById.value as any,
+  })
 })
 
 // Data Fetching
@@ -155,7 +126,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         offset: offset.value,
         sortBy: sortBy.value,
         sortOrder: sortOrder.value,
-        tags: selectedTags.value || undefined,
+        tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value : undefined,
         includeTotalUnfiltered: offset.value === 0 ? true : undefined,
       },
     })
@@ -175,6 +146,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
 }
 
 const fetchAvailableTags = async () => {
+  const requestId = ++fetchAvailableTagsRequestId
   try {
     if (!activeCollection.value) return
     const tags = await api.get<string[]>('/content-library/tags', {
@@ -184,9 +156,11 @@ const fetchAvailableTags = async () => {
         groupId: activeCollection.value.id,
       }
     })
+    if (requestId !== fetchAvailableTagsRequestId) return
     availableTags.value = tags
   } catch (e) {
-    console.error('Failed to fetch available tags', e)
+    if (requestId !== fetchAvailableTagsRequestId) return
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to load tags'), color: 'error' })
   }
 }
 
@@ -223,7 +197,7 @@ const uploadContentFiles = async (files: File[]) => {
     await fetchItems({ reset: true })
     toast.add({ title: t('common.success'), description: t('contentLibrary.actions.uploadMediaSuccess', { count: files.length }), color: 'success' })
   } catch (e) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to upload files'), color: 'error' })
   } finally { isUploadingFiles.value = false }
 }
 
@@ -242,27 +216,61 @@ const handleCreatePublication = (item: any) => {
         // In a real app, this would open a publication editor
         toast.add({ title: 'Not implemented', description: 'Publication editor opening logic here' })
     } catch (e: any) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create publication'), color: 'error' })
     }
 }
 
-const handleBulkAction = (type: 'ARCHIVE' | 'UNARCHIVE' | 'DELETE') => { bulkOperationType.value = type; isBulkOperationModalOpen.value = true }
+const isBulkOperating = ref(false)
+const handleBulkAction = async (type: 'ARCHIVE' | 'UNARCHIVE') => {
+  if (selectedIds.value.length === 0) return
+
+  isBulkOperating.value = true
+  try {
+    await api.post('/content-library/bulk', {
+      ids: selectedIds.value,
+      operation: type,
+      scope: props.scope,
+      projectId: props.projectId,
+    })
+    await fetchItems({ reset: true })
+    selectedIds.value = []
+    toast.add({ title: t('common.success'), color: 'success' })
+  } catch (e) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to update items'), color: 'error' })
+  } finally {
+    isBulkOperating.value = false
+  }
+}
 
 const executeBulkOperation = async () => {
     isBulkDeleting.value = true
     try {
-        await api.post('/content-library/bulk', { ids: selectedIds.value, operation: bulkOperationType.value, scope: props.scope, projectId: props.projectId })
+        await api.post('/content-library/bulk', {
+          ids: selectedIds.value,
+          operation: bulkOperationType.value,
+          scope: props.scope,
+          projectId: props.projectId,
+        })
         await fetchItems({ reset: true })
         selectedIds.value = []
         isBulkOperationModalOpen.value = false; isMergeConfirmModalOpen.value = false
         toast.add({ title: t('common.success'), color: 'success' })
     } catch (e) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to update items'), color: 'error' })
     } finally { isBulkDeleting.value = false }
 }
 
 const archiveItem = async (id: string) => { isArchivingId.value = id; try { await api.post(`/content-library/items/${id}/archive`, {}); await fetchItems({ reset: true }) } finally { isArchivingId.value = null } }
 const restoreItem = async (id: string) => { isRestoringId.value = id; try { await api.post(`/content-library/items/${id}/restore`, {}); await fetchItems({ reset: true }) } finally { isRestoringId.value = null } }
+const deleteItemForever = async (id: string) => {
+  try {
+    await api.delete(`/content-library/items/${id}`)
+    await fetchItems({ reset: true })
+    toast.add({ title: t('common.success'), color: 'success' })
+  } catch (e) {
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete item'), color: 'error' })
+  }
+}
 
 const handleSelectGroupCollection = (id: string) => {
     const c = collectionsById.value.get(id)
@@ -286,7 +294,7 @@ const purgeArchived = async () => {
         isPurgeConfirmModalOpen.value = false
         toast.add({ title: t('common.success'), color: 'success' })
     } catch (e) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to purge archived items'), color: 'error' })
     } finally { isPurging.value = false }
 }
 
@@ -303,7 +311,7 @@ const handleExecuteMoveItems = async (data: any) => {
         isMoveModalOpen.value = false; moveItemsIds.value = []
         toast.add({ title: t('common.success'), color: 'success' })
     } catch (e) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to move items'), color: 'error' })
     }
 }
 
@@ -318,7 +326,7 @@ const handleRenameCollection = async () => {
         isRenameCollectionModalOpen.value = false
         contentCollectionsRef.value?.fetchCollections()
     } catch (e) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename collection'), color: 'error' })
     } finally { isRenamingCollection.value = false }
 }
 
@@ -331,7 +339,7 @@ const handleDeleteCollection = async () => {
         isDeleteCollectionConfirmModalOpen.value = false
         contentCollectionsRef.value?.fetchCollections()
     } catch (e) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e), color: 'error' })
+        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete collection'), color: 'error' })
     } finally { isDeletingCollection.value = false }
 }
 
@@ -353,6 +361,8 @@ const handleCloseModal = () => { isEditModalOpen.value = false; activeItem.value
 const handleOpenMoveModal = (ids: string[]) => { moveItemsIds.value = ids; isMoveModalOpen.value = true }
 const handleMerge = () => { bulkOperationType.value = 'MERGE'; isMergeConfirmModalOpen.value = true }
 const handleBulkDeleteForever = () => { bulkOperationType.value = 'DELETE'; isBulkOperationModalOpen.value = true }
+
+let fetchAvailableTagsRequestId = 0
 
 onMounted(() => { fetchItems() })
 </script>
@@ -379,7 +389,11 @@ onMounted(() => { fetchItems() })
       :group-id="activeCollection?.type === 'GROUP' ? activeCollection.id : undefined"
       :total-unfiltered="totalUnfiltered"
       :current-project="currentProject"
-      :archive-status="archiveStatus"
+      v-model:archiveStatus="archiveStatus"
+      v-model:q="q"
+      v-model:selectedTags="selectedTags"
+      v-model:sortBy="sortBy"
+      v-model:sortOrder="sortOrder"
       :is-purging="isPurging"
       :active-collection="activeCollection"
       :is-start-creating="isStartCreating"
@@ -420,6 +434,7 @@ onMounted(() => { fetchItems() })
         :has-more="hasMore"
         :total="total"
         :total-unfiltered="totalUnfiltered"
+        :archive-status="archiveStatus"
         :q="q"
         :selected-tags="selectedTags"
         :error="error"
@@ -432,6 +447,7 @@ onMounted(() => { fetchItems() })
         @open-edit="item => { activeItem = item; isEditModalOpen = true }"
         @archive="archiveItem"
         @restore="restoreItem"
+        @delete-forever="deleteItemForever"
         @create-publication="handleCreatePublication"
         @move="handleOpenMoveModal($event)"
       />
@@ -458,6 +474,7 @@ onMounted(() => { fetchItems() })
       @purge="handleBulkDeleteForever"
       @move="handleOpenMoveModal(selectedIds)"
       @merge="handleMerge"
+      @create-publication="() => { if (selectedIds.length > 0) handleCreatePublication(items.find(i => i.id === selectedIds[0])) }"
       @clear="selectedIds = []"
     />
 
