@@ -761,6 +761,39 @@ export class ContentLibraryService {
       return { count: 0 };
     }
 
+    const items = await (this.prisma.contentItem as any).findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        userId: true,
+        projectId: true,
+        groupId: true,
+        archivedAt: true,
+        title: true,
+      },
+    });
+
+    const itemsById = new Map<string, any>((items ?? []).map((i: any) => [i.id, i]));
+
+    const requiresAllOrNothingAuthorization = operation === BulkOperationType.MERGE;
+
+    const uniqueProjectIds = Array.from(
+      new Set(
+        (items ?? [])
+          .map((i: any) => i?.projectId)
+          .filter((p: any) => typeof p === 'string' && p.length > 0),
+      ),
+    ) as string[];
+
+    const projectIdToPermissionError = new Map<string, any>();
+    for (const projectId of uniqueProjectIds) {
+      try {
+        await this.permissions.checkProjectPermission(projectId, userId, ['ADMIN', 'EDITOR']);
+      } catch (e) {
+        projectIdToPermissionError.set(projectId, e);
+      }
+    }
+
     const authorizedIds: string[] = [];
     const authorizedItems = new Map<
       string,
@@ -768,15 +801,39 @@ export class ContentLibraryService {
     >();
 
     for (const id of ids) {
-      try {
-        const item = await this.assertContentItemMutationAllowed(id, userId);
-        authorizedIds.push(id);
-        authorizedItems.set(id, item);
-      } catch (e) {
+      const item = itemsById.get(id);
+
+      if (!item) {
+        if (requiresAllOrNothingAuthorization) {
+          throw new ForbiddenException('Bulk MERGE requires access to all items');
+        }
+        this.logger.warn(`User ${userId} attempted bulk ${operation} on missing item ${id}`);
+        continue;
+      }
+
+      if (item.projectId) {
+        const err = projectIdToPermissionError.get(item.projectId);
+        if (err) {
+          if (requiresAllOrNothingAuthorization) {
+            throw err;
+          }
+          this.logger.warn(
+            `User ${userId} attempted bulk ${operation} on item ${id} without permission`,
+          );
+          continue;
+        }
+      } else if (item.userId !== userId) {
+        if (requiresAllOrNothingAuthorization) {
+          throw new ForbiddenException('Bulk MERGE requires access to all items');
+        }
         this.logger.warn(
           `User ${userId} attempted bulk ${operation} on item ${id} without permission`,
         );
+        continue;
       }
+
+      authorizedIds.push(id);
+      authorizedItems.set(id, item);
     }
 
     if (authorizedIds.length === 0) {

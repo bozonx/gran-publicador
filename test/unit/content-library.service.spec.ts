@@ -143,9 +143,10 @@ describe('ContentLibraryService (unit)', () => {
 
   describe('bulkOperation', () => {
     it('SET_PROJECT should require mutation permission for target project and move items into project scope', async () => {
-      mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({ id: 'ci-1', userId: 'user-1', projectId: null, archivedAt: null })
-        .mockResolvedValueOnce({ id: 'ci-2', userId: 'user-1', projectId: null, archivedAt: null });
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        { id: 'ci-1', userId: 'user-1', projectId: null, archivedAt: null },
+        { id: 'ci-2', userId: 'user-1', projectId: null, archivedAt: null },
+      ]);
 
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
@@ -178,9 +179,10 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('SET_PROJECT should move items into personal scope when projectId is not provided', async () => {
-      mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({ id: 'ci-1', userId: null, projectId: 'p1', archivedAt: null })
-        .mockResolvedValueOnce({ id: 'ci-2', userId: null, projectId: 'p1', archivedAt: null });
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        { id: 'ci-1', userId: null, projectId: 'p1', archivedAt: null },
+        { id: 'ci-2', userId: null, projectId: 'p1', archivedAt: null },
+      ]);
 
       mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
 
@@ -189,7 +191,7 @@ describe('ContentLibraryService (unit)', () => {
         operation: BulkOperationType.SET_PROJECT,
       } as any);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledTimes(2);
+      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledTimes(1);
       expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
         'ADMIN',
         'EDITOR',
@@ -211,21 +213,22 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('LINK_TO_GROUP should add group relations and keep existing primary group when set', async () => {
-      mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        {
           id: 'ci-1',
           userId: 'user-1',
           projectId: null,
           groupId: null,
           archivedAt: null,
-        })
-        .mockResolvedValueOnce({
+        },
+        {
           id: 'ci-2',
           userId: 'user-1',
           projectId: null,
           groupId: 'g-existing',
           archivedAt: null,
-        });
+        },
+      ]);
 
       mockPrismaService.contentCollection.findUnique
         .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', projectId: null })
@@ -265,13 +268,15 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('MOVE_TO_GROUP should require sourceGroupId', async () => {
-      mockPrismaService.contentItem.findUnique.mockResolvedValueOnce({
-        id: 'ci-1',
-        userId: 'user-1',
-        projectId: null,
-        groupId: 'g-source',
-        archivedAt: null,
-      });
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        {
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          groupId: 'g-source',
+          archivedAt: null,
+        },
+      ]);
 
       await expect(
         service.bulkOperation('user-1', {
@@ -283,21 +288,22 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('MOVE_TO_GROUP should unlink only source group and set target as primary when needed', async () => {
-      mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        {
           id: 'ci-1',
           userId: 'user-1',
           projectId: null,
           groupId: 'g-source',
           archivedAt: null,
-        })
-        .mockResolvedValueOnce({
+        },
+        {
           id: 'ci-2',
           userId: 'user-1',
           projectId: null,
           groupId: 'g-other',
           archivedAt: null,
-        });
+        },
+      ]);
 
       mockPrismaService.contentCollection.findUnique
         .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', projectId: null })
@@ -335,46 +341,49 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('MERGE should keep first item, merge title/text/tags/media and store removed meta list', async () => {
-      mockPrismaService.contentItem.findUnique
-        .mockResolvedValueOnce({
-          id: 'ci-1',
-          userId: 'user-1',
-          projectId: null,
-          groupId: null,
-          archivedAt: null,
-        })
-        .mockResolvedValueOnce({
-          id: 'ci-2',
-          userId: 'user-1',
-          projectId: null,
-          groupId: null,
-          archivedAt: null,
-        });
-
-      mockPrismaService.contentItem.findMany.mockResolvedValue([
-        {
-          id: 'ci-1',
-          userId: 'user-1',
-          projectId: null,
-          title: 'A',
-          note: 'keep-note',
-          text: 't1',
-          meta: { a: 1 },
-          tagObjects: [{ name: 'Tag1' }],
-          media: [{ mediaId: 'm1', order: 0, hasSpoiler: false }],
-        },
-        {
-          id: 'ci-2',
-          userId: 'user-1',
-          projectId: null,
-          title: 'B',
-          note: 'should-not-merge',
-          text: 't2',
-          meta: { b: 2 },
-          tagObjects: [{ name: 'Tag2' }],
-          media: [{ mediaId: 'm2', order: 0, hasSpoiler: true }],
-        },
-      ]);
+      mockPrismaService.contentItem.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'ci-1',
+            userId: 'user-1',
+            projectId: null,
+            groupId: null,
+            archivedAt: null,
+            title: null,
+          },
+          {
+            id: 'ci-2',
+            userId: 'user-1',
+            projectId: null,
+            groupId: null,
+            archivedAt: null,
+            title: null,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 'ci-1',
+            userId: 'user-1',
+            projectId: null,
+            title: 'A',
+            note: 'keep-note',
+            text: 't1',
+            meta: { a: 1 },
+            tagObjects: [{ name: 'Tag1' }],
+            media: [{ mediaId: 'm1', order: 0, hasSpoiler: false }],
+          },
+          {
+            id: 'ci-2',
+            userId: 'user-1',
+            projectId: null,
+            title: 'B',
+            note: 'should-not-merge',
+            text: 't2',
+            meta: { b: 2 },
+            tagObjects: [{ name: 'Tag2' }],
+            media: [{ mediaId: 'm2', order: 0, hasSpoiler: true }],
+          },
+        ]);
 
       mockTagsService.prepareTagsConnectOrCreate.mockResolvedValue({ set: [] });
 
@@ -431,6 +440,51 @@ describe('ContentLibraryService (unit)', () => {
         where: { id: { in: ['ci-2'] } },
       });
       expect(res).toEqual({ count: 2, targetId: 'ci-1' });
+    });
+
+    it('MERGE should be all-or-nothing: should throw when any selected item is missing', async () => {
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        {
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          groupId: null,
+          archivedAt: null,
+          title: null,
+        },
+      ]);
+
+      await expect(
+        service.bulkOperation('user-1', {
+          ids: ['ci-1', 'ci-missing'],
+          operation: BulkOperationType.MERGE,
+        } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('DELETE should be best-effort: should skip missing ids and proceed with authorized ones', async () => {
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
+        {
+          id: 'ci-1',
+          userId: 'user-1',
+          projectId: null,
+          groupId: null,
+          archivedAt: null,
+          title: null,
+        },
+      ]);
+
+      mockPrismaService.contentItem.deleteMany.mockResolvedValue({ count: 1 });
+
+      const res = await service.bulkOperation('user-1', {
+        ids: ['ci-1', 'ci-missing'],
+        operation: BulkOperationType.DELETE,
+      } as any);
+
+      expect(mockPrismaService.contentItem.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['ci-1'] } },
+      });
+      expect(res).toEqual({ count: 1 });
     });
   });
 

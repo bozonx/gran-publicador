@@ -669,34 +669,25 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       includeArchived: false,
     }
 
-    const [res, globalRes] = await Promise.all([
-      api.get<any>('/content-library/items', {
-        params: {
-          ...baseParams,
-          groupId: resolvedGroupId,
-          search: q.value || undefined,
-          limit,
-          offset: offset.value,
-          sortBy: sortBy.value,
-          sortOrder: sortOrder.value,
-          tags: selectedTags.value || undefined,
-        },
-      }),
-      api.get<any>('/content-library/items', {
-        params: {
-          ...baseParams,
-          limit: 1,
-          offset: 0,
-        },
-      }),
-    ])
+    const res = await api.get<any>('/content-library/items', {
+      params: {
+        ...baseParams,
+        groupId: resolvedGroupId,
+        search: q.value || undefined,
+        limit,
+        offset: offset.value,
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
+        tags: selectedTags.value || undefined,
+      },
+    })
 
     if (requestId !== fetchItemsRequestId) {
       return
     }
 
     total.value = res.total
-    totalUnfiltered.value = globalRes.total
+    totalUnfiltered.value = typeof res.totalUnfiltered === 'number' ? res.totalUnfiltered : res.total
     if (offset.value === 0) {
       items.value = res.items
     } else {
