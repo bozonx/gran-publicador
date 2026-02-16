@@ -943,37 +943,42 @@ export class ContentItemsService {
       }
 
       case BulkOperationType.MOVE_TO_GROUP: {
-        if (!dto.groupId) {
-          throw new BadRequestException('groupId is required for MOVE_TO_GROUP operation');
-        }
-        if (!dto.sourceGroupId) {
-          throw new BadRequestException('sourceGroupId is required for MOVE_TO_GROUP operation');
+        if (!dto.groupId && !dto.sourceGroupId) {
+          throw new BadRequestException('Either groupId or sourceGroupId is required for MOVE_TO_GROUP operation');
         }
 
-        const targetGroup = await this.prisma.contentCollection.findUnique({
-          where: { id: dto.groupId },
-          select: { id: true, type: true, projectId: true },
-        });
+        let targetProjectId: string | undefined = undefined;
+        let targetScope: 'personal' | 'project' = 'personal';
 
-        if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
-          throw new BadRequestException('Target group not found');
+        if (dto.groupId) {
+          const targetGroup = await this.prisma.contentCollection.findUnique({
+            where: { id: dto.groupId },
+            select: { id: true, type: true, projectId: true },
+          });
+
+          if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+            throw new BadRequestException('Target group not found');
+          }
+
+          targetScope = targetGroup.projectId ? 'project' : 'personal';
+          targetProjectId = targetGroup.projectId ?? undefined;
+
+          await this.collectionsService.assertGroupAccess({
+            groupId: dto.groupId,
+            scope: targetScope,
+            projectId: targetProjectId,
+            userId,
+          });
+        } else if (dto.sourceGroupId) {
+          const sourceGroup = await this.prisma.contentCollection.findUnique({
+            where: { id: dto.sourceGroupId },
+            select: { id: true, type: true, projectId: true },
+          });
+          if (sourceGroup) {
+            targetScope = sourceGroup.projectId ? 'project' : 'personal';
+            targetProjectId = sourceGroup.projectId ?? undefined;
+          }
         }
-
-        const targetScope: 'personal' | 'project' = targetGroup.projectId ? 'project' : 'personal';
-        const targetProjectId = targetGroup.projectId ?? undefined;
-
-        await this.collectionsService.assertGroupAccess({
-          groupId: dto.groupId,
-          scope: targetScope,
-          projectId: targetProjectId,
-          userId,
-        });
-        await this.collectionsService.assertGroupAccess({
-          groupId: dto.sourceGroupId,
-          scope: targetScope,
-          projectId: targetProjectId,
-          userId,
-        });
 
         for (const id of authorizedIds) {
           const item = authorizedItems.get(id);
@@ -988,7 +993,7 @@ export class ContentItemsService {
 
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
-            if (dto.sourceGroupId !== dto.groupId) {
+            if (dto.sourceGroupId && dto.sourceGroupId !== dto.groupId) {
               await (tx as any).contentItemGroup.deleteMany({
                 where: {
                   contentItemId: id,
@@ -997,19 +1002,21 @@ export class ContentItemsService {
               });
             }
 
-            await (tx as any).contentItemGroup.upsert({
-              where: {
-                contentItemId_collectionId: {
+            if (dto.groupId) {
+              await (tx as any).contentItemGroup.upsert({
+                where: {
+                  contentItemId_collectionId: {
+                    contentItemId: id,
+                    collectionId: dto.groupId!,
+                  },
+                },
+                create: {
                   contentItemId: id,
                   collectionId: dto.groupId!,
                 },
-              },
-              create: {
-                contentItemId: id,
-                collectionId: dto.groupId!,
-              },
-              update: {},
-            });
+                update: {},
+              });
+            }
           }
         });
 

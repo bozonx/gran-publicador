@@ -464,8 +464,11 @@ const purgeArchived = async () => {
 const handleExecuteMoveItems = async (data: any) => {
     try {
         const isCrossProject = data.operation === 'SET_PROJECT' || data.targetProjectId !== undefined
+        // If targetId is null, it means "No collection". 
+        // We use SET_PROJECT to clear all current group links while staying in the same project/personal scope.
+        const isMovingToRoot = !isCrossProject && data.targetId === null
         
-        const operation = isCrossProject ? 'SET_PROJECT' : 'MOVE_TO_GROUP'
+        const operation = (isCrossProject || isMovingToRoot) ? 'SET_PROJECT' : 'MOVE_TO_GROUP'
         const bulkProjectId = isCrossProject 
           ? data.targetId // In SET_PROJECT targetId is projectId
           : (props.scope === 'project' ? props.projectId : undefined)
@@ -477,7 +480,7 @@ const handleExecuteMoveItems = async (data: any) => {
             ids: moveItemsIds.value,
             groupId: targetGroupId || undefined,
             projectId: bulkProjectId,
-            sourceGroupId: !isCrossProject ? props.activeCollection?.id : undefined
+            sourceGroupId: operation === 'MOVE_TO_GROUP' ? activeCollection.value?.id : undefined
         })
         await fetchItems({ reset: true })
         isMoveModalOpen.value = false; moveItemsIds.value = []
