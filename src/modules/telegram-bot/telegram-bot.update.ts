@@ -356,7 +356,6 @@ export class TelegramBotUpdate {
         data: {
           userId,
           projectId: null,
-          groupId: null,
           title,
           note: null,
           text: finalText || null,

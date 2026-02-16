@@ -1043,7 +1043,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
       _tags: ['nuxt', 'future', 'speculation'],
-      groupId: 'collection10000-0000-4000-8000-000000000001',
+      _groupId: 'collection10000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
       text: 'Nuxt 5 might introduce native AI integration...',
       meta: {},
@@ -1055,7 +1055,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
       _tags: ['image', 'asset'],
-      groupId: 'collection10000-0000-4000-8000-000000000001',
+      _groupId: 'collection10000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
       text: null,
       meta: {},
@@ -1110,7 +1110,7 @@ async function main() {
   ];
 
   for (const item of contentItems) {
-    const { media, _tags, ...itemData } = item as any;
+    const { media, _tags, _groupId, ...itemData } = item as any;
     const tagObjects = _tags
       ? {
           connectOrCreate: _tags.map((name: string) => {
@@ -1131,6 +1131,22 @@ async function main() {
       update: { ...itemData, tagObjects },
       create: { ...itemData, tagObjects },
     });
+
+    if (typeof _groupId === 'string' && _groupId.length > 0) {
+      await prisma.contentItemGroup.upsert({
+        where: {
+          contentItemId_collectionId: {
+            contentItemId: item.id,
+            collectionId: _groupId,
+          },
+        },
+        update: {},
+        create: {
+          contentItemId: item.id,
+          collectionId: _groupId,
+        },
+      });
+    }
 
     await prisma.contentItemMedia.deleteMany({ where: { contentItemId: item.id } });
     if (Array.isArray(media) && media.length > 0) {

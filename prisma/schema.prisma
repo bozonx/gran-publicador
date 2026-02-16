@@ -142,8 +142,6 @@ model ContentCollection {
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent  ContentCollection? @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children ContentCollection[] @relation("ContentCollectionHierarchy")
-
-  groupItems ContentItem[] @relation("ContentItemPrimaryGroup")
   contentItemGroups ContentItemGroup[]
 
   @@index([userId, order])
@@ -353,8 +351,6 @@ model ContentItem {
   userId    String?  @map("user_id")
   projectId String?  @map("project_id")
 
-  groupId   String?  @map("group_id")
-
   title     String?
   note      String?
 
@@ -368,7 +364,6 @@ model ContentItem {
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  group   ContentCollection? @relation("ContentItemPrimaryGroup", fields: [groupId], references: [id], onDelete: SetNull)
 
   media ContentItemMedia[]
   groups ContentItemGroup[]
@@ -377,7 +372,6 @@ model ContentItem {
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
-  @@index([groupId, createdAt])
   @@index([archivedAt])
   @@map("content_items")
 }

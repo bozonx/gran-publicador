@@ -112,7 +112,6 @@ export class ContentLibraryService {
         id: true,
         userId: true,
         projectId: true,
-        groupId: true,
         archivedAt: true,
         title: true,
       },
@@ -483,12 +482,7 @@ export class ContentLibraryService {
         projectId: query.projectId,
         userId,
       });
-      where.AND = [
-        ...(where.AND ?? []),
-        {
-          OR: [{ groupId: query.groupId }, { groups: { some: { collectionId: query.groupId } } }],
-        },
-      ];
+      where.groups = { some: { collectionId: query.groupId } };
     }
 
     if (query.tags && query.tags.length > 0) {
@@ -549,10 +543,7 @@ export class ContentLibraryService {
             archivedAt: null,
             ...(query.groupId
               ? {
-                  OR: [
-                    { groupId: query.groupId },
-                    { groups: { some: { collectionId: query.groupId } } },
-                  ],
+                  groups: { some: { collectionId: query.groupId } },
                 }
               : {}),
           } as any,
@@ -623,7 +614,6 @@ export class ContentLibraryService {
       data: {
         userId: dto.scope === 'personal' ? userId : null,
         projectId: dto.scope === 'project' ? dto.projectId! : null,
-        groupId: dto.groupId ?? null,
         groups: dto.groupId
           ? {
               create: [{ collectionId: dto.groupId }],
@@ -704,7 +694,6 @@ export class ContentLibraryService {
       return (tx.contentItem as any).update({
         where: { id },
         data: {
-          groupId: dto.groupId,
           title: dto.title,
           tagObjects:
             dto.tags !== undefined
@@ -795,7 +784,6 @@ export class ContentLibraryService {
         id: true,
         userId: true,
         projectId: true,
-        groupId: true,
         archivedAt: true,
         title: true,
       },
@@ -825,7 +813,7 @@ export class ContentLibraryService {
     const authorizedIds: string[] = [];
     const authorizedItems = new Map<
       string,
-      { id: string; userId: string | null; projectId: string | null; groupId: string | null }
+      { id: string; userId: string | null; projectId: string | null }
     >();
 
     for (const id of ids) {
@@ -905,12 +893,10 @@ export class ContentLibraryService {
                 ? {
                     projectId: dto.projectId,
                     userId: null,
-                    groupId: null,
                   }
                 : {
                     projectId: null,
                     userId,
-                    groupId: null,
                   },
             }),
           ),
@@ -1110,14 +1096,6 @@ export class ContentLibraryService {
               },
               update: {},
             });
-
-            const item = authorizedItems.get(id);
-            if (item?.groupId == null) {
-              await (tx.contentItem as any).update({
-                where: { id },
-                data: { groupId: dto.groupId },
-              });
-            }
           }
         });
 
@@ -1194,14 +1172,6 @@ export class ContentLibraryService {
               },
               update: {},
             });
-
-            const item = authorizedItems.get(id);
-            if (item && (item.groupId === dto.sourceGroupId || item.groupId == null)) {
-              await (tx.contentItem as any).update({
-                where: { id },
-                data: { groupId: dto.groupId },
-              });
-            }
           }
         });
 
@@ -1290,24 +1260,18 @@ export class ContentLibraryService {
 
     const tags = await this.prisma.tag.findMany({
       where: {
-        ...(scope === 'project'
-          ? {
-              projectId: projectId!,
-            }
-          : {
-              userId,
-              projectId: null,
-            }),
-        domain: 'CONTENT_LIBRARY' as any,
+        ...(scope === 'personal' ? { userId } : { projectId }),
+        domain: 'CONTENT_LIBRARY',
         contentItems: groupId
           ? {
               some: {
-                OR: [{ groupId }, { groups: { some: { collectionId: groupId } } }],
+                groups: { some: { collectionId: groupId } },
               },
             }
           : { some: {} },
-      } as any,
+      },
       select: { name: true },
+      distinct: ['name'],
       orderBy: { name: 'asc' },
     });
 
@@ -1317,10 +1281,10 @@ export class ContentLibraryService {
   public async searchAvailableTags(
     query: {
       q: string;
+      limit?: number;
       scope: 'personal' | 'project';
       projectId?: string;
       groupId?: string;
-      limit?: number;
     },
     userId: string,
   ) {
@@ -1360,7 +1324,7 @@ export class ContentLibraryService {
       where.AND.push({
         contentItems: {
           some: {
-            OR: [{ groupId: query.groupId }, { groups: { some: { collectionId: query.groupId } } }],
+            groups: { some: { collectionId: query.groupId } },
           },
         },
       });
@@ -1629,27 +1593,18 @@ export class ContentLibraryService {
       userId,
     });
 
-    await this.prisma.$transaction(async tx => {
-      await (tx as any).contentItemGroup.upsert({
-        where: {
-          contentItemId_collectionId: {
-            contentItemId,
-            collectionId: dto.groupId,
-          },
-        },
-        create: {
+    await (this.prisma as any).contentItemGroup.upsert({
+      where: {
+        contentItemId_collectionId: {
           contentItemId,
           collectionId: dto.groupId,
         },
-        update: {},
-      });
-
-      if (item.groupId == null) {
-        await (tx.contentItem as any).update({
-          where: { id: contentItemId },
-          data: { groupId: dto.groupId },
-        });
-      }
+      },
+      create: {
+        contentItemId,
+        collectionId: dto.groupId,
+      },
+      update: {},
     });
 
     return this.findOne(contentItemId, userId);
@@ -1689,12 +1644,6 @@ export class ContentLibraryService {
         allIdsToDelete.push(...childIds);
         currentParentIds = childIds;
       }
-
-      // Move items from all groups being deleted to root.
-      await tx.contentItem.updateMany({
-        where: { groupId: { in: allIdsToDelete } },
-        data: { groupId: null },
-      });
 
       // Remove all group relations for the deleted groups.
       await (tx as any).contentItemGroup.deleteMany({

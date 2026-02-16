@@ -132,7 +132,7 @@ describe('ContentLibraryService (unit)', () => {
             domain: 'CONTENT_LIBRARY',
             contentItems: {
               some: {
-                OR: [{ groupId: 'g1' }, { groups: { some: { collectionId: 'g1' } } }],
+                groups: { some: { collectionId: 'g1' } },
               },
             },
           }),
@@ -166,13 +166,13 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
-          data: { projectId: 'p1', userId: null, groupId: null },
+          data: { projectId: 'p1', userId: null },
         }),
       );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-2' },
-          data: { projectId: 'p1', userId: null, groupId: null },
+          data: { projectId: 'p1', userId: null },
         }),
       );
 
@@ -200,13 +200,13 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
-          data: { projectId: null, userId: 'user-1', groupId: null },
+          data: { projectId: null, userId: 'user-1' },
         }),
       );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-2' },
-          data: { projectId: null, userId: 'user-1', groupId: null },
+          data: { projectId: null, userId: 'user-1' },
         }),
       );
 
@@ -219,14 +219,12 @@ describe('ContentLibraryService (unit)', () => {
           id: 'ci-1',
           userId: 'user-1',
           projectId: null,
-          groupId: null,
           archivedAt: null,
         },
         {
           id: 'ci-2',
           userId: 'user-1',
           projectId: null,
-          groupId: 'g-existing',
           archivedAt: null,
         },
       ]);
@@ -257,14 +255,6 @@ describe('ContentLibraryService (unit)', () => {
           },
         }),
       );
-
-      expect(mockPrismaService.contentItem.update).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'ci-1' },
-          data: { groupId: 'g-target' },
-        }),
-      );
       expect(res).toEqual({ count: 2 });
     });
 
@@ -274,7 +264,6 @@ describe('ContentLibraryService (unit)', () => {
           id: 'ci-1',
           userId: 'user-1',
           projectId: null,
-          groupId: 'g-source',
           archivedAt: null,
         },
       ]);
@@ -294,14 +283,12 @@ describe('ContentLibraryService (unit)', () => {
           id: 'ci-1',
           userId: 'user-1',
           projectId: null,
-          groupId: 'g-source',
           archivedAt: null,
         },
         {
           id: 'ci-2',
           userId: 'user-1',
           projectId: null,
-          groupId: 'g-other',
           archivedAt: null,
         },
       ]);
@@ -330,14 +317,6 @@ describe('ContentLibraryService (unit)', () => {
         expect.objectContaining({ where: { contentItemId: 'ci-2', collectionId: 'g-source' } }),
       );
       expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledTimes(2);
-
-      expect(mockPrismaService.contentItem.update).toHaveBeenCalledTimes(1);
-      expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'ci-1' },
-          data: { groupId: 'g-target' },
-        }),
-      );
       expect(res).toEqual({ count: 2 });
     });
 
@@ -348,7 +327,6 @@ describe('ContentLibraryService (unit)', () => {
             id: 'ci-1',
             userId: 'user-1',
             projectId: null,
-            groupId: null,
             archivedAt: null,
             title: null,
           },
@@ -356,7 +334,6 @@ describe('ContentLibraryService (unit)', () => {
             id: 'ci-2',
             userId: 'user-1',
             projectId: null,
-            groupId: null,
             archivedAt: null,
             title: null,
           },
@@ -660,11 +637,7 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            AND: [
-              {
-                OR: [{ groupId: 'f-1' }, { groups: { some: { collectionId: 'f-1' } } }],
-              },
-            ],
+            groups: { some: { collectionId: 'f-1' } },
           }),
         }),
       );
