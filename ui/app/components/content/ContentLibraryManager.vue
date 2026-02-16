@@ -9,7 +9,7 @@ import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
 import ContentItemEditor from './ContentItemEditor.vue'
 import ContentItemCard from './ContentItemCard.vue'
-import AppModal from '~/components/ui/AppModal.vue'
+import ContentMoveModal from './ContentMoveModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import UiLoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import CommonFoundCount from '~/components/common/CommonFoundCount.vue'
@@ -101,6 +101,10 @@ const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE' | 'MERGE'>('DEL
 const isArchivingId = ref<string | null>(null)
 const isRestoringId = ref<string | null>(null)
 
+const isMoveModalOpen = ref(false)
+const moveItemsIds = ref<string[]>([])
+const allGroupTabs = ref<ContentLibraryTab[]>([])
+
 const isCreatePublicationModalOpen = ref(false)
 const createPublicationModalProjectId = ref<string | undefined>(undefined)
 const createPublicationModalAllowProjectSelection = ref(false)
@@ -133,7 +137,6 @@ const treeRenameTargetId = ref<string | null>(null)
 const treeRenameTitle = ref('')
 const isRenamingTreeGroup = ref(false)
 
-type GroupBulkMode = 'MOVE_TO_GROUP' | 'LINK_TO_GROUP'
 
 interface GroupTreeNode extends TreeItem {
   label: string
@@ -193,15 +196,6 @@ const canDeleteTab = (tab: ContentLibraryTab | null | undefined) => {
 
 const canDeleteActiveTab = computed(() => canDeleteTab(activeTab.value))
 
-const isToGroupModalOpen = ref(false)
-const isLoadingGroupTabs = ref(false)
-const isApplyingToGroup = ref(false)
-const isCreatingInlineSubgroup = ref(false)
-const allGroupTabs = ref<ContentLibraryTab[]>([])
-const toGroupSearchQuery = ref('')
-const toGroupTargetId = ref<string | null>(null)
-const groupBulkMode = ref<GroupBulkMode>('MOVE_TO_GROUP')
-const inlineSubgroupTitle = ref('')
 const isActiveGroupTab = computed(() => activeTab.value?.type === 'GROUP')
 
 const allScopeGroupTabs = computed(() => tabs.value.filter(tab => tab.type === 'GROUP'))
@@ -282,11 +276,6 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
   }]
 })
 
-const toGroupActionLabel = computed(() =>
-  groupBulkMode.value === 'MOVE_TO_GROUP'
-    ? t('contentLibrary.bulk.moveMode')
-    : t('contentLibrary.bulk.linkMode'),
-)
 
 const groupTreeItems = computed<GroupTreeNode[]>(() => {
   if (!isActiveGroupTab.value || !activeTab.value) {
@@ -329,9 +318,6 @@ const groupTreeItems = computed<GroupTreeNode[]>(() => {
       label: tab.title,
       value: tab.id,
       defaultExpanded: true,
-      onSelect: () => {
-        toGroupTargetId.value = tab.id
-      },
       children: buildTree(tab.id),
     }))
   }
@@ -339,32 +325,6 @@ const groupTreeItems = computed<GroupTreeNode[]>(() => {
   return buildTree(rootId)
 })
 
-const filteredGroupTreeItems = computed<GroupTreeNode[]>(() => {
-  const query = toGroupSearchQuery.value.trim().toLowerCase()
-  if (!query) {
-    return groupTreeItems.value
-  }
-
-  const filterTree = (nodes: GroupTreeNode[]): GroupTreeNode[] => {
-    const result: GroupTreeNode[] = []
-
-    for (const node of nodes) {
-      const children = node.children ? filterTree(node.children as GroupTreeNode[]) : []
-      const matches = node.label.toLowerCase().includes(query)
-
-      if (matches || children.length > 0) {
-        result.push({
-          ...node,
-          children,
-        })
-      }
-    }
-
-    return result
-  }
-
-  return filterTree(groupTreeItems.value)
-})
 
 const isPurgeConfirmModalOpen = ref(false)
 const isPurging = ref(false)
@@ -990,119 +950,65 @@ useModalAutoFocus({
   candidates: [{ target: moveProjectSelectRef }],
 })
 
-const extraProjectOptions = computed(() => [
-  { value: 'PERSONAL', label: t('contentLibrary.bulk.personalScope'), isPersonal: true }
-])
-
-const handleMoveToProject = async () => {
-  targetProjectId.value = undefined
-  if (projects.value.length === 0) {
-    await fetchProjects(false)
-  }
-  isMoveToProjectModalOpen.value = true
-}
-
-const executeMoveToProject = async () => {
-  if (selectedIds.value.length === 0) return
-  isBulkDeleting.value = true 
-  const projectIdToSend = targetProjectId.value === 'PERSONAL' ? null : targetProjectId.value
-  try {
-    await api.post('/content-library/bulk', {
-      ids: selectedIds.value,
-      operation: 'SET_PROJECT',
-      projectId: projectIdToSend
-    })
-    toast.add({ title: t('common.success'), description: t('contentLibrary.bulk.success', { count: selectedIds.value.length }), color: 'success' })
-    selectedIds.value = []
-    isMoveToProjectModalOpen.value = false
-    await fetchItems({ reset: true })
-  } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, `Failed to move items`), color: 'error' })
-  } finally {
-    isBulkDeleting.value = false
-  }
-}
 
 const fetchGroupTabs = async () => {
   if (props.scope === 'project' && !props.projectId) {
     return
   }
 
-  isLoadingGroupTabs.value = true
   try {
     const tabs = await listTabs(props.scope, props.projectId)
     allGroupTabs.value = tabs.filter(tab => tab.type === 'GROUP')
   } finally {
-    isLoadingGroupTabs.value = false
+    // Done
   }
 }
 
-const handleOpenToGroupModal = async () => {
-  if (!isActiveGroupTab.value || !activeTab.value || selectedIds.value.length === 0) {
-    return
-  }
-
-  toGroupTargetId.value = null
-  toGroupSearchQuery.value = ''
-  groupBulkMode.value = 'MOVE_TO_GROUP'
-  inlineSubgroupTitle.value = ''
-  await fetchGroupTabs()
-  isToGroupModalOpen.value = true
-}
-
-const handleCreateInlineSubgroup = async () => {
-  if (!isActiveGroupTab.value || !activeTab.value || !inlineSubgroupTitle.value.trim()) {
-    return
-  }
-
-  isCreatingInlineSubgroup.value = true
-  try {
-    const newTab = await createTab({
-      scope: props.scope,
-      projectId: props.projectId,
-      type: 'GROUP',
-      parentId: activeTab.value.id,
-      title: inlineSubgroupTitle.value.trim(),
-      config: {},
-    })
-
+const handleOpenMoveModal = async (ids: string[]) => {
+  if (ids.length === 0) return
+  moveItemsIds.value = ids
+  
+  if (allGroupTabs.value.length === 0) {
     await fetchGroupTabs()
-    toGroupTargetId.value = newTab.id
-    inlineSubgroupTitle.value = ''
-  } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to create subgroup'), color: 'error' })
-  } finally {
-    isCreatingInlineSubgroup.value = false
   }
+  
+  if (projects.value.length === 0) {
+    await fetchProjects(false)
+  }
+  
+  isMoveModalOpen.value = true
 }
 
-const handleBulkToGroup = async () => {
-  if (!activeTab.value || !toGroupTargetId.value || selectedIds.value.length === 0) {
-    return
-  }
-
-  isApplyingToGroup.value = true
-  const operation = groupBulkMode.value
+const handleExecuteMoveItems = async (payload: { operation: 'MOVE_TO_GROUP' | 'SET_PROJECT'; targetId: string | null; sourceGroupId?: string }) => {
+  if (moveItemsIds.value.length === 0) return
+  
+  isLoading.value = true
   try {
     await api.post('/content-library/bulk', {
-      ids: selectedIds.value,
-      operation,
-      groupId: toGroupTargetId.value,
-      sourceGroupId: operation === 'MOVE_TO_GROUP' ? activeTab.value.id : undefined,
+      ids: moveItemsIds.value,
+      operation: payload.operation,
+      groupId: payload.operation === 'MOVE_TO_GROUP' ? payload.targetId : undefined,
+      projectId: payload.operation === 'SET_PROJECT' ? payload.targetId : undefined,
+      sourceGroupId: payload.sourceGroupId
     })
-
+    
     toast.add({
       title: t('common.success'),
-      description: t('contentLibrary.bulk.success', { count: selectedIds.value.length }),
+      description: t('contentLibrary.bulk.success', { count: moveItemsIds.value.length }),
       color: 'success',
     })
-    selectedIds.value = []
-    isToGroupModalOpen.value = false
+    
+    // Clear selection if it was a bulk move
+    if (selectedIds.value.length > 0 && moveItemsIds.value.every(id => selectedIds.value.includes(id))) {
+      selectedIds.value = []
+    }
+    
+    isMoveModalOpen.value = false
     await fetchItems({ reset: true })
   } catch (e: any) {
-    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to add items to group'), color: 'error' })
+    toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to move items'), color: 'error' })
   } finally {
-    isApplyingToGroup.value = false
+    isLoading.value = false
   }
 }
 
@@ -1374,7 +1280,6 @@ watch(activeTab, async (newTab, oldTab) => {
       selectedGroupTreeNodeId.value = newTab?.type === 'GROUP' ? newTab.id : null
     }
     selectedIds.value = []
-    isToGroupModalOpen.value = false
     if (newTab) {
       if (newTab.type === 'GROUP') {
         if (!isRestoringGroupSelection.value && !newTab.parentId) {
@@ -1572,6 +1477,7 @@ if (props.scope === 'project' && props.projectId) {
               @archive="archiveItem"
               @restore="restoreItem"
               @create-publication="handleCreatePublication"
+              @move="handleOpenMoveModal([$event.id])"
             />
           </div>
 
@@ -1688,7 +1594,7 @@ if (props.scope === 'project' && props.projectId) {
       @confirm="executeBulkOperation"
     />
 
-    <AppModal
+    <UiAppModal
       v-model:open="isTreeCreateModalOpen"
       :title="t('contentLibrary.tabs.createSubgroupTitle')"
       :description="t('contentLibrary.groupsTree.selectedParentHint', { title: treeCreateParentLabel })"
@@ -1712,9 +1618,9 @@ if (props.scope === 'project' && props.projectId) {
           {{ t('common.create') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
 
-    <AppModal
+    <UiAppModal
       v-model:open="isTreeRenameModalOpen"
       :title="t('contentLibrary.tabs.renameTitle', 'Rename group')"
       :ui="{ content: 'w-full max-w-md' }"
@@ -1737,7 +1643,7 @@ if (props.scope === 'project' && props.projectId) {
           {{ t('common.save') }}
         </UButton>
       </template>
-    </AppModal>
+    </UiAppModal>
 
     <UiConfirmModal
       v-if="isTreeDeleteConfirmModalOpen"
@@ -1759,14 +1665,13 @@ if (props.scope === 'project' && props.projectId) {
       @archive="handleBulkAction('ARCHIVE')"
       @restore="handleBulkAction('UNARCHIVE')"
       @purge="handleBulkDeleteForever"
-      @move="handleMoveToProject"
-      @to-group="handleOpenToGroupModal"
+      @move="handleOpenMoveModal(selectedIds)"
       @merge="handleMerge"
       @create-publication="handleCreatePublicationFromSelection"
       @clear="selectedIds = []"
     />
 
-    <AppModal
+    <UiAppModal
       v-model:open="isEditModalOpen"
       :title="t('contentLibrary.editTitle', 'Edit content item')"
       :ui="{ content: 'w-[90vw] max-w-5xl' }"
@@ -1803,139 +1708,23 @@ if (props.scope === 'project' && props.projectId) {
           </UButton>
         </div>
       </template>
-    </AppModal>
+    </UiAppModal>
     
     <!-- Move to Project Modal -->
-    <AppModal
-      v-model:open="isMoveToProjectModalOpen"
-      :title="t('contentLibrary.bulk.moveToProjectTitle')"
-      :description="t('contentLibrary.bulk.moveToProjectDescription', { count: selectedIds.length })"
-      :ui="{ content: 'w-full max-w-xl' }"
-      @close="isMoveToProjectModalOpen = false"
-    >
-      <div ref="moveModalRootRef">
-        <CommonProjectSelect
-          ref="moveProjectSelectRef"
-          v-model="targetProjectId"
-          :extra-options="extraProjectOptions"
-          searchable
-          :placeholder="t('contentLibrary.bulk.selectProject')"
-        />
-      </div>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isMoveToProjectModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="primary"
-          :loading="isBulkDeleting"
-          :disabled="!targetProjectId"
-          @click="executeMoveToProject"
-        >
-          {{ t('contentLibrary.bulk.move') }}
-        </UButton>
-      </template>
-    </AppModal>
-
-    <ModalsCreatePublicationModal
-      v-if="isCreatePublicationModalOpen"
-      v-model:open="isCreatePublicationModalOpen"
-      :project-id="createPublicationModalProjectId"
-      :allow-project-selection="createPublicationModalAllowProjectSelection"
-      :prefilled-title="publicationData.title"
-      :prefilled-content="publicationData.content"
-      :prefilled-media-ids="publicationData.mediaIds"
-      :prefilled-tags="publicationData.tags"
-      :prefilled-note="publicationData.note"
-      :prefilled-content-item-ids="publicationData.contentItemIds"
+    <ContentMoveModal
+      v-model:open="isMoveModalOpen"
+      :ids="moveItemsIds"
+      :scope="props.scope"
+      :project-id="props.projectId"
+      :active-tab="activeTab"
+      :tabs="allGroupTabs"
+      :projects="projects"
+      :folder-tree-items="groupTreeItems"
+      @move="handleExecuteMoveItems"
     />
 
-    <AppModal
-      v-model:open="isToGroupModalOpen"
-      :title="t('contentLibrary.bulk.toGroupTitle')"
-      :description="t('contentLibrary.bulk.toGroupDescription', { count: selectedIds.length })"
-      :ui="{ content: 'w-full max-w-2xl' }"
-      @close="isToGroupModalOpen = false"
-    >
-      <div class="space-y-4">
-        <div class="flex items-center gap-2">
-          <UButton
-            size="sm"
-            :variant="groupBulkMode === 'MOVE_TO_GROUP' ? 'solid' : 'outline'"
-            color="primary"
-            @click="groupBulkMode = 'MOVE_TO_GROUP'"
-          >
-            {{ t('contentLibrary.bulk.moveMode') }}
-          </UButton>
-          <UButton
-            size="sm"
-            :variant="groupBulkMode === 'LINK_TO_GROUP' ? 'solid' : 'outline'"
-            color="neutral"
-            @click="groupBulkMode = 'LINK_TO_GROUP'"
-          >
-            {{ t('contentLibrary.bulk.linkMode') }}
-          </UButton>
-        </div>
-
-        <UInput
-          v-model="toGroupSearchQuery"
-          icon="i-heroicons-magnifying-glass"
-          :placeholder="t('contentLibrary.bulk.searchGroups')"
-        />
-
-        <div class="rounded-md border border-gray-200 dark:border-gray-800 p-3 max-h-72 overflow-auto">
-          <div v-if="isLoadingGroupTabs" class="py-4 flex justify-center">
-            <UiLoadingSpinner />
-          </div>
-          <div v-else-if="filteredGroupTreeItems.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-            {{ t('contentLibrary.bulk.noGroupsInContext') }}
-          </div>
-          <UTree v-else :items="filteredGroupTreeItems" />
-        </div>
-
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          {{ t('contentLibrary.bulk.selectedGroupHint', { groupId: toGroupTargetId || '-' }) }}
-        </p>
-
-        <UFormField :label="t('contentLibrary.bulk.createSubgroupLabel')">
-          <div class="flex items-center gap-2">
-            <UInput
-              v-model="inlineSubgroupTitle"
-              class="flex-1"
-              :placeholder="t('contentLibrary.tabs.titlePlaceholder')"
-              @keydown.enter="handleCreateInlineSubgroup"
-            />
-            <UButton
-              color="neutral"
-              variant="outline"
-              :loading="isCreatingInlineSubgroup"
-              :disabled="!inlineSubgroupTitle.trim()"
-              @click="handleCreateInlineSubgroup"
-            >
-              {{ t('common.create') }}
-            </UButton>
-          </div>
-        </UFormField>
-      </div>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isToGroupModalOpen = false">
-          {{ t('common.cancel') }}
-        </UButton>
-        <UButton
-          color="primary"
-          :loading="isApplyingToGroup"
-          :disabled="!toGroupTargetId"
-          @click="handleBulkToGroup"
-        >
-          {{ toGroupActionLabel }}
-        </UButton>
-      </template>
-    </AppModal>
-
     <!-- Rename Tab Modal -->
-    <AppModal
+    <UiAppModal
       v-model:open="isRenameTabModalOpen"
       :title="t('contentLibrary.tabs.renameTitle', 'Rename group')"
       :ui="{ content: 'w-full max-w-md' }"
@@ -1953,7 +1742,7 @@ if (props.scope === 'project' && props.projectId) {
                 {{ t('common.save') }}
              </UButton>
         </template>
-    </AppModal>
+    </UiAppModal>
 
     <!-- Delete Tab Modal -->
     <UiConfirmModal

@@ -40,6 +40,7 @@ const emit = defineEmits<{
   (e: 'archive', item: ContentItem): void
   (e: 'restore', itemId: string): void
   (e: 'create-publication', item: ContentItem): void
+  (e: 'move', item: ContentItem): void
 }>()
 
 const { t } = useI18n()
@@ -53,6 +54,11 @@ const actionsMenuItems = computed(() => {
 
   return [
     [
+      {
+        label: t('contentLibrary.bulk.move'),
+        icon: 'i-heroicons-folder-open',
+        onSelect: () => emit('move', props.item),
+      },
       {
         label: t('contentLibrary.actions.moveToTrash'),
         icon: 'i-heroicons-trash',

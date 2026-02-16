@@ -507,6 +507,12 @@
         }
       }
     },
+    "moveModal": {
+      "toFolder": "В папку",
+      "toCollection": "В другую коллекцию",
+      "toProject": "В другой проект",
+      "toPersonal": "В личные"
+    },
     "title": "Библиотека контента",
     "untitled": "Без названия"
   },

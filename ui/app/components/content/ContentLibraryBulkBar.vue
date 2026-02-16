@@ -82,18 +82,6 @@ const { t } = useI18n()
           </UButton>
 
           <UButton
-            v-if="isGroupTab"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-folder-plus"
-            size="sm"
-            class="text-white hover:bg-gray-700"
-            @click="emit('to-group')"
-          >
-            {{ t('contentLibrary.bulk.toGroup') }}
-          </UButton>
-
-          <UButton
             v-if="selectedIds.length >= 2"
             color="neutral"
             variant="ghost"
