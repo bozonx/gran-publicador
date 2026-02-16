@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { calculateRecursiveGroupCounters } from '@gran/shared/content-library-tree'
 import type { TreeItem } from '@nuxt/ui'
 import { type ContentCollection } from '~/composables/useContentCollections'
 import { getApiErrorMessage } from '~/utils/error'
@@ -32,6 +33,8 @@ const { createCollection, updateCollection, deleteCollection } = useContentColle
 const collectionsById = computed(() => new Map(props.collections.map(c => [c.id, c])))
 const allScopeGroupCollections = computed(() => props.collections.filter(c => c.type === 'GROUP'))
 
+const recursiveCounts = computed(() => calculateRecursiveGroupCounters(props.collections as any))
+
 const activeRootGroupId = computed(() => {
   if (props.activeCollection?.type !== 'GROUP') {
     return null
@@ -44,8 +47,8 @@ const activeRootGroupId = computed(() => {
 })
 
 const formatGroupTreeLabel = (collection: ContentCollection) => {
-  const directItemsCount = Number(collection.directItemsCount ?? 0)
-  return `${collection.title} (${directItemsCount})`
+  const count = recursiveCounts.value.get(collection.id) ?? Number(collection.directItemsCount ?? 0)
+  return `${collection.title} (${count})`
 }
 
 const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {

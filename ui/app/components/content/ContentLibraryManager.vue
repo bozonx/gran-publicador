@@ -497,16 +497,40 @@ const handleRenameCollection = async () => {
 }
 
 const handleDeleteCollection = async () => {
-    if (!activeCollectionId.value) return
-    isDeletingCollection.value = true
-    try {
-        await deleteCollection(activeCollectionId.value, props.scope, props.projectId)
-        activeCollectionId.value = null; activeCollection.value = null
-        isDeleteCollectionConfirmModalOpen.value = false
-        contentCollectionsRef.value?.fetchCollections()
-    } catch (e) {
-        toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete collection'), color: 'error' })
-    } finally { isDeletingCollection.value = false }
+  if (!activeCollectionId.value) return
+  isDeletingCollection.value = true
+  try {
+    const deletedId = activeCollectionId.value
+    const deletedParentId = activeCollection.value?.parentId
+
+    await deleteCollection(deletedId, props.scope, props.projectId)
+
+    // Attempt to find a suitable next collection
+    let nextCollection: ContentCollection | null = null
+    if (deletedParentId) {
+      nextCollection = collections.value.find((c) => c.id === deletedParentId) || null
+    }
+
+    if (!nextCollection) {
+      // Filter out what was just deleted (approximation since recursive delete happened on server)
+      const remaining = collections.value.filter((c) => c.id !== deletedId && c.parentId !== deletedId)
+      nextCollection = remaining[0] || null
+    }
+
+    activeCollectionId.value = nextCollection?.id ?? null
+    activeCollection.value = nextCollection
+
+    isDeleteCollectionConfirmModalOpen.value = false
+    await contentCollectionsRef.value?.fetchCollections()
+  } catch (e) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, 'Failed to delete collection'),
+      color: 'error',
+    })
+  } finally {
+    isDeletingCollection.value = false
+  }
 }
 
 const createAndEdit = async () => {

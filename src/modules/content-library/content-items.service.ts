@@ -582,6 +582,7 @@ export class ContentItemsService {
         projectId: true,
         archivedAt: true,
         title: true,
+        tagObjects: { select: { name: true } },
       },
     });
 
@@ -607,10 +608,7 @@ export class ContentItemsService {
     }
 
     const authorizedIds: string[] = [];
-    const authorizedItems = new Map<
-      string,
-      { id: string; userId: string | null; projectId: string | null }
-    >();
+    const authorizedItems = new Map<string, (typeof items)[number]>();
 
     for (const id of ids) {
       const item = itemsById.get(id);
@@ -682,20 +680,59 @@ export class ContentItemsService {
         }
 
         await this.prisma.$transaction(
-          authorizedIds.map(id =>
-            (this.prisma.contentItem as any).update({
+          authorizedIds.map(id => {
+            const item = authorizedItems.get(id);
+            const tagNames = (item?.tagObjects ?? []).map((t: any) => t.name);
+
+            return (this.prisma.contentItem as any).update({
               where: { id },
-              data: dto.projectId
-                ? {
-                    projectId: dto.projectId,
-                    userId: null,
-                  }
-                : {
-                    projectId: null,
-                    userId,
-                  },
-            }),
-          ),
+              data: {
+                projectId: dto.projectId ?? null,
+                userId: dto.projectId ? null : userId,
+                tagObjects: {
+                  set: [],
+                  ...(tagNames.length > 0
+                    ? {
+                        connectOrCreate: tagNames.map((name: string) => {
+                          const normalizedName = name.toLowerCase();
+                          return dto.projectId
+                            ? {
+                                where: {
+                                  projectId_domain_normalizedName: {
+                                    projectId: dto.projectId,
+                                    domain: 'CONTENT_LIBRARY',
+                                    normalizedName,
+                                  },
+                                },
+                                create: {
+                                  projectId: dto.projectId,
+                                  name,
+                                  normalizedName,
+                                  domain: 'CONTENT_LIBRARY',
+                                },
+                              }
+                            : {
+                                where: {
+                                  userId_domain_normalizedName: {
+                                    userId,
+                                    domain: 'CONTENT_LIBRARY',
+                                    normalizedName,
+                                  },
+                                },
+                                create: {
+                                  userId,
+                                  name,
+                                  normalizedName,
+                                  domain: 'CONTENT_LIBRARY',
+                                },
+                              };
+                        }),
+                      }
+                    : {}),
+                },
+              },
+            });
+          }),
         );
 
         await (this.prisma as any).contentItemGroup.deleteMany({

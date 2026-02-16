@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import { calculateRecursiveGroupCounters } from '@gran/shared/content-library-tree'
 import type { ContentCollection } from '~/composables/useContentCollections'
 import CreateCollectionModal from '~/components/content/CreateCollectionModal.vue'
 
@@ -47,59 +48,8 @@ const collectionById = computed(() => {
   return new Map(collections.value.map(collection => [collection.id, collection]))
 })
 
-const groupChildrenByParentId = computed(() => {
-  const result = new Map<string, ContentCollection[]>()
-
-  for (const collection of collections.value) {
-    if (collection.type !== 'GROUP' || !collection.parentId) {
-      continue
-    }
-
-    const children = result.get(collection.parentId) ?? []
-    children.push(collection)
-    result.set(collection.parentId, children)
-  }
-
-  return result
-})
-
 const groupRecursiveItemsCount = computed(() => {
-  const memo = new Map<string, number>()
-
-  const countForGroup = (groupId: string, trail: Set<string>): number => {
-    if (memo.has(groupId)) {
-      return memo.get(groupId)!
-    }
-
-    if (trail.has(groupId)) {
-      return 0
-    }
-
-    const group = collectionById.value.get(groupId)
-    if (!group || group.type !== 'GROUP') {
-      return 0
-    }
-
-    trail.add(groupId)
-    let total = Number(group.directItemsCount ?? 0)
-    const children = groupChildrenByParentId.value.get(groupId) ?? []
-
-    for (const child of children) {
-      total += countForGroup(child.id, trail)
-    }
-
-    trail.delete(groupId)
-    memo.set(groupId, total)
-    return total
-  }
-
-  for (const collection of collections.value) {
-    if (collection.type === 'GROUP') {
-      countForGroup(collection.id, new Set<string>())
-    }
-  }
-
-  return memo
+  return calculateRecursiveGroupCounters(collections.value as any)
 })
 
 const resolveTopLevelCollectionId = (collectionId: string | null | undefined): string | null => {

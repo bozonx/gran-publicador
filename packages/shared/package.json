@@ -42,7 +42,6 @@
       "import": "./dist/post-statuses.constants.js",
       "default": "./dist/post-statuses.constants.js"
     },
-
     "./utils/tags": {
       "types": "./src/utils/tags.ts",
       "import": "./dist/utils/tags.js",
@@ -53,7 +52,11 @@
       "import": "./dist/utils/object.js",
       "default": "./dist/utils/object.js"
     },
-
+    "./content-library-tree": {
+      "types": "./src/utils/content-library-tree.ts",
+      "import": "./dist/utils/content-library-tree.js",
+      "default": "./dist/utils/content-library-tree.js"
+    },
     "./social-posting/tags-formatter": {
       "types": "./src/social-posting/tags-formatter.ts",
       "import": "./dist/social-posting/tags-formatter.js",
