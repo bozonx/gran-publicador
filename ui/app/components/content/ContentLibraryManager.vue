@@ -463,15 +463,21 @@ const purgeArchived = async () => {
 
 const handleExecuteMoveItems = async (data: any) => {
     try {
-        const bulkProjectId = data.targetProjectId
-          ? data.targetProjectId
+        const isCrossProject = data.operation === 'SET_PROJECT' || data.targetProjectId !== undefined
+        
+        const operation = isCrossProject ? 'SET_PROJECT' : 'MOVE_TO_GROUP'
+        const bulkProjectId = isCrossProject 
+          ? data.targetId // In SET_PROJECT targetId is projectId
           : (props.scope === 'project' ? props.projectId : undefined)
+        
+        const targetGroupId = isCrossProject ? data.targetGroupId : data.targetId
 
         await api.post('/content-library/bulk', {
-            operation: data.targetProjectId ? 'SET_PROJECT' : 'LINK_TO_GROUP',
+            operation,
             ids: moveItemsIds.value,
-            groupId: data.targetGroupId,
+            groupId: targetGroupId || undefined,
             projectId: bulkProjectId,
+            sourceGroupId: !isCrossProject ? props.activeCollection?.id : undefined
         })
         await fetchItems({ reset: true })
         isMoveModalOpen.value = false; moveItemsIds.value = []

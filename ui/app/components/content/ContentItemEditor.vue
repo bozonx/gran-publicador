@@ -69,7 +69,7 @@ const saveItem = async (formData: typeof editForm.value) => {
     text: formData.text?.trim() || '',
     meta: formData.meta || {},
     media: (formData.media || []).map((m: any, idx: number) => ({
-      mediaId: m.mediaId || m.id,
+      mediaId: m.mediaId || m.media?.id,
       hasSpoiler: m.hasSpoiler ? true : undefined,
       order: idx,
     })),

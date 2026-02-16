@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContentCollection } from '~/composables/useContentCollections'
+import { type ContentCollection, useContentCollections } from '~/composables/useContentCollections'
 
 interface Props {
   ids: string[]
@@ -14,11 +14,22 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'move', payload: { operation: 'MOVE_TO_GROUP' | 'SET_PROJECT'; targetId: string | null; sourceGroupId?: string }): void
+  (e: 'move', payload: {
+    operation: 'MOVE_TO_GROUP' | 'SET_PROJECT';
+    targetId: string | null;
+    targetGroupId?: string | null;
+    sourceGroupId?: string;
+  }): void
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
 const { t } = useI18n()
+const { listCollections } = useContentCollections()
+
+const targetProjectId = ref<string | null>(null)
+const targetGroupIdInProject = ref<string | null>(null)
+const targetProjectCollections = ref<ContentCollection[]>([])
+const isLoadingTargetCollections = ref(false)
 
 const accordionItems = computed(() => {
   const items = []
@@ -51,12 +62,17 @@ const accordionItems = computed(() => {
 })
 
 const collectionOptions = computed(() => {
-  return props.collections
-    .filter(collection => collection.type === 'GROUP' && collection.id !== props.activeCollection?.id)
+  const options = props.collections
+    .filter(collection => collection.type === 'GROUP' && !collection.parentId && collection.id !== props.activeCollection?.id)
     .map(collection => ({
       label: collection.title,
       value: collection.id
     }))
+
+  return [
+    { label: t('contentLibrary.moveModal.noCollection'), value: null },
+    ...options
+  ]
 })
 
 const projectOptions = computed(() => {
@@ -68,7 +84,43 @@ const projectOptions = computed(() => {
     }))
 })
 
+const targetProjectCollectionOptions = computed(() => {
+  const options = targetProjectCollections.value
+    .filter(c => c.type === 'GROUP' && !c.parentId)
+    .map(c => ({
+      label: c.title,
+      value: c.id
+    }))
+
+  return [
+    { label: t('contentLibrary.moveModal.noCollection'), value: null },
+    ...options
+  ]
+})
+
+async function fetchTargetProjectCollections(pId: string) {
+  isLoadingTargetCollections.value = true
+  try {
+    targetProjectCollections.value = await listCollections('project', pId)
+  } catch (e) {
+    console.error('Failed to fetch target project collections', e)
+  } finally {
+    isLoadingTargetCollections.value = false
+  }
+}
+
+watch(targetProjectId, (next) => {
+  if (next) {
+    fetchTargetProjectCollections(next)
+    targetGroupIdInProject.value = null
+  } else {
+    targetProjectCollections.value = []
+    targetGroupIdInProject.value = null
+  }
+})
+
 function handleMoveToGroup(node: any) {
+  // UTree emits the item object, so we need node.value
   const targetId = typeof node === 'string' ? node : node?.value
   if (!targetId) return
 
@@ -81,22 +133,24 @@ function handleMoveToGroup(node: any) {
 }
 
 function handleMoveToCollection(collection: any) {
-  if (!collection?.value) return
+  // collection.value can be null ("No collection")
+  const targetId = collection.value
 
   emit('move', {
     operation: 'MOVE_TO_GROUP',
-    targetId: collection.value,
+    targetId,
     sourceGroupId: props.activeCollection?.id
   })
   isOpen.value = false
 }
 
-function handleMoveToProject(project: any) {
-  if (!project?.value) return
+function handleMoveToProjectSubmit() {
+  if (!targetProjectId.value) return
 
   emit('move', {
     operation: 'SET_PROJECT',
-    targetId: project.value
+    targetId: targetProjectId.value,
+    targetGroupId: targetGroupIdInProject.value
   })
   isOpen.value = false
 }
@@ -108,6 +162,15 @@ function handleMoveToPersonal() {
   })
   isOpen.value = false
 }
+
+// Reset state when closing
+watch(isOpen, (next) => {
+  if (!next) {
+    targetProjectId.value = null
+    targetGroupIdInProject.value = null
+    targetProjectCollections.value = []
+  }
+})
 
 </script>
 
@@ -157,17 +220,38 @@ function handleMoveToPersonal() {
         <template #to-project>
           <div class="p-4 space-y-4">
             <USelectMenu
+              v-model="targetProjectId"
               :items="projectOptions"
               value-key="value"
               label-key="label"
               searchable
               :placeholder="t('contentLibrary.bulk.selectProject')"
-              @update:model-value="handleMoveToProject"
             >
               <template #leading>
                 <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
               </template>
             </USelectMenu>
+
+            <div v-if="targetProjectId" class="space-y-2">
+              <UFormField :label="t('contentLibrary.moveModal.selectCollectionInProject')">
+                <USelectMenu
+                  v-model="targetGroupIdInProject"
+                  :items="targetProjectCollectionOptions"
+                  value-key="value"
+                  label-key="label"
+                  :loading="isLoadingTargetCollections"
+                  :placeholder="t('contentLibrary.bulk.searchGroups')"
+                />
+              </UFormField>
+
+              <UButton
+                color="primary"
+                block
+                @click="handleMoveToProjectSubmit"
+              >
+                {{ t('common.confirm') }}
+              </UButton>
+            </div>
 
             <UButton
               v-if="scope === 'project'"

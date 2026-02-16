@@ -6,7 +6,9 @@ import {
   MaxLength,
   ArrayMaxSize,
   IsObject,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 class ContentItemMediaInputDto {
@@ -53,5 +55,7 @@ export class SyncContentItemDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
+  @ValidateNested({ each: true })
+  @Type(() => ContentItemMediaInputDto)
   media?: ContentItemMediaInputDto[];
 }

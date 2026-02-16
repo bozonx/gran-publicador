@@ -741,6 +741,19 @@ export class ContentItemsService {
           },
         });
 
+        if (dto.groupId) {
+          await this.prisma.$transaction(
+            authorizedIds.map(id =>
+              (this.prisma as any).contentItemGroup.create({
+                data: {
+                  contentItemId: id,
+                  collectionId: dto.groupId!,
+                },
+              }),
+            ),
+          );
+        }
+
         return { count: authorizedIds.length };
 
       case BulkOperationType.MERGE: {
@@ -1074,6 +1087,19 @@ export class ContentItemsService {
 
       const incomingMediaIds = this.mapIncomingMediaIds(dto);
       if (incomingMediaIds) {
+        const uniqueIncomingMediaIds = Array.from(new Set(incomingMediaIds));
+        if (uniqueIncomingMediaIds.length > 0) {
+          const existing = await (tx as any).media.findMany({
+            where: { id: { in: uniqueIncomingMediaIds } },
+            select: { id: true },
+          });
+          const existingIds = new Set<string>(existing.map((m: any) => m.id));
+          const missing = uniqueIncomingMediaIds.filter(id => !existingIds.has(id));
+          if (missing.length > 0) {
+            throw new BadRequestException(`Media not found: ${missing.join(', ')}`);
+          }
+        }
+
         await (tx as any).contentItemMedia.deleteMany({ where: { contentItemId } });
         if (incomingMediaIds.length > 0) {
           const spoilerByMediaId = new Map<string, boolean>();
