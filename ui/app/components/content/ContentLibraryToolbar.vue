@@ -115,6 +115,40 @@ const infoTooltipText = computed(() => {
 
   return parts.join('\n\n')
 })
+
+const sortByToggleOptions = computed(() => {
+  return (props.sortOptions ?? []).map((opt: any) => ({
+    value: opt.id,
+    icon: opt.icon,
+    title: opt.label,
+  }))
+})
+
+const toolbarMenuItems = computed(() => {
+  const items: any[] = []
+
+  if (props.activeTab) {
+    items.push([
+      {
+        label: t('common.rename'),
+        icon: 'i-heroicons-pencil-square',
+        click: () => emit('rename-tab'),
+      },
+    ])
+
+    if (props.canDeleteActiveTab !== false) {
+      items.push([
+        {
+          label: t('common.delete'),
+          icon: 'i-heroicons-trash',
+          click: () => emit('delete-tab'),
+        },
+      ])
+    }
+  }
+
+  return items
+})
 </script>
 
 <template>
@@ -226,12 +260,23 @@ const infoTooltipText = computed(() => {
             class="w-full"
           />
           <div class="flex items-center gap-2">
-            <USelectMenu v-model="sortBy" :items="sortOptions" value-key="id" label-key="label" class="flex-1" :searchable="false">
-              <template #leading>
-                <UIcon v-if="currentSortOption" :name="currentSortOption.icon" class="w-4 h-4" />
-              </template>
-            </USelectMenu>
+            <UiAppButtonGroup
+              v-model="sortBy"
+              :options="sortByToggleOptions"
+              active-variant="solid"
+              variant="outline"
+            />
             <UButton :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
+
+            <UDropdownMenu v-if="toolbarMenuItems.length > 0" :items="toolbarMenuItems">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-ellipsis-horizontal"
+                :title="t('common.more')"
+                :aria-label="t('common.more')"
+              />
+            </UDropdownMenu>
           </div>
         </div>
 
@@ -257,19 +302,9 @@ const infoTooltipText = computed(() => {
               >
                 {{ t('contentLibrary.actions.uploadMedia') }}
               </UButton>
+
+              <CommonInfoTooltip :text="infoTooltipText" />
             </template>
-          </div>
-
-          <div class="flex items-center gap-2 px-1 text-sm text-gray-500">
-            <UButton color="neutral" variant="ghost" icon="i-heroicons-pencil-square" @click="emit('rename-tab')">
-              {{ t('common.rename') }}
-            </UButton>
-            
-            <CommonInfoTooltip :text="infoTooltipText" />
-
-            <UButton v-if="canDeleteActiveTab !== false" color="error" variant="ghost" icon="i-heroicons-trash" @click="emit('delete-tab')">
-              {{ t('common.delete') }}
-            </UButton>
           </div>
         </div>
       </div>

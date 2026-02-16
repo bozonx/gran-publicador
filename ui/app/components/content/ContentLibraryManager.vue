@@ -1507,7 +1507,7 @@ if (props.scope === 'project' && props.projectId) {
           v-model="activeTabId"
           :scope="scope"
           :project-id="props.projectId"
-          @update:active-tab="handleActiveTabUpdate($event)"
+          @update:activeTab="handleActiveTabUpdate($event)"
           @update:tabs="tabs = $event"
         />
       </template>
@@ -1602,7 +1602,7 @@ if (props.scope === 'project' && props.projectId) {
                 variant="ghost"
                 color="neutral"
                 size="xs"
-                :icon="expanded ? 'i-heroicons-folder-open' : 'i-heroicons-folder'"
+                :icon="expanded ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
                 class="p-0.5"
                 @click.stop="handleToggle"
               />
