@@ -1,4 +1,12 @@
-import { IsIn, IsObject, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 export class CreateContentLibraryTabDto {
@@ -11,6 +19,11 @@ export class CreateContentLibraryTabDto {
 
   @IsIn(['GROUP', 'SAVED_VIEW'])
   public type!: 'GROUP' | 'SAVED_VIEW';
+
+  @ValidateIf(o => o.type === 'GROUP')
+  @IsIn(['PERSONAL_USER', 'PROJECT_USER', 'PROJECT_SHARED'])
+  @IsOptional()
+  public groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
 
   @IsUUID()
   @IsOptional()

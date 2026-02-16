@@ -37,6 +37,9 @@ describe('ContentLibraryService (unit)', () => {
       delete: jest.fn() as any,
       aggregate: jest.fn() as any,
     },
+    user: {
+      findUnique: jest.fn() as any,
+    },
     media: {
       findUnique: jest.fn() as any,
     },
@@ -603,6 +606,36 @@ describe('ContentLibraryService (unit)', () => {
       );
     });
 
+    it('listTabs should filter project scope tabs: shared groups + own groups + own saved views', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.contentLibraryTab.findMany.mockResolvedValue([
+        { id: 'g-shared', type: 'GROUP' },
+        { id: 'g-user', type: 'GROUP' },
+        { id: 'sv-1', type: 'SAVED_VIEW' },
+      ]);
+      mockPrismaService.contentItemGroup.groupBy.mockResolvedValue([
+        { tabId: 'g-shared', _count: { _all: 2 } },
+        { tabId: 'g-user', _count: { _all: 1 } },
+      ]);
+
+      await expect(
+        service.listTabs({ scope: 'project', projectId: 'p1' } as any, 'user-1'),
+      ).resolves.toEqual([
+        { id: 'g-shared', type: 'GROUP', directItemsCount: 2 },
+        { id: 'g-user', type: 'GROUP', directItemsCount: 1 },
+        { id: 'sv-1', type: 'SAVED_VIEW' },
+      ]);
+
+      expect(mockPrismaService.contentLibraryTab.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.any(Array),
+          }),
+          orderBy: { order: 'asc' },
+        }),
+      );
+    });
+
     it('deleteTab should reject deleting a root group', async () => {
       mockPrismaService.contentLibraryTab.findUnique.mockResolvedValue({
         id: 'root-group',
@@ -648,6 +681,30 @@ describe('ContentLibraryService (unit)', () => {
       await expect(
         service.createTab({ scope: 'project', type: 'GROUP', title: 'Group' } as any, 'user-1'),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('createTab should forbid creating PROJECT_SHARED group for non-owner/non-admin', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+
+      mockPrismaService.user.findUnique.mockResolvedValue({ isAdmin: false });
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        ownerId: 'owner-1',
+        members: [{ role: { systemType: 'ADMIN' } }],
+      });
+
+      await expect(
+        service.createTab(
+          {
+            scope: 'project',
+            projectId: 'p1',
+            type: 'GROUP',
+            groupType: 'PROJECT_SHARED',
+            title: 'Shared',
+            config: {},
+          } as any,
+          'user-1',
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('reorderTabs should reject ids outside scope', async () => {

@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
@@ -146,7 +147,7 @@ export class ContentLibraryService {
   }) {
     const tab = await this.prisma.contentLibraryTab.findUnique({
       where: { id: options.groupId },
-      select: { id: true, type: true, userId: true, projectId: true },
+      select: { id: true, type: true, groupType: true, userId: true, projectId: true },
     });
 
     if (!tab) {
@@ -157,15 +158,13 @@ export class ContentLibraryService {
       throw new BadRequestException('Tab is not a group');
     }
 
-    if (
-      (tab.userId === null && tab.projectId === null) ||
-      (tab.userId !== null && tab.projectId !== null)
-    ) {
-      throw new BadRequestException('Invalid group scope configuration');
-    }
+    const resolvedGroupType = this.resolveGroupType(tab);
 
     if (options.scope === 'personal') {
-      if (tab.userId !== options.userId || tab.projectId !== null) {
+      if (resolvedGroupType !== 'PERSONAL_USER') {
+        throw new ForbiddenException('You do not have access to this group');
+      }
+      if (tab.userId !== options.userId) {
         throw new ForbiddenException('You do not have access to this group');
       }
       return tab;
@@ -180,7 +179,88 @@ export class ContentLibraryService {
     }
 
     await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
+
+    if (resolvedGroupType === 'PROJECT_USER' && tab.userId !== options.userId) {
+      throw new ForbiddenException('You do not have access to this group');
+    }
+
     return tab;
+  }
+
+  private resolveGroupType(tab: {
+    type: unknown;
+    groupType?: unknown;
+    userId: string | null;
+    projectId: string | null;
+  }): 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' {
+    if ((tab.type as any) !== 'GROUP') {
+      throw new BadRequestException('Tab is not a group');
+    }
+
+    if (
+      tab.groupType === 'PERSONAL_USER' ||
+      tab.groupType === 'PROJECT_USER' ||
+      tab.groupType === 'PROJECT_SHARED'
+    ) {
+      return tab.groupType;
+    }
+
+    // Backward compatibility for older records without groupType.
+    if (tab.userId !== null && tab.projectId === null) {
+      return 'PERSONAL_USER';
+    }
+    if (tab.userId === null && tab.projectId !== null) {
+      return 'PROJECT_SHARED';
+    }
+
+    throw new BadRequestException('Invalid group scope configuration');
+  }
+
+  private async assertNotViewer(projectId: string, userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true },
+    });
+    if (user?.isAdmin) {
+      return;
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        ownerId: true,
+        members: {
+          where: { userId },
+          select: { role: { select: { systemType: true } } },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.ownerId === userId) {
+      return;
+    }
+    if (project.members.length === 0) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    const roleSystemType = project.members[0]?.role?.systemType;
+    if (roleSystemType === SystemRoleType.VIEWER) {
+      throw new ForbiddenException('Viewers cannot perform this action');
+    }
+  }
+
+  private async assertProjectOwnerOrAdmin(projectId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true },
+    });
+    if (user?.isAdmin) {
+      return;
+    }
+    await this.assertProjectOwner(projectId, userId);
   }
 
   private async assertTabAccess(options: {
@@ -192,23 +272,30 @@ export class ContentLibraryService {
   }) {
     const tab = await this.prisma.contentLibraryTab.findUnique({
       where: { id: options.tabId },
-      select: { id: true, type: true, userId: true, projectId: true, parentId: true },
+      select: {
+        id: true,
+        type: true,
+        groupType: true,
+        userId: true,
+        projectId: true,
+        parentId: true,
+      },
     });
 
     if (!tab) {
       throw new NotFoundException('Tab not found');
     }
 
-    if (
-      (tab.userId === null && tab.projectId === null) ||
-      (tab.userId !== null && tab.projectId !== null)
-    ) {
-      throw new BadRequestException('Invalid tab scope configuration');
-    }
-
     if (options.scope === 'personal') {
-      if (tab.userId !== options.userId || tab.projectId !== null) {
+      if (tab.projectId !== null || tab.userId !== options.userId) {
         throw new ForbiddenException('You do not have access to this tab');
+      }
+
+      if ((tab.type as any) === 'GROUP') {
+        const groupType = this.resolveGroupType(tab);
+        if (groupType !== 'PERSONAL_USER') {
+          throw new ForbiddenException('You do not have access to this tab');
+        }
       }
       return tab;
     }
@@ -222,11 +309,28 @@ export class ContentLibraryService {
     }
 
     await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
+
+    if ((tab.type as any) === 'SAVED_VIEW') {
+      if (tab.userId !== options.userId) {
+        throw new ForbiddenException('You do not have access to this tab');
+      }
+      if (options.requireMutationPermission) {
+        await this.assertNotViewer(options.projectId, options.userId);
+      }
+      return tab;
+    }
+
+    const groupType = this.resolveGroupType(tab);
+    if (groupType === 'PROJECT_USER' && tab.userId !== options.userId) {
+      throw new ForbiddenException('You do not have access to this tab');
+    }
+
     if (options.requireMutationPermission) {
-      await this.permissions.checkProjectPermission(options.projectId, options.userId, [
-        'ADMIN',
-        'EDITOR',
-      ]);
+      if (groupType === 'PROJECT_SHARED') {
+        await this.assertProjectOwnerOrAdmin(options.projectId, options.userId);
+      } else {
+        await this.assertNotViewer(options.projectId, options.userId);
+      }
     }
 
     return tab;
@@ -264,6 +368,7 @@ export class ContentLibraryService {
     scope: 'personal' | 'project';
     projectId?: string;
     userId: string;
+    childGroupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
   }): Promise<string | null | undefined> {
     if (options.parentId === undefined) {
       return undefined;
@@ -279,6 +384,13 @@ export class ContentLibraryService {
       projectId: options.projectId,
       userId: options.userId,
     });
+
+    if (options.childGroupType) {
+      const parentGroupType = this.resolveGroupType(parent as any);
+      if (parentGroupType !== options.childGroupType) {
+        throw new BadRequestException('Cannot mix group types in one hierarchy');
+      }
+    }
 
     return parent.id;
   }
@@ -1196,7 +1308,31 @@ export class ContentLibraryService {
       where.userId = userId;
       where.projectId = null;
     } else {
-      where.projectId = query.projectId;
+      // In project scope:
+      // - groups: shared + user-owned
+      // - saved views: always personal to user within the project
+      where.OR = [
+        {
+          projectId: query.projectId,
+          type: 'GROUP',
+          OR: [
+            { groupType: 'PROJECT_SHARED', userId: null },
+            { groupType: 'PROJECT_USER', userId },
+          ],
+        },
+        {
+          projectId: query.projectId,
+          type: 'GROUP',
+          // Backward-compatibility for existing shared groups without groupType
+          groupType: null,
+          userId: null,
+        },
+        {
+          projectId: query.projectId,
+          type: 'SAVED_VIEW',
+          userId,
+        },
+      ];
     }
 
     const tabs = await this.prisma.contentLibraryTab.findMany({
@@ -1243,6 +1379,7 @@ export class ContentLibraryService {
       scope: 'personal' | 'project';
       projectId?: string;
       type: 'GROUP' | 'SAVED_VIEW';
+      groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
       parentId?: string;
       title: string;
       config?: unknown;
@@ -1253,15 +1390,54 @@ export class ContentLibraryService {
       if (!dto.projectId) {
         throw new BadRequestException('projectId is required for project scope');
       }
-      await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+      await this.permissions.checkProjectAccess(dto.projectId, userId, true);
+      await this.assertNotViewer(dto.projectId, userId);
+    }
+
+    if (dto.type === 'GROUP') {
+      const groupType =
+        dto.scope === 'personal' ? 'PERSONAL_USER' : (dto.groupType ?? 'PROJECT_USER');
+
+      if (dto.scope === 'personal') {
+        if (dto.groupType && dto.groupType !== 'PERSONAL_USER') {
+          throw new BadRequestException('Invalid groupType for personal scope');
+        }
+      } else {
+        if (groupType === 'PROJECT_SHARED') {
+          await this.assertProjectOwnerOrAdmin(dto.projectId!, userId);
+        }
+      }
+    } else {
+      if (dto.groupType) {
+        throw new BadRequestException('groupType is only allowed for GROUP tabs');
+      }
     }
 
     const scopeWhere: any =
-      dto.scope === 'personal' ? { userId, projectId: null } : { projectId: dto.projectId };
+      dto.scope === 'personal'
+        ? { userId, projectId: null }
+        : {
+            projectId: dto.projectId,
+            OR: [
+              {
+                type: 'GROUP',
+                OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
+              },
+              { type: 'GROUP', groupType: null, userId: null },
+              { type: 'SAVED_VIEW', userId },
+            ],
+          };
 
     if (dto.type !== 'GROUP' && dto.parentId) {
       throw new BadRequestException('Only groups can have parent groups');
     }
+
+    const resolvedChildGroupType: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' | undefined =
+      dto.type === 'GROUP'
+        ? dto.scope === 'personal'
+          ? 'PERSONAL_USER'
+          : (dto.groupType ?? 'PROJECT_USER')
+        : undefined;
 
     const parentId =
       dto.type === 'GROUP'
@@ -1270,6 +1446,7 @@ export class ContentLibraryService {
             scope: dto.scope,
             projectId: dto.projectId,
             userId,
+            childGroupType: resolvedChildGroupType,
           })
         : null;
 
@@ -1287,7 +1464,15 @@ export class ContentLibraryService {
             data: {
               type: dto.type,
               title: dto.title,
-              userId: dto.scope === 'personal' ? userId : null,
+              groupType: dto.type === 'GROUP' ? (resolvedChildGroupType as any) : null,
+              userId:
+                dto.scope === 'personal'
+                  ? userId
+                  : dto.type === 'SAVED_VIEW'
+                    ? userId
+                    : resolvedChildGroupType === 'PROJECT_SHARED'
+                      ? null
+                      : userId,
               projectId: dto.scope === 'project' ? dto.projectId! : null,
               parentId,
               order: nextOrder,
@@ -1323,11 +1508,15 @@ export class ContentLibraryService {
       throw new BadRequestException('Only groups can have parent groups');
     }
 
+    const childGroupType =
+      (tab.type as any) === 'GROUP' ? this.resolveGroupType(tab as any) : undefined;
+
     const parentId = await this.resolveParentGroupId({
       parentId: dto.parentId,
       scope: dto.scope,
       projectId: dto.projectId,
       userId,
+      childGroupType,
     });
 
     if (parentId === tab.id) {
@@ -1451,11 +1640,24 @@ export class ContentLibraryService {
       if (!dto.projectId) {
         throw new BadRequestException('projectId is required for project scope');
       }
-      await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+      await this.permissions.checkProjectAccess(dto.projectId, userId, true);
+      await this.assertNotViewer(dto.projectId, userId);
     }
 
     const where: any =
-      dto.scope === 'personal' ? { userId, projectId: null } : { projectId: dto.projectId };
+      dto.scope === 'personal'
+        ? { userId, projectId: null }
+        : {
+            projectId: dto.projectId,
+            OR: [
+              {
+                type: 'GROUP',
+                OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
+              },
+              { type: 'GROUP', groupType: null, userId: null },
+              { type: 'SAVED_VIEW', userId },
+            ],
+          };
 
     const existing = await this.prisma.contentLibraryTab.findMany({
       where,

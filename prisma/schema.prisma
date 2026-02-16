@@ -16,6 +16,12 @@ enum ContentLibraryTabType {
   SAVED_VIEW
 }
 
+ enum ContentLibraryGroupType {
+   PERSONAL_USER
+   PROJECT_USER
+   PROJECT_SHARED
+ }
+
 model User {
   id String @id @default(uuid())
 
@@ -119,6 +125,8 @@ model ContentLibraryTab {
   id        String  @id @default(uuid())
   type      ContentLibraryTabType
   title     String
+
+  groupType ContentLibraryGroupType? @map("group_type")
 
   userId    String? @map("user_id")
   projectId String? @map("project_id")

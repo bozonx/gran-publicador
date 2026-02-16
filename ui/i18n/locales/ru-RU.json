@@ -492,6 +492,12 @@
       "deleteError": "Не удалось удалить группу",
       "deleteSuccess": "Группа успешно удалена",
       "deleteTitle": "Удалить группу",
+      "groupVisibility": {
+        "label": "Доступ к группе",
+        "placeholder": "Выберите вариант...",
+        "projectUser": "Моя группа (видна только мне)",
+        "projectShared": "Общая группа (видна всем в проекте)"
+      },
       "renameTitle": "Переименовать группу",
       "reorderError": "Не удалось изменить порядок групп",
       "selectTypePrompt": "Выберите тип:",

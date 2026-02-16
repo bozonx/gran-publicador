@@ -4,16 +4,18 @@ import AppModal from '~/components/ui/AppModal.vue'
 
 const props = defineProps<{
   open: boolean
+  scope?: 'personal' | 'project'
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'create': [data: { type: 'GROUP' | 'SAVED_VIEW'; title: string }]
+  'create': [data: { type: 'GROUP' | 'SAVED_VIEW'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }]
 }>()
 
 const { t } = useI18n()
 
 const selectedType = ref<'GROUP' | 'SAVED_VIEW' | null>(null)
+const selectedGroupType = ref<'PROJECT_USER' | 'PROJECT_SHARED' | null>(null)
 const title = ref('')
 
 const isOpen = computed({
@@ -22,7 +24,12 @@ const isOpen = computed({
 })
 
 const canProceed = computed(() => {
-  return selectedType.value && title.value.trim().length > 0
+  if (!selectedType.value) return false
+  if (title.value.trim().length === 0) return false
+  if (selectedType.value === 'GROUP' && props.scope === 'project') {
+    return selectedGroupType.value !== null
+  }
+  return true
 })
 
 const handleCreate = () => {
@@ -31,6 +38,9 @@ const handleCreate = () => {
   emit('create', {
     type: selectedType.value,
     title: title.value.trim(),
+    ...(selectedType.value === 'GROUP' && props.scope === 'project' && selectedGroupType.value
+      ? { groupType: selectedGroupType.value }
+      : {}),
   })
   
   handleClose()
@@ -39,12 +49,14 @@ const handleCreate = () => {
 const handleClose = () => {
   isOpen.value = false
   selectedType.value = null
+  selectedGroupType.value = null
   title.value = ''
 }
 
 watch(() => props.open, (val) => {
   if (!val) {
     selectedType.value = null
+    selectedGroupType.value = null
     title.value = ''
   }
 })
@@ -107,6 +119,23 @@ watch(() => props.open, (val) => {
         <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <UIcon :name="selectedType === 'GROUP' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'" class="w-4 h-4" />
           <span>{{ t(`contentLibrary.tabs.types.${selectedType === 'GROUP' ? 'group' : 'savedView'}.title`) }}</span>
+        </div>
+
+        <div
+          v-if="selectedType === 'GROUP' && props.scope === 'project'"
+          class="space-y-2"
+        >
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ t('contentLibrary.tabs.groupVisibility.label') }}
+          </p>
+          <USelect
+            v-model="selectedGroupType"
+            :options="[
+              { label: t('contentLibrary.tabs.groupVisibility.projectUser'), value: 'PROJECT_USER' },
+              { label: t('contentLibrary.tabs.groupVisibility.projectShared'), value: 'PROJECT_SHARED' },
+            ]"
+            :placeholder="t('contentLibrary.tabs.groupVisibility.placeholder')"
+          />
         </div>
 
         <UInput

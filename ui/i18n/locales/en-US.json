@@ -491,6 +491,12 @@
       "deleteError": "Failed to delete group",
       "deleteSuccess": "Group deleted successfully",
       "deleteTitle": "Delete group",
+      "groupVisibility": {
+        "label": "Group visibility",
+        "placeholder": "Select visibility...",
+        "projectUser": "My group (only me)",
+        "projectShared": "Shared group (everyone in project)"
+      },
       "renameTitle": "Rename group",
       "reorderError": "Failed to reorder groups",
       "selectTypePrompt": "Select type:",

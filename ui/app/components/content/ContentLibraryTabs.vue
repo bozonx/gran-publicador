@@ -169,12 +169,13 @@ const fetchTabs = async () => {
   }
 }
 
-const handleCreateTab = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string }) => {
+const handleCreateTab = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }) => {
   try {
     const newTab = await createTab({
       scope: props.scope,
       projectId: props.projectId,
       type: data.type,
+      groupType: data.type === 'GROUP' ? data.groupType : undefined,
       title: data.title,
       config: {},
     })
@@ -319,6 +320,7 @@ defineExpose({
 
     <CreateTabModal
       v-model:open="isCreateModalOpen"
+      :scope="props.scope"
       @create="handleCreateTab"
     />
   </div>

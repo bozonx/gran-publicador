@@ -3,6 +3,7 @@ export interface ContentLibraryTab {
   type: 'GROUP' | 'SAVED_VIEW';
   title: string;
   directItemsCount?: number;
+  groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' | null;
   userId: string | null;
   projectId: string | null;
   parentId: string | null;
@@ -16,6 +17,7 @@ export interface CreateTabDto {
   scope: 'personal' | 'project';
   projectId?: string;
   type: 'GROUP' | 'SAVED_VIEW';
+  groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
   parentId?: string;
   title: string;
   config?: Record<string, any>;
