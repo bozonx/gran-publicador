@@ -752,10 +752,7 @@ const fetchAvailableTags = async () => {
       return
     }
 
-    if (isActiveGroupTab.value && !activeRootGroupId.value) {
-      return
-    }
-    const groupIdForTags = activeRootGroupId.value ?? undefined
+    const groupIdForTags = activeTab.value?.type === 'GROUP' ? activeTab.value.id : undefined
     const tags = await api.get<string[]>('/content-library/tags', {
       params: {
         scope: props.scope === 'personal' ? 'personal' : 'project',
@@ -769,8 +766,8 @@ const fetchAvailableTags = async () => {
   }
 }
 
-watch(activeRootGroupId, (next, prev) => {
-  if (next && next !== prev) {
+watch(activeTab, (next, prev) => {
+  if (next?.id && next.id !== prev?.id) {
     fetchAvailableTags()
   }
 })
@@ -1484,7 +1481,7 @@ if (props.scope === 'project' && props.projectId) {
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
-      :group-id="activeRootGroupId ?? undefined"
+      :group-id="activeTab?.type === 'GROUP' ? activeTab.id : undefined"
       :total-unfiltered="totalUnfiltered"
       :current-project="currentProject"
       :is-purging="isPurging"
