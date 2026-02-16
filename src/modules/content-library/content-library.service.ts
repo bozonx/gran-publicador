@@ -395,25 +395,38 @@ export class ContentLibraryService {
   }
 
   private async ensureNoTabCycle(options: { collectionId: string; parentId: string }) {
-    const visited = new Set<string>();
-    let cursor: string | null = options.parentId;
+    const [res] = (await this.prisma.$queryRaw<Array<{ has_target: boolean; has_cycle: boolean }>>`
+      WITH RECURSIVE parents AS (
+        SELECT
+          id,
+          parent_id,
+          ARRAY[id] AS path,
+          FALSE AS cycle
+        FROM content_collections
+        WHERE id = ${options.parentId}::uuid
 
-    while (cursor) {
-      if (cursor === options.collectionId) {
-        throw new BadRequestException('Cannot move group into its descendant');
-      }
-      if (visited.has(cursor)) {
-        throw new BadRequestException('Invalid group hierarchy');
-      }
-      visited.add(cursor);
+        UNION ALL
 
-      const node: { parentId: string | null } | null = await (
-        this.prisma as any
-      ).contentCollection.findUnique({
-        where: { id: cursor },
-        select: { parentId: true },
-      });
-      cursor = node?.parentId ?? null;
+        SELECT
+          c.id,
+          c.parent_id,
+          p.path || c.id,
+          c.id = ANY(p.path) AS cycle
+        FROM content_collections c
+        JOIN parents p ON c.id = p.parent_id
+        WHERE p.cycle = FALSE
+      )
+      SELECT
+        EXISTS(SELECT 1 FROM parents WHERE id = ${options.collectionId}::uuid) AS has_target,
+        EXISTS(SELECT 1 FROM parents WHERE cycle = TRUE) AS has_cycle
+    `) as Array<{ has_target: boolean; has_cycle: boolean }>;
+
+    if (res?.has_cycle) {
+      throw new BadRequestException('Invalid group hierarchy');
+    }
+
+    if (res?.has_target) {
+      throw new BadRequestException('Cannot move group into its descendant');
     }
   }
 
@@ -502,7 +515,11 @@ export class ContentLibraryService {
 
     const includeMedia = query.includeMedia !== false;
 
-    const [items, total, totalUnfiltered] = (await Promise.all([
+    const shouldIncludeTotalUnfiltered =
+      query.includeTotalUnfiltered === true ||
+      (query.includeTotalUnfiltered === undefined && offset === 0);
+
+    const baseQueries: Array<Promise<any>> = [
       this.prisma.contentItem.findMany({
         where,
         orderBy: { [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc' },
@@ -521,22 +538,33 @@ export class ContentLibraryService {
         },
       }),
       this.prisma.contentItem.count({ where }),
-      this.prisma.contentItem.count({
-        where: {
-          userId: query.scope === 'personal' ? userId : undefined,
-          projectId: query.scope === 'project' ? query.projectId : undefined,
-          archivedAt: null,
-          ...(query.groupId
-            ? {
-                OR: [
-                  { groupId: query.groupId },
-                  { groups: { some: { collectionId: query.groupId } } },
-                ],
-              }
-            : {}),
-        } as any,
-      }),
-    ])) as [any[], number, number];
+    ];
+
+    if (shouldIncludeTotalUnfiltered) {
+      baseQueries.push(
+        this.prisma.contentItem.count({
+          where: {
+            userId: query.scope === 'personal' ? userId : undefined,
+            projectId: query.scope === 'project' ? query.projectId : undefined,
+            archivedAt: null,
+            ...(query.groupId
+              ? {
+                  OR: [
+                    { groupId: query.groupId },
+                    { groups: { some: { collectionId: query.groupId } } },
+                  ],
+                }
+              : {}),
+          } as any,
+        }),
+      );
+    }
+
+    const [items, total, totalUnfiltered] = (await Promise.all(baseQueries)) as [
+      any[],
+      number,
+      number | undefined,
+    ];
 
     return {
       items: items.map((item: any) => this.normalizeContentItemTags(item)),
@@ -778,12 +806,12 @@ export class ContentLibraryService {
     const requiresAllOrNothingAuthorization = operation === BulkOperationType.MERGE;
 
     const uniqueProjectIds = Array.from(
-      new Set(
+      new Set<string>(
         (items ?? [])
           .map((i: any) => i?.projectId)
-          .filter((p: any) => typeof p === 'string' && p.length > 0),
+          .filter((p: unknown): p is string => typeof p === 'string' && p.length > 0),
       ),
-    ) as string[];
+    );
 
     const projectIdToPermissionError = new Map<string, any>();
     for (const projectId of uniqueProjectIds) {
@@ -940,18 +968,17 @@ export class ContentLibraryService {
         );
         const newTags = this.normalizeTags(mergedTagNames);
 
-        const targetMeta = (
+        const targetMeta =
           typeof targetItem.meta === 'object' && targetItem.meta !== null
             ? (targetItem.meta as Record<string, any>)
-            : {}
-        ) as Record<string, any>;
+            : {};
         const existingMerged = Array.isArray((targetMeta as any).mergedContentItems)
           ? (targetMeta as any).mergedContentItems
           : [];
         const removedMetas = sourceItems
           .map((i: any) => i?.meta)
           .filter((m: any) => typeof m === 'object' && m !== null)
-          .filter((m: any) => Object.keys(m as any).length > 0);
+          .filter((m: any) => Object.keys(m).length > 0);
         const nextMerged = [...existingMerged, ...removedMetas];
         const newMeta =
           nextMerged.length > 0

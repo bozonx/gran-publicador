@@ -50,6 +50,7 @@ describe('ContentLibraryService (unit)', () => {
       findMany: jest.fn() as any,
     },
     $transaction: jest.fn() as any,
+    $queryRaw: jest.fn() as any,
   };
 
   const mockPermissionsService = {
@@ -588,6 +589,44 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith('p1', 'user-1', true);
     });
 
+    it('should include totalUnfiltered by default for first page (offset = 0)', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.findMany.mockResolvedValue([]);
+      mockPrismaService.contentItem.count.mockResolvedValue(0);
+
+      await service.findAll({ scope: 'project', projectId: 'p1', offset: 0 } as any, 'user-1');
+
+      expect(mockPrismaService.contentItem.count).toHaveBeenCalledTimes(2);
+    });
+
+    it('should skip totalUnfiltered for pagination requests (offset > 0) unless explicitly requested', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.findMany.mockResolvedValue([]);
+      mockPrismaService.contentItem.count.mockResolvedValue(0);
+
+      await service.findAll({ scope: 'project', projectId: 'p1', offset: 20 } as any, 'user-1');
+
+      expect(mockPrismaService.contentItem.count).toHaveBeenCalledTimes(1);
+    });
+
+    it('should include totalUnfiltered for pagination when includeTotalUnfiltered=true', async () => {
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.contentItem.findMany.mockResolvedValue([]);
+      mockPrismaService.contentItem.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          scope: 'project',
+          projectId: 'p1',
+          offset: 20,
+          includeTotalUnfiltered: true,
+        } as any,
+        'user-1',
+      );
+
+      expect(mockPrismaService.contentItem.count).toHaveBeenCalledTimes(2);
+    });
+
     it('should apply archivedOnly filter', async () => {
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
       mockPrismaService.contentItem.findMany.mockResolvedValue([]);
@@ -688,14 +727,14 @@ describe('ContentLibraryService (unit)', () => {
       mockPrismaService.$transaction.mockImplementationOnce(async (fn: any) => {
         return fn({
           contentCollection: {
-            findMany: (jest.fn() as any).mockResolvedValue([]) as any,
-            deleteMany: (jest.fn() as any).mockResolvedValue({ count: 1 }) as any,
+            findMany: (jest.fn() as any).mockResolvedValue([]),
+            deleteMany: (jest.fn() as any).mockResolvedValue({ count: 1 }),
           },
           contentItem: {
-            updateMany: (jest.fn() as any).mockResolvedValue({ count: 0 }) as any,
+            updateMany: (jest.fn() as any).mockResolvedValue({ count: 0 }),
           },
           contentItemGroup: {
-            deleteMany: (jest.fn() as any).mockResolvedValue({ count: 0 }) as any,
+            deleteMany: (jest.fn() as any).mockResolvedValue({ count: 0 }),
           },
         });
       });

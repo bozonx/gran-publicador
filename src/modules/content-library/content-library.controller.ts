@@ -39,6 +39,19 @@ export class ContentLibraryController {
     private readonly prisma: PrismaService,
   ) {}
 
+  private validateQueryProjectScopeOrThrow(req: UnifiedAuthRequest, projectId?: string) {
+    if (!projectId) {
+      return;
+    }
+
+    if (req.user.allProjects === false && req.user.projectIds) {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+  }
+
   private async validateContentItemProjectScopeOrThrow(
     req: UnifiedAuthRequest,
     contentItemId: string,
@@ -67,21 +80,8 @@ export class ContentLibraryController {
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindContentItemsQueryDto,
   ) {
-    if (
-      query.scope === 'project' &&
-      query.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(
-        query.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+    if (query.scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
 
     return this.contentLibraryService.findAll(query, req.user.userId);
@@ -92,21 +92,8 @@ export class ContentLibraryController {
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindContentCollectionsQueryDto,
   ) {
-    if (
-      query.scope === 'project' &&
-      query.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(
-        query.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+    if (query.scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
 
     return this.contentLibraryService.listCollections(query, req.user.userId);
@@ -117,22 +104,8 @@ export class ContentLibraryController {
     @Request() req: UnifiedAuthRequest,
     @Body() dto: CreateContentCollectionDto,
   ) {
-    if (
-      dto.scope === 'project' &&
-      dto.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      const projectId = dto.projectId;
-      const allProjects = req.user.allProjects;
-      const projectIds = req.user.projectIds;
-      const userId = req.user.userId;
-      const tokenId = req.user.tokenId;
-
-      ApiTokenGuard.validateProjectScope(projectId, allProjects, projectIds, {
-        userId,
-        tokenId,
-      });
+    if (dto.scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
     return this.contentLibraryService.createCollection(dto, req.user.userId);
@@ -144,16 +117,8 @@ export class ContentLibraryController {
     @Param('id') collectionId: string,
     @Body() dto: UpdateContentCollectionDto,
   ) {
-    if (
-      dto.scope === 'project' &&
-      dto.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (dto.scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
     return this.contentLibraryService.updateCollection(collectionId, dto, req.user.userId);
@@ -165,21 +130,8 @@ export class ContentLibraryController {
     @Param('id') collectionId: string,
     @Query() query: FindContentCollectionsQueryDto,
   ) {
-    if (
-      query.scope === 'project' &&
-      query.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(
-        query.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+    if (query.scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
 
     return this.contentLibraryService.deleteCollection(collectionId, query, req.user.userId);
@@ -190,16 +142,8 @@ export class ContentLibraryController {
     @Request() req: UnifiedAuthRequest,
     @Body() dto: ReorderContentCollectionsDto,
   ) {
-    if (
-      dto.scope === 'project' &&
-      dto.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (dto.scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
     return this.contentLibraryService.reorderCollections(dto, req.user.userId);
@@ -212,11 +156,8 @@ export class ContentLibraryController {
     @Query('projectId') projectId?: string,
     @Query('groupId') groupId?: string,
   ) {
-    if (scope === 'project' && projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, projectId);
     }
 
     return this.contentLibraryService.getAvailableTags(scope, projectId, req.user.userId, groupId);
@@ -231,11 +172,8 @@ export class ContentLibraryController {
     @Query('groupId') groupId?: string,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
   ) {
-    if (scope === 'project' && projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, projectId);
     }
 
     const tags = await this.contentLibraryService.searchAvailableTags(

@@ -358,7 +358,7 @@ export class NewsNotificationsScheduler {
         this.distributedLockName,
       )) as Array<{ locked: boolean }>;
 
-      return rows[0]?.locked === true;
+      return rows[0]?.locked;
     } catch (error: any) {
       this.logger.error(`Failed to acquire news scheduler distributed lock: ${error.message}`);
       return false;

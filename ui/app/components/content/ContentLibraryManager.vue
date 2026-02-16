@@ -662,6 +662,8 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
     const resolvedActiveCollection = activeCollection.value ?? (activeCollectionId.value ? (collectionsById.value.get(activeCollectionId.value) ?? null) : null)
     const resolvedGroupId = resolvedActiveCollection?.type === 'GROUP' ? resolvedActiveCollection.id : undefined
 
+    const shouldIncludeTotalUnfiltered = offset.value === 0
+
     const baseParams = {
       scope: props.scope === 'personal' ? 'personal' : 'project',
       projectId: props.scope === 'project' ? props.projectId : undefined,
@@ -679,6 +681,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         sortBy: sortBy.value,
         sortOrder: sortOrder.value,
         tags: selectedTags.value || undefined,
+        includeTotalUnfiltered: shouldIncludeTotalUnfiltered ? true : undefined,
       },
     })
 
@@ -687,7 +690,11 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
     }
 
     total.value = res.total
-    totalUnfiltered.value = typeof res.totalUnfiltered === 'number' ? res.totalUnfiltered : res.total
+    if (typeof res.totalUnfiltered === 'number') {
+      totalUnfiltered.value = res.totalUnfiltered
+    } else if (offset.value === 0) {
+      totalUnfiltered.value = res.total
+    }
     if (offset.value === 0) {
       items.value = res.items
     } else {
