@@ -75,6 +75,39 @@ export class ContentLibraryController {
     });
   }
 
+  private async validateBulkContentItemsProjectScopeOrThrow(
+    req: UnifiedAuthRequest,
+    contentItemIds: string[],
+  ) {
+    if (req.user.allProjects !== false || !req.user.projectIds) {
+      return;
+    }
+
+    if (!Array.isArray(contentItemIds) || contentItemIds.length === 0) {
+      return;
+    }
+
+    const items = await this.prisma.contentItem.findMany({
+      where: { id: { in: contentItemIds } },
+      select: { projectId: true },
+    });
+
+    const projectIds = Array.from(
+      new Set(
+        (items ?? [])
+          .map(i => i.projectId)
+          .filter((p): p is string => typeof p === 'string' && p.length > 0),
+      ),
+    );
+
+    for (const projectId of projectIds) {
+      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
+        userId: req.user.userId,
+        tokenId: req.user.tokenId,
+      });
+    }
+  }
+
   @Get('items')
   public async findAll(
     @Request() req: UnifiedAuthRequest,
@@ -280,6 +313,8 @@ export class ContentLibraryController {
 
   @Post('bulk')
   public async bulkOperation(@Request() req: UnifiedAuthRequest, @Body() dto: BulkOperationDto) {
+    await this.validateBulkContentItemsProjectScopeOrThrow(req, dto.ids);
+    this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     return this.contentLibraryService.bulkOperation(req.user.userId, dto);
   }
 

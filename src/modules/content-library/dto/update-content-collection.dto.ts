@@ -17,7 +17,7 @@ export class UpdateContentCollectionDto {
   @IsOptional()
   public projectId?: string;
 
-  @ValidateIf((_, value) => value !== null)
+  @ValidateIf((o: { parentId?: string | null }) => o.parentId !== undefined && o.parentId !== null)
   @IsUUID()
   @IsOptional()
   public parentId?: string | null;
