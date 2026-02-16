@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type ContentCollection, useContentCollections } from '~/composables/useContentCollections'
+import { buildGroupTreeFromRoot, type ContentLibraryTreeItem } from '~/composables/useContentLibraryGroupsTree'
 
 interface Props {
   ids: string[]
@@ -30,6 +31,11 @@ const targetProjectId = ref<string | null>(null)
 const targetGroupIdInProject = ref<string | null>(null)
 const targetProjectCollections = ref<ContentCollection[]>([])
 const isLoadingTargetCollections = ref(false)
+
+const folderSelectedValue = ref<ContentLibraryTreeItem | undefined>(undefined)
+
+const targetCollectionId = ref<string | null>(null)
+const targetCollectionSelectedValue = ref<ContentLibraryTreeItem | undefined>(undefined)
 
 const accordionItems = computed(() => {
   const items = []
@@ -75,6 +81,26 @@ const collectionOptions = computed(() => {
   ]
 })
 
+const targetCollectionTreeItems = computed(() => {
+  if (!targetCollectionId.value) return []
+
+  return buildGroupTreeFromRoot({
+    rootId: targetCollectionId.value,
+    allGroupCollections: props.collections,
+    labelFn: (c) => c.title,
+  })
+})
+
+const targetProjectCollectionTreeItems = computed(() => {
+  if (!targetGroupIdInProject.value) return []
+
+  return buildGroupTreeFromRoot({
+    rootId: targetGroupIdInProject.value,
+    allGroupCollections: targetProjectCollections.value,
+    labelFn: (c) => c.title,
+  })
+})
+
 const projectOptions = computed(() => {
   return props.projects
     .filter(p => !props.projectId || p.id !== props.projectId)
@@ -113,10 +139,41 @@ watch(targetProjectId, (next) => {
   if (next) {
     fetchTargetProjectCollections(next)
     targetGroupIdInProject.value = null
+    targetProjectSelectedValue.value = undefined
   } else {
     targetProjectCollections.value = []
     targetGroupIdInProject.value = null
+    targetProjectSelectedValue.value = undefined
   }
+})
+
+const targetProjectSelectedValue = ref<ContentLibraryTreeItem | undefined>(undefined)
+
+watch(folderSelectedValue, (next) => {
+  if (!next) return
+  handleMoveToGroup(next)
+  folderSelectedValue.value = undefined
+})
+
+watch(targetCollectionSelectedValue, (next) => {
+  if (!next) return
+  handleMoveToGroup(next)
+  targetCollectionSelectedValue.value = undefined
+})
+
+watch(targetProjectSelectedValue, (next) => {
+  if (!next) return
+
+  const targetGroupId = typeof next === 'string' ? next : next.value
+  if (!targetGroupId) return
+
+  emit('move', {
+    operation: 'SET_PROJECT',
+    targetId: targetProjectId.value,
+    targetGroupId,
+  })
+  isOpen.value = false
+  targetProjectSelectedValue.value = undefined
 })
 
 function handleMoveToGroup(node: any) {
@@ -136,23 +193,35 @@ function handleMoveToCollection(collection: any) {
   // collection.value can be null ("No collection")
   const targetId = collection.value
 
-  emit('move', {
-    operation: 'MOVE_TO_GROUP',
-    targetId,
-    sourceGroupId: props.activeCollection?.id
-  })
-  isOpen.value = false
+  if (targetId === null) {
+    emit('move', {
+      operation: 'MOVE_TO_GROUP',
+      targetId: null,
+      sourceGroupId: props.activeCollection?.id
+    })
+    isOpen.value = false
+    return
+  }
+
+  targetCollectionId.value = targetId
+  targetCollectionSelectedValue.value = undefined
 }
 
-function handleMoveToProjectSubmit() {
-  if (!targetProjectId.value) return
+function handleMoveToProjectCollection(collection: any) {
+  const targetId = collection.value
 
-  emit('move', {
-    operation: 'SET_PROJECT',
-    targetId: targetProjectId.value,
-    targetGroupId: targetGroupIdInProject.value
-  })
-  isOpen.value = false
+  if (targetId === null) {
+    emit('move', {
+      operation: 'SET_PROJECT',
+      targetId: targetProjectId.value,
+      targetGroupId: null,
+    })
+    isOpen.value = false
+    return
+  }
+
+  targetGroupIdInProject.value = targetId
+  targetProjectSelectedValue.value = undefined
 }
 
 function handleMoveToPersonal() {
@@ -169,6 +238,10 @@ watch(isOpen, (next) => {
     targetProjectId.value = null
     targetGroupIdInProject.value = null
     targetProjectCollections.value = []
+    folderSelectedValue.value = undefined
+    targetCollectionId.value = null
+    targetCollectionSelectedValue.value = undefined
+    targetProjectSelectedValue.value = undefined
   }
 })
 
@@ -190,9 +263,9 @@ watch(isOpen, (next) => {
           <div class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
             <UTree
               v-if="folderTreeItems.length > 0"
+              v-model="folderSelectedValue"
               :items="folderTreeItems"
               class="w-full"
-              @select="handleMoveToGroup"
             />
             <div v-else class="text-sm text-gray-500 py-2 italic px-4">
               {{ t('contentLibrary.bulk.noGroupsInContext') }}
@@ -214,6 +287,15 @@ watch(isOpen, (next) => {
                 <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
               </template>
             </USelectMenu>
+
+            <div v-if="targetCollectionId" class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
+              <UTree
+                v-if="targetCollectionTreeItems.length > 0"
+                v-model="targetCollectionSelectedValue"
+                :items="targetCollectionTreeItems"
+                class="w-full"
+              />
+            </div>
           </div>
         </template>
 
@@ -235,22 +317,25 @@ watch(isOpen, (next) => {
             <div v-if="targetProjectId" class="space-y-2">
               <UFormField :label="t('contentLibrary.moveModal.selectCollectionInProject')">
                 <USelectMenu
-                  v-model="targetGroupIdInProject"
                   :items="targetProjectCollectionOptions"
                   value-key="value"
                   label-key="label"
                   :loading="isLoadingTargetCollections"
                   :placeholder="t('contentLibrary.bulk.searchGroups')"
+                  @update:model-value="handleMoveToProjectCollection"
                 />
               </UFormField>
 
-              <UButton
-                color="primary"
-                block
-                @click="handleMoveToProjectSubmit"
-              >
-                {{ t('common.confirm') }}
-              </UButton>
+              <div v-if="targetGroupIdInProject" class="space-y-2">
+                <div class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
+                  <UTree
+                    v-if="targetProjectCollectionTreeItems.length > 0"
+                    v-model="targetProjectSelectedValue"
+                    :items="targetProjectCollectionTreeItems"
+                    class="w-full"
+                  />
+                </div>
+              </div>
             </div>
 
             <UButton
