@@ -71,48 +71,48 @@ const handleCloseEditModal = () => {
     <!-- Purge Archived -->
     <UiConfirmModal
       :open="isPurgeConfirmModalOpen"
-      @update:open="emit('update:isPurgeConfirmModalOpen', $event)"
       :title="t('contentLibrary.actions.purgeConfirmTitle')"
       :description="t('contentLibrary.actions.purgeConfirmDescription')"
       :confirm-text="t('contentLibrary.actions.purgeArchived')"
       color="error"
       icon="i-heroicons-trash"
       :loading="isPurging"
+      @update:open="emit('update:isPurgeConfirmModalOpen', $event)"
       @confirm="emit('purge')"
     />
 
     <!-- Bulk Delete/Archive -->
     <UiConfirmModal
       :open="isBulkOperationModalOpen"
-      @update:open="emit('update:isBulkOperationModalOpen', $event)"
       :title="t('contentLibrary.bulk.deleteTitle')"
       :description="t('contentLibrary.bulk.deleteDescription', { count: selectedIdsCount })"
       :confirm-text="t('common.delete')"
       color="error"
       icon="i-heroicons-trash"
       :loading="isBulkDeleting"
+      @update:open="emit('update:isBulkOperationModalOpen', $event)"
       @confirm="emit('bulk-operation')"
     />
 
     <!-- Bulk Merge -->
     <UiConfirmModal
       :open="isMergeConfirmModalOpen"
-      @update:open="emit('update:isMergeConfirmModalOpen', $event)"
       :title="t('contentLibrary.bulk.merge')"
       :description="t('contentLibrary.bulk.mergeConfirm', { count: selectedIdsCount })"
       :confirm-text="t('contentLibrary.bulk.merge')"
       color="primary"
       icon="i-heroicons-square-3-stack-3d"
       :loading="isBulkDeleting"
+      @update:open="emit('update:isMergeConfirmModalOpen', $event)"
       @confirm="emit('bulk-operation')"
     />
 
     <!-- Item Editor -->
     <UiAppModal
       :open="isEditModalOpen"
-      @update:open="emit('update:isEditModalOpen', $event)"
       :title="t('contentLibrary.editTitle')"
       :ui="{ content: 'w-[90vw] max-w-5xl' }"
+      @update:open="emit('update:isEditModalOpen', $event)"
     >
       <ContentItemEditor
         v-if="activeItem"
@@ -149,7 +149,6 @@ const handleCloseEditModal = () => {
     <!-- Move Items -->
     <ContentMoveModal
       :open="isMoveModalOpen"
-      @update:open="emit('update:isMoveModalOpen', $event)"
       :ids="moveItemsIds"
       :scope="scope"
       :project-id="projectId"
@@ -157,21 +156,22 @@ const handleCloseEditModal = () => {
       :collections="allGroupCollections"
       :projects="projects"
       :folder-tree-items="groupTreeItems"
+      @update:open="emit('update:isMoveModalOpen', $event)"
       @move="emit('execute-move', $event)"
     />
 
     <!-- Rename Collection -->
     <UiAppModal
       :open="isRenameCollectionModalOpen"
-      @update:open="emit('update:isRenameCollectionModalOpen', $event)"
       :title="t('contentLibrary.collections.renameTitle')"
       :ui="{ content: 'w-full max-w-md' }"
+      @update:open="emit('update:isRenameCollectionModalOpen', $event)"
     >
         <UFormField :label="t('common.title')">
             <UInput 
               :model-value="newCollectionTitle" 
-              @update:model-value="emit('update:newCollectionTitle', $event)"
-              autofocus 
+              autofocus
+              @update:model-value="emit('update:newCollectionTitle', $event)" 
               @keydown.enter="emit('rename-collection')" 
             />
         </UFormField>
@@ -189,13 +189,13 @@ const handleCloseEditModal = () => {
     <!-- Delete Collection -->
     <UiConfirmModal
       :open="isDeleteCollectionConfirmModalOpen"
-      @update:open="emit('update:isDeleteCollectionConfirmModalOpen', $event)"
       :title="t('contentLibrary.collections.deleteTitle')"
       :description="t('contentLibrary.collections.deleteDescription')"
       :confirm-text="t('common.delete')"
       color="error"
       icon="i-heroicons-trash"
       :loading="isDeletingCollection"
+      @update:open="emit('update:isDeleteCollectionConfirmModalOpen', $event)"
       @confirm="emit('delete-collection')"
     />
   </div>

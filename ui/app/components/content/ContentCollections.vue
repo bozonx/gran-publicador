@@ -206,18 +206,21 @@ const getCollectionIcon = (collection: ContentCollection) => {
   }
 
   if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
-    return 'i-heroicons-users'
+    return 'i-heroicons-briefcase'
   }
 
-  return props.scope === 'project' ? 'i-heroicons-briefcase' : 'i-heroicons-folder'
+  return 'i-heroicons-user'
 }
 
 const getCollectionColor = (collection: ContentCollection, isActive: boolean) => {
-  if (isActive) {
-    if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
-      return 'secondary'
-    }
+  const isProjectShared = props.scope === 'project' && collection.visibility === 'PROJECT_SHARED'
+
+  if (isProjectShared) {
     return 'primary'
+  }
+
+  if (isActive) {
+    return 'secondary'
   }
 
   return 'neutral'

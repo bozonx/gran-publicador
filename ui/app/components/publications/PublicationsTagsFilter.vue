@@ -242,8 +242,6 @@ onBeforeUnmount(() => {
   <UInputMenu
     v-model="value"
     v-model:search-term="searchTerm"
-    @paste.capture="onPasteTags"
-    @keydown.capture="onKeydownAddTag"
     multiple
     :items="items"
     ignore-filter
@@ -252,5 +250,7 @@ onBeforeUnmount(() => {
     :disabled="disabled"
     :loading="loading"
     icon="i-heroicons-tag"
+    @paste.capture="onPasteTags"
+    @keydown.capture="onKeydownAddTag"
   />
 </template>

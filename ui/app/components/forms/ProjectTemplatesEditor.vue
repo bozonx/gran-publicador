@@ -623,7 +623,7 @@ const allBlocks = computed(() => {
                   </span>
                 </div>
 
-                <div class="space-y-2" v-if="getEffectiveEnabled(activeCollection, block)">
+                <div v-if="getEffectiveEnabled(activeCollection, block)" class="space-y-2">
                   <!-- Before/After overrides for non-custom blocks -->
                   <template v-if="block.insert !== 'custom' && block.insert !== 'footer'">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">

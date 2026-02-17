@@ -301,9 +301,6 @@ onBeforeUnmount(() => {
     <UInputMenu
       v-model="value"
       v-model:search-term="searchTerm"
-      @create="onCreateTag"
-      @paste.capture="onPasteTags"
-      @keydown.capture="onKeydownCreateTag"
       multiple
       create-item
       :items="items"
@@ -312,8 +309,11 @@ onBeforeUnmount(() => {
       :color="color"
       :variant="variant"
       :size="size"
+      @create="onCreateTag"
       :class="['flex-1', $props.class]"
+      @paste.capture="onPasteTags"
       :disabled="disabled"
+      @keydown.capture="onKeydownCreateTag"
       :loading="loading"
       icon="i-heroicons-tag"
     />

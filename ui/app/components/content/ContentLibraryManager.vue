@@ -827,14 +827,14 @@ onMounted(() => { fetchItems() })
     />
 
     <ContentLibraryModals
-      v-model:isPurgeConfirmModalOpen="isPurgeConfirmModalOpen"
-      v-model:isBulkOperationModalOpen="isBulkOperationModalOpen"
-      v-model:isMergeConfirmModalOpen="isMergeConfirmModalOpen"
-      v-model:isEditModalOpen="isEditModalOpen"
-      v-model:isMoveModalOpen="isMoveModalOpen"
-      v-model:isRenameCollectionModalOpen="isRenameCollectionModalOpen"
-      v-model:isDeleteCollectionConfirmModalOpen="isDeleteCollectionConfirmModalOpen"
-      v-model:newCollectionTitle="newCollectionTitle"
+      v-model:is-purge-confirm-modal-open="isPurgeConfirmModalOpen"
+      v-model:is-bulk-operation-modal-open="isBulkOperationModalOpen"
+      v-model:is-merge-confirm-modal-open="isMergeConfirmModalOpen"
+      v-model:is-edit-modal-open="isEditModalOpen"
+      v-model:is-move-modal-open="isMoveModalOpen"
+      v-model:is-rename-collection-modal-open="isRenameCollectionModalOpen"
+      v-model:is-delete-collection-confirm-modal-open="isDeleteCollectionConfirmModalOpen"
+      v-model:new-collection-title="newCollectionTitle"
       :scope="scope"
       :project-id="projectId"
       :is-purging="isPurging"

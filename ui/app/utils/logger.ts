@@ -22,24 +22,24 @@ const write = (level: LogLevel, message: string, meta?: unknown): void => {
   const formatted = format(level, message);
 
   if (level === 'error') {
-    // eslint-disable-next-line no-console
+     
     console.error(formatted, meta);
     return;
   }
 
   if (level === 'warn') {
-    // eslint-disable-next-line no-console
+     
     console.warn(formatted, meta);
     return;
   }
 
   if (level === 'info') {
-    // eslint-disable-next-line no-console
+     
     console.info(formatted, meta);
     return;
   }
 
-  // eslint-disable-next-line no-console
+   
   console.debug(formatted, meta);
 };
 
