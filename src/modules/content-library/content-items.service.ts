@@ -168,20 +168,33 @@ export class ContentItemsService {
     }
 
     if (query.orphansOnly) {
-      if (query.groupId) {
-        throw new BadRequestException('groupId cannot be used together with orphansOnly');
+      if (query.groupIds && query.groupIds.length > 0) {
+        throw new BadRequestException('groupIds cannot be used together with orphansOnly');
       }
       where.groups = { none: {} };
     }
 
-    if (query.groupId) {
-      await this.collectionsService.assertGroupAccess({
-        groupId: query.groupId,
-        scope: query.scope,
-        projectId: query.projectId,
-        userId,
-      });
-      where.groups = { some: { collectionId: query.groupId } };
+    const groupIds = Array.isArray(query.groupIds)
+      ? Array.from(new Set(query.groupIds.filter(Boolean)))
+      : [];
+
+    if (groupIds.length > 0) {
+      for (const groupId of groupIds) {
+        await this.collectionsService.assertGroupAccess({
+          groupId,
+          scope: query.scope,
+          projectId: query.projectId,
+          userId,
+        });
+      }
+
+      where.groups = {
+        some: {
+          collectionId: {
+            in: groupIds,
+          },
+        },
+      };
     }
 
     if (query.tags && query.tags.length > 0) {
@@ -242,9 +255,15 @@ export class ContentItemsService {
             userId: query.scope === 'personal' ? userId : undefined,
             projectId: query.scope === 'project' ? query.projectId : undefined,
             archivedAt: null,
-            ...(query.groupId
+            ...(groupIds.length > 0
               ? {
-                  groups: { some: { collectionId: query.groupId } },
+                  groups: {
+                    some: {
+                      collectionId: {
+                        in: groupIds,
+                      },
+                    },
+                  },
                 }
               : {}),
           } as any,

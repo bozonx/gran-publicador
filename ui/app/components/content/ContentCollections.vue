@@ -195,13 +195,27 @@ const handleReorder = async () => {
   }
 }
 
-const getCollectionIcon = (type: 'GROUP' | 'SAVED_VIEW') => {
-  return type === 'GROUP' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'
+const getCollectionIcon = (collection: ContentCollection) => {
+  if (collection.type === 'SAVED_VIEW') {
+    return props.scope === 'project' ? 'i-heroicons-bookmark-square' : 'i-heroicons-bookmark'
+  }
+
+  if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
+    return 'i-heroicons-users'
+  }
+
+  return props.scope === 'project' ? 'i-heroicons-briefcase' : 'i-heroicons-folder'
 }
 
-const getCollectionColor = (type: 'GROUP' | 'SAVED_VIEW', isActive: boolean) => {
+const getCollectionColor = (collection: ContentCollection, isActive: boolean) => {
   if (isActive) return 'primary'
-  return type === 'GROUP' ? 'neutral' : 'neutral'
+
+  if (props.scope === 'project') {
+    if (collection.visibility === 'PROJECT_SHARED') return 'success'
+    return 'neutral'
+  }
+
+  return 'neutral'
 }
 
 const getCollectionLabel = (collection: ContentCollection) => {
@@ -253,10 +267,10 @@ defineExpose({
     >
       <template #tab="{ item, selected, select }">
         <UButton
-          :color="selected ? 'primary' : ((item as any).type === 'GROUP' ? 'neutral' : 'neutral')"
+          :color="getCollectionColor(item as any, selected)"
           :variant="highlightedCollectionId === (item as any).id ? 'solid' : 'outline'"
           size="sm"
-          :icon="getCollectionIcon((item as any).type)"
+          :icon="getCollectionIcon(item as any)"
           class="drag-handle cursor-pointer max-w-full"
           @click="() => { hasUserSelection = true; select(); emit('update:active-collection', item as any) }"
         >

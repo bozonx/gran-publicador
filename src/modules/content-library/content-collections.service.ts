@@ -62,15 +62,7 @@ export class ContentCollectionsService {
       return collection.groupType as any;
     }
 
-    // Backward compatibility for older records without groupType.
-    if (collection.userId !== null && collection.projectId === null) {
-      return 'PERSONAL_USER';
-    }
-    if (collection.userId === null && collection.projectId !== null) {
-      return 'PROJECT_SHARED';
-    }
-
-    throw new BadRequestException('Invalid group scope configuration');
+    throw new BadRequestException('Invalid groupType: groupType is required for GROUP collections');
   }
 
   public async assertGroupAccess(options: {
@@ -343,7 +335,6 @@ export class ContentCollectionsService {
                 type: 'GROUP',
                 OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
               },
-              { type: 'GROUP', groupType: null, userId: null },
               { type: 'SAVED_VIEW', userId },
             ],
           };
@@ -365,13 +356,26 @@ export class ContentCollectionsService {
     });
 
     return collections.map(collection => {
+      const visibility =
+        query.scope === 'personal'
+          ? 'PERSONAL'
+          : collection.type === 'SAVED_VIEW'
+            ? 'PROJECT_PRIVATE'
+            : this.resolveGroupType(collection as any) === 'PROJECT_SHARED'
+              ? 'PROJECT_SHARED'
+              : 'PROJECT_PRIVATE';
+
       if (collection.type !== 'GROUP') {
-        return collection;
+        return {
+          ...collection,
+          visibility,
+        };
       }
 
       return {
         ...collection,
         directItemsCount: (collection as any)._count?.contentItemGroups ?? 0,
+        visibility,
       };
     });
   }
@@ -397,15 +401,17 @@ export class ContentCollectionsService {
     }
 
     if (dto.type === 'GROUP') {
-      const groupType =
-        dto.scope === 'personal' ? 'PERSONAL_USER' : (dto.groupType ?? 'PROJECT_USER');
-
       if (dto.scope === 'personal') {
         if (dto.groupType && dto.groupType !== 'PERSONAL_USER') {
           throw new BadRequestException('Invalid groupType for personal scope');
         }
       } else {
-        if (groupType === 'PROJECT_SHARED') {
+        if (!dto.groupType) {
+          throw new BadRequestException(
+            'groupType is required for GROUP collections in project scope',
+          );
+        }
+        if (dto.groupType === 'PROJECT_SHARED') {
           await this.assertProjectOwnerOrAdmin(dto.projectId!, userId);
         }
       }
@@ -425,7 +431,6 @@ export class ContentCollectionsService {
                 type: 'GROUP',
                 OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
               },
-              { type: 'GROUP', groupType: null, userId: null },
               { type: 'SAVED_VIEW', userId },
             ],
           };
@@ -438,7 +443,7 @@ export class ContentCollectionsService {
       dto.type === 'GROUP'
         ? dto.scope === 'personal'
           ? 'PERSONAL_USER'
-          : (dto.groupType ?? 'PROJECT_USER')
+          : dto.groupType
         : undefined;
 
     const parentId =
@@ -626,7 +631,6 @@ export class ContentCollectionsService {
                 type: 'GROUP',
                 OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
               },
-              { type: 'GROUP', groupType: null, userId: null },
               { type: 'SAVED_VIEW', userId },
             ],
           };

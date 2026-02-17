@@ -4,6 +4,7 @@ export interface ContentCollection {
   title: string;
   directItemsCount?: number;
   groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' | null;
+  visibility?: 'PERSONAL' | 'PROJECT_PRIVATE' | 'PROJECT_SHARED';
   userId: string | null;
   projectId: string | null;
   parentId: string | null;
@@ -56,7 +57,11 @@ export const useContentCollections = () => {
     return api.patch<ContentCollection>(`/content-library/collections/${collectionId}`, dto);
   };
 
-  const deleteCollection = async (collectionId: string, scope: 'personal' | 'project', projectId?: string) => {
+  const deleteCollection = async (
+    collectionId: string,
+    scope: 'personal' | 'project',
+    projectId?: string,
+  ) => {
     return api.delete(`/content-library/collections/${collectionId}`, {
       params: {
         scope,

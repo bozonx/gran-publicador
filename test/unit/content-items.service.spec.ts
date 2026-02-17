@@ -182,13 +182,13 @@ describe('ContentItemsService (unit)', () => {
       );
     });
 
-    it('should throw 400 when orphansOnly=true and groupId is provided', async () => {
+    it('should throw 400 when orphansOnly=true and groupIds are provided', async () => {
       await expect(
         service.findAll(
           {
             scope: 'personal',
             orphansOnly: true,
-            groupId: 'group-1',
+            groupIds: ['group-1'],
           } as any,
           'user-1',
         ),
@@ -199,11 +199,11 @@ describe('ContentItemsService (unit)', () => {
           {
             scope: 'personal',
             orphansOnly: true,
-            groupId: 'group-1',
+            groupIds: ['group-1'],
           } as any,
           'user-1',
         ),
-      ).rejects.toThrow('groupId cannot be used together with orphansOnly');
+      ).rejects.toThrow('groupIds cannot be used together with orphansOnly');
     });
   });
 });

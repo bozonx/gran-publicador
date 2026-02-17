@@ -493,9 +493,10 @@
       "deleteTitle": "Delete group",
       "groupVisibility": {
         "label": "Group visibility",
+        "hint": "Shared groups may require Project Owner or Admin permissions.",
         "placeholder": "Select visibility...",
-        "projectUser": "My group (only me)",
-        "projectShared": "Shared group (everyone in project)"
+        "projectUser": "Only me",
+        "projectShared": "Everyone in project"
       },
       "renameTitle": "Rename group",
       "reorderError": "Failed to reorder groups",

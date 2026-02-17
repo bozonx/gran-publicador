@@ -23,6 +23,12 @@ const { projects, currentProject } = useProjects()
 const { updateCollection, deleteCollection } = useContentCollections()
 const { uploadMedia } = useMedia()
 
+const isWindowFileDragActive = ref(false)
+
+const canDeleteActiveCollection = computed(() => {
+  return !!activeCollection.value
+})
+
 // State
 const contentCollectionsRef = ref<any>(null)
 const isLoading = ref(false)
@@ -311,7 +317,10 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         scope: props.scope,
         projectId: props.projectId,
         archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
-        groupId: activeCollection.value?.type === 'GROUP' ? (selectedGroupId.value ?? activeCollection.value.id) : undefined,
+        groupIds:
+          activeCollection.value?.type === 'GROUP'
+            ? [selectedGroupId.value ?? activeCollection.value.id]
+            : undefined,
         orphansOnly: activeCollection.value?.type === 'SAVED_VIEW' && orphansOnly.value ? true : undefined,
         search: q.value || undefined,
         limit,
@@ -688,19 +697,19 @@ onMounted(() => { fetchItems() })
   <div class="relative">
 
     <ContentLibraryToolbar
+      v-model:q="q"
+      v-model:selected-tags="selectedTags"
+      v-model:sort-by="sortBy"
+      v-model:sort-order="sortOrder"
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
-      :group-id="activeCollection?.type === 'GROUP' ? (selectedGroupId ?? activeCollection.id) : undefined"
+      :group-ids="activeCollection?.type === 'GROUP' ? [selectedGroupId ?? activeCollection.id] : undefined"
       :orphans-only="orphansOnly"
       :total-unfiltered="totalUnfiltered"
       :total-in-scope="totalInScope"
       :current-project="currentProject"
-      v-model:archiveStatus="archiveStatus"
-      v-model:q="q"
-      v-model:selectedTags="selectedTags"
-      v-model:sortBy="sortBy"
-      v-model:sortOrder="sortOrder"
+      :archive-status="archiveStatus"
       :is-purging="isPurging"
       :active-collection="activeCollection"
       :is-start-creating="isStartCreating"
@@ -709,12 +718,14 @@ onMounted(() => { fetchItems() })
       :current-sort-option="currentSortOption"
       :sort-order-icon="sortOrderIcon"
       :sort-order-label="sortOrderLabel"
-      :can-delete-active-collection="!!activeCollection"
-      @purge="isPurgeConfirmModalOpen = true"
+      :is-window-file-drag-active="isWindowFileDragActive"
+      :can-delete-active-collection="canDeleteActiveCollection"
+      @update:archive-status="(v) => (archiveStatus = v)"
+      @purge="() => (isPurgeConfirmModalOpen = true)"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
-      @rename-collection="isRenameCollectionModalOpen = true; newCollectionTitle = activeCollection?.title || ''"
-      @delete-collection="isDeleteCollectionConfirmModalOpen = true"
+      @rename-collection="() => { newCollectionTitle = activeCollection?.title || ''; isRenameCollectionModalOpen = true }"
+      @delete-collection="() => { isDeleteCollectionConfirmModalOpen = true }"
       @toggle-sort-order="toggleSortOrder"
       @set-saved-view-persist-search="setSavedViewPersistSearch"
       @set-saved-view-persist-tags="setSavedViewPersistTags"

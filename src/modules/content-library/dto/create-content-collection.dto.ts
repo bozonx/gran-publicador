@@ -20,10 +20,9 @@ export class CreateContentCollectionDto {
   @IsIn(['GROUP', 'SAVED_VIEW'])
   public type!: 'GROUP' | 'SAVED_VIEW';
 
-  @ValidateIf(o => o.type === 'GROUP')
-  @IsIn(['PERSONAL_USER', 'PROJECT_USER', 'PROJECT_SHARED'])
-  @IsOptional()
-  public groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
+  @ValidateIf(o => o.type === 'GROUP' && o.scope === 'project')
+  @IsIn(['PROJECT_USER', 'PROJECT_SHARED'])
+  public groupType?: 'PROJECT_USER' | 'PROJECT_SHARED';
 
   @IsUUID()
   @IsOptional()

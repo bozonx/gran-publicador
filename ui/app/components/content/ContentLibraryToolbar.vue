@@ -17,7 +17,7 @@ const props = defineProps<{
   isWindowFileDragActive?: boolean
   canDeleteActiveCollection?: boolean
   userId?: string
-  groupId?: string
+  groupIds?: string[]
   orphansOnly?: boolean
 }>()
 
@@ -257,7 +257,7 @@ const toolbarMenuItems = computed(() => {
               :project-id="projectId"
               :user-id="userId"
               :scope="scope"
-              :group-id="groupId"
+              :group-id="Array.isArray(groupIds) ? groupIds[0] : undefined"
               :search-endpoint="'/content-library/tags/search'"
               class="w-full sm:flex-1 sm:min-w-0"
             />

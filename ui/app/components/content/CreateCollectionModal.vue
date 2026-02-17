@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import AppModal from '~/components/ui/AppModal.vue'
+import AppButtonGroup from '~/components/ui/AppButtonGroup.vue'
 
 const props = defineProps<{
   open: boolean
@@ -15,7 +16,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const selectedType = ref<'GROUP' | 'SAVED_VIEW' | undefined>(undefined)
-const selectedGroupType = ref<'PROJECT_USER' | 'PROJECT_SHARED' | undefined>(undefined)
+const selectedGroupType = ref<'PROJECT_USER' | 'PROJECT_SHARED'>('PROJECT_USER')
 const title = ref('')
 
 const isOpen = computed({
@@ -49,14 +50,14 @@ const handleCreate = () => {
 const handleClose = () => {
   isOpen.value = false
   selectedType.value = undefined
-  selectedGroupType.value = undefined
+  selectedGroupType.value = 'PROJECT_USER'
   title.value = ''
 }
 
 watch(() => props.open, (val) => {
   if (!val) {
     selectedType.value = undefined
-    selectedGroupType.value = undefined
+    selectedGroupType.value = 'PROJECT_USER'
     title.value = ''
   }
 })
@@ -128,15 +129,16 @@ watch(() => props.open, (val) => {
           <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ t('contentLibrary.collections.groupVisibility.label') }}
           </p>
-          <USelectMenu
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {{ t('contentLibrary.collections.groupVisibility.hint') }}
+          </p>
+          <AppButtonGroup
             v-model="selectedGroupType"
-            :items="[
+            :options="[
               { label: t('contentLibrary.collections.groupVisibility.projectUser'), value: 'PROJECT_USER' },
               { label: t('contentLibrary.collections.groupVisibility.projectShared'), value: 'PROJECT_SHARED' },
             ]"
-            value-key="value"
-            label-key="label"
-            :placeholder="t('contentLibrary.collections.groupVisibility.placeholder')"
+            fluid
             class="w-full"
           />
         </div>

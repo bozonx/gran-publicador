@@ -20,9 +20,15 @@ export class FindContentItemsQueryDto {
   @IsOptional()
   public projectId?: string;
 
-  @IsUUID()
+  @IsUUID(undefined, { each: true })
   @IsOptional()
-  public groupId?: string;
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').filter(Boolean);
+    return undefined;
+  })
+  public groupIds?: string[];
 
   @IsBoolean()
   @IsOptional()
