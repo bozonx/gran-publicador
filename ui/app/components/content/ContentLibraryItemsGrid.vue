@@ -45,12 +45,9 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
     </div>
 
     <div v-else class="space-y-4">
-      <CommonFoundCount :count="total" :show="q.length > 0 || selectedTags.length > 0" class="mb-2" />
-      
-      <div v-if="error" class="mt-4 text-red-600 dark:text-red-400">
+      <div v-if="error" class="text-red-600 dark:text-red-400 px-2">
         {{ error }}
       </div>
-
       <!-- Selection & Status -->
       <div class="flex items-center justify-between gap-4 px-2">
         <UCheckbox
@@ -61,9 +58,9 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
           @update:model-value="emit('select-all')"
         />
 
-        <div v-if="isUploadingFiles" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-primary-500 animate-spin" />
-          <span>{{ t('common.loading') }}</span>
+        <div class="flex items-center gap-2">
+          <UiLoadingSpinner v-if="isLoading || isUploadingFiles" size="xs" color="primary" />
+          <CommonFoundCount :count="total" :show="true" class="mb-0!" />
         </div>
       </div>
 

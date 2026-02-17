@@ -14,6 +14,7 @@ import { DEFAULT_PAGE_SIZE } from '~/constants'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import { LANGUAGE_OPTIONS } from '~/utils/languages'
 import { normalizeTags } from '~/utils/tags'
+import UiLoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -593,18 +594,20 @@ async function handleDelete() {
         </p>
     </div>
 
-    <!-- Bulk operations and select all -->
-    <div v-if="filteredPublications.length > 0" class="flex items-center gap-4 px-2">
+    <!-- Selection and results count -->
+    <div v-if="filteredPublications.length > 0" class="flex items-center justify-between gap-4 px-2 mb-4">
       <UCheckbox
         :model-value="isAllSelected"
         :indeterminate="isSomeSelected"
         :label="isAllSelected ? t('common.deselectAll', 'Deselect all') : t('common.selectAll', 'Select all')"
         @update:model-value="toggleSelectAll"
       />
-    </div>
 
-    <!-- Publications list view -->
-    <CommonFoundCount :count="totalCount" :show="!!hasActiveFilters" class="mb-4" />
+      <div class="flex items-center gap-2">
+        <UiLoadingSpinner v-if="isLoading" size="xs" color="primary" />
+        <CommonFoundCount :count="totalCount" :show="!!hasActiveFilters" class="mb-0!" />
+      </div>
+    </div>
 
     <div v-if="isListView" class="space-y-4">
         <PublicationsPublicationListItem
