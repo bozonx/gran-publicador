@@ -24,6 +24,16 @@ export class FindContentItemsQueryDto {
   @IsOptional()
   public groupId?: string;
 
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.toLowerCase() === 'true';
+    return Boolean(value);
+  })
+  public orphansOnly?: boolean;
+
   @IsString()
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_SEARCH_LENGTH)

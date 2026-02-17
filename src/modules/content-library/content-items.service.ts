@@ -167,6 +167,13 @@ export class ContentItemsService {
       where.projectId = query.projectId;
     }
 
+    if (query.orphansOnly) {
+      if (query.groupId) {
+        throw new BadRequestException('groupId cannot be used together with orphansOnly');
+      }
+      where.groups = { none: {} };
+    }
+
     if (query.groupId) {
       await this.collectionsService.assertGroupAccess({
         groupId: query.groupId,
@@ -257,9 +264,12 @@ export class ContentItemsService {
       );
     }
 
-    const [items, total, totalUnfiltered, totalInScope] = (await Promise.all(
-      baseQueries,
-    )) as [any[], number, number | undefined, number | undefined];
+    const [items, total, totalUnfiltered, totalInScope] = (await Promise.all(baseQueries)) as [
+      any[],
+      number,
+      number | undefined,
+      number | undefined,
+    ];
 
     return {
       items: items.map((item: any) => this.normalizeContentItemTags(item)),
@@ -957,7 +967,9 @@ export class ContentItemsService {
 
       case BulkOperationType.MOVE_TO_GROUP: {
         if (!dto.groupId && !dto.sourceGroupId) {
-          throw new BadRequestException('Either groupId or sourceGroupId is required for MOVE_TO_GROUP operation');
+          throw new BadRequestException(
+            'Either groupId or sourceGroupId is required for MOVE_TO_GROUP operation',
+          );
         }
 
         let targetProjectId: string | undefined = undefined;

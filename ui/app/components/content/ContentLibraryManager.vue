@@ -30,6 +30,7 @@ const error = ref<string | null>(null)
 const activeCollectionId = ref<string | null>(null)
 const activeCollection = ref<ContentCollection | null>(null)
 const selectedGroupId = ref<string | null>(null)
+const orphansOnly = ref(false)
 const collections = ref<ContentCollection[]>([])
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = 20
@@ -46,12 +47,11 @@ interface ContentLibraryTabState {
   selectedTags: string
   sortBy: 'createdAt' | 'title'
   sortOrder: 'asc' | 'desc'
-  hasRestoredFromStorage: boolean
 }
 
 const tabStateByCollectionId = reactive<Record<string, ContentLibraryTabState>>({})
 
-const DEFAULT_TAB_STATE: Omit<ContentLibraryTabState, 'hasRestoredFromStorage'> = {
+const DEFAULT_TAB_STATE: ContentLibraryTabState = {
   q: '',
   selectedTags: '',
   sortBy: 'createdAt',
@@ -65,14 +65,9 @@ const ensureTabState = (collectionId: string | null) => {
   if (!tabStateByCollectionId[key]) {
     tabStateByCollectionId[key] = {
       ...DEFAULT_TAB_STATE,
-      hasRestoredFromStorage: false,
     }
   }
   return tabStateByCollectionId[key]
-}
-
-const getTabStorageKey = (collectionId: string) => {
-  return `content-library-tab-state-${props.scope}-${props.projectId || 'global'}-${collectionId}`
 }
 
 const q = computed<string>({
@@ -147,57 +142,136 @@ const sortOrderIcon = computed(() => sortOrder.value === 'asc' ? 'i-heroicons-ba
 const sortOrderLabel = computed(() => sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc'))
 function toggleSortOrder() { sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc' }
 
-const restoreTabStateFromStorage = (collection: ContentCollection) => {
-  const state = ensureTabState(collection.id)
-  if (state.hasRestoredFromStorage) return
-  state.hasRestoredFromStorage = true
+const isSavedView = (c: ContentCollection | null | undefined): c is ContentCollection => {
+  return !!c && c.type === 'SAVED_VIEW'
+}
 
-  const raw = localStorage.getItem(getTabStorageKey(collection.id))
-  if (!raw) return
+const getSavedViewConfigBoolean = (collection: ContentCollection, key: string, defaultValue: boolean) => {
+  const raw = (collection as any)?.config?.[key]
+  return typeof raw === 'boolean' ? raw : defaultValue
+}
 
-  try {
-    const parsed = JSON.parse(raw) as Partial<ContentLibraryTabState>
-    if (collection.type === 'SAVED_VIEW') {
-      if (typeof parsed.q === 'string') state.q = parsed.q
-      if (typeof parsed.selectedTags === 'string') state.selectedTags = parsed.selectedTags
-      if (parsed.sortBy === 'createdAt' || parsed.sortBy === 'title') state.sortBy = parsed.sortBy
-      if (parsed.sortOrder === 'asc' || parsed.sortOrder === 'desc') state.sortOrder = parsed.sortOrder
-      return
-    }
+const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection) => {
+  if (!collection?.id) return
 
-    if (collection.type === 'GROUP') {
-      if (parsed.sortBy === 'createdAt' || parsed.sortBy === 'title') state.sortBy = parsed.sortBy
-      if (parsed.sortOrder === 'asc' || parsed.sortOrder === 'desc') state.sortOrder = parsed.sortOrder
-    }
-  } catch {
-    // ignore invalid storage
+  const key = getTabKey(collection.id)
+  if (tabStateByCollectionId[key]) return
+
+  const base: ContentLibraryTabState = { ...DEFAULT_TAB_STATE }
+
+  if (collection.type === 'SAVED_VIEW') {
+    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
+    const cfg = (collection as any)?.config ?? {}
+
+    if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
+    if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
+    if (cfg.sortBy === 'createdAt' || cfg.sortBy === 'title') base.sortBy = cfg.sortBy
+    if (cfg.sortOrder === 'asc' || cfg.sortOrder === 'desc') base.sortOrder = cfg.sortOrder
+  }
+
+  tabStateByCollectionId[key] = base
+}
+
+const updateCollectionsCache = (updated: ContentCollection) => {
+  const idx = collections.value.findIndex(c => c.id === updated.id)
+  if (idx !== -1) {
+    collections.value.splice(idx, 1, updated)
   }
 }
 
-const persistActiveTabStateToStorage = () => {
+const persistSavedViewStateToDb = async () => {
   const collection = activeCollection.value
-  if (!collection) return
-  if (collection.type !== 'SAVED_VIEW' && collection.type !== 'GROUP') return
+  if (!isSavedView(collection)) return
 
   const state = ensureTabState(collection.id)
-  if (!state.hasRestoredFromStorage) return
+  const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+  const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
 
-  const payload: Partial<ContentLibraryTabState> = {}
-  if (collection.type === 'SAVED_VIEW') {
-    payload.q = state.q
-    payload.selectedTags = state.selectedTags
-    payload.sortBy = state.sortBy
-    payload.sortOrder = state.sortOrder
-  } else if (collection.type === 'GROUP') {
-    payload.sortBy = state.sortBy
-    payload.sortOrder = state.sortOrder
+  const nextConfig: Record<string, any> = {
+    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
+      ? (collection as any).config
+      : {}),
+    persistSearch,
+    persistTags,
+    sortBy: state.sortBy,
+    sortOrder: state.sortOrder,
   }
 
+  if (persistSearch) nextConfig.q = state.q
+  else delete nextConfig.q
+
+  if (persistTags) nextConfig.selectedTags = state.selectedTags
+  else delete nextConfig.selectedTags
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
+}
+
+const debouncedPersistSavedViewStateToDb = useDebounceFn(async () => {
   try {
-    localStorage.setItem(getTabStorageKey(collection.id), JSON.stringify(payload))
+    await persistSavedViewStateToDb()
   } catch {
-    // ignore quota / disabled storage
+    // ignore persistence errors
   }
+}, 500)
+
+const setSavedViewPersistSearch = async (value: boolean) => {
+  const collection = activeCollection.value
+  if (!isSavedView(collection)) return
+
+  const state = ensureTabState(collection.id)
+  if (!value) {
+    state.q = ''
+  }
+
+  const nextConfig: Record<string, any> = {
+    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
+      ? (collection as any).config
+      : {}),
+    persistSearch: value,
+  }
+  if (!value) delete nextConfig.q
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
+}
+
+const setSavedViewPersistTags = async (value: boolean) => {
+  const collection = activeCollection.value
+  if (!isSavedView(collection)) return
+
+  const state = ensureTabState(collection.id)
+  if (!value) {
+    state.selectedTags = ''
+  }
+
+  const nextConfig: Record<string, any> = {
+    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
+      ? (collection as any).config
+      : {}),
+    persistTags: value,
+  }
+  if (!value) delete nextConfig.selectedTags
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
 }
 
 // Group Tree helpers for Move Modal
@@ -238,6 +312,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         projectId: props.projectId,
         archivedOnly: archiveStatus.value === 'archived' ? true : undefined,
         groupId: activeCollection.value?.type === 'GROUP' ? (selectedGroupId.value ?? activeCollection.value.id) : undefined,
+        orphansOnly: activeCollection.value?.type === 'SAVED_VIEW' && orphansOnly.value ? true : undefined,
         search: q.value || undefined,
         limit,
         offset: offset.value,
@@ -290,17 +365,31 @@ watch(() => q.value, () => { selectedIds.value = []; debouncedFetch() })
 watch([archiveStatus, selectedTags, sortBy, sortOrder], () => fetchItems({ reset: true }))
 watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
-    if (next) restoreTabStateFromStorage(next)
+    if (next) initTabStateFromCollectionConfigIfMissing(next)
     if (next?.type === 'GROUP') {
       selectedGroupId.value = next.id
+      orphansOnly.value = false
     } else {
       selectedGroupId.value = null
+      orphansOnly.value = false
     }
     fetchAvailableTags()
     fetchItems({ reset: true })
   }
 })
-watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => persistActiveTabStateToStorage())
+watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => {
+  const collection = activeCollection.value
+  if (!collection) return
+  if (collection.type !== 'SAVED_VIEW') return
+
+  const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+  const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
+  if (!persistSearch && !persistTags) {
+    return
+  }
+
+  debouncedPersistSavedViewStateToDb()
+})
 const debouncedFetch = useDebounceFn(() => fetchItems({ reset: true }), 350)
 const hasMore = computed(() => items.value.length < total.value)
 
@@ -458,11 +547,21 @@ const handleSelectGroupCollection = (id: string) => {
 const handleActiveCollectionUpdate = (c: ContentCollection | null) => {
     activeCollection.value = c
     activeCollectionId.value = c?.id ?? null
+    if (c) {
+      initTabStateFromCollectionConfigIfMissing(c)
+    }
     if (c?.type === 'GROUP') {
       selectedGroupId.value = c.id
+      orphansOnly.value = false
     } else {
       selectedGroupId.value = null
+      orphansOnly.value = false
     }
+}
+
+const setOrphansOnly = (value: boolean) => {
+  orphansOnly.value = value
+  fetchItems({ reset: true })
 }
 
 const purgeArchived = async () => {
@@ -593,6 +692,7 @@ onMounted(() => { fetchItems() })
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"
       :group-id="activeCollection?.type === 'GROUP' ? (selectedGroupId ?? activeCollection.id) : undefined"
+      :orphans-only="orphansOnly"
       :total-unfiltered="totalUnfiltered"
       :total-in-scope="totalInScope"
       :current-project="currentProject"
@@ -616,6 +716,9 @@ onMounted(() => { fetchItems() })
       @rename-collection="isRenameCollectionModalOpen = true; newCollectionTitle = activeCollection?.title || ''"
       @delete-collection="isDeleteCollectionConfirmModalOpen = true"
       @toggle-sort-order="toggleSortOrder"
+      @set-saved-view-persist-search="setSavedViewPersistSearch"
+      @set-saved-view-persist-tags="setSavedViewPersistTags"
+      @set-orphans-only="setOrphansOnly"
     >
       <template #collections>
         <ContentCollections

@@ -15,6 +15,8 @@ describe('ContentItemsService (unit)', () => {
   const mockPrismaService = {
     contentItem: {
       update: jest.fn() as any,
+      findMany: jest.fn() as any,
+      count: jest.fn() as any,
     },
     media: {
       findMany: jest.fn() as any,
@@ -135,13 +137,73 @@ describe('ContentItemsService (unit)', () => {
         ),
       ).resolves.toEqual({ id: 'ci-1' });
 
-      expect(mockPrismaService.contentItemMedia.deleteMany).toHaveBeenCalledWith({ where: { contentItemId: 'ci-1' } });
+      expect(mockPrismaService.contentItemMedia.deleteMany).toHaveBeenCalledWith({
+        where: { contentItemId: 'ci-1' },
+      });
       expect(mockPrismaService.contentItemMedia.createMany).toHaveBeenCalledWith({
         data: [
           { contentItemId: 'ci-1', mediaId: 'm1', order: 0, hasSpoiler: true },
           { contentItemId: 'ci-1', mediaId: 'm2', order: 1, hasSpoiler: false },
         ],
       });
+    });
+  });
+
+  describe('findAll', () => {
+    it('should apply groups.none filter when orphansOnly=true', async () => {
+      mockPrismaService.contentItem.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.contentItem.count.mockResolvedValueOnce(0);
+
+      await expect(
+        service.findAll(
+          {
+            scope: 'personal',
+            orphansOnly: true,
+            limit: 20,
+            offset: 0,
+          } as any,
+          'user-1',
+        ),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          items: [],
+          total: 0,
+        }),
+      );
+
+      expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            projectId: null,
+            groups: { none: {} },
+          }),
+        }),
+      );
+    });
+
+    it('should throw 400 when orphansOnly=true and groupId is provided', async () => {
+      await expect(
+        service.findAll(
+          {
+            scope: 'personal',
+            orphansOnly: true,
+            groupId: 'group-1',
+          } as any,
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.findAll(
+          {
+            scope: 'personal',
+            orphansOnly: true,
+            groupId: 'group-1',
+          } as any,
+          'user-1',
+        ),
+      ).rejects.toThrow('groupId cannot be used together with orphansOnly');
     });
   });
 });

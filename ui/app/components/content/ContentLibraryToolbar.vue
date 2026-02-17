@@ -18,6 +18,7 @@ const props = defineProps<{
   canDeleteActiveCollection?: boolean
   userId?: string
   groupId?: string
+  orphansOnly?: boolean
 }>()
 
 const q = defineModel<string>('q')
@@ -33,6 +34,9 @@ const emit = defineEmits<{
   (e: 'rename-collection'): void
   (e: 'delete-collection'): void
   (e: 'toggle-sort-order'): void
+  (e: 'set-saved-view-persist-search', value: boolean): void
+  (e: 'set-saved-view-persist-tags', value: boolean): void
+  (e: 'set-orphans-only', value: boolean): void
 }>()
 
 const { t } = useI18n()
@@ -77,10 +81,52 @@ const sortByToggleOptions = computed(() => {
   }))
 })
 
+const savedViewPersistSearch = computed(() => {
+  const raw = props.activeCollection?.config?.persistSearch
+  return typeof raw === 'boolean' ? raw : false
+})
+
+const savedViewPersistTags = computed(() => {
+  const raw = props.activeCollection?.config?.persistTags
+  return typeof raw === 'boolean' ? raw : true
+})
+
 const toolbarMenuItems = computed(() => {
   const items: any[] = []
 
   if (props.activeCollection) {
+    if (props.activeCollection.type === 'SAVED_VIEW') {
+      items.push([
+        {
+          label: t('contentLibrary.savedView.persistSearch.label'),
+          icon: savedViewPersistSearch.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          title: savedViewPersistSearch.value
+            ? t('contentLibrary.savedView.persistSearch.enabledTitle')
+            : t('contentLibrary.savedView.persistSearch.disabledTitle'),
+          onSelect: () => emit('set-saved-view-persist-search', !savedViewPersistSearch.value),
+        },
+        {
+          label: t('contentLibrary.savedView.persistTags.label'),
+          icon: savedViewPersistTags.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          title: savedViewPersistTags.value
+            ? t('contentLibrary.savedView.persistTags.enabledTitle')
+            : t('contentLibrary.savedView.persistTags.disabledTitle'),
+          onSelect: () => emit('set-saved-view-persist-tags', !savedViewPersistTags.value),
+        },
+      ])
+
+      if (!props.orphansOnly) {
+        items.push([
+          {
+            label: t('contentLibrary.savedView.orphans.label'),
+            icon: 'i-heroicons-folder-minus',
+            title: t('contentLibrary.savedView.orphans.title'),
+            onSelect: () => emit('set-orphans-only', true),
+          },
+        ])
+      }
+    }
+
     items.push([
       {
         label: t('common.rename'),
@@ -266,6 +312,21 @@ const toolbarMenuItems = computed(() => {
 
               <CommonInfoTooltip :text="infoTooltipText" />
             </template>
+          </div>
+
+          <div class="flex items-center justify-end gap-2">
+            <UButton
+              v-if="activeCollection?.type === 'SAVED_VIEW' && orphansOnly"
+              class="cursor-pointer"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              icon="i-heroicons-x-mark"
+              :title="t('contentLibrary.savedView.orphans.clearTitle')"
+              @click="emit('set-orphans-only', false)"
+            >
+              {{ t('contentLibrary.savedView.orphans.chip') }}
+            </UButton>
           </div>
         </div>
       </div>

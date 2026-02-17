@@ -512,6 +512,24 @@
         }
       }
     },
+    "savedView": {
+      "persistSearch": {
+        "label": "Save search",
+        "enabledTitle": "Search query will be saved in this Saved View.",
+        "disabledTitle": "Search query will not be saved in this Saved View."
+      },
+      "persistTags": {
+        "label": "Save tags",
+        "enabledTitle": "Tag filter will be saved in this Saved View.",
+        "disabledTitle": "Tag filter will not be saved in this Saved View."
+      },
+      "orphans": {
+        "label": "No folder",
+        "title": "Show items that are not in any folder.",
+        "chip": "No folder [x]",
+        "clearTitle": "Clear 'No folder' filter"
+      }
+    },
     "title": "Content library",
     "untitled": "Untitled"
   },

@@ -167,7 +167,10 @@ export class UsersService {
             type: 'SAVED_VIEW',
             title: 'All items',
             order: 0,
-            config: {},
+            config: {
+              persistSearch: true,
+              persistTags: true,
+            },
           },
         },
       },
