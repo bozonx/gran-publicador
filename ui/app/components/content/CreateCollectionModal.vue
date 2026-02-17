@@ -39,7 +39,7 @@ const handleCreate = () => {
   emit('create', {
     type: selectedType.value as 'GROUP' | 'SAVED_VIEW',
     title: title.value.trim(),
-    ...(selectedType.value === 'GROUP' && props.scope === 'project' && selectedGroupType.value
+    ...(selectedType.value === 'GROUP' && props.scope === 'project'
       ? { groupType: selectedGroupType.value }
       : {}),
   })

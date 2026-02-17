@@ -135,13 +135,18 @@ const fetchCollections = async () => {
 
 const handleCreateCollection = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }) => {
   try {
+    const resolvedGroupType =
+      props.scope === 'project' && data.type === 'GROUP'
+        ? (data.groupType ?? 'PROJECT_USER')
+        : undefined
+
     const newCollection = await createCollection({
       scope: props.scope,
       projectId: props.projectId,
       type: data.type,
-      groupType: data.type === 'GROUP' ? data.groupType : undefined,
       title: data.title,
       config: {},
+      ...(data.type === 'GROUP' && resolvedGroupType ? { groupType: resolvedGroupType } : {}),
     })
     
     await fetchCollections()

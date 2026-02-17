@@ -180,10 +180,16 @@ const handleCreateGroupFromTreeModal = async () => {
 
   isCreatingTreeGroup.value = true
   try {
+    const parentGroupType =
+      props.scope === 'project'
+        ? ((collectionsById.value.get(treeCreateParentId.value)?.groupType as any) ?? 'PROJECT_USER')
+        : undefined
+
     const newCollection = await createCollection({
       scope: props.scope,
       projectId: props.projectId,
       type: 'GROUP',
+      ...(props.scope === 'project' ? { groupType: parentGroupType } : {}),
       parentId: treeCreateParentId.value,
       title,
       config: {},
