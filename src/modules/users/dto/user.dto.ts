@@ -62,6 +62,13 @@ export class UserDto {
   })
   public newsQueryOrder!: string[];
 
+  @Expose()
+  @Transform(({ obj }) => {
+    return obj.preferences?.contentLibraryCollectionOrder || null;
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public contentLibraryCollectionOrder!: any;
+
   @Exclude({ toPlainOnly: true })
   public preferences!: any; // Internal use
 }
@@ -97,6 +104,10 @@ export class UpdateUserProfileDto {
 
   @IsOptional()
   public newsQueryOrder?: string[];
+
+  @IsOptional()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public contentLibraryCollectionOrder?: any;
 }
 
 export class BanUserDto {

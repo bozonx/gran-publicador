@@ -28,6 +28,7 @@ describe('ContentLibraryService (unit)', () => {
     contentItemGroup: {
       upsert: jest.fn() as any,
       deleteMany: jest.fn() as any,
+      findMany: jest.fn() as any,
       findFirst: jest.fn() as any,
       groupBy: jest.fn() as any,
     },
@@ -94,6 +95,8 @@ describe('ContentLibraryService (unit)', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
+
+    mockPrismaService.contentItemGroup.findMany.mockResolvedValue([]);
   });
 
   describe('getAvailableTags', () => {
@@ -236,6 +239,8 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('LINK_TO_GROUP should add group relations and keep existing primary group when set', async () => {
+      mockPrismaService.contentItemGroup.findMany.mockResolvedValueOnce([]);
+
       mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
         {
           id: 'ci-1',
@@ -252,10 +257,16 @@ describe('ContentLibraryService (unit)', () => {
       ]);
 
       mockPrismaService.contentCollection.findUnique
-        .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', projectId: null })
         .mockResolvedValueOnce({
           id: 'g-target',
           type: 'GROUP',
+          groupType: 'PERSONAL_USER',
+          projectId: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'g-target',
+          type: 'GROUP',
+          groupType: 'PERSONAL_USER',
           userId: 'user-1',
           projectId: null,
         });
@@ -300,6 +311,9 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('MOVE_TO_GROUP should unlink only source group and set target as primary when needed', async () => {
+      mockPrismaService.contentItemGroup.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.contentItemGroup.findMany.mockResolvedValueOnce([]);
+
       mockPrismaService.contentItem.findMany.mockResolvedValueOnce([
         {
           id: 'ci-1',
@@ -316,11 +330,23 @@ describe('ContentLibraryService (unit)', () => {
       ]);
 
       mockPrismaService.contentCollection.findUnique
-        .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', projectId: null })
-        .mockResolvedValueOnce({ id: 'g-target', type: 'GROUP', userId: 'user-1', projectId: null })
+        .mockResolvedValueOnce({
+          id: 'g-target',
+          type: 'GROUP',
+          groupType: 'PERSONAL_USER',
+          projectId: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'g-target',
+          type: 'GROUP',
+          groupType: 'PERSONAL_USER',
+          userId: 'user-1',
+          projectId: null,
+        })
         .mockResolvedValueOnce({
           id: 'g-source',
           type: 'GROUP',
+          groupType: 'PERSONAL_USER',
           userId: 'user-1',
           projectId: null,
         });
@@ -645,13 +671,14 @@ describe('ContentLibraryService (unit)', () => {
       mockPrismaService.contentCollection.findUnique.mockResolvedValue({
         id: 'f-1',
         type: 'GROUP',
+        groupType: 'PERSONAL_USER',
         userId: 'user-1',
         projectId: null,
       });
       mockPrismaService.contentItem.findMany.mockResolvedValue([]);
       mockPrismaService.contentItem.count.mockResolvedValue(0);
 
-      await service.findAll({ scope: 'personal', groupId: 'f-1' } as any, 'user-1');
+      await service.findAll({ scope: 'personal', groupIds: ['f-1'] } as any, 'user-1');
 
       expect(mockPrismaService.contentCollection.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'f-1' } }),
@@ -659,7 +686,7 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            groups: { some: { collectionId: 'f-1' } },
+            groups: { some: { collectionId: { in: ['f-1'] } } },
           }),
         }),
       );
@@ -674,7 +701,9 @@ describe('ContentLibraryService (unit)', () => {
 
       await expect(
         service.listCollections({ scope: 'personal' } as any, 'user-1'),
-      ).resolves.toEqual([{ id: 't-1', type: 'GROUP', directItemsCount: 0 }]);
+      ).resolves.toEqual([
+        { id: 't-1', type: 'GROUP', directItemsCount: 0, visibility: 'PERSONAL' },
+      ]);
 
       expect(mockPrismaService.contentCollection.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -687,17 +716,45 @@ describe('ContentLibraryService (unit)', () => {
     it('listCollections should filter project scope collections: shared groups + own groups + own saved views', async () => {
       mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
       mockPrismaService.contentCollection.findMany.mockResolvedValue([
-        { id: 'g-shared', type: 'GROUP' },
-        { id: 'g-user', type: 'GROUP' },
+        {
+          id: 'g-shared',
+          type: 'GROUP',
+          groupType: 'PROJECT_SHARED',
+          userId: null,
+          projectId: 'p1',
+        },
+        {
+          id: 'g-user',
+          type: 'GROUP',
+          groupType: 'PROJECT_USER',
+          userId: 'user-1',
+          projectId: 'p1',
+        },
         { id: 'sv-1', type: 'SAVED_VIEW' },
       ]);
 
       await expect(
         service.listCollections({ scope: 'project', projectId: 'p1' } as any, 'user-1'),
       ).resolves.toEqual([
-        { id: 'g-shared', type: 'GROUP', directItemsCount: 0 },
-        { id: 'g-user', type: 'GROUP', directItemsCount: 0 },
-        { id: 'sv-1', type: 'SAVED_VIEW' },
+        {
+          id: 'g-shared',
+          type: 'GROUP',
+          groupType: 'PROJECT_SHARED',
+          userId: null,
+          projectId: 'p1',
+          directItemsCount: 0,
+          visibility: 'PROJECT_SHARED',
+        },
+        {
+          id: 'g-user',
+          type: 'GROUP',
+          groupType: 'PROJECT_USER',
+          userId: 'user-1',
+          projectId: 'p1',
+          directItemsCount: 0,
+          visibility: 'PROJECT_PRIVATE',
+        },
+        { id: 'sv-1', type: 'SAVED_VIEW', visibility: 'PROJECT_PRIVATE' },
       ]);
 
       expect(mockPrismaService.contentCollection.findMany).toHaveBeenCalledWith(
