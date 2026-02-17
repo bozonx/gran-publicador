@@ -872,7 +872,6 @@ export class ContentItemsService {
                     userId: dto.projectId ? undefined : userId,
                   },
                   'CONTENT_LIBRARY',
-                  true,
                 ),
               },
               select: { id: true },
