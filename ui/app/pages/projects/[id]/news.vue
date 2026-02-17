@@ -7,6 +7,7 @@ import type { NewsItem } from '~/composables/useNews'
 import AppModal from '~/components/ui/AppModal.vue'
 import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
+import CommonDraggableTabs from '~/components/common/CommonDraggableTabs.vue'
 import NewsSourceSelector from '~/components/news/SourceSelector.vue'
 import { useAuth } from '~/composables/useAuth'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
@@ -460,31 +461,33 @@ const sourcesTooltipText = computed(() => {
     <div v-if="newsQueries.length > 0" class="flex flex-col gap-6">
       
       <!-- Draggable Collections Header -->
-      <AppTabs
+      <CommonDraggableTabs
         v-model="selectedQueryId"
-        :items="newsQueries"
+        v-model:items="newsQueries"
         draggable
+        @add="isAddModalOpen = true"
         @update:items="handleCollectionsUpdate"
       >
-        <template #tab-trailing="{ item, selected }">
-           <UIcon 
-            v-if="item.isNotificationEnabled" 
-            name="i-heroicons-bell-alert" 
-            class="w-3.5 h-3.5"
-            :class="selected ? 'text-primary-500' : 'text-gray-400'"
-          />
-        </template>
-        
-        <template #append>
+        <template #tab="{ item, selected, select }">
           <UButton
-            icon="i-heroicons-plus"
-            color="neutral"
-            variant="soft"
+            :color="selected ? 'primary' : 'neutral'"
+            :variant="selected ? 'solid' : 'outline'"
             size="sm"
-            @click="isAddModalOpen = true"
-          />
+            class="transition-all duration-200 drag-handle cursor-pointer"
+            @click="select"
+          >
+            {{ item.name }}
+            <template #trailing>
+              <UIcon 
+                v-if="item.isNotificationEnabled" 
+                name="i-heroicons-bell-alert" 
+                class="w-3.5 h-3.5"
+                :class="selected ? 'text-primary-500' : 'text-gray-400'"
+              />
+            </template>
+          </UButton>
         </template>
-      </AppTabs>
+      </CommonDraggableTabs>
 
       <!-- Collection Content -->
       <div v-if="currentQuery" class="space-y-6">
