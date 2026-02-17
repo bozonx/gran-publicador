@@ -212,7 +212,7 @@ const toolbarMenuItems = computed(() => {
         isDropZoneActiveLocal
           ? 'ring-2 ring-primary-500/70 border-primary-500 bg-primary-50/40 dark:bg-primary-900/40 shadow-lg shadow-primary-500/20 scale-[1.01]'
           : isWindowFileDragActive
-            ? 'border-primary-400 border bg-primary-50/20 dark:bg-primary-900/20 shadow-md ring-2 ring-primary-500/10'
+            ? 'ring-2 ring-primary-500/40 border-primary-500 bg-primary-50/35 dark:bg-primary-900/35 shadow-lg shadow-primary-500/15'
             : 'border-gray-200/70 dark:border-gray-700/70'
       ]"
       @dragenter="onDragEnter"
@@ -230,11 +230,9 @@ const toolbarMenuItems = computed(() => {
       >
         <div
           v-if="isWindowFileDragActive"
-          class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center transition-colors duration-200"
-          :class="isDropZoneActiveLocal ? 'bg-primary-500/10 dark:bg-primary-500/5 backdrop-blur-[2px]' : 'bg-primary-50/10 dark:bg-primary-900/5 backdrop-blur-[1px]'"
+          class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-primary-500/10 dark:bg-primary-500/5 backdrop-blur-[2px] transition-colors duration-200"
         >
           <div
-            v-if="isDropZoneActiveLocal"
             class="inline-flex items-center gap-2 rounded-xl border border-primary-500/50 bg-white/95 dark:bg-gray-900/90 px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 shadow-xl ring-4 ring-primary-500/10 transition-all duration-200"
           >
             <UIcon name="i-heroicons-arrow-up-tray" class="w-5 h-5 animate-bounce" />
