@@ -68,17 +68,17 @@ const accordionItems = computed(() => {
 })
 
 const collectionOptions = computed(() => {
-  const options = props.collections
-    .filter(collection => collection.type === 'GROUP' && !collection.parentId && collection.id !== props.activeCollection?.id)
+  return props.collections
+    .filter(collection => !collection.parentId && collection.id !== props.activeCollection?.id)
     .map(collection => ({
       label: collection.title,
       value: collection.id
     }))
+})
 
-  return [
-    { label: t('contentLibrary.moveModal.noCollection'), value: null },
-    ...options
-  ]
+const selectedCollection = computed(() => {
+  if (!targetCollectionId.value) return null
+  return props.collections.find(c => c.id === targetCollectionId.value)
 })
 
 const targetCollectionTreeItems = computed(() => {
@@ -190,21 +190,18 @@ function handleMoveToGroup(node: any) {
 }
 
 function handleMoveToCollection(collection: any) {
-  // collection.value can be null ("No collection")
   const targetId = collection.value
-
-  if (targetId === null) {
-    emit('move', {
-      operation: 'MOVE_TO_GROUP',
-      targetId: null,
-      sourceGroupId: props.activeCollection?.id
-    })
-    isOpen.value = false
-    return
-  }
-
   targetCollectionId.value = targetId
   targetCollectionSelectedValue.value = undefined
+}
+
+function handleConfirmMoveToSavedView() {
+  emit('move', {
+    operation: 'MOVE_TO_GROUP',
+    targetId: null,
+    sourceGroupId: props.activeCollection?.id
+  })
+  isOpen.value = false
 }
 
 function handleMoveToProjectCollection(collection: any) {
@@ -289,13 +286,27 @@ watch(isOpen, (next) => {
               </template>
             </USelectMenu>
 
-            <div v-if="targetCollectionId" class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
-              <UTree
-                v-if="targetCollectionTreeItems.length > 0"
-                v-model="targetCollectionSelectedValue"
-                :items="targetCollectionTreeItems"
-                class="w-full"
-              />
+            <div v-if="targetCollectionId" class="py-2">
+              <div v-if="selectedCollection?.type === 'GROUP'" class="max-h-60 overflow-y-auto custom-scrollbar">
+                <UTree
+                  v-if="targetCollectionTreeItems.length > 0"
+                  v-slot="{ item }"
+                  v-model="targetCollectionSelectedValue"
+                  :items="targetCollectionTreeItems"
+                  class="w-full"
+                >
+                  <span class="cursor-pointer">{{ item.label }}</span>
+                </UTree>
+              </div>
+              <div v-else-if="selectedCollection?.type === 'SAVED_VIEW'" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
+                <UButton
+                  color="primary"
+                  icon="i-heroicons-arrow-right-circle"
+                  @click="handleConfirmMoveToSavedView"
+                >
+                  {{ t('common.move') }}
+                </UButton>
+              </div>
             </div>
           </div>
         </template>
