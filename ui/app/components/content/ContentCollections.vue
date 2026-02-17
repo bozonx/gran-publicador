@@ -277,7 +277,15 @@ const getCollectionIcon = (collection: ContentCollection) => {
 }
 
 const getCollectionColor = (collection: ContentCollection): TabColor => {
-  return 'primary'
+  if (highlightedCollectionId.value === collection.id) {
+    return 'primary'
+  }
+
+  if (isSharedProjectCollection(collection)) {
+    return 'primary'
+  }
+
+  return 'neutral'
 }
 
 const getCollectionVariant = (collection: ContentCollection) => {
@@ -285,11 +293,7 @@ const getCollectionVariant = (collection: ContentCollection) => {
     return 'solid'
   }
 
-  if (isSharedProjectCollection(collection)) {
-    return 'outline'
-  }
-
-  return 'ghost'
+  return 'outline'
 }
 
 const getCollectionTooltip = (collection: ContentCollection) => {
