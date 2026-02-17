@@ -1051,12 +1051,12 @@ export class ContentItemsService {
                 where: {
                   contentItemId_collectionId: {
                     contentItemId: id,
-                    collectionId: dto.groupId!,
+                    collectionId: dto.groupId,
                   },
                 },
                 create: {
                   contentItemId: id,
-                  collectionId: dto.groupId!,
+                  collectionId: dto.groupId,
                 },
                 update: {},
               });

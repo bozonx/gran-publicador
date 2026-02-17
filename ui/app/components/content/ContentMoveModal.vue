@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type ContentCollection, useContentCollections } from '~/composables/useContentCollections'
 import { buildGroupTreeFromRoot, type ContentLibraryTreeItem } from '~/composables/useContentLibraryGroupsTree'
+import ContentGroupSelectTree from './ContentGroupSelectTree.vue'
 
 interface Props {
   ids: string[]
@@ -16,14 +17,27 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'move', payload: {
-    operation: 'MOVE_TO_GROUP' | 'SET_PROJECT';
-    targetId: string | null;
-    targetGroupId?: string | null;
-    sourceGroupId?: string;
+    operation: 'MOVE_TO_GROUP' | 'LINK_TO_GROUP' | 'SET_PROJECT'
+    projectId?: string | null
+    groupId?: string | null
+    sourceGroupId?: string
   }): void
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
+
+const toGroupTreeItems = computed<ContentLibraryTreeItem[]>(() => {
+  if (props.activeCollection?.type !== 'GROUP') return []
+
+  return [
+    {
+      label: props.activeCollection.title,
+      value: props.activeCollection.id,
+      defaultExpanded: true,
+      children: (props.folderTreeItems ?? []) as any,
+    },
+  ]
+})
 const { t } = useI18n()
 const { listCollections } = useContentCollections()
 
@@ -32,10 +46,13 @@ const targetGroupIdInProject = ref<string | null>(null)
 const targetProjectCollections = ref<ContentCollection[]>([])
 const isLoadingTargetCollections = ref(false)
 
-const folderSelectedValue = ref<ContentLibraryTreeItem | undefined>(undefined)
+const moveMode = ref<'MOVE' | 'LINK'>('MOVE')
 
 const targetCollectionId = ref<string | null>(null)
-const targetCollectionSelectedValue = ref<ContentLibraryTreeItem | undefined>(undefined)
+
+const currentProjectId = computed(() => {
+  return props.scope === 'project' ? (props.projectId ?? null) : null
+})
 
 const accordionItems = computed(() => {
   const items = []
@@ -43,9 +60,9 @@ const accordionItems = computed(() => {
   // 1. In folder (only if current collection is GROUP)
   if (props.activeCollection?.type === 'GROUP') {
     items.push({
-      label: t('contentLibrary.moveModal.toFolder'),
+      label: t('contentLibrary.moveModal.toGroup'),
       icon: 'i-heroicons-folder',
-      slot: 'to-folder',
+      slot: 'to-group',
       defaultOpen: true
     })
   }
@@ -112,7 +129,7 @@ const projectOptions = computed(() => {
 
 const targetProjectCollectionOptions = computed(() => {
   const options = targetProjectCollections.value
-    .filter(c => c.type === 'GROUP' && !c.parentId)
+    .filter(c => (c.type === 'GROUP' || c.type === 'SAVED_VIEW') && !c.parentId)
     .map(c => ({
       label: c.title,
       value: c.id
@@ -139,92 +156,103 @@ watch(targetProjectId, (next) => {
   if (next) {
     fetchTargetProjectCollections(next)
     targetGroupIdInProject.value = null
-    targetProjectSelectedValue.value = undefined
   } else {
     targetProjectCollections.value = []
     targetGroupIdInProject.value = null
-    targetProjectSelectedValue.value = undefined
   }
 })
 
-const targetProjectSelectedValue = ref<ContentLibraryTreeItem | undefined>(undefined)
+const handleMoveToGroup = (groupId: string) => {
+  if (!groupId) return
+  if (props.activeCollection?.type !== 'GROUP') return
 
-watch(folderSelectedValue, (next) => {
-  if (!next) return
-  handleMoveToGroup(next)
-  folderSelectedValue.value = undefined
-})
-
-watch(targetCollectionSelectedValue, (next) => {
-  if (!next) return
-  handleMoveToGroup(next)
-  targetCollectionSelectedValue.value = undefined
-})
-
-watch(targetProjectSelectedValue, (next) => {
-  if (!next) return
-
-  const targetGroupId = typeof next === 'string' ? next : next.value
-  if (!targetGroupId) return
-
-  emit('move', {
-    operation: 'SET_PROJECT',
-    targetId: targetProjectId.value,
-    targetGroupId,
-  })
-  isOpen.value = false
-  targetProjectSelectedValue.value = undefined
-})
-
-function handleMoveToGroup(node: any) {
-  // UTree emits the item object, so we need node.value
-  const targetId = typeof node === 'string' ? node : node?.value
-  if (!targetId) return
-
-  emit('move', {
-    operation: 'MOVE_TO_GROUP',
-    targetId,
-    sourceGroupId: props.activeCollection?.id
-  })
-  isOpen.value = false
-}
-
-function handleMoveToCollection(collection: any) {
-  const targetId = collection.value
-  targetCollectionId.value = targetId
-  targetCollectionSelectedValue.value = undefined
-}
-
-function handleConfirmMoveToSavedView() {
-  emit('move', {
-    operation: 'MOVE_TO_GROUP',
-    targetId: null,
-    sourceGroupId: props.activeCollection?.id
-  })
-  isOpen.value = false
-}
-
-function handleMoveToProjectCollection(collection: any) {
-  const targetId = collection.value
-
-  if (targetId === null) {
+  if (moveMode.value === 'LINK') {
     emit('move', {
-      operation: 'SET_PROJECT',
-      targetId: targetProjectId.value,
-      targetGroupId: null,
+      operation: 'LINK_TO_GROUP',
+      groupId,
     })
     isOpen.value = false
     return
   }
 
-  targetGroupIdInProject.value = targetId
-  targetProjectSelectedValue.value = undefined
+  emit('move', {
+    operation: 'MOVE_TO_GROUP',
+    groupId,
+    sourceGroupId: props.activeCollection.id,
+  })
+  isOpen.value = false
+}
+
+const handleMoveToOtherCollectionGroup = (groupId: string) => {
+  if (!groupId) return
+
+  emit('move', {
+    operation: 'SET_PROJECT',
+    projectId: currentProjectId.value,
+    groupId,
+  })
+  isOpen.value = false
+}
+
+const handleMoveToProjectGroup = (groupId: string) => {
+  if (!groupId) return
+  if (!targetProjectId.value) return
+
+  emit('move', {
+    operation: 'SET_PROJECT',
+    projectId: targetProjectId.value,
+    groupId,
+  })
+  isOpen.value = false
+}
+
+function handleMoveToCollection(next: unknown) {
+  const targetId = (next && typeof next === 'object' && 'value' in next)
+    ? (next as any).value
+    : next
+
+  targetCollectionId.value = (targetId ?? null) as any
+}
+
+function handleConfirmMoveToSavedView() {
+  emit('move', {
+    operation: 'SET_PROJECT',
+    projectId: currentProjectId.value,
+  })
+  isOpen.value = false
+}
+
+function handleMoveToProjectCollection(next: unknown) {
+  const targetId = (next && typeof next === 'object' && 'value' in next)
+    ? (next as any).value
+    : next
+
+  targetGroupIdInProject.value = (targetId ?? null) as any
+}
+
+const selectedTargetProjectCollection = computed(() => {
+  if (!targetGroupIdInProject.value) return null
+  return targetProjectCollections.value.find(c => c.id === targetGroupIdInProject.value) ?? null
+})
+
+const hasSelectedProjectCollection = computed(() => {
+  return targetGroupIdInProject.value !== null
+})
+
+function handleConfirmMoveToProjectSavedView() {
+  if (!targetProjectId.value) return
+
+  emit('move', {
+    operation: 'SET_PROJECT',
+    projectId: targetProjectId.value,
+  })
+  isOpen.value = false
 }
 
 function handleMoveToPersonal() {
   emit('move', {
     operation: 'SET_PROJECT',
-    targetId: null
+    projectId: null
   })
   isOpen.value = false
 }
@@ -235,10 +263,8 @@ watch(isOpen, (next) => {
     targetProjectId.value = null
     targetGroupIdInProject.value = null
     targetProjectCollections.value = []
-    folderSelectedValue.value = undefined
     targetCollectionId.value = null
-    targetCollectionSelectedValue.value = undefined
-    targetProjectSelectedValue.value = undefined
+    moveMode.value = 'MOVE'
   }
 })
 
@@ -256,16 +282,28 @@ watch(isOpen, (next) => {
       </p>
 
       <UAccordion :items="accordionItems" multiple>
-        <template #to-folder>
-          <div class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
-            <UTree
-              v-if="folderTreeItems.length > 0"
-              v-model="folderSelectedValue"
-              :items="folderTreeItems"
-              class="w-full"
+        <template #to-group>
+          <div class="p-4 space-y-3">
+            <UiAppButtonGroup
+              v-model="moveMode"
+              :options="[
+                { value: 'MOVE', label: t('common.move', 'Move') },
+                { value: 'LINK', label: t('contentLibrary.bulk.linkMode', 'Link') },
+              ]"
+              active-variant="solid"
+              variant="outline"
+              fluid
             />
-            <div v-else class="text-sm text-gray-500 py-2 italic px-4">
-              {{ t('contentLibrary.bulk.noGroupsInContext') }}
+
+            <div class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
+              <ContentGroupSelectTree
+                v-if="toGroupTreeItems.length > 0"
+                :items="toGroupTreeItems as any"
+                @select="handleMoveToGroup"
+              />
+              <div v-else class="text-sm text-gray-500 py-2 italic px-4">
+                {{ t('contentLibrary.bulk.noGroupsInContext') }}
+              </div>
             </div>
           </div>
         </template>
@@ -288,15 +326,11 @@ watch(isOpen, (next) => {
 
             <div v-if="targetCollectionId" class="py-2">
               <div v-if="selectedCollection?.type === 'GROUP'" class="max-h-60 overflow-y-auto custom-scrollbar">
-                <UTree
+                <ContentGroupSelectTree
                   v-if="targetCollectionTreeItems.length > 0"
-                  v-slot="{ item }"
-                  v-model="targetCollectionSelectedValue"
-                  :items="targetCollectionTreeItems"
-                  class="w-full"
-                >
-                  <span class="cursor-pointer">{{ item.label }}</span>
-                </UTree>
+                  :items="targetCollectionTreeItems as any"
+                  @select="handleMoveToOtherCollectionGroup"
+                />
               </div>
               <div v-else-if="selectedCollection?.type === 'SAVED_VIEW'" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
                 <UButton
@@ -339,14 +373,22 @@ watch(isOpen, (next) => {
                 />
               </UFormField>
 
-              <div v-if="targetGroupIdInProject" class="space-y-2">
-                <div class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
-                  <UTree
+              <div v-if="hasSelectedProjectCollection" class="space-y-2">
+                <div v-if="selectedTargetProjectCollection?.type === 'GROUP'" class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
+                  <ContentGroupSelectTree
                     v-if="targetProjectCollectionTreeItems.length > 0"
-                    v-model="targetProjectSelectedValue"
-                    :items="targetProjectCollectionTreeItems"
-                    class="w-full"
+                    :items="targetProjectCollectionTreeItems as any"
+                    @select="handleMoveToProjectGroup"
                   />
+                </div>
+                <div v-else class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
+                  <UButton
+                    color="primary"
+                    icon="i-heroicons-arrow-right-circle"
+                    @click="handleConfirmMoveToProjectSavedView"
+                  >
+                    {{ t('common.move') }}
+                  </UButton>
                 </div>
               </div>
             </div>
@@ -379,8 +421,6 @@ watch(isOpen, (next) => {
 </template>
 
 <style scoped>
-@reference "tailwindcss";
-
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
@@ -390,6 +430,11 @@ watch(isOpen, (next) => {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-gray-200 dark:bg-gray-700 rounded-full;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+}
+
+:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #374151;
 }
 </style>

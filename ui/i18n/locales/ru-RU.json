@@ -515,9 +515,11 @@
       }
     },
     "moveModal": {
-      "toFolder": "В папку",
-      "toCollection": "В другую коллекцию",
-      "toProject": "В другой проект",
+      "noCollection": "Без коллекции",
+      "selectCollectionInProject": "Выберите коллекцию проекта",
+      "toCollection": "В коллекцию",
+      "toGroup": "В группу",
+      "toProject": "В проект",
       "toPersonal": "В личные"
     },
     "savedView": {

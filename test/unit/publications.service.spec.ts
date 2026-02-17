@@ -377,8 +377,14 @@ describe('PublicationsService (unit)', () => {
 
       // Verify permission checks
       expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledTimes(2);
-      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledWith('ci-1', userId);
-      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledWith('ci-2', userId);
+      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledWith(
+        'ci-1',
+        userId,
+      );
+      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledWith(
+        'ci-2',
+        userId,
+      );
 
       // Verify deletion
       expect(mockContentItemsService.remove).toHaveBeenCalledTimes(2);

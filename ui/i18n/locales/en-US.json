@@ -421,6 +421,14 @@
       "uploadMediaTooltip": "You can drag and drop files into this toolbar area. Text files (.txt, .md) will be converted into content text blocks automatically.",
       "groupsInfoTooltip": "Groups are used only for organizing content items. Items are always shown as cards. Deleting a group does not delete the content items inside it."
     },
+    "moveModal": {
+      "noCollection": "No collection",
+      "selectCollectionInProject": "Select collection in project",
+      "toCollection": "To collection",
+      "toGroup": "To group",
+      "toPersonal": "Move to personal scope",
+      "toProject": "To project"
+    },
     "badgeCountTooltip": "Total number of items",
     "block": "Block {index}",
     "blocksCount": "{count} block | {count} blocks",
