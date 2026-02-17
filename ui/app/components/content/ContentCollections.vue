@@ -23,6 +23,8 @@ const api = useApi()
 const { user, refreshUser } = useAuth()
 const { listCollections, createCollection, deleteCollection } = useContentCollections()
 
+type TabColor = 'neutral' | 'warning' | 'success' | 'error' | 'info' | 'primary' | 'secondary'
+
 const collections = ref<ContentCollection[]>([])
 const isLoading = ref(false)
 const isCreateModalOpen = ref(false)
@@ -245,21 +247,17 @@ const handleReorder = async () => {
   }
 }
 
-const isProjectRelatedCollection = (collection: ContentCollection) => {
+const isSharedProjectCollection = (collection: ContentCollection) => {
   if (collection.type !== 'GROUP') {
     return false
   }
 
-  if (collection.projectId) {
-    return true
-  }
-
   const groupType = (collection as any).groupType
-  if (typeof groupType === 'string' && groupType.startsWith('PROJECT')) {
+  if (groupType === 'PROJECT_SHARED') {
     return true
   }
 
-  if (typeof collection.visibility === 'string' && collection.visibility.startsWith('PROJECT')) {
+  if (collection.visibility === 'PROJECT_SHARED') {
     return true
   }
 
@@ -271,23 +269,23 @@ const getCollectionIcon = (collection: ContentCollection) => {
     return 'i-heroicons-bookmark'
   }
 
-  if (isProjectRelatedCollection(collection)) {
+  if (isSharedProjectCollection(collection)) {
     return 'i-heroicons-briefcase'
   }
 
   return 'i-heroicons-user'
 }
 
-const getCollectionColor = (collection: ContentCollection) => {
-  if (collection.type === 'SAVED_VIEW') {
-    return 'neutral'
-  }
-
-  if (isProjectRelatedCollection(collection)) {
-    return 'secondary'
-  }
-
+const getCollectionColor = (collection: ContentCollection): TabColor => {
   return 'primary'
+}
+
+const getCollectionVariant = (collection: ContentCollection) => {
+  if (isSharedProjectCollection(collection)) {
+    return 'outline'
+  }
+
+  return highlightedCollectionId.value === collection.id ? 'solid' : 'outline'
 }
 
 const getCollectionTooltip = (collection: ContentCollection) => {
@@ -295,11 +293,14 @@ const getCollectionTooltip = (collection: ContentCollection) => {
     ? t('contentLibrary.collections.types.group.title') 
     : t('contentLibrary.collections.types.savedView.title')
   
-  const scopeText = collection.visibility === 'PROJECT_SHARED' 
-    ? t('contentLibrary.collections.groupVisibility.projectShared') 
-    : (props.scope === 'project' 
-        ? t('contentLibrary.collections.groupVisibility.projectUser') 
-        : t('contentLibrary.subtitlePersonal'))
+  const isShared = isSharedProjectCollection(collection)
+  const isProjectUser = (collection as any).groupType === 'PROJECT_USER' || collection.visibility === 'PROJECT_PRIVATE'
+
+  const scopeText = isShared
+    ? t('contentLibrary.collections.groupVisibility.projectShared')
+    : isProjectUser
+      ? t('contentLibrary.collections.groupVisibility.projectUser')
+      : t('contentLibrary.subtitlePersonal')
   
   return `${typeText} (${scopeText})`
 }
@@ -355,7 +356,7 @@ defineExpose({
         <UTooltip :text="getCollectionTooltip(item as any)" :delay-duration="500">
           <UButton
             :color="getCollectionColor(item as any)"
-            :variant="highlightedCollectionId === (item as any).id ? 'solid' : 'outline'"
+            :variant="getCollectionVariant(item as any)"
             size="sm"
             :icon="getCollectionIcon(item as any)"
             class="drag-handle cursor-pointer max-w-full"

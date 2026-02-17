@@ -341,19 +341,23 @@ export class ContentCollectionsService {
 
     const collections = await this.prisma.contentCollection.findMany({
       where,
-      include: {
-        _count: {
-          select: {
-            contentItemGroups: {
-              where: {
-                contentItem: { archivedAt: null },
-              },
-            },
-          },
-        },
-      },
       orderBy: { order: 'asc' },
     });
+
+    const groupIds = collections.filter(c => c.type === 'GROUP').map(c => c.id);
+    const counts =
+      groupIds.length > 0
+        ? await (this.prisma as any).contentItemGroup.groupBy({
+            by: ['collectionId'],
+            where: {
+              collectionId: { in: groupIds },
+              contentItem: { archivedAt: null },
+            },
+            _count: { _all: true },
+          })
+        : [];
+
+    const countMap = new Map(counts.map((c: any) => [c.collectionId, c._count?._all ?? 0]));
 
     return collections.map(collection => {
       const visibility =
@@ -374,7 +378,7 @@ export class ContentCollectionsService {
 
       return {
         ...collection,
-        directItemsCount: (collection as any)._count?.contentItemGroups ?? 0,
+        directItemsCount: countMap.get(collection.id) ?? 0,
         visibility,
       };
     });
