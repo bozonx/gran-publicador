@@ -11,17 +11,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ContentCollectionType {
-  GROUP
-  SAVED_VIEW
-}
-
- enum ContentLibraryGroupType {
-   PERSONAL_USER
-   PROJECT_USER
-   PROJECT_SHARED
- }
-
 model User {
   id String @id @default(uuid())
 
@@ -604,50 +593,6 @@ model LlmSystemPromptHidden {
   @@map("llm_system_prompt_hidden")
 }
 
-
-enum SocialMedia {
-  telegram
-  vk
-  site
-}
-
-enum PostType {
-  POST
-  ARTICLE
-  // News post, usually from automatic news collector
-  NEWS
-  // Long horisontal video
-  VIDEO
-  // Short vertical video
-  SHORT
-  STORY
-}
-
-// Publication status enum - tracks the lifecycle of a publication
-enum PublicationStatus {
-  DRAFT      // Draft, may be partially filled or incomplete
-  READY      // Ready post, not published (prepared in advance or removed from SCHEDULED)
-  SCHEDULED  // Scheduled for future publication, date is set but not yet reached
-  PROCESSING // Selected by publishing service and being processed
-  PUBLISHED  // All posts successfully published
-  PARTIAL    // Some posts published, some failed
-  FAILED     // All posts failed to publish
-  EXPIRED    // Publication missed the publishing service selection window
-}
-
-// Post status enum - tracks individual post publication status
-// Note: Post status is managed by the system only, not manually editable
-enum PostStatus {
-  PENDING    // Post has not yet been attempted to publish
-  FAILED     // Publication failed
-  PUBLISHED  // Post was successfully published to the channel
-}
-
-enum RelationGroupType {
-  SERIES
-  LOCALIZATION
-}
-
 model PublicationRelationGroup {
   id        String             @id @default(uuid())
   projectId String             @map("project_id")
@@ -676,31 +621,6 @@ model PublicationRelationItem {
   @@unique([groupId, position])
   @@index([publicationId])
   @@map("publication_relation_items")
-}
-
-enum NotificationType {
-  PUBLICATION_FAILED     // Issue during publication (failed/partial)
-  PROJECT_INVITE        // Invitation to a project
-  SYSTEM                // System notification
-  NEW_NEWS              // New news matching project query
-}
-
-enum MediaType {
-  IMAGE
-  VIDEO
-  AUDIO
-  DOCUMENT
-}
-
-// Storage type enum - defines where the media file is physically stored
-enum StorageType {
-  FS       // File system (local or mounted S3)
-  TELEGRAM // Telegram servers (not stored locally)
-}
-
-enum TagDomain {
-  CONTENT_LIBRARY
-  PUBLICATIONS
 }
 
 model ProjectTemplate {
@@ -747,3 +667,82 @@ model Tag {
   @@index([normalizedName])
   @@map("tags")
 }
+
+enum SocialMedia {
+  telegram
+  vk
+  site
+}
+
+enum PostType {
+  POST
+  ARTICLE
+  // News post, usually from automatic news collector
+  NEWS
+  // Long horisontal video
+  VIDEO
+  // Short vertical video
+  SHORT
+  STORY
+}
+
+// Publication status enum - tracks the lifecycle of a publication
+enum PublicationStatus {
+  DRAFT      // Draft, may be partially filled or incomplete
+  READY      // Ready post, not published (prepared in advance or removed from SCHEDULED)
+  SCHEDULED  // Scheduled for future publication, date is set but not yet reached
+  PROCESSING // Selected by publishing service and being processed
+  PUBLISHED  // All posts successfully published
+  PARTIAL    // Some posts published, some failed
+  FAILED     // All posts failed to publish
+  EXPIRED    // Publication missed the publishing service selection window
+}
+
+// Post status enum - tracks individual post publication status
+// Note: Post status is managed by the system only, not manually editable
+enum PostStatus {
+  PENDING    // Post has not yet been attempted to publish
+  FAILED     // Publication failed
+  PUBLISHED  // Post was successfully published to the channel
+}
+
+enum RelationGroupType {
+  SERIES
+  LOCALIZATION
+}
+
+enum NotificationType {
+  PUBLICATION_FAILED     // Issue during publication (failed/partial)
+  PROJECT_INVITE        // Invitation to a project
+  SYSTEM                // System notification
+  NEW_NEWS              // New news matching project query
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+// Storage type enum - defines where the media file is physically stored
+enum StorageType {
+  FS       // File system (local or mounted S3)
+  TELEGRAM // Telegram servers (not stored locally)
+}
+
+enum TagDomain {
+  CONTENT_LIBRARY
+  PUBLICATIONS
+}
+
+enum ContentCollectionType {
+  GROUP
+  SAVED_VIEW
+}
+
+ enum ContentLibraryGroupType {
+   PERSONAL_USER
+   PROJECT_USER
+   PROJECT_SHARED
+ }
