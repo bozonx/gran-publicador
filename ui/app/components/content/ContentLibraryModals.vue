@@ -153,6 +153,7 @@ const handleCloseEditModal = () => {
       :scope="scope"
       :project-id="projectId"
       :active-collection="activeCollection"
+      :current-group-id="activeRootGroupId"
       :collections="allGroupCollections"
       :projects="projects"
       :folder-tree-items="groupTreeItems"

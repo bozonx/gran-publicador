@@ -963,8 +963,18 @@ export class ContentItemsService {
           });
         }
 
+        const existingLinks = await this.prisma.contentItemGroup.findMany({
+          where: {
+            contentItemId: { in: authorizedIds },
+            collectionId: dto.groupId,
+          },
+          select: { contentItemId: true },
+        });
+        const alreadyLinkedItemIds = new Set(existingLinks.map(l => l.contentItemId));
+
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
+            if (alreadyLinkedItemIds.has(id)) continue;
             await (tx as any).contentItemGroup.upsert({
               where: {
                 contentItemId_collectionId: {
@@ -1035,6 +1045,17 @@ export class ContentItemsService {
           });
         }
 
+        const existingTargetLinks = dto.groupId
+          ? await this.prisma.contentItemGroup.findMany({
+              where: {
+                contentItemId: { in: authorizedIds },
+                collectionId: dto.groupId,
+              },
+              select: { contentItemId: true },
+            })
+          : [];
+        const alreadyLinkedToTargetItemIds = new Set(existingTargetLinks.map(l => l.contentItemId));
+
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
             if (dto.sourceGroupId && dto.sourceGroupId !== dto.groupId) {
@@ -1047,6 +1068,7 @@ export class ContentItemsService {
             }
 
             if (dto.groupId) {
+              if (alreadyLinkedToTargetItemIds.has(id)) continue;
               await (tx as any).contentItemGroup.upsert({
                 where: {
                   contentItemId_collectionId: {

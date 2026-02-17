@@ -8,6 +8,7 @@ interface Props {
   scope: 'personal' | 'project'
   projectId?: string
   activeCollection?: ContentCollection | null
+  currentGroupId?: string | null
   collections: ContentCollection[]
   projects: any[]
   folderTreeItems: any[]
@@ -46,12 +47,22 @@ const targetGroupIdInProject = ref<string | null>(null)
 const targetProjectCollections = ref<ContentCollection[]>([])
 const isLoadingTargetCollections = ref(false)
 
+const projectsWithCollections = ref<any[]>([])
+const isLoadingProjectsWithCollections = ref(false)
+
 const moveMode = ref<'MOVE' | 'LINK'>('MOVE')
+const otherCollectionMoveMode = ref<'MOVE' | 'LINK'>('MOVE')
 
 const targetCollectionId = ref<string | null>(null)
 
 const currentProjectId = computed(() => {
   return props.scope === 'project' ? (props.projectId ?? null) : null
+})
+
+const disabledGroupIds = computed<string[]>(() => {
+  if (props.activeCollection?.type !== 'GROUP') return []
+  const id = props.currentGroupId ?? props.activeCollection.id
+  return id ? [id] : []
 })
 
 const accordionItems = computed(() => {
@@ -119,12 +130,33 @@ const targetProjectCollectionTreeItems = computed(() => {
 })
 
 const projectOptions = computed(() => {
-  return props.projects
+  return projectsWithCollections.value
     .filter(p => !props.projectId || p.id !== props.projectId)
     .map(p => ({
       label: p.name,
       value: p.id
     }))
+})
+
+const PERSONAL_PROJECT_VALUE = '__PERSONAL__'
+
+const projectOptionsWithPersonal = computed(() => {
+  const options = [...projectOptions.value]
+
+  if (props.scope !== 'project') return options
+
+  if (currentProjectId.value === null) return options
+
+  options.unshift({
+    label: t('contentLibrary.moveModal.toPersonal'),
+    value: PERSONAL_PROJECT_VALUE,
+  })
+
+  return options
+})
+
+const isPersonalTargetSelected = computed(() => {
+  return targetProjectId.value === PERSONAL_PROJECT_VALUE
 })
 
 const targetProjectCollectionOptions = computed(() => {
@@ -152,19 +184,52 @@ async function fetchTargetProjectCollections(pId: string) {
   }
 }
 
+async function fetchProjectsWithCollections() {
+  if (props.scope !== 'project') {
+    projectsWithCollections.value = []
+    return
+  }
+
+  isLoadingProjectsWithCollections.value = true
+  try {
+    const candidates = (props.projects ?? []).filter(p => p)
+
+    const results = await Promise.allSettled(
+      candidates.map(async (p) => {
+        const cols = await listCollections('project', p.id)
+        return { project: p, hasCollections: Array.isArray(cols) && cols.length > 0 }
+      }),
+    )
+
+    projectsWithCollections.value = results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => (r as PromiseFulfilledResult<{ project: any; hasCollections: boolean }>).value)
+      .filter(v => v.hasCollections)
+      .map(v => v.project)
+  } catch (e) {
+    console.error('Failed to fetch projects collections', e)
+    projectsWithCollections.value = []
+  } finally {
+    isLoadingProjectsWithCollections.value = false
+  }
+}
+
 watch(targetProjectId, (next) => {
-  if (next) {
-    fetchTargetProjectCollections(next)
-    targetGroupIdInProject.value = null
-  } else {
+  if (!next || next === PERSONAL_PROJECT_VALUE) {
     targetProjectCollections.value = []
     targetGroupIdInProject.value = null
+    return
   }
+
+  fetchTargetProjectCollections(next)
+  targetGroupIdInProject.value = null
 })
 
 const handleMoveToGroup = (groupId: string) => {
   if (!groupId) return
   if (props.activeCollection?.type !== 'GROUP') return
+
+  if (disabledGroupIds.value.includes(groupId)) return
 
   if (moveMode.value === 'LINK') {
     emit('move', {
@@ -186,6 +251,15 @@ const handleMoveToGroup = (groupId: string) => {
 const handleMoveToOtherCollectionGroup = (groupId: string) => {
   if (!groupId) return
 
+  if (otherCollectionMoveMode.value === 'LINK') {
+    emit('move', {
+      operation: 'LINK_TO_GROUP',
+      groupId,
+    })
+    isOpen.value = false
+    return
+  }
+
   emit('move', {
     operation: 'SET_PROJECT',
     projectId: currentProjectId.value,
@@ -197,6 +271,7 @@ const handleMoveToOtherCollectionGroup = (groupId: string) => {
 const handleMoveToProjectGroup = (groupId: string) => {
   if (!groupId) return
   if (!targetProjectId.value) return
+  if (targetProjectId.value === PERSONAL_PROJECT_VALUE) return
 
   emit('move', {
     operation: 'SET_PROJECT',
@@ -257,6 +332,12 @@ function handleMoveToPersonal() {
   isOpen.value = false
 }
 
+watch(isOpen, (next) => {
+  if (next) {
+    fetchProjectsWithCollections()
+  }
+})
+
 // Reset state when closing
 watch(isOpen, (next) => {
   if (!next) {
@@ -265,6 +346,7 @@ watch(isOpen, (next) => {
     targetProjectCollections.value = []
     targetCollectionId.value = null
     moveMode.value = 'MOVE'
+    otherCollectionMoveMode.value = 'MOVE'
   }
 })
 
@@ -299,6 +381,7 @@ watch(isOpen, (next) => {
               <ContentGroupSelectTree
                 v-if="toGroupTreeItems.length > 0"
                 :items="toGroupTreeItems as any"
+                :disabled-ids="disabledGroupIds"
                 @select="handleMoveToGroup"
               />
               <div v-else class="text-sm text-gray-500 py-2 italic px-4">
@@ -325,12 +408,25 @@ watch(isOpen, (next) => {
             </USelectMenu>
 
             <div v-if="targetCollectionId" class="py-2">
-              <div v-if="selectedCollection?.type === 'GROUP'" class="max-h-60 overflow-y-auto custom-scrollbar">
-                <ContentGroupSelectTree
-                  v-if="targetCollectionTreeItems.length > 0"
-                  :items="targetCollectionTreeItems as any"
-                  @select="handleMoveToOtherCollectionGroup"
+              <div v-if="selectedCollection?.type === 'GROUP'" class="space-y-3">
+                <UiAppButtonGroup
+                  v-model="otherCollectionMoveMode"
+                  :options="[
+                    { value: 'MOVE', label: t('common.move', 'Move') },
+                    { value: 'LINK', label: t('contentLibrary.bulk.linkMode', 'Link') },
+                  ]"
+                  active-variant="solid"
+                  variant="outline"
+                  fluid
                 />
+
+                <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                  <ContentGroupSelectTree
+                    v-if="targetCollectionTreeItems.length > 0"
+                    :items="targetCollectionTreeItems as any"
+                    @select="handleMoveToOtherCollectionGroup"
+                  />
+                </div>
               </div>
               <div v-else-if="selectedCollection?.type === 'SAVED_VIEW'" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
                 <UButton
@@ -349,19 +445,30 @@ watch(isOpen, (next) => {
           <div class="p-4 space-y-4">
             <USelectMenu
               v-model="targetProjectId"
-              :items="projectOptions"
+              :items="projectOptionsWithPersonal"
               value-key="value"
               label-key="label"
               searchable
               :search-input="{ placeholder: t('contentLibrary.bulk.selectProject') }"
               :placeholder="t('contentLibrary.bulk.selectProject')"
+              :loading="isLoadingProjectsWithCollections"
             >
               <template #leading>
                 <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
               </template>
             </USelectMenu>
 
-            <div v-if="targetProjectId" class="space-y-2">
+            <div v-if="isPersonalTargetSelected" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
+              <UButton
+                color="primary"
+                icon="i-heroicons-arrow-right-circle"
+                @click="handleMoveToPersonal"
+              >
+                {{ t('common.move') }}
+              </UButton>
+            </div>
+
+            <div v-else-if="targetProjectId" class="space-y-2">
               <UFormField :label="t('contentLibrary.moveModal.selectCollectionInProject')">
                 <USelectMenu
                   :items="targetProjectCollectionOptions"
@@ -392,17 +499,6 @@ watch(isOpen, (next) => {
                 </div>
               </div>
             </div>
-
-            <UButton
-              v-if="scope === 'project'"
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-user"
-              block
-              @click="handleMoveToPersonal"
-            >
-              {{ t('contentLibrary.moveModal.toPersonal') }}
-            </UButton>
           </div>
         </template>
       </UAccordion>

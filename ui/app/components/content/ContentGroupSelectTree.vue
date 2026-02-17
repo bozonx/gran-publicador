@@ -7,6 +7,7 @@ interface TreeNode {
 
 interface Props {
   items: TreeNode[]
+  disabledIds?: string[]
 }
 
 const props = defineProps<Props>()
@@ -24,12 +25,14 @@ interface FlatRow {
   value: string
   depth: number
   isRoot: boolean
+  disabled: boolean
 }
 
 const flatRows = computed<FlatRow[]>(() => {
   const out: FlatRow[] = []
   const visit = (node: TreeNode, depth: number, isRoot: boolean) => {
-    out.push({ label: node.label, value: node.value, depth, isRoot })
+    const isDisabled = Array.isArray(props.disabledIds) && props.disabledIds.includes(node.value)
+    out.push({ label: node.label, value: node.value, depth, isRoot, disabled: isDisabled })
     if (!Array.isArray(node.children) || node.children.length === 0) return
     for (const child of node.children) {
       visit(child, depth + 1, false)
@@ -45,6 +48,7 @@ const flatRows = computed<FlatRow[]>(() => {
 
 const handleSelectId = (id: string) => {
   if (!id) return
+  if (Array.isArray(props.disabledIds) && props.disabledIds.includes(id)) return
   emit('select', id)
 }
 </script>
@@ -66,6 +70,8 @@ const handleSelectId = (id: string) => {
       <button
         type="button"
         class="flex-1 truncate text-sm py-1 text-left"
+        :class="row.disabled ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed' : 'hover:text-primary-600 dark:hover:text-primary-400'"
+        :disabled="row.disabled"
         @click="handleSelectId(row.value)"
       >
         {{ row.label }}
