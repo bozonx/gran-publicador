@@ -247,7 +247,7 @@ const handleReorder = async () => {
 
 const getCollectionIcon = (collection: ContentCollection) => {
   if (collection.type === 'SAVED_VIEW') {
-    return props.scope === 'project' ? 'i-heroicons-bookmark-square' : 'i-heroicons-bookmark'
+    return 'i-heroicons-bookmark'
   }
 
   if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
@@ -265,7 +265,7 @@ const getCollectionColor = (collection: ContentCollection, isActive: boolean) =>
   }
 
   if (isActive) {
-    return 'secondary'
+    return 'neutral'
   }
 
   return 'neutral'
