@@ -245,30 +245,49 @@ const handleReorder = async () => {
   }
 }
 
+const isProjectRelatedCollection = (collection: ContentCollection) => {
+  if (collection.type !== 'GROUP') {
+    return false
+  }
+
+  if (collection.projectId) {
+    return true
+  }
+
+  const groupType = (collection as any).groupType
+  if (typeof groupType === 'string' && groupType.startsWith('PROJECT')) {
+    return true
+  }
+
+  if (typeof collection.visibility === 'string' && collection.visibility.startsWith('PROJECT')) {
+    return true
+  }
+
+  return false
+}
+
 const getCollectionIcon = (collection: ContentCollection) => {
   if (collection.type === 'SAVED_VIEW') {
     return 'i-heroicons-bookmark'
   }
 
-  if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
+  if (isProjectRelatedCollection(collection)) {
     return 'i-heroicons-briefcase'
   }
 
   return 'i-heroicons-user'
 }
 
-const getCollectionColor = (collection: ContentCollection, isActive: boolean) => {
-  const isProjectShared = props.scope === 'project' && collection.visibility === 'PROJECT_SHARED'
-
-  if (isProjectShared) {
-    return 'primary'
-  }
-
-  if (isActive) {
+const getCollectionColor = (collection: ContentCollection) => {
+  if (collection.type === 'SAVED_VIEW') {
     return 'neutral'
   }
 
-  return 'neutral'
+  if (isProjectRelatedCollection(collection)) {
+    return 'secondary'
+  }
+
+  return 'primary'
 }
 
 const getCollectionTooltip = (collection: ContentCollection) => {
@@ -335,7 +354,7 @@ defineExpose({
       <template #tab="{ item, selected, select }">
         <UTooltip :text="getCollectionTooltip(item as any)" :delay-duration="500">
           <UButton
-            :color="getCollectionColor(item as any, selected)"
+            :color="getCollectionColor(item as any)"
             :variant="highlightedCollectionId === (item as any).id ? 'solid' : 'outline'"
             size="sm"
             :icon="getCollectionIcon(item as any)"

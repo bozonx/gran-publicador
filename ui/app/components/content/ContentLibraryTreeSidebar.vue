@@ -59,6 +59,13 @@ const sidebarGroupTreeItems = computed<GroupTreeNode[]>(() => {
   const mapNode = (node: any): GroupTreeNode => ({
     ...node,
     slot: 'group-node',
+    onToggle: (e: Event) => {
+      const target = e.target as HTMLElement | null
+      const isCaretClick = !!target?.closest?.('[data-tree-caret-toggle="true"]')
+      if (!isCaretClick) {
+        e.preventDefault()
+      }
+    },
     children: node.children ? node.children.map(mapNode) : undefined,
   })
 
@@ -119,6 +126,13 @@ watch(() => props.collections, (next) => {
   if (!next) return
   expanded.value = next.filter(c => c.type === 'GROUP').map(c => c.id)
 }, { immediate: true })
+
+watch(
+  () => [props.scope, props.projectId, props.activeCollection?.id, activeRootGroupId.value] as const,
+  () => {
+    expanded.value = allScopeGroupCollections.value.map(c => c.id)
+  },
+)
 
 watch(
   () => props.selectedNodeId,
@@ -336,6 +350,7 @@ const getGroupNodeMenuItems = (collectionId: string) => {
             size="xs"
             :icon="expanded ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
             class="p-0.5"
+            data-tree-caret-toggle="true"
             @click.stop="handleToggle"
           />
         </template>
