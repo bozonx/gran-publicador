@@ -4,6 +4,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import { calculateRecursiveGroupCounters } from '@gran/shared/content-library-tree'
 import type { ContentCollection } from '~/composables/useContentCollections'
 import CreateCollectionModal from '~/components/content/CreateCollectionModal.vue'
+import CommonDraggableTabs from '~/components/common/CommonDraggableTabs.vue'
 
 const props = defineProps<{
   scope: 'project' | 'personal'
@@ -243,43 +244,28 @@ defineExpose({
 
 <template>
   <div class="space-y-3">
-    <div class="flex flex-wrap items-center gap-2 pb-2">
-      <VueDraggable
-        v-model="topLevelCollections"
-        :animation="200"
-        handle=".drag-handle"
-        class="flex flex-wrap items-center gap-2 flex-1 min-w-0"
-        @end="handleReorder"
-      >
-        <div
-          v-for="collection in topLevelCollections"
-          :key="collection.id"
-          class="flex items-center gap-1 min-w-0"
+    <CommonDraggableTabs
+      v-model="activeCollectionId"
+      v-model:items="topLevelCollections"
+      :show-add-button="true"
+      @add="isCreateModalOpen = true"
+      @end="handleReorder"
+    >
+      <template #tab="{ item, selected, select }">
+        <UButton
+          :color="selected ? 'primary' : ((item as any).type === 'GROUP' ? 'neutral' : 'neutral')"
+          :variant="highlightedCollectionId === (item as any).id ? 'solid' : 'outline'"
+          size="sm"
+          :icon="getCollectionIcon((item as any).type)"
+          class="drag-handle cursor-pointer max-w-full"
+          @click="() => { hasUserSelection = true; select(); emit('update:active-collection', item as any) }"
         >
-          <UButton
-            :color="getCollectionColor(collection.type, highlightedCollectionId === collection.id)"
-            :variant="highlightedCollectionId === collection.id ? 'solid' : 'outline'"
-            size="sm"
-            :icon="getCollectionIcon(collection.type)"
-            class="drag-handle cursor-pointer max-w-full"
-            @click="() => { hasUserSelection = true; activeCollectionId = collection.id; emit('update:active-collection', collection) }"
-          >
-            <span class="truncate max-w-48 sm:max-w-64">
-              {{ getCollectionLabel(collection) }}
-            </span>
-          </UButton>
-        </div>
-      </VueDraggable>
-
-      <UButton
-        color="neutral"
-        variant="outline"
-        size="sm"
-        icon="i-heroicons-plus"
-        :title="t('contentLibrary.collections.create')"
-        @click="isCreateModalOpen = true"
-      />
-    </div>
+          <span class="truncate max-w-48 sm:max-w-64">
+            {{ getCollectionLabel(item as any) }}
+          </span>
+        </UButton>
+      </template>
+    </CommonDraggableTabs>
 
     <CreateCollectionModal
       v-model:open="isCreateModalOpen"

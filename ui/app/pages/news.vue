@@ -4,6 +4,7 @@ import { useProjects } from '~/composables/useProjects'
 import AppModal from '~/components/ui/AppModal.vue'
 import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
+import CommonDraggableTabs from '~/components/common/CommonDraggableTabs.vue'
 
 definePageMeta({
   middleware: 'auth',
@@ -221,10 +222,11 @@ function formatScore(score: number) {
 
     <!-- Collections System -->
     <div v-if="trackedQueries.length > 0" class="space-y-6">
-      <AppTabs 
-        v-model="activeCollectionId" 
-        :items="collections" 
+      <CommonDraggableTabs
+        v-model="activeCollectionId"
+        v-model:items="collections"
         :draggable="true"
+        :show-add-button="false"
         class="w-full"
         @update:items="handleCollectionsUpdate"
       />
