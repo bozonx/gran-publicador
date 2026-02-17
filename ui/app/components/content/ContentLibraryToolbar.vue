@@ -91,15 +91,22 @@ const savedViewPersistTags = computed(() => {
   return typeof raw === 'boolean' ? raw : true
 })
 
+const publicationMediaVirtualPersistTags = computed(() => {
+  const raw = props.activeCollection?.config?.persistTags
+  return typeof raw === 'boolean' ? raw : false
+})
+
 const isSearchPersisted = computed(() => {
   if (!props.activeCollection) return false
   if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistSearch.value
+  if (props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') return savedViewPersistSearch.value
   return false
 })
 
 const isTagsPersisted = computed(() => {
   if (!props.activeCollection) return false
   if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistTags.value
+  if (props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') return publicationMediaVirtualPersistTags.value
   return false
 })
 
@@ -107,7 +114,7 @@ const toolbarMenuItems = computed(() => {
   const items: any[] = []
 
   if (props.activeCollection) {
-    if (props.activeCollection.type === 'SAVED_VIEW') {
+    if (props.activeCollection.type === 'SAVED_VIEW' || props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
       items.push([
         {
           label: t('contentLibrary.savedView.persistSearch.label'),
@@ -120,16 +127,23 @@ const toolbarMenuItems = computed(() => {
         },
         {
           label: t('contentLibrary.savedView.persistTags.label'),
-          icon: savedViewPersistTags.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
-          color: savedViewPersistTags.value ? 'success' : 'neutral',
-          title: savedViewPersistTags.value
+          icon: (props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value)
+            ? 'i-heroicons-check-circle'
+            : 'i-heroicons-x-circle',
+          color: (props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value)
+            ? 'success'
+            : 'neutral',
+          title: (props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value)
             ? t('contentLibrary.savedView.persistTags.enabledTitle')
             : t('contentLibrary.savedView.persistTags.disabledTitle'),
-          onSelect: () => emit('set-saved-view-persist-tags', !savedViewPersistTags.value),
+          onSelect: () => emit(
+            'set-saved-view-persist-tags',
+            !(props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value),
+          ),
         },
       ])
 
-      if (!props.orphansOnly) {
+      if (props.activeCollection.type === 'SAVED_VIEW' && !props.orphansOnly) {
         items.push([
           {
             label: t('contentLibrary.savedView.orphans.label'),

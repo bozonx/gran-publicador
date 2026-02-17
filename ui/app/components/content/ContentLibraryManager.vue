@@ -79,7 +79,7 @@ const selectedIds = ref<string[]>([])
 interface ContentLibraryTabState {
   q: string
   selectedTags: string
-  sortBy: 'createdAt' | 'title'
+  sortBy: 'createdAt' | 'title' | 'combined'
   sortOrder: 'asc' | 'desc'
 }
 
@@ -88,7 +88,7 @@ const tabStateByCollectionId = reactive<Record<string, ContentLibraryTabState>>(
 const DEFAULT_TAB_STATE: ContentLibraryTabState = {
   q: '',
   selectedTags: '',
-  sortBy: 'createdAt',
+  sortBy: 'combined',
   sortOrder: 'desc',
 }
 
@@ -122,7 +122,7 @@ const selectedTags = computed<string>({
   },
 })
 
-const sortBy = computed<'createdAt' | 'title'>({
+const sortBy = computed<'createdAt' | 'title' | 'combined'>({
   get() {
     return ensureTabState(activeCollectionId.value).sortBy
   },
@@ -180,6 +180,7 @@ const isStartCreating = ref(false)
 
 // Sorting Options
 const sortOptions = computed(() => [
+  { id: 'combined', label: t('common.combined'), icon: 'i-heroicons-calendar-days' },
   { id: 'createdAt', label: t('common.createdAt'), icon: 'i-heroicons-calendar-days' },
   { id: 'title', label: t('common.title'), icon: 'i-heroicons-document-text' }
 ])
@@ -190,6 +191,10 @@ function toggleSortOrder() { sortOrder.value = sortOrder.value === 'asc' ? 'desc
 
 const isSavedView = (c: ContentCollection | null | undefined): c is ContentCollection => {
   return !!c && c.type === 'SAVED_VIEW'
+}
+
+const isPublicationMediaVirtual = (c: ContentCollection | null | undefined): c is ContentCollection => {
+  return !!c && c.type === 'PUBLICATION_MEDIA_VIRTUAL'
 }
 
 const getSavedViewConfigBoolean = (collection: ContentCollection, key: string, defaultValue: boolean) => {
@@ -206,12 +211,20 @@ const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection
   const base: ContentLibraryTabState = { ...DEFAULT_TAB_STATE }
 
   const cfg = (collection as any)?.config ?? {}
-  if (cfg.sortBy === 'createdAt' || cfg.sortBy === 'title') base.sortBy = cfg.sortBy
+  if (cfg.sortBy === 'combined' || cfg.sortBy === 'createdAt' || cfg.sortBy === 'title') base.sortBy = cfg.sortBy
   if (cfg.sortOrder === 'asc' || cfg.sortOrder === 'desc') base.sortOrder = cfg.sortOrder
 
   if (collection.type === 'SAVED_VIEW') {
     const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
     const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
+
+    if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
+    if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
+  }
+
+  if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
 
     if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
     if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
@@ -234,6 +247,40 @@ const persistSavedViewStateToDb = async () => {
   const state = ensureTabState(collection.id)
   const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
   const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
+
+  const nextConfig: Record<string, any> = {
+    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
+      ? (collection as any).config
+      : {}),
+    persistSearch,
+    persistTags,
+    sortBy: state.sortBy,
+    sortOrder: state.sortOrder,
+  }
+
+  if (persistSearch) nextConfig.q = state.q
+  else delete nextConfig.q
+
+  if (persistTags) nextConfig.selectedTags = state.selectedTags
+  else delete nextConfig.selectedTags
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
+}
+
+const persistPublicationMediaVirtualStateToDb = async () => {
+  const collection = activeCollection.value
+  if (!isPublicationMediaVirtual(collection)) return
+
+  const state = ensureTabState(collection.id)
+  const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+  const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
 
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
@@ -303,9 +350,17 @@ const debouncedPersistGroupSortStateToDb = useDebounceFn(async () => {
   }
 }, 500)
 
+const debouncedPersistPublicationMediaVirtualStateToDb = useDebounceFn(async () => {
+  try {
+    await persistPublicationMediaVirtualStateToDb()
+  } catch {
+    // ignore persistence errors
+  }
+}, 500)
+
 const setSavedViewPersistSearch = async (value: boolean) => {
   const collection = activeCollection.value
-  if (!isSavedView(collection)) return
+  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
 
   const state = ensureTabState(collection.id)
   if (!value) {
@@ -331,7 +386,7 @@ const setSavedViewPersistSearch = async (value: boolean) => {
 
 const setSavedViewPersistTags = async (value: boolean) => {
   const collection = activeCollection.value
-  if (!isSavedView(collection)) return
+  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
 
   const state = ensureTabState(collection.id)
   if (!value) {
@@ -379,6 +434,35 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   isLoading.value = true
   error.value = null
   try {
+    if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+      const sortByParam = sortBy.value === 'title' ? 'title' : 'combined'
+
+      const res = await api.get<any>(`/content-library/collections/${activeCollection.value.id}/items`, {
+        params: {
+          scope: props.scope,
+          projectId: props.projectId,
+          search: q.value || undefined,
+          limit,
+          offset: offset.value,
+          sortBy: sortByParam,
+          sortOrder: sortOrder.value,
+          tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value.join(',') : undefined,
+        },
+      })
+      if (requestId !== fetchItemsRequestId) return
+
+      const nextItems = res.items ?? []
+
+      total.value = Number(res.total ?? nextItems.length)
+      if (typeof res.totalUnfiltered === 'number') totalUnfiltered.value = res.totalUnfiltered
+      else if (offset.value === 0) totalUnfiltered.value = total.value
+      if (offset.value === 0) totalInScope.value = total.value
+
+      if (offset.value === 0) items.value = nextItems
+      else items.value = [...items.value, ...nextItems]
+      return
+    }
+
     const res = await api.get<any>('/content-library/items', {
       params: {
         scope: props.scope,
@@ -392,7 +476,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         search: q.value || undefined,
         limit,
         offset: offset.value,
-        sortBy: sortBy.value,
+        sortBy: sortBy.value === 'combined' ? 'createdAt' : sortBy.value,
         sortOrder: sortOrder.value,
         tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value : undefined,
         includeTotalUnfiltered: offset.value === 0 ? true : undefined,
@@ -421,6 +505,12 @@ const fetchAvailableTags = async () => {
   const requestId = ++fetchAvailableTagsRequestId
   try {
     if (!activeCollection.value) return
+    if (activeCollection.value.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+      if (requestId !== fetchAvailableTagsRequestId) return
+      availableTags.value = []
+      return
+    }
+
     const tags = await api.get<string[]>('/content-library/tags', {
       params: {
         scope: props.scope,
@@ -483,6 +573,10 @@ watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => {
 
   if (collection.type === 'GROUP') {
     debouncedPersistGroupSortStateToDb()
+  }
+
+  if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    debouncedPersistPublicationMediaVirtualStateToDb()
   }
 })
 

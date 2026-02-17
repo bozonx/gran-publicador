@@ -17,8 +17,8 @@ export class CreateContentCollectionDto {
   @IsOptional()
   public projectId?: string;
 
-  @IsIn(['GROUP', 'SAVED_VIEW'])
-  public type!: 'GROUP' | 'SAVED_VIEW';
+  @IsIn(['GROUP', 'SAVED_VIEW', 'PUBLICATION_MEDIA_VIRTUAL'])
+  public type!: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL';
 
   @ValidateIf(o => o.type === 'GROUP' && o.scope === 'project')
   @IsIn(['PROJECT_USER', 'PROJECT_SHARED'])

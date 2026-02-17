@@ -10,12 +10,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'create': [data: { type: 'GROUP' | 'SAVED_VIEW'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }]
+  'create': [data: { type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }]
 }>()
 
 const { t } = useI18n()
 
-const selectedType = ref<'GROUP' | 'SAVED_VIEW' | undefined>(undefined)
+const selectedType = ref<'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL' | undefined>(undefined)
 const selectedGroupType = ref<'PROJECT_USER' | 'PROJECT_SHARED'>('PROJECT_USER')
 const title = ref('')
 
@@ -37,7 +37,7 @@ const handleCreate = () => {
   if (!canProceed.value || !selectedType.value) return
   
   emit('create', {
-    type: selectedType.value as 'GROUP' | 'SAVED_VIEW',
+    type: selectedType.value as 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL',
     title: title.value.trim(),
     ...(selectedType.value === 'GROUP' && props.scope === 'project'
       ? { groupType: selectedGroupType.value }
@@ -113,13 +113,35 @@ watch(() => props.open, (val) => {
               </div>
             </div>
           </button>
+
+          <button
+            class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-left group"
+            @click="selectedType = 'PUBLICATION_MEDIA_VIRTUAL'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
+                <UIcon name="i-heroicons-photo" class="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div class="flex-1">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-1">
+                  {{ t('contentLibrary.collections.types.publicationMediaVirtual.title') }}
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ t('contentLibrary.collections.types.publicationMediaVirtual.description') }}
+                </p>
+              </div>
+            </div>
+          </button>
         </div>
       </div>
 
       <div v-else class="space-y-4">
         <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <UIcon :name="selectedType === 'GROUP' ? 'i-heroicons-folder' : 'i-heroicons-bookmark'" class="w-4 h-4" />
-          <span>{{ t(`contentLibrary.collections.types.${selectedType === 'GROUP' ? 'group' : 'savedView'}.title`) }}</span>
+          <UIcon
+            :name="selectedType === 'GROUP' ? 'i-heroicons-folder' : selectedType === 'SAVED_VIEW' ? 'i-heroicons-bookmark' : 'i-heroicons-photo'"
+            class="w-4 h-4"
+          />
+          <span>{{ t(`contentLibrary.collections.types.${selectedType === 'GROUP' ? 'group' : selectedType === 'SAVED_VIEW' ? 'savedView' : 'publicationMediaVirtual'}.title`) }}</span>
         </div>
 
         <div

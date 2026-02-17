@@ -157,7 +157,10 @@ export class ContentCollectionsService {
 
     await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
 
-    if ((collection.type as any) === 'SAVED_VIEW') {
+    if (
+      (collection.type as any) === 'SAVED_VIEW' ||
+      (collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL'
+    ) {
       if (collection.userId !== options.userId) {
         throw new ForbiddenException('You do not have access to this collection');
       }
@@ -336,6 +339,7 @@ export class ContentCollectionsService {
                 OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
               },
               { type: 'SAVED_VIEW', userId },
+              { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
             ],
           };
 
@@ -345,7 +349,7 @@ export class ContentCollectionsService {
     });
 
     const groupIds = collections.filter(c => c.type === 'GROUP').map(c => c.id);
-    
+
     // Use a raw query to count items per collection, filtering by archivedAt
     const counts: Array<{ collectionId: string; count: bigint }> =
       groupIds.length > 0
@@ -361,17 +365,17 @@ export class ContentCollectionsService {
           `
         : [];
 
-    const countMap = new Map(counts.map((c) => [c.collectionId, Number(c.count)]));
+    const countMap = new Map(counts.map(c => [c.collectionId, Number(c.count)]));
 
     return collections.map(collection => {
       const visibility =
         query.scope === 'personal'
           ? 'PERSONAL'
-          : collection.type === 'SAVED_VIEW'
-            ? 'PROJECT_PRIVATE'
-            : this.resolveGroupType(collection as any) === 'PROJECT_SHARED'
+          : collection.type === 'GROUP'
+            ? this.resolveGroupType(collection as any) === 'PROJECT_SHARED'
               ? 'PROJECT_SHARED'
-              : 'PROJECT_PRIVATE';
+              : 'PROJECT_PRIVATE'
+            : 'PROJECT_PRIVATE';
 
       if (collection.type !== 'GROUP') {
         return {
@@ -392,7 +396,7 @@ export class ContentCollectionsService {
     dto: {
       scope: 'personal' | 'project';
       projectId?: string;
-      type: 'GROUP' | 'SAVED_VIEW';
+      type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL';
       groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
       parentId?: string;
       title: string;
@@ -440,6 +444,7 @@ export class ContentCollectionsService {
                 OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
               },
               { type: 'SAVED_VIEW', userId },
+              { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
             ],
           };
 
@@ -483,7 +488,7 @@ export class ContentCollectionsService {
               userId:
                 dto.scope === 'personal'
                   ? userId
-                  : dto.type === 'SAVED_VIEW'
+                  : dto.type === 'SAVED_VIEW' || dto.type === 'PUBLICATION_MEDIA_VIRTUAL'
                     ? userId
                     : resolvedChildGroupType === 'PROJECT_SHARED'
                       ? null
@@ -640,6 +645,7 @@ export class ContentCollectionsService {
                 OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
               },
               { type: 'SAVED_VIEW', userId },
+              { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
             ],
           };
 

@@ -298,6 +298,7 @@
     "accessDenied": "Access denied",
     "actions": "Actions",
     "active": "Active",
+    "combined": "Combined",
     "add": "Add",
     "all": "All",
     "apply": "Apply",
@@ -513,12 +514,16 @@
       "titlePlaceholder": "Enter name...",
       "types": {
         "group": {
-          "description": "Organize content items into a dedicated group.",
-          "title": "Group"
+          "title": "Group",
+          "description": "Organize your content into a folder-like group"
         },
         "savedView": {
-          "description": "Create a filtered view with custom sorting and filters across your entire library.",
-          "title": "Saved View"
+          "title": "Saved view",
+          "description": "Save filters, sorting, and quickly return to this view"
+        },
+        "publicationMediaVirtual": {
+          "title": "Media from publications",
+          "description": "Virtual library that shows media, text, and tags from your publications"
         }
       }
     },

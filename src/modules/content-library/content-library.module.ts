@@ -1,15 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
 import { TagsModule } from '../tags/tags.module.js';
+import { PublicationsModule } from '../publications/publications.module.js';
 import { ContentLibraryController } from './content-library.controller.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
 import { ContentLibraryService } from './content-library.service.js';
 
 @Module({
-  imports: [PrismaModule, ApiTokensModule, TagsModule],
+  imports: [PrismaModule, ApiTokensModule, TagsModule, forwardRef(() => PublicationsModule)],
   controllers: [ContentLibraryController],
   providers: [ContentCollectionsService, ContentItemsService, ContentLibraryService],
   exports: [ContentCollectionsService, ContentItemsService, ContentLibraryService],

@@ -16,7 +16,7 @@ import { PublicationsService } from './publications.service.js';
     SocialPostingModule,
     LlmModule,
     TagsModule,
-    ContentLibraryModule,
+    forwardRef(() => ContentLibraryModule),
   ],
   controllers: [PublicationsController],
   providers: [PublicationsService],

@@ -19,6 +19,7 @@ import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
+import { PublicationsService } from '../publications/publications.service.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -38,6 +39,7 @@ export class ContentLibraryController {
   constructor(
     private readonly collectionsService: ContentCollectionsService,
     private readonly itemsService: ContentItemsService,
+    private readonly publicationsService: PublicationsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -118,6 +120,118 @@ export class ContentLibraryController {
     if (query.scope === 'project') {
       this.validateQueryProjectScopeOrThrow(req, query.projectId);
     }
+
+    return this.itemsService.findAll(query, req.user.userId);
+  }
+
+  @Get('collections/:id/items')
+  public async listCollectionItems(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') collectionId: string,
+    @Query('scope') scope: 'personal' | 'project',
+    @Query('projectId') projectId?: string,
+    @Query('search') search?: string,
+    @Query('tags') tags?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
+    @Query('orphansOnly') orphansOnly?: string,
+  ) {
+    if (scope === 'project') {
+      this.validateQueryProjectScopeOrThrow(req, projectId);
+    }
+
+    const collection = await this.collectionsService.assertCollectionAccess({
+      collectionId,
+      scope,
+      projectId,
+      userId: req.user.userId,
+    });
+
+    if ((collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL') {
+      const parsedTags =
+        typeof tags === 'string' && tags.length > 0 ? tags.split(',').filter(Boolean) : [];
+      const sortField = sortBy === 'title' ? 'title' : 'chronology';
+
+      const res =
+        scope === 'project'
+          ? await this.publicationsService.findAll(projectId as string, req.user.userId, {
+              limit,
+              offset,
+              includeArchived: false,
+              archivedOnly: false,
+              search,
+              sortBy: sortField,
+              sortOrder,
+              tags: parsedTags.length > 0 ? parsedTags : undefined,
+            })
+          : await this.publicationsService.findAllForUser(req.user.userId, {
+              limit,
+              offset,
+              includeArchived: false,
+              archivedOnly: false,
+              search,
+              sortBy: sortField,
+              sortOrder,
+              tags: parsedTags.length > 0 ? parsedTags : undefined,
+            });
+
+      const mappedItems = (res.items ?? []).map((p: any) => {
+        const tagNames = Array.isArray(p.tags)
+          ? p.tags
+          : (p.tagObjects ?? []).map((t: any) => t.name).filter(Boolean);
+        const media = Array.isArray(p.media)
+          ? p.media
+              .slice()
+              .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+              .map((m: any, idx: number) => ({
+                mediaId: m.mediaId ?? m.media?.id,
+                hasSpoiler: m.hasSpoiler,
+                order: m.order ?? idx,
+                media: m.media,
+              }))
+          : [];
+
+        return {
+          id: p.id,
+          title: p.title,
+          text: p.content,
+          tags: tagNames,
+          createdAt: p.effectiveAt ?? p.createdAt,
+          archivedAt: null,
+          media,
+          _virtual: {
+            source: 'publication',
+            publicationId: p.id,
+          },
+        };
+      });
+
+      return {
+        items: mappedItems,
+        total: res.total,
+        totalUnfiltered: res.totalUnfiltered,
+        limit,
+        offset,
+      };
+    }
+
+    const query: FindContentItemsQueryDto = {
+      scope,
+      projectId,
+      limit,
+      offset,
+      search,
+      sortBy: sortBy === 'title' ? 'title' : 'createdAt',
+      sortOrder,
+      tags:
+        typeof tags === 'string' && tags.length > 0 ? tags.split(',').filter(Boolean) : undefined,
+      groupIds: (collection.type as any) === 'GROUP' ? [collection.id] : undefined,
+      orphansOnly: (collection.type as any) === 'SAVED_VIEW' ? orphansOnly === 'true' : undefined,
+      includeTotalInScope: true,
+      includeTotalUnfiltered: true,
+    } as any;
 
     return this.itemsService.findAll(query, req.user.userId);
   }

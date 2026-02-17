@@ -40,7 +40,7 @@ const activeCollectionId = computed({
 })
 
 const topLevelCollections = computed<ContentCollection[]>({
-  get: () => collections.value.filter(collection => collection.type === 'SAVED_VIEW' || !collection.parentId),
+  get: () => collections.value.filter(collection => collection.type === 'SAVED_VIEW' || collection.type === 'PUBLICATION_MEDIA_VIRTUAL' || !collection.parentId),
   set: (nextTopLevelCollections) => {
     const topLevelIds = new Set(nextTopLevelCollections.map(collection => collection.id))
     const nestedCollections = collections.value.filter(collection => !topLevelIds.has(collection.id))
@@ -172,7 +172,7 @@ const fetchCollections = async () => {
   }
 }
 
-const handleCreateCollection = async (data: { type: 'GROUP' | 'SAVED_VIEW'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }) => {
+const handleCreateCollection = async (data: { type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }) => {
   try {
     const resolvedGroupType =
       props.scope === 'project' && data.type === 'GROUP'
@@ -267,6 +267,10 @@ const isSharedProjectCollection = (collection: ContentCollection) => {
 const getCollectionIcon = (collection: ContentCollection) => {
   if (collection.type === 'SAVED_VIEW') {
     return 'i-heroicons-bookmark'
+  }
+
+  if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    return 'i-heroicons-photo'
   }
 
   if (isSharedProjectCollection(collection)) {

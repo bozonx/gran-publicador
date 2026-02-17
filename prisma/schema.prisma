@@ -739,6 +739,7 @@ enum TagDomain {
 enum ContentCollectionType {
   GROUP
   SAVED_VIEW
+  PUBLICATION_MEDIA_VIRTUAL
 }
 
  enum ContentLibraryGroupType {
