@@ -9,7 +9,7 @@ import {
 import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ContentLibraryGroupType } from '../../generated/prisma/index.js';
+import { ContentLibraryGroupType, Prisma } from '../../generated/prisma/index.js';
 
 @Injectable()
 export class ContentCollectionsService {
@@ -345,19 +345,23 @@ export class ContentCollectionsService {
     });
 
     const groupIds = collections.filter(c => c.type === 'GROUP').map(c => c.id);
-    const counts =
+    
+    // Use a raw query to count items per collection, filtering by archivedAt
+    const counts: Array<{ collectionId: string; count: bigint }> =
       groupIds.length > 0
-        ? await (this.prisma as any).contentItemGroup.groupBy({
-            by: ['collectionId'],
-            where: {
-              collectionId: { in: groupIds },
-              contentItem: { archivedAt: null },
-            },
-            _count: { _all: true },
-          })
+        ? await this.prisma.$queryRaw`
+            SELECT 
+              cig.collection_id as "collectionId",
+              COUNT(*) as count
+            FROM content_item_groups cig
+            INNER JOIN content_items ci ON ci.id = cig.content_item_id
+            WHERE cig.collection_id IN (${Prisma.join(groupIds)})
+              AND ci.archived_at IS NULL
+            GROUP BY cig.collection_id
+          `
         : [];
 
-    const countMap = new Map(counts.map((c: any) => [c.collectionId, c._count?._all ?? 0]));
+    const countMap = new Map(counts.map((c) => [c.collectionId, Number(c.count)]));
 
     return collections.map(collection => {
       const visibility =
