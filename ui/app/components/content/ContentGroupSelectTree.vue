@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import type { TreeItem } from '@nuxt/ui'
+interface TreeNode {
+  label: string
+  value: string
+  children?: TreeNode[]
+}
 
 interface Props {
-  items: TreeItem[]
+  items: TreeNode[]
 }
 
 const props = defineProps<Props>()
@@ -11,72 +15,61 @@ const emit = defineEmits<{
   (e: 'select', groupId: string): void
 }>()
 
-const selected = ref<TreeItem | undefined>(undefined)
-const expanded = ref<string[]>([])
+const rootNodes = computed<TreeNode[]>(() => {
+  return Array.isArray(props.items) ? props.items : []
+})
 
-const getNodeValue = (node: unknown): string => {
-  if (!node || typeof node !== 'object' || !('value' in node)) return ''
-  return String((node as any).value ?? '')
+interface FlatRow {
+  label: string
+  value: string
+  depth: number
+  isRoot: boolean
 }
 
-const collectExpandedIds = (nodes: TreeItem[]): string[] => {
-  const out: string[] = []
-  const visit = (n: TreeItem) => {
-    const id = getNodeValue(n)
-    if (id) {
-      out.push(id)
-    }
-    const children = (n as any)?.children as TreeItem[] | undefined
-    if (Array.isArray(children)) {
-      for (const c of children) visit(c)
+const flatRows = computed<FlatRow[]>(() => {
+  const out: FlatRow[] = []
+  const visit = (node: TreeNode, depth: number, isRoot: boolean) => {
+    out.push({ label: node.label, value: node.value, depth, isRoot })
+    if (!Array.isArray(node.children) || node.children.length === 0) return
+    for (const child of node.children) {
+      visit(child, depth + 1, false)
     }
   }
 
-  for (const n of nodes) visit(n)
-  return Array.from(new Set(out))
-}
+  for (const root of rootNodes.value) {
+    visit(root, 0, true)
+  }
 
-watch(
-  () => props.items,
-  (next) => {
-    selected.value = undefined
-    expanded.value = collectExpandedIds(next ?? [])
-  },
-  { immediate: true },
-)
+  return out
+})
 
-const handleSelect = (item: TreeItem) => {
-  const id = getNodeValue(item)
+const handleSelectId = (id: string) => {
   if (!id) return
-  selected.value = item
   emit('select', id)
 }
 </script>
 
 <template>
-  <UTree
-    v-model="selected"
-    v-model:expanded="expanded"
-    :items="items"
-    :get-key="(i: any) => i.value"
-    :ui="{ item: 'cursor-pointer' }"
-  >
-    <template #leading="{ depth }">
+  <div class="space-y-1">
+    <div
+      v-for="row in flatRows"
+      :key="row.value"
+      class="flex items-center gap-2"
+      :style="{ paddingLeft: `${row.depth * 16}px` }"
+    >
       <UIcon
-        v-if="depth === 0"
+        v-if="row.isRoot"
         name="i-heroicons-folder"
         class="w-4 h-4 text-gray-400"
       />
-    </template>
-
-    <template #label="{ item }">
-      <span class="flex-1 truncate text-sm py-1" @click.stop="handleSelect(item)">
-        {{ (item as any).label }}
-      </span>
-    </template>
-
-    <template #trailing>
-      <span />
-    </template>
-  </UTree>
+      <span v-else class="w-4 h-4" />
+      <button
+        type="button"
+        class="flex-1 truncate text-sm py-1 text-left"
+        @click="handleSelectId(row.value)"
+      >
+        {{ row.label }}
+      </button>
+    </div>
+  </div>
 </template>
