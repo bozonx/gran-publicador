@@ -99,7 +99,7 @@ const toolbarMenuItems = computed(() => {
       items.push([
         {
           label: t('contentLibrary.savedView.persistSearch.label'),
-          icon: savedViewPersistSearch.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          icon: savedViewPersistSearch.value ? 'i-heroicons-check-circle text-success-500' : 'i-heroicons-x-circle',
           title: savedViewPersistSearch.value
             ? t('contentLibrary.savedView.persistSearch.enabledTitle')
             : t('contentLibrary.savedView.persistSearch.disabledTitle'),
@@ -107,7 +107,7 @@ const toolbarMenuItems = computed(() => {
         },
         {
           label: t('contentLibrary.savedView.persistTags.label'),
-          icon: savedViewPersistTags.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          icon: savedViewPersistTags.value ? 'i-heroicons-check-circle text-success-500' : 'i-heroicons-x-circle',
           title: savedViewPersistTags.value
             ? t('contentLibrary.savedView.persistTags.enabledTitle')
             : t('contentLibrary.savedView.persistTags.disabledTitle'),

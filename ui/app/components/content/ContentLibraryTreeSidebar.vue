@@ -115,9 +115,9 @@ const getPathToRoot = (id: string): string[] => {
   return out
 }
 
-watch(activeRootGroupId, (next) => {
+watch(() => props.collections, (next) => {
   if (!next) return
-  expanded.value = Array.from(new Set([...expanded.value, next]))
+  expanded.value = next.filter(c => c.type === 'GROUP').map(c => c.id)
 }, { immediate: true })
 
 watch(
@@ -345,6 +345,7 @@ const getGroupNodeMenuItems = (collectionId: string) => {
             :class="selectedNodeId === getGroupTreeNodeValue(item)
               ? 'text-primary-600 dark:text-primary-300'
               : 'text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300'"
+            @click.stop="() => { selected = item as any }"
           >
             {{ getGroupTreeNodeLabel(item) }}
           </span>

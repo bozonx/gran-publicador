@@ -24,6 +24,34 @@ const { updateCollection, deleteCollection } = useContentCollections()
 const { uploadMedia } = useMedia()
 
 const isWindowFileDragActive = ref(false)
+const windowDragDepth = ref(0)
+
+const handleWindowDragEnter = (e: DragEvent) => {
+  if (e.dataTransfer?.types?.includes('Files')) {
+    windowDragDepth.value++
+    isWindowFileDragActive.value = true
+  }
+}
+
+const handleWindowDragLeave = (e: DragEvent) => {
+  if (e.dataTransfer?.types?.includes('Files')) {
+    windowDragDepth.value = Math.max(0, windowDragDepth.value - 1)
+    if (windowDragDepth.value === 0) {
+      isWindowFileDragActive.value = false
+    }
+  }
+}
+
+const handleWindowDrop = () => {
+  windowDragDepth.value = 0
+  isWindowFileDragActive.value = false
+}
+
+if (import.meta.client) {
+  useEventListener(window, 'dragenter', handleWindowDragEnter)
+  useEventListener(window, 'dragleave', handleWindowDragLeave)
+  useEventListener(window, 'drop', handleWindowDrop)
+}
 
 const canDeleteActiveCollection = computed(() => {
   return !!activeCollection.value

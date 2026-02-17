@@ -213,14 +213,28 @@ const getCollectionIcon = (collection: ContentCollection) => {
 }
 
 const getCollectionColor = (collection: ContentCollection, isActive: boolean) => {
-  if (isActive) return 'primary'
-
-  if (props.scope === 'project') {
-    if (collection.visibility === 'PROJECT_SHARED') return 'success'
-    return 'neutral'
+  if (isActive) {
+    if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
+      return 'success'
+    }
+    return 'primary'
   }
 
   return 'neutral'
+}
+
+const getCollectionTooltip = (collection: ContentCollection) => {
+  const typeText = collection.type === 'GROUP' 
+    ? t('contentLibrary.collections.types.group.title') 
+    : t('contentLibrary.collections.types.savedView.title')
+  
+  const scopeText = collection.visibility === 'PROJECT_SHARED' 
+    ? t('contentLibrary.collections.groupVisibility.projectShared') 
+    : (props.scope === 'project' 
+        ? t('contentLibrary.collections.groupVisibility.projectUser') 
+        : t('contentLibrary.subtitlePersonal'))
+  
+  return `${typeText} (${scopeText})`
 }
 
 const getCollectionLabel = (collection: ContentCollection) => {
@@ -271,18 +285,20 @@ defineExpose({
       @end="handleReorder"
     >
       <template #tab="{ item, selected, select }">
-        <UButton
-          :color="getCollectionColor(item as any, selected)"
-          :variant="highlightedCollectionId === (item as any).id ? 'solid' : 'outline'"
-          size="sm"
-          :icon="getCollectionIcon(item as any)"
-          class="drag-handle cursor-pointer max-w-full"
-          @click="() => { hasUserSelection = true; select(); emit('update:active-collection', item as any) }"
-        >
-          <span class="truncate max-w-48 sm:max-w-64">
-            {{ getCollectionLabel(item as any) }}
-          </span>
-        </UButton>
+        <UTooltip :text="getCollectionTooltip(item as any)" :delay-duration="500">
+          <UButton
+            :color="getCollectionColor(item as any, selected)"
+            :variant="highlightedCollectionId === (item as any).id ? 'solid' : 'outline'"
+            size="sm"
+            :icon="getCollectionIcon(item as any)"
+            class="drag-handle cursor-pointer max-w-full"
+            @click="() => { hasUserSelection = true; select(); emit('update:active-collection', item as any) }"
+          >
+            <span class="truncate max-w-48 sm:max-w-64">
+              {{ getCollectionLabel(item as any) }}
+            </span>
+          </UButton>
+        </UTooltip>
       </template>
     </CommonDraggableTabs>
 
