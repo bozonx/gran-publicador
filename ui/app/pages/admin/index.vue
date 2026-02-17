@@ -293,10 +293,9 @@ const hasActiveFilters = computed(() => {
       <div class="app-card p-4 mb-6">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <!-- Search -->
-          <UInput
+          <CommonSearchInput
             v-model="searchQuery"
             :placeholder="t('admin.searchUsers')"
-            icon="i-heroicons-magnifying-glass"
             class="sm:col-span-2"
             :loading="isLoading && searchQuery !== debouncedSearch"
           />

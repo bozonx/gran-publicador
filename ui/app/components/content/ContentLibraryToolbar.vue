@@ -203,7 +203,7 @@ const toolbarMenuItems = computed(() => {
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div class="flex flex-col gap-3 sm:flex-row sm:flex-1 sm:min-w-0">
-            <UInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" icon="i-heroicons-magnifying-glass" class="w-full sm:flex-1 sm:min-w-0" />
+            <CommonSearchInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" class="w-full sm:flex-1 sm:min-w-0" />
             <PublicationsTagsFilter
               v-model="selectedTags"
               :placeholder="t('contentLibrary.filter.filterByTags')"

@@ -227,9 +227,8 @@ onMounted(() => {
       <div class="flex flex-col h-[70vh] max-h-[600px] min-h-[400px]">
         <!-- Search Header -->
         <div class="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
-           <UInput
+           <CommonSearchInput
              v-model="searchQuery"
-             icon="i-heroicons-magnifying-glass"
              :placeholder="t('common.search') || 'Search tags...'"
              size="lg"
              autofocus

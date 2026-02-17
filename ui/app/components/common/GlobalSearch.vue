@@ -211,31 +211,14 @@ const groupedResults = computed(() => {
       <template #content>
         <div class="p-4">
           <!-- Search input -->
-          <UInput
+          <CommonSearchInput
             v-model="searchQuery"
             :placeholder="t('common.search')"
             size="xl"
             autofocus
+            :loading="isSearching || (searchQuery.length >= 2 && searchQuery !== debouncedSearch)"
             class="w-full"
-          >
-            <template #leading>
-              <UIcon 
-                :name="(isSearching || (searchQuery.length >= 2 && searchQuery !== debouncedSearch)) ? 'i-heroicons-arrow-path' : 'i-heroicons-magnifying-glass'" 
-                class="w-5 h-5 text-gray-400"
-                :class="{ 'animate-spin': isSearching || (searchQuery.length >= 2 && searchQuery !== debouncedSearch) }"
-              />
-            </template>
-            <template #trailing>
-              <UButton
-                v-if="searchQuery"
-                color="neutral"
-                variant="link"
-                icon="i-heroicons-x-mark"
-                :padded="false"
-                @click="searchQuery = ''"
-              />
-            </template>
-          </UInput>
+          />
 
           <!-- Search results area -->
           <div class="mt-4 max-h-96 overflow-y-auto min-h-[100px]">

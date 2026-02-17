@@ -56,8 +56,7 @@ const internalValue = computed({
     :loading="isLoading"
     ignore-filter
     :search-input="{
-      placeholder: t('common.search') || 'Search...',
-      icon: 'i-heroicons-magnifying-glass'
+      placeholder: t('common.search') || 'Search...'
     }"
     :placeholder="t('news.filterBySource')"
     label-key="name"

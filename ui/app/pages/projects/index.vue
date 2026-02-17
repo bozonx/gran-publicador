@@ -203,12 +203,8 @@ async function onDragEnd() {
     <div class="app-card section-spacing">
       <div class="flex items-center gap-4">
         <div class="flex-1">
-          <UInput
+          <CommonSearchInput
             v-model="searchQuery"
-            icon="i-heroicons-magnifying-glass"
-            :placeholder="t('common.search')"
-            size="md"
-            class="w-full"
             :loading="isLoading && searchQuery !== debouncedSearch"
           />
         </div>

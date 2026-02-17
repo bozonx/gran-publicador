@@ -505,21 +505,10 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
     <!-- Filters -->
     <div class="mb-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <UInput
+        <CommonSearchInput
           v-model="searchQuery"
-          icon="i-heroicons-magnifying-glass"
           :placeholder="t('llm.searchTemplates')"
-        >
-          <template v-if="searchQuery" #trailing>
-            <UButton
-              color="neutral"
-              variant="link"
-              icon="i-heroicons-x-mark"
-              :padded="false"
-              @click="searchQuery = ''"
-            />
-          </template>
-        </UInput>
+        />
 
         <USelectMenu
           v-model="sourceFilter"

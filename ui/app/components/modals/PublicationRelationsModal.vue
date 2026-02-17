@@ -217,10 +217,9 @@ function isInactiveChannel(pub: RelationGroup['items'][0]['publication']): boole
             />
 
             <!-- Search publications -->
-            <UInput
+            <CommonSearchInput
               v-model="searchQuery"
               :placeholder="t('publication.relations.searchPlaceholder')"
-              icon="i-heroicons-magnifying-glass"
               class="w-full"
             />
 

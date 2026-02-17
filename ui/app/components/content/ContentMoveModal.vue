@@ -280,6 +280,7 @@ watch(isOpen, (next) => {
               value-key="value"
               label-key="label"
               searchable
+              :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
               :placeholder="t('contentLibrary.bulk.searchGroups')"
               @update:model-value="handleMoveToCollection"
             >
@@ -307,6 +308,7 @@ watch(isOpen, (next) => {
               value-key="value"
               label-key="label"
               searchable
+              :search-input="{ placeholder: t('contentLibrary.bulk.selectProject') }"
               :placeholder="t('contentLibrary.bulk.selectProject')"
             >
               <template #leading>

@@ -194,22 +194,11 @@ function handleClose() {
   >
     <div ref="modalRootRef" class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <UInput
+        <CommonSearchInput
           ref="searchInputRef"
           v-model="searchQuery"
-          icon="i-heroicons-magnifying-glass"
           :placeholder="t('llm.searchTemplates')"
-        >
-          <template v-if="searchQuery" #trailing>
-            <UButton
-              color="neutral"
-              variant="link"
-              icon="i-heroicons-x-mark"
-              :padded="false"
-              @click="searchQuery = ''"
-            />
-          </template>
-        </UInput>
+        />
 
         <USelectMenu
           v-model="sourceFilter"
