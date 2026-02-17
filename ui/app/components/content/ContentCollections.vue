@@ -281,11 +281,15 @@ const getCollectionColor = (collection: ContentCollection): TabColor => {
 }
 
 const getCollectionVariant = (collection: ContentCollection) => {
+  if (highlightedCollectionId.value === collection.id) {
+    return 'solid'
+  }
+
   if (isSharedProjectCollection(collection)) {
     return 'outline'
   }
 
-  return highlightedCollectionId.value === collection.id ? 'solid' : 'outline'
+  return 'ghost'
 }
 
 const getCollectionTooltip = (collection: ContentCollection) => {

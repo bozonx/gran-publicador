@@ -524,6 +524,7 @@ const uploadContentFiles = async (files: File[]) => {
       }
     }
     await fetchItems({ reset: true })
+    contentCollectionsRef.value?.fetchCollections()
     toast.add({ title: t('common.success'), description: t('contentLibrary.actions.uploadMediaSuccess', { count: files.length }), color: 'success' })
   } catch (e) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to upload files'), color: 'error' })
@@ -598,6 +599,7 @@ const handleBulkAction = async (type: 'ARCHIVE' | 'UNARCHIVE') => {
       projectId: props.scope === 'project' ? props.projectId : undefined,
     })
     await fetchItems({ reset: true })
+    contentCollectionsRef.value?.fetchCollections()
     selectedIds.value = []
     toast.add({ title: t('common.success'), color: 'success' })
   } catch (e) {
@@ -616,6 +618,7 @@ const executeBulkOperation = async () => {
           projectId: props.scope === 'project' ? props.projectId : undefined,
         })
         await fetchItems({ reset: true })
+        contentCollectionsRef.value?.fetchCollections()
         selectedIds.value = []
         isBulkOperationModalOpen.value = false; isMergeConfirmModalOpen.value = false
         toast.add({ title: t('common.success'), color: 'success' })
@@ -624,12 +627,13 @@ const executeBulkOperation = async () => {
     } finally { isBulkDeleting.value = false }
 }
 
-const archiveItem = async (id: string) => { isArchivingId.value = id; try { await api.post(`/content-library/items/${id}/archive`, {}); await fetchItems({ reset: true }) } finally { isArchivingId.value = null } }
-const restoreItem = async (id: string) => { isRestoringId.value = id; try { await api.post(`/content-library/items/${id}/restore`, {}); await fetchItems({ reset: true }) } finally { isRestoringId.value = null } }
+const archiveItem = async (id: string) => { isArchivingId.value = id; try { await api.post(`/content-library/items/${id}/archive`, {}); await fetchItems({ reset: true }); contentCollectionsRef.value?.fetchCollections() } finally { isArchivingId.value = null } }
+const restoreItem = async (id: string) => { isRestoringId.value = id; try { await api.post(`/content-library/items/${id}/restore`, {}); await fetchItems({ reset: true }); contentCollectionsRef.value?.fetchCollections() } finally { isRestoringId.value = null } }
 const deleteItemForever = async (id: string) => {
   try {
     await api.delete(`/content-library/items/${id}`)
     await fetchItems({ reset: true })
+    contentCollectionsRef.value?.fetchCollections()
     toast.add({ title: t('common.success'), color: 'success' })
   } catch (e) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to delete item'), color: 'error' })
@@ -674,6 +678,7 @@ const purgeArchived = async () => {
         const url = props.scope === 'project' ? `/content-library/projects/${props.projectId}/purge-archived` : '/content-library/personal/purge-archived'
         await api.post(url, {})
         await fetchItems({ reset: true })
+        contentCollectionsRef.value?.fetchCollections()
         isPurgeConfirmModalOpen.value = false
         toast.add({ title: t('common.success'), color: 'success' })
     } catch (e) {
@@ -693,6 +698,7 @@ const handleExecuteMoveItems = async (data: any) => {
               : undefined,
         })
         await fetchItems({ reset: true })
+        contentCollectionsRef.value?.fetchCollections()
         isMoveModalOpen.value = false; moveItemsIds.value = []
         toast.add({ title: t('common.success'), color: 'success' })
     } catch (e) {
@@ -762,8 +768,14 @@ const createAndEdit = async () => {
             text: '', meta: {}, media: []
         })
         await fetchItems({ reset: true })
+        contentCollectionsRef.value?.fetchCollections()
         activeItem.value = res; isEditModalOpen.value = true
     } finally { isStartCreating.value = false }
+}
+
+const handleRefreshItems = async (opts?: { reset?: boolean }) => {
+  await fetchItems(opts)
+  contentCollectionsRef.value?.fetchCollections()
 }
 
 const handleCloseModal = () => { isEditModalOpen.value = false; activeItem.value = null }
@@ -907,7 +919,7 @@ onMounted(() => { fetchItems() })
       :is-deleting-collection="isDeletingCollection"
       @purge="purgeArchived"
       @bulk-operation="executeBulkOperation"
-      @refresh-items="fetchItems"
+      @refresh-items="handleRefreshItems"
       @create-publication="handleCreatePublication"
       @execute-move="handleExecuteMoveItems"
       @rename-collection="handleRenameCollection"
