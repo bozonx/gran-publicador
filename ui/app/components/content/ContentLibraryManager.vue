@@ -145,6 +145,18 @@ const selectedTagsArray = computed(() => parseTags(selectedTags.value))
 const allScopeGroupCollections = computed(() => collections.value.filter(c => c.type === 'GROUP'))
 const collectionsById = computed(() => new Map(collections.value.map(c => [c.id, c])))
 
+const activeRootGroupId = computed(() => {
+  if (activeCollection.value?.type !== 'GROUP') return undefined
+  return getRootGroupId({
+    activeGroupId: activeCollection.value.id,
+    collectionsById: collectionsById.value as any,
+  })
+})
+
+const getSelectedGroupStorageKey = () => {
+  return `content-library-selected-group-${props.scope}-${props.projectId || 'global'}-${activeRootGroupId.value || 'none'}`
+}
+
 // Modals State
 const isPurgeConfirmModalOpen = ref(false)
 const isPurging = ref(false)
@@ -193,15 +205,16 @@ const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection
 
   const base: ContentLibraryTabState = { ...DEFAULT_TAB_STATE }
 
+  const cfg = (collection as any)?.config ?? {}
+  if (cfg.sortBy === 'createdAt' || cfg.sortBy === 'title') base.sortBy = cfg.sortBy
+  if (cfg.sortOrder === 'asc' || cfg.sortOrder === 'desc') base.sortOrder = cfg.sortOrder
+
   if (collection.type === 'SAVED_VIEW') {
     const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
     const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
-    const cfg = (collection as any)?.config ?? {}
 
     if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
     if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
-    if (cfg.sortBy === 'createdAt' || cfg.sortBy === 'title') base.sortBy = cfg.sortBy
-    if (cfg.sortOrder === 'asc' || cfg.sortOrder === 'desc') base.sortOrder = cfg.sortOrder
   }
 
   tabStateByCollectionId[key] = base
@@ -248,9 +261,43 @@ const persistSavedViewStateToDb = async () => {
   updateCollectionsCache(updated)
 }
 
+const persistGroupSortStateToDb = async () => {
+  const collection = activeCollection.value
+  if (!collection || collection.type !== 'GROUP') return
+
+  const state = ensureTabState(collection.id)
+  const nextConfig: Record<string, any> = {
+    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
+      ? (collection as any).config
+      : {}),
+    sortBy: state.sortBy,
+    sortOrder: state.sortOrder,
+  }
+
+  delete nextConfig.q
+  delete nextConfig.selectedTags
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
+}
+
 const debouncedPersistSavedViewStateToDb = useDebounceFn(async () => {
   try {
     await persistSavedViewStateToDb()
+  } catch {
+    // ignore persistence errors
+  }
+}, 500)
+
+const debouncedPersistGroupSortStateToDb = useDebounceFn(async () => {
+  try {
+    await persistGroupSortStateToDb()
   } catch {
     // ignore persistence errors
   }
@@ -316,14 +363,6 @@ const groupTreeItems = computed(() => {
     rootId: activeCollection.value.id,
     allGroupCollections: allScopeGroupCollections.value,
     labelFn: (c) => c.title,
-  })
-})
-
-const activeRootGroupId = computed(() => {
-  if (activeCollection.value?.type !== 'GROUP') return undefined
-  return getRootGroupId({
-    activeGroupId: activeCollection.value.id,
-    collectionsById: collectionsById.value as any,
   })
 })
 
@@ -402,9 +441,23 @@ watch(() => q.value, () => { selectedIds.value = []; debouncedFetch() })
 watch([archiveStatus, selectedTags, sortBy, sortOrder], () => fetchItems({ reset: true }))
 watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
+    selectedIds.value = []
     if (next) initTabStateFromCollectionConfigIfMissing(next)
     if (next?.type === 'GROUP') {
-      selectedGroupId.value = next.id
+      let restoredGroupId: string | null = null
+      if (import.meta.client) {
+        restoredGroupId = localStorage.getItem(getSelectedGroupStorageKey())
+      }
+
+      const isValidRestoredId =
+        !!restoredGroupId &&
+        collectionsById.value.has(restoredGroupId) &&
+        getRootGroupId({
+          activeGroupId: restoredGroupId,
+          collectionsById: collectionsById.value as any,
+        }) === activeRootGroupId.value
+
+      selectedGroupId.value = isValidRestoredId ? restoredGroupId : next.id
       orphansOnly.value = false
     } else {
       selectedGroupId.value = null
@@ -417,15 +470,29 @@ watch(activeCollection, (next, prev) => {
 watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => {
   const collection = activeCollection.value
   if (!collection) return
-  if (collection.type !== 'SAVED_VIEW') return
 
-  const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
-  const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
-  if (!persistSearch && !persistTags) {
+  if (collection.type === 'SAVED_VIEW') {
+    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
+    if (!persistSearch && !persistTags) {
+      return
+    }
+    debouncedPersistSavedViewStateToDb()
     return
   }
 
-  debouncedPersistSavedViewStateToDb()
+  if (collection.type === 'GROUP') {
+    debouncedPersistGroupSortStateToDb()
+  }
+})
+
+watch(selectedGroupId, (next) => {
+  if (activeCollection.value?.type !== 'GROUP') return
+  selectedIds.value = []
+  if (!next) return
+  if (!import.meta.client) return
+  if (!activeRootGroupId.value) return
+  localStorage.setItem(getSelectedGroupStorageKey(), next)
 })
 const debouncedFetch = useDebounceFn(() => fetchItems({ reset: true }), 350)
 const hasMore = computed(() => items.value.length < total.value)

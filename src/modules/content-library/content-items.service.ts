@@ -798,6 +798,113 @@ export class ContentItemsService {
 
         return { count: authorizedIds.length };
 
+      case BulkOperationType.COPY_TO_PROJECT: {
+        if (dto.projectId) {
+          await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+        }
+
+        const fullItems = await (this.prisma.contentItem as any).findMany({
+          where: { id: { in: authorizedIds } },
+          select: {
+            id: true,
+            title: true,
+            note: true,
+            text: true,
+            meta: true,
+            tagObjects: { select: { name: true } },
+            media: {
+              orderBy: { order: 'asc' },
+              select: { mediaId: true, order: true, hasSpoiler: true },
+            },
+          },
+        });
+
+        let targetGroupScope: 'personal' | 'project' | null = null;
+        let targetGroupProjectId: string | undefined = undefined;
+
+        if (dto.groupId) {
+          const targetGroup = await this.prisma.contentCollection.findUnique({
+            where: { id: dto.groupId },
+            select: { id: true, type: true, projectId: true },
+          });
+          if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+            throw new BadRequestException('Target group not found');
+          }
+
+          targetGroupScope = targetGroup.projectId ? 'project' : 'personal';
+          targetGroupProjectId = targetGroup.projectId ?? undefined;
+
+          const expectedScope: 'personal' | 'project' = dto.projectId ? 'project' : 'personal';
+          const expectedProjectId = dto.projectId ?? undefined;
+
+          if (targetGroupScope !== expectedScope) {
+            throw new BadRequestException('Target group scope does not match target project');
+          }
+          if ((targetGroupProjectId ?? undefined) !== expectedProjectId) {
+            throw new BadRequestException('Target group project does not match target project');
+          }
+
+          await this.collectionsService.assertGroupAccess({
+            groupId: dto.groupId,
+            scope: targetGroupScope,
+            projectId: targetGroupProjectId,
+            userId,
+          });
+        }
+
+        await this.prisma.$transaction(async tx => {
+          for (const item of fullItems) {
+            const tagNames = (item?.tagObjects ?? []).map((t: any) => t.name);
+            const mediaLinks = Array.isArray(item?.media) ? item.media : [];
+
+            const created = await (tx.contentItem as any).create({
+              data: {
+                title: item.title ?? null,
+                note: item.note ?? null,
+                text: item.text ?? null,
+                meta: item.meta ?? {},
+                projectId: dto.projectId ?? null,
+                userId: dto.projectId ? null : userId,
+                tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+                  tagNames,
+                  {
+                    projectId: dto.projectId ?? undefined,
+                    userId: dto.projectId ? undefined : userId,
+                  },
+                  'CONTENT_LIBRARY',
+                  true,
+                ),
+              },
+              select: { id: true },
+            });
+
+            if (mediaLinks.length > 0) {
+              await (tx as any).contentItemMedia.createMany({
+                data: mediaLinks
+                  .filter((m: any) => !!m?.mediaId)
+                  .map((m: any) => ({
+                    contentItemId: created.id,
+                    mediaId: m.mediaId,
+                    order: m.order ?? 0,
+                    hasSpoiler: !!m.hasSpoiler,
+                  })),
+              });
+            }
+
+            if (dto.groupId) {
+              await (tx as any).contentItemGroup.create({
+                data: {
+                  contentItemId: created.id,
+                  collectionId: dto.groupId,
+                },
+              });
+            }
+          }
+        });
+
+        return { count: authorizedIds.length };
+      }
+
       case BulkOperationType.MERGE: {
         if (authorizedIds.length < 2) {
           throw new BadRequestException('At least two items are required for merging');

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type ContentCollection, useContentCollections } from '~/composables/useContentCollections'
 import { buildGroupTreeFromRoot, type ContentLibraryTreeItem } from '~/composables/useContentLibraryGroupsTree'
+import CommonInfoTooltip from '~/components/common/CommonInfoTooltip.vue'
 import ContentGroupSelectTree from './ContentGroupSelectTree.vue'
 
 interface Props {
@@ -14,11 +15,28 @@ interface Props {
   folderTreeItems: any[]
 }
 
+const handleSelectTargetProject = (projectId: string | null) => {
+  if (projectActionMode.value === 'COPY') {
+    emit('move', {
+      operation: 'COPY_TO_PROJECT',
+      projectId,
+    })
+    isOpen.value = false
+    return
+  }
+
+  emit('move', {
+    operation: 'SET_PROJECT',
+    projectId,
+  })
+  isOpen.value = false
+}
+
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'move', payload: {
-    operation: 'MOVE_TO_GROUP' | 'LINK_TO_GROUP' | 'SET_PROJECT'
+    operation: 'MOVE_TO_GROUP' | 'LINK_TO_GROUP' | 'SET_PROJECT' | 'COPY_TO_PROJECT'
     projectId?: string | null
     groupId?: string | null
     sourceGroupId?: string
@@ -52,6 +70,7 @@ const isLoadingProjectsWithCollections = ref(false)
 
 const moveMode = ref<'MOVE' | 'LINK'>('MOVE')
 const otherCollectionMoveMode = ref<'MOVE' | 'LINK'>('MOVE')
+const projectActionMode = ref<'MOVE' | 'COPY'>('MOVE')
 
 const targetCollectionId = ref<string | null>(null)
 
@@ -273,11 +292,19 @@ const handleMoveToProjectGroup = (groupId: string) => {
   if (!targetProjectId.value) return
   if (targetProjectId.value === PERSONAL_PROJECT_VALUE) return
 
-  emit('move', {
-    operation: 'SET_PROJECT',
-    projectId: targetProjectId.value,
-    groupId,
-  })
+  if (projectActionMode.value === 'COPY') {
+    emit('move', {
+      operation: 'COPY_TO_PROJECT',
+      projectId: targetProjectId.value,
+      groupId,
+    })
+  } else {
+    emit('move', {
+      operation: 'SET_PROJECT',
+      projectId: targetProjectId.value,
+      groupId,
+    })
+  }
   isOpen.value = false
 }
 
@@ -317,6 +344,15 @@ const hasSelectedProjectCollection = computed(() => {
 function handleConfirmMoveToProjectSavedView() {
   if (!targetProjectId.value) return
 
+  if (projectActionMode.value === 'COPY') {
+    emit('move', {
+      operation: 'COPY_TO_PROJECT',
+      projectId: targetProjectId.value,
+    })
+    isOpen.value = false
+    return
+  }
+
   emit('move', {
     operation: 'SET_PROJECT',
     projectId: targetProjectId.value,
@@ -325,11 +361,7 @@ function handleConfirmMoveToProjectSavedView() {
 }
 
 function handleMoveToPersonal() {
-  emit('move', {
-    operation: 'SET_PROJECT',
-    projectId: null
-  })
-  isOpen.value = false
+  handleSelectTargetProject(null)
 }
 
 watch(isOpen, (next) => {
@@ -347,6 +379,7 @@ watch(isOpen, (next) => {
     targetCollectionId.value = null
     moveMode.value = 'MOVE'
     otherCollectionMoveMode.value = 'MOVE'
+    projectActionMode.value = 'MOVE'
   }
 })
 
@@ -443,6 +476,23 @@ watch(isOpen, (next) => {
 
         <template #to-project>
           <div class="p-4 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <UiAppButtonGroup
+                v-model="projectActionMode"
+                :options="[
+                  { value: 'MOVE', label: t('common.move', 'Move') },
+                  { value: 'COPY', label: t('common.copy', 'Copy') },
+                ]"
+                active-variant="solid"
+                variant="outline"
+                fluid
+              />
+              <CommonInfoTooltip
+                :text="t('contentLibrary.moveModal.copyHint')"
+                placement="left"
+              />
+            </div>
+
             <USelectMenu
               v-model="targetProjectId"
               :items="projectOptionsWithPersonal"
@@ -464,7 +514,7 @@ watch(isOpen, (next) => {
                 icon="i-heroicons-arrow-right-circle"
                 @click="handleMoveToPersonal"
               >
-                {{ t('common.move') }}
+                {{ projectActionMode === 'COPY' ? t('common.copy') : t('common.move') }}
               </UButton>
             </div>
 

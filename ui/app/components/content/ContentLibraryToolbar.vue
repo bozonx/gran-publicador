@@ -91,6 +91,18 @@ const savedViewPersistTags = computed(() => {
   return typeof raw === 'boolean' ? raw : true
 })
 
+const isSearchPersisted = computed(() => {
+  if (!props.activeCollection) return false
+  if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistSearch.value
+  return false
+})
+
+const isTagsPersisted = computed(() => {
+  if (!props.activeCollection) return false
+  if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistTags.value
+  return false
+})
+
 const toolbarMenuItems = computed(() => {
   const items: any[] = []
 
@@ -253,18 +265,28 @@ const toolbarMenuItems = computed(() => {
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div class="flex flex-col gap-3 sm:flex-row sm:flex-1 sm:min-w-0">
-            <CommonSearchInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" class="w-full sm:flex-1 sm:min-w-0" />
-            <PublicationsTagsFilter
-              v-model="selectedTags"
-              :placeholder="t('contentLibrary.filter.filterByTags')"
-              :publication-tags="availableTags"
-              :project-id="projectId"
-              :user-id="userId"
-              :scope="scope"
-              :group-id="Array.isArray(groupIds) ? groupIds[0] : undefined"
-              :search-endpoint="'/content-library/tags/search'"
-              class="w-full sm:flex-1 sm:min-w-0"
-            />
+            <div
+              class="w-full sm:flex-1 sm:min-w-0 border-b-2"
+              :class="isSearchPersisted ? 'border-primary-500' : 'border-primary-500/30'"
+            >
+              <CommonSearchInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" class="w-full" />
+            </div>
+            <div
+              class="w-full sm:flex-1 sm:min-w-0 border-b-2"
+              :class="isTagsPersisted ? 'border-primary-500' : 'border-primary-500/30'"
+            >
+              <PublicationsTagsFilter
+                v-model="selectedTags"
+                :placeholder="t('contentLibrary.filter.filterByTags')"
+                :publication-tags="availableTags"
+                :project-id="projectId"
+                :user-id="userId"
+                :scope="scope"
+                :group-id="Array.isArray(groupIds) ? groupIds[0] : undefined"
+                :search-endpoint="'/content-library/tags/search'"
+                class="w-full"
+              />
+            </div>
           </div>
 
           <div class="flex items-center justify-end gap-2 shrink-0 flex-nowrap">

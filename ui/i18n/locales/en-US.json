@@ -422,6 +422,7 @@
       "groupsInfoTooltip": "Groups are used only for organizing content items. Items are always shown as cards. Deleting a group does not delete the content items inside it."
     },
     "moveModal": {
+      "copyHint": "Copy creates new content items with the same text and media references. Files are not duplicated in storage.",
       "noCollection": "No collection",
       "selectCollectionInProject": "Select collection in project",
       "toCollection": "To collection",
