@@ -99,7 +99,8 @@ const toolbarMenuItems = computed(() => {
       items.push([
         {
           label: t('contentLibrary.savedView.persistSearch.label'),
-          icon: savedViewPersistSearch.value ? 'i-heroicons-check-circle text-success-500' : 'i-heroicons-x-circle',
+          icon: savedViewPersistSearch.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          color: savedViewPersistSearch.value ? 'success' : 'neutral',
           title: savedViewPersistSearch.value
             ? t('contentLibrary.savedView.persistSearch.enabledTitle')
             : t('contentLibrary.savedView.persistSearch.disabledTitle'),
@@ -107,7 +108,8 @@ const toolbarMenuItems = computed(() => {
         },
         {
           label: t('contentLibrary.savedView.persistTags.label'),
-          icon: savedViewPersistTags.value ? 'i-heroicons-check-circle text-success-500' : 'i-heroicons-x-circle',
+          icon: savedViewPersistTags.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          color: savedViewPersistTags.value ? 'success' : 'neutral',
           title: savedViewPersistTags.value
             ? t('contentLibrary.savedView.persistTags.enabledTitle')
             : t('contentLibrary.savedView.persistTags.disabledTitle'),
@@ -208,9 +210,9 @@ const toolbarMenuItems = computed(() => {
       class="relative overflow-hidden app-card-lg space-y-4 border transition-all duration-300"
       :class="[
         isDropZoneActiveLocal
-          ? 'ring-2 ring-primary-500/70 border-primary-400 bg-linear-to-br from-primary-50/90 via-primary-100/40 to-emerald-50/30 dark:from-primary-900/30 dark:via-primary-900/15 dark:to-emerald-900/10 shadow-lg shadow-primary-500/20 scale-[1.01]'
+          ? 'ring-2 ring-primary-500/70 border-primary-500 bg-primary-50/40 dark:bg-primary-900/40 shadow-lg shadow-primary-500/20 scale-[1.01]'
           : isWindowFileDragActive
-            ? 'border-primary-400/50 border-dashed bg-primary-50/20 dark:bg-primary-900/10 shadow-md ring-2 ring-primary-500/10'
+            ? 'border-primary-400 border bg-primary-50/20 dark:bg-primary-900/20 shadow-md ring-2 ring-primary-500/10'
             : 'border-gray-200/70 dark:border-gray-700/70'
       ]"
       @dragenter="onDragEnter"
@@ -227,10 +229,14 @@ const toolbarMenuItems = computed(() => {
         leave-to-class="opacity-0 scale-95"
       >
         <div
-          v-if="isDropZoneActiveLocal"
-          class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/10 dark:bg-black/10 backdrop-blur-[1px]"
+          v-if="isWindowFileDragActive"
+          class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center transition-colors duration-200"
+          :class="isDropZoneActiveLocal ? 'bg-primary-500/10 dark:bg-primary-500/5 backdrop-blur-[2px]' : 'bg-primary-50/10 dark:bg-primary-900/5 backdrop-blur-[1px]'"
         >
-          <div class="inline-flex items-center gap-2 rounded-xl border border-primary-400/70 bg-white/95 dark:bg-gray-900/90 px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 shadow-xl ring-4 ring-primary-500/10">
+          <div
+            v-if="isDropZoneActiveLocal"
+            class="inline-flex items-center gap-2 rounded-xl border border-primary-500/50 bg-white/95 dark:bg-gray-900/90 px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 shadow-xl ring-4 ring-primary-500/10 transition-all duration-200"
+          >
             <UIcon name="i-heroicons-arrow-up-tray" class="w-5 h-5 animate-bounce" />
             <span>{{ t('media.dropHere') }}</span>
           </div>

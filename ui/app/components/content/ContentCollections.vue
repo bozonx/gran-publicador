@@ -215,7 +215,7 @@ const getCollectionIcon = (collection: ContentCollection) => {
 const getCollectionColor = (collection: ContentCollection, isActive: boolean) => {
   if (isActive) {
     if (props.scope === 'project' && collection.visibility === 'PROJECT_SHARED') {
-      return 'success'
+      return 'secondary'
     }
     return 'primary'
   }
