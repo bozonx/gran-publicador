@@ -167,8 +167,11 @@ export class CreatePublicationDto {
   @IsOptional()
   public authorSignatureOverrides?: Record<string, string>;
 
-  // Project template ID to use for this publication
   @IsUUID()
   @IsOptional()
   public projectTemplateId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  public deleteOriginalContent?: boolean;
 }

@@ -20,6 +20,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CreatePublicationDto } from '../../src/modules/publications/dto/create-publication.dto.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
+import { ContentItemsService } from '../../src/modules/content-library/content-items.service.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -95,6 +96,11 @@ describe('PublicationsService (unit)', () => {
     extractContent: jest.fn() as any,
   };
 
+  const mockContentItemsService = {
+    assertContentItemMutationAllowed: jest.fn() as any,
+    remove: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -122,6 +128,10 @@ describe('PublicationsService (unit)', () => {
         {
           provide: TagsService,
           useValue: mockTagsService,
+        },
+        {
+          provide: ContentItemsService,
+          useValue: mockContentItemsService,
         },
       ],
     }).compile();
@@ -341,6 +351,47 @@ describe('PublicationsService (unit)', () => {
       await expect(service.create(createDto as any, userId)).rejects.toThrow(BadRequestException);
       await expect(service.create(createDto as any, userId)).rejects.toThrow(
         /All channels must match the publication language/,
+      );
+    });
+
+    it('should delete original content items when requested', async () => {
+      const userId = 'user-1';
+      const contentItemIds = ['ci-1', 'ci-2'];
+      const createDto = {
+        projectId: 'project-1',
+        title: 'Title',
+        content: 'Content',
+        language: 'ru',
+        postType: PostType.POST,
+        channelIds: [],
+        contentItemIds,
+        deleteOriginalContent: true,
+      };
+
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+      mockPrismaService.channel.findMany.mockResolvedValue([]);
+      mockPrismaService.publication.create.mockResolvedValue({ id: 'pub-1' });
+      mockTagsService.prepareTagsConnectOrCreate.mockReturnValue([]);
+
+      await service.create(createDto as any, userId);
+
+      // Verify permission checks
+      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledTimes(2);
+      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledWith('ci-1', userId);
+      expect(mockContentItemsService.assertContentItemMutationAllowed).toHaveBeenCalledWith('ci-2', userId);
+
+      // Verify deletion
+      expect(mockContentItemsService.remove).toHaveBeenCalledTimes(2);
+      expect(mockContentItemsService.remove).toHaveBeenCalledWith('ci-1', userId);
+      expect(mockContentItemsService.remove).toHaveBeenCalledWith('ci-2', userId);
+
+      // Verify publication created WITHOUT contentItems relation
+      expect(mockPrismaService.publication.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            contentItems: undefined,
+          }),
+        }),
       );
     });
   });

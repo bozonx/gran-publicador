@@ -18,6 +18,7 @@ import {
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
+import { ContentItemsService } from '../content-library/content-items.service.js';
 import { PublicationQueryBuilder } from './utils/publication-query.builder.js';
 import {
   CreatePublicationDto,
@@ -51,6 +52,7 @@ export class PublicationsService {
     private snapshotBuilder: PostSnapshotBuilderService,
     private llmService: LlmService,
     private tagsService: TagsService,
+    private contentItemsService: ContentItemsService,
   ) {}
 
   private buildUntrustedContextBlock(params: {
@@ -553,14 +555,15 @@ export class PublicationsService {
         postType: data.postType ?? PostType.POST,
         postDate: data.postDate,
         scheduledAt: data.scheduledAt,
-        contentItems: data.contentItemIds?.length
-          ? {
-              create: data.contentItemIds.map((id, i) => ({
-                contentItemId: id,
-                order: i,
-              })),
-            }
-          : undefined,
+        contentItems:
+          data.contentItemIds?.length && !data.deleteOriginalContent
+            ? {
+                create: data.contentItemIds.map((id, i) => ({
+                  contentItemId: id,
+                  order: i,
+                })),
+              }
+            : undefined,
         tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
           normalizeTags(data.tags ?? []),
           {
@@ -576,6 +579,22 @@ export class PublicationsService {
       where: { id: publication.id },
       data: { effectiveAt: publication.scheduledAt ?? publication.createdAt },
     });
+
+    // Delete original content items if requested
+    if (data.deleteOriginalContent && data.contentItemIds?.length) {
+      for (const id of data.contentItemIds) {
+        try {
+          // Check access/permission before delete
+          if (userId) {
+            await this.contentItemsService.assertContentItemMutationAllowed(id, userId);
+          }
+          await this.contentItemsService.remove(id, userId || 'system');
+        } catch (err: any) {
+          this.logger.error(`Failed to delete original content item ${id}: ${err.message}`);
+          // We don't fail the whole creation if deletion fails, but log it
+        }
+      }
+    }
 
     const author = userId ? `user ${userId}` : 'external system';
     const projectInfo = `project ${data.projectId}`;

@@ -1064,7 +1064,9 @@
     "create": "Create Publication",
     "createError": "Failed to create publication",
     "createModal": {
-      "selectPostType": "Post Type"
+      "selectPostType": "Post Type",
+      "deleteOriginalContent": "Delete original content",
+      "deleteOriginalContentHelp": "Content items used for creating this publication will be permanently deleted."
     },
     "create_for_lang": "Make a post in {lang}",
     "deleteCascadeWarning": "This action is cascading and will permanently delete all associated posts.",

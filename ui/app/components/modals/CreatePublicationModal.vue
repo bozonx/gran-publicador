@@ -88,6 +88,7 @@ const formData = reactive({
   channelIds: props.preselectedChannelIds || [] as string[],
   authorSignatureId: '',
   projectTemplateId: '',
+  deleteOriginalContent: false,
 })
 
 const isApplyingAutoChannelSelection = ref(false)
@@ -442,6 +443,7 @@ async function handleCreate() {
       contentItemIds: props.prefilledContentItemIds || [],
       authorSignatureId: formData.authorSignatureId || undefined,
       projectTemplateId: formData.projectTemplateId || undefined,
+      deleteOriginalContent: formData.deleteOriginalContent,
     }
 
     const publication = await createPublication(createData)
@@ -567,6 +569,17 @@ function handleClose() {
           :channels="channels"
           :selected-template-id="formData.projectTemplateId"
           :author-signatures="selectedAuthorSignatures"
+        />
+      </UFormField>
+      
+      <!-- Delete Original Content Option -->
+      <UFormField
+        v-if="props.prefilledContentItemIds && props.prefilledContentItemIds.length > 0"
+        :help="t('publication.createModal.deleteOriginalContentHelp')"
+      >
+        <UCheckbox
+          v-model="formData.deleteOriginalContent"
+          :label="t('publication.createModal.deleteOriginalContent')"
         />
       </UFormField>
     </form>

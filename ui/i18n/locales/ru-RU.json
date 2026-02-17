@@ -1076,7 +1076,9 @@
     "create": "Создать публикацию",
     "createError": "Не удалось создать публикацию",
     "createModal": {
-      "selectPostType": "Тип поста"
+      "selectPostType": "Тип поста",
+      "deleteOriginalContent": "Удалить исходный контент",
+      "deleteOriginalContentHelp": "Элементы контента, из которых создается публикация, будут безвозвратно удалены."
     },
     "create_for_lang": "Сделать пост на {lang}",
     "deleteCascadeWarning": "Это действие каскадное и повлечет за собой удаление всех связанных постов.",
