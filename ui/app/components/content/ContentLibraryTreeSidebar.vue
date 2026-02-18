@@ -212,8 +212,8 @@ const handleCreateGroupFromTreeModal = async () => {
     const path = getPathToRoot(treeCreateParentId.value)
     expanded.value = Array.from(new Set([...expanded.value, ...path]))
 
-    emit('refresh-collections')
     emit('select-node', newCollection.id)
+    emit('refresh-collections')
     isTreeCreateModalOpen.value = false
     emit('refresh-items', { reset: true })
   } catch (e: any) {
@@ -244,11 +244,8 @@ const handleRenameGroupFromTree = async () => {
       title,
     })
 
+    emit('select-node', updatedCollection.id)
     emit('refresh-collections')
-    if (props.activeCollection?.id === treeRenameTargetId.value) {
-      emit('select-node', updatedCollection.id)
-    }
-
     isTreeRenameModalOpen.value = false
   } catch (e: any) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename subgroup'), color: 'error' })
@@ -275,14 +272,12 @@ const handleDeleteGroupFromTree = async () => {
   isDeletingTreeGroup.value = true
   try {
     await deleteCollection(targetCollection.id, props.scope, props.projectId)
-    emit('refresh-collections')
-
     if (parentId) {
       emit('select-node', parentId)
     } else {
       emit('select-node', '')
     }
-
+    emit('refresh-collections')
     isTreeDeleteConfirmModalOpen.value = false
     emit('refresh-items', { reset: true })
   } catch (e: any) {

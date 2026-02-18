@@ -380,11 +380,6 @@ const setSavedViewPersistSearch = async (value: boolean) => {
   const collection = activeCollection.value
   if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
 
-  const state = ensureTabState(collection.id)
-  if (!value) {
-    state.q = ''
-  }
-
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
       ? (collection as any).config
@@ -405,11 +400,6 @@ const setSavedViewPersistSearch = async (value: boolean) => {
 const setSavedViewPersistTags = async (value: boolean) => {
   const collection = activeCollection.value
   if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
-
-  const state = ensureTabState(collection.id)
-  if (!value) {
-    state.selectedTags = ''
-  }
 
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
@@ -776,20 +766,21 @@ const handleSelectGroupCollection = (id: string) => {
     return
   }
 
-  const c = collectionsById.value.get(id)
-  if (!c) return
-
   selectedGroupId.value = id
 }
 
 const handleActiveCollectionUpdate = (c: ContentCollection | null) => {
+    const prevId = activeCollection.value?.id
     activeCollection.value = c
     activeCollectionId.value = c?.id ?? null
     if (c) {
       initTabStateFromCollectionConfigIfMissing(c)
     }
     if (c?.type === 'GROUP') {
-      selectedGroupId.value = c.id
+      // Only reset selectedGroupId when switching to a different collection tab
+      if (c.id !== prevId) {
+        selectedGroupId.value = c.id
+      }
       orphansOnly.value = false
     } else {
       selectedGroupId.value = null
