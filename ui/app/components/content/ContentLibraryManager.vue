@@ -9,6 +9,7 @@ import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
 import ContentLibraryTreeSidebar from './ContentLibraryTreeSidebar.vue'
 import ContentLibraryItemsGrid from './ContentLibraryItemsGrid.vue'
+import UnsplashPreviewModal from './UnsplashPreviewModal.vue'
 import ContentLibraryModals from './ContentLibraryModals.vue'
 
 const props = defineProps<{
@@ -202,6 +203,7 @@ const isCreateItemFromPublicationModalOpen = ref(false)
 const isMoveModalOpen = ref(false)
 const moveItemsIds = ref<string[]>([])
 const isRenameCollectionModalOpen = ref(false)
+const isUnsplashPreviewModalOpen = ref(false)
 const newCollectionTitle = ref('')
 const isDeleteCollectionConfirmModalOpen = ref(false)
 const isRenamingCollection = ref(false)
@@ -1041,8 +1043,12 @@ const handleOpenItem = (item: any) => {
     return
   }
 
-  // UNSPLASH items have no modal view
-  if (activeCollection.value?.type === 'UNSPLASH') return
+  // UNSPLASH items open a preview modal
+  if (activeCollection.value?.type === 'UNSPLASH') {
+    activeItem.value = item
+    isUnsplashPreviewModalOpen.value = true
+    return
+  }
 
   activeItem.value = item
   isEditModalOpen.value = true
@@ -1241,6 +1247,11 @@ onMounted(() => { fetchItems() })
       :prefilled-tags="publicationData.tags"
       :prefilled-note="publicationData.note"
       :prefilled-content-item-ids="publicationData.contentItemIds"
+    />
+
+    <UnsplashPreviewModal
+      v-model:open="isUnsplashPreviewModalOpen"
+      :item="activeItem"
     />
   </div>
 </template>

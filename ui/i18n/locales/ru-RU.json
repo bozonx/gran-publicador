@@ -556,7 +556,13 @@
     "unsplash": {
       "photoAlt": "Фото с Unsplash",
       "openOnUnsplash": "Открыть на Unsplash",
-      "sortRelevance": "По релевантности"
+      "sortRelevance": "По релевантности",
+      "photoBy": "Фото от",
+      "on": "на",
+      "viewProfile": "Открыть профиль",
+      "relatedTags": "Похожие тэги",
+      "licenseInfo": "Бесплатно для использования по {licenseLink}. Ссылка на автора не обязательна, но приветствуется.",
+      "licenseLink": "лицензии Unsplash"
     }
   },
   "dashboard": {
