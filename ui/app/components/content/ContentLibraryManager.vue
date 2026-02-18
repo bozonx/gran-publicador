@@ -204,6 +204,7 @@ const isMoveModalOpen = ref(false)
 const moveItemsIds = ref<string[]>([])
 const isRenameCollectionModalOpen = ref(false)
 const isUnsplashPreviewModalOpen = ref(false)
+const isCreateItemFromUnsplashModalOpen = ref(false)
 const newCollectionTitle = ref('')
 const isDeleteCollectionConfirmModalOpen = ref(false)
 const isRenamingCollection = ref(false)
@@ -1206,6 +1207,7 @@ onMounted(() => { fetchItems() })
       v-model:is-edit-modal-open="isEditModalOpen"
       v-model:is-publication-preview-modal-open="isPublicationPreviewModalOpen"
       v-model:is-create-item-from-publication-modal-open="isCreateItemFromPublicationModalOpen"
+      v-model:is-create-item-from-unsplash-modal-open="isCreateItemFromUnsplashModalOpen"
       v-model:is-move-modal-open="isMoveModalOpen"
       v-model:is-rename-collection-modal-open="isRenameCollectionModalOpen"
       v-model:is-delete-collection-confirm-modal-open="isDeleteCollectionConfirmModalOpen"
@@ -1252,6 +1254,7 @@ onMounted(() => { fetchItems() })
     <UnsplashPreviewModal
       v-model:open="isUnsplashPreviewModalOpen"
       :item="activeItem"
+      @add-to-library="isCreateItemFromUnsplashModalOpen = true; isUnsplashPreviewModalOpen = false"
     />
   </div>
 </template>

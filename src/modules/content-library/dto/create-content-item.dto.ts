@@ -40,6 +40,10 @@ export class CreateContentItemDto {
 
   @IsString()
   @IsOptional()
+  public unsplashId?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_TITLE_LENGTH)
   public title?: string;
 

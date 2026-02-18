@@ -10,6 +10,9 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
+import { UnsplashService } from './unsplash.service.js';
+import { MediaService } from '../media/media.service.js';
+import { MediaType, StorageType } from '../../generated/prisma/index.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -30,6 +33,8 @@ export class ContentItemsService {
     private readonly permissions: PermissionsService,
     private readonly tagsService: TagsService,
     private readonly collectionsService: ContentCollectionsService,
+    private readonly mediaService: MediaService,
+    private readonly unsplashService: UnsplashService,
   ) {}
 
   private normalizeSearchTokens(search: string): string[] {
@@ -359,6 +364,55 @@ export class ContentItemsService {
         projectId: dto.projectId,
         userId,
       });
+    }
+
+    if (dto.unsplashId) {
+      const photo = await this.unsplashService.getPhoto(dto.unsplashId);
+      if (!photo) {
+        throw new BadRequestException('Unsplash photo not found');
+      }
+
+      const uploaded = await this.mediaService.uploadFileFromUrl(
+        photo.urls.regular,
+        `unsplash-${photo.id}.jpg`,
+        userId,
+        'CONTENT_LIBRARY',
+      );
+
+      const media = await this.mediaService.create({
+        type: MediaType.IMAGE,
+        storageType: StorageType.FS,
+        storagePath: uploaded.fileId,
+        filename: `unsplash-${photo.id}.jpg`,
+        mimeType: uploaded.metadata.mimeType,
+        sizeBytes: uploaded.metadata.size,
+        meta: uploaded.metadata,
+      });
+
+      dto.media = [
+        ...(dto.media || []),
+        {
+          mediaId: media.id,
+          order: (dto.media || []).length,
+          hasSpoiler: false,
+        },
+      ];
+
+      if (!dto.title) {
+        dto.title = photo.description || photo.altDescription || 'Unsplash Photo';
+      }
+
+      if (!dto.text && (photo.description || photo.altDescription)) {
+        dto.text = photo.description || photo.altDescription || '';
+      }
+
+      if (photo.user) {
+        dto.note = (dto.note ? dto.note + '\n\n' : '') + `Photo by ${photo.user.name} on Unsplash`;
+      }
+      
+      if (photo.tags && photo.tags.length > 0) {
+        dto.tags = Array.from(new Set([...(dto.tags || []), ...photo.tags.map(t => t.title)]));
+      }
     }
 
     const created = await this.prisma.$transaction(async tx => {

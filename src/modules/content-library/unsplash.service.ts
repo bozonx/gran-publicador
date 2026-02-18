@@ -108,4 +108,45 @@ export class UnsplashService {
       totalPages: data.total_pages ?? 0,
     };
   }
+  public async getPhoto(photoId: string): Promise<UnsplashPhoto | null> {
+    const accessKey = this.configService.get<string>('UNSPLASH_ACCESS_KEY');
+    if (!accessKey) {
+      this.logger.warn('UNSPLASH_ACCESS_KEY is not configured');
+      return null;
+    }
+
+    const response = await fetch(`${this.baseUrl}/photos/${photoId}`, {
+      headers: {
+        Authorization: `Client-ID ${accessKey}`,
+        'Accept-Version': 'v1',
+      },
+    });
+
+    if (!response.ok) {
+      this.logger.error(`Unsplash API error: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const photo = (await response.json()) as any;
+    return {
+      id: photo.id,
+      description: photo.description ?? null,
+      altDescription: photo.alt_description ?? null,
+      urls: {
+        raw: photo.urls?.raw ?? '',
+        full: photo.urls?.full ?? '',
+        regular: photo.urls?.regular ?? '',
+        small: photo.urls?.small ?? '',
+        thumb: photo.urls?.thumb ?? '',
+      },
+      user: {
+        name: photo.user?.name ?? '',
+        username: photo.user?.username ?? '',
+        links: { html: photo.user?.links?.html ?? '' },
+      },
+      tags: (photo.tags ?? []).map((t: any) => ({ title: t.title ?? '' })),
+      createdAt: photo.created_at ?? new Date().toISOString(),
+      links: { html: photo.links?.html ?? '' },
+    };
+  }
 }

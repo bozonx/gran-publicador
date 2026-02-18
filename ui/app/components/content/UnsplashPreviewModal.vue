@@ -6,6 +6,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
+  (e: 'add-to-library'): void
 }>()
 
 const { t } = useI18n()
@@ -86,6 +87,17 @@ const description = computed(() => props.item?.note)
                 size="xs"
               >
                 {{ t('contentLibrary.unsplash.openOnUnsplash') }}
+              </UButton>
+            </div>
+
+            <div class="pt-2">
+              <UButton
+                block
+                icon="i-heroicons-plus-circle"
+                color="primary"
+                @click="emit('add-to-library')"
+              >
+                В библиотеку контента
               </UButton>
             </div>
 

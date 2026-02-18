@@ -5,6 +5,7 @@ import ContentItemEditor from './ContentItemEditor.vue'
 import ContentMoveModal from './ContentMoveModal.vue'
 import PublicationPreview from '~/components/publications/PublicationPreview.vue'
 import ContentCreateItemFromPublicationModal from './ContentCreateItemFromPublicationModal.vue'
+import ContentCreateItemFromUnsplashModal from './ContentCreateItemFromUnsplashModal.vue'
 
 const props = defineProps<{
   scope: 'project' | 'personal'
@@ -33,6 +34,9 @@ const props = defineProps<{
   // Create item from publication
   isCreateItemFromPublicationModalOpen: boolean
   
+  // Create item from unsplash
+  isCreateItemFromUnsplashModalOpen: boolean
+  
   // Move
   isMoveModalOpen: boolean
   moveItemsIds: string[]
@@ -57,6 +61,7 @@ const emit = defineEmits<{
   'update:isEditModalOpen': [val: boolean]
   'update:isPublicationPreviewModalOpen': [val: boolean]
   'update:isCreateItemFromPublicationModalOpen': [val: boolean]
+  'update:isCreateItemFromUnsplashModalOpen': [val: boolean]
   'update:isMoveModalOpen': [val: boolean]
   'update:isRenameCollectionModalOpen': [val: boolean]
   'update:isDeleteCollectionConfirmModalOpen': [val: boolean]
@@ -87,12 +92,26 @@ const handleOpenCreateItemFromPublicationModal = () => {
   emit('update:isCreateItemFromPublicationModalOpen', true)
 }
 
+const handleOpenCreateItemFromUnsplashModal = () => {
+  if (!props.activeItem?.id) return
+  emit('update:isCreateItemFromUnsplashModalOpen', true)
+}
+
 const isCreateItemFromPublicationModalOpenModel = computed<boolean>({
   get() {
     return props.isCreateItemFromPublicationModalOpen
   },
   set(next) {
     emit('update:isCreateItemFromPublicationModalOpen', next)
+  },
+})
+
+const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
+  get() {
+    return props.isCreateItemFromUnsplashModalOpen
+  },
+  set(next) {
+    emit('update:isCreateItemFromUnsplashModalOpen', next)
   },
 })
 </script>
@@ -182,6 +201,13 @@ const isCreateItemFromPublicationModalOpenModel = computed<boolean>({
       :scope="scope"
       :project-id="projectId"
       :publication-id="activePublicationId"
+    />
+
+    <ContentCreateItemFromUnsplashModal
+      v-model:open="isCreateItemFromUnsplashModalOpenModel"
+      :scope="scope"
+      :project-id="projectId"
+      :unsplash-id="activeItem?.id"
     />
 
     <!-- Publication Preview -->
