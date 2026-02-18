@@ -1076,6 +1076,7 @@ onMounted(() => { fetchItems() })
       :active-publication-id="activePublicationId"
       :move-items-ids="moveItemsIds"
       :active-collection="activeCollection"
+      :current-group-id="selectedGroupId"
       :all-group-collections="collections"
       :projects="projects" 
       :group-tree-items="groupTreeItems"

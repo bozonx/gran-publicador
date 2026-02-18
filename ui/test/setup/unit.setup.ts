@@ -34,3 +34,10 @@ vi.mock('#imports', () => ({
     return wrapped;
   },
 }));
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    t: (key: any) => String(key),
+  }),
+}));

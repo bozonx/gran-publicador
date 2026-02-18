@@ -262,7 +262,7 @@ const handleMoveToGroup = (groupId: string) => {
   emit('move', {
     operation: 'MOVE_TO_GROUP',
     groupId,
-    sourceGroupId: props.activeCollection.id,
+    sourceGroupId: props.currentGroupId ?? props.activeCollection.id,
   })
   isOpen.value = false
 }

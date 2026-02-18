@@ -33,6 +33,7 @@ const props = defineProps<{
   isMoveModalOpen: boolean
   moveItemsIds: string[]
   activeCollection: ContentCollection | null
+  currentGroupId?: string | null
   allGroupCollections: ContentCollection[]
   projects: any[]
   groupTreeItems: any[]
@@ -192,7 +193,7 @@ const handleClosePublicationPreviewModal = () => {
       :scope="scope"
       :project-id="projectId"
       :active-collection="activeCollection"
-      :current-group-id="activeRootGroupId"
+      :current-group-id="currentGroupId"
       :collections="allGroupCollections"
       :projects="projects"
       :folder-tree-items="groupTreeItems"
