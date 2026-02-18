@@ -1,6 +1,6 @@
 export interface ContentCollection {
   id: string;
-  type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL';
+  type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL' | 'TRASH';
   title: string;
   directItemsCount?: number;
   groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' | null;
@@ -17,7 +17,7 @@ export interface ContentCollection {
 export interface CreateCollectionDto {
   scope: 'personal' | 'project';
   projectId?: string;
-  type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL';
+  type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL' | 'TRASH';
   groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
   parentId?: string;
   title: string;

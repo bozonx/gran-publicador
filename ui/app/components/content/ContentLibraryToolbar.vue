@@ -207,28 +207,7 @@ const toolbarMenuItems = computed(() => {
       </div>
 
       <div class="flex items-center gap-2 shrink-0 pt-1">
-        <UButton
-          class="cursor-pointer"
-          variant="ghost" 
-          :icon="archiveStatus === 'archived' ? 'i-heroicons-arrow-uturn-left' : 'i-heroicons-trash'"
-          size="sm"
-          @click="emit('update:archiveStatus', archiveStatus === 'active' ? 'archived' : 'active')"
-        >
-          {{ archiveStatus === 'archived' ? t('contentLibrary.filter.active') : t('contentLibrary.filter.archived') }}
-        </UButton>
-        
-        <UButton
-          v-if="archiveStatus === 'archived'"
-          class="cursor-pointer"
-          size="sm"
-          color="error"
-          variant="ghost"
-          icon="i-heroicons-trash"
-          :loading="isPurging"
-          @click="emit('purge')"
-        >
-          {{ t('contentLibrary.actions.purgeArchived') }}
-        </UButton>
+        <!-- Trash actions are now handled contextually -->
       </div>
     </div>
 
@@ -358,6 +337,23 @@ const toolbarMenuItems = computed(() => {
               </UButton>
 
               <CommonInfoTooltip :text="infoTooltipText" />
+            </template>
+            <template v-else-if="activeCollection?.id === 'system-trash'">
+              <UButton
+                class="cursor-pointer"
+                color="error"
+                size="sm"
+                variant="soft"
+                icon="i-heroicons-trash"
+                :loading="isPurging"
+                @click="emit('purge')"
+              >
+                {{ t('contentLibrary.actions.purgeArchived') }}
+              </UButton>
+
+              <div class="text-xs text-gray-500 dark:text-gray-400 ml-2 font-medium">
+                {{ t('contentLibrary.filter.archived') }}
+              </div>
             </template>
           </div>
 

@@ -773,6 +773,15 @@ const handleActiveCollectionUpdate = (c: ContentCollection | null) => {
     const prevId = activeCollection.value?.id
     activeCollection.value = c
     activeCollectionId.value = c?.id ?? null
+    
+    if (c?.id === 'system-trash') {
+      archiveStatus.value = 'archived'
+      selectedGroupId.value = null
+      orphansOnly.value = false
+      return
+    }
+
+    archiveStatus.value = 'active'
     if (c) {
       initTabStateFromCollectionConfigIfMissing(c)
     }

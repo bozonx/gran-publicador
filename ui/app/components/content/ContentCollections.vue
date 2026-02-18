@@ -40,11 +40,31 @@ const activeCollectionId = computed({
 })
 
 const topLevelCollections = computed<ContentCollection[]>({
-  get: () => collections.value.filter(collection => collection.type === 'SAVED_VIEW' || collection.type === 'PUBLICATION_MEDIA_VIRTUAL' || !collection.parentId),
+  get: () => {
+    const list = collections.value.filter(collection => collection.type === 'SAVED_VIEW' || collection.type === 'PUBLICATION_MEDIA_VIRTUAL' || !collection.parentId)
+    
+    // Add virtual trash collection
+    list.push({
+      id: 'system-trash',
+      type: 'TRASH',
+      title: t('contentLibrary.filter.archived'),
+      config: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      order: list.length,
+      userId: null,
+      projectId: props.projectId || null,
+      parentId: null,
+    } as ContentCollection)
+
+    return list
+  },
   set: (nextTopLevelCollections) => {
-    const topLevelIds = new Set(nextTopLevelCollections.map(collection => collection.id))
+    // Filter out virtual collections before saving
+    const toSave = nextTopLevelCollections.filter(c => c.id !== 'system-trash')
+    const topLevelIds = new Set(toSave.map(collection => collection.id))
     const nestedCollections = collections.value.filter(collection => !topLevelIds.has(collection.id))
-    collections.value = [...nextTopLevelCollections, ...nestedCollections]
+    collections.value = [...toSave, ...nestedCollections]
   },
 })
 
@@ -273,8 +293,8 @@ const getCollectionIcon = (collection: ContentCollection) => {
     return 'i-heroicons-photo'
   }
 
-  if (isSharedProjectCollection(collection)) {
-    return 'i-heroicons-briefcase'
+  if (collection.type === 'TRASH') {
+    return 'i-heroicons-trash'
   }
 
   return 'i-heroicons-user'
@@ -285,8 +305,8 @@ const getCollectionColor = (collection: ContentCollection): TabColor => {
     return 'primary'
   }
 
-  if (isSharedProjectCollection(collection)) {
-    return 'primary'
+  if (collection.type === 'TRASH') {
+    return highlightedCollectionId.value === collection.id ? 'error' : 'neutral'
   }
 
   return 'neutral'
