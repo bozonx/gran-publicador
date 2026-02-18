@@ -160,12 +160,14 @@ const getSelectedGroupStorageKey = () => {
 // Modals State
 const isPurgeConfirmModalOpen = ref(false)
 const isPurging = ref(false)
-const isBulkDeleting = ref(false)
 const isBulkOperationModalOpen = ref(false)
 const isMergeConfirmModalOpen = ref(false)
 const bulkOperationType = ref<'DELETE' | 'ARCHIVE' | 'UNARCHIVE' | 'MERGE'>('DELETE')
+const isBulkDeleting = ref(false)
 const isEditModalOpen = ref(false)
 const activeItem = ref<any | null>(null)
+const isPublicationPreviewModalOpen = ref(false)
+const activePublicationId = ref<string | null>(null)
 const isMoveModalOpen = ref(false)
 const moveItemsIds = ref<string[]>([])
 const isRenameCollectionModalOpen = ref(false)
@@ -883,6 +885,43 @@ const handleOpenMoveModal = (ids: string[]) => { moveItemsIds.value = ids; isMov
 const handleMerge = () => { bulkOperationType.value = 'MERGE'; isMergeConfirmModalOpen.value = true }
 const handleBulkDeleteForever = () => { bulkOperationType.value = 'DELETE'; isBulkOperationModalOpen.value = true }
 
+const handleOpenItem = (item: any) => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    const publicationId = item?._virtual?.publicationId || item?.id
+    activePublicationId.value = typeof publicationId === 'string' ? publicationId : null
+    isPublicationPreviewModalOpen.value = true
+    return
+  }
+
+  activeItem.value = item
+  isEditModalOpen.value = true
+}
+
+const handleArchiveFromGrid = (id: string) => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  archiveItem(id)
+}
+
+const handleRestoreFromGrid = (id: string) => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  restoreItem(id)
+}
+
+const handleDeleteForeverFromGrid = (id: string) => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  deleteItemForever(id)
+}
+
+const handleCreatePublicationFromGrid = (item: any) => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  handleCreatePublication(item)
+}
+
+const handleMoveFromGrid = (ids: string[]) => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  handleOpenMoveModal(ids)
+}
+
 let fetchAvailableTagsRequestId = 0
 
 onMounted(() => { fetchItems() })
@@ -956,15 +995,16 @@ onMounted(() => { fetchItems() })
         :is-uploading-files="isUploadingFiles"
         :is-archiving-id="isArchivingId"
         :is-restoring-id="isRestoringId"
+        :hide-actions="activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL'"
         @select-all="toggleSelectAll"
         @toggle-selection="toggleSelection"
         @load-more="loadMore"
-        @open-edit="item => { activeItem = item; isEditModalOpen = true }"
-        @archive="archiveItem"
-        @restore="restoreItem"
-        @delete-forever="deleteItemForever"
-        @create-publication="handleCreatePublication"
-        @move="handleOpenMoveModal($event)"
+        @open-edit="handleOpenItem"
+        @archive="handleArchiveFromGrid"
+        @restore="handleRestoreFromGrid"
+        @delete-forever="handleDeleteForeverFromGrid"
+        @create-publication="handleCreatePublicationFromGrid"
+        @move="handleMoveFromGrid($event)"
       />
 
       <ContentLibraryTreeSidebar
@@ -984,6 +1024,7 @@ onMounted(() => { fetchItems() })
       :selected-ids="selectedIds"
       :archive-status="archiveStatus"
       :is-group-collection="activeCollection?.type === 'GROUP'"
+      :hide-create-publication="activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL'"
       @archive="handleBulkAction('ARCHIVE')"
       @restore="handleBulkAction('UNARCHIVE')"
       @purge="handleBulkDeleteForever"
@@ -998,6 +1039,7 @@ onMounted(() => { fetchItems() })
       v-model:is-bulk-operation-modal-open="isBulkOperationModalOpen"
       v-model:is-merge-confirm-modal-open="isMergeConfirmModalOpen"
       v-model:is-edit-modal-open="isEditModalOpen"
+      v-model:is-publication-preview-modal-open="isPublicationPreviewModalOpen"
       v-model:is-move-modal-open="isMoveModalOpen"
       v-model:is-rename-collection-modal-open="isRenameCollectionModalOpen"
       v-model:is-delete-collection-confirm-modal-open="isDeleteCollectionConfirmModalOpen"
@@ -1010,6 +1052,7 @@ onMounted(() => { fetchItems() })
       :selected-ids-count="selectedIds.length"
       :active-item="activeItem"
       :active-root-group-id="activeRootGroupId"
+      :active-publication-id="activePublicationId"
       :move-items-ids="moveItemsIds"
       :active-collection="activeCollection"
       :all-group-collections="collections"

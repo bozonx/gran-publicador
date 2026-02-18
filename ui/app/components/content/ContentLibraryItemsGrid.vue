@@ -18,6 +18,7 @@ const props = defineProps<{
   isUploadingFiles: boolean
   isArchivingId: string | null
   isRestoringId: string | null
+  hideActions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -74,6 +75,7 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
           :selected="selectedIds.includes(item.id)"
           :is-archiving="isArchivingId === item.id"
           :is-restoring="isRestoringId === item.id"
+          :hide-actions="hideActions"
           @click="emit('open-edit', item)"
           @toggle-selection="emit('toggle-selection', $event)"
           @archive="emit('archive', $event.id)"

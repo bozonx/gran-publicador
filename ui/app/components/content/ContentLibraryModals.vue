@@ -3,6 +3,7 @@ import { type ContentCollection } from '~/composables/useContentCollections'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentItemEditor from './ContentItemEditor.vue'
 import ContentMoveModal from './ContentMoveModal.vue'
+import PublicationPreview from '~/components/publications/PublicationPreview.vue'
 
 const props = defineProps<{
   scope: 'project' | 'personal'
@@ -23,6 +24,10 @@ const props = defineProps<{
   isEditModalOpen: boolean
   activeItem: any
   activeRootGroupId?: string
+
+  // Publication preview
+  isPublicationPreviewModalOpen: boolean
+  activePublicationId: string | null
   
   // Move
   isMoveModalOpen: boolean
@@ -45,6 +50,7 @@ const emit = defineEmits<{
   'update:isBulkOperationModalOpen': [val: boolean]
   'update:isMergeConfirmModalOpen': [val: boolean]
   'update:isEditModalOpen': [val: boolean]
+  'update:isPublicationPreviewModalOpen': [val: boolean]
   'update:isMoveModalOpen': [val: boolean]
   'update:isRenameCollectionModalOpen': [val: boolean]
   'update:isDeleteCollectionConfirmModalOpen': [val: boolean]
@@ -63,6 +69,10 @@ const { t } = useI18n()
 
 const handleCloseEditModal = () => {
     emit('update:isEditModalOpen', false)
+}
+
+const handleClosePublicationPreviewModal = () => {
+  emit('update:isPublicationPreviewModalOpen', false)
 }
 </script>
 
@@ -141,6 +151,24 @@ const handleCloseEditModal = () => {
             @click="handleCloseEditModal"
           >
             {{ t('common.done') }}
+          </UButton>
+        </div>
+      </template>
+    </UiAppModal>
+
+    <!-- Publication Preview -->
+    <UiAppModal
+      :open="isPublicationPreviewModalOpen"
+      :title="t('common.view', 'View')"
+      :ui="{ content: 'w-[90vw] max-w-5xl' }"
+      @update:open="emit('update:isPublicationPreviewModalOpen', $event)"
+    >
+      <PublicationPreview v-if="activePublicationId" :publication-id="activePublicationId" />
+
+      <template #footer>
+        <div class="flex justify-end items-center w-full">
+          <UButton color="primary" :disabled="true" @click="handleClosePublicationPreviewModal">
+            В библиотеку контента
           </UButton>
         </div>
       </template>

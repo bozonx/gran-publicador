@@ -3,6 +3,7 @@ const props = defineProps<{
   selectedIds: string[]
   archiveStatus: 'active' | 'archived'
   isGroupCollection: boolean
+  hideCreatePublication?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -99,6 +100,7 @@ const { t } = useI18n()
             icon="i-heroicons-paper-airplane"
             size="sm"
             class="text-white hover:bg-gray-700"
+            v-if="!hideCreatePublication"
             @click="emit('create-publication')"
           >
             {{ t('contentLibrary.bulk.createPublication') }}
