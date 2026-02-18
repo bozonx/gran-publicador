@@ -27,71 +27,44 @@ const description = computed(() => props.item?.note)
 <template>
   <UiAppModal 
     v-model:open="isOpen" 
-    :title="title || t('contentLibrary.unsplash.photoAlt')" 
+    :title="title || t('contentLibrary.unsplash.photoAlt')"
     :ui="{ content: 'w-[90vw] max-w-7xl h-[90vh]' }"
   >
     <div class="flex flex-col md:flex-row h-full gap-6 overflow-hidden">
       <!-- Image Section -->
-      <div class="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center relative group">
+      <div class="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center relative">
         <img 
           v-if="photoUrl" 
           :src="photoUrl" 
           :alt="title || 'Unsplash photo'"
-          class="max-w-full max-h-full object-contain shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]"
+          class="max-w-full max-h-full object-contain shadow-2xl"
         />
-        
-        <!-- Large attribution overlay on hover -->
-        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-8 pointer-events-none">
-          <div class="bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 py-2 rounded-full shadow-lg text-sm font-medium flex items-center gap-2 pointer-events-auto">
-            <span>{{ t('contentLibrary.unsplash.photoBy') }}</span>
-            <a 
-              :href="`${unsplashUserUrl}?utm_source=gran_publicador&utm_medium=referral`" 
-              target="_blank" 
-              class="text-primary-600 dark:text-primary-400 hover:underline"
-            >
-              {{ unsplashUser }}
-            </a>
-            <span>{{ t('contentLibrary.unsplash.on') }}</span>
-            <a 
-              :href="`https://unsplash.com/?utm_source=gran_publicador&utm_medium=referral`" 
-              target="_blank" 
-              class="hover:underline font-bold"
-            >
-              Unsplash
-            </a>
-          </div>
-        </div>
       </div>
 
       <!-- Sidebar / Details -->
       <div class="w-full md:w-80 shrink-0 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
         <!-- Main Info -->
-        <div class="space-y-4">
-          <div class="flex flex-col gap-2 pt-2">
-            <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <UIcon name="i-heroicons-user" class="w-4 h-4" />
-              <span>{{ unsplashUser }}</span>
+        <div class="space-y-6">
+          <div class="flex flex-col gap-4">
+            <!-- Author Profile Section -->
+            <div class="flex items-center gap-3">
+              <UAvatar
+                v-if="unsplashUser"
+                :alt="unsplashUser"
+                size="md"
+                class="ring-2 ring-gray-100 dark:ring-gray-800"
+              />
+              <div class="flex flex-col min-w-0">
+                <span class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                  {{ unsplashUser }}
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  @{{ props.item?._virtual?.unsplashUsername }}
+                </span>
+              </div>
             </div>
 
-            <!-- Description -->
-            <div v-if="description" class="text-sm text-gray-600 dark:text-gray-300 italic leading-relaxed pt-2">
-              {{ description }}
-            </div>
-
-            <!-- Tags Section -->
-            <div v-if="tags.length > 0" class="flex flex-wrap gap-1.5 pt-2">
-              <UBadge
-                v-for="tag in tags"
-                :key="tag"
-                color="neutral"
-                variant="subtle"
-                class="rounded-md font-medium px-1.5 py-0.5 text-[10px]"
-              >
-                {{ tag }}
-              </UBadge>
-            </div>
-
-            <div class="flex flex-wrap gap-2 pt-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-wrap gap-2">
               <UButton
                 :to="`${unsplashUserUrl}?utm_source=gran_publicador&utm_medium=referral`"
                 target="_blank"
@@ -99,6 +72,7 @@ const description = computed(() => props.item?.note)
                 color="neutral"
                 variant="subtle"
                 size="xs"
+                class="flex-1"
               >
                 {{ t('contentLibrary.unsplash.viewProfile') }}
               </UButton>
@@ -114,10 +88,53 @@ const description = computed(() => props.item?.note)
                 {{ t('contentLibrary.unsplash.openOnUnsplash') }}
               </UButton>
             </div>
+
+            <!-- Description -->
+            <div v-if="description" class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+              <p class="text-sm text-gray-600 dark:text-gray-300 italic leading-relaxed">
+                {{ description }}
+              </p>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <div v-if="props.item?._virtual?.views" class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Views</span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ Number(props.item._virtual.views).toLocaleString() }}
+                </span>
+              </div>
+              <div v-if="props.item?._virtual?.downloads" class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Downloads</span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ Number(props.item._virtual.downloads).toLocaleString() }}
+                </span>
+              </div>
+              <div v-if="props.item?._virtual?.likes" class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Likes</span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ Number(props.item._virtual.likes).toLocaleString() }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Tags Section -->
+            <div v-if="tags.length > 0" class="space-y-2 pt-2">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Tags</span>
+              <div class="flex flex-wrap gap-1.5">
+                <UBadge
+                  v-for="tag in tags"
+                  :key="tag"
+                  color="neutral"
+                  variant="subtle"
+                  class="rounded-md font-medium px-1.5 py-0.5 text-[10px]"
+                >
+                  {{ tag }}
+                </UBadge>
+              </div>
+            </div>
           </div>
         </div>
-
-
 
         <!-- License Reminder -->
         <div class="mt-auto p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800/50">

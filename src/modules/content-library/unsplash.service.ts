@@ -97,6 +97,9 @@ export class UnsplashService {
       tags: (photo.tags ?? []).map((t: any) => ({ title: t.title ?? '' })),
       createdAt: photo.created_at ?? new Date().toISOString(),
       links: { html: photo.links?.html ?? '' },
+      likes: photo.likes,
+      views: photo.views,
+      downloads: photo.downloads,
     }));
 
     return {

@@ -231,10 +231,8 @@ export class ContentLibraryController {
       });
 
       const mappedItems = res.items.map((photo) => {
-        const title = photo.description || photo.altDescription || null;
-        const note = photo.description && photo.altDescription && photo.description !== photo.altDescription 
-          ? photo.altDescription 
-          : null;
+        const title = photo.altDescription || photo.description || null;
+        const note = photo.description;
 
         return {
           id: photo.id,
@@ -266,6 +264,9 @@ export class ContentLibraryController {
             unsplashUrl: photo.links.html,
             thumbUrl: photo.urls.small,
             regularUrl: photo.urls.regular,
+            likes: (photo as any).likes,
+            views: (photo as any).views,
+            downloads: (photo as any).downloads,
           },
         };
       });
