@@ -523,6 +523,7 @@ export class ContentLibraryController {
     @Body() dto: SyncContentItemDto,
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.itemsService.sync(contentItemId, dto, req.user.userId);
   }
 
   @Get('unsplash/photos/:id')
