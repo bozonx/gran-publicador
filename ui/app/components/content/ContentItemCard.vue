@@ -219,7 +219,26 @@ const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl)
       </div>
     </div>
 
-    <!-- Unsplash Attribution (Top) -->
+
+
+    <!-- Media preview -->
+    <div v-if="getAllItemMedia(item).length > 0" class="mb-3 flex justify-center h-48">
+      <CommonThumb
+        v-if="thumbData.first"
+        :src="thumbData.first.src"
+        :srcset="thumbData.first.srcset"
+        :alt="thumbData.first.placeholderText"
+        size="md"
+        :clickable="false"
+        :is-video="thumbData.first.isVideo"
+        :placeholder-icon="thumbData.first.placeholderIcon"
+        :placeholder-text="thumbData.first.placeholderText"
+        :show-stack="thumbData.totalCount > 1"
+        :total-count="thumbData.totalCount"
+      />
+    </div>
+
+    <!-- Unsplash Attribution (Bottom) -->
     <div v-if="isUnsplash" class="flex items-center justify-between mb-3 px-1 text-xs text-gray-500 dark:text-gray-400">
       <div class="flex items-center gap-1 min-w-0">
         <span class="shrink-0 line-clamp-1">Photo by</span>
@@ -242,23 +261,6 @@ const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl)
       >
         <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-4 h-4" />
       </a>
-    </div>
-
-    <!-- Media preview -->
-    <div v-if="getAllItemMedia(item).length > 0" class="mb-3 flex justify-center h-48">
-      <CommonThumb
-        v-if="thumbData.first"
-        :src="thumbData.first.src"
-        :srcset="thumbData.first.srcset"
-        :alt="thumbData.first.placeholderText"
-        size="md"
-        :clickable="false"
-        :is-video="thumbData.first.isVideo"
-        :placeholder-icon="thumbData.first.placeholderIcon"
-        :placeholder-text="thumbData.first.placeholderText"
-        :show-stack="thumbData.totalCount > 1"
-        :total-count="thumbData.totalCount"
-      />
     </div>
 
     <!-- Content preview -->
