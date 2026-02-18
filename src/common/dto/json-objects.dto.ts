@@ -81,6 +81,10 @@ export class MediaMetaDto {
   @ValidateNested()
   @Type(() => TelegramMediaMetaDto)
   telegram?: TelegramMediaMetaDto;
+
+  @IsOptional()
+  @IsString()
+  unsplashUrl?: string;
 }
 
 /**

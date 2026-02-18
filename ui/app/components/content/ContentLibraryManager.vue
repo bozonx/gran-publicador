@@ -842,6 +842,7 @@ const handleCreatePublicationFromUnsplash = async (item: any) => {
     if (mediaId) {
       await api.patch(`/media/${mediaId}`, {
         description: `Photo by ${authorName} on Unsplash`,
+        meta: { ...fullItem.media?.[0]?.media?.meta, unsplashUrl: item._virtual?.unsplashUrl || item.links?.html },
       })
     }
 
