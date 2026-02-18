@@ -500,9 +500,16 @@ export class PublicationsService {
                   await (async () => {
                     try {
                       const photo = unsplashPhoto;
-                      const optimization = data.projectId
+                      const projectOptimization = data.projectId
                         ? await this.mediaService.getProjectOptimizationSettings(data.projectId)
-                        : undefined;
+                        : {};
+                      const optimization = {
+                        ...(projectOptimization || {}),
+                        lossless: false,
+                        stripMetadata: false,
+                        autoOrient: false,
+                        flatten: false,
+                      };
                       const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
                         photo.urls.regular,
                         `unsplash-${photo.id}.jpg`,

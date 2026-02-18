@@ -249,15 +249,25 @@ export class MediaService {
 
     return {
       ...normalized,
-      format: mediaConfig.imageOptimizationFormat,
-      maxDimension: mediaConfig.imageOptimizationMaxDimension,
-      effort: mediaConfig.imageOptimizationEffort,
-      quality: mediaConfig.imageOptimizationQuality,
-      chromaSubsampling: mediaConfig.imageOptimizationChromaSubsampling,
-      lossless: mediaConfig.imageOptimizationLossless,
-      stripMetadata: mediaConfig.imageOptimizationStripMetadata,
-      autoOrient: mediaConfig.imageOptimizationAutoOrient,
-      flatten: mediaConfig.imageOptimizationFlatten ? '#FFFFFF' : undefined,
+      format: normalized.format ?? mediaConfig.imageOptimizationFormat,
+      maxDimension: normalized.maxDimension ?? mediaConfig.imageOptimizationMaxDimension,
+      effort: normalized.effort ?? mediaConfig.imageOptimizationEffort,
+      quality: normalized.quality ?? mediaConfig.imageOptimizationQuality,
+      chromaSubsampling:
+        normalized.chromaSubsampling ?? mediaConfig.imageOptimizationChromaSubsampling,
+      lossless: normalized.lossless ?? mediaConfig.imageOptimizationLossless,
+      stripMetadata: normalized.stripMetadata ?? mediaConfig.imageOptimizationStripMetadata,
+      autoOrient: normalized.autoOrient ?? mediaConfig.imageOptimizationAutoOrient,
+      flatten:
+        normalized.flatten === false
+          ? undefined
+          : typeof normalized.flatten === 'string'
+            ? normalized.flatten
+            : normalized.flatten !== undefined // Handle legacy/other cases just in case, though false is handled above
+              ? normalized.flatten
+              : mediaConfig.imageOptimizationFlatten
+                ? '#FFFFFF'
+                : undefined,
     };
   }
 

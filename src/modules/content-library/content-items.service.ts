@@ -411,6 +411,12 @@ export class ContentItemsService {
         `unsplash-${photo.id}.jpg`,
         userId,
         'CONTENT_LIBRARY',
+        {
+          lossless: false,
+          stripMetadata: false,
+          autoOrient: false,
+          flatten: false,
+        },
       );
 
       const media = await this.mediaService.create({
