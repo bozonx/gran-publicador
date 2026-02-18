@@ -4,6 +4,7 @@ import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import ContentItemEditor from './ContentItemEditor.vue'
 import ContentMoveModal from './ContentMoveModal.vue'
 import PublicationPreview from '~/components/publications/PublicationPreview.vue'
+import ContentCreateItemFromPublicationModal from './ContentCreateItemFromPublicationModal.vue'
 
 const props = defineProps<{
   scope: 'project' | 'personal'
@@ -28,6 +29,9 @@ const props = defineProps<{
   // Publication preview
   isPublicationPreviewModalOpen: boolean
   activePublicationId: string | null
+
+  // Create item from publication
+  isCreateItemFromPublicationModalOpen: boolean
   
   // Move
   isMoveModalOpen: boolean
@@ -52,6 +56,7 @@ const emit = defineEmits<{
   'update:isMergeConfirmModalOpen': [val: boolean]
   'update:isEditModalOpen': [val: boolean]
   'update:isPublicationPreviewModalOpen': [val: boolean]
+  'update:isCreateItemFromPublicationModalOpen': [val: boolean]
   'update:isMoveModalOpen': [val: boolean]
   'update:isRenameCollectionModalOpen': [val: boolean]
   'update:isDeleteCollectionConfirmModalOpen': [val: boolean]
@@ -75,6 +80,21 @@ const handleCloseEditModal = () => {
 const handleClosePublicationPreviewModal = () => {
   emit('update:isPublicationPreviewModalOpen', false)
 }
+
+const handleOpenCreateItemFromPublicationModal = () => {
+  if (!props.activePublicationId) return
+  emit('update:isPublicationPreviewModalOpen', false)
+  emit('update:isCreateItemFromPublicationModalOpen', true)
+}
+
+const isCreateItemFromPublicationModalOpenModel = computed<boolean>({
+  get() {
+    return props.isCreateItemFromPublicationModalOpen
+  },
+  set(next) {
+    emit('update:isCreateItemFromPublicationModalOpen', next)
+  },
+})
 </script>
 
 <template>
@@ -157,6 +177,13 @@ const handleClosePublicationPreviewModal = () => {
       </template>
     </UiAppModal>
 
+    <ContentCreateItemFromPublicationModal
+      v-model:open="isCreateItemFromPublicationModalOpenModel"
+      :scope="scope"
+      :project-id="projectId"
+      :publication-id="activePublicationId"
+    />
+
     <!-- Publication Preview -->
     <UiAppModal
       :open="isPublicationPreviewModalOpen"
@@ -173,8 +200,8 @@ const handleClosePublicationPreviewModal = () => {
             color="neutral"
             variant="ghost"
             icon="i-heroicons-arrow-uturn-left"
-            :disabled="true"
             class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            @click="handleOpenCreateItemFromPublicationModal"
           >
             В библиотеку контента
           </UButton>

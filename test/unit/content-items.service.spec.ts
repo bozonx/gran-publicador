@@ -17,6 +17,13 @@ describe('ContentItemsService (unit)', () => {
       update: jest.fn() as any,
       findMany: jest.fn() as any,
       count: jest.fn() as any,
+      create: jest.fn() as any,
+    },
+    publication: {
+      findUnique: jest.fn() as any,
+    },
+    publicationContentItem: {
+      create: jest.fn() as any,
     },
     media: {
       findMany: jest.fn() as any,
@@ -91,6 +98,13 @@ describe('ContentItemsService (unit)', () => {
     jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'ci-1' } as any);
 
     mockPrismaService.contentItem.update.mockResolvedValue({ id: 'ci-1' });
+    mockPrismaService.contentItem.create.mockResolvedValue({
+      id: 'ci-1',
+      tagObjects: [],
+      media: [],
+    });
+    mockPrismaService.publication.findUnique.mockResolvedValue(null);
+    mockPrismaService.publicationContentItem.create.mockResolvedValue({ id: 'pci-1' });
   });
 
   describe('sync', () => {
@@ -204,6 +218,80 @@ describe('ContentItemsService (unit)', () => {
           'user-1',
         ),
       ).rejects.toThrow('groupIds cannot be used together with orphansOnly');
+    });
+  });
+
+  describe('create', () => {
+    it('should create publicationContentItem link when publicationId provided and project scope matches', async () => {
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: 'pub-1',
+        projectId: 'proj-1',
+      });
+
+      await expect(
+        service.create(
+          {
+            scope: 'project',
+            projectId: 'proj-1',
+            publicationId: 'pub-1',
+            title: 't',
+            tags: [],
+            text: 'x',
+            meta: {},
+            media: [],
+          } as any,
+          'user-1',
+        ),
+      ).resolves.toEqual(expect.objectContaining({ id: 'ci-1' }));
+
+      expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith(
+        'proj-1',
+        'user-1',
+        true,
+      );
+      expect(mockPrismaService.publicationContentItem.create).toHaveBeenCalledWith({
+        data: {
+          publicationId: 'pub-1',
+          contentItemId: 'ci-1',
+          order: 0,
+        },
+      });
+    });
+
+    it('should throw 400 when publicationId points to missing publication', async () => {
+      mockPrismaService.publication.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.create(
+          {
+            scope: 'project',
+            projectId: 'proj-1',
+            publicationId: 'pub-missing',
+          } as any,
+          'user-1',
+        ),
+      ).rejects.toThrow('Publication not found');
+
+      expect(mockPrismaService.publicationContentItem.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw 400 when publicationId is provided in personal scope', async () => {
+      mockPrismaService.publication.findUnique.mockResolvedValue({
+        id: 'pub-1',
+        projectId: 'proj-1',
+      });
+
+      await expect(
+        service.create(
+          {
+            scope: 'personal',
+            publicationId: 'pub-1',
+          } as any,
+          'user-1',
+        ),
+      ).rejects.toThrow('publicationId is only allowed for project scope');
+
+      expect(mockPrismaService.publicationContentItem.create).not.toHaveBeenCalled();
     });
   });
 });

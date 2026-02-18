@@ -97,6 +97,7 @@ describe('ContentLibraryService (unit)', () => {
     jest.clearAllMocks();
 
     mockPrismaService.contentItemGroup.findMany.mockResolvedValue([]);
+    mockPrismaService.$queryRaw.mockResolvedValue([]);
   });
 
   describe('getAvailableTags', () => {

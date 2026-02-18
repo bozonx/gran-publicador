@@ -34,6 +34,10 @@ export class CreateContentItemDto {
   @IsOptional()
   public groupId?: string;
 
+  @IsUUID()
+  @IsOptional()
+  public publicationId?: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_TITLE_LENGTH)

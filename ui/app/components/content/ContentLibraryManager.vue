@@ -19,12 +19,37 @@ const props = defineProps<{
 const { t } = useI18n()
 const api = useApi()
 const toast = useToast()
+const route = useRoute()
 const { projects, currentProject } = useProjects()
 const { updateCollection, deleteCollection } = useContentCollections()
 const { uploadMedia } = useMedia()
 
 const isWindowFileDragActive = ref(false)
 const windowDragDepth = ref(0)
+
+const openItemById = async (id: string) => {
+  try {
+    const item = await api.get<any>(`/content-library/items/${id}`)
+    activeItem.value = item
+    isEditModalOpen.value = true
+  } catch (e) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, 'Failed to open content item'),
+      color: 'error',
+    })
+  }
+}
+
+watch(
+  () => route.query.openItemId,
+  (next) => {
+    const id = typeof next === 'string' ? next : Array.isArray(next) ? next[0] : null
+    if (!id) return
+    openItemById(id)
+  },
+  { immediate: true },
+)
 
 const handleWindowDragEnter = (e: DragEvent) => {
   if (e.dataTransfer?.types?.includes('Files')) {
@@ -170,6 +195,7 @@ const isEditModalOpen = ref(false)
 const activeItem = ref<any | null>(null)
 const isPublicationPreviewModalOpen = ref(false)
 const activePublicationId = ref<string | null>(null)
+const isCreateItemFromPublicationModalOpen = ref(false)
 const isMoveModalOpen = ref(false)
 const moveItemsIds = ref<string[]>([])
 const isRenameCollectionModalOpen = ref(false)
@@ -1070,6 +1096,7 @@ onMounted(() => { fetchItems() })
       v-model:is-merge-confirm-modal-open="isMergeConfirmModalOpen"
       v-model:is-edit-modal-open="isEditModalOpen"
       v-model:is-publication-preview-modal-open="isPublicationPreviewModalOpen"
+      v-model:is-create-item-from-publication-modal-open="isCreateItemFromPublicationModalOpen"
       v-model:is-move-modal-open="isMoveModalOpen"
       v-model:is-rename-collection-modal-open="isRenameCollectionModalOpen"
       v-model:is-delete-collection-confirm-modal-open="isDeleteCollectionConfirmModalOpen"

@@ -333,6 +333,25 @@ export class ContentItemsService {
       await this.assertProjectContentMutationAllowed(dto.projectId, userId);
     }
 
+    if (dto.publicationId) {
+      const publication = await this.prisma.publication.findUnique({
+        where: { id: dto.publicationId },
+        select: { id: true, projectId: true },
+      });
+      if (!publication) {
+        throw new BadRequestException('Publication not found');
+      }
+
+      if (dto.scope === 'project') {
+        if (!dto.projectId || dto.projectId !== publication.projectId) {
+          throw new BadRequestException('publicationId does not match content item project scope');
+        }
+        await this.permissions.checkProjectAccess(dto.projectId, userId, true);
+      } else {
+        throw new BadRequestException('publicationId is only allowed for project scope');
+      }
+    }
+
     if (dto.groupId) {
       await this.collectionsService.assertGroupAccess({
         groupId: dto.groupId,
@@ -342,47 +361,61 @@ export class ContentItemsService {
       });
     }
 
-    const created = await (this.prisma.contentItem as any).create({
-      data: {
-        userId: dto.scope === 'personal' ? userId : null,
-        projectId: dto.scope === 'project' ? dto.projectId! : null,
-        groups: dto.groupId
-          ? {
-              create: [{ collectionId: dto.groupId }],
-            }
-          : undefined,
-        title: dto.title,
-        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
-          dto.tags ?? [],
-          {
-            projectId: dto.scope === 'project' ? dto.projectId : undefined,
-            userId: dto.scope === 'personal' ? userId : undefined,
-          },
-          'CONTENT_LIBRARY',
-        ),
-        note: dto.note,
-        text: this.normalizeItemText(dto.text),
-        meta: (dto.meta ?? {}) as any,
-        media: dto.media
-          ? {
-              create: dto.media
-                .slice()
-                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                .map((m, idx) => ({
-                  mediaId: m.mediaId,
-                  order: m.order ?? idx,
-                  hasSpoiler: !!m.hasSpoiler,
-                })),
-            }
-          : undefined,
-      },
-      include: {
-        tagObjects: true,
-        media: {
-          orderBy: { order: 'asc' },
-          include: { media: true },
+    const created = await this.prisma.$transaction(async tx => {
+      const contentItem = await (tx.contentItem as any).create({
+        data: {
+          userId: dto.scope === 'personal' ? userId : null,
+          projectId: dto.scope === 'project' ? dto.projectId! : null,
+          groups: dto.groupId
+            ? {
+                create: [{ collectionId: dto.groupId }],
+              }
+            : undefined,
+          title: dto.title,
+          tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+            dto.tags ?? [],
+            {
+              projectId: dto.scope === 'project' ? dto.projectId : undefined,
+              userId: dto.scope === 'personal' ? userId : undefined,
+            },
+            'CONTENT_LIBRARY',
+          ),
+          note: dto.note,
+          text: this.normalizeItemText(dto.text),
+          meta: (dto.meta ?? {}) as any,
+          media: dto.media
+            ? {
+                create: dto.media
+                  .slice()
+                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  .map((m, idx) => ({
+                    mediaId: m.mediaId,
+                    order: m.order ?? idx,
+                    hasSpoiler: !!m.hasSpoiler,
+                  })),
+              }
+            : undefined,
         },
-      },
+        include: {
+          tagObjects: true,
+          media: {
+            orderBy: { order: 'asc' },
+            include: { media: true },
+          },
+        },
+      });
+
+      if (dto.publicationId) {
+        await (tx as any).publicationContentItem.create({
+          data: {
+            publicationId: dto.publicationId,
+            contentItemId: contentItem.id,
+            order: 0,
+          },
+        });
+      }
+
+      return contentItem;
     });
 
     return this.normalizeContentItemTags(created);
