@@ -130,7 +130,7 @@ const handleClosePublicationPreviewModal = () => {
         :item="activeItem"
         :scope="scope"
         :project-id="projectId"
-        :group-id="activeRootGroupId"
+        :group-id="currentGroupId ?? undefined"
         @refresh="emit('refresh-items', { reset: true })"
       />
       
