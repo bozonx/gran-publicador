@@ -70,10 +70,7 @@ watch(() => props.open, (next) => {
     :title="title || t('contentLibrary.unsplash.photoAlt')"
     :ui="{ content: 'w-[90vw] max-w-7xl h-[90vh]' }"
   >
-    <div class="flex flex-col md:flex-row h-full gap-6 overflow-hidden relative">
-      <div v-if="isLoading && !fullPhotoDetails" class="absolute inset-0 z-50 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center">
-        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
-      </div>
+    <div class="flex flex-col md:flex-row h-full gap-6 overflow-hidden">
 
       <!-- Image Section -->
       <div class="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center relative">
@@ -86,7 +83,10 @@ watch(() => props.open, (next) => {
       </div>
 
       <!-- Sidebar / Details -->
-      <div class="w-full md:w-80 shrink-0 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+      <div class="w-full md:w-80 shrink-0 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar relative">
+        <div v-if="isLoading && !fullPhotoDetails" class="absolute inset-0 z-10 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center rounded-xl">
+          <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-primary" />
+        </div>
         <!-- Main Info -->
         <div class="space-y-6">
           <div class="flex flex-col gap-4">
