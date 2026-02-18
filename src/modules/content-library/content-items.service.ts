@@ -402,9 +402,6 @@ export class ContentItemsService {
         dto.title = photo.description || photo.altDescription || 'Unsplash Photo';
       }
 
-      if (!dto.text && (photo.description || photo.altDescription)) {
-        dto.text = photo.description || photo.altDescription || '';
-      }
 
       if (photo.user) {
         dto.note = (dto.note ? dto.note + '\n\n' : '') + `Photo by ${photo.user.name} on Unsplash`;
