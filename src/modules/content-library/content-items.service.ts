@@ -403,9 +403,7 @@ export class ContentItemsService {
       }
 
 
-      if (photo.user) {
-        dto.note = (dto.note ? dto.note + '\n\n' : '') + `Photo by ${photo.user.name} on Unsplash`;
-      }
+
       
       if (photo.tags && photo.tags.length > 0) {
         dto.tags = Array.from(new Set([...(dto.tags || []), ...photo.tags.map(t => t.title)]));
