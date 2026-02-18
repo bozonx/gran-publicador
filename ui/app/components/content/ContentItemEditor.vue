@@ -20,6 +20,14 @@ interface ContentItem {
   text?: string | null
   meta?: Record<string, unknown>
   media?: ContentItemMediaLink[]
+  groups?: Array<{
+    collectionId: string
+    collection: {
+      id: string
+      title: string
+      type: string
+    }
+  }>
 }
 
 const props = defineProps<{
@@ -49,6 +57,8 @@ const editForm = ref({
   meta: JSON.parse(JSON.stringify(props.item.meta || {})),
   media: JSON.parse(JSON.stringify(props.item.media || [])).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)),
 })
+
+const groups = ref(JSON.parse(JSON.stringify(props.item.groups || [])))
 
 const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
   data: toRef(() => editForm.value),
@@ -171,6 +181,34 @@ async function onCopyMedia(_mediaLinkId: string) {
   }
 }
 
+async function onUnlinkGroup(collectionId: string) {
+  if (groups.value.length <= 1) {
+    toast.add({
+      title: t('common.error'),
+      description: t('contentLibrary.groups.lastGroupError', 'Cannot unlink the last group'),
+      color: 'error'
+    })
+    return
+  }
+
+  try {
+    const res = await api.delete<any>(`/content-library/items/${props.item.id}/groups/${collectionId}`)
+    groups.value = res.groups || []
+    emit('refresh')
+    toast.add({
+      title: t('common.success'),
+      description: t('contentLibrary.groups.unlinkSuccess', 'Group unlinked successfully'),
+      color: 'success'
+    })
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, 'Failed to unlink group'),
+      color: 'error'
+    })
+  }
+}
+
 defineExpose({
   forceSave
 })
@@ -255,6 +293,34 @@ defineExpose({
         :label="t('common.meta')"
         @update:model-value="(newMeta: any) => (editForm.meta = newMeta)"
       />
+    </div>
+
+    <!-- Groups List -->
+    <div v-if="groups.length > 0" class="pt-6 border-t border-gray-100 dark:border-gray-800">
+      <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+        <UIcon name="i-heroicons-folder" class="w-4 h-4 text-gray-500" />
+        {{ t('contentLibrary.groups.title', 'Groups') }}
+      </h4>
+      <div class="flex flex-wrap gap-2">
+        <div
+          v-for="g in groups"
+          :key="g.collectionId"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm"
+          :class="{ 'ring-1 ring-primary-500 border-primary-100 dark:border-primary-900': g.collectionId === props.groupId }"
+        >
+          <span class="text-gray-700 dark:text-gray-300">{{ g.collection.title }}</span>
+          <UButton
+             v-if="groups.length > 1"
+             size="xs"
+             color="neutral"
+             variant="ghost"
+             icon="i-heroicons-x-mark"
+             class="h-4 w-4 p-0 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 transition-colors"
+             :title="t('common.remove')"
+             @click="onUnlinkGroup(g.collectionId)"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>

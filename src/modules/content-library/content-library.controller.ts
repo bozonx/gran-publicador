@@ -461,6 +461,16 @@ export class ContentLibraryController {
     return this.itemsService.linkItemToGroup(contentItemId, dto, req.user.userId);
   }
 
+  @Delete('items/:id/groups/:collectionId')
+  public async unlinkItemFromGroup(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') contentItemId: string,
+    @Param('collectionId') collectionId: string,
+  ) {
+    await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
+    return this.itemsService.unlinkItemFromGroup(contentItemId, collectionId, req.user.userId);
+  }
+
   @Post('items/:id/archive')
   public async archive(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.validateContentItemProjectScopeOrThrow(req, id);

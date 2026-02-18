@@ -1202,6 +1202,8 @@ onMounted(() => { fetchItems() })
         :is-restoring-id="isRestoringId"
         :hide-actions="activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL' || activeCollection?.type === 'UNSPLASH'"
         :is-unsplash="activeCollection?.type === 'UNSPLASH'"
+        :active-collection-id="activeCollectionId"
+        :active-collection-type="activeCollection?.type"
         @select-all="toggleSelectAll"
         @toggle-selection="toggleSelection"
         @load-more="loadMore"

@@ -20,6 +20,8 @@ const props = defineProps<{
   isRestoringId: string | null
   hideActions?: boolean
   disableSelection?: boolean
+  activeCollectionId?: string | null
+  activeCollectionType?: string | null
 }>()  
 
 const emit = defineEmits<{
@@ -80,6 +82,8 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
           :is-restoring="isRestoringId === item.id"
           :hide-checkbox="disableSelection"
           :hide-actions="hideActions"
+          :active-collection-id="props.activeCollectionId"
+          :active-collection-type="props.activeCollectionType"
           @click="emit('open-edit', item)"
           @toggle-selection="() => { if (!disableSelection) emit('toggle-selection', item.id) }"
           @archive="emit('archive', $event.id)"

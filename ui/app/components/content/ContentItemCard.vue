@@ -32,6 +32,18 @@ interface ContentItem {
     [key: string]: any
   }
   meta?: any
+  groups?: Array<{
+    collectionId: string
+    collection: {
+      id: string
+      title: string
+      type: string
+      parentId?: string | null
+      parent?: {
+        title: string
+      } | null
+    }
+  }>
 }
 
 const props = defineProps<{
@@ -42,6 +54,8 @@ const props = defineProps<{
   isRestoring?: boolean
   hideCheckbox?: boolean
   hideActions?: boolean
+  activeCollectionId?: string | null
+  activeCollectionType?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -144,6 +158,18 @@ const unsplashUser = computed(() => props.item._virtual?.unsplashUser || firstMe
 const unsplashUserUrl = computed(() => props.item._virtual?.unsplashUserUrl || firstMediaMeta.value?.unsplashUserUrl)
 const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl || firstMediaMeta.value?.unsplashUrl)
 
+const displayedGroups = computed(() => {
+  if (!props.item.groups) return []
+  
+  if (props.activeCollectionType === 'GROUP') {
+    // Show groups BUT excluding current one
+    return props.item.groups.filter(g => g.collectionId !== props.activeCollectionId)
+  }
+  
+  // Show ALL groups in saved views or virtual collections
+  return props.item.groups
+})
+
 </script>
 
 <template>
@@ -179,6 +205,23 @@ const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl || firstMedi
           <UBadge v-if="item.archivedAt" color="warning" size="xs" variant="subtle">
             {{ t('common.archived', 'Archived') }}
           </UBadge>
+        </div>
+
+        <div v-if="displayedGroups.length > 0" class="flex items-center gap-1 mt-1 flex-wrap">
+          <UTooltip
+            v-for="g in displayedGroups"
+            :key="g.collectionId"
+            :text="g.collection.parent?.title || g.collection.title"
+          >
+            <UBadge
+              color="neutral"
+              variant="subtle"
+              size="xs"
+              class="max-w-[120px] truncate"
+            >
+              {{ g.collection.title }}
+            </UBadge>
+          </UTooltip>
         </div>
       </div>
 

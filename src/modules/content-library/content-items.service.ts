@@ -240,6 +240,23 @@ export class ContentItemsService {
         skip: offset,
         include: {
           tagObjects: true,
+          groups: {
+            include: {
+              collection: {
+                select: {
+                  id: true,
+                  title: true,
+                  type: true,
+                  parentId: true,
+                  parent: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           ...(includeMedia
             ? {
                 media: {
@@ -312,6 +329,23 @@ export class ContentItemsService {
       where: { id },
       include: {
         tagObjects: true,
+        groups: {
+          include: {
+            collection: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                parentId: true,
+                parent: {
+                  select: {
+                    title: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         media: {
           orderBy: { order: 'asc' },
           include: { media: true },
@@ -1389,5 +1423,32 @@ export class ContentItemsService {
 
       return this.findOne(contentItemId, userId);
     });
+  }
+
+  public async unlinkItemFromGroup(
+    contentItemId: string,
+    collectionId: string,
+    userId: string,
+  ) {
+    const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
+
+    const groupsCount = await (this.prisma as any).contentItemGroup.count({
+      where: { contentItemId },
+    });
+
+    if (groupsCount <= 1) {
+      throw new BadRequestException('Cannot unlink the last group from the content item');
+    }
+
+    await (this.prisma as any).contentItemGroup.delete({
+      where: {
+        contentItemId_collectionId: {
+          contentItemId,
+          collectionId,
+        },
+      },
+    });
+
+    return this.findOne(contentItemId, userId);
   }
 }
