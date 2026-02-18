@@ -92,10 +92,14 @@ function handleSelectCollection(next: unknown) {
 }
 
 async function createItem(groupId?: string) {
-  if (!props.unsplashId) return
+  if (!props.unsplashId) {
+    error.value = 'Unsplash photo ID is missing'
+    return
+  }
   if (isCreating.value) return
 
   isCreating.value = true
+  error.value = null
   try {
     const created = await api.post<any>('/content-library/items', {
       scope: props.scope,
@@ -121,9 +125,10 @@ async function createItem(groupId?: string) {
       ],
     } as any)
   } catch (e: any) {
+    error.value = getApiErrorMessage(e, 'Failed to create content item')
     toast.add({
       title: t('common.error'),
-      description: getApiErrorMessage(e, 'Failed to create content item'),
+      description: error.value,
       color: 'error',
     })
   } finally {
@@ -132,7 +137,7 @@ async function createItem(groupId?: string) {
 }
 
 async function handleSelectGroup(groupId: string) {
-  if (!groupId) return
+  if (!groupId || isCreating.value) return
   await createItem(groupId)
 }
 
@@ -147,12 +152,16 @@ async function handleCopyToSavedView() {
     :title="t('contentLibrary.actions.copyToContentItem', 'Copy to content library')"
     :ui="{ content: 'max-w-md' }"
   >
-    <div class="space-y-4">
+    <div class="space-y-4 relative">
+      <div v-if="isCreating" class="absolute inset-0 z-10 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center rounded-lg">
+        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+      </div>
+
       <p class="text-sm text-gray-500 dark:text-gray-400">
         {{ t('contentLibrary.actions.copyPublicationToItemDescription', 'Select a target collection to create a new content item.') }}
       </p>
 
-      <div v-if="error" class="text-sm text-red-600 dark:text-red-400">
+      <div v-if="error" class="text-sm text-red-600 dark:text-red-400 p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-100 dark:border-red-900/30">
         {{ error }}
       </div>
 
@@ -173,7 +182,7 @@ async function handleCopyToSavedView() {
         </USelectMenu>
 
         <div v-if="selectedCollection" class="py-2">
-          <div v-if="selectedCollection.type === 'GROUP'" class="max-h-60 overflow-y-auto custom-scrollbar">
+          <div v-if="selectedCollection.type === 'GROUP'" class="max-h-60 overflow-y-auto custom-scrollbar" :class="{ 'opacity-50 pointer-events-none': isCreating }">
             <ContentGroupSelectTree
               v-if="targetCollectionTreeItems.length > 0"
               :items="targetCollectionTreeItems as any"
@@ -196,7 +205,7 @@ async function handleCopyToSavedView() {
     </div>
 
     <template #footer>
-      <UButton color="neutral" variant="ghost" @click="isOpen = false">
+      <UButton color="neutral" variant="ghost" :disabled="isCreating" @click="isOpen = false">
         {{ t('common.cancel') }}
       </UButton>
     </template>
