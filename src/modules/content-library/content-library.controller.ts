@@ -230,37 +230,45 @@ export class ContentLibraryController {
         orderBy: 'relevant',
       });
 
-      const mappedItems = res.items.map((photo) => ({
-        id: photo.id,
-        title: photo.description || photo.altDescription || null,
-        text: null,
-        tags: photo.tags.map((t) => t.title).filter(Boolean),
-        createdAt: photo.createdAt,
-        archivedAt: null,
-        media: [
-          {
-            order: 0,
-            hasSpoiler: false,
-            media: {
-              id: `unsplash-${photo.id}`,
-              type: 'IMAGE',
-              storageType: 'URL',
-              storagePath: photo.urls.small,
-              filename: `unsplash-${photo.id}.jpg`,
+      const mappedItems = res.items.map((photo) => {
+        const title = photo.description || photo.altDescription || null;
+        const note = photo.description && photo.altDescription && photo.description !== photo.altDescription 
+          ? photo.altDescription 
+          : null;
+
+        return {
+          id: photo.id,
+          title,
+          text: null,
+          note,
+          tags: photo.tags.map((t) => t.title).filter(Boolean),
+          createdAt: photo.createdAt,
+          archivedAt: null,
+          media: [
+            {
+              order: 0,
+              hasSpoiler: false,
+              media: {
+                id: `unsplash-${photo.id}`,
+                type: 'IMAGE',
+                storageType: 'URL',
+                storagePath: photo.urls.small,
+                filename: `unsplash-${photo.id}.jpg`,
+              },
             },
+          ],
+          _virtual: {
+            source: 'unsplash',
+            unsplashId: photo.id,
+            unsplashUser: photo.user.name,
+            unsplashUsername: photo.user.username,
+            unsplashUserUrl: photo.user.links.html,
+            unsplashUrl: photo.links.html,
+            thumbUrl: photo.urls.small,
+            regularUrl: photo.urls.regular,
           },
-        ],
-        _virtual: {
-          source: 'unsplash',
-          unsplashId: photo.id,
-          unsplashUser: photo.user.name,
-          unsplashUsername: photo.user.username,
-          unsplashUserUrl: photo.user.links.html,
-          unsplashUrl: photo.links.html,
-          thumbUrl: photo.urls.small,
-          regularUrl: photo.urls.regular,
-        },
-      }));
+        };
+      });
 
       return {
         items: mappedItems,

@@ -21,6 +21,7 @@ const unsplashUser = computed(() => props.item?._virtual?.unsplashUser)
 const unsplashUserUrl = computed(() => props.item?._virtual?.unsplashUserUrl)
 const tags = computed(() => props.item?.tags || [])
 const title = computed(() => props.item?.title)
+const description = computed(() => props.item?.note)
 </script>
 
 <template>
@@ -66,16 +67,31 @@ const title = computed(() => props.item?.title)
       <div class="w-full md:w-80 shrink-0 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
         <!-- Main Info -->
         <div class="space-y-4">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white leading-tight">
-            {{ title || t('contentLibrary.unsplash.photoAlt') }}
-          </h2>
-
-          <div class="flex flex-col gap-2 pt-2 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <div class="flex flex-col gap-2 pt-2">
             <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
               <UIcon name="i-heroicons-user" class="w-4 h-4" />
               <span>{{ unsplashUser }}</span>
             </div>
-            <div class="flex flex-wrap gap-2">
+
+            <!-- Description -->
+            <div v-if="description" class="text-sm text-gray-600 dark:text-gray-300 italic leading-relaxed pt-2">
+              {{ description }}
+            </div>
+
+            <!-- Tags Section -->
+            <div v-if="tags.length > 0" class="flex flex-wrap gap-1.5 pt-2">
+              <UBadge
+                v-for="tag in tags"
+                :key="tag"
+                color="neutral"
+                variant="subtle"
+                class="rounded-md font-medium px-1.5 py-0.5 text-[10px]"
+              >
+                {{ tag }}
+              </UBadge>
+            </div>
+
+            <div class="flex flex-wrap gap-2 pt-4 pb-4 border-b border-gray-100 dark:border-gray-800">
               <UButton
                 :to="`${unsplashUserUrl}?utm_source=gran_publicador&utm_medium=referral`"
                 target="_blank"
@@ -101,23 +117,7 @@ const title = computed(() => props.item?.title)
           </div>
         </div>
 
-        <!-- Tags Section -->
-        <div v-if="tags.length > 0" class="space-y-3">
-          <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-            {{ t('contentLibrary.unsplash.relatedTags') }}
-          </h3>
-          <div class="flex flex-wrap gap-2">
-            <UBadge
-              v-for="tag in tags"
-              :key="tag"
-              color="neutral"
-              variant="subtle"
-              class="rounded-md font-medium px-2 py-0.5"
-            >
-              {{ tag }}
-            </UBadge>
-          </div>
-        </div>
+
 
         <!-- License Reminder -->
         <div class="mt-auto p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800/50">
