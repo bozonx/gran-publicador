@@ -894,7 +894,7 @@ const createAndEdit = async () => {
         const res = await api.post<any>('/content-library/items', {
             scope: props.scope,
             projectId: props.projectId,
-            groupId: activeCollection.value?.type === 'GROUP' ? activeCollection.value.id : undefined,
+            groupId: activeCollection.value?.type === 'GROUP' ? (selectedGroupId.value ?? activeCollection.value.id) : undefined,
             text: '', meta: {}, media: []
         })
         await fetchItems({ reset: true })
