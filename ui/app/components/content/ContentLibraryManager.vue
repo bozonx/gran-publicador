@@ -838,9 +838,10 @@ const handleCreatePublicationFromUnsplash = async (item: any) => {
     const fullItem = await api.get<any>(`/content-library/items/${createdItem.id}`)
 
     const mediaId = fullItem.media?.[0]?.mediaId
-    if (mediaId && item._virtual?.unsplashUser) {
+    const authorName = item._virtual?.unsplashUser || item._virtual?.unsplashUsername || item.id
+    if (mediaId) {
       await api.patch(`/media/${mediaId}`, {
-        description: `Photo by ${item._virtual.unsplashUser} on Unsplash`,
+        description: `Photo by ${authorName} on Unsplash`,
       })
     }
 

@@ -402,9 +402,10 @@ export class ContentItemsService {
         dto.title = photo.description || photo.altDescription || 'Unsplash Photo';
       }
 
+      if (photo.description) {
+        dto.text = photo.description;
+      }
 
-
-      
       if (photo.tags && photo.tags.length > 0) {
         dto.tags = Array.from(new Set([...(dto.tags || []), ...photo.tags.map(t => t.title)]));
       }

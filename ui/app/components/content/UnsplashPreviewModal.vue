@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '~/utils/error'
+
 const props = defineProps<{
   open: boolean
   item: any | null
@@ -11,19 +13,54 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const api = useApi()
 
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value)
 })
 
-const photoUrl = computed(() => props.item?._virtual?.regularUrl)
-const unsplashUrl = computed(() => props.item?._virtual?.unsplashUrl)
-const unsplashUser = computed(() => props.item?._virtual?.unsplashUser)
-const unsplashUserUrl = computed(() => props.item?._virtual?.unsplashUserUrl)
-const tags = computed(() => props.item?.tags || [])
-const title = computed(() => props.item?.title)
-const description = computed(() => props.item?.note)
+const isLoading = ref(false)
+const fullPhotoDetails = ref<any>(null)
+
+const photoUrl = computed(() => fullPhotoDetails.value?.urls?.regular || props.item?._virtual?.regularUrl)
+const unsplashUrl = computed(() => fullPhotoDetails.value?.links?.html || props.item?._virtual?.unsplashUrl)
+const unsplashUser = computed(() => fullPhotoDetails.value?.user?.name || props.item?._virtual?.unsplashUser)
+const unsplashUsername = computed(() => fullPhotoDetails.value?.user?.username || props.item?._virtual?.unsplashUsername)
+const unsplashUserUrl = computed(() => fullPhotoDetails.value?.user?.links?.html || props.item?._virtual?.unsplashUserUrl)
+const tags = computed(() => fullPhotoDetails.value?.tags?.map((t: any) => t.title) || props.item?.tags || [])
+const title = computed(() => fullPhotoDetails.value?.altDescription || fullPhotoDetails.value?.description || props.item?.title)
+const description = computed(() => fullPhotoDetails.value?.description || props.item?.note)
+
+const stats = computed(() => ({
+  views: fullPhotoDetails.value?.views || props.item?._virtual?.views,
+  downloads: fullPhotoDetails.value?.downloads || props.item?._virtual?.downloads,
+  likes: fullPhotoDetails.value?.likes || props.item?._virtual?.likes,
+  width: fullPhotoDetails.value?.width,
+  height: fullPhotoDetails.value?.height,
+}))
+
+async function fetchFullDetails() {
+  const photoId = props.item?._virtual?.unsplashId || props.item?.id
+  if (!photoId) return
+
+  isLoading.value = true
+  try {
+    fullPhotoDetails.value = await api.get(`/content-library/unsplash/photos/${photoId}`)
+  } catch (e: any) {
+    console.error('Failed to fetch Unsplash photo details:', getApiErrorMessage(e, t('common.error')))
+  } finally {
+    isLoading.value = false
+  }
+}
+
+watch(() => props.open, (next) => {
+  if (next) {
+    fetchFullDetails()
+  } else {
+    fullPhotoDetails.value = null
+  }
+})
 </script>
 
 <template>
@@ -32,7 +69,11 @@ const description = computed(() => props.item?.note)
     :title="title || t('contentLibrary.unsplash.photoAlt')"
     :ui="{ content: 'w-[90vw] max-w-7xl h-[90vh]' }"
   >
-    <div class="flex flex-col md:flex-row h-full gap-6 overflow-hidden">
+    <div class="flex flex-col md:flex-row h-full gap-6 overflow-hidden relative">
+      <div v-if="isLoading && !fullPhotoDetails" class="absolute inset-0 z-50 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center">
+        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+      </div>
+
       <!-- Image Section -->
       <div class="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center relative">
         <img 
@@ -61,7 +102,7 @@ const description = computed(() => props.item?.note)
                   {{ unsplashUser }}
                 </span>
                 <span class="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  @{{ props.item?._virtual?.unsplashUsername }}
+                  @{{ unsplashUsername }}
                 </span>
               </div>
             </div>
@@ -91,26 +132,6 @@ const description = computed(() => props.item?.note)
               </UButton>
             </div>
 
-            <div class="pt-2 space-y-2">
-              <UButton
-                block
-                icon="i-heroicons-plus-circle"
-                color="primary"
-                variant="subtle"
-                @click="emit('add-to-library')"
-              >
-                В библиотеку контента
-              </UButton>
-              <UButton
-                block
-                icon="i-heroicons-paper-airplane"
-                color="primary"
-                @click="emit('create-publication', props.item)"
-              >
-                {{ t('contentLibrary.unsplash.createPublication') }}
-              </UButton>
-            </div>
-
             <!-- Description -->
             <div v-if="description" class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
               <p class="text-sm text-gray-600 dark:text-gray-300 italic leading-relaxed">
@@ -120,22 +141,28 @@ const description = computed(() => props.item?.note)
 
             <!-- Stats -->
             <div class="grid grid-cols-2 gap-3 pt-2">
-              <div v-if="props.item?._virtual?.views" class="flex flex-col gap-0.5">
+              <div v-if="stats.views" class="flex flex-col gap-0.5">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Views</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                  {{ Number(props.item._virtual.views).toLocaleString() }}
+                  {{ Number(stats.views).toLocaleString() }}
                 </span>
               </div>
-              <div v-if="props.item?._virtual?.downloads" class="flex flex-col gap-0.5">
+              <div v-if="stats.downloads" class="flex flex-col gap-0.5">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Downloads</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                  {{ Number(props.item._virtual.downloads).toLocaleString() }}
+                  {{ Number(stats.downloads).toLocaleString() }}
                 </span>
               </div>
-              <div v-if="props.item?._virtual?.likes" class="flex flex-col gap-0.5">
+              <div v-if="stats.likes" class="flex flex-col gap-0.5">
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Likes</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                  {{ Number(props.item._virtual.likes).toLocaleString() }}
+                  {{ Number(stats.likes).toLocaleString() }}
+                </span>
+              </div>
+              <div v-if="stats.width && stats.height" class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Size</span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ stats.width }} × {{ stats.height }}
                 </span>
               </div>
             </div>
@@ -154,6 +181,27 @@ const description = computed(() => props.item?.note)
                   {{ tag }}
                 </UBadge>
               </div>
+            </div>
+
+            <!-- Actions - Moved to bottom -->
+            <div class="pt-4 space-y-2">
+              <UButton
+                block
+                icon="i-heroicons-plus-circle"
+                color="primary"
+                variant="subtle"
+                @click="emit('add-to-library')"
+              >
+                В библиотеку контента
+              </UButton>
+              <UButton
+                block
+                icon="i-heroicons-paper-airplane"
+                color="primary"
+                @click="emit('create-publication', props.item)"
+              >
+                {{ t('contentLibrary.unsplash.createPublication') }}
+              </UButton>
             </div>
           </div>
         </div>

@@ -20,6 +20,11 @@ export interface UnsplashPhoto {
   tags: Array<{ title: string }>;
   createdAt: string;
   links: { html: string };
+  views?: number;
+  downloads?: number;
+  likes?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface UnsplashSearchResult {
@@ -100,6 +105,8 @@ export class UnsplashService {
       likes: photo.likes,
       views: photo.views,
       downloads: photo.downloads,
+      width: photo.width,
+      height: photo.height,
     }));
 
     return {
@@ -147,6 +154,11 @@ export class UnsplashService {
       tags: (photo.tags ?? []).map((t: any) => ({ title: t.title ?? '' })),
       createdAt: photo.created_at ?? new Date().toISOString(),
       links: { html: photo.links?.html ?? '' },
+      likes: photo.likes,
+      views: photo.views,
+      downloads: photo.downloads,
+      width: photo.width,
+      height: photo.height,
     };
   }
 }
