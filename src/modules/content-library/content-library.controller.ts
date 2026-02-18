@@ -237,7 +237,19 @@ export class ContentLibraryController {
         tags: photo.tags.map((t) => t.title).filter(Boolean),
         createdAt: photo.createdAt,
         archivedAt: null,
-        media: [],
+        media: [
+          {
+            order: 0,
+            hasSpoiler: false,
+            media: {
+              id: `unsplash-${photo.id}`,
+              type: 'IMAGE',
+              storageType: 'URL',
+              storagePath: photo.urls.small,
+              filename: `unsplash-${photo.id}.jpg`,
+            },
+          },
+        ],
         _virtual: {
           source: 'unsplash',
           unsplashId: photo.id,

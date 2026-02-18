@@ -396,6 +396,16 @@ export function getMediaThumbData(media: MediaItemLike, token?: string): MediaTh
       };
     }
 
+    if (storageType === 'URL') {
+      return {
+        src: media.storagePath,
+        srcset: null,
+        isVideo: false,
+        placeholderIcon,
+        placeholderText,
+      };
+    }
+
     return {
       src: getMediaFileUrl(media.id, token),
       srcset: null,

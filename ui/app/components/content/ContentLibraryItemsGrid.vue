@@ -3,7 +3,6 @@ import { type ContentCollection } from '~/composables/useContentCollections'
 import UiLoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import CommonFoundCount from '~/components/common/CommonFoundCount.vue'
 import ContentItemCard from './ContentItemCard.vue'
-import UnsplashPhotoCard from './UnsplashPhotoCard.vue'
 
 const props = defineProps<{
   items: any[]
@@ -21,7 +20,6 @@ const props = defineProps<{
   isRestoringId: string | null
   hideActions?: boolean
   disableSelection?: boolean
-  isUnsplash?: boolean
 }>()  
 
 const emit = defineEmits<{
@@ -69,23 +67,15 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
         </div>
       </div>
 
-      <!-- Unsplash photo grid -->
-      <div v-if="isUnsplash" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        <UnsplashPhotoCard
-          v-for="item in items"
-          :key="item.id"
-          :item="item"
-        />
-      </div>
-
-      <!-- Regular items grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Items grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ContentItemCard
           v-for="item in items"
           :key="item.id"
-          :item="item"
-          :archive-status="archiveStatus"
+          class="h-full shadow-sm!"
+          :item="item as any"
           :selected="selectedIds.includes(item.id)"
+          :archive-status="archiveStatus"
           :is-archiving="isArchivingId === item.id"
           :is-restoring="isRestoringId === item.id"
           :hide-checkbox="disableSelection"

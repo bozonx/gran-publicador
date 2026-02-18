@@ -23,6 +23,14 @@ interface ContentItem {
   archivedAt?: string | null
   text?: string | null
   media?: Array<{ mediaId?: string; hasSpoiler?: boolean; order?: number; media?: MediaItemLikeLoose }>
+  _virtual?: {
+    source?: string
+    unsplashId?: string
+    unsplashUser?: string
+    unsplashUserUrl?: string
+    unsplashUrl?: string
+    [key: string]: any
+  }
 }
 
 const props = defineProps<{
@@ -129,6 +137,11 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
   return texts
 }
 
+const isUnsplash = computed(() => props.item._virtual?.source === 'unsplash')
+const unsplashUser = computed(() => props.item._virtual?.unsplashUser)
+const unsplashUserUrl = computed(() => props.item._virtual?.unsplashUserUrl)
+const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl)
+
 </script>
 
 <template>
@@ -206,6 +219,31 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
       </div>
     </div>
 
+    <!-- Unsplash Attribution (Top) -->
+    <div v-if="isUnsplash" class="flex items-center justify-between mb-3 px-1 text-xs text-gray-500 dark:text-gray-400">
+      <div class="flex items-center gap-1 min-w-0">
+        <span class="shrink-0 line-clamp-1">Photo by</span>
+        <a 
+          :href="`${unsplashUserUrl}?utm_source=gran_publicador&utm_medium=referral`" 
+          target="_blank" 
+          class="font-medium text-primary-600 dark:text-primary-400 hover:underline truncate"
+          @click.stop
+        >
+          {{ unsplashUser }}
+        </a>
+      </div>
+      <a 
+        v-if="unsplashUrl"
+        :href="`${unsplashUrl}?utm_source=gran_publicador&utm_medium=referral`" 
+        target="_blank" 
+        class="shrink-0 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+        :title="t('contentLibrary.unsplash.openOnUnsplash')"
+        @click.stop
+      >
+        <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-4 h-4" />
+      </a>
+    </div>
+
     <!-- Media preview -->
     <div v-if="getAllItemMedia(item).length > 0" class="mb-3 flex justify-center h-48">
       <CommonThumb
@@ -235,14 +273,17 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
     </div>
 
     <!-- Footer: Date, Stats, Tags -->
-    <div class="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 mt-auto">
+    <div 
+      v-if="!isUnsplash || (item.tags && item.tags.length > 0)"
+      class="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 mt-auto"
+    >
       <div class="flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
         <div class="flex items-center gap-1 shrink-0">
           <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
           <span>{{ formatDateShort(item.createdAt) }}</span>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div v-if="!isUnsplash" class="flex items-center gap-3">
           <div class="flex items-center gap-1" :title="t('contentLibrary.blocksCount', { count: 1 })">
             <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5" />
             <span>1</span>
