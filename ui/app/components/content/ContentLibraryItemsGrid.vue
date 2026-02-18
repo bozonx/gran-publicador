@@ -19,6 +19,7 @@ const props = defineProps<{
   isArchivingId: string | null
   isRestoringId: string | null
   hideActions?: boolean
+  disableSelection?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -52,6 +53,7 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
       <!-- Selection & Status -->
       <div class="flex items-center justify-between gap-4 px-2">
         <UCheckbox
+          v-if="!disableSelection"
           :model-value="isAllSelected"
           :indeterminate="isSomeSelected"
           :disabled="items.length === 0"
@@ -75,9 +77,10 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
           :selected="selectedIds.includes(item.id)"
           :is-archiving="isArchivingId === item.id"
           :is-restoring="isRestoringId === item.id"
+          :hide-checkbox="disableSelection"
           :hide-actions="hideActions"
           @click="emit('open-edit', item)"
-          @toggle-selection="emit('toggle-selection', $event)"
+          @toggle-selection="() => { if (!disableSelection) emit('toggle-selection', item.id) }"
           @archive="emit('archive', $event.id)"
           @restore="emit('restore', $event)"
           @delete-forever="emit('delete-forever', $event)"

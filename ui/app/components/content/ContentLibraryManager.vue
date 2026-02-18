@@ -76,6 +76,8 @@ const items = ref<any[]>([])
 const availableTags = ref<string[]>([])
 const selectedIds = ref<string[]>([])
 
+const isSelectionDisabled = computed(() => activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL')
+
 interface ContentLibraryTabState {
   q: string
   selectedTags: string
@@ -551,6 +553,7 @@ watch(activeCollection, (next, prev) => {
     if (next) initTabStateFromCollectionConfigIfMissing(next)
     if (next?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
       sortBy.value = 'combined'
+      selectedIds.value = []
     } else {
       if (sortBy.value !== 'createdAt' && sortBy.value !== 'title') {
         sortBy.value = 'createdAt'
@@ -616,8 +619,18 @@ const hasMore = computed(() => items.value.length < total.value)
 
 // Actions
 const loadMore = () => { if (!isLoading.value && hasMore.value) { offset.value += limit; fetchItems() } }
-const toggleSelection = (id: string) => { const idx = selectedIds.value.indexOf(id); if (idx === -1) selectedIds.value.push(id); else selectedIds.value.splice(idx, 1) }
-const toggleSelectAll = () => { if (items.value.length === 0) return; if (items.value.every(i => selectedIds.value.includes(i.id))) selectedIds.value = []; else selectedIds.value = items.value.map(i => i.id) }
+const toggleSelection = (id: string) => {
+  if (isSelectionDisabled.value) return
+  const idx = selectedIds.value.indexOf(id)
+  if (idx === -1) selectedIds.value.push(id)
+  else selectedIds.value.splice(idx, 1)
+}
+const toggleSelectAll = () => {
+  if (isSelectionDisabled.value) return
+  if (items.value.length === 0) return
+  if (items.value.every(i => selectedIds.value.includes(i.id))) selectedIds.value = []
+  else selectedIds.value = items.value.map(i => i.id)
+}
 
 const uploadContentFiles = async (files: File[]) => {
   if (!files.length || (props.scope === 'project' && !props.projectId)) return
@@ -999,6 +1012,7 @@ onMounted(() => { fetchItems() })
       <ContentLibraryItemsGrid
         :items="items"
         :selected-ids="selectedIds"
+        :disable-selection="isSelectionDisabled"
         :is-loading="isLoading"
         :has-more="hasMore"
         :total="total"
@@ -1036,6 +1050,7 @@ onMounted(() => { fetchItems() })
     </div>
 
     <ContentLibraryBulkBar
+      v-if="!isSelectionDisabled"
       :selected-ids="selectedIds"
       :archive-status="archiveStatus"
       :is-group-collection="activeCollection?.type === 'GROUP'"
