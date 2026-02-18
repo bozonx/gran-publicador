@@ -1316,6 +1316,7 @@
       "formatHelp": "Target output format",
       "images": "Images",
       "lossless": "Lossless Compression",
+      "losslessHelp": "Maximum quality without artifacts (increases file size)",
       "maxDimension": "Max Dimension",
       "maxDimensionHelp": "Resize if width or height exceeds this px value",
       "preset": "Optimization Preset",

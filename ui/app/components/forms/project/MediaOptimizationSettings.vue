@@ -18,6 +18,7 @@ const DEFAULTS: MediaOptimizationPreferences = {
   stripMetadata: false,
   autoOrient: true,
   flatten: '',
+  lossless: false,
 }
 
 // Local state for internal handling
@@ -30,6 +31,7 @@ const state = computed({
       ...val,
       stripMetadata: Boolean(val.stripMetadata ?? val['strip_metadata']),
       autoOrient: Boolean(val.autoOrient ?? val['auto_orient']),
+      lossless: Boolean(val.lossless ?? val['lossless']),
     }
     return {
       ...DEFAULTS,
@@ -84,21 +86,30 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
           />
         </div>
 
-
-      </div>
-
-      <!-- Flatten Color -->
-      <div class="md:col-span-2">
-         <UFormField
-          :label="t('settings.mediaOptimization.flatten', 'Flatten Transparency Color')"
-          :help="t('settings.mediaOptimization.flattenHelp', 'Hex color to fill transparency (e.g., #ffffff). Leave empty to keep transparency.')"
-        >
-          <CommonHexColorPicker
-            :model-value="state.flatten"
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.lossless') }}</label>
+            <span class="text-xs text-gray-500">{{ t('settings.mediaOptimization.losslessHelp', '') }}</span>
+          </div>
+          <USwitch
+            :model-value="state.lossless"
             :disabled="disabled"
-            @update:model-value="(val: string) => updateField('flatten', val)"
+            @update:model-value="(val: any) => updateField('lossless', val)"
           />
-        </UFormField>
+        </div>
+
+        <div class="md:col-span-1">
+          <UFormField
+            :label="t('settings.mediaOptimization.flatten', 'Flatten Transparency Color')"
+            :help="t('settings.mediaOptimization.flattenHelp', 'Hex color to fill transparency (e.g., #ffffff). Leave empty to keep transparency.')"
+          >
+            <CommonHexColorPicker
+              :model-value="state.flatten"
+              :disabled="disabled"
+              @update:model-value="(val: string) => updateField('flatten', val)"
+            />
+          </UFormField>
+        </div>
       </div>
     </div>
     </div>
