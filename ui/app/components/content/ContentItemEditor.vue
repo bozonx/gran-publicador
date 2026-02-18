@@ -82,7 +82,13 @@ async function onAddMedia(media: any[]) {
     const mediaId = item?.id
     if (!mediaId) continue
     if (next.some((x: any) => (x.mediaId || x.id) === mediaId)) continue
-    next.push({ mediaId, hasSpoiler: item.hasSpoiler ? true : undefined, order: next.length })
+    // Store full media object so it can be rendered immediately in the gallery
+    next.push({ 
+      mediaId, 
+      hasSpoiler: item.hasSpoiler ? true : undefined, 
+      order: next.length,
+      media: item 
+    })
   }
   editForm.value.media = next
 }

@@ -10,8 +10,8 @@ import { useAutosave } from '~/composables/useAutosave'
 
 interface MediaItem {
   id: string
-  type: string
-  storageType: string
+  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
+  storageType: 'TELEGRAM' | 'FS'
   storagePath: string
   filename?: string
   alt?: string
@@ -86,6 +86,7 @@ const {
   updateMedia,
   replaceMediaFile,
   fetchMedia,
+  createMedia,
 } = useMedia()
 const { validatePostContent } = useSocialMediaValidation()
 const toast = useToast()
@@ -285,24 +286,24 @@ async function uploadFiles(files: FileList | File[], options?: any) {
   const optimizeParams = options
 
   try {
-    const uploadedMediaItems = await Promise.all(
-      fileArray.map(async (file, index) => {
-        return await uploadMedia(file, (progress) => {
-          progresses[index] = progress
-          const totalProgress = progresses.reduce((a, b) => a + b, 0)
-          uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
-        }, optimizeParams, currentProject.value?.id)
-      })
-    )
-    
-    if (props.publicationId) {
-      await addMediaToPublication(
-        props.publicationId, 
-        uploadedMediaItems.map(m => ({ id: m.id }))
+      const uploadedMediaItems = await Promise.all(
+        fileArray.map(async (file, index) => {
+          return await uploadMedia(file, (progress) => {
+            progresses[index] = progress
+            const totalProgress = progresses.reduce((a, b) => a + b, 0)
+            uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
+          }, optimizeParams, currentProject.value?.id)
+        })
       )
-    } else if (props.onAdd) {
-      await props.onAdd(uploadedMediaItems.map(m => ({ id: m.id })))
-    }
+      
+      if (props.publicationId) {
+        await addMediaToPublication(
+          props.publicationId, 
+          uploadedMediaItems.map(m => ({ id: m.id }))
+        )
+      } else if (props.onAdd) {
+        await props.onAdd(uploadedMediaItems)
+      }
     
     emit('refresh')
   } catch (error: any) {
@@ -348,7 +349,9 @@ async function addMedia() {
       if (props.publicationId) {
         await addMediaToPublication(props.publicationId, [newMedia])
       } else if (props.onAdd) {
-        await props.onAdd([newMedia])
+        // Create media record first if not in publication context
+        const created = await createMedia(newMedia)
+        await props.onAdd([created])
       }
       
       sourceInput.value = ''
@@ -362,7 +365,7 @@ async function addMedia() {
     if (props.publicationId) {
       await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
     } else if (props.onAdd) {
-      await props.onAdd([{ id: uploadedMedia.id }])
+      await props.onAdd([uploadedMedia])
     }
     
     sourceInput.value = ''
