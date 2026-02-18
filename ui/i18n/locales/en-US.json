@@ -358,6 +358,7 @@
     "prev": "Prev",
     "rename": "Rename",
     "reset": "Reset",
+    "move": "Move",
     "resetFilters": "Reset filters",
     "restore": "Restore",
     "retry": "Retry",
