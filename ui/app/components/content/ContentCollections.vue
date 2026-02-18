@@ -330,9 +330,12 @@ const getCollectionVariant = (collection: ContentCollection) => {
 }
 
 const getCollectionTooltip = (collection: ContentCollection) => {
-  const typeText = collection.type === 'GROUP' 
-    ? t('contentLibrary.collections.types.group.title') 
-    : t('contentLibrary.collections.types.savedView.title')
+  const typeText = 
+    collection.type === 'GROUP' ? t('contentLibrary.collections.types.group.title') :
+    collection.type === 'SAVED_VIEW' ? t('contentLibrary.collections.types.savedView.title') :
+    collection.type === 'UNSPLASH' ? t('contentLibrary.collections.types.unsplash.title') :
+    collection.type === 'PUBLICATION_MEDIA_VIRTUAL' ? t('contentLibrary.collections.types.publicationMediaVirtual.title') :
+    collection.type === 'TRASH' ? t('contentLibrary.filter.archived') : ''
   
   const isShared = isSharedProjectCollection(collection)
   const isProjectUser = (collection as any).groupType === 'PROJECT_USER' || collection.visibility === 'PROJECT_PRIVATE'
@@ -343,10 +346,18 @@ const getCollectionTooltip = (collection: ContentCollection) => {
       ? t('contentLibrary.collections.groupVisibility.projectUser')
       : t('contentLibrary.subtitlePersonal')
   
-  return `${typeText} (${scopeText})`
+  return typeText ? `${typeText} (${scopeText})` : scopeText
 }
 
 const getCollectionLabel = (collection: ContentCollection) => {
+  if (collection.type === 'UNSPLASH') {
+    return t('contentLibrary.collections.types.unsplash.title')
+  }
+
+  if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    return t('contentLibrary.collections.types.publicationMediaVirtual.title')
+  }
+
   if (collection.type !== 'GROUP') {
     return collection.title
   }

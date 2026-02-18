@@ -523,7 +523,7 @@
           "description": "Save filters, sorting, and quickly return to this view"
         },
         "publicationMediaVirtual": {
-          "title": "Media from publications",
+          "title": "Publications",
           "description": "Virtual library that shows media, text, and tags from your publications"
         }
       }
