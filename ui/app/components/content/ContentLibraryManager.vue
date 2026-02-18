@@ -794,6 +794,7 @@ const publicationData = ref({
   tags: [] as string[],
   note: '',
   contentItemIds: [] as string[],
+  unsplashId: undefined as string | undefined,
 })
 
 const openCreatePublicationModalForItems = (selected: any[]) => {
@@ -810,6 +811,7 @@ const openCreatePublicationModalForItems = (selected: any[]) => {
     tags: data.tags,
     note: data.note,
     contentItemIds: data.contentItemIds,
+    unsplashId: undefined,
   }
   isCreatePublicationModalOpen.value = true
 }
@@ -822,44 +824,31 @@ const handleCreatePublication = (item: any) => {
   }
 }
 
-const handleCreatePublicationFromUnsplash = async (item: any) => {
-  if (!item || isUnsplashLoading.value) return
+const handleCreatePublicationFromUnsplash = (item: any) => {
+  if (!item) return
 
-  isUnsplashLoading.value = true
-  isUnsplashPreviewModalOpen.value = false
+  const virtual = item._virtual || {}
+  const title = item.title || virtual.altDescription || ''
+  const content = item.text || item.note || ''
+  const tags = Array.isArray(item.tags) ? item.tags : []
+  const unsplashId = virtual.unsplashId || item.id
 
-  try {
-    const createdItem = await api.post<any>('/content-library/items', {
-      scope: props.scope,
-      projectId: props.projectId,
-      unsplashId: item.id,
-    })
+  const projectId = props.scope === 'project' ? props.projectId : undefined
+  createPublicationModalProjectId.value = projectId
+  createPublicationModalAllowProjectSelection.value = !projectId
 
-    const fullItem = await api.get<any>(`/content-library/items/${createdItem.id}`)
-
-    const mediaId = fullItem.media?.[0]?.mediaId
-    const authorName = item._virtual?.unsplashUser || item._virtual?.unsplashUsername || item.id
-    if (mediaId) {
-      await api.patch(`/media/${mediaId}`, {
-        description: `Photo by ${authorName} on Unsplash`,
-        meta: { ...fullItem.media?.[0]?.media?.meta, unsplashUrl: item._virtual?.unsplashUrl || item.links?.html },
-      })
-    }
-
-    openCreatePublicationModalForItems([fullItem])
-
-    // Refresh items since we created a new one in the background
-    fetchItems({ reset: true })
-    contentCollectionsRef.value?.fetchCollections()
-  } catch (e: any) {
-    toast.add({
-      title: t('common.error'),
-      description: getApiErrorMessage(e, 'Failed to create publication from Unsplash'),
-      color: 'error',
-    })
-  } finally {
-    isUnsplashLoading.value = false
+  publicationData.value = {
+    title,
+    content,
+    mediaIds: [],
+    tags,
+    note: '',
+    contentItemIds: [],
+    unsplashId,
   }
+
+  isUnsplashPreviewModalOpen.value = false
+  isCreatePublicationModalOpen.value = true
 }
 
 const handleCreatePublicationFromSelection = () => {
@@ -1290,6 +1279,7 @@ onMounted(() => { fetchItems() })
       :prefilled-tags="publicationData.tags"
       :prefilled-note="publicationData.note"
       :prefilled-content-item-ids="publicationData.contentItemIds"
+      :prefilled-unsplash-id="publicationData.unsplashId"
     />
 
     <UnsplashPreviewModal

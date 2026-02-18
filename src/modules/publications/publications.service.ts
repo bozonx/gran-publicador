@@ -19,6 +19,7 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import { ContentItemsService } from '../content-library/content-items.service.js';
+import { UnsplashService } from '../content-library/unsplash.service.js';
 import { PublicationQueryBuilder } from './utils/publication-query.builder.js';
 import {
   CreatePublicationDto,
@@ -53,6 +54,7 @@ export class PublicationsService {
     private llmService: LlmService,
     private tagsService: TagsService,
     private contentItemsService: ContentItemsService,
+    private unsplashService: UnsplashService,
   ) {}
 
   private buildUntrustedContextBlock(params: {
@@ -490,6 +492,48 @@ export class PublicationsService {
         meta: data.meta ?? {},
         media: {
           create: [
+            // New Image from Unsplash
+            ...(data.unsplashId
+              ? [
+                  await (async () => {
+                    try {
+                      const photo = await this.unsplashService.getPhoto(data.unsplashId!);
+                      if (!photo) return null;
+                      const optimization = data.projectId
+                        ? await this.mediaService.getProjectOptimizationSettings(data.projectId)
+                        : undefined;
+                      const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
+                        photo.urls.regular,
+                        `unsplash-${photo.id}.jpg`,
+                        userId,
+                        'publication',
+                        optimization,
+                      );
+                      const authorName = photo.user.name || photo.user.username || photo.id;
+                      return {
+                        order: 0,
+                        media: {
+                          create: {
+                            type: MediaType.IMAGE,
+                            storageType: StorageType.FS,
+                            storagePath: fileId,
+                            filename: `unsplash-${photo.id}.jpg`,
+                            mimeType: metadata.mimeType,
+                            sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
+                            meta: { ...metadata, unsplashUrl: photo.links.html },
+                            description: `Photo by ${authorName} on Unsplash`,
+                          },
+                        },
+                      };
+                    } catch (err: any) {
+                      this.logger.error(
+                        `Failed to upload Unsplash photo ${data.unsplashId}: ${err.message}`,
+                      );
+                      return null;
+                    }
+                  })(),
+                ]
+              : []),
             // New Image from URL
             ...(data.imageUrl
               ? [

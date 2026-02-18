@@ -22,6 +22,7 @@ interface Props {
   prefilledTags?: string[]
   prefilledNote?: string
   prefilledContentItemIds?: string[]
+  prefilledUnsplashId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -441,6 +442,7 @@ async function handleCreate() {
       tags: props.prefilledTags || [],
       note: props.prefilledNote || '',
       contentItemIds: props.prefilledContentItemIds || [],
+      unsplashId: props.prefilledUnsplashId || undefined,
       authorSignatureId: formData.authorSignatureId || undefined,
       projectTemplateId: formData.projectTemplateId || undefined,
       deleteOriginalContent: formData.deleteOriginalContent,

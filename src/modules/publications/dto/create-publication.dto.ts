@@ -148,6 +148,11 @@ export class CreatePublicationDto {
   @IsString()
   @IsOptional()
   @MaxLength(255)
+  public unsplashId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
   public newsItemId?: string;
 
   @IsArray()
