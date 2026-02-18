@@ -42,6 +42,9 @@ async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
+  
+  // Reset the input value immediately to allow selecting the same file again
+  target.value = ''
 
   uploadProgress.value = true
   try {
@@ -59,9 +62,6 @@ async function handleFileUpload(event: Event) {
 
     emit('update:modelValue', [...props.modelValue, newMedia])
     
-    if (fileInput.value) {
-      fileInput.value.value = ''
-    }
   } catch (error: any) {
     toast.add({
       title: t('common.error'),

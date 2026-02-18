@@ -263,14 +263,15 @@ function getDefaultOptimizationParams() {
 
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
-  if (target.files) {
+  if (target.files?.length) {
+    const files = Array.from(target.files)
     if (showExtendedOptions.value) {
-      stagedFiles.value.push(...Array.from(target.files))
-      if (fileInput.value) fileInput.value.value = ''
+      stagedFiles.value.push(...files)
     } else {
       const defaults = getDefaultOptimizationParams()
-      await uploadFiles(target.files, defaults)
+      await uploadFiles(files, defaults)
     }
+    target.value = ''
   }
 }
 
