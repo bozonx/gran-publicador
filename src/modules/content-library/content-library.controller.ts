@@ -139,6 +139,7 @@ export class ContentLibraryController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
     @Query('orphansOnly') orphansOnly?: string,
+    @Query('withMedia') withMedia?: string,
   ) {
     if (scope === 'project') {
       this.validateQueryProjectScopeOrThrow(req, projectId);
@@ -164,20 +165,22 @@ export class ContentLibraryController {
               includeArchived: false,
               archivedOnly: false,
               search,
-              sortBy: sortField,
-              sortOrder,
-              tags: parsedTags.length > 0 ? parsedTags : undefined,
-            })
+               sortBy: sortField,
+               sortOrder,
+               tags: parsedTags.length > 0 ? parsedTags : undefined,
+               withMedia: withMedia === 'true',
+             })
           : await this.publicationsService.findAllForUser(req.user.userId, {
               limit,
               offset,
               includeArchived: false,
               archivedOnly: false,
               search,
-              sortBy: sortField,
-              sortOrder,
-              tags: parsedTags.length > 0 ? parsedTags : undefined,
-            });
+               sortBy: sortField,
+               sortOrder,
+               tags: parsedTags.length > 0 ? parsedTags : undefined,
+               withMedia: withMedia === 'true',
+             });
 
       const mappedItems = (res.items ?? []).map((p: any) => {
         const tagNames = Array.isArray(p.tags)

@@ -154,4 +154,9 @@ export class FindPublicationsQueryDto {
   @Type(() => Date)
   @IsDate()
   publishedAfter?: Date;
+
+  @IsOptional()
+  @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
+  @IsBoolean()
+  withMedia?: boolean;
 }

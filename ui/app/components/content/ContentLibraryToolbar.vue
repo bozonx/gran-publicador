@@ -25,6 +25,7 @@ const q = defineModel<string>('q')
 const selectedTags = defineModel<string>('selectedTags')
 const sortBy = defineModel<string>('sortBy')
 const sortOrder = defineModel<'asc' | 'desc'>('sortOrder')
+const withMedia = defineModel<boolean>('withMedia')
 
 const emit = defineEmits<{
   (e: 'update:archiveStatus', value: 'active' | 'archived'): void
@@ -299,6 +300,12 @@ const toolbarMenuItems = computed(() => {
           </div>
 
           <div class="flex items-center justify-end gap-2 shrink-0 flex-nowrap">
+            <UCheckbox
+              v-if="isPublicationMediaVirtual"
+              v-model="withMedia"
+              :label="t('contentLibrary.filter.withMedia')"
+              class="mr-2"
+            />
             <UiAppButtonGroup
               v-if="!isPublicationMediaVirtual && !isUnsplash"
               v-model="sortBy"

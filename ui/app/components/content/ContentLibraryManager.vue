@@ -112,6 +112,7 @@ interface ContentLibraryTabState {
   selectedTags: string
   sortBy: 'createdAt' | 'title' | 'combined'
   sortOrder: 'asc' | 'desc'
+  withMedia: boolean
 }
 
 const tabStateByCollectionId = reactive<Record<string, ContentLibraryTabState>>({})
@@ -121,6 +122,7 @@ const DEFAULT_TAB_STATE: ContentLibraryTabState = {
   selectedTags: '',
   sortBy: 'combined',
   sortOrder: 'desc',
+  withMedia: true,
 }
 
 const getTabKey = (collectionId: string | null) => collectionId ?? '__default__'
@@ -168,6 +170,15 @@ const sortOrder = computed<'asc' | 'desc'>({
   },
   set(next) {
     ensureTabState(activeCollectionId.value).sortOrder = next
+  },
+})
+
+const withMedia = computed<boolean>({
+  get() {
+    return ensureTabState(activeCollectionId.value).withMedia
+  },
+  set(next) {
+    ensureTabState(activeCollectionId.value).withMedia = next
   },
 })
 
@@ -282,6 +293,7 @@ const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection
 
     if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
     if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
+    if (typeof cfg.withMedia === 'boolean') base.withMedia = cfg.withMedia
   }
 
   if (collection.type === 'UNSPLASH') {
@@ -356,6 +368,7 @@ const persistPublicationMediaVirtualStateToDb = async () => {
     persistSearch,
     persistTags,
     sortBy: state.sortBy,
+    withMedia: state.withMedia,
     sortOrder: state.sortOrder,
   }
 
@@ -544,6 +557,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
           sortBy: 'combined',
           sortOrder: sortOrder.value,
           tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value.join(',') : undefined,
+          withMedia: withMedia.value,
         },
       })
       if (requestId !== fetchItemsRequestId) return
@@ -649,7 +663,7 @@ const fetchAvailableTags = async () => {
 
 // Watchers
 watch(() => q.value, () => { selectedIds.value = []; debouncedFetch() })
-watch([archiveStatus, selectedTags, sortBy, sortOrder], () => fetchItems({ reset: true }))
+watch([archiveStatus, selectedTags, sortBy, sortOrder, withMedia], () => fetchItems({ reset: true }))
 watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
     selectedIds.value = []
@@ -1121,9 +1135,10 @@ onMounted(() => { fetchItems() })
 
     <ContentLibraryToolbar
       v-model:q="q"
-      v-model:selected-tags="selectedTags"
-      v-model:sort-by="sortBy"
-      v-model:sort-order="sortOrder"
+      v-model:selectedTags="selectedTags"
+      v-model:sortBy="sortBy"
+      v-model:sortOrder="sortOrder"
+      v-model:withMedia="withMedia"
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"

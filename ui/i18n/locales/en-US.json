@@ -483,7 +483,8 @@
     "filter": {
       "active": "Active",
       "archived": "Trash",
-      "filterByTags": "Filter by tags"
+      "filterByTags": "Filter by tags",
+      "withMedia": "With media"
     },
     "mediaCount": "{count} media | {count} media",
     "searchPlaceholder": "Search by title, note, tags, text...",

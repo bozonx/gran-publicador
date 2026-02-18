@@ -714,6 +714,7 @@ export class PublicationsService {
       issueType?: IssueType;
       tags?: string[];
       publishedAfter?: Date;
+      withMedia?: boolean;
     },
   ) {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PUBLICATIONS_READ);
@@ -814,6 +815,7 @@ export class PublicationsService {
       issueType?: IssueType;
       tags?: string[];
       publishedAfter?: Date;
+      withMedia?: boolean;
     },
   ) {
     this.logger.log(

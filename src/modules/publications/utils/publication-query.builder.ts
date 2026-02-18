@@ -39,11 +39,21 @@ export class PublicationQueryBuilder {
       language?: string;
       tags?: string[];
       publishedAfter?: Date;
+      withMedia?: boolean;
     },
     userAllowedProjectIds?: string[],
   ): Prisma.PublicationWhereInput {
     const where: Prisma.PublicationWhereInput = {};
     const conditions: Prisma.PublicationWhereInput[] = [];
+
+    // Media filter
+    if (filters?.withMedia) {
+      conditions.push({
+        media: {
+          some: {},
+        },
+      });
+    }
 
     // Project filter & Scoping
     if (projectId) {

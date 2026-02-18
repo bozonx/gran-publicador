@@ -475,7 +475,8 @@
     "filter": {
       "active": "Актуальные",
       "archived": "Корзина",
-      "filterByTags": "Фильтр по тегам"
+      "filterByTags": "Фильтр по тегам",
+      "withMedia": "С медиа"
     },
     "mediaCount": "{count} медиа | {count} медиа | {count} медиа",
     "searchPlaceholder": "Поиск по заголовку, заметке, тегам, тексту...",
