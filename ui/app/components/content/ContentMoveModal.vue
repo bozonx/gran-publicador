@@ -100,7 +100,10 @@ const accordionItems = computed(() => {
 
 const collectionOptions = computed(() => {
   return props.collections
-    .filter(collection => !collection.parentId && collection.id !== props.activeCollection?.id)
+    .filter(collection => {
+      const isReadonly = collection.type === 'PUBLICATION_MEDIA_VIRTUAL' || collection.type === 'UNSPLASH'
+      return !collection.parentId && collection.id !== props.activeCollection?.id && !isReadonly
+    })
     .map(collection => ({
       label: collection.title,
       value: collection.id
