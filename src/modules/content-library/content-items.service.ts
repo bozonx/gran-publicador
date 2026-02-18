@@ -399,7 +399,7 @@ export class ContentItemsService {
       ];
 
       if (!dto.title) {
-        dto.title = photo.description || photo.altDescription || 'Unsplash Photo';
+        dto.title = photo.altDescription || photo.description || 'Unsplash Photo';
       }
 
       if (photo.description) {
