@@ -236,7 +236,13 @@ const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection
 const updateCollectionsCache = (updated: ContentCollection) => {
   const idx = collections.value.findIndex(c => c.id === updated.id)
   if (idx !== -1) {
-    collections.value.splice(idx, 1, updated)
+    // Preserve directItemsCount since PATCH responses don't include it
+    const existing = collections.value[idx]
+    const merged = {
+      ...updated,
+      directItemsCount: updated.directItemsCount ?? existing.directItemsCount,
+    }
+    collections.value.splice(idx, 1, merged)
   }
 }
 
