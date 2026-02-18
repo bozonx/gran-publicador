@@ -547,7 +547,19 @@
       }
     },
     "title": "Content library",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "unsplash": {
+      "photoAlt": "Photo from Unsplash",
+      "openOnUnsplash": "Open on Unsplash",
+      "sortRelevance": "By Relevance",
+      "photoBy": "Photo by",
+      "on": "on",
+      "viewProfile": "View Profile",
+      "createPublication": "Create Publication",
+      "relatedTags": "Related Tags",
+      "licenseInfo": "Free to use under the {licenseLink}. Attribution is not required but appreciated.",
+      "licenseLink": "Unsplash license"
+    }
   },
   "dashboard": {
     "group_admin": "Admin",

@@ -212,6 +212,7 @@ const isDeletingCollection = ref(false)
 const isArchivingId = ref<string | null>(null)
 const isRestoringId = ref<string | null>(null)
 const isUploadingFiles = ref(false)
+const isUnsplashLoading = ref(false)
 const isStartCreating = ref(false)
 
 // Sorting Options
@@ -821,6 +822,44 @@ const handleCreatePublication = (item: any) => {
   }
 }
 
+const handleCreatePublicationFromUnsplash = async (item: any) => {
+  if (!item || isUnsplashLoading.value) return
+
+  isUnsplashLoading.value = true
+  isUnsplashPreviewModalOpen.value = false
+
+  try {
+    const createdItem = await api.post<any>('/content-library/items', {
+      scope: props.scope,
+      projectId: props.projectId,
+      unsplashId: item.id,
+    })
+
+    const fullItem = await api.get<any>(`/content-library/items/${createdItem.id}`)
+
+    const mediaId = fullItem.media?.[0]?.mediaId
+    if (mediaId && item._virtual?.unsplashUser) {
+      await api.patch(`/media/${mediaId}`, {
+        description: `Photo by ${item._virtual.unsplashUser} on Unsplash`,
+      })
+    }
+
+    openCreatePublicationModalForItems([fullItem])
+
+    // Refresh items since we created a new one in the background
+    fetchItems({ reset: true })
+    contentCollectionsRef.value?.fetchCollections()
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error'),
+      description: getApiErrorMessage(e, 'Failed to create publication from Unsplash'),
+      color: 'error',
+    })
+  } finally {
+    isUnsplashLoading.value = false
+  }
+}
+
 const handleCreatePublicationFromSelection = () => {
   try {
     const selected = items.value.filter(i => selectedIds.value.includes(i.id))
@@ -1255,6 +1294,7 @@ onMounted(() => { fetchItems() })
       v-model:open="isUnsplashPreviewModalOpen"
       :item="activeItem"
       @add-to-library="isCreateItemFromUnsplashModalOpen = true; isUnsplashPreviewModalOpen = false"
+      @create-publication="handleCreatePublicationFromUnsplash"
     />
   </div>
 </template>
