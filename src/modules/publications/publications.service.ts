@@ -480,6 +480,8 @@ export class PublicationsService {
       data.projectTemplateId,
     );
 
+    const unsplashPhoto = data.unsplashId ? await this.unsplashService.getPhoto(data.unsplashId) : null;
+
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
@@ -493,12 +495,11 @@ export class PublicationsService {
         media: {
           create: [
             // New Image from Unsplash
-            ...(data.unsplashId
+            ...(unsplashPhoto
               ? [
                   await (async () => {
                     try {
-                      const photo = await this.unsplashService.getPhoto(data.unsplashId!);
-                      if (!photo) return null;
+                      const photo = unsplashPhoto;
                       const optimization = data.projectId
                         ? await this.mediaService.getProjectOptimizationSettings(data.projectId)
                         : undefined;
@@ -520,7 +521,16 @@ export class PublicationsService {
                             filename: `unsplash-${photo.id}.jpg`,
                             mimeType: metadata.mimeType,
                             sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
-                            meta: { ...metadata, unsplashUrl: photo.links.html },
+                            meta: {
+                              ...metadata,
+                              unsplashId: photo.id,
+                              unsplashUrl: photo.links.html,
+                              unsplashUser: photo.user.name,
+                              unsplashUsername: photo.user.username,
+                              unsplashUserUrl: photo.user.links.html,
+                              width: photo.width,
+                              height: photo.height,
+                            },
                             description: `Photo by ${authorName} on Unsplash`,
                           },
                         },

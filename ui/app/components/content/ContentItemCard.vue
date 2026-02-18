@@ -31,6 +31,7 @@ interface ContentItem {
     unsplashUrl?: string
     [key: string]: any
   }
+  meta?: any
 }
 
 const props = defineProps<{
@@ -137,10 +138,11 @@ const getItemTextBlocks = (item: ContentItem): string[] => {
   return texts
 }
 
-const isUnsplash = computed(() => props.item._virtual?.source === 'unsplash')
-const unsplashUser = computed(() => props.item._virtual?.unsplashUser)
-const unsplashUserUrl = computed(() => props.item._virtual?.unsplashUserUrl)
-const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl)
+const firstMediaMeta = computed(() => props.item.media?.[0]?.media?.meta)
+const isUnsplash = computed(() => props.item._virtual?.source === 'unsplash' || !!firstMediaMeta.value?.unsplashId)
+const unsplashUser = computed(() => props.item._virtual?.unsplashUser || firstMediaMeta.value?.unsplashUser)
+const unsplashUserUrl = computed(() => props.item._virtual?.unsplashUserUrl || firstMediaMeta.value?.unsplashUserUrl)
+const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl || firstMediaMeta.value?.unsplashUrl)
 
 </script>
 

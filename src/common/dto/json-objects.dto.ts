@@ -85,6 +85,42 @@ export class MediaMetaDto {
   @IsOptional()
   @IsString()
   unsplashUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  unsplashId?: string;
+
+  @IsOptional()
+  @IsString()
+  unsplashUser?: string;
+
+  @IsOptional()
+  @IsString()
+  unsplashUsername?: string;
+
+  @IsOptional()
+  @IsString()
+  unsplashUserUrl?: string;
+
+  @IsOptional()
+  @IsNumber()
+  width?: number;
+
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+
+  @IsOptional()
+  @IsNumber()
+  size?: number;
+
+  @IsOptional()
+  @IsNumber()
+  originalSize?: number;
+
+  @IsOptional()
+  @IsString()
+  mimeType?: string;
 }
 
 /**

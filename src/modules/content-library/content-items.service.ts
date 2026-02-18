@@ -386,7 +386,16 @@ export class ContentItemsService {
         filename: `unsplash-${photo.id}.jpg`,
         mimeType: uploaded.metadata.mimeType,
         sizeBytes: uploaded.metadata.size,
-        meta: { ...uploaded.metadata, unsplashUrl: photo.links.html },
+        meta: {
+          ...uploaded.metadata,
+          unsplashId: photo.id,
+          unsplashUrl: photo.links.html,
+          unsplashUser: photo.user.name,
+          unsplashUsername: photo.user.username,
+          unsplashUserUrl: photo.user.links.html,
+          width: photo.width,
+          height: photo.height,
+        },
         description: `Photo by ${photo.user.name || photo.user.username || photo.id} on Unsplash`,
       });
 

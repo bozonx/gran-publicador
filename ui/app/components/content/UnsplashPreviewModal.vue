@@ -23,21 +23,22 @@ const isOpen = computed({
 const isLoading = ref(false)
 const fullPhotoDetails = ref<any>(null)
 
-const photoUrl = computed(() => fullPhotoDetails.value?.urls?.regular || props.item?._virtual?.regularUrl)
-const unsplashUrl = computed(() => fullPhotoDetails.value?.links?.html || props.item?._virtual?.unsplashUrl)
-const unsplashUser = computed(() => fullPhotoDetails.value?.user?.name || props.item?._virtual?.unsplashUser)
-const unsplashUsername = computed(() => fullPhotoDetails.value?.user?.username || props.item?._virtual?.unsplashUsername)
-const unsplashUserUrl = computed(() => fullPhotoDetails.value?.user?.links?.html || props.item?._virtual?.unsplashUserUrl)
+const firstMediaMeta = computed(() => props.item?.media?.[0]?.media?.meta)
+const photoUrl = computed(() => fullPhotoDetails.value?.urls?.regular || props.item?._virtual?.regularUrl || props.item?.media?.[0]?.media?.storagePath || props.item?.media?.[0]?.media?.url)
+const unsplashUrl = computed(() => fullPhotoDetails.value?.links?.html || props.item?._virtual?.unsplashUrl || firstMediaMeta.value?.unsplashUrl)
+const unsplashUser = computed(() => fullPhotoDetails.value?.user?.name || props.item?._virtual?.unsplashUser || firstMediaMeta.value?.unsplashUser)
+const unsplashUsername = computed(() => fullPhotoDetails.value?.user?.username || props.item?._virtual?.unsplashUsername || firstMediaMeta.value?.unsplashUsername)
+const unsplashUserUrl = computed(() => fullPhotoDetails.value?.user?.links?.html || props.item?._virtual?.unsplashUserUrl || firstMediaMeta.value?.unsplashUserUrl)
 const tags = computed(() => fullPhotoDetails.value?.tags?.map((t: any) => t.title) || props.item?.tags || [])
 const title = computed(() => fullPhotoDetails.value?.altDescription || fullPhotoDetails.value?.description || props.item?.title)
 const description = computed(() => fullPhotoDetails.value?.description || props.item?.note)
 
 const stats = computed(() => ({
-  views: fullPhotoDetails.value?.views || props.item?._virtual?.views,
-  downloads: fullPhotoDetails.value?.downloads || props.item?._virtual?.downloads,
-  likes: fullPhotoDetails.value?.likes || props.item?._virtual?.likes,
-  width: fullPhotoDetails.value?.width,
-  height: fullPhotoDetails.value?.height,
+  views: fullPhotoDetails.value?.views || props.item?._virtual?.views || firstMediaMeta.value?.views,
+  downloads: fullPhotoDetails.value?.downloads || props.item?._virtual?.downloads || firstMediaMeta.value?.downloads,
+  likes: fullPhotoDetails.value?.likes || props.item?._virtual?.likes || firstMediaMeta.value?.likes,
+  width: fullPhotoDetails.value?.width || firstMediaMeta.value?.width,
+  height: fullPhotoDetails.value?.height || firstMediaMeta.value?.height,
 }))
 
 async function fetchFullDetails() {
