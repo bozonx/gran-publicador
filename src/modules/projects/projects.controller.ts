@@ -63,6 +63,7 @@ export class ProjectsController {
       search: query.search,
       includeArchived: query.includeArchived,
       limit: query.limit || undefined,
+      hasContentCollections: query.hasContentCollections,
     });
 
     // Filter projects based on token scope

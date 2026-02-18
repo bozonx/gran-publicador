@@ -16,13 +16,20 @@ export function useProjects() {
   const store = useProjectsStore();
   const { projects, currentProject, members, isLoading, error } = storeToRefs(store);
 
-  async function fetchProjects(includeArchived?: boolean): Promise<ProjectWithRole[]> {
+  async function fetchProjects(arg?: boolean | {
+    includeArchived?: boolean;
+    hasContentCollections?: boolean;
+  }): Promise<ProjectWithRole[]> {
     store.setLoading(true);
     store.setError(null);
 
     try {
+      const options = typeof arg === 'object' ? arg : { includeArchived: arg };
       const params: any = { limit: 100 };
-      applyArchiveQueryFlags(params, { includeArchived });
+      applyArchiveQueryFlags(params, { includeArchived: options.includeArchived });
+      if (options.hasContentCollections) {
+        params.hasContentCollections = true;
+      }
       const data = await api.get<ProjectWithRole[]>('/projects', { params });
       store.setProjects(data);
       return data;

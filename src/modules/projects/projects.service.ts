@@ -119,9 +119,14 @@ export class ProjectsService {
 
   public async findAllForUser(
     userId: string,
-    options?: { search?: string; includeArchived?: boolean; limit?: number },
+    options?: {
+      search?: string;
+      includeArchived?: boolean;
+      limit?: number;
+      hasContentCollections?: boolean;
+    },
   ) {
-    const { search, includeArchived, limit } = options || {};
+    const { search, includeArchived, limit, hasContentCollections } = options || {};
 
     const where: any = {
       OR: [{ ownerId: userId }, { members: { some: { userId } } }],
@@ -133,6 +138,10 @@ export class ProjectsService {
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    if (hasContentCollections) {
+      where.contentCollections = { some: {} };
     }
 
     const projects = await this.prisma.project.findMany({

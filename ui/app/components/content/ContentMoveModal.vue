@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type ContentCollection, useContentCollections } from '~/composables/useContentCollections'
+import { useProjects } from '~/composables/useProjects'
 import { buildGroupTreeFromRoot, type ContentLibraryTreeItem } from '~/composables/useContentLibraryGroupsTree'
 import CommonInfoTooltip from '~/components/common/CommonInfoTooltip.vue'
 import ContentGroupSelectTree from './ContentGroupSelectTree.vue'
@@ -13,23 +14,6 @@ interface Props {
   collections: ContentCollection[]
   projects: any[]
   folderTreeItems: any[]
-}
-
-const handleSelectTargetProject = (projectId: string | null) => {
-  if (projectActionMode.value === 'COPY') {
-    emit('move', {
-      operation: 'COPY_TO_PROJECT',
-      projectId,
-    })
-    isOpen.value = false
-    return
-  }
-
-  emit('move', {
-    operation: 'SET_PROJECT',
-    projectId,
-  })
-  isOpen.value = false
 }
 
 const props = defineProps<Props>()
@@ -59,6 +43,7 @@ const toGroupTreeItems = computed<ContentLibraryTreeItem[]>(() => {
 })
 const { t } = useI18n()
 const { listCollections } = useContentCollections()
+const { fetchProjects, isLoading: isLoadingProjects } = useProjects()
 
 const targetProjectId = ref<string | null>(null)
 const targetGroupIdInProject = ref<string | null>(null)
@@ -66,7 +51,6 @@ const targetProjectCollections = ref<ContentCollection[]>([])
 const isLoadingTargetCollections = ref(false)
 
 const projectsWithCollections = ref<any[]>([])
-const isLoadingProjectsWithCollections = ref(false)
 
 const moveMode = ref<'MOVE' | 'LINK'>('MOVE')
 const otherCollectionMoveMode = ref<'MOVE' | 'LINK'>('MOVE')
@@ -209,27 +193,11 @@ async function fetchProjectsWithCollections() {
     return
   }
 
-  isLoadingProjectsWithCollections.value = true
   try {
-    const candidates = (props.projects ?? []).filter(p => p)
-
-    const results = await Promise.allSettled(
-      candidates.map(async (p) => {
-        const cols = await listCollections('project', p.id)
-        return { project: p, hasCollections: Array.isArray(cols) && cols.length > 0 }
-      }),
-    )
-
-    projectsWithCollections.value = results
-      .filter(r => r.status === 'fulfilled')
-      .map(r => (r as PromiseFulfilledResult<{ project: any; hasCollections: boolean }>).value)
-      .filter(v => v.hasCollections)
-      .map(v => v.project)
+    projectsWithCollections.value = await fetchProjects({ hasContentCollections: true })
   } catch (e) {
     console.error('Failed to fetch projects collections', e)
     projectsWithCollections.value = []
-  } finally {
-    isLoadingProjectsWithCollections.value = false
   }
 }
 
@@ -361,7 +329,20 @@ function handleConfirmMoveToProjectSavedView() {
 }
 
 function handleMoveToPersonal() {
-  handleSelectTargetProject(null)
+  if (projectActionMode.value === 'COPY') {
+    emit('move', {
+      operation: 'COPY_TO_PROJECT',
+      projectId: null,
+    })
+    isOpen.value = false
+    return
+  }
+
+  emit('move', {
+    operation: 'SET_PROJECT',
+    projectId: null,
+  })
+  isOpen.value = false
 }
 
 watch(isOpen, (next) => {
@@ -501,7 +482,7 @@ watch(isOpen, (next) => {
               searchable
               :search-input="{ placeholder: t('contentLibrary.bulk.selectProject') }"
               :placeholder="t('contentLibrary.bulk.selectProject')"
-              :loading="isLoadingProjectsWithCollections"
+              :loading="isLoadingProjects"
             >
               <template #leading>
                 <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
@@ -517,8 +498,7 @@ watch(isOpen, (next) => {
                 {{ projectActionMode === 'COPY' ? t('common.copy') : t('common.move') }}
               </UButton>
             </div>
-
-            <div v-else-if="targetProjectId" class="space-y-2">
+            <div v-if="targetProjectId && !isPersonalTargetSelected" class="space-y-4">
               <UFormField :label="t('contentLibrary.moveModal.selectCollectionInProject')">
                 <USelectMenu
                   :items="targetProjectCollectionOptions"
@@ -530,7 +510,7 @@ watch(isOpen, (next) => {
                 />
               </UFormField>
 
-              <div v-if="hasSelectedProjectCollection" class="space-y-2">
+              <div class="space-y-2">
                 <div v-if="selectedTargetProjectCollection?.type === 'GROUP'" class="py-2 max-h-60 overflow-y-auto custom-scrollbar">
                   <ContentGroupSelectTree
                     v-if="targetProjectCollectionTreeItems.length > 0"
@@ -538,13 +518,22 @@ watch(isOpen, (next) => {
                     @select="handleMoveToProjectGroup"
                   />
                 </div>
-                <div v-else class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
+                <div v-else-if="selectedTargetProjectCollection" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
                   <UButton
                     color="primary"
                     icon="i-heroicons-arrow-right-circle"
                     @click="handleConfirmMoveToProjectSavedView"
                   >
                     {{ t('common.move') }}
+                  </UButton>
+                </div>
+                <div v-else class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
+                  <UButton
+                    color="primary"
+                    icon="i-heroicons-arrow-right-circle"
+                    @click="handleConfirmMoveToProjectSavedView"
+                  >
+                    {{ projectActionMode === 'COPY' ? t('common.copy') : t('common.move') }}
                   </UButton>
                 </div>
               </div>

@@ -19,4 +19,9 @@ export class FindProjectsQueryDto {
   @Min(VALIDATION_LIMITS.MIN_PAGE_LIMIT)
   @Max(VALIDATION_LIMITS.MAX_PAGE_LIMIT)
   limit?: number;
+
+  @IsOptional()
+  @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)
+  @IsBoolean()
+  hasContentCollections?: boolean;
 }
