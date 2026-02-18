@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
 import { PublicationsService } from '../publications/publications.service.js';
+import { UnsplashService } from './unsplash.service.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -40,6 +41,7 @@ export class ContentLibraryController {
     private readonly collectionsService: ContentCollectionsService,
     private readonly itemsService: ContentItemsService,
     private readonly publicationsService: PublicationsService,
+    private readonly unsplashService: UnsplashService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -212,6 +214,46 @@ export class ContentLibraryController {
         items: mappedItems,
         total: res.total,
         totalUnfiltered: res.totalUnfiltered,
+        limit,
+        offset,
+      };
+    }
+
+    if ((collection.type as any) === 'UNSPLASH') {
+      const query = typeof search === 'string' ? search.trim() : '';
+      const page = Math.floor((offset ?? 0) / (limit ?? 20)) + 1;
+
+      const res = await this.unsplashService.searchPhotos({
+        query,
+        page,
+        perPage: limit ?? 20,
+        orderBy: 'relevant',
+      });
+
+      const mappedItems = res.items.map((photo) => ({
+        id: photo.id,
+        title: photo.description || photo.altDescription || null,
+        text: null,
+        tags: photo.tags.map((t) => t.title).filter(Boolean),
+        createdAt: photo.createdAt,
+        archivedAt: null,
+        media: [],
+        _virtual: {
+          source: 'unsplash',
+          unsplashId: photo.id,
+          unsplashUser: photo.user.name,
+          unsplashUsername: photo.user.username,
+          unsplashUserUrl: photo.user.links.html,
+          unsplashUrl: photo.links.html,
+          thumbUrl: photo.urls.small,
+          regularUrl: photo.urls.regular,
+        },
+      }));
+
+      return {
+        items: mappedItems,
+        total: res.total,
+        totalUnfiltered: res.total,
         limit,
         offset,
       };

@@ -101,7 +101,10 @@ const items = ref<any[]>([])
 const availableTags = ref<string[]>([])
 const selectedIds = ref<string[]>([])
 
-const isSelectionDisabled = computed(() => activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL')
+const isSelectionDisabled = computed(() =>
+  activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL' ||
+  activeCollection.value?.type === 'UNSPLASH'
+)
 
 interface ContentLibraryTabState {
   q: string
@@ -216,6 +219,12 @@ const sortOptions = computed(() => {
     ]
   }
 
+  if (activeCollection.value?.type === 'UNSPLASH') {
+    return [
+      { id: 'combined', label: t('contentLibrary.unsplash.sortRelevance'), icon: 'i-heroicons-magnifying-glass' },
+    ]
+  }
+
   return [
     { id: 'createdAt', label: t('common.createdAt'), icon: 'i-heroicons-calendar-days' },
     { id: 'title', label: t('common.title'), icon: 'i-heroicons-document-text' },
@@ -232,6 +241,10 @@ const isSavedView = (c: ContentCollection | null | undefined): c is ContentColle
 
 const isPublicationMediaVirtual = (c: ContentCollection | null | undefined): c is ContentCollection => {
   return !!c && c.type === 'PUBLICATION_MEDIA_VIRTUAL'
+}
+
+const isUnsplash = (c: ContentCollection | null | undefined): c is ContentCollection => {
+  return !!c && c.type === 'UNSPLASH'
 }
 
 const getSavedViewConfigBoolean = (collection: ContentCollection, key: string, defaultValue: boolean) => {
@@ -260,6 +273,14 @@ const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection
   }
 
   if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
+
+    if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
+    if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
+  }
+
+  if (collection.type === 'UNSPLASH') {
     const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
     const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
 
@@ -402,9 +423,51 @@ const debouncedPersistPublicationMediaVirtualStateToDb = useDebounceFn(async () 
   }
 }, 500)
 
+const persistUnsplashStateToDb = async () => {
+  const collection = activeCollection.value
+  if (!isUnsplash(collection)) return
+
+  const state = ensureTabState(collection.id)
+  const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
+  const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
+
+  const nextConfig: Record<string, any> = {
+    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
+      ? (collection as any).config
+      : {}),
+    persistSearch,
+    persistTags,
+    sortBy: state.sortBy,
+    sortOrder: state.sortOrder,
+  }
+
+  if (persistSearch) nextConfig.q = state.q
+  else delete nextConfig.q
+
+  if (persistTags) nextConfig.selectedTags = state.selectedTags
+  else delete nextConfig.selectedTags
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
+}
+
+const debouncedPersistUnsplashStateToDb = useDebounceFn(async () => {
+  try {
+    await persistUnsplashStateToDb()
+  } catch {
+    // ignore persistence errors
+  }
+}, 500)
+
 const setSavedViewPersistSearch = async (value: boolean) => {
   const collection = activeCollection.value
-  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
+  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection) && !isUnsplash(collection)) return
 
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
@@ -425,7 +488,7 @@ const setSavedViewPersistSearch = async (value: boolean) => {
 
 const setSavedViewPersistTags = async (value: boolean) => {
   const collection = activeCollection.value
-  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
+  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection) && !isUnsplash(collection)) return
 
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
@@ -497,6 +560,30 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
       return
     }
 
+    if (activeCollection.value?.type === 'UNSPLASH') {
+      const res = await api.get<any>(`/content-library/collections/${activeCollection.value.id}/items`, {
+        params: {
+          scope: props.scope,
+          projectId: props.projectId,
+          search: q.value || undefined,
+          limit,
+          offset: offset.value,
+        },
+      })
+      if (requestId !== fetchItemsRequestId) return
+
+      const nextItems = res.items ?? []
+
+      total.value = Number(res.total ?? nextItems.length)
+      if (typeof res.totalUnfiltered === 'number') totalUnfiltered.value = res.totalUnfiltered
+      else if (offset.value === 0) totalUnfiltered.value = total.value
+      if (offset.value === 0) totalInScope.value = total.value
+
+      if (offset.value === 0) items.value = nextItems
+      else items.value = [...items.value, ...nextItems]
+      return
+    }
+
     const res = await api.get<any>('/content-library/items', {
       params: {
         scope: props.scope,
@@ -539,7 +626,7 @@ const fetchAvailableTags = async () => {
   const requestId = ++fetchAvailableTagsRequestId
   try {
     if (!activeCollection.value) return
-    if (activeCollection.value.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    if (activeCollection.value.type === 'PUBLICATION_MEDIA_VIRTUAL' || activeCollection.value.type === 'UNSPLASH') {
       if (requestId !== fetchAvailableTagsRequestId) return
       availableTags.value = []
       return
@@ -568,6 +655,9 @@ watch(activeCollection, (next, prev) => {
     selectedIds.value = []
     if (next) initTabStateFromCollectionConfigIfMissing(next)
     if (next?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+      sortBy.value = 'combined'
+      selectedIds.value = []
+    } else if (next?.type === 'UNSPLASH') {
       sortBy.value = 'combined'
       selectedIds.value = []
     } else {
@@ -619,6 +709,10 @@ watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => {
 
   if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
     debouncedPersistPublicationMediaVirtualStateToDb()
+  }
+
+  if (collection.type === 'UNSPLASH') {
+    debouncedPersistUnsplashStateToDb()
   }
 })
 
@@ -947,32 +1041,40 @@ const handleOpenItem = (item: any) => {
     return
   }
 
+  // UNSPLASH items have no modal view
+  if (activeCollection.value?.type === 'UNSPLASH') return
+
   activeItem.value = item
   isEditModalOpen.value = true
 }
 
 const handleArchiveFromGrid = (id: string) => {
   if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  if (activeCollection.value?.type === 'UNSPLASH') return
   archiveItem(id)
 }
 
 const handleRestoreFromGrid = (id: string) => {
   if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  if (activeCollection.value?.type === 'UNSPLASH') return
   restoreItem(id)
 }
 
 const handleDeleteForeverFromGrid = (id: string) => {
   if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  if (activeCollection.value?.type === 'UNSPLASH') return
   deleteItemForever(id)
 }
 
 const handleCreatePublicationFromGrid = (item: any) => {
   if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  if (activeCollection.value?.type === 'UNSPLASH') return
   handleCreatePublication(item)
 }
 
 const handleMoveFromGrid = (ids: string[]) => {
   if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') return
+  if (activeCollection.value?.type === 'UNSPLASH') return
   handleOpenMoveModal(ids)
 }
 
@@ -1050,7 +1152,8 @@ onMounted(() => { fetchItems() })
         :is-uploading-files="isUploadingFiles"
         :is-archiving-id="isArchivingId"
         :is-restoring-id="isRestoringId"
-        :hide-actions="activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL'"
+        :hide-actions="activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL' || activeCollection?.type === 'UNSPLASH'"
+        :is-unsplash="activeCollection?.type === 'UNSPLASH'"
         @select-all="toggleSelectAll"
         @toggle-selection="toggleSelection"
         @load-more="loadMore"

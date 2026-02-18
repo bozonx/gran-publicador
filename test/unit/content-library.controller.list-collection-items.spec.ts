@@ -19,6 +19,10 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     findAllForUser: jest.fn() as any,
   };
 
+  const mockUnsplashService = {
+    searchPhotos: jest.fn() as any,
+  };
+
   const mockPrismaService = {
     contentItem: {
       findUnique: jest.fn() as any,
@@ -33,9 +37,11 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
       mockCollectionsService as any,
       mockItemsService as any,
       mockPublicationsService as any,
+      mockUnsplashService as any,
       mockPrismaService as any,
     );
   });
+
 
   it('uses PublicationsService.findAll for project scope PUBLICATION_MEDIA_VIRTUAL', async () => {
     mockCollectionsService.assertCollectionAccess.mockResolvedValue({

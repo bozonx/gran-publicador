@@ -159,7 +159,8 @@ export class ContentCollectionsService {
 
     if (
       (collection.type as any) === 'SAVED_VIEW' ||
-      (collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL'
+      (collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL' ||
+      (collection.type as any) === 'UNSPLASH'
     ) {
       if (collection.userId !== options.userId) {
         throw new ForbiddenException('You do not have access to this collection');
@@ -340,6 +341,7 @@ export class ContentCollectionsService {
               },
               { type: 'SAVED_VIEW', userId },
               { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
+              { type: 'UNSPLASH', userId },
             ],
           };
 
@@ -347,6 +349,7 @@ export class ContentCollectionsService {
       where,
       orderBy: { order: 'asc' },
     });
+
 
     const groupIds = collections.filter(c => c.type === 'GROUP').map(c => c.id);
 
@@ -396,7 +399,7 @@ export class ContentCollectionsService {
     dto: {
       scope: 'personal' | 'project';
       projectId?: string;
-      type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL';
+      type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL' | 'UNSPLASH';
       groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
       parentId?: string;
       title: string;
@@ -445,6 +448,7 @@ export class ContentCollectionsService {
               },
               { type: 'SAVED_VIEW', userId },
               { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
+              { type: 'UNSPLASH', userId },
             ],
           };
 
@@ -488,7 +492,7 @@ export class ContentCollectionsService {
               userId:
                 dto.scope === 'personal'
                   ? userId
-                  : dto.type === 'SAVED_VIEW' || dto.type === 'PUBLICATION_MEDIA_VIRTUAL'
+                  : dto.type === 'SAVED_VIEW' || dto.type === 'PUBLICATION_MEDIA_VIRTUAL' || dto.type === 'UNSPLASH'
                     ? userId
                     : resolvedChildGroupType === 'PROJECT_SHARED'
                       ? null
@@ -646,6 +650,7 @@ export class ContentCollectionsService {
               },
               { type: 'SAVED_VIEW', userId },
               { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
+              { type: 'UNSPLASH', userId },
             ],
           };
 

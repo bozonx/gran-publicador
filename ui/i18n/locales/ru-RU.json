@@ -517,6 +517,10 @@
         "publicationMediaVirtual": {
           "title": "Медиа из публикаций",
           "description": "Виртуальная библиотека, показывающая медиа, текст и теги из ваших публикаций"
+        },
+        "unsplash": {
+          "title": "Unsplash",
+          "description": "Поиск бесплатных фотографий из библиотеки Unsplash"
         }
       }
     },
@@ -548,7 +552,12 @@
       }
     },
     "title": "Библиотека контента",
-    "untitled": "Без названия"
+    "untitled": "Без названия",
+    "unsplash": {
+      "photoAlt": "Фото с Unsplash",
+      "openOnUnsplash": "Открыть на Unsplash",
+      "sortRelevance": "По релевантности"
+    }
   },
   "dashboard": {
     "group_admin": "Администратор",

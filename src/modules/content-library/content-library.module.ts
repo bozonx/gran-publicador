@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
@@ -8,11 +9,12 @@ import { ContentLibraryController } from './content-library.controller.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
 import { ContentLibraryService } from './content-library.service.js';
+import { UnsplashService } from './unsplash.service.js';
 
 @Module({
-  imports: [PrismaModule, ApiTokensModule, TagsModule, forwardRef(() => PublicationsModule)],
+  imports: [ConfigModule, PrismaModule, ApiTokensModule, TagsModule, forwardRef(() => PublicationsModule)],
   controllers: [ContentLibraryController],
-  providers: [ContentCollectionsService, ContentItemsService, ContentLibraryService],
-  exports: [ContentCollectionsService, ContentItemsService, ContentLibraryService],
+  providers: [ContentCollectionsService, ContentItemsService, ContentLibraryService, UnsplashService],
+  exports: [ContentCollectionsService, ContentItemsService, ContentLibraryService, UnsplashService],
 })
 export class ContentLibraryModule {}

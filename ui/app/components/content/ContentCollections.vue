@@ -41,7 +41,12 @@ const activeCollectionId = computed({
 
 const topLevelCollections = computed<ContentCollection[]>({
   get: () => {
-    const list = collections.value.filter(collection => collection.type === 'SAVED_VIEW' || collection.type === 'PUBLICATION_MEDIA_VIRTUAL' || !collection.parentId)
+    const list = collections.value.filter(collection =>
+      collection.type === 'SAVED_VIEW' ||
+      collection.type === 'PUBLICATION_MEDIA_VIRTUAL' ||
+      collection.type === 'UNSPLASH' ||
+      !collection.parentId
+    )
     
     // Add virtual trash collection
     list.push({
@@ -196,7 +201,7 @@ const fetchCollections = async () => {
   }
 }
 
-const handleCreateCollection = async (data: { type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }) => {
+const handleCreateCollection = async (data: { type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL' | 'UNSPLASH'; title: string; groupType?: 'PROJECT_USER' | 'PROJECT_SHARED' }) => {
   try {
     const resolvedGroupType =
       props.scope === 'project' && data.type === 'GROUP'
@@ -295,6 +300,10 @@ const getCollectionIcon = (collection: ContentCollection) => {
 
   if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
     return 'i-heroicons-photo'
+  }
+
+  if (collection.type === 'UNSPLASH') {
+    return 'i-heroicons-camera'
   }
 
   if (collection.type === 'TRASH') {

@@ -75,6 +75,7 @@ const infoTooltipText = computed(() => {
 })
 
 const isPublicationMediaVirtual = computed(() => props.activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL')
+const isUnsplash = computed(() => props.activeCollection?.type === 'UNSPLASH')
 
 const sortByToggleOptions = computed(() => {
   return (props.sortOptions ?? []).map((opt: any) => ({
@@ -103,6 +104,7 @@ const isSearchPersisted = computed(() => {
   if (!props.activeCollection) return false
   if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistSearch.value
   if (props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') return savedViewPersistSearch.value
+  if (props.activeCollection.type === 'UNSPLASH') return savedViewPersistSearch.value
   return false
 })
 
@@ -110,6 +112,7 @@ const isTagsPersisted = computed(() => {
   if (!props.activeCollection) return false
   if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistTags.value
   if (props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') return publicationMediaVirtualPersistTags.value
+  if (props.activeCollection.type === 'UNSPLASH') return publicationMediaVirtualPersistTags.value
   return false
 })
 
@@ -117,7 +120,16 @@ const toolbarMenuItems = computed(() => {
   const items: any[] = []
 
   if (props.activeCollection) {
-    if (props.activeCollection.type === 'SAVED_VIEW' || props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    if (
+      props.activeCollection.type === 'SAVED_VIEW' ||
+      props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL' ||
+      props.activeCollection.type === 'UNSPLASH'
+    ) {
+      const currentPersistTags =
+        props.activeCollection.type === 'SAVED_VIEW'
+          ? savedViewPersistTags.value
+          : publicationMediaVirtualPersistTags.value
+
       items.push([
         {
           label: t('contentLibrary.savedView.persistSearch.label'),
@@ -130,19 +142,12 @@ const toolbarMenuItems = computed(() => {
         },
         {
           label: t('contentLibrary.savedView.persistTags.label'),
-          icon: (props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value)
-            ? 'i-heroicons-check-circle'
-            : 'i-heroicons-x-circle',
-          color: (props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value)
-            ? 'success'
-            : 'neutral',
-          title: (props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value)
+          icon: currentPersistTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+          color: currentPersistTags ? 'success' : 'neutral',
+          title: currentPersistTags
             ? t('contentLibrary.savedView.persistTags.enabledTitle')
             : t('contentLibrary.savedView.persistTags.disabledTitle'),
-          onSelect: () => emit(
-            'set-saved-view-persist-tags',
-            !(props.activeCollection.type === 'SAVED_VIEW' ? savedViewPersistTags.value : publicationMediaVirtualPersistTags.value),
-          ),
+          onSelect: () => emit('set-saved-view-persist-tags', !currentPersistTags),
         },
       ])
 
@@ -287,13 +292,13 @@ const toolbarMenuItems = computed(() => {
 
           <div class="flex items-center justify-end gap-2 shrink-0 flex-nowrap">
             <UiAppButtonGroup
-              v-if="!isPublicationMediaVirtual"
+              v-if="!isPublicationMediaVirtual && !isUnsplash"
               v-model="sortBy"
               :options="sortByToggleOptions"
               active-variant="solid"
               variant="outline"
             />
-            <UButton class="cursor-pointer" :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
+            <UButton v-if="!isUnsplash" class="cursor-pointer" :icon="sortOrderIcon" color="neutral" variant="ghost" :title="sortOrderLabel" @click="emit('toggle-sort-order')" />
 
             <UDropdownMenu v-if="toolbarMenuItems.length > 0" :items="toolbarMenuItems">
               <UButton
@@ -309,7 +314,7 @@ const toolbarMenuItems = computed(() => {
         </div>
 
         <div
-          v-if="activeCollection && !isPublicationMediaVirtual"
+          v-if="activeCollection && !isPublicationMediaVirtual && !isUnsplash"
           class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800"
         >
           <div class="flex items-center gap-3">

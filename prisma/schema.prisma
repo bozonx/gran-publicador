@@ -740,6 +740,7 @@ enum ContentCollectionType {
   GROUP
   SAVED_VIEW
   PUBLICATION_MEDIA_VIRTUAL
+  UNSPLASH
 }
 
  enum ContentLibraryGroupType {
