@@ -112,7 +112,6 @@ const isTagsPersisted = computed(() => {
   if (!props.activeCollection) return false
   if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistTags.value
   if (props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') return publicationMediaVirtualPersistTags.value
-  if (props.activeCollection.type === 'UNSPLASH') return publicationMediaVirtualPersistTags.value
   return false
 })
 
@@ -130,7 +129,7 @@ const toolbarMenuItems = computed(() => {
           ? savedViewPersistTags.value
           : publicationMediaVirtualPersistTags.value
 
-      items.push([
+      const configItems = [
         {
           label: t('contentLibrary.savedView.persistSearch.label'),
           icon: savedViewPersistSearch.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
@@ -140,16 +139,24 @@ const toolbarMenuItems = computed(() => {
             : t('contentLibrary.savedView.persistSearch.disabledTitle'),
           onSelect: () => emit('set-saved-view-persist-search', !savedViewPersistSearch.value),
         },
-        {
-          label: t('contentLibrary.savedView.persistTags.label'),
-          icon: currentPersistTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
-          color: currentPersistTags ? 'success' : 'neutral',
-          title: currentPersistTags
-            ? t('contentLibrary.savedView.persistTags.enabledTitle')
-            : t('contentLibrary.savedView.persistTags.disabledTitle'),
-          onSelect: () => emit('set-saved-view-persist-tags', !currentPersistTags),
-        },
-      ])
+      ]
+
+      if (props.activeCollection.type !== 'UNSPLASH') {
+        items.push([
+          ...configItems,
+          {
+            label: t('contentLibrary.savedView.persistTags.label'),
+            icon: currentPersistTags ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+            color: currentPersistTags ? 'success' : 'neutral',
+            title: currentPersistTags
+              ? t('contentLibrary.savedView.persistTags.enabledTitle')
+              : t('contentLibrary.savedView.persistTags.disabledTitle'),
+            onSelect: () => emit('set-saved-view-persist-tags', !currentPersistTags),
+          },
+        ])
+      } else {
+        items.push(configItems)
+      }
 
       if (props.activeCollection.type === 'SAVED_VIEW' && !props.orphansOnly) {
         items.push([
@@ -273,6 +280,7 @@ const toolbarMenuItems = computed(() => {
               <CommonSearchInput v-model="q" :placeholder="t('contentLibrary.searchPlaceholder')" class="w-full" />
             </div>
             <div
+              v-if="!isUnsplash"
               class="w-full sm:flex-1 sm:min-w-0 border-b-2"
               :class="isTagsPersisted ? 'border-primary-500' : 'border-primary-500/30'"
             >

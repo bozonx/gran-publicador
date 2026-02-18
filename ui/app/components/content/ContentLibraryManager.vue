@@ -286,10 +286,8 @@ const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection
 
   if (collection.type === 'UNSPLASH') {
     const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
-    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
 
     if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
-    if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
   }
 
   tabStateByCollectionId[key] = base
@@ -433,23 +431,21 @@ const persistUnsplashStateToDb = async () => {
 
   const state = ensureTabState(collection.id)
   const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
-  const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
-
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
       ? (collection as any).config
       : {}),
     persistSearch,
-    persistTags,
     sortBy: state.sortBy,
     sortOrder: state.sortOrder,
   }
 
+  delete nextConfig.persistTags
+
   if (persistSearch) nextConfig.q = state.q
   else delete nextConfig.q
 
-  if (persistTags) nextConfig.selectedTags = state.selectedTags
-  else delete nextConfig.selectedTags
+  delete nextConfig.selectedTags
 
   const updated = await updateCollection(collection.id, {
     scope: props.scope,
@@ -492,7 +488,7 @@ const setSavedViewPersistSearch = async (value: boolean) => {
 
 const setSavedViewPersistTags = async (value: boolean) => {
   const collection = activeCollection.value
-  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection) && !isUnsplash(collection)) return
+  if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
 
   const nextConfig: Record<string, any> = {
     ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
