@@ -528,8 +528,6 @@ export class PublicationsService {
                               unsplashUser: photo.user.name,
                               unsplashUsername: photo.user.username,
                               unsplashUserUrl: photo.user.links.html,
-                              width: photo.width,
-                              height: photo.height,
                             },
                             description: `Photo by ${authorName} on Unsplash`,
                           },

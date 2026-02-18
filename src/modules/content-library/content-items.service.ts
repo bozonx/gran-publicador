@@ -393,8 +393,6 @@ export class ContentItemsService {
           unsplashUser: photo.user.name,
           unsplashUsername: photo.user.username,
           unsplashUserUrl: photo.user.links.html,
-          width: photo.width,
-          height: photo.height,
         },
         description: `Photo by ${photo.user.name || photo.user.username || photo.id} on Unsplash`,
       });
