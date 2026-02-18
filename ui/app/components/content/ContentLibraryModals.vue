@@ -166,9 +166,20 @@ const handleClosePublicationPreviewModal = () => {
       <PublicationPreview v-if="activePublicationId" :publication-id="activePublicationId" />
 
       <template #footer>
-        <div class="flex justify-end items-center w-full">
-          <UButton color="primary" :disabled="true" @click="handleClosePublicationPreviewModal">
+        <div class="flex justify-between items-center w-full">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-uturn-left"
+            :disabled="true"
+            class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
             В библиотеку контента
+          </UButton>
+
+          <UButton color="primary" @click="handleClosePublicationPreviewModal">
+            {{ t('common.done') }}
           </UButton>
         </div>
       </template>

@@ -61,6 +61,7 @@ function onFileInputChange(event: Event) {
   }
   input.value = ''
 }
+
 const infoTooltipText = computed(() => {
   const parts = [t('contentLibrary.actions.uploadMediaTooltip')]
 
@@ -72,6 +73,8 @@ const infoTooltipText = computed(() => {
 
   return parts.join('\n\n')
 })
+
+const isPublicationMediaVirtual = computed(() => props.activeCollection?.type === 'PUBLICATION_MEDIA_VIRTUAL')
 
 const sortByToggleOptions = computed(() => {
   return (props.sortOptions ?? []).map((opt: any) => ({
@@ -305,6 +308,7 @@ const toolbarMenuItems = computed(() => {
 
           <div class="flex items-center justify-end gap-2 shrink-0 flex-nowrap">
             <UiAppButtonGroup
+              v-if="!isPublicationMediaVirtual"
               v-model="sortBy"
               :options="sortByToggleOptions"
               active-variant="solid"
@@ -325,7 +329,10 @@ const toolbarMenuItems = computed(() => {
           </div>
         </div>
 
-        <div v-if="activeCollection" class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div
+          v-if="activeCollection && !isPublicationMediaVirtual"
+          class="flex justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800"
+        >
           <div class="flex items-center gap-3">
             <template v-if="archiveStatus === 'active'">
               <UButton
@@ -369,6 +376,7 @@ const toolbarMenuItems = computed(() => {
             </UButton>
           </div>
         </div>
+
       </div>
     </div>
   </div>

@@ -181,11 +181,18 @@ const isUploadingFiles = ref(false)
 const isStartCreating = ref(false)
 
 // Sorting Options
-const sortOptions = computed(() => [
-  { id: 'combined', label: t('common.combined'), icon: 'i-heroicons-calendar-days' },
-  { id: 'createdAt', label: t('common.createdAt'), icon: 'i-heroicons-calendar-days' },
-  { id: 'title', label: t('common.title'), icon: 'i-heroicons-document-text' }
-])
+const sortOptions = computed(() => {
+  if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+    return [
+      { id: 'combined', label: t('publication.sort.chronology'), icon: 'i-heroicons-calendar-days' },
+    ]
+  }
+
+  return [
+    { id: 'createdAt', label: t('common.createdAt'), icon: 'i-heroicons-calendar-days' },
+    { id: 'title', label: t('common.title'), icon: 'i-heroicons-document-text' },
+  ]
+})
 const currentSortOption = computed(() => sortOptions.value.find(opt => opt.id === sortBy.value))
 const sortOrderIcon = computed(() => sortOrder.value === 'asc' ? 'i-heroicons-bars-arrow-up' : 'i-heroicons-bars-arrow-down')
 const sortOrderLabel = computed(() => sortOrder.value === 'asc' ? t('common.sortOrder.asc') : t('common.sortOrder.desc'))
@@ -240,6 +247,7 @@ const updateCollectionsCache = (updated: ContentCollection) => {
   if (idx !== -1) {
     // Preserve directItemsCount since PATCH responses don't include it
     const existing = collections.value[idx]
+    if (!existing) return
     const merged = {
       ...updated,
       directItemsCount: updated.directItemsCount ?? existing.directItemsCount,
@@ -443,7 +451,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
   error.value = null
   try {
     if (activeCollection.value?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
-      const sortByParam = sortBy.value === 'title' ? 'title' : 'combined'
+      const sortByParam = 'combined'
 
       const res = await api.get<any>(`/content-library/collections/${activeCollection.value.id}/items`, {
         params: {
@@ -452,7 +460,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
           search: q.value || undefined,
           limit,
           offset: offset.value,
-          sortBy: sortByParam,
+          sortBy: 'combined',
           sortOrder: sortOrder.value,
           tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value.join(',') : undefined,
         },
@@ -541,6 +549,13 @@ watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
     selectedIds.value = []
     if (next) initTabStateFromCollectionConfigIfMissing(next)
+    if (next?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
+      sortBy.value = 'combined'
+    } else {
+      if (sortBy.value !== 'createdAt' && sortBy.value !== 'title') {
+        sortBy.value = 'createdAt'
+      }
+    }
     if (next?.type === 'GROUP') {
       let restoredGroupId: string | null = null
       if (import.meta.client) {
