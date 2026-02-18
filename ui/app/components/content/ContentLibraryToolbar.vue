@@ -350,10 +350,6 @@ const toolbarMenuItems = computed(() => {
               >
                 {{ t('contentLibrary.actions.purgeArchived') }}
               </UButton>
-
-              <div class="text-xs text-gray-500 dark:text-gray-400 ml-2 font-medium">
-                {{ t('contentLibrary.filter.archived') }}
-              </div>
             </template>
           </div>
 

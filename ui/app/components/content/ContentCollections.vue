@@ -81,6 +81,10 @@ const resolveTopLevelCollectionId = (collectionId: string | null | undefined): s
     return null
   }
 
+  if (collectionId === 'system-trash') {
+    return 'system-trash'
+  }
+
   let cursor = collectionById.value.get(collectionId)
   if (!cursor) {
     return null
@@ -302,11 +306,7 @@ const getCollectionIcon = (collection: ContentCollection) => {
 
 const getCollectionColor = (collection: ContentCollection): TabColor => {
   if (highlightedCollectionId.value === collection.id) {
-    return 'primary'
-  }
-
-  if (collection.type === 'TRASH') {
-    return highlightedCollectionId.value === collection.id ? 'error' : 'neutral'
+    return collection.type === 'TRASH' ? 'error' : 'primary'
   }
 
   return 'neutral'
