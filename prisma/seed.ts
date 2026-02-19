@@ -6,6 +6,7 @@ import {
   PublicationStatus,
   NotificationType,
   RelationGroupType,
+  TagDomain,
 } from '../src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
@@ -21,47 +22,65 @@ config();
 
 // getDatabaseUrl() will throw if DATABASE_URL is not set
 const url = getDatabaseUrl();
-console.log('Using DB URL:', url);
+const maskedUrl = (() => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.password) parsed.password = '***';
+    if (parsed.username) parsed.username = '***';
+    return parsed.toString();
+  } catch {
+    return '<invalid DATABASE_URL>';
+  }
+})();
+console.log('Using DB URL:', maskedUrl);
 
 const pool = new pg.Pool({ connectionString: url });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+const shouldReset = process.env.SEED_RESET === 'true';
+
+const normalizeTag = (value: string) => value.trim().toLowerCase();
+
 async function main() {
   console.log('🌱 Starting comprehensive seeding...');
 
   // 1. CLEAR OLD DATA
-  console.log('  Cleaning up old data...');
-  // Delete in order to respect FK constraints
-  await prisma.publicationRelationItem.deleteMany({});
-  await prisma.publicationRelationGroup.deleteMany({});
-  await prisma.apiTokenProject.deleteMany({});
-  await prisma.apiToken.deleteMany({});
-  await prisma.notification.deleteMany({});
-  await prisma.post.deleteMany({});
-  await prisma.publicationMedia.deleteMany({});
+  if (shouldReset) {
+    console.log('  Cleaning up old data (SEED_RESET=true)...');
+    // Delete in order to respect FK constraints
+    await prisma.publicationRelationItem.deleteMany({});
+    await prisma.publicationRelationGroup.deleteMany({});
+    await prisma.apiTokenProject.deleteMany({});
+    await prisma.apiToken.deleteMany({});
+    await prisma.notification.deleteMany({});
+    await prisma.post.deleteMany({});
+    await prisma.publicationMedia.deleteMany({});
 
-  // Content Library cleanup
-  await prisma.publicationContentItem.deleteMany({});
-  await prisma.contentItemMedia.deleteMany({});
-  await prisma.contentItemGroup.deleteMany({});
-  await prisma.contentItem.deleteMany({});
-  await prisma.contentCollection.deleteMany({});
+    // Content Library cleanup
+    await prisma.publicationContentItem.deleteMany({});
+    await prisma.contentItemMedia.deleteMany({});
+    await prisma.contentItemGroup.deleteMany({});
+    await prisma.contentItem.deleteMany({});
+    await prisma.contentCollection.deleteMany({});
 
-  await prisma.media.deleteMany({});
-  await prisma.publication.deleteMany({});
-  await prisma.projectAuthorSignatureVariant.deleteMany({});
-  await prisma.projectAuthorSignature.deleteMany({});
-  await prisma.channel.deleteMany({});
-  await prisma.projectNewsQuery.deleteMany({});
-  await prisma.projectMember.deleteMany({});
-  await prisma.role.deleteMany({});
-  await prisma.llmPromptTemplate.deleteMany({});
-  await prisma.llmSystemPromptHidden.deleteMany({});
-  await prisma.projectTemplate.deleteMany({});
-  await prisma.tag.deleteMany({});
-  await prisma.project.deleteMany({});
-  await prisma.user.deleteMany({});
+    await prisma.media.deleteMany({});
+    await prisma.publication.deleteMany({});
+    await prisma.projectAuthorSignatureVariant.deleteMany({});
+    await prisma.projectAuthorSignature.deleteMany({});
+    await prisma.channel.deleteMany({});
+    await prisma.projectNewsQuery.deleteMany({});
+    await prisma.projectMember.deleteMany({});
+    await prisma.role.deleteMany({});
+    await prisma.llmPromptTemplate.deleteMany({});
+    await prisma.llmSystemPromptHidden.deleteMany({});
+    await prisma.projectTemplate.deleteMany({});
+    await prisma.tag.deleteMany({});
+    await prisma.project.deleteMany({});
+    await prisma.user.deleteMany({});
+  } else {
+    console.log('  Skipping cleanup (set SEED_RESET=true to wipe data).');
+  }
 
   // 2. CREATE TEST USERS
   const devTelegramId = BigInt(
@@ -727,15 +746,17 @@ async function main() {
               .filter(Boolean)
               .map((name: string) => ({
                 where: {
-                  projectId_normalizedName: {
+                  projectId_domain_normalizedName: {
                     projectId: pub.projectId,
-                    normalizedName: name.toLowerCase(),
+                    domain: TagDomain.PUBLICATIONS,
+                    normalizedName: normalizeTag(name),
                   },
                 },
                 create: {
                   name,
-                  normalizedName: name.toLowerCase(),
+                  normalizedName: normalizeTag(name),
                   projectId: pub.projectId,
+                  domain: TagDomain.PUBLICATIONS,
                 },
               })),
           }
@@ -1114,13 +1135,35 @@ async function main() {
     const tagObjects = _tags
       ? {
           connectOrCreate: _tags.map((name: string) => {
-            const normalizedName = name.toLowerCase();
+            const normalizedName = normalizeTag(name);
             const where = itemData.projectId
-              ? { projectId_normalizedName: { projectId: itemData.projectId, normalizedName } }
-              : { userId_normalizedName: { userId: itemData.userId, normalizedName } };
+              ? {
+                  projectId_domain_normalizedName: {
+                    projectId: itemData.projectId,
+                    domain: TagDomain.CONTENT_LIBRARY,
+                    normalizedName,
+                  },
+                }
+              : {
+                  userId_domain_normalizedName: {
+                    userId: itemData.userId,
+                    domain: TagDomain.CONTENT_LIBRARY,
+                    normalizedName,
+                  },
+                };
             const create = itemData.projectId
-              ? { name, normalizedName, projectId: itemData.projectId }
-              : { name, normalizedName, userId: itemData.userId };
+              ? {
+                  name,
+                  normalizedName,
+                  projectId: itemData.projectId,
+                  domain: TagDomain.CONTENT_LIBRARY,
+                }
+              : {
+                  name,
+                  normalizedName,
+                  userId: itemData.userId,
+                  domain: TagDomain.CONTENT_LIBRARY,
+                };
             return { where, create };
           }),
         }
@@ -1190,4 +1233,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

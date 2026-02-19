@@ -164,6 +164,12 @@ npx prisma generate
 npx prisma db seed
 ``` 
 
+По умолчанию сид не удаляет существующие данные и работает идемпотентно. Для полной очистки данных перед сидом используйте:
+
+```bash
+SEED_RESET=true npx prisma db seed
+```
+
 ### 3. Настройка Telegram Mini App
 
 1. Создайте бота через [@BotFather](https://t.me/BotFather)
