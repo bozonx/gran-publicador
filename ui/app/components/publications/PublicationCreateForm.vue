@@ -29,9 +29,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   allowProjectSelection: false,
-  isProjectLocked: false,
-  isChannelLocked: false,
-  isLanguageLocked: false,
 })
 
 const emit = defineEmits<{
@@ -40,13 +37,30 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { channels, fetchChannels, fetchChannel } = useChannels()
+const { channels, fetchChannels } = useChannels()
 const { projects, fetchProjects } = useProjects()
 const { createPublication, isLoading } = usePublications()
 const { user } = useAuth()
 const { fetchByProject: fetchSignatures } = useAuthorSignatures()
 const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
 const projectSignatures = ref<ProjectAuthorSignature[]>([])
+
+const effectiveIsProjectLocked = computed(() => {
+  if (props.isProjectLocked !== undefined) return props.isProjectLocked
+  if (props.allowProjectSelection) return false
+  return Boolean(props.projectId) || Boolean(props.preselectedChannelId)
+})
+
+const effectiveIsChannelLocked = computed(() => {
+  if (props.isChannelLocked !== undefined) return props.isChannelLocked
+  return Boolean(props.preselectedChannelId)
+})
+
+const effectiveIsLanguageLocked = computed(() => {
+  if (props.isLanguageLocked !== undefined) return props.isLanguageLocked
+  if (props.allowProjectSelection) return false
+  return Boolean(props.preselectedChannelId) || Boolean(props.preselectedLanguage)
+})
 
 // Form data
 const formData = reactive({
@@ -97,7 +111,7 @@ onMounted(async () => {
 
 watch(() => props.projectId, (newProjectId) => {
   if (!newProjectId) return
-  if (props.isProjectLocked) {
+  if (effectiveIsProjectLocked.value) {
     formData.projectId = newProjectId
     lastAppliedProjectId.value = newProjectId
     return
@@ -331,7 +345,7 @@ async function handleCreate() {
   <form id="publication-create-form" class="space-y-6" @submit.prevent="handleCreate">
     <!-- Project Selection -->
     <UFormField
-      v-if="!isProjectLocked"
+      v-if="!effectiveIsProjectLocked"
       :label="t('project.title')"
       required
     >
@@ -346,7 +360,7 @@ async function handleCreate() {
 
     <!-- Language -->
     <UFormField
-      v-if="!isLanguageLocked"
+      v-if="!effectiveIsLanguageLocked"
       :label="t('common.language')"
       required
     >
@@ -400,7 +414,7 @@ async function handleCreate() {
 
     <!-- Channels -->
     <UFormField
-      v-if="formData.projectId && !isChannelLocked"
+      v-if="formData.projectId && !effectiveIsChannelLocked"
       :label="t('publication.selectChannels')"
       :help="t('publication.channelsHelp')"
     >

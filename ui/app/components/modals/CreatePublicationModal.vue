@@ -31,16 +31,6 @@ const { t } = useI18n()
 const router = useRouter()
 const isOpen = defineModel<boolean>('open', { required: true })
 
-const isProjectLocked = computed(() => {
-  if (props.allowProjectSelection) return false
-  return Boolean(props.projectId) || Boolean(props.preselectedChannelId)
-})
-const isChannelLocked = computed(() => Boolean(props.preselectedChannelId))
-const isLanguageLocked = computed(() => {
-  if (props.allowProjectSelection) return false
-  return Boolean(props.preselectedChannelId) || Boolean(props.preselectedLanguage)
-})
-
 function handleSuccess(publicationId: string) {
   isOpen.value = false
   emit('success', publicationId)
@@ -61,6 +51,7 @@ function handleCancel() {
       :preselected-channel-id="props.preselectedChannelId"
       :preselected-post-type="props.preselectedPostType"
       :preselected-channel-ids="props.preselectedChannelIds"
+      :allow-project-selection="props.allowProjectSelection"
       :prefilled-title="props.prefilledTitle"
       :prefilled-content="props.prefilledContent"
       :prefilled-media-ids="props.prefilledMediaIds"
@@ -68,9 +59,6 @@ function handleCancel() {
       :prefilled-note="props.prefilledNote"
       :prefilled-content-item-ids="props.prefilledContentItemIds"
       :prefilled-unsplash-id="props.prefilledUnsplashId"
-      :is-project-locked="isProjectLocked"
-      :is-channel-locked="isChannelLocked"
-      :is-language-locked="isLanguageLocked"
       @success="handleSuccess"
       @cancel="handleCancel"
     />
