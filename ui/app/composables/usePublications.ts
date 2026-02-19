@@ -239,6 +239,7 @@ export function usePublications() {
   async function fetchPublicationsByProject(
     projectId: string,
     filters: PublicationsFilter = {},
+    options: { append?: boolean } = {},
   ): Promise<PaginatedPublications> {
     isLoading.value = true;
     error.value = null;
@@ -267,7 +268,13 @@ export function usePublications() {
       const data = await api.get<PaginatedPublications>('/publications', { params });
       const normalizedItems = data.items.map(normalizePublication);
       const normalizedData = { ...data, items: normalizedItems };
-      publications.value = normalizedItems;
+
+      if (options.append) {
+        publications.value = [...publications.value, ...normalizedItems];
+      } else {
+        publications.value = normalizedItems;
+      }
+
       totalCount.value = data.meta.total;
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return normalizedData;
@@ -299,6 +306,7 @@ export function usePublications() {
 
   async function fetchUserPublications(
     filters: PublicationsFilter = {},
+    options: { append?: boolean } = {},
   ): Promise<PaginatedPublications> {
     isLoading.value = true;
     error.value = null;
@@ -329,7 +337,13 @@ export function usePublications() {
       const data = await api.get<PaginatedPublications>('/publications', { params });
       const normalizedItems = data.items.map(normalizePublication);
       const normalizedData = { ...data, items: normalizedItems };
-      publications.value = normalizedItems;
+
+      if (options.append) {
+        publications.value = [...publications.value, ...normalizedItems];
+      } else {
+        publications.value = normalizedItems;
+      }
+
       totalCount.value = data.meta.total;
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return normalizedData;

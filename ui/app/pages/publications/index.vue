@@ -177,10 +177,10 @@ if (import.meta.client) {
 const { viewMode, isListView, isCardsView } = useViewMode('publications-view', 'list')
 
 // Fetch publications with current filters
-async function fetchPublications() {
+async function fetchPublications(options: { append?: boolean } = {}) {
   await fetchUserPublications({
     limit: limit.value,
-    offset: (currentPage.value - 1) * limit.value,
+    offset: options.append ? publications.value.length : (currentPage.value - 1) * limit.value,
     includeArchived: false,
     archivedOnly: showArchivedFilter.value === 'archived',
     sortBy: sortBy.value as any,
@@ -193,7 +193,16 @@ async function fetchPublications() {
     ownership: ownershipFilter.value as any,
     socialMedia: selectedSocialMedia.value as any,
     tags: selectedTags.value || undefined,
-  })
+  }, options)
+}
+
+const hasMore = computed(() => {
+  return publications.value.length < totalCount.value
+})
+
+async function loadMore() {
+  if (isLoading.value || !hasMore.value) return
+  await fetchPublications({ append: true })
 }
 
 // Initial data load
@@ -227,9 +236,9 @@ onMounted(async () => {
 
 // Reactively re-fetch when any filter changes
 watch(
-  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, selectedTags, debouncedSearch, showArchivedFilter, sortBy, sortOrder, currentPage], 
+  [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, selectedTags, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
   () => {
-    fetchPublications()
+    fetchPublications({ append: false })
   }
 )
 
@@ -609,32 +618,38 @@ async function handleDelete() {
       </div>
     </div>
 
-    <div v-if="isListView" class="space-y-4">
-        <PublicationsPublicationListItem
-          v-for="pub in filteredPublications"
-          :key="pub.id"
-          :publication="pub"
-          :selected="selectedIds.includes(pub.id)"
-          show-project-info
-          @click="goToPublication"
-          @delete="confirmDelete"
-          @update:selected="toggleSelection(pub.id)"
-        />
-    </div>
+    <CommonInfiniteList
+      :is-loading="isLoading"
+      :has-more="hasMore"
+      @load-more="loadMore"
+    >
+      <div v-if="isListView" class="space-y-4">
+          <PublicationsPublicationListItem
+            v-for="pub in filteredPublications"
+            :key="pub.id"
+            :publication="pub"
+            :selected="selectedIds.includes(pub.id)"
+            show-project-info
+            @click="goToPublication"
+            @delete="confirmDelete"
+            @update:selected="toggleSelection(pub.id)"
+          />
+      </div>
 
-    <!-- Publications cards view -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <PublicationsPublicationCard
-          v-for="pub in filteredPublications"
-          :key="pub.id"
-          :publication="pub"
-          :selected="selectedIds.includes(pub.id)"
-          show-project-info
-          @click="goToPublication"
-          @delete="confirmDelete"
-          @update:selected="toggleSelection(pub.id)"
-        />
-    </div>
+      <!-- Publications cards view -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <PublicationsPublicationCard
+            v-for="pub in filteredPublications"
+            :key="pub.id"
+            :publication="pub"
+            :selected="selectedIds.includes(pub.id)"
+            show-project-info
+            @click="goToPublication"
+            @delete="confirmDelete"
+            @update:selected="toggleSelection(pub.id)"
+          />
+      </div>
+    </CommonInfiniteList>
 
     <!-- Bulk Action Bar -->
     <Transition
@@ -725,16 +740,6 @@ async function handleDelete() {
       </div>
     </Transition>
 
-    <!-- Pagination -->
-    <div v-if="showPagination" class="mt-8 flex justify-center">
-      <UPagination
-        v-model:page="currentPage"
-        :total="totalCount"
-        :items-per-page="limit"
-        :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
-        :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
-      />
-    </div>
   </div>
 
   <!-- Delete Confirmation Modal -->
