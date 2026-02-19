@@ -289,11 +289,15 @@ export class MediaService {
 
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-    if (media.storageType !== StorageType.FS) {
-      throw new BadRequestException('Only FS media can be replaced');
+    
+    // Allow replacing both FS and Telegram media. 
+    // Replacing Telegram media will effectively convert it to FS.
+    if (media.storageType !== StorageType.FS && media.storageType !== StorageType.TELEGRAM) {
+      throw new BadRequestException('Only FS or Telegram media can be replaced');
     }
 
     const oldStoragePath = media.storagePath;
+    const oldStorageType = media.storageType;
     const existingMeta = this.parseMeta(media.meta);
     const existingOptimize = existingMeta.optimizationParams || {};
 
@@ -336,6 +340,7 @@ export class MediaService {
     );
 
     const updated = await this.update(id, {
+      storageType: StorageType.FS, // Always set to FS after replacement
       storagePath: fileId,
       filename,
       mimeType: metadata.mimeType,
@@ -346,16 +351,21 @@ export class MediaService {
         gp: {
           ...(existingMeta.gp || {}),
           editedAt: new Date().toISOString(),
+          originalStorageType: oldStorageType === StorageType.FS ? undefined : oldStorageType,
+          originalStoragePath: oldStorageType === StorageType.FS ? undefined : oldStoragePath,
         },
       },
     });
 
-    try {
-      await this.deleteFileFromStorage(oldStoragePath);
-    } catch (error) {
-      this.logger.error(
-        `Failed to delete old file ${oldStoragePath} from Media Storage: ${(error as Error).message}`,
-      );
+    // Only attempt to delete from storage if the previous type was FS
+    if (oldStorageType === StorageType.FS) {
+      try {
+        await this.deleteFileFromStorage(oldStoragePath);
+      } catch (error) {
+        this.logger.error(
+          `Failed to delete old file ${oldStoragePath} from Media Storage: ${(error as Error).message}`,
+        );
+      }
     }
 
     return updated;
@@ -751,13 +761,22 @@ export class MediaService {
     if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
     if (media.storageType === StorageType.FS) return this.getFileStream(media.storagePath, range);
-    else if (media.storageType === StorageType.TELEGRAM)
+    else if (media.storageType === StorageType.TELEGRAM) {
+      let mimeType = media.mimeType ?? undefined;
+      // Fallback mimeType if missing in DB
+      if (!mimeType) {
+        if (media.type === MediaType.IMAGE) mimeType = 'image/jpeg';
+        else if (media.type === MediaType.VIDEO) mimeType = 'video/mp4';
+        else if (media.type === MediaType.AUDIO) mimeType = 'audio/mpeg';
+      }
+
       return this.getTelegramStream(
         media.storagePath,
-        media.mimeType ?? undefined,
+        mimeType,
         media.filename ?? undefined,
         download,
       );
+    }
     throw new BadRequestException('Unsupported storage type');
   }
 
@@ -894,11 +913,21 @@ export class MediaService {
           );
         }
 
+        const telegramMimeType = downloadResponse.headers['content-type'] as string | undefined;
         const headers: Record<string, string> = {};
-        if (mimeType) headers['Content-Type'] = mimeType;
-        if (filename) {
+        
+        // Use provided mimeType or fallback to what Telegram sends
+        const effectiveMimeType = mimeType || telegramMimeType;
+        if (effectiveMimeType) {
+          headers['Content-Type'] = effectiveMimeType;
+        }
+        
+        // Ensure we have a filename for Content-Disposition, especially for downloads
+        const effectiveFilename = filename || (download ? `telegram_file_${fileId.substring(0, 8)}` : undefined);
+        
+        if (effectiveFilename) {
           const disposition = download ? 'attachment' : 'inline';
-          headers['Content-Disposition'] = `${disposition}; filename="${filename}"`;
+          headers['Content-Disposition'] = `${disposition}; filename="${effectiveFilename}"`;
         }
 
         this.logger.debug(`Successfully started streaming Telegram file: ${fileId}`);

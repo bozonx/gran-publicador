@@ -350,6 +350,15 @@ export function getMediaFileUrl(
   return url;
 }
 
+/**
+ * Get public URL for media file (no auth required)
+ */
+export function getPublicMediaUrl(mediaId: string, publicToken: string): string {
+  const config = useRuntimeConfig();
+  const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
+  return `${apiBase}/media/p/${mediaId}/${publicToken}`;
+}
+
 export function getMediaThumbData(media: MediaItemLike, token?: string): MediaThumbData {
   const placeholderIcon =
     media.type === 'IMAGE'

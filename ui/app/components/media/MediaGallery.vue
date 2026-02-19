@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 import type { CreateMediaInput } from '~/composables/useMedia'
-import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
+import { useMedia, getMediaFileUrl, getPublicMediaUrl } from '~/composables/useMedia'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
 import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'
@@ -560,10 +560,13 @@ function closeMediaModal() {
 
 function handleEditMedia() {
   if (!selectedMedia.value) return
-  if (selectedMedia.value.type !== 'IMAGE' || selectedMedia.value.storageType !== 'FS') {
+  const isIMAGE = (selectedMedia.value.type || '').toUpperCase() === 'IMAGE'
+  const isEditableStorage = ['FS', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
+
+  if (!isIMAGE || !isEditableStorage) {
     toast.add({
       title: t('common.error'),
-      description: t('media.editOnlyFSImages', 'Only local images can be edited'),
+      description: t('media.editOnlyFSOrTelegramImages', 'Only local or Telegram images can be edited'),
       color: 'error',
     })
     return
@@ -735,8 +738,7 @@ const resolution = computed(() => {
 
 const publicMediaUrl = computed(() => {
   if (!selectedMedia.value?.publicToken || !selectedMedia.value?.id) return null
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/api/v1/media/p/${selectedMedia.value.id}/${selectedMedia.value.publicToken}`
+  return getPublicMediaUrl(selectedMedia.value.id, selectedMedia.value.publicToken)
 })
 
 function copyPublicLink() {
@@ -1130,7 +1132,7 @@ const mediaValidation = computed(() => {
   >
     <template #header-right>
       <UButton
-        v-if="editable && selectedMedia?.type === 'IMAGE' && selectedMedia?.storageType === 'FS'"
+        v-if="editable && selectedMedia?.type === 'IMAGE' && (selectedMedia?.storageType === 'FS' || selectedMedia?.storageType === 'TELEGRAM')"
         icon="i-heroicons-pencil-square"
         variant="ghost"
         color="neutral"
