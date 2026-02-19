@@ -6,6 +6,7 @@
   "content_item_created": "✅ Saved. Send another post when ready.",
   "unsupported_message_type": "❌ Unsupported message type.",
   "button_open_mini_app": "Open in app",
+  "button_create_publication": "Create Publication",
   "command_not_found": "❓ Unknown command: {command}",
   "error_private_only": "🚫 This bot only works in private chats.",
   "error_internal": "❌ Internal error. Please try again.",

@@ -25,6 +25,10 @@ describe('utils/text', () => {
       );
     });
 
+    it('decodes non-breaking spaces', () => {
+      expect(stripHtmlAndSpecialChars('a\u00a0b')).toBe('a b');
+    });
+
     it('collapses whitespace', () => {
       expect(stripHtmlAndSpecialChars('a\n\n\n b\t\t c')).toBe('a b c');
     });
@@ -50,6 +54,11 @@ describe('utils/text', () => {
     it('decodes basic html entities without collapsing newlines', () => {
       const input = 'a&nbsp;b\n\n&lt;tag&gt; &amp; &quot;x&quot;';
       expect(sanitizeContentPreserveMarkdown(input)).toBe('a b\n\n<tag> & "x"');
+    });
+
+    it('decodes non-breaking spaces without collapsing newlines', () => {
+      const input = `a\u00a0b\n\nline2`;
+      expect(sanitizeContentPreserveMarkdown(input)).toBe('a b\n\nline2');
     });
   });
 

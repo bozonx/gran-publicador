@@ -20,6 +20,7 @@ export function stripHtmlAndSpecialChars(content: string | null | undefined): st
 
   // 2. Decode basic HTML entities that might come from Tiptap or legacy
   text = text
+    .replace(/\u00a0/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -45,6 +46,7 @@ export function sanitizeContentPreserveMarkdown(content: string | null | undefin
     .replace(/<[^>]*>/g, '');
 
   text = text
+    .replace(/\u00a0/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')

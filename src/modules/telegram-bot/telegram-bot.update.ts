@@ -37,12 +37,12 @@ export class TelegramBotUpdate {
     }
   }
 
-  private buildMiniAppContentLibraryUrl(contentItemId: string): string | null {
+  private buildMiniAppQuickPublicationUrl(contentItemId: string): string | null {
     if (!this.miniAppBaseUrl) return null;
     try {
       const url = new URL(this.miniAppBaseUrl);
       const basePath = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
-      url.pathname = `${basePath}/content-library`;
+      url.pathname = `${basePath}/publications/quick-create`;
       url.searchParams.set('contentItemId', contentItemId);
       return url.toString();
     } catch {
@@ -55,7 +55,7 @@ export class TelegramBotUpdate {
     lang: string,
     contentItemId: string,
   ): Promise<void> {
-    const miniAppUrl = this.buildMiniAppContentLibraryUrl(contentItemId);
+    const miniAppUrl = this.buildMiniAppQuickPublicationUrl(contentItemId);
     if (!miniAppUrl) {
       await ctx.reply(String(this.i18n.t('telegram.content_item_created', { lang })));
       return;
@@ -66,7 +66,7 @@ export class TelegramBotUpdate {
         inline_keyboard: [
           [
             {
-              text: String(this.i18n.t('telegram.button_open_mini_app', { lang })),
+              text: String(this.i18n.t('telegram.button_create_publication', { lang })),
               web_app: { url: miniAppUrl },
             },
           ],
