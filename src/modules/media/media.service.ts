@@ -271,7 +271,7 @@ export class MediaService {
     };
   }
 
-  public async replaceFsMediaFile(
+  public async replaceMediaFile(
     id: string,
     fileStream: Readable,
     filename: string,

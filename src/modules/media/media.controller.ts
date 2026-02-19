@@ -173,7 +173,7 @@ export class MediaController {
       }
     }
 
-    return this.mediaService.replaceFsMediaFile(
+    return this.mediaService.replaceMediaFile(
       id,
       fileStream,
       part.filename,
