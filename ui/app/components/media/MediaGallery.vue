@@ -140,6 +140,7 @@ const selectedMediaLinkId = ref<string | null>(null)
 const editableHasSpoiler = ref(false)
 const isModalOpen = ref(false)
 const isEditorOpen = ref(false)
+const editorModal = ref<any>(null)
 
 const isSavingMediaFile = ref(false)
 
@@ -1508,6 +1509,7 @@ const mediaValidation = computed(() => {
 
   <!-- Image Editor Modal -->
   <UiFullscreenModal
+    ref="editorModal"
     v-model:open="isEditorOpen"
     :prevent-close="isSavingMediaFile"
   >
@@ -1515,6 +1517,7 @@ const mediaValidation = computed(() => {
       <MediaFilerobotEditor
         :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
         :filename="selectedMedia.filename"
+        :portal-container="editorModal?.containerEl"
         @save="handleEditorSave"
         @close="handleEditorClose"
       />

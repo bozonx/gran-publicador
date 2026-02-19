@@ -7,6 +7,8 @@ let FilerobotImageEditor: any = null
 interface Props {
   source: string
   filename?: string
+  /** Container element to mount Filerobot portals into (should be the fullscreen root) */
+  portalContainer?: HTMLElement | null
 }
 
 const props = defineProps<Props>()
@@ -282,16 +284,18 @@ const editorWrapper = ref<HTMLDivElement | null>(null)
 let portalObserver: MutationObserver | null = null
 
 function adoptPortals() {
-  const wrapper = editorWrapper.value
-  if (!wrapper) return
+  // Move Filerobot React portals into the provided container (fullscreen modal root).
+  // If no container is provided, leave portals in body — they already inherit its stacking context.
+  const target = props.portalContainer ?? null
+  if (!target) return
 
   const portalIds = ['SfxPopper', 'SfxPopup']
 
   // Move any existing portals
   for (const id of portalIds) {
     const el = document.getElementById(id)
-    if (el && el.parentElement !== wrapper) {
-      wrapper.appendChild(el)
+    if (el && el.parentElement !== target) {
+      target.appendChild(el)
     }
   }
 
@@ -301,7 +305,7 @@ function adoptPortals() {
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
         if (node instanceof HTMLElement && portalIds.includes(node.id)) {
-          wrapper.appendChild(node)
+          target.appendChild(node)
         }
       }
     }
