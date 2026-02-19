@@ -796,29 +796,22 @@ const sourcesTooltipText = computed(() => {
           </div>
 
           <!-- News list -->
-          <div v-else-if="news.length > 0" class="space-y-4">
-            <NewsItem
-              v-for="item in news"
-              :key="item.id"
-              :item="item"
-              :publication-id="processedNewsMap[item.id]"
-              @create-publication="handleCreatePublication"
-            />
-            
-            <!-- Load More Button -->
-            <div v-if="hasMore" class="flex justify-center pt-4 pb-8">
-              <UButton
-                size="lg"
-                variant="soft"
-                color="neutral" 
-                :loading="isLoadMoreLoading"
-                icon="i-heroicons-arrow-down"
-                @click="loadMore"
-              >
-                {{ t('common.loadMore') }}
-              </UButton>
+          <CommonInfiniteList
+            v-else-if="news.length > 0"
+            :is-loading="isLoadMoreLoading"
+            :has-more="hasMore"
+            @load-more="loadMore"
+          >
+            <div class="space-y-4">
+              <NewsItem
+                v-for="item in news"
+                :key="item.id"
+                :item="item"
+                :publication-id="processedNewsMap[item.id]"
+                @create-publication="handleCreatePublication"
+              />
             </div>
-          </div>
+          </CommonInfiniteList>
 
           <!-- Empty state -->
           <div

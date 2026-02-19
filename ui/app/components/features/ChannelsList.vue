@@ -17,6 +17,7 @@ const { user } = useAuth()
 const {
   channels,
   isLoading,
+  totalCount,
   fetchChannels
 } = useChannels()
 
@@ -115,21 +116,42 @@ onUnmounted(() => {
   eventBus.off('channel:created', handleChannelCreatedEvent)
 })
 
-async function refreshChannels() {
+const limit = ref(15)
+const totalChannelsCount = ref(0)
+
+const hasMoreData = computed(() => {
+  return nonArchivedChannels.value.length < totalChannelsCount.value
+})
+
+async function loadMore() {
+  if (isLoading.value || !hasMoreData.value) return
+  await refreshChannels({ append: true })
+}
+
+async function refreshChannels(options: { append?: boolean } = {}) {
   if (!props.projectId) return
   
-  // Fetch all channels including archived at once
   const fetchedChannels = await fetchChannels({ 
     projectId: props.projectId, 
     includeArchived: true,
-    limit: 100 // Fetch all (max 100) channels for the project view
-  })
-  allChannels.value = fetchedChannels
+    limit: limit.value,
+    offset: options.append ? nonArchivedChannels.value.length : 0
+  }, options)
+
+  if (options.append) {
+    allChannels.value = [...allChannels.value, ...fetchedChannels]
+  } else {
+    allChannels.value = fetchedChannels
+  }
+  
+  // Update total count from server response (via composable state)
+  // useChannels updates totalCount.value
+  totalChannelsCount.value = totalCount.value
 }
 
 function handleChannelCreatedEvent(channel: any) {
   if (channel && channel.projectId === props.projectId) {
-    refreshChannels()
+    refreshChannels({ append: false })
   }
 }
 
@@ -221,14 +243,32 @@ function toggleArchivedChannels() {
       </UButton>
     </div>
 
-    <!-- Channels List View -->
-    <div v-if="isListView" class="space-y-4">
-      <ChannelListItem
-        v-for="channel in filteredChannels"
-        :key="channel.id"
-        :channel="channel"
-      />
+    <!-- Channels Lists -->
+    <CommonInfiniteList
+      :is-loading="isLoading"
+      :has-more="hasMoreData"
+      @load-more="loadMore"
+    >
+      <!-- Channels List View -->
+      <div v-if="isListView" class="space-y-4">
+        <ChannelListItem
+          v-for="channel in filteredChannels"
+          :key="channel.id"
+          :channel="channel"
+        />
+      </div>
 
+      <!-- Channels Cards View -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <ChannelCard
+          v-for="channel in filteredChannels"
+          :key="channel.id"
+          :channel="channel"
+        />
+      </div>
+    </CommonInfiniteList>
+
+    <div v-if="!isLoading && channelCount > 0" class="mt-8">
       <!-- Show/Hide Archived Button -->
       <div v-if="hasArchivedChannels" class="flex justify-center pt-4">
         <UButton
@@ -242,53 +282,34 @@ function toggleArchivedChannels() {
       </div>
 
       <!-- Archived Channels Section -->
-      <div v-if="showArchived" class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div v-if="archivedChannels.length > 0">
-           <ChannelListItem
-            v-for="channel in filteredArchivedChannels"
-            :key="channel.id"
-            :channel="channel"
-            is-archived
-          />
+      <div v-if="showArchived" class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div v-if="isListView" class="space-y-4">
+          <template v-if="archivedChannels.length > 0">
+             <ChannelListItem
+              v-for="channel in filteredArchivedChannels"
+              :key="channel.id"
+              :channel="channel"
+              is-archived
+            />
+          </template>
+          <div v-else class="text-center py-8">
+            <p class="text-gray-500 dark:text-gray-400">{{ t('channel.noArchived', 'No archived channels') }}</p>
+          </div>
         </div>
-        <div v-else class="text-center py-8">
-          <p class="text-gray-500 dark:text-gray-400">{{ t('channel.noArchived', 'No archived channels') }}</p>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <template v-if="archivedChannels.length > 0">
+            <ChannelCard
+              v-for="channel in filteredArchivedChannels"
+              :key="channel.id"
+              :channel="channel"
+              is-archived
+            />
+          </template>
+          <div v-else class="col-span-full text-center py-8">
+            <p class="text-gray-500 dark:text-gray-400">{{ t('channel.noArchived', 'No archived channels') }}</p>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- Channels Cards View -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <ChannelCard
-        v-for="channel in filteredChannels"
-        :key="channel.id"
-        :channel="channel"
-      />
-
-      <!-- Show/Hide Archived Button -->
-      <div v-if="hasArchivedChannels" class="col-span-full flex justify-center pt-4">
-        <UButton
-          :icon="showArchived ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
-          variant="ghost"
-          color="neutral"
-          @click="toggleArchivedChannels"
-        >
-          {{ showArchived ? t('common.hideArchived', 'Hide Archived') : t('common.showArchived', 'Show Archived') }}
-        </UButton>
-      </div>
-
-      <!-- Archived Channels Section -->
-      <template v-if="showArchived">
-        <ChannelCard
-          v-for="channel in filteredArchivedChannels"
-          :key="channel.id"
-          :channel="channel"
-          is-archived
-        />
-        <div v-if="archivedChannels.length === 0" class="col-span-full text-center py-8">
-          <p class="text-gray-500 dark:text-gray-400">{{ t('channel.noArchived', 'No archived channels') }}</p>
-        </div>
-      </template>
     </div>
 
     <!-- Create Channel Modal -->
