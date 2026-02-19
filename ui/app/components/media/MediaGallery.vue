@@ -66,11 +66,13 @@ const props = withDefaults(defineProps<Props>(), {
   showValidation: true,
 })
 
- interface Emits {
+interface Emits {
   (e: 'refresh'): void
- }
+  (e: 'editor-open'): void
+  (e: 'editor-close'): void
+}
 
- const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -139,8 +141,8 @@ const selectedMedia = ref<MediaItem | null>(null)
 const selectedMediaLinkId = ref<string | null>(null)
 const editableHasSpoiler = ref(false)
 const isModalOpen = ref(false)
-const isEditorOpen = ref(false)
-const editorModal = ref<any>(null)
+
+const { openEditor } = useGlobalImageEditor()
 
 const isSavingMediaFile = ref(false)
 
@@ -572,12 +574,34 @@ function handleEditMedia() {
     return
   }
 
-  isEditorOpen.value = true
+  emit('editor-open')
+  const shouldReopenMediaModalAfterEditor = isModalOpen.value
+  isModalOpen.value = false
+
+  const source = getMediaFileUrl(
+    selectedMedia.value.id,
+    authStore.accessToken || undefined,
+    selectedMedia.value.updatedAt,
+  )
+
+  openEditor({
+    source,
+    filename: selectedMedia.value.filename,
+    onSave: async (file: File) => {
+      await handleEditorSave(file)
+    },
+    onClose: async () => {
+      if (shouldReopenMediaModalAfterEditor) {
+        isModalOpen.value = true
+      }
+      emit('editor-close')
+    },
+  })
 }
 
 function handleEditorClose() {
   if (isSavingMediaFile.value) return
-  isEditorOpen.value = false
+  emit('editor-close')
 }
 
 async function handleEditorSave(file: File) {
@@ -629,7 +653,6 @@ async function handleEditorSave(file: File) {
       color: 'success',
     })
 
-    isEditorOpen.value = false
     emit('refresh')
   } catch (error: any) {
     toast.add({
@@ -665,8 +688,6 @@ function navigateToNextMedia() {
 // Keyboard navigation
 function handleKeydown(event: KeyboardEvent) {
   if (!isModalOpen.value) return
-  if (isEditorOpen.value) return
-  
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
     navigateToPreviousMedia()
@@ -1191,7 +1212,6 @@ const mediaValidation = computed(() => {
     v-model:open="isModalOpen"
     :title="selectedMedia?.filename || t('media.preview', 'Media Preview')"
     :counter-text="currentMediaIndex >= 0 ? `${currentMediaIndex + 1} / ${localMedia.length}` : undefined"
-    :prevent-close="isEditorOpen"
     @close="closeMediaModal"
   >
     <template #header-right>
@@ -1506,23 +1526,6 @@ const mediaValidation = computed(() => {
     </template>
 
   </MediaViewerModal>
-
-  <!-- Image Editor Modal -->
-  <UiFullscreenModal
-    ref="editorModal"
-    v-model:open="isEditorOpen"
-    :prevent-close="isSavingMediaFile"
-  >
-    <div v-if="selectedMedia && isEditorOpen" class="h-full w-full">
-      <MediaFilerobotEditor
-        :source="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
-        :filename="selectedMedia.filename"
-        :portal-container="editorModal?.containerEl"
-        @save="handleEditorSave"
-        @close="handleEditorClose"
-      />
-    </div>
-  </UiFullscreenModal>
 </template>
 
 <style scoped>

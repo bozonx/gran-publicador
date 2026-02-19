@@ -21,7 +21,6 @@ const emit = defineEmits<{
 const editorContainer = ref<HTMLDivElement | null>(null)
 let editorInstance: any = null
 
-const isInstantSaving = ref(false)
 const loadError = ref<string | null>(null)
 
 const colorMode = useColorMode()
@@ -202,9 +201,6 @@ const normalizeFilename = (name: string, mimeType: string): string => {
 
 async function instantSave() {
   if (!editorInstance) return
-  if (isInstantSaving.value) return
-
-  isInstantSaving.value = true
   try {
     if (typeof editorInstance.getCurrentImgData !== 'function') {
       console.error('Filerobot instantSave: getCurrentImgData is not available')
@@ -257,8 +253,6 @@ async function instantSave() {
     hideLoadingSpinner?.()
   } catch (error) {
     console.error('Filerobot instantSave: failed', error)
-  } finally {
-    isInstantSaving.value = false
   }
 }
 
@@ -282,6 +276,8 @@ function terminateEditorInstance() {
 
 const editorWrapper = ref<HTMLDivElement | null>(null)
 let portalObserver: MutationObserver | null = null
+
+let editorOpenedAtMs = 0
 
 function adoptPortals() {
   // Move Filerobot React portals into the provided container (fullscreen modal root).
@@ -373,16 +369,24 @@ async function initEditor() {
       defaultSavedImageType: 'png',
       defaultSavedImageQuality: 0.95,
       showBackButton: false,
-      removeSaveButton: true,
+      removeSaveButton: false,
       theme: {
         palette: editorPalette.value,
       },
     }
 
     editorInstance = new FilerobotImageEditor(editorContainer.value, config)
+    editorOpenedAtMs = Date.now()
     editorInstance.render({
       onClose: (closingReason: unknown) => {
         const reason = typeof closingReason === 'string' ? closingReason : ''
+
+        // Prevent immediate close caused by click-through / overlay events
+        // triggered during initialization.
+        if (Date.now() - editorOpenedAtMs < 300) {
+          console.debug('FilerobotImageEditor onClose ignored (startup guard):', closingReason)
+          return
+        }
 
         const shouldClose =
           reason === 'close-button-clicked' ||
@@ -400,8 +404,6 @@ async function initEditor() {
       },
     })
 
-    // Move Filerobot portal containers inside the editor wrapper
-    // so they share the same stacking context as the fullscreen modal
     adoptPortals()
   } catch (err) {
     console.error('Failed to load FilerobotImageEditor:', err)
@@ -425,16 +427,6 @@ onBeforeUnmount(() => {
     class="filerobot-editor-wrapper w-full h-full flex flex-col overflow-visible"
     :class="isDarkMode ? 'bg-gray-950' : 'bg-gray-50'"
   >
-    <div class="absolute top-3 right-14 z-60">
-      <button
-        type="button"
-        class="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-        :disabled="isInstantSaving"
-        @click="instantSave"
-      >
-        Save
-      </button>
-    </div>
     <div v-if="loadError" class="flex-1 min-h-0 flex items-center justify-center p-6">
       <div class="max-w-xl text-center">
         <div class="text-white font-semibold">Image editor failed to load</div>

@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" ref="containerEl" class="fixed inset-0 z-60 pointer-events-auto">
+    <div v-if="isOpen" ref="containerEl" class="fixed inset-0 z-[1000] pointer-events-auto">
       <div class="absolute inset-0 bg-gray-950">
         <slot />
       </div>

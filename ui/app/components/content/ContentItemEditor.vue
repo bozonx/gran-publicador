@@ -41,6 +41,8 @@ const emit = defineEmits<{
   (e: 'save', data: any): void
   (e: 'refresh'): void
   (e: 'create-publication', item: ContentItem): void
+  (e: 'editor-open'): void
+  (e: 'editor-close'): void
 }>()
 
 const { t } = useI18n()
@@ -274,6 +276,8 @@ defineExpose({
         :on-reorder="onReorderMedia"
         :on-update-link="onUpdateLinkMedia"
         :on-copy="onCopyMedia"
+        @editor-open="emit('editor-open')"
+        @editor-close="emit('editor-close')"
       />
     </div>
 

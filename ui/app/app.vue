@@ -4,6 +4,7 @@
     <NuxtLayout>
       <NuxtPage :key="route.path" />
     </NuxtLayout>
+    <MediaGlobalImageEditorOverlay />
   </UApp>
 </template>
 
