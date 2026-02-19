@@ -29,8 +29,8 @@ export class PublicationSchedulerService {
   ) {}
 
   public async runNow(): Promise<PublicationSchedulerRunResult> {
-    const lockAcquired = await this.redisService.acquireLock(this.lockKey, 10 * 60 * 1000); // 10 min lock
-    if (!lockAcquired) {
+    const lockToken = await this.redisService.acquireLock(this.lockKey, 10 * 60 * 1000); // 10 min lock
+    if (!lockToken) {
       this.logger.debug('Skipping scheduler run (distributed lock not acquired)');
       return {
         skipped: true,
@@ -62,7 +62,7 @@ export class PublicationSchedulerService {
       this.logger.error(`Error in scheduler run: ${error.message}`, error.stack);
       throw error;
     } finally {
-      await this.redisService.releaseLock(this.lockKey);
+      await this.redisService.releaseLock(this.lockKey, lockToken);
     }
   }
 

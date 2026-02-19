@@ -21,6 +21,7 @@ import { validate } from 'class-validator';
 import { CreatePublicationDto } from '../../src/modules/publications/dto/create-publication.dto.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { ContentItemsService } from '../../src/modules/content-library/content-items.service.js';
+import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -101,6 +102,10 @@ describe('PublicationsService (unit)', () => {
     remove: jest.fn() as any,
   };
 
+  const mockUnsplashService = {
+    search: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -132,6 +137,10 @@ describe('PublicationsService (unit)', () => {
         {
           provide: ContentItemsService,
           useValue: mockContentItemsService,
+        },
+        {
+          provide: UnsplashService,
+          useValue: mockUnsplashService,
         },
       ],
     }).compile();

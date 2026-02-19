@@ -16,7 +16,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from '../../src/app.module.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
-import { REDIS_CLIENT } from '../../src/common/redis/redis.module.js';
+import { REDIS_CLIENT } from '../../src/common/redis/redis.constants.js';
 
 export async function createTestApp(): Promise<NestFastifyApplication> {
   const moduleRef = await Test.createTestingModule({

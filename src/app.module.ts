@@ -69,6 +69,24 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
     throw new Error('SOCIAL_POSTING_SERVICE_URL environment variable is not set');
   }
 
+  // Redis is required in all non-test environments.
+  if ((config.NODE_ENV ?? 'development') !== 'test') {
+    const redisEnabled = config.REDIS_ENABLED;
+    if (redisEnabled === 'false') {
+      throw new Error(
+        'REDIS_ENABLED must not be false. Redis is required in non-test environments',
+      );
+    }
+    const redisHost = config.REDIS_HOST;
+    if (!redisHost || typeof redisHost !== 'string') {
+      throw new Error('REDIS_HOST environment variable is not set');
+    }
+    const redisPort = config.REDIS_PORT;
+    if (!redisPort || typeof redisPort !== 'string') {
+      throw new Error('REDIS_PORT environment variable is not set');
+    }
+  }
+
   const telegramBotEnabled = config.TELEGRAM_BOT_ENABLED;
   if (telegramBotEnabled === 'true') {
     const telegramBotToken = config.TELEGRAM_BOT_TOKEN;
@@ -200,18 +218,8 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
         const config = configService.get<RedisConfig>('redis')!;
         const appConfig = configService.get<AppConfig>('app')!;
 
-        // Use memory store ONLY for tests to avoid dependency
-        if (appConfig.nodeEnv === 'test') {
-          return {
-            store: 'memory',
-            ttl: config.ttlMs,
-          };
-        }
-
         if (!config.enabled) {
-          throw new Error(
-            'Redis is disabled in configuration, but it is required for cache. Please enable Redis or run in test mode.',
-          );
+          throw new Error('Redis is disabled in configuration, but it is required.');
         }
 
         const store = await redisStore({
@@ -223,6 +231,7 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
           password: config.password,
           database: config.db,
           ttl: config.ttlMs,
+          keyPrefix: config.keyPrefix,
         });
 
         return {

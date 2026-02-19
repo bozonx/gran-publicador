@@ -47,6 +47,13 @@ async function bootstrap() {
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onClose', async () => {
+      await redisIoAdapter.disconnectFromRedis();
+    });
+
   // Let NestJS handle SIGTERM/SIGINT via shutdown hooks.
   // This avoids duplicated signal handling across the app.
   app.enableShutdownHooks();

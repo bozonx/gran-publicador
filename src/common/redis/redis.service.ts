@@ -1,10 +1,17 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { REDIS_CLIENT } from './redis.module.js';
+import { REDIS_CLIENT } from './redis.constants.js';
 
 @Injectable()
-export class RedisService {
+export class RedisService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
+
+  private static readonly RELEASE_LOCK_SCRIPT = `
+    if redis.call('GET', KEYS[1]) == ARGV[1] then
+      return redis.call('DEL', KEYS[1])
+    end
+    return 0
+  `;
 
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis | null) {}
 
@@ -12,35 +19,49 @@ export class RedisService {
    * Acquire a distributed lock.
    * @param key Lock key
    * @param ttlMs Time to live in milliseconds
-   * @returns true if lock was acquired, false otherwise
+   * @returns lock token if acquired, null otherwise
    */
-  async acquireLock(key: string, ttlMs: number): Promise<boolean> {
+  async acquireLock(key: string, ttlMs: number): Promise<string | null> {
     if (!this.redis) {
-      return false;
+      return null;
     }
 
     try {
-      const result = await this.redis.set(`lock:${key}`, 'locked', 'PX', ttlMs, 'NX');
-      return result === 'OK';
+      const token = `${Date.now()}:${Math.random().toString(16).slice(2)}`;
+      const result = await this.redis.set(`lock:${key}`, token, 'PX', ttlMs, 'NX');
+      return result === 'OK' ? token : null;
     } catch (error: any) {
       this.logger.error(`Failed to acquire lock for ${key}: ${error.message}`);
-      return false;
+      return null;
     }
   }
 
   /**
    * Release a distributed lock.
    * @param key Lock key
+   * @param token Lock token received from acquireLock
    */
-  async releaseLock(key: string): Promise<void> {
+  async releaseLock(key: string, token: string): Promise<void> {
     if (!this.redis) {
       return;
     }
 
     try {
-      await this.redis.del(`lock:${key}`);
+      await this.redis.eval(RedisService.RELEASE_LOCK_SCRIPT, 1, `lock:${key}`, token);
     } catch (error: any) {
       this.logger.error(`Failed to release lock for ${key}: ${error.message}`);
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
+    try {
+      await this.redis.quit();
+    } catch (error: any) {
+      this.logger.error(`Failed to quit Redis client: ${error.message}`);
     }
   }
 

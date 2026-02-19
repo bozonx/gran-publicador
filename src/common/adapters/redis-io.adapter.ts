@@ -7,6 +7,8 @@ import type { RedisConfig } from '../../config/redis.config.js';
 
 export class RedisIoAdapter extends IoAdapter {
   private adapterConstructor: any;
+  private pubClient: Redis | null = null;
+  private subClient: Redis | null = null;
 
   constructor(
     appOrHttpServer: any,
@@ -32,10 +34,25 @@ export class RedisIoAdapter extends IoAdapter {
 
     await Promise.all([pubClient.connect(), subClient.connect()]);
 
+    this.pubClient = pubClient;
+    this.subClient = subClient;
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }
 
-  createIOServer(port: number, options?: ServerOptions): any {
+  async disconnectFromRedis(): Promise<void> {
+    const pubClient = this.pubClient;
+    const subClient = this.subClient;
+
+    this.pubClient = null;
+    this.subClient = null;
+
+    await Promise.all([
+      pubClient ? pubClient.quit().catch(() => undefined) : Promise.resolve(),
+      subClient ? subClient.quit().catch(() => undefined) : Promise.resolve(),
+    ]);
+  }
+
+  override createIOServer(port: number, options?: ServerOptions): any {
     const server = super.createIOServer(port, options);
     server.adapter(this.adapterConstructor);
     return server;

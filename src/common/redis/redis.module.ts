@@ -2,9 +2,8 @@ import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { RedisConfig } from '../../config/redis.config.js';
+import { REDIS_CLIENT } from './redis.constants.js';
 import { RedisService } from './redis.service.js';
-
-export const REDIS_CLIENT = 'REDIS_CLIENT';
 
 @Global()
 @Module({
@@ -27,8 +26,8 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
             password: config.password,
             db: config.db,
             keyPrefix: config.keyPrefix,
-            lazyConnect: true, // Don't connect immediately
-            maxRetriesPerRequest: 0, // Fail fast if redis is down
+            maxRetriesPerRequest: 0,
+            enableOfflineQueue: false,
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

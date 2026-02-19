@@ -40,8 +40,8 @@ export class NewsNotificationsScheduler {
   ) {}
 
   public async runNow(): Promise<NewsNotificationsRunResult> {
-    const lockAcquired = await this.redisService.acquireLock(this.lockKey, 10 * 60 * 1000); // 10 min lock
-    if (!lockAcquired) {
+    const lockToken = await this.redisService.acquireLock(this.lockKey, 10 * 60 * 1000); // 10 min lock
+    if (!lockToken) {
       this.logger.debug('Skipping news notifications check (distributed lock not acquired)');
       return {
         skipped: true,
@@ -102,7 +102,7 @@ export class NewsNotificationsScheduler {
         createdNotificationsCount,
       };
     } finally {
-      await this.redisService.releaseLock(this.lockKey);
+      await this.redisService.releaseLock(this.lockKey, lockToken);
     }
   }
 

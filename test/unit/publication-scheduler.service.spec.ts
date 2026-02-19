@@ -6,6 +6,7 @@ import { SocialPostingService } from '../../src/modules/social-posting/social-po
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PostStatus, PublicationStatus } from '../../src/generated/prisma/index.js';
+import { RedisService } from '../../src/common/redis/redis.service.js';
 
 // Mock ConfigService
 const mockConfigService = {
@@ -44,6 +45,11 @@ const mockNotificationsService = {
   create: jest.fn() as any,
 };
 
+const mockRedisService = {
+  acquireLock: jest.fn() as any,
+  releaseLock: jest.fn() as any,
+};
+
 describe('PublicationSchedulerService', () => {
   let service: PublicationSchedulerService;
   let prisma: typeof mockPrismaService;
@@ -51,6 +57,9 @@ describe('PublicationSchedulerService', () => {
   let module: TestingModule | undefined;
 
   beforeEach(async () => {
+    mockRedisService.acquireLock.mockResolvedValue('test-lock-token');
+    mockRedisService.releaseLock.mockResolvedValue(undefined);
+
     module = await Test.createTestingModule({
       providers: [
         PublicationSchedulerService,
@@ -58,6 +67,7 @@ describe('PublicationSchedulerService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: SocialPostingService, useValue: mockSocialPostingService },
         { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 

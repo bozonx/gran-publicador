@@ -7,6 +7,8 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { ContentCollectionsService } from '../../src/modules/content-library/content-collections.service.js';
+import { MediaService } from '../../src/modules/media/media.service.js';
+import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
 
 describe('ContentItemsService (unit)', () => {
   let service: ContentItemsService;
@@ -48,6 +50,14 @@ describe('ContentItemsService (unit)', () => {
     assertGroupAccess: jest.fn() as any,
   };
 
+  const mockMediaService = {
+    findMany: jest.fn() as any,
+  };
+
+  const mockUnsplashService = {
+    search: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     mockPrismaService.$transaction.mockImplementation(async (fn: any) => fn(mockPrismaService));
 
@@ -69,6 +79,14 @@ describe('ContentItemsService (unit)', () => {
         {
           provide: ContentCollectionsService,
           useValue: mockCollectionsService,
+        },
+        {
+          provide: MediaService,
+          useValue: mockMediaService,
+        },
+        {
+          provide: UnsplashService,
+          useValue: mockUnsplashService,
         },
       ],
     }).compile();

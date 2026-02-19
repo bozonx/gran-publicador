@@ -6,6 +6,7 @@ import { NewsNotificationsScheduler } from '../../src/modules/news-queries/news-
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
+import { RedisService } from '../../src/common/redis/redis.service.js';
 
 const mockConfigService = {
   get: jest.fn((key: string) => {
@@ -18,6 +19,11 @@ const mockConfigService = {
 
     return null;
   }),
+};
+
+const mockRedisService = {
+  acquireLock: jest.fn() as any,
+  releaseLock: jest.fn() as any,
 };
 
 const mockPrismaService = {
@@ -56,6 +62,9 @@ describe('NewsNotificationsScheduler (unit)', () => {
   let module: TestingModule | undefined;
 
   beforeEach(async () => {
+    mockRedisService.acquireLock.mockResolvedValue('test-lock-token');
+    mockRedisService.releaseLock.mockResolvedValue(undefined);
+
     module = await Test.createTestingModule({
       providers: [
         NewsNotificationsScheduler,
@@ -64,6 +73,7 @@ describe('NewsNotificationsScheduler (unit)', () => {
         { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: I18nService, useValue: mockI18nService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
@@ -148,8 +158,7 @@ describe('NewsNotificationsScheduler (unit)', () => {
   });
 
   it('should skip run when distributed lock is not acquired', async () => {
-    mockPrismaService.$queryRawUnsafe.mockReset();
-    mockPrismaService.$queryRawUnsafe.mockResolvedValueOnce([{ locked: false }]);
+    mockRedisService.acquireLock.mockResolvedValueOnce(null);
 
     const result = await service.runNow();
 

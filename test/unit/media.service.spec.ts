@@ -224,15 +224,15 @@ describe('MediaService (unit)', () => {
       });
 
       expect(effective).toMatchObject({
-        stripMetadata: true,
-        autoOrient: false,
-        flatten: '#FFFFFF',
-        format: 'webp',
-        maxDimension: 3840,
-        effort: 4,
-        quality: 80,
-        chromaSubsampling: '4:2:0',
-        lossless: false,
+        stripMetadata: false,
+        autoOrient: true,
+        flatten: undefined,
+        format: 'avif',
+        maxDimension: 1024,
+        effort: 9,
+        quality: 92,
+        chromaSubsampling: '4:4:4',
+        lossless: true,
       });
     });
 

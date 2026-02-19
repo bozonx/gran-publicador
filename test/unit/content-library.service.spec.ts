@@ -9,6 +9,8 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { BulkOperationType } from '../../src/modules/content-library/dto/bulk-operation.dto.js';
+import { MediaService } from '../../src/modules/media/media.service.js';
+import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
 
 describe('ContentLibraryService (unit)', () => {
   let service: ContentLibraryService;
@@ -66,6 +68,15 @@ describe('ContentLibraryService (unit)', () => {
     prepareTagsConnectOrCreate: jest.fn() as any,
   };
 
+  const mockMediaService = {
+    findMany: jest.fn() as any,
+    findOne: jest.fn() as any,
+  };
+
+  const mockUnsplashService = {
+    search: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     mockPrismaService.$transaction.mockImplementation(async (fn: any) => fn(mockPrismaService));
 
@@ -85,6 +96,14 @@ describe('ContentLibraryService (unit)', () => {
         {
           provide: TagsService,
           useValue: mockTagsService,
+        },
+        {
+          provide: MediaService,
+          useValue: mockMediaService,
+        },
+        {
+          provide: UnsplashService,
+          useValue: mockUnsplashService,
         },
       ],
     }).compile();

@@ -23,8 +23,11 @@ This document lists key production configuration options.
 
 ## Redis
 
-- `REDIS_ENABLED` (default: `true`)
+- Redis is required in all non-test environments.
+- `REDIS_ENABLED` (must not be `false` in non-test environments)
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`
+- `REDIS_TTL_MS` (optional, default: `3600000`)
+- `REDIS_KEY_PREFIX` (optional)
 
 ## External services
 
