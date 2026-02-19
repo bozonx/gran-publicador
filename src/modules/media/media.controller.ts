@@ -361,11 +361,15 @@ export class MediaController {
     );
 
     // Update the existing record with new metadata and potentially new storagePath (if fileId changed)
+    const existingMedia = await this.mediaService.findOne(id);
     return this.mediaService.update(id, {
       storagePath: fileId,
       mimeType: metadata.mimeType,
       sizeBytes: metadata.size,
-      meta: metadata,
+      meta: {
+        ...existingMedia.meta,
+        ...metadata,
+      },
     });
   }
 
