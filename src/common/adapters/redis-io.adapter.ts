@@ -10,6 +10,37 @@ export class RedisIoAdapter extends IoAdapter {
   private pubClient: Redis | null = null;
   private subClient: Redis | null = null;
 
+  private async ensureConnected(client: Redis): Promise<void> {
+    if (client.status === 'ready') {
+      return;
+    }
+
+    if (client.status === 'wait') {
+      await client.connect();
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const onReady = () => {
+        cleanup();
+        resolve();
+      };
+
+      const onError = (error: unknown) => {
+        cleanup();
+        reject(error);
+      };
+
+      const cleanup = () => {
+        client.off('ready', onReady);
+        client.off('error', onError);
+      };
+
+      client.on('ready', onReady);
+      client.on('error', onError);
+    });
+  }
+
   constructor(
     appOrHttpServer: any,
     private readonly configService: ConfigService,
@@ -32,7 +63,7 @@ export class RedisIoAdapter extends IoAdapter {
     });
     const subClient = pubClient.duplicate();
 
-    await Promise.all([pubClient.connect(), subClient.connect()]);
+    await Promise.all([this.ensureConnected(pubClient), this.ensureConnected(subClient)]);
 
     this.pubClient = pubClient;
     this.subClient = subClient;
