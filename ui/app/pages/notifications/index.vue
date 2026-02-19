@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { useNotificationsStore } from '~/stores/notifications'
 
 definePageMeta({
   middleware: 'auth',

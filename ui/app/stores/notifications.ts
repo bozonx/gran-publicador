@@ -4,6 +4,8 @@ import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from './auth';
 import { logger } from '~/utils/logger';
 
+import { DEFAULT_PAGE_SIZE } from '~/constants';
+
 export enum NotificationType {
   PUBLICATION_FAILED = 'PUBLICATION_FAILED',
   PROJECT_INVITE = 'PROJECT_INVITE',
@@ -43,7 +45,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   /**
    * Fetch notification history from REST API
    */
-  async function fetchNotifications(limit = 20, offset = 0, append = false) {
+  async function fetchNotifications(limit = DEFAULT_PAGE_SIZE, offset = 0, append = false) {
     isLoading.value = true;
     try {
       const response = await api.get<{ items: Notification[]; total: number }>('/notifications', {
