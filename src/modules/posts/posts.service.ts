@@ -276,30 +276,38 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
-    const posts = await this.prisma.post.findMany({
-      where,
-      include: {
-        channel: {
-          select: {
-            id: true,
-            name: true,
-            projectId: true,
-            socialMedia: true,
+    const [items, total, totalUnfiltered] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          channel: {
+            select: {
+              id: true,
+              name: true,
+              projectId: true,
+              socialMedia: true,
+            },
           },
-        },
-        publication: {
-          include: {
-            tagObjects: true,
+          publication: {
+            include: {
+              tagObjects: true,
+            },
           },
+          tagObjects: true,
         },
-        tagObjects: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: filters?.limit,
-      skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: filters?.limit,
+        skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
+      }),
+      this.prisma.post.count({ where }),
+      this.prisma.post.count({ where: { channel: { projectId } } }),
+    ]);
 
-    return posts.map(post => this.normalizePostResponse(post));
+    return {
+      items: items.map(post => this.normalizePostResponse(post)),
+      total,
+      totalUnfiltered,
+    };
   }
 
   /**
@@ -348,26 +356,32 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
-    const posts = await this.prisma.post.findMany({
-      where,
-      include: {
-        channel: {
-          select: {
-            id: true,
-            name: true,
-            projectId: true,
-            socialMedia: true,
+    const [items, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          channel: {
+            select: {
+              id: true,
+              name: true,
+              projectId: true,
+              socialMedia: true,
+            },
           },
+          publication: { include: { tagObjects: true } },
+          tagObjects: true,
         },
-        publication: { include: { tagObjects: true } },
-        tagObjects: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: filters?.limit,
-      skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: filters?.limit,
+        skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
 
-    return posts.map(post => this.normalizePostResponse(post));
+    return {
+      items: items.map(post => this.normalizePostResponse(post)),
+      total,
+    };
   }
 
   /**
@@ -409,26 +423,32 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
-    const posts = await this.prisma.post.findMany({
-      where,
-      include: {
-        channel: {
-          select: {
-            id: true,
-            name: true,
-            projectId: true,
-            socialMedia: true,
+    const [items, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          channel: {
+            select: {
+              id: true,
+              name: true,
+              projectId: true,
+              socialMedia: true,
+            },
           },
+          publication: { include: { tagObjects: true } },
+          tagObjects: true,
         },
-        publication: { include: { tagObjects: true } },
-        tagObjects: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: filters?.limit,
-      skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: filters?.limit,
+        skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
 
-    return posts.map(post => this.normalizePostResponse(post));
+    return {
+      items: items.map(post => this.normalizePostResponse(post)),
+      total,
+    };
   }
 
   /**

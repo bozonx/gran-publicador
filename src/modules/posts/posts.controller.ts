@@ -98,15 +98,26 @@ export class PostsController {
       }
     }
 
+    let result: { items: any[]; total: number };
+
     if (projectId) {
-      return this.postsService.findAllForProject(projectId, req.user.userId, filters);
-    }
-    if (channelId) {
-      return this.postsService.findAllForChannel(channelId, req.user.userId, filters);
+      result = await this.postsService.findAllForProject(projectId, req.user.userId, filters);
+    } else if (channelId) {
+      result = await this.postsService.findAllForChannel(channelId, req.user.userId, filters);
+    } else {
+      // Global fetch for user
+      result = await this.postsService.findAllForUser(req.user.userId, filters);
     }
 
-    // Global fetch for user
-    return this.postsService.findAllForUser(req.user.userId, filters);
+    return {
+      items: result.items,
+      meta: {
+        total: result.total,
+        totalUnfiltered: (result as any).totalUnfiltered ?? result.total,
+        limit,
+        page,
+      },
+    };
   }
 
   @Get(':id')

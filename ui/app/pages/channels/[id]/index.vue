@@ -48,6 +48,7 @@ const {
 
 const {
   posts: postsBatch,
+  totalCount: totalPostsCount,
   isLoading: isPostsLoading,
   fetchPostsByProject,
   deletePost,
@@ -159,35 +160,31 @@ function handlePublicationCreated(publicationId: string) {
   resetAndFetchPosts()
 }
 
-// Local posts state for pagination
-const posts = ref<PostWithRelations[]>([])
 const page = ref(1)
-const hasMore = ref(true)
 const LIMIT = 12
 
 async function resetAndFetchPosts() {
   page.value = 1
-  hasMore.value = true
   setFilter({ 
       channelId: channelId.value, 
       status: 'PUBLISHED' as PostStatus,
       limit: LIMIT,
       page: 1
   })
-  const newPosts = await fetchPostsByProject(projectId.value)
-  posts.value = newPosts
-  if (newPosts.length < LIMIT) hasMore.value = false
+  await fetchPostsByProject(projectId.value, { append: false })
 }
 
+const hasMoreData = computed(() => {
+  return postsBatch.value.length < totalPostsCount.value
+})
+
 async function loadMore() {
-  if (!hasMore.value || isPostsLoading.value) return
+  if (isPostsLoading.value || !hasMoreData.value) return
   
   page.value++
   setFilter({ page: page.value })
   
-  const newPosts = await fetchPostsByProject(projectId.value)
-  if (newPosts.length < LIMIT) hasMore.value = false
-  posts.value.push(...newPosts)
+  await fetchPostsByProject(projectId.value, { append: true })
 }
 
 // Initialization
@@ -239,7 +236,7 @@ const currentDraftsViewAllLink = computed(() => `/publications?channelId=${chann
 
 function goToPost(postId: string) {
   // Find the post to get its publicationId
-  const post = posts.value.find(p => p.id === postId)
+  const post = postsBatch.value.find(p => p.id === postId)
   if (post?.publicationId) {
     router.push(`/publications/${post.publicationId}`)
   }
@@ -700,7 +697,7 @@ const channelProblems = computed(() => {
                               Let's just show count of *this* list roughly or omit if unreliable. 
                               Or better, use a computed property if backend sent total count. 
                               usePosts has totalCount ref. -->
-                        <CommonCountBadge :count="posts.length" :title="t('post.status.published_posts')" />
+                        <CommonCountBadge :count="totalPostsCount" :title="t('post.status.published_posts')" />
                     </h2>
                      <div class="flex items-center gap-2">
                         <CommonViewToggle v-model="viewMode" />
@@ -718,50 +715,34 @@ const channelProblems = computed(() => {
                 </div>
 
                 <!-- Posts List -->
-                <div v-if="isPostsLoading && page === 1" class="flex items-center justify-center py-12">
-                     <UiLoadingSpinner size="md" />
-                </div>
+                <!-- Posts Lists -->
+                <CommonInfiniteList
+                    :is-loading="isPostsLoading"
+                    :has-more="hasMoreData"
+                    @load-more="loadMore"
+                >
+                    <!-- Posts List View -->
+                    <div v-if="isListView" class="space-y-4">
+                        <PublicationsPublicationListItem
+                            v-for="post in postsBatch"
+                            :key="post.id"
+                            :publication="mapPostToPublication(post)"
+                            @click="goToPost(post.id)"
+                            @delete="handleDeletePostFromPublication"
+                        />
+                    </div>
 
-                <div v-else-if="posts.length === 0" class="app-card p-12 text-center">
-                    <UIcon name="i-heroicons-document-text" class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
-                    <p class="text-gray-500 dark:text-gray-400">
-                        {{ t('channel.noPostsDescription') }}
-                    </p>
-                </div>
-
-                <!-- Posts List View -->
-                <div v-if="isListView" class="space-y-4">
-                    <PublicationsPublicationListItem
-                        v-for="post in posts"
-                        :key="post.id"
-                        :publication="mapPostToPublication(post)"
-                        @click="goToPost(post.id)"
-                        @delete="handleDeletePostFromPublication"
-                    />
-                </div>
-
-                <!-- Posts Cards View -->
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <PublicationsPublicationCard
-                        v-for="post in posts"
-                        :key="post.id"
-                        :publication="mapPostToPublication(post)"
-                        @click="goToPost(post.id)"
-                        @delete="handleDeletePostFromPublication"
-                    />
-                </div>
-
-                <!-- Load More Button -->
-                <div v-if="hasMore" class="mt-8 flex justify-center">
-                    <UButton 
-                        :loading="isPostsLoading"
-                        color="primary"
-                        variant="soft"
-                        @click="loadMore"
-                    >
-                        {{ t('common.loadMore', 'Load More') }}
-                    </UButton>
-                </div>
+                    <!-- Posts Cards View -->
+                    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <PublicationsPublicationCard
+                            v-for="post in postsBatch"
+                            :key="post.id"
+                            :publication="mapPostToPublication(post)"
+                            @click="goToPost(post.id)"
+                            @delete="handleDeletePostFromPublication"
+                        />
+                    </div>
+                </CommonInfiniteList>
              </div>
         </div>
 

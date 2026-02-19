@@ -109,13 +109,14 @@ export function usePosts() {
 
   async function fetchPostsByProject(
     projectId: string,
-    options?: Partial<PostsFilter>,
+    options: Partial<PostsFilter> & { append?: boolean } = {},
   ): Promise<PostWithRelations[]> {
     isLoading.value = true;
     error.value = null;
 
     try {
       const params: Record<string, any> = { ...options };
+      delete params.append;
 
       if (filter.value.channelId) {
         params.channelId = filter.value.channelId;
@@ -134,24 +135,36 @@ export function usePosts() {
       });
       if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
 
-      const data = await api.get<PostWithRelations[]>('/posts', { params });
-      posts.value = data;
-      return data;
+      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>('/posts', { params });
+      
+      if (options.append) {
+        posts.value = [...posts.value, ...response.items];
+      } else {
+        posts.value = response.items;
+      }
+      
+      totalCount.value = response.meta.total;
+      return response.items;
     } catch (err: any) {
       logger.error('[usePosts] fetchPostsByProject error', err);
-      posts.value = [];
+      if (!options.append) {
+        posts.value = [];
+      }
       return [];
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function fetchUserPosts(options?: Partial<PostsFilter>): Promise<PostWithRelations[]> {
+  async function fetchUserPosts(
+    options: Partial<PostsFilter> & { append?: boolean } = {},
+  ): Promise<PostWithRelations[]> {
     isLoading.value = true;
     error.value = null;
 
     try {
       const params: Record<string, any> = { ...options };
+      delete params.append;
 
       if (filter.value.status) params.status = filter.value.status;
       if (filter.value.postType) params.postType = filter.value.postType;
@@ -162,13 +175,21 @@ export function usePosts() {
       if (filter.value.includeArchived) params.includeArchived = true;
       if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
 
-      const data = await api.get<PostWithRelations[]>('/posts', { params });
-      posts.value = data;
-      totalCount.value = data.length; // Crude total count for now
-      return data;
+      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>('/posts', { params });
+      
+      if (options.append) {
+        posts.value = [...posts.value, ...response.items];
+      } else {
+        posts.value = response.items;
+      }
+      
+      totalCount.value = response.meta.total;
+      return response.items;
     } catch (err: any) {
       logger.error('[usePosts] fetchUserPosts error', err);
-      posts.value = [];
+      if (!options.append) {
+        posts.value = [];
+      }
       return [];
     } finally {
       isLoading.value = false;
