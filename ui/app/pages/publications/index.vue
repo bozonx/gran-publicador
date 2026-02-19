@@ -622,6 +622,7 @@ async function handleDelete() {
     <CommonInfiniteList
       :is-loading="isLoading"
       :has-more="hasMore"
+      :item-count="filteredPublications.length"
       @load-more="loadMore"
     >
       <div v-if="isListView" class="space-y-4">

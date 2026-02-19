@@ -719,6 +719,7 @@ const channelProblems = computed(() => {
                 <CommonInfiniteList
                     :is-loading="isPostsLoading"
                     :has-more="hasMoreData"
+                    :item-count="postsBatch.length"
                     @load-more="loadMore"
                 >
                     <!-- Posts List View -->

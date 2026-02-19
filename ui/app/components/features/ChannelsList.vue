@@ -247,6 +247,7 @@ function toggleArchivedChannels() {
     <CommonInfiniteList
       :is-loading="isLoading"
       :has-more="hasMoreData"
+      :item-count="nonArchivedChannels.length"
       @load-more="loadMore"
     >
       <!-- Channels List View -->

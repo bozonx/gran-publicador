@@ -287,6 +287,7 @@ function formatScore(score: number) {
           v-else-if="news.length > 0"
           :is-loading="isLoadMoreLoading"
           :has-more="hasMore"
+          :item-count="news.length"
           @load-more="loadMore"
         >
           <div class="space-y-4">

@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { useIntersectionObserver } from '@vueuse/core'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { INFINITE_SCROLL_AUTO_LIMIT } from '~/constants'
 
 interface Props {
   isLoading?: boolean
   hasMore?: boolean
   autoLimit?: number
+  itemCount?: number
+  showEndMessage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   hasMore: false,
-  autoLimit: INFINITE_SCROLL_AUTO_LIMIT
+  autoLimit: INFINITE_SCROLL_AUTO_LIMIT,
+  itemCount: 0,
+  showEndMessage: true,
 })
 
 const emit = defineEmits<{
@@ -21,10 +25,19 @@ const emit = defineEmits<{
 
 const sentinelRef = ref<HTMLElement | null>(null)
 const autoLoadCount = ref(0)
+const hasSeenSentinel = ref(false)
 
 // Show "Load More" button if we reached the auto limit
 const showLoadMoreButton = computed(() => {
   return props.hasMore && autoLoadCount.value >= props.autoLimit
+})
+
+const showEndMessage = computed(() => {
+  if (!props.showEndMessage) return false
+  if (props.isLoading) return false
+  if (props.hasMore) return false
+  if ((props.itemCount ?? 0) <= 0) return false
+  return hasSeenSentinel.value
 })
 
 // Function to trigger load more
@@ -36,6 +49,7 @@ const handleLoadMore = () => {
 // Manual load more (resets auto count)
 const manualLoadMore = () => {
   autoLoadCount.value = 0
+  hasSeenSentinel.value = true
   handleLoadMore()
 }
 
@@ -45,6 +59,9 @@ useIntersectionObserver(
   sentinelRef,
   (entries: IntersectionObserverEntry[]) => {
     const isIntersecting = entries[0]?.isIntersecting
+    if (isIntersecting) {
+      hasSeenSentinel.value = true
+    }
     if (isIntersecting && props.hasMore && !props.isLoading && !showLoadMoreButton.value) {
       autoLoadCount.value++
       handleLoadMore()
@@ -59,8 +76,25 @@ useIntersectionObserver(
 defineExpose({
   resetAutoLimit: () => {
     autoLoadCount.value = 0
+    hasSeenSentinel.value = false
   }
 })
+
+watch(
+  () => props.itemCount,
+  (newCount, oldCount) => {
+    if ((newCount ?? 0) <= 0) {
+      hasSeenSentinel.value = false
+      autoLoadCount.value = 0
+      return
+    }
+
+    if ((oldCount ?? 0) > 0 && (newCount ?? 0) < (oldCount ?? 0)) {
+      hasSeenSentinel.value = false
+      autoLoadCount.value = 0
+    }
+  },
+)
 </script>
 
 <template>
@@ -68,10 +102,9 @@ defineExpose({
     <slot />
 
     <!-- Sentinel element to detect end of list -->
-    <div 
-      v-if="hasMore" 
-      ref="sentinelRef" 
-      class="h-px w-full invisible pointer-events-none" 
+    <div
+      ref="sentinelRef"
+      class="h-px w-full invisible pointer-events-none"
       aria-hidden="true"
     />
 
@@ -94,6 +127,13 @@ defineExpose({
         size="md"
         color="primary"
       />
+    </div>
+
+    <div
+      v-else-if="showEndMessage"
+      class="flex justify-center py-6 text-sm text-gray-400 dark:text-gray-500"
+    >
+      {{ $t('common.endOfList') }}
     </div>
   </div>
 </template>

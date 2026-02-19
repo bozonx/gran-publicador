@@ -43,6 +43,14 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
 
 const sentinelRef = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
+const hasSeenSentinel = ref(false)
+
+const showEndMessage = computed(() => {
+  if (props.isLoading) return false
+  if (props.hasMore) return false
+  if ((props.items?.length ?? 0) <= 0) return false
+  return hasSeenSentinel.value
+})
 
 const setupObserver = () => {
   if (observer) {
@@ -53,6 +61,9 @@ const setupObserver = () => {
   observer = new IntersectionObserver(
     (entries) => {
       const entry = entries[0]
+      if (entry?.isIntersecting) {
+        hasSeenSentinel.value = true
+      }
       if (entry?.isIntersecting && props.hasMore && !props.isLoading) {
         emit('load-more')
       }
@@ -66,6 +77,20 @@ onMounted(() => { setupObserver() })
 onBeforeUnmount(() => { observer?.disconnect() })
 
 watch(sentinelRef, () => { setupObserver() })
+
+watch(
+  () => props.items.length,
+  (newCount, oldCount) => {
+    if (newCount <= 0) {
+      hasSeenSentinel.value = false
+      return
+    }
+
+    if (oldCount > 0 && newCount < oldCount) {
+      hasSeenSentinel.value = false
+    }
+  },
+)
 </script>
 
 <template>
@@ -127,6 +152,13 @@ watch(sentinelRef, () => { setupObserver() })
 
       <!-- Infinite scroll sentinel -->
       <div ref="sentinelRef" class="h-1" aria-hidden="true" />
+
+      <div
+        v-if="showEndMessage"
+        class="flex justify-center py-6 text-sm text-gray-400 dark:text-gray-500"
+      >
+        {{ t('common.endOfList') }}
+      </div>
 
       <!-- Loading indicator for subsequent pages -->
       <div v-if="isLoading && items.length > 0" class="flex justify-center py-4">

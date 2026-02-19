@@ -68,6 +68,7 @@ onMounted(() => {
         <CommonInfiniteList
           :is-loading="notificationsStore.isLoading"
           :has-more="hasMoreData"
+          :item-count="notificationsStore.items.length"
           @load-more="loadMore"
         >
           <CommonNotificationsNotificationItem

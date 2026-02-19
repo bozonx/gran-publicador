@@ -439,6 +439,7 @@ const showPagination = computed(() => {
     <CommonInfiniteList
       :is-loading="isLoading"
       :has-more="hasMoreData"
+      :item-count="channels.length"
       @load-more="loadMore"
     >
       <!-- Channels list view -->
