@@ -687,7 +687,10 @@ export class MediaService {
       return {
         stream: response.body as any as Readable,
         status: response.statusCode,
-        headers: responseHeaders,
+        headers: {
+          ...responseHeaders,
+          'Access-Control-Allow-Origin': '*',
+        },
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'file download');
@@ -728,7 +731,10 @@ export class MediaService {
       return {
         stream: response.body as any as Readable,
         status: response.statusCode,
-        headers: responseHeaders,
+        headers: {
+          ...responseHeaders,
+          'Access-Control-Allow-Origin': '*',
+        },
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'thumbnail');
@@ -934,7 +940,10 @@ export class MediaService {
         return {
           stream: downloadResponse.body as any as Readable,
           status: downloadResponse.statusCode,
-          headers,
+          headers: {
+            ...headers,
+            'Access-Control-Allow-Origin': '*',
+          },
         };
       } catch (error) {
         lastError = error;
