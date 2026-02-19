@@ -25,9 +25,20 @@ const isSaveModalOpen = ref(false)
 const isSaving = ref(false)
 
 const optimizationDefaults = computed(() => {
+  const mediaOpt = media.value?.meta?.optimizationParams
+  if (mediaOpt) {
+    return {
+      stripMetadata: mediaOpt.stripMetadata ?? false,
+      lossless: mediaOpt.lossless ?? false,
+    }
+  }
+
   const projectOpt = currentProject.value?.preferences?.mediaOptimization
   if (projectId.value && projectOpt) {
-    return { stripMetadata: projectOpt.stripMetadata, lossless: projectOpt.lossless }
+    return {
+      stripMetadata: projectOpt.stripMetadata ?? false,
+      lossless: projectOpt.lossless ?? false,
+    }
   }
   return { stripMetadata: false, lossless: false }
 })
@@ -65,7 +76,14 @@ async function onSaveConfirm() {
 
     const optimizeParams = { ...defaults, ...saveOptimization.value }
 
-    await replaceMediaFile(media.value.id, pendingFile, optimizeParams, projectId.value)
+    const updatedMedia = await replaceMediaFile(
+      media.value.id,
+      pendingFile,
+      optimizeParams,
+      projectId.value,
+    )
+    // Refetch to get full metadata including fullMediaMeta from proxy
+    media.value = await fetchMedia(updatedMedia.id)
 
     toast.add({
       title: t('common.success'),

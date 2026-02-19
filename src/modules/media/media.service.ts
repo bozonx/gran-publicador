@@ -143,14 +143,24 @@ export class MediaService {
     const optimizedSize =
       this.parsePositiveInteger(result.size) ?? this.parsePositiveInteger(result.originalSize) ?? 0;
 
+    const width =
+      this.parsePositiveInteger(result.width) ??
+      this.parsePositiveInteger(result.optimization?.params?.width) ??
+      this.parsePositiveInteger(result.optimizationParams?.width);
+
+    const height =
+      this.parsePositiveInteger(result.height) ??
+      this.parsePositiveInteger(result.optimization?.params?.height) ??
+      this.parsePositiveInteger(result.optimizationParams?.height);
+
     return {
       originalSize:
         this.parsePositiveInteger(result.originalSize) ??
         this.parsePositiveInteger(result.original?.size) ??
         optimizedSize,
       size: optimizedSize,
-      width: this.parsePositiveInteger(result.width),
-      height: this.parsePositiveInteger(result.height),
+      width,
+      height,
       mimeType: result.mimeType ?? result.original?.mimeType ?? 'application/octet-stream',
       originalMimeType: result.original?.mimeType ?? result.originalMimeType,
       optimizationParams: result.optimization?.params ?? result.optimizationParams,
@@ -293,18 +303,37 @@ export class MediaService {
       throw new BadRequestException('Only FS media can be replaced');
     }
 
-    let effectiveOptimize = optimize;
+    const oldStoragePath = media.storagePath;
+    const existingMeta = this.parseMeta(media.meta);
+    const existingOptimize = existingMeta.optimizationParams || {};
 
-    if (!effectiveOptimize && projectId) {
+    let effectiveOptimize = optimize || {};
+
+    // Combine existing optimization params with new ones, prioritizing new ones
+    // specifically for lossless and stripMetadata as requested
+    if (effectiveOptimize.lossless === undefined && existingOptimize.lossless !== undefined) {
+      effectiveOptimize.lossless = existingOptimize.lossless;
+    }
+    if (
+      effectiveOptimize.stripMetadata === undefined &&
+      existingOptimize.stripMetadata !== undefined
+    ) {
+      effectiveOptimize.stripMetadata = existingOptimize.stripMetadata;
+    }
+
+    if (projectId && (!effectiveOptimize.lossless || !effectiveOptimize.stripMetadata)) {
       try {
-        effectiveOptimize = await this.getProjectOptimizationSettings(projectId);
+        const projectSettings = await this.getProjectOptimizationSettings(projectId);
+        if (projectSettings) {
+          if (effectiveOptimize.lossless === undefined)
+            effectiveOptimize.lossless = projectSettings.lossless;
+          if (effectiveOptimize.stripMetadata === undefined)
+            effectiveOptimize.stripMetadata = projectSettings.stripMetadata;
+        }
       } catch (error) {
         this.logger.error(`Failed to load project optimization: ${(error as Error).message}`);
       }
     }
-
-    const oldStoragePath = media.storagePath;
-    const existingMeta = this.parseMeta(media.meta);
 
     const { fileId, metadata } = await this.uploadFileToStorage(
       fileStream,
@@ -313,7 +342,7 @@ export class MediaService {
       fileSizeBytes,
       userId,
       undefined,
-      effectiveOptimize,
+      Object.keys(effectiveOptimize).length > 0 ? effectiveOptimize : undefined,
     );
 
     const updated = await this.update(id, {
@@ -509,6 +538,7 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
+      this.logger.debug(`Media Storage response: ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
@@ -558,6 +588,7 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
+      this.logger.debug(`Media Storage response (URL): ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
