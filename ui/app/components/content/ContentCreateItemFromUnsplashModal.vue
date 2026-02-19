@@ -11,7 +11,9 @@ interface Props {
   unsplashId: string | null
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  unsplashId: null,
+})
 
 const isOpen = defineModel<boolean>('open', { default: false })
 
@@ -149,7 +151,7 @@ async function handleCopyToSavedView() {
 <template>
   <UiAppModal
     v-model:open="isOpen"
-    :title="t('contentLibrary.actions.copyToContentItem', 'Copy to content library')"
+    :title="t('contentLibrary.actions.copyToContentItem')"
     :ui="{ content: 'max-w-md' }"
   >
     <div class="space-y-4 relative">

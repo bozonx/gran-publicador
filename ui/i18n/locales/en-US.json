@@ -402,6 +402,7 @@
   "contentLibrary": {
     "actions": {
       "addBlock": "Add block",
+      "copyToContentItem": "Copy to content library",
       "copyToItem": "Copy to new item",
       "copyToItemSuccess": "Media copied to a new item",
       "createEmpty": "Create",

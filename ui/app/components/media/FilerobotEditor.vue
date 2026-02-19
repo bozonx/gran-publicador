@@ -14,7 +14,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'save', file: File): void
+  (e: 'save-requested', file: File): void
   (e: 'close'): void
 }>()
 
@@ -199,62 +199,6 @@ const normalizeFilename = (name: string, mimeType: string): string => {
   return `${safeName}.${ext}`
 }
 
-async function instantSave() {
-  if (!editorInstance) return
-  try {
-    if (typeof editorInstance.getCurrentImgData !== 'function') {
-      console.error('Filerobot instantSave: getCurrentImgData is not available')
-      return
-    }
-
-    const { imageData, hideLoadingSpinner } = editorInstance.getCurrentImgData(
-      {
-        name: baseFilename.value,
-        extension: 'png',
-        quality: 0.95,
-      },
-      1,
-      true,
-    )
-
-    const canvas: HTMLCanvasElement | undefined = imageData?.imageCanvas
-    const type = normalizeImageMimeType(imageData?.mimeType || 'image/png')
-    const rawName = imageData?.fullName || props.filename || 'edited-image'
-    const name = normalizeFilename(rawName, type)
-
-    if (!canvas) {
-      console.error('Filerobot instantSave: missing imageCanvas')
-      return
-    }
-
-    await new Promise<void>((resolve) => {
-      canvas.toBlob(
-        (blob: Blob | null) => {
-          try {
-            if (!blob) {
-              console.error('Filerobot instantSave: canvas.toBlob returned null')
-              return
-            }
-
-            if (!type.startsWith('image/')) {
-              console.error(`Filerobot instantSave: invalid output mimeType: ${type}`)
-              return
-            }
-
-            const file = new File([blob], name, { type })
-            emit('save', file)
-          } finally {
-            resolve()
-          }
-        },
-        type,
-      )
-    })
-    hideLoadingSpinner?.()
-  } catch (error) {
-    console.error('Filerobot instantSave: failed', error)
-  }
-}
 
 function terminateEditorInstance() {
   if (!editorInstance) return
@@ -329,35 +273,6 @@ async function initEditor() {
 
     const config = {
       source: props.source,
-      onSave: (editedImageObject: any) => {
-        const canvas: HTMLCanvasElement | undefined = editedImageObject.imageCanvas
-        const type = normalizeImageMimeType(editedImageObject.mimeType)
-        const rawName = editedImageObject.fullName || props.filename || 'edited-image'
-        const name = normalizeFilename(rawName, type)
-
-        if (!canvas) {
-          console.error('Filerobot onSave: missing imageCanvas')
-          return
-        }
-
-        canvas.toBlob(
-          (blob: Blob | null) => {
-            if (!blob) {
-              console.error('Filerobot onSave: canvas.toBlob returned null')
-              return
-            }
-
-            if (!type.startsWith('image/')) {
-              console.error(`Filerobot onSave: invalid output mimeType: ${type}`)
-              return
-            }
-
-            const file = new File([blob], name, { type })
-            emit('save', file)
-          },
-          type,
-        )
-      },
       // Filerobot 4.x config
       annotationsCommon: {
         fill: '#3b82f6', // primary blue
@@ -378,6 +293,33 @@ async function initEditor() {
     editorInstance = new FilerobotImageEditor(editorContainer.value, config)
     editorOpenedAtMs = Date.now()
     editorInstance.render({
+      onBeforeSave: () => false,
+      onSave: (editedImageObject: any) => {
+        const canvas: HTMLCanvasElement | undefined = editedImageObject.imageCanvas
+        const type = normalizeImageMimeType(editedImageObject.mimeType)
+        const rawName = editedImageObject.fullName || props.filename || 'edited-image'
+        const name = normalizeFilename(rawName, type)
+
+        if (!canvas) {
+          console.error('Filerobot onSave: missing imageCanvas')
+          return
+        }
+
+        return new Promise<void>((resolve) => {
+          canvas.toBlob(
+            (blob: Blob | null) => {
+              if (!blob) {
+                console.error('Filerobot onSave: canvas.toBlob returned null')
+                resolve()
+                return
+              }
+              emit('save-requested', new File([blob], name, { type }))
+              resolve()
+            },
+            type,
+          )
+        })
+      },
       onClose: (closingReason: unknown) => {
         const reason = typeof closingReason === 'string' ? closingReason : ''
 
@@ -419,6 +361,7 @@ onBeforeUnmount(() => {
   cleanupPortals()
   terminateEditorInstance()
 })
+
 </script>
 
 <template>

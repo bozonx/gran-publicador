@@ -41,8 +41,6 @@ const emit = defineEmits<{
   (e: 'save', data: any): void
   (e: 'refresh'): void
   (e: 'create-publication', item: ContentItem): void
-  (e: 'editor-open'): void
-  (e: 'editor-close'): void
 }>()
 
 const { t } = useI18n()
@@ -276,8 +274,6 @@ defineExpose({
         :on-reorder="onReorderMedia"
         :on-update-link="onUpdateLinkMedia"
         :on-copy="onCopyMedia"
-        @editor-open="emit('editor-open')"
-        @editor-close="emit('editor-close')"
       />
     </div>
 
@@ -303,7 +299,7 @@ defineExpose({
     <div v-if="groups.length > 0" class="pt-6 border-t border-gray-100 dark:border-gray-800">
       <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
         <UIcon name="i-heroicons-folder" class="w-4 h-4 text-gray-500" />
-        {{ t('contentLibrary.groups.title', 'Groups') }}
+        {{ t('contentLibrary.groups.title') }}
       </h4>
       <div class="flex flex-wrap gap-2">
         <div

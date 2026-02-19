@@ -68,8 +68,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 interface Emits {
   (e: 'refresh'): void
-  (e: 'editor-open'): void
-  (e: 'editor-close'): void
 }
 
 const emit = defineEmits<Emits>()
@@ -142,9 +140,6 @@ const selectedMediaLinkId = ref<string | null>(null)
 const editableHasSpoiler = ref(false)
 const isModalOpen = ref(false)
 
-const { openEditor } = useGlobalImageEditor()
-
-const isSavingMediaFile = ref(false)
 
 const editableMetadata = ref<Record<string, any> | null>(null)
 const editableAlt = ref('')
@@ -574,96 +569,15 @@ function handleEditMedia() {
     return
   }
 
-  emit('editor-open')
-  const shouldReopenMediaModalAfterEditor = isModalOpen.value
-  isModalOpen.value = false
+  const mediaId = selectedMedia.value.id
+  const projectId = currentProject.value?.id
+  const url = projectId
+    ? `/media/${mediaId}/edit?projectId=${projectId}`
+    : `/media/${mediaId}/edit`
 
-  const source = getMediaFileUrl(
-    selectedMedia.value.id,
-    authStore.accessToken || undefined,
-    selectedMedia.value.updatedAt,
-  )
-
-  openEditor({
-    source,
-    filename: selectedMedia.value.filename,
-    onSave: async (file: File) => {
-      await handleEditorSave(file)
-    },
-    onClose: async () => {
-      if (shouldReopenMediaModalAfterEditor) {
-        isModalOpen.value = true
-      }
-      emit('editor-close')
-    },
-  })
+  window.open(url, '_blank')
 }
 
-function handleEditorClose() {
-  if (isSavingMediaFile.value) return
-  emit('editor-close')
-}
-
-async function handleEditorSave(file: File) {
-  if (!selectedMedia.value) return
-  if (selectedMedia.value.type !== 'IMAGE') return
-
-  if (!file?.type?.toLowerCase?.().startsWith('image/')) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.editError', 'Failed to save edited image'),
-      color: 'error',
-    })
-    return
-  }
-
-  isSavingMediaFile.value = true
-  try {
-    const defaults = getDefaultOptimizationParams()
-    const optimizeParams = showExtendedOptions.value ? optimizationSettings.value : defaults
-
-    const updated = await replaceMediaFile(
-      selectedMedia.value.id,
-      file,
-      optimizeParams,
-      currentProject.value?.id,
-    )
-
-    if (selectedMedia.value && selectedMedia.value.id === updated.id) {
-      selectedMedia.value.storagePath = updated.storagePath
-      selectedMedia.value.filename = updated.filename
-      selectedMedia.value.mimeType = updated.mimeType
-      selectedMedia.value.sizeBytes = updated.sizeBytes
-      selectedMedia.value.meta = updated.meta
-      selectedMedia.value.updatedAt = updated.updatedAt
-    }
-
-    if (updated.id) {
-      fetchMedia(updated.id).then(fullMedia => {
-        if (fullMedia && selectedMedia.value && selectedMedia.value.id === fullMedia.id) {
-          selectedMedia.value.fullMediaMeta = fullMedia.fullMediaMeta
-          selectedMedia.value.publicToken = fullMedia.publicToken
-        }
-      })
-    }
-
-    toast.add({
-      title: t('common.success'),
-      description: t('media.editSuccess', 'Image edited successfully'),
-      color: 'success',
-    })
-
-    emit('refresh')
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.editError', 'Failed to save edited image'),
-      color: 'error',
-    })
-  } finally {
-    isSavingMediaFile.value = false
-  }
-}
 
 const transitionName = ref('slide-next')
 

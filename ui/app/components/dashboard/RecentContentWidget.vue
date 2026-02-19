@@ -186,7 +186,7 @@ onMounted(() => {
             color="primary" 
             @click="handleCloseEditModal"
           >
-            {{ t('common.done', 'Done') }}
+            {{ t('common.done') }}
           </UButton>
         </div>
       </template>

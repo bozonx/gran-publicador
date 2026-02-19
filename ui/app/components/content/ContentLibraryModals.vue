@@ -78,32 +78,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const isImageEditorOpen = ref(false)
-const shouldReopenEditModalAfterEditor = ref(false)
-
-const handleCloseEditModal = () => {
-    if (isImageEditorOpen.value) return
-    emit('update:isEditModalOpen', false)
-}
-
-const handleImageEditorOpen = () => {
-  isImageEditorOpen.value = true
-
-  shouldReopenEditModalAfterEditor.value = props.isEditModalOpen
-  if (props.isEditModalOpen) {
-    emit('update:isEditModalOpen', false)
-  }
-}
-
-const handleImageEditorClose = () => {
-  isImageEditorOpen.value = false
-
-  if (!shouldReopenEditModalAfterEditor.value) return
-  if (!props.activeItem) return
-
-  emit('update:isEditModalOpen', true)
-  shouldReopenEditModalAfterEditor.value = false
-}
 
 const handleClosePublicationPreviewModal = () => {
   emit('update:isPublicationPreviewModalOpen', false)
@@ -194,8 +168,6 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
         :project-id="projectId"
         :group-id="currentGroupId ?? undefined"
         @refresh="emit('refresh-items', { reset: true })"
-        @editor-open="handleImageEditorOpen"
-        @editor-close="handleImageEditorClose"
       />
       
       <template #footer>
@@ -213,8 +185,7 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
            </div>
            <UButton 
             color="primary" 
-            :disabled="isImageEditorOpen"
-            @click="handleCloseEditModal"
+            @click="emit('update:isEditModalOpen', false)"
           >
             {{ t('common.done') }}
           </UButton>
@@ -233,7 +204,7 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
       v-model:open="isCreateItemFromUnsplashModalOpenModel"
       :scope="scope"
       :project-id="projectId"
-      :unsplash-id="activeItem?.id"
+      :unsplash-id="activeItem?.id ?? null"
     />
 
     <!-- Publication Preview -->

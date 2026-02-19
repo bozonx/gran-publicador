@@ -183,7 +183,7 @@ async function handleCopyToSavedView() {
 <template>
   <UiAppModal
     v-model:open="isOpen"
-    :title="t('contentLibrary.actions.copyToContentItem', 'Copy to content library')"
+    :title="t('contentLibrary.actions.copyToContentItem')"
     :ui="{ content: 'max-w-md' }"
   >
     <div class="space-y-4">
