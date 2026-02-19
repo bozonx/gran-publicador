@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useInfiniteScroll } from '@vueuse/core'
-import { ref, computed, watch } from 'vue'
+import { useIntersectionObserver } from '@vueuse/core'
+import { ref, computed } from 'vue'
 import { INFINITE_SCROLL_AUTO_LIMIT } from '~/constants'
 
 interface Props {
@@ -19,7 +19,7 @@ const emit = defineEmits<{
   (e: 'loadMore'): void
 }>()
 
-const containerRef = ref<HTMLElement | null>(null)
+const sentinelRef = ref<HTMLElement | null>(null)
 const autoLoadCount = ref(0)
 
 // Show "Load More" button if we reached the auto limit
@@ -39,22 +39,23 @@ const manualLoadMore = () => {
   handleLoadMore()
 }
 
-// Set up infinite scroll
-useInfiniteScroll(
-  containerRef,
-  () => {
-    if (!showLoadMoreButton.value) {
+// Use Intersection Observer as a more robust way to detect when we need more data
+// It works correctly regardless of whether the window or a parent div is scrolling.
+useIntersectionObserver(
+  sentinelRef,
+  (entries: IntersectionObserverEntry[]) => {
+    const isIntersecting = entries[0]?.isIntersecting
+    if (isIntersecting && props.hasMore && !props.isLoading && !showLoadMoreButton.value) {
       autoLoadCount.value++
       handleLoadMore()
     }
   },
-  { 
-    distance: 200, 
-    canLoadMore: () => props.hasMore && !props.isLoading && !showLoadMoreButton.value 
+  {
+    // Trigger slightly before it becomes visible to keep the scroll smooth
+    rootMargin: '50px',
   }
 )
 
-// When hasMore or isLoading changes, we might need to reset or re-check
 defineExpose({
   resetAutoLimit: () => {
     autoLoadCount.value = 0
@@ -63,8 +64,16 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="containerRef" class="space-y-4">
+  <div class="flex flex-col">
     <slot />
+
+    <!-- Sentinel element to detect end of list -->
+    <div 
+      v-if="hasMore" 
+      ref="sentinelRef" 
+      class="h-px w-full invisible pointer-events-none" 
+      aria-hidden="true"
+    />
 
     <div v-if="hasMore" class="flex flex-col items-center py-8">
       <!-- "Load More" button when limit reached -->

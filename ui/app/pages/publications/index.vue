@@ -239,7 +239,8 @@ watch(
   [selectedStatusGroup, selectedChannelId, selectedProjectId, ownershipFilter, selectedSocialMedia, selectedLanguage, selectedTags, debouncedSearch, showArchivedFilter, sortBy, sortOrder], 
   () => {
     fetchPublications({ append: false })
-  }
+  },
+  { immediate: false }
 )
 
 // Reset to page 1 on filter change
