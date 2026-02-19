@@ -143,24 +143,14 @@ export class MediaService {
     const optimizedSize =
       this.parsePositiveInteger(result.size) ?? this.parsePositiveInteger(result.originalSize) ?? 0;
 
-    const width =
-      this.parsePositiveInteger(result.width) ??
-      this.parsePositiveInteger(result.optimization?.params?.width) ??
-      this.parsePositiveInteger(result.optimizationParams?.width);
-
-    const height =
-      this.parsePositiveInteger(result.height) ??
-      this.parsePositiveInteger(result.optimization?.params?.height) ??
-      this.parsePositiveInteger(result.optimizationParams?.height);
-
     return {
       originalSize:
         this.parsePositiveInteger(result.originalSize) ??
         this.parsePositiveInteger(result.original?.size) ??
         optimizedSize,
       size: optimizedSize,
-      width,
-      height,
+      width: this.parsePositiveInteger(result.width),
+      height: this.parsePositiveInteger(result.height),
       mimeType: result.mimeType ?? result.original?.mimeType ?? 'application/octet-stream',
       originalMimeType: result.original?.mimeType ?? result.originalMimeType,
       optimizationParams: result.optimization?.params ?? result.optimizationParams,
@@ -538,7 +528,6 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
-      this.logger.debug(`Media Storage response: ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
@@ -588,7 +577,6 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
-      this.logger.debug(`Media Storage response (URL): ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
