@@ -8,6 +8,7 @@ import {
   mergePublicationTagSuggestions,
 } from '~/utils/publication-tags-filter';
 import { normalizeTags, parseTags } from '~/utils/tags';
+import { DEFAULT_PAGE_SIZE } from '~/constants';
 
 const props = withDefaults(
   defineProps<{
@@ -91,7 +92,7 @@ async function searchTags(q: string, signal?: AbortSignal) {
           scope: props.scope,
           projectId: props.scope === 'project' ? props.projectId : undefined,
           groupId: props.groupId,
-          limit: 20,
+          limit: DEFAULT_PAGE_SIZE,
         },
       });
 
@@ -140,7 +141,7 @@ async function searchTags(q: string, signal?: AbortSignal) {
         q,
         ...resolvedScope.scope,
         groupId: props.groupId,
-        limit: 20,
+        limit: DEFAULT_PAGE_SIZE,
       },
     });
 

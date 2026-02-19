@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { refDebounced } from '@vueuse/core'
 import type { Source } from '~/types/source'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
 
 const props = defineProps<{
   modelValue: string[]
@@ -22,7 +23,7 @@ const items = ref<Source[]>([])
 const handleSearch = async (q: string) => {
   const res = await fetchSources({ 
     q, 
-    limit: 20,
+    limit: DEFAULT_PAGE_SIZE,
     orderBy: 'itemCount',
     order: 'desc'
   })

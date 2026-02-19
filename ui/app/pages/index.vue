@@ -5,6 +5,7 @@ import { useChannels } from '~/composables/useChannels'
 import type { ProjectWithRole } from '~/stores/projects'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
 
 definePageMeta({
   middleware: 'auth',
@@ -66,8 +67,8 @@ onMounted(async () => {
         sortBy: 'byPublished',
         sortOrder: 'desc'
       }),
-      fetchScheduled({ status: 'SCHEDULED', limit: 20 }),
-      fetchProblems({ status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 20 })
+      fetchScheduled({ status: 'SCHEDULED', limit: DEFAULT_PAGE_SIZE }),
+      fetchProblems({ status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: DEFAULT_PAGE_SIZE })
     ])
   } catch (err) {
     console.error('Dashboard initialization error:', err)

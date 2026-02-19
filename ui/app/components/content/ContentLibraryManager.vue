@@ -4,6 +4,7 @@ import { getApiErrorMessage } from '~/utils/error'
 import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useContentLibraryPublicationAggregation'
 import { parseTags } from '~/utils/tags'
 import { buildDescendantsTree, getRootGroupId } from '~/composables/useContentLibraryGroupsTree'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
 import ContentCollections from './ContentCollections.vue'
 import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
@@ -93,7 +94,7 @@ const selectedGroupId = ref<string | null>(null)
 const orphansOnly = ref(false)
 const collections = ref<ContentCollection[]>([])
 const archiveStatus = ref<'active' | 'archived'>('active')
-const limit = 20
+const limit = DEFAULT_PAGE_SIZE
 const offset = ref(0)
 const total = ref(0)
 const totalUnfiltered = ref(0)

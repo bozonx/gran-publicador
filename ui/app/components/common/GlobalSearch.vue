@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -45,7 +46,7 @@ async function performSearch(query: string) {
     const projectsResponse = await api.get<any[]>('/projects', {
       query: { 
         search: query,
-        limit: 20
+        limit: DEFAULT_PAGE_SIZE
       }
     })
     const projects = projectsResponse || []
@@ -66,7 +67,7 @@ async function performSearch(query: string) {
     const channelsResponse = await api.get<any>('/channels', {
       query: { 
         search: query,
-        limit: 20 
+        limit: DEFAULT_PAGE_SIZE 
       }
     })
     const channels = channelsResponse?.items || []
@@ -87,7 +88,7 @@ async function performSearch(query: string) {
     const publicationsResponse = await api.get<any>('/publications', {
       query: { 
         search: query,
-        limit: 20 
+        limit: DEFAULT_PAGE_SIZE 
       }
     })
     const publications = publicationsResponse?.items || []
