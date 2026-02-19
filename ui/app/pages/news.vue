@@ -283,28 +283,21 @@ function formatScore(score: number) {
         </div>
 
         <!-- News list -->
-          <div v-else-if="news.length > 0" class="space-y-4">
+        <CommonInfiniteList
+          v-else-if="news.length > 0"
+          :is-loading="isLoadMoreLoading"
+          :has-more="hasMore"
+          @load-more="loadMore"
+        >
+          <div class="space-y-4">
             <NewsItem
               v-for="item in news"
               :key="item.id"
               :item="item"
               @create-publication="handleCreatePublication"
             />
-            
-            <!-- Load More Button -->
-            <div v-if="hasMore" class="flex justify-center pt-4 pb-8">
-              <UButton
-                size="lg"
-                variant="soft"
-                color="neutral" 
-                :loading="isLoadMoreLoading"
-                icon="i-heroicons-arrow-down"
-                @click="loadMore"
-              >
-                {{ t('common.loadMore') || 'Load More' }}
-              </UButton>
-            </div>
           </div>
+        </CommonInfiniteList>
 
         <!-- Empty state -->
         <div

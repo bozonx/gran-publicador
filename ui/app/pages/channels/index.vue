@@ -98,7 +98,7 @@ const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list
 const { projects, fetchProjects } = useProjects()
 
 // Fetch channels with current filters
-async function loadChannels() {
+async function loadChannels(options: { append?: boolean } = {}) {
   await fetchChannels({
     search: debouncedSearch.value || undefined,
     ownership: ownershipFilter.value,
@@ -108,10 +108,19 @@ async function loadChannels() {
     sortBy: sortBy.value,
     sortOrder: sortOrder.value,
     limit: limit.value,
-    offset: (currentPage.value - 1) * limit.value,
+    offset: options.append ? channels.value.length : (currentPage.value - 1) * limit.value,
     archivedOnly: archiveStatus.value === 'archived',
     includeArchived: false,
-  })
+  }, options)
+}
+
+const hasMoreData = computed(() => {
+  return channels.value.length < totalCount.value
+})
+
+async function loadMore() {
+  if (isLoading.value || !hasMoreData.value) return
+  await loadChannels({ append: true })
 }
 
 // Fetch on mount
@@ -193,10 +202,10 @@ watch(
   }
 )
 
-// Watch filters and sorting - reset to page 1 and re-fetch
+// Watch filters and sorting - reset and re-fetch
 watch([ownershipFilter, selectedIssueType, selectedProjectId, selectedSocialMedia, debouncedSearch, archiveStatus, sortBy, sortOrder], () => {
     currentPage.value = 1
-    loadChannels()
+    loadChannels({ append: false })
 })
 
 // Watch page changes - re-fetch with new offset
@@ -427,71 +436,65 @@ const showPagination = computed(() => {
       </div>
     </div>
 
-    <!-- Channels list view -->
-    <CommonFoundCount :count="totalCount" :show="!!hasActiveFilters" class="mb-4" />
+    <CommonInfiniteList
+      :is-loading="isLoading"
+      :has-more="hasMoreData"
+      @load-more="loadMore"
+    >
+      <!-- Channels list view -->
+      <div v-if="isListView" class="space-y-4">
+         <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-12">
+            <UiLoadingSpinner size="md" />
+         </div>
 
-    <div v-if="isListView" class="space-y-4">
-       <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-12">
-          <UiLoadingSpinner size="md" />
-       </div>
+         <div v-else-if="channels.length === 0" class="app-card text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              {{ t('channel.noChannelsFound') }}
+            </h3>
+            <p class="text-gray-500 dark:text-gray-400">
+              {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
+            </p>
+         </div>
 
-       <div v-else-if="channels.length === 0" class="app-card text-center py-12">
-          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            {{ t('channel.noChannelsFound') }}
-          </h3>
-          <p class="text-gray-500 dark:text-gray-400">
-            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
-          </p>
-       </div>
+         <ChannelListItem
+           v-for="channel in channels"
+           :key="channel.id"
+           :channel="channel"
+           :show-project="true"
+           :is-archived="!!channel.archivedAt"
+         />
+      </div>
 
-       <ChannelListItem
-         v-for="channel in channels"
-         :key="channel.id"
-         :channel="channel"
-         :show-project="true"
-         :is-archived="!!channel.archivedAt"
-       />
-    </div>
+      <!-- Channels cards view -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+         <div v-if="isLoading && channels.length === 0" class="col-span-full flex items-center justify-center py-12">
+            <UiLoadingSpinner size="md" />
+         </div>
 
-    <!-- Channels cards view -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-       <div v-if="isLoading && channels.length === 0" class="col-span-full flex items-center justify-center py-12">
-          <UiLoadingSpinner size="md" />
-       </div>
+         <div v-else-if="channels.length === 0" class="col-span-full app-card text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              {{ t('channel.noChannelsFound') }}
+            </h3>
+            <p class="text-gray-500 dark:text-gray-400">
+              {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
+            </p>
+         </div>
 
-       <div v-else-if="channels.length === 0" class="col-span-full app-card text-center py-12">
-          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <UIcon name="i-heroicons-hashtag" class="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            {{ t('channel.noChannelsFound') }}
-          </h3>
-          <p class="text-gray-500 dark:text-gray-400">
-            {{ searchQuery || hasActiveFilters ? t('channel.adjustFilters', 'Try making your filters less strict') : t('channel.noChannelsDescription') }}
-          </p>
-       </div>
+         <ChannelCard
+           v-for="channel in channels"
+           :key="channel.id"
+           :channel="channel"
+           :show-project="true"
+           :is-archived="!!channel.archivedAt"
+         />
+      </div>
+    </CommonInfiniteList>
 
-       <ChannelCard
-         v-for="channel in channels"
-         :key="channel.id"
-         :channel="channel"
-         :show-project="true"
-         :is-archived="!!channel.archivedAt"
-       />
-    </div>
-
-    <!-- Pagination -->
-    <div v-if="showPagination" class="mt-8 flex justify-center">
-      <UPagination
-        v-model:page="currentPage"
-        :total="totalCount"
-        :items-per-page="limit"
-        :prev-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-left', label: t('common.prev') }"
-        :next-button="{ color: 'neutral', icon: 'i-heroicons-arrow-small-right', label: t('common.next'), trailing: true }"
-      />
-    </div>
   </div>
 </template>

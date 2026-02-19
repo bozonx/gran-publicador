@@ -45,20 +45,23 @@ export function useChannels() {
   /**
    * Fetch channels with server-side pagination, filtering, and sorting
    */
-  async function fetchChannels(filters?: {
-    projectId?: string;
-    search?: string;
-    ownership?: 'all' | 'own' | 'guest';
-    issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive' | 'problematic';
-    socialMedia?: string;
-    language?: string;
-    sortBy?: 'alphabetical' | 'socialMedia' | 'language' | 'postsCount';
-    sortOrder?: 'asc' | 'desc';
-    limit?: number;
-    offset?: number;
-    includeArchived?: boolean;
-    archivedOnly?: boolean;
-  }): Promise<ChannelWithProject[]> {
+  async function fetchChannels(
+    filters?: {
+      projectId?: string;
+      search?: string;
+      ownership?: 'all' | 'own' | 'guest';
+      issueType?: 'all' | 'noCredentials' | 'failedPosts' | 'stale' | 'inactive' | 'problematic';
+      socialMedia?: string;
+      language?: string;
+      sortBy?: 'alphabetical' | 'socialMedia' | 'language' | 'postsCount';
+      sortOrder?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+      includeArchived?: boolean;
+      archivedOnly?: boolean;
+    },
+    options: { append?: boolean } = {},
+  ): Promise<ChannelWithProject[]> {
     isLoading.value = true;
     error.value = null;
 
@@ -75,7 +78,12 @@ export function useChannels() {
         meta: { total: number; limit: number; offset: number; totalUnfiltered?: number };
       }>('/channels', { params });
 
-      channels.value = response.items;
+      if (options.append) {
+        channels.value = [...channels.value, ...response.items];
+      } else {
+        channels.value = response.items;
+      }
+
       totalCount.value = response.meta.total;
       totalUnfilteredCount.value = response.meta.totalUnfiltered ?? response.meta.total;
 
