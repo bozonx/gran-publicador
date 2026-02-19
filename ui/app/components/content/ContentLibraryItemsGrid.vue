@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type ContentCollection } from '~/composables/useContentCollections'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import UiLoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import CommonFoundCount from '~/components/common/CommonFoundCount.vue'
 import ContentItemCard from './ContentItemCard.vue'
@@ -40,6 +40,32 @@ const { t } = useI18n()
 
 const isAllSelected = computed(() => props.items.length > 0 && props.items.every(item => props.selectedIds.includes(item.id)))
 const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSelected.value)
+
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+const setupObserver = () => {
+  if (observer) {
+    observer.disconnect()
+  }
+  if (!sentinelRef.value) return
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting && props.hasMore && !props.isLoading) {
+        emit('load-more')
+      }
+    },
+    { rootMargin: '200px' },
+  )
+  observer.observe(sentinelRef.value)
+}
+
+onMounted(() => { setupObserver() })
+onBeforeUnmount(() => { observer?.disconnect() })
+
+watch(sentinelRef, () => { setupObserver() })
 </script>
 
 <template>
@@ -99,17 +125,12 @@ const isSomeSelected = computed(() => props.selectedIds.length > 0 && !isAllSele
         {{ q.length > 0 || selectedTags.length > 0 ? t('common.noResults') : t('contentLibrary.empty') }}
       </div>
 
-      <!-- Pagination -->
-      <div v-if="hasMore" class="pt-2 flex justify-center">
-        <UButton
-          :loading="isLoading"
-          variant="outline"
-          color="neutral"
-          icon="i-heroicons-arrow-down"
-          @click="emit('load-more')"
-        >
-          {{ t('common.loadMore') }}
-        </UButton>
+      <!-- Infinite scroll sentinel -->
+      <div ref="sentinelRef" class="h-1" aria-hidden="true" />
+
+      <!-- Loading indicator for subsequent pages -->
+      <div v-if="isLoading && items.length > 0" class="flex justify-center py-4">
+        <UiLoadingSpinner size="sm" color="primary" />
       </div>
     </div>
   </div>
