@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useNotificationsStore } from '~/stores/notifications'
+import { DEFAULT_PAGE_SIZE } from '~/constants'
 
 definePageMeta({
   middleware: 'auth',
@@ -8,20 +8,20 @@ definePageMeta({
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 
-const limit = ref(20)
+const limit = ref(DEFAULT_PAGE_SIZE)
 const offset = ref(0)
-const hasMore = ref(true)
+
+const hasMoreData = computed(() => {
+  return notificationsStore.items.length < notificationsStore.totalCount
+})
 
 async function loadNotifications(append = false) {
   if (!append) offset.value = 0
-  
-  const response = await notificationsStore.fetchNotifications(limit.value, offset.value, append)
-  if (response && response.items) {
-    hasMore.value = response.items.length === limit.value
-  }
+  await notificationsStore.fetchNotifications(limit.value, offset.value, append)
 }
 
 async function loadMore() {
+  if (notificationsStore.isLoading || !hasMoreData.value) return
   offset.value += limit.value
   await loadNotifications(true)
 }
@@ -63,29 +63,19 @@ onMounted(() => {
         </UButton>
       </template>
 
-      <div v-if="notificationsStore.items.length > 0">
-        <CommonNotificationsNotificationItem
-          v-for="item in notificationsStore.items"
-          :key="item.id"
-          :notification="item"
-          class="first:rounded-t-lg last:rounded-b-lg last:border-b-0"
-        />
-        
-        <div v-if="hasMore" class="p-4 text-center border-t dark:border-gray-800">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            :loading="notificationsStore.isLoading"
-            @click="loadMore"
-          >
-            {{ t('common.loadMore') }}
-          </UButton>
-        </div>
-      </div>
-      
-      <div v-else-if="notificationsStore.isLoading" class="p-12 flex flex-col items-center justify-center text-gray-500">
-        <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 animate-spin mb-4" />
-        <p class="text-lg font-medium">{{ t('common.loading') }}</p>
+      <div v-if="notificationsStore.items.length > 0 || notificationsStore.isLoading">
+        <CommonInfiniteList
+          :is-loading="notificationsStore.isLoading"
+          :has-more="hasMoreData"
+          @load-more="loadMore"
+        >
+          <CommonNotificationsNotificationItem
+            v-for="item in notificationsStore.items"
+            :key="item.id"
+            :notification="item"
+            class="first:rounded-t-lg last:rounded-b-lg last:border-b-0"
+          />
+        </CommonInfiniteList>
       </div>
       
       <div v-else class="p-20 flex flex-col items-center justify-center text-center">

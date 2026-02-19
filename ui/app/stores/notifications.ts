@@ -31,6 +31,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   const items = ref<Notification[]>([]);
   const unreadCount = ref(0);
+  const totalCount = ref(0);
   const isLoading = ref(false);
   const socket = ref<Socket | null>(null);
 
@@ -56,6 +57,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       } else {
         items.value = response.items;
       }
+      totalCount.value = response.total;
       await fetchUnreadCount();
       return response;
     } catch (error) {
@@ -216,6 +218,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   return {
     items,
     unreadCount,
+    totalCount,
     isLoading,
     hasUnread,
     fetchNotifications,
