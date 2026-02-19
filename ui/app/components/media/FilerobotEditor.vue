@@ -1,6 +1,37 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 
+// Global state to manage console silencing across instances
+let silenceCount = 0
+let originalConsoleError: typeof console.error | null = null
+
+function silenceReactWarnings() {
+  silenceCount++
+  if (silenceCount === 1) {
+    originalConsoleError = console.error
+    console.error = (...args: any[]) => {
+      const msg = args[0]
+      if (
+        typeof msg === 'string' &&
+        msg.includes('Support for defaultProps will be removed from function components')
+      ) {
+        // Silently ignore this specific React 18+ deprecation warning from 3rd party libs
+        return
+      }
+      originalConsoleError?.apply(console, args)
+    }
+  }
+}
+
+function restoreConsoleError() {
+  silenceCount--
+  if (silenceCount <= 0 && originalConsoleError) {
+    console.error = originalConsoleError
+    originalConsoleError = null
+    silenceCount = 0
+  }
+}
+
 // Import the editor dynamically to avoid SSR issues
 let FilerobotImageEditor: any = null
 
@@ -355,12 +386,14 @@ async function initEditor() {
 }
 
 onMounted(async () => {
+  silenceReactWarnings()
   await initEditor()
 })
 
 onBeforeUnmount(() => {
   cleanupPortals()
   terminateEditorInstance()
+  restoreConsoleError()
 })
 
 </script>
