@@ -32,11 +32,13 @@ Gran Publicador построен по принципу **монолитной а
                      │
                      │ HTTP/JSON (REST API)
                      │ JWT / API Token
+                     │ WebSocket (Socket.IO) — уведомления
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  Backend (NestJS + Fastify)              │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  Controllers  │  Services  │  Guards  │  Filters │   │
+│  │  WebSocket Gateways (notifications, STT)         │   │
 │  └──────────────────────────────────────────────────┘   │
 │                    REST API (/api/v1/*)                  │
 └────────────────────┬────────────────────────────────────┘
@@ -75,91 +77,53 @@ Gran Publicador построен по принципу **монолитной а
 src/
 ├── common/                      # Общие компоненты
 │   ├── constants/               # Константы приложения
-│   │   └── auth.constants.ts    # JWT стратегии, роли
 │   ├── decorators/              # Кастомные декораторы
-│   │   └── roles.decorator.ts   # @Roles('ADMIN')
 │   ├── filters/                 # Exception filters
-│   │   ├── all-exceptions.filter.ts    # Глобальный обработчик ошибок
-│   │   
 │   ├── guards/                  # Guards для защиты эндпоинтов
 │   │   ├── jwt-or-api-token.guard.ts   # JWT или API токен
 │   │   ├── jwt-auth.guard.ts           # Только JWT
-│   │   └── roles.guard.ts              # Проверка ролей
+│   │   └── api-token.guard.ts          # Только API токен
 │   ├── pipes/                   # Validation pipes
 │   ├── services/                # Общие сервисы
 │   │   └── permissions.service.ts      # Проверка прав доступа
 │   └── types/                   # Общие типы
-│       └── unified-auth-request.interface.ts
 │
 ├── config/                      # Конфигурация
-│   ├── app.config.ts            # Основная конфигурация
-│   └── database.config.ts       # Конфигурация БД
+│   ├── app.config.ts
+│   ├── database.config.ts
+│   ├── llm.config.ts
+│   ├── media.config.ts
+│   ├── redis.config.ts
+│   ├── stt.config.ts
+│   └── translate.config.ts
 │
 ├── modules/                     # Бизнес-модули
 │   ├── api-tokens/              # API токены
-│   │   ├── dto/
-│   │   ├── api-tokens.controller.ts
-│   │   ├── api-tokens.service.ts
-│   │   └── api-tokens.module.ts
-│   │
-│   ├── archive/                 # Система архивирования
-│   │   ├── archive.controller.ts
-│   │   ├── archive.service.ts
-│   │   └── archive.module.ts
-│   │
-│   ├── auth/                    # Аутентификация
-│   │   ├── dto/
-│   │   ├── guards/
-│   │   │   └── api-token.guard.ts
-│   │   ├── strategies/
-│   │   │   └── jwt.strategy.ts
-│   │   ├── auth.controller.ts
-│   │   ├── auth.service.ts
-│   │   └── auth.module.ts
-│   │
-│   ├── channels/                # Управление каналами
-│   │   ├── dto/
-│   │   ├── channels.controller.ts
-│   │   ├── channels.service.ts
-│   │   └── channels.module.ts
-│   │
+│   ├── archive/                 # Система архивирования (soft delete, restore, move)
+│   ├── auth/                    # Аутентификация (Telegram initData → JWT)
+│   ├── author-signatures/       # Подписи авторов с языковыми вариантами
+│   ├── channels/                # Управление каналами соцсетей
+│   ├── content-library/         # Библиотека контента (personal/project scope)
 │   ├── health/                  # Health check
-│   │   ├── health.controller.ts
-│   │   └── health.module.ts
-│   │
-│   ├── posts/                   # Управление постами
-│   │   ├── dto/
-│   │   ├── posts.controller.ts
-│   │   ├── posts.service.ts
-│   │   └── posts.module.ts
-│   │
+│   ├── llm/                     # LLM генерация текста
+│   ├── llm-prompt-templates/    # Шаблоны промптов (личные и проектные)
+│   ├── media/                   # Медиафайлы (upload, stream, replace)
+│   ├── news-queries/            # Запросы для автосбора новостей
+│   ├── notifications/           # Уведомления (REST + WebSocket/Socket.IO)
+│   ├── posts/                   # Посты (привязаны к публикациям и каналам)
 │   ├── prisma/                  # Prisma сервис
-│   │   ├── prisma.service.ts
-│   │   └── prisma.module.ts
-│   │
-│   ├── projects/                # Управление проектами
-│   │   ├── dto/
-│   │   ├── projects.controller.ts
-│   │   ├── projects.service.ts
-│   │   └── projects.module.ts
-│   │
-│   ├── publications/            # Управление публикациями
-│   │   ├── dto/
-│   │   ├── publications.controller.ts
-│   │   ├── publications.service.ts
-│   │   └── publications.module.ts
-│   │
-│   ├── media/                   # Управление медиафайлами
-│   │   ├── dto/
-│   │   ├── media.controller.ts
-│   │   ├── media.service.ts
-│   │   └── media.module.ts
-│   │
+│   ├── project-templates/       # Шаблоны публикаций уровня проекта
+│   ├── projects/                # Управление проектами и участниками
+│   ├── publication-relations/   # Связи публикаций (SERIES, LOCALIZATION)
+│   ├── publications/            # Публикации (контент, планирование, LLM-чат)
+│   ├── roles/                   # Управление ролями участников проекта
+│   ├── social-posting/          # Планировщик публикаций в соцсети
+│   ├── stt/                     # Speech-To-Text (WebSocket gateway)
+│   ├── system/                  # Системные эндпоинты (schedulers)
+│   ├── tags/                    # Поиск тегов по проекту/пользователю
+│   ├── telegram-bot/            # Telegram бот (сбор контента в библиотеку)
+│   ├── translate/               # Перевод текста через Translation Gateway
 │   └── users/                   # Управление пользователями
-│       ├── dto/
-│       ├── users.controller.ts
-│       ├── users.service.ts
-│       └── users.module.ts
 │
 ├── app.module.ts                # Главный модуль
 └── main.ts                      # Точка входа
@@ -276,11 +240,34 @@ module-name/
 - Перемещение между проектами
 - Окончательное удаление
 
-#### SystemConfigModule
-- Загрузка конфигурации из YAML
-- Hot-reload конфигурации
-- Env substitution (${VAR_NAME})
-- Валидация конфигурации
+#### NotificationsModule
+- REST эндпоинты: список, счётчик непрочитанных, отметить прочитанным
+- WebSocket gateway (Socket.IO, namespace `/notifications`) — push уведомления в реальном времени
+- Планировщик очистки старых уведомлений
+
+#### SttModule
+- WebSocket gateway для стриминга аудио и получения транскрипции в реальном времени
+- Интеграция с STT Gateway микросервисом
+
+#### LlmPromptTemplatesModule
+- Личные и проектные шаблоны промптов
+- Системные шаблоны с возможностью скрытия
+- Управление порядком (reorder) и агрегированный список `available`
+
+#### ProjectTemplatesModule
+- Шаблоны публикаций на уровне проекта
+- CRUD + reorder
+
+#### PublicationRelationsModule
+- Группы связей публикаций: `SERIES` (серия), `LOCALIZATION` (локализация)
+- Link / unlink / create-related / reorder
+
+#### TranslateModule
+- Перевод текста через Translation Gateway микросервис
+- Поддержка нескольких провайдеров (anylang, google, deepl и др.)
+
+#### TagsModule
+- Поиск тегов по скоупу проекта или пользователя
 
 #### PermissionsModule
 - Проверка прав доступа к проектам
@@ -697,12 +684,6 @@ User (onDelete: SetNull)
 
 При архивации проекта:
 1. Устанавливается `archivedAt` и `archivedBy` для проекта
-#### Вариант 1: Прямая публикация (standalone)
-1. Создается пост напрямую для канала.
-2. **Автоматическое создание публикации**: Система автоматически создает родительскую публикацию-контейнер для обеспечения целостности данных (все посты должны принадлежать публикации).
-3. Указывается контент, медиафайлы, дата публикации.
-4. Устанавливается статус `SCHEDULED`.
-5. Пост ожидает публикации в соответствии с расписанием.
 2. Автоматически архивируются все каналы проекта
 3. Автоматически архивируются все публикации проекта
 4. Автоматически архивируются все посты проекта
@@ -915,9 +896,9 @@ const updated = { ...original, field: newValue };
 ### Текущая архитектура
 
 **Монолит:**
-- Один процесс для backend
-- Один процесс для frontend (dev)
-- SQLite база данных
+- Один процесс для backend (NestJS + Fastify)
+- PostgreSQL — основная БД
+- Redis — кеш и pub/sub
 - Подходит для малых и средних нагрузок
 
 ### Пути масштабирования
@@ -926,32 +907,24 @@ const updated = { ...original, field: newValue };
 
 - Увеличение ресурсов сервера (CPU, RAM)
 - Оптимизация запросов к БД
-- Кеширование (Redis)
+- Расширение кеширования через Redis
 
 #### 2. Горизонтальное масштабирование
 
 **Backend:**
 - Несколько инстансов за load balancer
-- Shared session store (Redis)
-- Миграция на PostgreSQL для concurrent access
+- Shared session store (Redis, уже используется)
+- Sticky sessions или JWT (stateless, уже реализовано)
 
 **Frontend:**
 - CDN для статики
 - Кеширование на уровне CDN
 
-#### 3. Микросервисы (будущее)
+#### 3. База данных
 
-Возможное разделение:
-- Publications Service
-
-#### 4. База данных
-
-**Текущая:** SQLite (файл)
-
-**Миграция:**
-- PostgreSQL для продакшн
+**Текущая:** PostgreSQL
 - Read replicas для чтения
-- Sharding по проектам
+- Sharding по проектам (при необходимости)
 
 
 ### Мониторинг

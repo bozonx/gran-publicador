@@ -12,15 +12,34 @@ This document describes production deployment for Gran Publicador backend and fr
 
 ### Required environment variables
 
-- `DATABASE_URL` (PostgreSQL connection string)
-- `JWT_SECRET` (min 32 chars)
-- `SOCIAL_POSTING_SERVICE_URL`
+- `DATABASE_URL` — PostgreSQL connection string
+- `JWT_SECRET` — min 32 chars (also used as AES-256 key)
+- `TELEGRAM_BOT_TOKEN` — Telegram bot token from @BotFather
+- `SOCIAL_POSTING_SERVICE_URL` — social media posting microservice URL
+- `MEDIA_STORAGE_SERVICE_URL` — media storage microservice URL
+- `FREE_LLM_ROUTER_URL` — LLM router microservice URL
 
-Optional:
+Optional but recommended:
 
-- `PORT` (Render provides it automatically)
-- `LISTEN_HOST` / `LISTEN_PORT` (Docker/local usage)
-- `RUN_MIGRATIONS_ON_START` (default: `false`)
+- `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` — Redis connection (required in non-test envs, default: `localhost:6379`)
+- `STT_SERVICE_URL` — Speech-To-Text gateway URL
+- `TRANSLATE_SERVICE_URL` — Translation gateway URL
+- `NEWS_SERVICE_URL` — News service URL
+- `SYSTEM_API_SECRET` — shared secret for system API endpoints (e.g. n8n triggers)
+- `SYSTEM_API_IP_RESTRICTION_ENABLED` — restrict system API to local network IPs (default: `true`)
+- `TELEGRAM_BOT_ENABLED` — enable Telegram bot for content collection (default: `false`)
+- `TELEGRAM_ADMIN_ID` — Telegram ID of the super-administrator
+- `FRONTEND_URL` — frontend URL for links in bot messages
+- `TELEGRAM_MINI_APP_URL` — Telegram Mini App base URL
+- `PORT` — Render provides it automatically
+- `LISTEN_HOST` / `LISTEN_PORT` — Docker/local usage
+- `RUN_MIGRATIONS_ON_START` — default: `false`
+- `LOG_LEVEL` — `trace`, `debug`, `info`, `warn`, `error`, `fatal` (default: `warn`)
+- `SCHEDULER_WINDOW_MINUTES` — past window for scheduled tasks (default: `10`)
+- `SHUTDOWN_TIMEOUT_SECONDS` — graceful shutdown timeout (default: `30`)
+- `TZ` — application timezone (default: `UTC`)
+
+See `.env.production.example` for the full list with defaults.
 
 ### Database Migrations on Render.com
 

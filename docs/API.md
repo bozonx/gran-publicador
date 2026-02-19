@@ -11,12 +11,24 @@
 - [Auth API](#auth-api)
 - [Projects API](#projects-api)
 - [Channels API](#channels-api)
+- [Author Signatures API](#author-signatures-api)
 - [Publications API](#publications-api)
+- [Publication Relations API](#publication-relations-api)
+- [Project Templates API](#project-templates-api)
+- [Posts API](#posts-api)
 - [Content Library API](#content-library-api)
 - [News Queries API](#news-queries-api)
 - [LLM API](#llm-api)
-- [System API (Schedulers)](#system-api-schedulers)
+- [LLM Prompt Templates API](#llm-prompt-templates-api)
+- [Translate API](#translate-api)
+- [Notifications API](#notifications-api)
+- [Media API](#media-api)
+- [API Tokens](#api-tokens)
+- [Archive API](#archive-api)
+- [Users API](#users-api)
+- [System API](#system-api)
 - [Health Check](#health-check)
+- [Коды ошибок](#коды-ошибок)
 - [Приложение: Enum значения](#приложение-enum-значения)
 
 ---
@@ -471,146 +483,53 @@ x-api-key: gp_<TOKEN_VALUE>
 ### PostType
 - `POST`, `ARTICLE`, `NEWS`, `VIDEO`, `SHORT`, `STORY`
 
-#### Запрос
+---
 
-```
-GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULED
-```
+## Posts API
+
+### GET `/posts`
+
+Получить список постов.
 
 **Query параметры:**
-- `channelId` (string, optional) - фильтр по каналу
-- `publicationId` (string, optional) - фильтр по публикации
-- `status` (PostStatus, optional) - фильтр по статусу
-- `limit` (number, optional) - количество (по умолчанию: 50)
-- `offset` (number, optional) - смещение (по умолчанию: 0)
 
-#### Ответ
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `channelId` | UUID | Фильтр по каналу |
+| `publicationId` | UUID | Фильтр по публикации |
+| `status` | Enum | Фильтр по статусу |
+| `limit` | number | Количество (по умолчанию: 50) |
+| `offset` | number | Смещение (по умолчанию: 0) |
 
-```json
-[
-  {
-    "id": "bb0e8400-e29b-41d4-a716-446655440006",
-    "publicationId": "aa0e8400-e29b-41d4-a716-446655440005",
-    "channelId": "990e8400-e29b-41d4-a716-446655440004",
-    "authorId": "660e8400-e29b-41d4-a716-446655440001",
-    "content": "Текст поста...",
-    "socialMedia": "TELEGRAM",
-    "postType": "POST",
-    "title": "Заголовок",
-    "description": "Описание",
-    "authorComment": "Комментарий автора (публикуется после текста новости)",
-    "tags": "технологии,AI",
-    "media": [
-      {
-        "id": "cc0e8400-e29b-41d4-a716-446655440007",
-        "order": 0,
-        "media": {
-          "id": "dd0e8400-e29b-41d4-a716-444455440008",
-          "storageType": "FS",
-          "storagePath": "uploads/image.jpg"
-        }
-      }
-    ],
-    "postDate": "2024-01-20T12:00:00.000Z",
-    "status": "SCHEDULED",
-    "scheduledAt": "2024-01-20T12:00:00.000Z",
-    "publishedAt": null,
-    "meta": {},
-    "createdAt": "2024-01-15T10:30:00.000Z",
-    "updatedAt": "2024-01-15T10:30:00.000Z",
-    "archivedAt": null,
-    "archivedBy": null,
-    "channel": {
-      "id": "990e8400-e29b-41d4-a716-446655440004",
-      "name": "Мой Telegram канал",
-      "socialMedia": "TELEGRAM"
-    }
-  }
-]
-```
-
-### GET /posts/:id
+### GET `/posts/:id`
 
 Получить пост.
 
-### POST /posts
+### POST `/posts`
 
 Создать пост.
 
-#### Запрос
+**Параметры Body:**
 
-```json
-{
-  "channelId": "990e8400-e29b-41d4-a716-446655440004",
-  "content": "Текст поста...",
-  "postType": "POST",
-  "title": "Заголовок",
-  "scheduledAt": "2024-01-20T12:00:00.000Z",
-  "status": "SCHEDULED"
-}
-```
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `channelId` | UUID | Да | ID канала |
+| `content` | string | Да | Содержание поста |
+| `postType` | Enum | Да | Тип поста |
+| `title` | string | Нет | Заголовок |
+| `description` | string | Нет | Описание |
+| `authorComment` | string | Нет | Авторский комментарий |
+| `tags` | string | Нет | Теги через запятую |
+| `scheduledAt` | string | Нет | Дата публикации (ISO 8601) |
+| `status` | Enum | Нет | Статус (по умолчанию: `DRAFT`) |
 
-**Параметры:**
-- `channelId` (string, required) - ID канала
-- `content` (string, required) - содержание поста
-- `postType` (PostType, required) - тип поста
-- `title` (string, optional) - заголовок
-- `description` (string, optional) - описание
-- `authorComment` (string, optional) - авторский комментарий к новости (публикуется вместе с контентом)
-- `tags` (string, optional) - теги через запятую
-- `postDate` (string, optional) - дата поста (ISO 8601)
-- `scheduledAt` (string, optional) - дата публикации (ISO 8601)
-- `status` (PostStatus, optional) - статус (по умолчанию: DRAFT)
-- `socialMedia` (string, optional) - соц. сеть (берется из канала)
-
-#### Ответ
-
-```json
-{
-  "id": "bb0e8400-e29b-41d4-a716-446655440006",
-  "publicationId": null,
-  "channelId": "990e8400-e29b-41d4-a716-446655440004",
-  "authorId": "660e8400-e29b-41d4-a716-446655440001",
-  "content": "Текст поста...",
-  "socialMedia": "TELEGRAM",
-  "postType": "POST",
-  "title": "Заголовок",
-  "description": null,
-  "authorComment": null,
-  "tags": null,
-  "media": [],
-  "postDate": null,
-  "status": "SCHEDULED",
-  "scheduledAt": "2024-01-20T12:00:00.000Z",
-  "publishedAt": null,
-  "meta": {},
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z",
-  "archivedAt": null,
-  "archivedBy": null
-}
-```
-
-### PATCH /posts/:id
+### PATCH `/posts/:id`
 
 Обновить пост.
 
-#### Запрос
-
-```json
-{
-  "content": "Обновленный текст...",
-  "scheduledAt": "2024-01-21T12:00:00.000Z"
-}
-```
-
-### DELETE /posts/:id
+### DELETE `/posts/:id`
 
 Удалить пост.
-
----
-
-## API Tokens
 
 ---
 
@@ -702,141 +621,37 @@ GET /api/v1/posts?channelId=990e8400-e29b-41d4-a716-446655440004&status=SCHEDULE
 
 ## Archive API
 
-### POST /archive/:type/:id
+### POST `/archive/:type/:id`
 
 Архивировать сущность.
 
-#### Запрос
-
-```
-POST /api/v1/archive/project/550e8400-e29b-41d4-a716-446655440000
-```
-
 **Path параметры:**
-- `type` (string) - тип сущности: `project`, `channel`, `publication`, `post`
-- `id` (string) - ID сущности
-
-#### Ответ
-
-```json
-{
-  "message": "Entity archived successfully",
-  "archivedCount": 15
-}
-```
+- `type` — тип сущности: `project`, `channel`, `publication`, `post`
+- `id` — ID сущности
 
 **Примечание:** При архивации проекта автоматически архивируются все связанные каналы, публикации и посты (виртуальное каскадирование).
 
-#### Вариант 1: Прямая публикация (standalone)
-1. Создается пост напрямую для канала.
-2. **Автоматическое создание публикации**: Система автоматически создает родительскую публикацию-контейнер для обеспечения целостности данных (все посты должны принадлежать публикации).
-3. Указывается контент, медиафайлы, дата публикации.
-4. Устанавливается статус `SCHEDULED`.
-5. Пост ожидает публикации в соответствии с расписанием.
-
-#### Вариант 2: Через публикацию
-
-### POST /archive/:type/:id/restore
+### POST `/archive/:type/:id/restore`
 
 Восстановить из архива.
 
-#### Запрос
-
-```
-POST /api/v1/archive/project/550e8400-e29b-41d4-a716-446655440000/restore
-```
-
-#### Ответ
-
-```json
-{
-  "message": "Entity restored successfully",
-  "restoredCount": 15
-}
-```
-
-### DELETE /archive/:type/:id
+### DELETE `/archive/:type/:id`
 
 Окончательно удалить архивированную сущность.
 
-#### Запрос
-
-```
-DELETE /api/v1/archive/project/550e8400-e29b-41d4-a716-446655440000
-```
-
-#### Ответ
-
-```json
-{
-  "message": "Entity permanently deleted"
-}
-```
-
-### POST /archive/:type/:id/move
+### POST `/archive/:type/:id/move`
 
 Переместить сущность в другой проект.
 
-#### Запрос
+**Body:** `{ "targetProjectId": "<UUID>" }`
 
-```json
-{
-  "targetProjectId": "ee0e8400-e29b-41d4-a716-446655440009"
-}
-```
+### GET `/archive/stats`
 
-**Параметры:**
-- `targetProjectId` (string, required) - ID целевого проекта
+Получить статистику архива (`projects`, `channels`, `publications`, `posts`).
 
-#### Ответ
+### GET `/archive/:type`
 
-```json
-{
-  "message": "Entity moved successfully"
-}
-```
-
-### GET /archive/stats
-
-Получить статистику архива.
-
-#### Ответ
-
-```json
-{
-  "projects": 2,
-  "channels": 5,
-  "publications": 12,
-  "posts": 48
-}
-```
-
-### GET /archive/:type
-
-Получить список архивированных элементов.
-
-#### Запрос
-
-```
-GET /api/v1/archive/project?limit=20&offset=0
-```
-
-**Query параметры:**
-- `limit` (number, optional) - количество (по умолчанию: 50)
-- `offset` (number, optional) - смещение (по умолчанию: 0)
-
-#### Ответ
-
-```json
-[
-  {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Архивированный проект",
-    "archivedAt": "2024-01-18T15:00:00.000Z",
-    "archivedBy": "660e8400-e29b-41d4-a716-446655440001"
-  }
-]
-```
+Получить список архивированных элементов. Поддерживает `limit` / `offset`.
 
 ---
 
@@ -908,6 +723,229 @@ GET /api/v1/users?limit=50&offset=0
   }
 }
 ```
+
+---
+
+## Publication Relations API
+
+Управление группами связей публикаций (серии, локализации).
+
+### GET `/publications/:id/relations`
+
+Получить все группы связей для публикации.
+
+### POST `/publications/:id/relations/link`
+
+Связать публикацию с другой через группу.
+
+**Параметры Body:**
+
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `targetPublicationId` | UUID | Да | ID целевой публикации |
+| `relationType` | Enum | Да | `SERIES` или `LOCALIZATION` |
+| `groupId` | UUID | Нет | ID существующей группы (если не указан — создаётся новая) |
+
+### POST `/publications/:id/relations/unlink`
+
+Удалить связь публикации с группой.
+
+**Параметры Body:**
+
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `groupId` | UUID | Да | ID группы связей |
+
+### POST `/publications/:id/relations/create-related`
+
+Создать новую публикацию на основе текущей и связать их.
+
+### PATCH `/publications/relation-groups/:groupId/reorder`
+
+Изменить порядок публикаций внутри группы связей.
+
+---
+
+## Project Templates API
+
+Шаблоны публикаций на уровне проекта.
+
+### GET `/projects/:projectId/templates`
+
+Получить список шаблонов проекта.
+
+### GET `/projects/:projectId/templates/:templateId`
+
+Получить шаблон по ID.
+
+### POST `/projects/:projectId/templates`
+
+Создать шаблон.
+
+### PATCH `/projects/:projectId/templates/reorder`
+
+Изменить порядок шаблонов.
+
+### PATCH `/projects/:projectId/templates/:templateId`
+
+Обновить шаблон.
+
+### DELETE `/projects/:projectId/templates/:templateId`
+
+Удалить шаблон.
+
+---
+
+## LLM Prompt Templates API
+
+Управление шаблонами промптов (личные, проектные, системные). Требует JWT-аутентификации.
+
+### GET `/llm-prompt-templates/available`
+
+Получить агрегированный список доступных шаблонов для пользователя.
+
+**Query параметры:**
+
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `projectId` | UUID | Опционально — включить шаблоны проекта |
+
+### GET `/llm-prompt-templates/system`
+
+Получить системные шаблоны. `?includeHidden=true` — включить скрытые.
+
+### POST `/llm-prompt-templates/system/:systemId/hide`
+
+Скрыть системный шаблон для текущего пользователя.
+
+### POST `/llm-prompt-templates/system/:systemId/unhide`
+
+Показать скрытый системный шаблон.
+
+### GET `/llm-prompt-templates/user/:userId`
+
+Получить личные шаблоны пользователя (только свои).
+
+### GET `/llm-prompt-templates/project/:projectId`
+
+Получить шаблоны проекта.
+
+### POST `/llm-prompt-templates`
+
+Создать шаблон.
+
+### GET `/llm-prompt-templates/:id`
+
+Получить шаблон по ID.
+
+### PATCH `/llm-prompt-templates/:id`
+
+Обновить шаблон.
+
+### DELETE `/llm-prompt-templates/:id`
+
+Удалить шаблон.
+
+### POST `/llm-prompt-templates/:id/hide`
+
+Скрыть шаблон.
+
+### POST `/llm-prompt-templates/:id/unhide`
+
+Показать шаблон.
+
+### POST `/llm-prompt-templates/reorder`
+
+Изменить порядок шаблонов. **Body:** `{ "ids": ["<UUID>", ...] }`
+
+### POST `/llm-prompt-templates/available/order`
+
+Сохранить пользовательский порядок агрегированного списка.
+
+**Body:**
+
+| Поле | Тип | Описание |
+| :--- | :--- | :--- |
+| `ids` | string[] | Упорядоченный список ID |
+| `projectId` | UUID | Опционально — для проектного скоупа |
+
+---
+
+## Translate API
+
+Перевод текста через Translation Gateway микросервис. Требует JWT-аутентификации.
+
+### POST `/translate`
+
+**Параметры Body:**
+
+| Поле | Тип | Обязательно | Описание |
+| :--- | :--- | :---: | :--- |
+| `text` | string | Да | Исходный текст |
+| `targetLang` | string | Да | Целевой язык (BCP-47, напр. `ru-RU`) |
+| `sourceLang` | string | Нет | Исходный язык (авто-определение если не указан) |
+| `provider` | string | Нет | Провайдер перевода (`anylang`, `google`, `deepl` и др.) |
+| `model` | string | Нет | Модель провайдера |
+| `splitter` | string | Нет | Стратегия разбивки текста: `paragraph`, `markdown`, `sentence`, `off` |
+| `timeoutSec` | number | Нет | Таймаут запроса (сек, 1–600) |
+
+---
+
+## Notifications API
+
+Уведомления о новостях и событиях. Требует JWT-аутентификации.
+
+### GET `/notifications`
+
+Получить список уведомлений текущего пользователя.
+
+**Query параметры:**
+
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `isRead` | boolean | Фильтр по статусу прочтения |
+| `limit` | number | Лимит (см. [Пагинация](#пагинация-query-параметры)) |
+| `offset` | number | Смещение |
+
+### GET `/notifications/unread-count`
+
+Получить количество непрочитанных уведомлений. **Ответ:** `{ "count": 5 }`
+
+### PATCH `/notifications/:id/read`
+
+Отметить уведомление как прочитанное.
+
+### PATCH `/notifications/read-all`
+
+Отметить все уведомления пользователя как прочитанные.
+
+### WebSocket
+
+Для получения уведомлений в реальном времени подключитесь к WebSocket:
+
+```
+ws://<host>/notifications
+```
+
+Аутентификация: передайте JWT в `handshake.auth.token` или в заголовке `Authorization: Bearer <token>`.
+
+Сервер эмитирует событие `notification` при появлении нового уведомления.
+
+---
+
+## Tags API
+
+### GET `/tags/search`
+
+Поиск тегов по скоупу проекта или пользователя.
+
+**Query параметры:**
+
+| Параметр | Тип | Описание |
+| :--- | :--- | :--- |
+| `projectId` | UUID | Поиск по тегам проекта (взаимоисключает с `userId`) |
+| `userId` | UUID | Поиск по личным тегам (только свои) |
+| `query` | string | Строка поиска |
 
 ---
 
