@@ -18,6 +18,13 @@ import { useEditorTextActions } from '~/composables/useEditorTextActions'
 
 const lowlight = createLowlight(common)
 
+function normalizeMarkdown(md: string): string {
+  return md
+    .replace(/\u00a0/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/^[ \t]+$/gm, '')
+}
+
 interface Props {
   /** Initial content (Markdown) */
   modelValue?: string
@@ -222,7 +229,7 @@ const editor = useEditor({
     },
   },
   onUpdate: ({ editor }) => {
-    const markdown = editor.getMarkdown()
+    const markdown = normalizeMarkdown(editor.getMarkdown())
     if (markdown !== props.modelValue) {
       emit('update:modelValue', markdown)
     }
@@ -261,7 +268,7 @@ watch(
   () => props.modelValue,
   (newValue) => {
     if (editor.value) {
-      const currentMarkdown = editor.value.getMarkdown()
+      const currentMarkdown = normalizeMarkdown(editor.value.getMarkdown())
       if (newValue !== currentMarkdown) {
         editor.value.commands.setContent(newValue || '', { emitUpdate: false, contentType: 'markdown' })
       }
