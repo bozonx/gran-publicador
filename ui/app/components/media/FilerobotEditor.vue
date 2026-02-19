@@ -25,6 +25,7 @@ const loadError = ref<string | null>(null)
 
 const colorMode = useColorMode()
 const isDarkMode = computed(() => colorMode.value === 'dark')
+const config = useRuntimeConfig()
 
 const darkPalette = {
   'bg-primary': '#0f172a',
@@ -271,7 +272,7 @@ async function initEditor() {
     
     if (!editorContainer.value) return
 
-    const config = {
+    const editorConfig = {
       source: props.source,
       // Filerobot 4.x config
       annotationsCommon: {
@@ -282,7 +283,7 @@ async function initEditor() {
       closeAfterSave: false,
       defaultSavedImageName: baseFilename.value,
       defaultSavedImageType: 'png',
-      defaultSavedImageQuality: 0.95,
+      defaultSavedImageQuality: (config.public as any).mediaEditorQuality / 100,
       showBackButton: false,
       removeSaveButton: false,
       theme: {
@@ -290,7 +291,7 @@ async function initEditor() {
       },
     }
 
-    editorInstance = new FilerobotImageEditor(editorContainer.value, config)
+    editorInstance = new FilerobotImageEditor(editorContainer.value, editorConfig)
     editorOpenedAtMs = Date.now()
     editorInstance.render({
       onBeforeSave: () => false,

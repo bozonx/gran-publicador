@@ -113,13 +113,13 @@ export class MediaConfig {
    * Auto-orient image based on EXIF.
    */
   @IsBoolean()
-  public imageOptimizationAutoOrient: boolean = false;
+  public imageOptimizationAutoOrient: boolean = true;
 
   /**
    * Flatten alpha layer onto a white background.
    */
-  @IsBoolean()
-  public imageOptimizationFlatten: boolean = true;
+  @IsString()
+  public imageOptimizationFlatten: string = '';
 }
 
 export default registerAs('media', (): MediaConfig => {
@@ -178,7 +178,7 @@ export default registerAs('media', (): MediaConfig => {
       process.env.MEDIA_IMAGE_OPTIMIZATION_STRIP_METADATA,
     ),
     imageOptimizationAutoOrient: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_AUTO_ORIENT),
-    imageOptimizationFlatten: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_FLATTEN),
+    imageOptimizationFlatten: process.env.MEDIA_IMAGE_OPTIMIZATION_FLATTEN,
   };
 
   // Remove undefined and NaN values to let class defaults take over
