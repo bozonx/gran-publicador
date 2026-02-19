@@ -165,22 +165,22 @@ export class ContentLibraryController {
               includeArchived: false,
               archivedOnly: false,
               search,
-               sortBy: sortField,
-               sortOrder,
-               tags: parsedTags.length > 0 ? parsedTags : undefined,
-               withMedia: withMedia === 'true',
-             })
+              sortBy: sortField,
+              sortOrder,
+              tags: parsedTags.length > 0 ? parsedTags : undefined,
+              withMedia: withMedia === 'true',
+            })
           : await this.publicationsService.findAllForUser(req.user.userId, {
               limit,
               offset,
               includeArchived: false,
               archivedOnly: false,
               search,
-               sortBy: sortField,
-               sortOrder,
-               tags: parsedTags.length > 0 ? parsedTags : undefined,
-               withMedia: withMedia === 'true',
-             });
+              sortBy: sortField,
+              sortOrder,
+              tags: parsedTags.length > 0 ? parsedTags : undefined,
+              withMedia: withMedia === 'true',
+            });
 
       const mappedItems = (res.items ?? []).map((p: any) => {
         const tagNames = Array.isArray(p.tags)
@@ -233,7 +233,7 @@ export class ContentLibraryController {
         orderBy: 'relevant',
       });
 
-      const mappedItems = res.items.map((photo) => {
+      const mappedItems = res.items.map(photo => {
         const title = photo.altDescription || photo.description || null;
         const note = photo.description;
 
@@ -242,7 +242,7 @@ export class ContentLibraryController {
           title,
           text: null,
           note,
-          tags: photo.tags.map((t) => t.title).filter(Boolean),
+          tags: photo.tags.map(t => t.title).filter(Boolean),
           createdAt: photo.createdAt,
           archivedAt: null,
           media: [

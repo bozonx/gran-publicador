@@ -134,7 +134,7 @@ export class UnsplashService {
       return null;
     }
 
-    const photo = (await response.json()) as any;
+    const photo = await response.json();
     return {
       id: photo.id,
       description: photo.description ?? null,

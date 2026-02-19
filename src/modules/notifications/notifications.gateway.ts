@@ -20,8 +20,6 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   @WebSocketServer()
   server!: Server;
 
-  private userSockets = new Map<string, Set<string>>(); // userId -> Set of socketIds
-
   constructor(private jwtService: JwtService) {}
 
   async handleConnection(client: Socket) {
@@ -47,13 +45,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       }
 
       client.data.userId = userId;
-
-      let sockets = this.userSockets.get(userId);
-      if (!sockets) {
-        sockets = new Set();
-        this.userSockets.set(userId, sockets);
-      }
-      sockets.add(client.id);
+      await client.join(userId);
 
       this.logger.debug(`Client ${client.id} (user ${userId}) connected`);
     } catch (error: any) {
@@ -63,16 +55,6 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.data.userId;
-    if (userId) {
-      const sockets = this.userSockets.get(userId);
-      if (sockets) {
-        sockets.delete(client.id);
-        if (sockets.size === 0) {
-          this.userSockets.delete(userId);
-        }
-      }
-    }
     this.logger.debug(`Client ${client.id} disconnected`);
   }
 
@@ -80,11 +62,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
    * Send a notification to all connected sockets of a user.
    */
   sendToUser(userId: string, notification: any) {
-    const socketIds = this.userSockets.get(userId);
-    if (socketIds) {
-      for (const socketId of socketIds) {
-        this.server.to(socketId).emit('notification', notification);
-      }
-    }
+    this.logger.debug(`Sending notification to user ${userId}`);
+    this.server.to(userId).emit('notification', notification);
   }
 }

@@ -12,9 +12,20 @@ import { ContentLibraryService } from './content-library.service.js';
 import { UnsplashService } from './unsplash.service.js';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, ApiTokensModule, TagsModule, forwardRef(() => PublicationsModule)],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    ApiTokensModule,
+    TagsModule,
+    forwardRef(() => PublicationsModule),
+  ],
   controllers: [ContentLibraryController],
-  providers: [ContentCollectionsService, ContentItemsService, ContentLibraryService, UnsplashService],
+  providers: [
+    ContentCollectionsService,
+    ContentItemsService,
+    ContentLibraryService,
+    UnsplashService,
+  ],
   exports: [ContentCollectionsService, ContentItemsService, ContentLibraryService, UnsplashService],
 })
 export class ContentLibraryModule {}

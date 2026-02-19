@@ -42,7 +42,6 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     );
   });
 
-
   it('uses PublicationsService.findAll for project scope PUBLICATION_MEDIA_VIRTUAL', async () => {
     mockCollectionsService.assertCollectionAccess.mockResolvedValue({
       id: 'c1',

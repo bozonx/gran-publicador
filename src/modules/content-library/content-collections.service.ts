@@ -350,7 +350,6 @@ export class ContentCollectionsService {
       orderBy: { order: 'asc' },
     });
 
-
     const groupIds = collections.filter(c => c.type === 'GROUP').map(c => c.id);
 
     // Use a raw query to count items per collection, filtering by archivedAt
@@ -492,7 +491,9 @@ export class ContentCollectionsService {
               userId:
                 dto.scope === 'personal'
                   ? userId
-                  : dto.type === 'SAVED_VIEW' || dto.type === 'PUBLICATION_MEDIA_VIRTUAL' || dto.type === 'UNSPLASH'
+                  : dto.type === 'SAVED_VIEW' ||
+                      dto.type === 'PUBLICATION_MEDIA_VIRTUAL' ||
+                      dto.type === 'UNSPLASH'
                     ? userId
                     : resolvedChildGroupType === 'PROJECT_SHARED'
                       ? null

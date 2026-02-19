@@ -1431,11 +1431,7 @@ export class ContentItemsService {
     });
   }
 
-  public async unlinkItemFromGroup(
-    contentItemId: string,
-    collectionId: string,
-    userId: string,
-  ) {
+  public async unlinkItemFromGroup(contentItemId: string, collectionId: string, userId: string) {
     const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
 
     const groupsCount = await (this.prisma as any).contentItemGroup.count({

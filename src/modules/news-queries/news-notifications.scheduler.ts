@@ -7,6 +7,7 @@ import { I18nService } from 'nestjs-i18n';
 import { NewsConfig } from '../../config/news.config.js';
 import { Prisma } from '../../generated/prisma/index.js';
 import { randomUUID } from 'crypto';
+import { RedisService } from '../../common/redis/redis.service.js';
 
 export interface NewsNotificationsRunResult {
   skipped: boolean;
@@ -27,8 +28,7 @@ interface NewsNotificationState {
 @Injectable()
 export class NewsNotificationsScheduler {
   private readonly logger = new Logger(NewsNotificationsScheduler.name);
-  private isProcessing = false;
-  private readonly distributedLockName = 'news_notifications_scheduler_lock';
+  private readonly lockKey = 'news_notifications_scheduler';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -36,23 +36,12 @@ export class NewsNotificationsScheduler {
     private readonly notificationsService: NotificationsService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
   public async runNow(): Promise<NewsNotificationsRunResult> {
-    if (this.isProcessing) {
-      this.logger.debug('Skipping news notifications check (previous run still in progress)');
-      return {
-        skipped: true,
-        reason: 'already_processing',
-        checkedQueriesCount: 0,
-        failedQueriesCount: 0,
-        queriesWithNewItemsCount: 0,
-        createdNotificationsCount: 0,
-      };
-    }
-
-    const hasDistributedLock = await this.tryAcquireDistributedLock();
-    if (!hasDistributedLock) {
+    const lockAcquired = await this.redisService.acquireLock(this.lockKey, 10 * 60 * 1000); // 10 min lock
+    if (!lockAcquired) {
       this.logger.debug('Skipping news notifications check (distributed lock not acquired)');
       return {
         skipped: true,
@@ -64,7 +53,6 @@ export class NewsNotificationsScheduler {
       };
     }
 
-    this.isProcessing = true;
     try {
       this.logger.log('Starting news notifications check...');
 
@@ -114,8 +102,7 @@ export class NewsNotificationsScheduler {
         createdNotificationsCount,
       };
     } finally {
-      this.isProcessing = false;
-      await this.releaseDistributedLock();
+      await this.redisService.releaseLock(this.lockKey);
     }
   }
 
@@ -349,30 +336,5 @@ export class NewsNotificationsScheduler {
         last_sent_news_id = EXCLUDED.last_sent_news_id,
         updated_at = NOW()
     `;
-  }
-
-  private async tryAcquireDistributedLock(): Promise<boolean> {
-    try {
-      const rows = (await (this.prisma as any).$queryRawUnsafe(
-        'SELECT pg_try_advisory_lock(hashtext($1)) AS locked',
-        this.distributedLockName,
-      )) as Array<{ locked: boolean }>;
-
-      return rows[0]?.locked;
-    } catch (error: any) {
-      this.logger.error(`Failed to acquire news scheduler distributed lock: ${error.message}`);
-      return false;
-    }
-  }
-
-  private async releaseDistributedLock(): Promise<void> {
-    try {
-      await (this.prisma as any).$queryRawUnsafe(
-        'SELECT pg_advisory_unlock(hashtext($1))',
-        this.distributedLockName,
-      );
-    } catch (error: any) {
-      this.logger.error(`Failed to release news scheduler distributed lock: ${error.message}`);
-    }
   }
 }

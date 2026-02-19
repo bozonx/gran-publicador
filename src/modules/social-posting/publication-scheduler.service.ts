@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SocialPostingService } from './social-posting.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AppConfig } from '../../config/app.config.js';
+import { RedisService } from '../../common/redis/redis.service.js';
 
 export interface PublicationSchedulerRunResult {
   skipped: boolean;
@@ -17,28 +18,29 @@ export interface PublicationSchedulerRunResult {
 @Injectable()
 export class PublicationSchedulerService {
   private readonly logger = new Logger(PublicationSchedulerService.name);
-  private isProcessing = false;
+  private readonly lockKey = 'publication_scheduler';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly socialPostingService: SocialPostingService,
     private readonly configService: ConfigService,
     private readonly notifications: NotificationsService,
+    private readonly redisService: RedisService,
   ) {}
 
   public async runNow(): Promise<PublicationSchedulerRunResult> {
-    if (this.isProcessing) {
-      this.logger.debug('Skipping scheduler run (previous run still in progress)');
+    const lockAcquired = await this.redisService.acquireLock(this.lockKey, 10 * 60 * 1000); // 10 min lock
+    if (!lockAcquired) {
+      this.logger.debug('Skipping scheduler run (distributed lock not acquired)');
       return {
         skipped: true,
-        reason: 'already_processing',
+        reason: 'distributed_lock_not_acquired',
         expiredPublicationsCount: 0,
         expiredPostsCount: 0,
         triggeredPublicationsCount: 0,
       };
     }
 
-    this.isProcessing = true;
     try {
       const appConfig = this.configService.get<AppConfig>('app')!;
       const now = new Date();
@@ -60,7 +62,7 @@ export class PublicationSchedulerService {
       this.logger.error(`Error in scheduler run: ${error.message}`, error.stack);
       throw error;
     } finally {
-      this.isProcessing = false;
+      await this.redisService.releaseLock(this.lockKey);
     }
   }
 

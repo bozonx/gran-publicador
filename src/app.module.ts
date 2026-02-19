@@ -200,36 +200,34 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
         const config = configService.get<RedisConfig>('redis')!;
         const appConfig = configService.get<AppConfig>('app')!;
 
-        // Use memory store for tests or if Redis is disabled to avoid dependency
-        if (appConfig.nodeEnv === 'test' || !config.enabled) {
+        // Use memory store ONLY for tests to avoid dependency
+        if (appConfig.nodeEnv === 'test') {
           return {
             store: 'memory',
             ttl: config.ttlMs,
           };
         }
 
-        try {
-          const store = await redisStore({
-            socket: {
-              host: config.host,
-              port: config.port,
-              connectTimeout: 2000, // Fail fast if redis is down
-            },
-            password: config.password,
-            database: config.db,
-            ttl: config.ttlMs,
-          });
-
-          return {
-            store,
-          };
-        } catch (error: any) {
-          logger.warn(`Redis connection failed: ${error.message}. Falling back to memory store.`);
-          return {
-            store: 'memory',
-            ttl: config.ttlMs,
-          };
+        if (!config.enabled) {
+          throw new Error(
+            'Redis is disabled in configuration, but it is required for cache. Please enable Redis or run in test mode.',
+          );
         }
+
+        const store = await redisStore({
+          socket: {
+            host: config.host,
+            port: config.port,
+            connectTimeout: 5000,
+          },
+          password: config.password,
+          database: config.db,
+          ttl: config.ttlMs,
+        });
+
+        return {
+          store,
+        };
       },
     }),
     GuardsModule,

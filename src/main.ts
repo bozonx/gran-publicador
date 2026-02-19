@@ -9,6 +9,7 @@ import fastifyHelmet from '@fastify/helmet';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter.js';
 import { BigIntInterceptor } from './common/interceptors/bigint.interceptor.js';
 import type { AppConfig } from './config/app.config.js';
 
@@ -40,11 +41,16 @@ async function bootstrap() {
   // Use Pino logger for the entire application
   app.useLogger(app.get(Logger));
 
+  // Configure Redis IO Adapter for distributed WebSockets
+  const configService = app.get(ConfigService);
+  const redisIoAdapter = new RedisIoAdapter(app, configService);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
+
   // Let NestJS handle SIGTERM/SIGINT via shutdown hooks.
   // This avoids duplicated signal handling across the app.
   app.enableShutdownHooks();
 
-  const configService = app.get(ConfigService);
   const logger = app.get(Logger);
 
   const appConfig = configService.get<AppConfig>('app');

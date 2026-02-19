@@ -480,7 +480,9 @@ export class PublicationsService {
       data.projectTemplateId,
     );
 
-    const unsplashPhoto = data.unsplashId ? await this.unsplashService.getPhoto(data.unsplashId) : null;
+    const unsplashPhoto = data.unsplashId
+      ? await this.unsplashService.getPhoto(data.unsplashId)
+      : null;
 
     const publication = await this.prisma.publication.create({
       data: {
