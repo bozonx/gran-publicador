@@ -80,7 +80,9 @@ const groupCollections = computed(() =>
 )
 
 const collectionOptions = computed(() =>
-  groupCollections.value.map((c) => ({ value: c.id, label: c.title })),
+  groupCollections.value
+    .filter((c) => !c.parentId)
+    .map((c) => ({ value: c.id, label: c.title })),
 )
 
 // Sub-groups of the selected collection
@@ -202,7 +204,7 @@ async function handleConfirm() {
     const uploadedMedia = await uploadMedia(
       file,
       (pct) => {
-        exportProgress.value = 60 + Math.round(pct * 0.3)
+        exportProgress.value = 60 + Math.round((pct / 100) * 30)
       },
       undefined,
       scope.value === 'project' ? props.projectId : undefined,
