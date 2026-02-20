@@ -220,8 +220,8 @@ async function exportTrimmed(options: ExportOptions): Promise<Blob> {
     bgColor: '#000',
     videoCodec: options.videoCodec,
     bitrate: options.bitrate,
-    audio: options.audio && hasAudioTrack ? undefined : false,
-  })
+    audio: options.audio && hasAudioTrack ? { codec: options.audioCodec || 'aac' } : false,
+  } as any)
 
   await combinator.addSprite(sprite)
 

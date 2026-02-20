@@ -119,6 +119,9 @@
   "pnpm": {
     "overrides": {
       "fastify": "^5.7.0"
+    },
+    "patchedDependencies": {
+      "@webav/av-cliper@1.2.8": "patches/@webav__av-cliper@1.2.8.patch"
     }
   },
   "prisma": {

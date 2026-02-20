@@ -9,7 +9,8 @@ import ContentGroupSelectTree from '../content/ContentGroupSelectTree.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
-  resolveVideoCodecOptions
+  resolveVideoCodecOptions,
+  checkAudioCodecSupport
 } from '~/utils/webcodecs'
 
 interface Props {
@@ -27,6 +28,7 @@ interface ExportOptions {
   videoCodec: string
   bitrate: number
   audio: boolean
+  audioCodec?: string
 }
 
 const props = defineProps<Props>()
@@ -70,6 +72,7 @@ const videoCodec = ref('avc1.42E032')
 const bitrateMbps = ref<number>(5)
 const excludeAudio = ref(false)
 
+const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
@@ -223,14 +226,21 @@ async function loadCodecSupport() {
   if (isLoadingCodecSupport.value) return
   isLoadingCodecSupport.value = true
   try {
-    const [videoSupport] = await Promise.all([
-      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS)
+    const [videoSupport, audioSupport] = await Promise.all([
+      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS),
+      checkAudioCodecSupport([{ value: 'mp4a.40.2', label: 'AAC' }, { value: 'opus', label: 'Opus' }])
     ])
     videoCodecSupport.value = videoSupport
 
     if (videoCodecSupport.value[videoCodec.value] === false) {
       const firstSupported = BASE_VIDEO_CODEC_OPTIONS.find((opt) => videoCodecSupport.value[opt.value])
       if (firstSupported) videoCodec.value = firstSupported.value
+    }
+    
+    if (audioSupport['mp4a.40.2'] === false && audioSupport['opus'] !== false) {
+      audioCodec.value = 'opus'
+    } else {
+      audioCodec.value = 'aac'
     }
   } finally {
     isLoadingCodecSupport.value = false
@@ -254,6 +264,7 @@ async function handleConfirm() {
       videoCodec: videoCodec.value,
       bitrate: bitrateBps.value,
       audio: !excludeAudio.value,
+      audioCodec: audioCodec.value,
     })
     exportProgress.value = 60
 
@@ -423,7 +434,7 @@ function handleCancel() {
         >
           <UInput
             disabled
-            :model-value="'AAC'"
+            :model-value="audioCodec === 'opus' ? 'Opus' : 'AAC'"
             class="w-full"
           />
         </UFormField>

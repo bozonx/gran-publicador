@@ -1,0 +1,130 @@
+diff --git a/dist/av-cliper.d.ts b/dist/av-cliper.d.ts
+index b8659f7127aeade9528d01a53a4d5b27e5ea8470..42b0cad30e0894ac2c71f9ddc1e70721ca2da9f3 100644
+--- a/dist/av-cliper.d.ts
++++ b/dist/av-cliper.d.ts
+@@ -389,7 +389,7 @@ export declare interface ICombinatorOpts {
+     /**
+      * false 合成的视频文件中排除音轨
+      */
+-    audio?: false;
++    audio?: false | { codec?: string, sampleRate?: number, channelCount?: number, bitrate?: number };
+     /**
+      * 向输出的视频中写入 meta tags 数据
+      */
+diff --git a/dist/av-cliper.js b/dist/av-cliper.js
+index 94cf5ba1dd749f7220f24e5ca3c38923e2b5c1e4..81ecb6c4148f78e31e8dae398c63ea21a93d7271 100644
+--- a/dist/av-cliper.js
++++ b/dist/av-cliper.js
+@@ -320,7 +320,7 @@ function H(s) {
+ function z(s, t, e) {
+   const i = e - t, n = new Float32Array(i);
+   let a = 0;
+-  for (; a < i; )
++  for (; a < i;)
+     n[a] = s[(t + a) % s.length], a += 1;
+   return n;
+ }
+@@ -433,7 +433,7 @@ async function Ot(s, t, e) {
+   async function n() {
+     let a = 0;
+     const r = 30 * 1024 * 1024;
+-    for (; ; ) {
++    for (; ;) {
+       const o = await s.read(r, {
+         at: a
+       });
+@@ -664,7 +664,7 @@ class I {
+               hardwareAcceleration: this.#h.__unsafe_hardwareAcceleration__
+             }
+           );
+-          for (; p <= f && !i.aborted; ) {
++          for (; p <= f && !i.aborted;) {
+             const b = await g.find(p);
+             b && y(b), p += w;
+           }
+@@ -1109,7 +1109,7 @@ class $t {
+     if (t.decodeQueueSize > 10) return;
+     const i = [];
+     let n = this.#r;
+-    for (; n < this.samples.length; ) {
++    for (; n < this.samples.length;) {
+       const a = this.samples[n];
+       if (n += 1, !a.deleted && (i.push(a), i.length >= 10))
+         break;
+@@ -1236,7 +1236,7 @@ function Wt(s) {
+ function K(s, t) {
+   const e = [new Float32Array(t), new Float32Array(t)];
+   let i = 0, n = 0;
+-  for (; n < s.data.length; ) {
++  for (; n < s.data.length;) {
+     const [a, r] = s.data[n];
+     if (i + a.length > t) {
+       const o = t - i;
+@@ -1341,7 +1341,7 @@ function V(s, t, e) {
+ function jt(s, t) {
+   if (t !== "avc1" && t !== "hvc1") return 0;
+   const e = new DataView(s.buffer);
+-  for (let i = 0; i < s.byteLength - 4; ) {
++  for (let i = 0; i < s.byteLength - 4;) {
+     if (t === "avc1") {
+       const n = e.getUint8(i + 4) & 31;
+       if (n === 5 || n === 7 || n === 8) return i;
+@@ -1829,16 +1829,16 @@ class E {
+   #c(t) {
+     const { width: e, height: i } = this.#s, n = e * 0.9, a = t.split(`
+ `).flatMap((p) => this.#l(p.trim(), n)).reverse(), {
+-      color: r,
+-      fontSize: o,
+-      textBgColor: c,
+-      textShadow: l,
+-      strokeStyle: h,
+-      lineWidth: u,
+-      lineCap: d,
+-      lineJoin: y,
+-      bottomOffset: m
+-    } = this.#e, f = this.#a;
++        color: r,
++        fontSize: o,
++        textBgColor: c,
++        textShadow: l,
++        strokeStyle: h,
++        lineWidth: u,
++        lineCap: d,
++        lineJoin: y,
++        bottomOffset: m
++      } = this.#e, f = this.#a;
+     f.clearRect(0, 0, e, i), f.globalAlpha = 0.6;
+     let w = m;
+     for (const p of a) {
+@@ -2357,11 +2357,11 @@ class xe {
+         bitrate: r,
+         __unsafe_hardwareAcceleration__: this.#i.__unsafe_hardwareAcceleration__
+       } : null,
+-      audio: o === !1 ? null : {
++      audio: o === !1 ? null : Object.assign({
+         codec: "aac",
+         sampleRate: x.sampleRate,
+         channelCount: x.channelCount
+-      },
++      }, typeof o === "object" ? o : {}),
+       duration: t,
+       metaDataTags: c
+     });
+@@ -2438,7 +2438,7 @@ class xe {
+         fps: d
+       });
+       let b = 0;
+-      for (; ; ) {
++      for (; ;) {
+         if (c != null) return;
+         if (o.aborted || e !== -1 && b > e || this.#e.length === 0) {
+           u(), await n();
+@@ -2518,7 +2518,7 @@ function he(s) {
+           data: e.subarray(l, l + t)
+         })
+       ), l += t, n += a;
+-    for (e.set(e.subarray(l, i), 0), i -= l; c - n > a; )
++    for (e.set(e.subarray(l, i), 0), i -= l; c - n > a;)
+       u.push(
+         new AudioData({
+           timestamp: n,

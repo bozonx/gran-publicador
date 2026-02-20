@@ -7,6 +7,11 @@ settings:
 overrides:
   fastify: ^5.7.0
 
+patchedDependencies:
+  '@webav/av-cliper@1.2.8':
+    hash: 8bd6963e7c22e1810cf897f284df620ebc58d277d60bef2d0da132ee7ff1ee90
+    path: patches/@webav__av-cliper@1.2.8.patch
+
 importers:
 
   .:
@@ -308,7 +313,7 @@ importers:
         version: 1.2.8
       '@webav/av-cliper':
         specifier: ^1.2.8
-        version: 1.2.8
+        version: 1.2.8(patch_hash=8bd6963e7c22e1810cf897f284df620ebc58d277d60bef2d0da132ee7ff1ee90)
       filerobot-image-editor:
         specifier: ^4.8.1
         version: 4.8.1(@babel/core@7.29.0)(@types/react@19.2.9)(konva@10.2.0)(react-filerobot-image-editor@4.9.1(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@18.3.1(react@18.3.1))(react-konva@18.2.14(@types/react@19.2.9)(konva@10.2.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(styled-components@5.3.11(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)))(react-is@18.3.1)
@@ -13932,10 +13937,10 @@ snapshots:
 
   '@webav/av-canvas@1.2.8':
     dependencies:
-      '@webav/av-cliper': 1.2.8
+      '@webav/av-cliper': 1.2.8(patch_hash=8bd6963e7c22e1810cf897f284df620ebc58d277d60bef2d0da132ee7ff1ee90)
       '@webav/internal-utils': 1.2.8
 
-  '@webav/av-cliper@1.2.8':
+  '@webav/av-cliper@1.2.8(patch_hash=8bd6963e7c22e1810cf897f284df620ebc58d277d60bef2d0da132ee7ff1ee90)':
     dependencies:
       '@webav/internal-utils': 1.2.8
       '@webav/mp4box.js': 0.5.7
