@@ -60,7 +60,12 @@ async function initEditor() {
       import('@webav/av-cliper'),
     ])
 
-    const response = await fetch(props.src)
+    const response = await fetch(props.src, {
+      cache: 'no-store',
+      headers: {
+        Range: 'bytes=0-',
+      },
+    })
     if (!response.ok) throw new Error(`Failed to fetch video: ${response.status}`)
 
     // Check content type — MP4Clip only supports H.264/H.265 in MP4 container
@@ -117,6 +122,7 @@ async function initEditor() {
 
     unsubscribers.push(offTime, offPaused, offPlaying)
   } catch (err: any) {
+    if (err?.name === 'AbortError') return
     loadError.value = err?.message || 'Failed to load video'
     console.error('[MediaVideoEditor] init error:', err)
   } finally {
