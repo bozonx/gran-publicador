@@ -20,13 +20,27 @@ const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
 
-const sourceMode = ref<'preview' | 'snapshot'>('snapshot')
+const sourceMode = ref<'preview' | 'snapshot'>('preview')
 const renderMode = ref<'html' | 'md' | 'raw'>('html')
 
+const hasSnapshot = computed(() => !!props.post?.postingSnapshot?.body)
+
 const sourceModeItems = computed<TabsItem[]>(() => [
-  { label: 'Предпросмотр', value: 'preview' },
   { label: 'Снапшот', value: 'snapshot' },
+  { label: 'Предпросмотр', value: 'preview' },
 ])
+
+watch(
+  () => props.post?.postingSnapshot?.body,
+  (body) => {
+    if (body) {
+      sourceMode.value = 'snapshot'
+    } else {
+      sourceMode.value = 'preview'
+    }
+  },
+  { immediate: true },
+)
 
 const renderModeItems = computed<TabsItem[]>(() => {
   if (sourceMode.value === 'preview') {
@@ -101,13 +115,6 @@ function resolveTagsForPreview(): string[] {
 const previewContent = computed(() => {
   if (!props.post) return ''
 
-  // 1. Try to use snapshot if available
-  if (props.post.postingSnapshot?.body) {
-    return props.post.postingSnapshot.body
-  }
-
-  // 2. Fallback to dynamic formatting if snapshot is not available or we are in edit mode
-  // and need to show unsaved changes
   const pub = props.publication || props.post.publication
   if (!pub) return props.post.content || ''
 
@@ -196,6 +203,7 @@ watch(sourceMode, () => {
 
     <div class="flex flex-col gap-3 mb-3">
       <UTabs
+        v-if="hasSnapshot"
         v-model="sourceMode"
         :items="sourceModeItems"
         :content="false"
