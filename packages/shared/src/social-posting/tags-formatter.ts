@@ -14,12 +14,26 @@ export interface TagFormatOptions {
 }
 
 export class TagsFormatter {
-  static toArray(tags: string | null | undefined, options: TagFormatOptions = {}): string[] {
-    if (!tags) return [];
+  static toArray(
+    tags: string | string[] | null | undefined,
+    options: TagFormatOptions = {},
+  ): string[] {
+    if (tags === null || tags === undefined) return [];
 
     const tagCase = options.tagCase || 'none';
 
-    const chunks = tags
+    const tagsString = Array.isArray(tags)
+      ? tags
+          .map(t => (typeof t === 'string' ? t : ''))
+          .filter(t => t.length > 0)
+          .join(',')
+      : typeof tags === 'string'
+        ? tags
+        : '';
+
+    if (!tagsString) return [];
+
+    const chunks = tagsString
       .split(',')
       .map(c => c.trim())
       .filter(c => c.length > 0);
@@ -41,7 +55,10 @@ export class TagsFormatter {
     });
   }
 
-  static format(tags: string | null | undefined, options: TagFormatOptions = {}): string {
+  static format(
+    tags: string | string[] | null | undefined,
+    options: TagFormatOptions = {},
+  ): string {
     return this.toArray(tags, options).join(' ');
   }
 

@@ -7,6 +7,11 @@ describe('TagsFormatter', () => {
     expect(result).toBe('#tag1 #tag2');
   });
 
+  it('should format array input as hashtags', () => {
+    const result = TagsFormatter.format(['tag1', 'tag2']);
+    expect(result).toBe('#tag1 #tag2');
+  });
+
   it('should handle already prefixed hashtags', () => {
     const result = TagsFormatter.format('#tag1 tag2');
     expect(result).toBe('#tag1 tag2');
