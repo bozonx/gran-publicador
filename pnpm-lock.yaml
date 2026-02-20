@@ -238,7 +238,17 @@ importers:
         specifier: ^8.53.1
         version: 8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      remark-gfm:
+        specifier: ^4.0.1
+        version: 4.0.1
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
 
   ui:
     dependencies:

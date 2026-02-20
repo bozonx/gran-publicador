@@ -5,6 +5,8 @@ import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
 import { getSocialMediaDisplayName } from '~/utils/socialMedia'
 import { marked, type Tokens } from 'marked'
 import { preformatMarkdownForPlatform } from '@gran/shared/social-posting/md-preformatter'
+import { mdToTelegramHtml } from '@gran/shared/social-posting/md-to-telegram-html'
+import { getPlatformConfig } from '@gran/shared/social-media-platforms'
 import { normalizeTags, parseTags } from '~/utils/tags'
 import type { TabsItem } from '@nuxt/ui'
 
@@ -112,6 +114,15 @@ function resolveTagsForPreview(): string[] {
   return []
 }
 
+const platform = computed(() => {
+  return (props.post?.channel?.socialMedia || props.post?.socialMedia) as string | undefined
+})
+
+const previewBodyFormat = computed(() => {
+  if (!platform.value) return 'markdown'
+  return getPlatformConfig(platform.value as any)?.features?.bodyFormat ?? 'markdown'
+})
+
 const previewContent = computed(() => {
   if (!props.post) return ''
 
@@ -136,8 +147,7 @@ const previewContent = computed(() => {
     pub.projectTemplateId
   )
 
-  const platform = (props.post.channel?.socialMedia || props.post.socialMedia) as any
-  return preformatMarkdownForPlatform({ platform, markdown: md })
+  return preformatMarkdownForPlatform({ platform: platform.value as any, markdown: md })
 })
 
 const snapshotContent = computed(() => {
@@ -147,6 +157,9 @@ const snapshotContent = computed(() => {
 })
 
 const previewHtml = computed(() => {
+  if (previewBodyFormat.value === 'html') {
+    return mdToTelegramHtml(previewContent.value)
+  }
   return marked.parse(previewContent.value) as string
 })
 
@@ -170,7 +183,6 @@ const rawContent = computed(() => {
   if (sourceMode.value === 'snapshot') {
     return snapshotContent.value
   }
-
   return previewHtml.value
 })
 

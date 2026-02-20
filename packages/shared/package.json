@@ -11,6 +11,11 @@
   "files": [
     "dist"
   ],
+  "dependencies": {
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
   "exports": {
     "./social-media-platforms": {
       "types": "./dist/social-media-platforms.constants.d.ts",
@@ -71,6 +76,11 @@
       "types": "./src/social-posting/md-preformatter.ts",
       "import": "./dist/social-posting/md-preformatter.js",
       "default": "./dist/social-posting/md-preformatter.js"
+    },
+    "./social-posting/md-to-telegram-html": {
+      "types": "./src/social-posting/md-to-telegram-html.ts",
+      "import": "./dist/social-posting/md-to-telegram-html.js",
+      "default": "./dist/social-posting/md-to-telegram-html.js"
     }
   }
 }

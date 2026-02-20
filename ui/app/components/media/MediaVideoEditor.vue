@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 interface Props {
   src: string
@@ -21,9 +21,18 @@ const isPlaying = ref(false)
 const currentTimeUs = ref(0)
 const durationUs = ref(0)
 
-// Formatted display values
-const currentTimeSec = computed(() => currentTimeUs.value / 1e6)
-const durationSec = computed(() => durationUs.value / 1e6)
+// Trim points in microseconds
+const trimInUs = ref(0)
+const trimOutUs = ref(0)
+
+// Export state
+const isExporting = ref(false)
+const exportProgress = ref(0)
+const exportError = ref<string | null>(null)
+
+const isTrimmed = computed(
+  () => trimInUs.value > 0 || trimOutUs.value < durationUs.value,
+)
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -34,6 +43,7 @@ function formatTime(sec: number): string {
 let avCanvas: any = null
 let videoSprite: any = null
 let mp4Clip: any = null
+let videoArrayBuffer: ArrayBuffer | null = null
 let unsubscribers: Array<() => void> = []
 
 async function initEditor() {
@@ -60,14 +70,16 @@ async function initEditor() {
 
     // Download fully before passing to MP4Clip — streaming fetch can fail
     // with ERR_CONTENT_LENGTH_MISMATCH on large files or proxied responses
-    const arrayBuffer = await response.arrayBuffer()
-    const stream = new Blob([arrayBuffer], { type: 'video/mp4' }).stream()
+    videoArrayBuffer = await response.arrayBuffer()
+    const stream = new Blob([videoArrayBuffer], { type: 'video/mp4' }).stream()
 
     mp4Clip = new MP4Clip(stream)
     await mp4Clip.ready
 
     const { width, height, duration } = mp4Clip.meta
     durationUs.value = duration
+    trimInUs.value = 0
+    trimOutUs.value = duration
 
     avCanvas = new AVCanvas(containerEl.value, {
       bgColor: '#000',
@@ -91,8 +103,8 @@ async function initEditor() {
     const offPaused = avCanvas.on('paused', () => {
       isPlaying.value = false
       // Sync time when paused at end
-      if (currentTimeUs.value >= durationUs.value) {
-        currentTimeUs.value = durationUs.value
+      if (currentTimeUs.value >= trimOutUs.value) {
+        currentTimeUs.value = trimOutUs.value
       }
     })
 
@@ -111,8 +123,8 @@ async function initEditor() {
 
 function play() {
   if (!avCanvas || durationUs.value === 0) return
-  const start = currentTimeUs.value >= durationUs.value ? 0 : currentTimeUs.value
-  avCanvas.play({ start, end: durationUs.value })
+  const start = currentTimeUs.value >= trimOutUs.value ? trimInUs.value : currentTimeUs.value
+  avCanvas.play({ start, end: trimOutUs.value })
 }
 
 function pause() {
@@ -129,22 +141,106 @@ function togglePlayPause() {
 
 function rewind() {
   pause()
-  currentTimeUs.value = 0
-  avCanvas?.previewFrame(0)
+  currentTimeUs.value = trimInUs.value
+  avCanvas?.previewFrame(trimInUs.value)
 }
 
-async function onTimelineInput(event: Event) {
-  const input = event.target as HTMLInputElement
-  const sec = Number(input.value)
-  const timeUs = Math.round(sec * 1e6)
+async function onSeek(timeUs: number) {
   const wasPlaying = isPlaying.value
-
   if (wasPlaying) pause()
 
   currentTimeUs.value = timeUs
   await avCanvas?.previewFrame(timeUs)
 
   if (wasPlaying) play()
+}
+
+async function onTrimInChange(value: number) {
+  trimInUs.value = value
+  // If playhead is before new trim-in, snap it
+  if (currentTimeUs.value < value) {
+    await onSeek(value)
+  }
+}
+
+async function onTrimOutChange(value: number) {
+  trimOutUs.value = value
+  // If playhead is after new trim-out, snap it
+  if (currentTimeUs.value > value) {
+    await onSeek(value)
+  }
+}
+
+function resetTrim() {
+  trimInUs.value = 0
+  trimOutUs.value = durationUs.value
+}
+
+async function exportTrimmed() {
+  if (!videoArrayBuffer || isExporting.value) return
+
+  isExporting.value = true
+  exportProgress.value = 0
+  exportError.value = null
+
+  try {
+    const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
+
+    const trimDurationUs = trimOutUs.value - trimInUs.value
+
+    // Create a fresh clip from the stored buffer for export
+    const exportStream = new Blob([videoArrayBuffer], { type: 'video/mp4' }).stream()
+    const exportClip = new MP4Clip(exportStream)
+    await exportClip.ready
+
+    // Split at trim-in point; use the second part (after trim-in)
+    const [, afterIn] = await exportClip.split(trimInUs.value)
+    const clipToExport = trimInUs.value > 0 ? afterIn : exportClip
+
+    const sprite = new OffscreenSprite(clipToExport)
+    sprite.time.offset = 0
+    sprite.time.duration = trimDurationUs
+
+    const { width, height } = exportClip.meta
+
+    const combinator = new Combinator({
+      width: width || 1280,
+      height: height || 720,
+      bgColor: '#000',
+    })
+
+    await combinator.addSprite(sprite)
+
+    const chunks: ArrayBuffer[] = []
+    const reader = combinator.output().getReader()
+
+    let done = false
+    while (!done) {
+      const result = await reader.read()
+      done = result.done
+      if (result.value) {
+        chunks.push(result.value.buffer as ArrayBuffer)
+        // Rough progress based on time — Combinator doesn't expose progress directly
+        exportProgress.value = Math.min(95, exportProgress.value + 2)
+      }
+    }
+
+    exportProgress.value = 100
+
+    const blob = new Blob(chunks, { type: 'video/mp4' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const baseName = (props.filename || 'video').replace(/\.[^.]+$/, '')
+    a.href = url
+    a.download = `${baseName}_trimmed.mp4`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    exportError.value = err?.message || 'Export failed'
+    console.error('[MediaVideoEditor] export error:', err)
+  } finally {
+    isExporting.value = false
+  }
 }
 
 onMounted(() => {
@@ -158,6 +254,7 @@ onBeforeUnmount(() => {
   avCanvas = null
   mp4Clip = null
   videoSprite = null
+  videoArrayBuffer = null
 })
 </script>
 
@@ -205,47 +302,91 @@ onBeforeUnmount(() => {
 
     <!-- Timeline & controls -->
     <div class="shrink-0 border-t border-gray-800 px-4 py-3 flex flex-col gap-3">
-      <!-- Timeline scrubber -->
-      <div class="flex items-center gap-3">
-        <span class="text-xs text-gray-400 tabular-nums w-10 text-right shrink-0">
-          {{ formatTime(currentTimeSec) }}
+      <!-- Trim timeline -->
+      <VideoTrimTimeline
+        :duration="durationUs"
+        :current-time="currentTimeUs"
+        :trim-in="trimInUs"
+        :trim-out="trimOutUs"
+        :disabled="isLoading || !!loadError"
+        @update:trim-in="onTrimInChange"
+        @update:trim-out="onTrimOutChange"
+        @seek="onSeek"
+      />
+
+      <!-- Playback controls row -->
+      <div class="flex items-center justify-between">
+        <!-- Left: time display -->
+        <span class="text-xs text-gray-400 tabular-nums font-mono w-24">
+          {{ formatTime(currentTimeUs / 1e6) }} / {{ formatTime(durationUs / 1e6) }}
         </span>
 
-        <input
-          type="range"
-          class="flex-1 h-1.5 rounded-full accent-blue-500 cursor-pointer"
-          :min="0"
-          :max="durationSec"
-          :step="0.033"
-          :value="currentTimeSec"
-          :disabled="isLoading || !!loadError"
-          @input="onTimelineInput"
-        />
+        <!-- Center: playback buttons -->
+        <div class="flex items-center gap-2">
+          <UButton
+            icon="i-heroicons-backward"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            :disabled="isLoading || !!loadError"
+            @click="rewind"
+          />
 
-        <span class="text-xs text-gray-400 tabular-nums w-10 shrink-0">
-          {{ formatTime(durationSec) }}
-        </span>
+          <UButton
+            :icon="isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
+            variant="solid"
+            color="primary"
+            size="md"
+            :disabled="isLoading || !!loadError || durationUs === 0"
+            @click="togglePlayPause"
+          />
+        </div>
+
+        <!-- Right: trim actions -->
+        <div class="flex items-center gap-2 w-24 justify-end">
+          <UButton
+            v-if="isTrimmed"
+            icon="i-heroicons-arrow-uturn-left"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            title="Reset trim"
+            :disabled="isLoading || !!loadError || isExporting"
+            @click="resetTrim"
+          />
+
+          <UButton
+            icon="i-heroicons-scissors"
+            variant="soft"
+            color="primary"
+            size="sm"
+            :disabled="isLoading || !!loadError || isExporting || durationUs === 0"
+            :loading="isExporting"
+            @click="exportTrimmed"
+          >
+            {{ isTrimmed ? 'Export' : 'Export' }}
+          </UButton>
+        </div>
       </div>
 
-      <!-- Playback controls -->
-      <div class="flex items-center justify-center gap-2">
-        <UButton
-          icon="i-heroicons-backward"
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          :disabled="isLoading || !!loadError"
-          @click="rewind"
-        />
+      <!-- Export progress -->
+      <div v-if="isExporting" class="flex flex-col gap-1">
+        <div class="flex items-center justify-between text-xs text-gray-400">
+          <span>Exporting...</span>
+          <span>{{ exportProgress }}%</span>
+        </div>
+        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+          <div
+            class="h-full bg-blue-500 rounded-full transition-all duration-300"
+            :style="{ width: `${exportProgress}%` }"
+          />
+        </div>
+      </div>
 
-        <UButton
-          :icon="isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
-          variant="solid"
-          color="primary"
-          size="md"
-          :disabled="isLoading || !!loadError || durationUs === 0"
-          @click="togglePlayPause"
-        />
+      <!-- Export error -->
+      <div v-if="exportError" class="flex items-center gap-2 text-xs text-red-400">
+        <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 shrink-0" />
+        {{ exportError }}
       </div>
     </div>
   </div>
