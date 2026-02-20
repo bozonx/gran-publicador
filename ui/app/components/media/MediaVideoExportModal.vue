@@ -184,7 +184,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <AppModal
+  <UiAppModal
     v-model:open="isOpen"
     :title="t('videoEditor.export.title')"
     :prevent-close="isExporting"
@@ -202,7 +202,7 @@ function handleCancel() {
 
       <!-- Scope selector (only when project is available) -->
       <UFormField :label="t('videoEditor.export.destination')">
-        <AppButtonGroup
+        <UiAppButtonGroup
           v-model="scope"
           :options="scopeOptions"
           :disabled="isExporting"
@@ -279,5 +279,5 @@ function handleCancel() {
         {{ t('videoEditor.export.confirm') }}
       </UButton>
     </template>
-  </AppModal>
+  </UiAppModal>
 </template>
