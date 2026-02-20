@@ -9,7 +9,13 @@ interface Props {
   filename?: string
   projectId?: string
   /** Blob factory — called when user confirms; must return the exported MP4 blob */
-  exportFn: () => Promise<Blob>
+  exportFn: (options: ExportOptions) => Promise<Blob>
+}
+
+interface ExportOptions {
+  videoCodec: string
+  bitrate: number
+  audio: boolean
 }
 
 const props = defineProps<Props>()
@@ -35,6 +41,13 @@ const outputFilename = ref('')
 const scope = ref<'personal' | 'project'>('personal')
 const selectedCollectionId = ref<string | null>(null)
 const selectedGroupId = ref<string | null>(null)
+
+const videoCodec = ref('avc1.42E032')
+const bitrateMbps = ref<number>(5)
+const includeAudio = ref(true)
+
+const audioCodec = ref('aac')
+const audioBitrateKbps = ref<number>(128)
 
 // Collections data
 const collections = ref<ContentCollection[]>([])
@@ -107,6 +120,9 @@ watch(
     const base = (props.filename || 'video').replace(/\.[^.]+$/, '')
     outputFilename.value = `${base}_trimmed.mp4`
     scope.value = props.projectId ? 'project' : 'personal'
+    videoCodec.value = 'avc1.42E032'
+    bitrateMbps.value = 5
+    includeAudio.value = true
     exportProgress.value = 0
     exportError.value = null
     exportPhase.value = null
@@ -114,6 +130,21 @@ watch(
     loadCollections()
   },
 )
+
+const videoCodecOptions = computed(() => [
+  { value: 'avc1.42E032', label: 'H.264 (Baseline)' },
+  { value: 'avc1.4D0032', label: 'H.264 (Main)' },
+  { value: 'avc1.640032', label: 'H.264 (High)' },
+])
+
+const audioCodecOptions = computed(() => [{ value: 'aac', label: 'AAC' }])
+
+const bitrateBps = computed(() => {
+  const value = Number(bitrateMbps.value)
+  if (!Number.isFinite(value)) return 5_000_000
+  const clamped = Math.min(200, Math.max(0.2, value))
+  return Math.round(clamped * 1_000_000)
+})
 
 watch(scope, () => {
   loadCollections()
@@ -132,7 +163,11 @@ async function handleConfirm() {
   try {
     // Phase 1: encode
     exportPhase.value = 'encoding'
-    const blob = await props.exportFn()
+    const blob = await props.exportFn({
+      videoCodec: videoCodec.value,
+      bitrate: bitrateBps.value,
+      audio: includeAudio.value,
+    })
     exportProgress.value = 60
 
     // Phase 2: upload media file
@@ -208,6 +243,71 @@ function handleCancel() {
           :disabled="isExporting"
         />
       </UFormField>
+
+      <!-- Encoding settings -->
+      <div class="flex flex-col gap-4">
+        <div class="text-sm font-medium text-gray-700 dark:text-gray-200">
+          {{ t('videoEditor.export.encodingSettings') }}
+        </div>
+
+        <UFormField :label="t('videoEditor.export.videoCodec')">
+          <USelect
+            v-model="videoCodec"
+            :options="videoCodecOptions"
+            :disabled="isExporting"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField
+          :label="t('videoEditor.export.videoBitrate')"
+          :help="t('videoEditor.export.videoBitrateHelp')"
+        >
+          <UInput
+            v-model.number="bitrateMbps"
+            type="number"
+            inputmode="decimal"
+            min="0.2"
+            step="0.1"
+            :disabled="isExporting"
+            class="w-full"
+          />
+        </UFormField>
+
+        <label class="flex items-center gap-3 cursor-pointer">
+          <UCheckbox v-model="includeAudio" :disabled="isExporting" />
+          <span class="text-sm text-gray-700 dark:text-gray-200">{{ t('videoEditor.export.includeAudio') }}</span>
+        </label>
+
+        <UFormField
+          v-if="includeAudio"
+          :label="t('videoEditor.export.audioCodec')"
+          :help="t('videoEditor.export.audioCodecHelp')"
+        >
+          <USelect
+            v-model="audioCodec"
+            :options="audioCodecOptions"
+            :disabled="true"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField
+          v-if="includeAudio"
+          :label="t('videoEditor.export.audioBitrate')"
+          :help="t('videoEditor.export.audioBitrateHelp')"
+        >
+          <UInput
+            v-model.number="audioBitrateKbps"
+            type="number"
+            inputmode="numeric"
+            min="32"
+            step="16"
+            :disabled="true"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
 
       <!-- Collection selector -->
       <UFormField :label="t('videoEditor.export.collection')">

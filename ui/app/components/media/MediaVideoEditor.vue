@@ -179,7 +179,13 @@ function resetTrim() {
   trimOutUs.value = durationUs.value
 }
 
-async function exportTrimmed(): Promise<Blob> {
+interface ExportOptions {
+  videoCodec: string
+  bitrate: number
+  audio: boolean
+}
+
+async function exportTrimmed(options: ExportOptions): Promise<Blob> {
   if (!videoArrayBuffer) throw new Error('No video loaded')
 
   const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
@@ -205,6 +211,9 @@ async function exportTrimmed(): Promise<Blob> {
     width: width || 1280,
     height: height || 720,
     bgColor: '#000',
+    videoCodec: options.videoCodec,
+    bitrate: options.bitrate,
+    audio: options.audio ? undefined : false,
   })
 
   await combinator.addSprite(sprite)
