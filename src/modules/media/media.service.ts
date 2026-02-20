@@ -669,6 +669,7 @@ export class MediaService {
         method: 'GET',
         headers: reqHeaders,
         headersTimeout: (config.timeoutSecs || 60) * 1000,
+        bodyTimeout: 0,
       });
 
       if (response.statusCode >= 400 && response.statusCode !== 206) {
@@ -717,6 +718,7 @@ export class MediaService {
           method: 'GET',
           headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
           headersTimeout: (config.timeoutSecs || 60) * 1000,
+          bodyTimeout: 0,
         },
       );
 
