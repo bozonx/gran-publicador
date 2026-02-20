@@ -131,8 +131,14 @@ const contentActionMode = ref<'copy' | 'move'>('copy')
 const { 
   publishPublication, 
   isPublishing, 
-  canPublishPublication 
+  canPublishPublication: baseCanPublishPublication 
 } = useSocialPosting()
+
+const canPublishPublication = (pub: any) => {
+    if (!pub) return false
+    if (pub.status === 'DRAFT') return false
+    return baseCanPublishPublication(pub)
+}
 
 // Determine available channels (in project but not yet in publication)
 const availableChannels = computed(() => {
@@ -1198,7 +1204,7 @@ async function executePublish(force: boolean) {
                                         ></UButton>
                                     </UTooltip>
                                     
-                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish')) : ''))">
+                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? (currentPublication.status === 'DRAFT' ? t('publication.validation.draftBlocked') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish'))) : ''))">
                                         <UButton
                                             :label="t('publication.publishNow')"
                                             icon="i-heroicons-paper-airplane"
