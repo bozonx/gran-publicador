@@ -265,6 +265,29 @@ export class MediaController {
       download === '1' || download === 'true',
     );
 
+    const requestId = (req.headers['x-request-id'] as string | undefined) ?? undefined;
+
+    stream.once('error', err => {
+      this.logger.error(
+        `Media stream error: id="${id}", status=${status}, range="${range || ''}", requestId="${requestId || ''}": ${(err as Error).message}`,
+      );
+    });
+
+    res.raw.once('close', () => {
+      this.logger.warn(
+        `Media response closed: id="${id}", status=${status}, range="${range || ''}", requestId="${requestId || ''}"`,
+      );
+      if (!stream.destroyed) {
+        stream.destroy();
+      }
+    });
+
+    res.raw.once('finish', () => {
+      this.logger.debug(
+        `Media response finished: id="${id}", status=${status}, range="${range || ''}", requestId="${requestId || ''}"`,
+      );
+    });
+
     res.status(status);
     res.headers(headers);
     return res.send(stream);
@@ -298,6 +321,29 @@ export class MediaController {
       req.user.userId,
       fit,
     );
+
+    const requestId = (req.headers['x-request-id'] as string | undefined) ?? undefined;
+
+    stream.once('error', err => {
+      this.logger.error(
+        `Thumbnail stream error: id="${id}", status=${status}, requestId="${requestId || ''}": ${(err as Error).message}`,
+      );
+    });
+
+    res.raw.once('close', () => {
+      this.logger.warn(
+        `Thumbnail response closed: id="${id}", status=${status}, requestId="${requestId || ''}"`,
+      );
+      if (!stream.destroyed) {
+        stream.destroy();
+      }
+    });
+
+    res.raw.once('finish', () => {
+      this.logger.debug(
+        `Thumbnail response finished: id="${id}", status=${status}, requestId="${requestId || ''}"`,
+      );
+    });
 
     res.status(status);
     res.headers(headers);
