@@ -25,7 +25,9 @@ export class DefaultFormatter extends AbstractPlatformFormatter {
       },
       body,
       bodyFormat,
-      idempotencyKey: `post-${post.id}-${new Date(post.updatedAt).getTime()}`,
+      idempotencyKey: `post-${post.id}-${new Date(
+        post.postingSnapshotCreatedAt ?? snapshot.meta?.createdAt ?? post.updatedAt,
+      ).getTime()}`,
       postLanguage: post.language || publication.language,
       ...mediaMapping,
     };

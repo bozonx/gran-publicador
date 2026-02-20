@@ -48,7 +48,6 @@ export interface PostingSnapshotMedia {
   storagePath: string;
   order: number;
   hasSpoiler: boolean;
-  meta: Record<string, any>;
 }
 
 export const POSTING_SNAPSHOT_VERSION = 1;

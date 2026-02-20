@@ -80,7 +80,6 @@ export abstract class AbstractPlatformFormatter {
       storagePath: string;
       order: number;
       hasSpoiler: boolean;
-      meta: Record<string, any>;
     }>,
     mediaStorageUrl: string,
     publicMediaBaseUrl?: string,

@@ -199,7 +199,6 @@ export class PostSnapshotBuilderService {
         storagePath: pm.media.storagePath,
         order: pm.order,
         hasSpoiler: pm.hasSpoiler ?? pm.media.meta?.telegram?.hasSpoiler ?? false,
-        meta: pm.media.meta ?? {},
       }));
   }
 }

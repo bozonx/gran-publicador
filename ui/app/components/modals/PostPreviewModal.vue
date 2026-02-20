@@ -50,6 +50,22 @@ const previewTitle = computed(() => {
   return getSocialMediaDisplayName(props.post.channel?.socialMedia || props.post.socialMedia, t)
 })
 
+const snapshotState = computed(() => {
+  const snapshot = props.post?.postingSnapshot
+  const hasSnapshot = !!snapshot?.body
+  const createdAt = snapshot?.meta?.createdAt || props.post?.postingSnapshotCreatedAt || null
+  return { hasSnapshot, createdAt }
+})
+
+const snapshotBadgeTitle = computed(() => {
+  if (snapshotState.value.hasSnapshot) {
+    return snapshotState.value.createdAt
+      ? `Frozen snapshot is used for preview. Built at: ${snapshotState.value.createdAt}`
+      : 'Frozen snapshot is used for preview.'
+  }
+  return 'No frozen snapshot available. Preview is rendered dynamically and may differ from the final published result until the snapshot is built.'
+})
+
 function resolveTagsForPreview(): string[] {
   const postTags = (props.post as any)?.tags
   const pub = props.publication || props.post?.publication
@@ -143,6 +159,16 @@ const previewHtml = computed(() => {
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
             {{ t('post.previewTitle', 'Post Preview') }}: {{ previewTitle }}
           </h3>
+
+          <span
+            class="px-2 py-0.5 text-xs rounded border"
+            :class="snapshotState.hasSnapshot
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-900'
+              : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-900'"
+            :title="snapshotBadgeTitle"
+          >
+            {{ snapshotState.hasSnapshot ? 'Snapshot' : 'No snapshot' }}
+          </span>
         </div>
 
         <UTabs
