@@ -8,6 +8,7 @@ interface TreeNode {
 interface Props {
   items: TreeNode[]
   disabledIds?: string[]
+  selectedId?: string | null
 }
 
 const props = defineProps<Props>()
@@ -69,8 +70,11 @@ const handleSelectId = (id: string) => {
       <span v-else class="w-4 h-4" />
       <button
         type="button"
-        class="flex-1 truncate text-sm py-1 text-left"
-        :class="row.disabled ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed' : 'hover:text-primary-600 dark:hover:text-primary-400'"
+        class="flex-1 truncate text-sm py-1 px-1.5 rounded text-left transition-colors"
+        :class="[
+          row.disabled ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed' : 'hover:text-primary-600 dark:hover:text-primary-400',
+          selectedId === row.value && !row.disabled ? 'bg-primary-50 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400 font-medium' : ''
+        ]"
         :disabled="row.disabled"
         @click="handleSelectId(row.value)"
       >

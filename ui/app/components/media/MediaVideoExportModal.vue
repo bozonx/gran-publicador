@@ -3,6 +3,9 @@ import { ref, computed, watch } from 'vue'
 import { useContentCollections, type ContentCollection } from '~/composables/useContentCollections'
 import { useMedia } from '~/composables/useMedia'
 import { useApi } from '~/composables/useApi'
+import { useProjects } from '~/composables/useProjects'
+import { buildGroupTreeFromRoot } from '~/composables/useContentLibraryGroupsTree'
+import ContentGroupSelectTree from '../content/ContentGroupSelectTree.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
@@ -35,6 +38,7 @@ const api = useApi()
 const { uploadMedia } = useMedia()
 const { listCollections } = useContentCollections()
 const toast = useToast()
+const { fetchProjects, isLoading: isLoadingProjects } = useProjects()
 
 const isOpen = computed({
   get: () => props.open,
@@ -44,8 +48,19 @@ const isOpen = computed({
 // Form state
 const outputFilename = ref('')
 const scope = ref<'personal' | 'project'>('personal')
+const selectedProjectId = ref<string | null>(null)
 const selectedCollectionId = ref<string | null>(null)
 const selectedGroupId = ref<string | null>(null)
+
+const projects = ref<any[]>([])
+async function loadProjects() {
+  if (projects.value.length > 0) return
+  try {
+    projects.value = await fetchProjects({ hasContentCollections: true })
+  } catch (err) {
+    console.error('Failed to fetch projects', err)
+  }
+}
 
 const videoCodec = ref('avc1.42E032')
 const bitrateMbps = ref<number>(5)
@@ -69,28 +84,34 @@ const exportPhase = ref<'encoding' | 'uploading' | 'saving' | null>(null)
 
 const scopeOptions = computed(() => {
   const opts = [{ value: 'personal', label: t('videoEditor.export.scopePersonal') }]
-  if (props.projectId) {
+  if (projects.value.length > 0 || props.projectId) {
     opts.push({ value: 'project', label: t('videoEditor.export.scopeProject') })
   }
   return opts
 })
 
-const groupCollections = computed(() =>
-  collections.value.filter((c) => c.type === 'GROUP'),
-)
+const projectOptions = computed(() => {
+  return projects.value.map((p) => ({ value: p.id, label: p.name }))
+})
 
 const collectionOptions = computed(() =>
-  groupCollections.value
-    .filter((c) => !c.parentId)
+  collections.value
+    .filter((c) => !c.parentId && c.type !== 'PUBLICATION_MEDIA_VIRTUAL' && c.type !== 'UNSPLASH')
     .map((c) => ({ value: c.id, label: c.title })),
 )
 
-// Sub-groups of the selected collection
-const subGroupOptions = computed(() => {
-  if (!selectedCollectionId.value) return []
-  return groupCollections.value
-    .filter((c) => c.parentId === selectedCollectionId.value)
-    .map((c) => ({ value: c.id, label: c.title }))
+const selectedCollection = computed(() => {
+  if (!selectedCollectionId.value) return null
+  return collections.value.find((c) => c.id === selectedCollectionId.value)
+})
+
+const subGroupTreeItems = computed(() => {
+  if (selectedCollection.value?.type !== 'GROUP') return []
+  return buildGroupTreeFromRoot({
+    rootId: selectedCollection.value.id,
+    allGroupCollections: collections.value,
+    labelFn: (c) => c.title,
+  })
 })
 
 const phaseLabel = computed(() => {
@@ -106,7 +127,7 @@ async function loadCollections() {
   try {
     const result = await listCollections(
       scope.value,
-      scope.value === 'project' ? props.projectId : undefined,
+      scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
     )
     collections.value = result ?? []
     // Reset selection when collections reload
@@ -130,6 +151,7 @@ watch(
     const base = (props.filename || 'video').replace(/\.[^.]+$/, '')
     outputFilename.value = `${base}_trimmed.mp4`
     scope.value = props.projectId ? 'project' : 'personal'
+    selectedProjectId.value = props.projectId || null
     videoCodec.value = 'avc1.42E032'
     bitrateMbps.value = 5
     includeAudio.value = true
@@ -137,6 +159,7 @@ watch(
     exportError.value = null
     exportPhase.value = null
     isExporting.value = false
+    loadProjects()
     loadCollections()
     loadCodecSupport()
   },
@@ -157,6 +180,12 @@ const bitrateBps = computed(() => {
 
 watch(scope, () => {
   loadCollections()
+})
+
+watch(selectedProjectId, () => {
+  if (scope.value === 'project') {
+    loadCollections()
+  }
 })
 
 watch(selectedCollectionId, () => {
@@ -207,7 +236,7 @@ async function handleConfirm() {
         exportProgress.value = 60 + Math.round((pct / 100) * 30)
       },
       undefined,
-      scope.value === 'project' ? props.projectId : undefined,
+      scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
     )
     exportProgress.value = 90
 
@@ -216,7 +245,7 @@ async function handleConfirm() {
     const groupId = selectedGroupId.value ?? selectedCollectionId.value ?? undefined
     await api.post('/content-library/items', {
       scope: scope.value,
-      projectId: scope.value === 'project' ? props.projectId : undefined,
+      projectId: scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
       groupId,
       title: outputFilename.value,
       text: '',
@@ -263,12 +292,28 @@ function handleCancel() {
         />
       </UFormField>
 
-      <!-- Scope selector (only when project is available) -->
+      <!-- Scope selector -->
       <UFormField :label="t('videoEditor.export.destination')">
         <UiAppButtonGroup
           v-model="scope"
           :options="scopeOptions"
           :disabled="isExporting"
+        />
+      </UFormField>
+
+      <UFormField v-if="scope === 'project'" :label="t('contentLibrary.bulk.selectProject')">
+        <USelectMenu
+          :model-value="(projectOptions.find(o => o.value === selectedProjectId) || selectedProjectId) as any"
+          @update:model-value="(v: any) => selectedProjectId = v?.value ?? v"
+          :items="projectOptions"
+          value-key="value"
+          label-key="label"
+          searchable
+          :search-input="{ placeholder: t('contentLibrary.bulk.selectProject') }"
+          :placeholder="t('contentLibrary.bulk.selectProject')"
+          :disabled="isExporting || isLoadingProjects"
+          :loading="isLoadingProjects"
+          class="w-full"
         />
       </UFormField>
 
@@ -279,9 +324,12 @@ function handleCancel() {
         </div>
 
         <UFormField :label="t('videoEditor.export.videoCodec')">
-          <USelect
-            v-model="videoCodec"
-            :options="videoCodecOptions"
+          <USelectMenu
+            :model-value="(videoCodecOptions.find(o => o.value === videoCodec) || videoCodec) as any"
+            @update:model-value="(v: any) => videoCodec = v?.value ?? v"
+            :items="videoCodecOptions"
+            value-key="value"
+            label-key="label"
             :disabled="isExporting || isLoadingCodecSupport"
             class="w-full"
           />
@@ -312,9 +360,12 @@ function handleCancel() {
           :label="t('videoEditor.export.audioCodec')"
           :help="t('videoEditor.export.audioCodecHelp')"
         >
-          <USelect
-            v-model="audioCodec"
-            :options="audioCodecOptions"
+          <USelectMenu
+            :model-value="(audioCodecOptions.find(o => o.value === audioCodec) || audioCodec) as any"
+            @update:model-value="(v: any) => audioCodec = v?.value ?? v"
+            :items="audioCodecOptions"
+            value-key="value"
+            label-key="label"
             :disabled="true"
             class="w-full"
           />
@@ -339,9 +390,14 @@ function handleCancel() {
 
       <!-- Collection selector -->
       <UFormField :label="t('videoEditor.export.collection')">
-        <USelect
-          v-model="selectedCollectionId"
-          :options="collectionOptions"
+        <USelectMenu
+          :model-value="(collectionOptions.find(o => o.value === selectedCollectionId) || selectedCollectionId) as any"
+          @update:model-value="(v: any) => selectedCollectionId = v?.value ?? v"
+          :items="collectionOptions"
+          value-key="value"
+          label-key="label"
+          searchable
+          :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
           :placeholder="t('videoEditor.export.noCollection')"
           :loading="isLoadingCollections"
           :disabled="isExporting || isLoadingCollections"
@@ -349,18 +405,18 @@ function handleCancel() {
         />
       </UFormField>
 
-      <!-- Sub-group selector (only when collection has sub-groups) -->
+      <!-- Sub-group tree selector -->
       <UFormField
-        v-if="subGroupOptions.length > 0"
+        v-if="selectedCollection?.type === 'GROUP' && subGroupTreeItems.length > 0"
         :label="t('videoEditor.export.group')"
       >
-        <USelect
-          v-model="selectedGroupId"
-          :options="subGroupOptions"
-          :placeholder="t('videoEditor.export.noGroup')"
-          :disabled="isExporting"
-          class="w-full"
-        />
+        <div class="py-2.5 px-3 border border-gray-200 dark:border-gray-800 rounded-md max-h-60 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900">
+          <ContentGroupSelectTree
+            :items="subGroupTreeItems as any"
+            :selected-id="selectedGroupId"
+            @select="val => selectedGroupId = val"
+          />
+        </div>
       </UFormField>
 
       <!-- Progress -->
