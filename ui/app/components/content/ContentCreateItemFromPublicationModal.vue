@@ -9,9 +9,12 @@ interface Props {
   scope: 'project' | 'personal'
   projectId?: string
   publicationId: string | null
+  mode?: 'copy' | 'move'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'copy',
+})
 
 const isOpen = defineModel<boolean>('open', { default: false })
 
@@ -19,6 +22,7 @@ const { t } = useI18n()
 const api = useApi()
 const toast = useToast()
 const router = useRouter()
+const { fetchProjects } = useProjects()
 
 const { listCollections } = useContentCollections()
 
@@ -27,9 +31,36 @@ const isCreating = ref(false)
 const error = ref<string | null>(null)
 
 const publication = ref<any | null>(null)
+const projects = ref<any[]>([])
 const collections = ref<ContentCollection[]>([])
 
+const selectedScope = ref<'project' | 'personal'>(props.scope)
+const targetProjectId = ref<string | undefined>(props.projectId)
 const targetCollectionId = ref<string | null>(null)
+
+const projectOptions = computed(() => {
+  const options = [{ label: t('contentLibrary.moveModal.personal'), value: 'personal' }]
+  projects.value.forEach((p) => {
+    options.push({ label: p.name, value: p.id })
+  })
+  return options
+})
+
+const selectedProjectOption = computed({
+  get: () => {
+    if (selectedScope.value === 'personal') return 'personal'
+    return targetProjectId.value
+  },
+  set: (val: string | undefined) => {
+    if (val === 'personal') {
+      selectedScope.value = 'personal'
+      targetProjectId.value = undefined
+    } else {
+      selectedScope.value = 'project'
+      targetProjectId.value = val
+    }
+  },
+})
 
 const collectionOptions = computed(() => {
   return collections.value
@@ -74,7 +105,7 @@ async function fetchPublication() {
 }
 
 async function fetchCollections() {
-  collections.value = await listCollections(props.scope, props.scope === 'project' ? props.projectId : undefined)
+  collections.value = await listCollections(selectedScope.value, targetProjectId.value)
 }
 
 async function init() {
@@ -83,7 +114,11 @@ async function init() {
   error.value = null
   isLoading.value = true
   try {
-    await Promise.all([fetchPublication(), fetchCollections()])
+    const promises: Promise<any>[] = [fetchPublication(), fetchCollections()]
+    // Fetch projects to allow selection
+    promises.push(fetchProjects().then(res => projects.value = res))
+    
+    await Promise.all(promises)
   } catch (e: any) {
     error.value = getApiErrorMessage(e, 'Failed to load data')
   } finally {
@@ -93,7 +128,16 @@ async function init() {
 
 watch(isOpen, () => {
   if (isOpen.value) {
+    selectedScope.value = props.scope
+    targetProjectId.value = props.projectId
     init()
+  }
+})
+
+watch([selectedScope, targetProjectId], () => {
+  if (isOpen.value) {
+    targetCollectionId.value = null
+    fetchCollections()
   }
 })
 
@@ -113,7 +157,7 @@ function handleSelectCollection(next: unknown) {
   targetCollectionId.value = (targetId ?? null) as any
 }
 
-async function createItem(groupId?: string) {
+async function executeAction(groupId?: string) {
   if (!props.publicationId) return
   if (isCreating.value) return
 
@@ -122,8 +166,8 @@ async function createItem(groupId?: string) {
     const p = publication.value
 
     const created = await api.post<any>('/content-library/items', {
-      scope: props.scope,
-      projectId: props.scope === 'project' ? props.projectId : undefined,
+      scope: selectedScope.value,
+      projectId: selectedScope.value === 'project' ? targetProjectId.value : undefined,
       groupId,
       title: typeof p?.title === 'string' ? p.title : '',
       tags: Array.isArray(p?.tags) ? p.tags : [],
@@ -143,26 +187,52 @@ async function createItem(groupId?: string) {
       publicationId: props.publicationId,
     })
 
+    if (props.mode === 'move') {
+      await api.delete(`/publications/${props.publicationId}`)
+    }
+
     isOpen.value = false
+
+    const base = selectedScope.value === 'project' 
+      ? `/projects/${targetProjectId.value}/content-library` 
+      : '/content-library'
 
     toast.add({
       title: t('common.success'),
-      description: t('contentLibrary.actions.copyToItemSuccess'),
+      description: props.mode === 'move' 
+        ? t('archive.success_moved') 
+        : t('contentLibrary.actions.copyToItemSuccess'),
       color: 'success',
       actions: [
         {
           label: t('common.view', 'View'),
           onClick: () => {
-            const base = props.scope === 'project' ? `/projects/${props.projectId}/content-library` : '/content-library'
-            router.push({ path: base, query: { openItemId: created?.id } })
+            router.push({ 
+              path: base, 
+              query: { 
+                collectionId: targetCollectionId.value,
+                groupId: groupId
+              } 
+            })
           },
         },
       ],
     } as any)
+    
+    // If we moved, we must redirect because the current page is deleted
+    if (props.mode === 'move') {
+      router.push({ 
+        path: base, 
+        query: { 
+          collectionId: targetCollectionId.value,
+          groupId: groupId
+        } 
+      })
+    }
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
-      description: getApiErrorMessage(e, 'Failed to create content item'),
+      description: getApiErrorMessage(e, 'Failed to process publication'),
       color: 'error',
     })
   } finally {
@@ -172,23 +242,26 @@ async function createItem(groupId?: string) {
 
 async function handleSelectGroup(groupId: string) {
   if (!groupId) return
-  await createItem(groupId)
+  await executeAction(groupId)
 }
 
-async function handleCopyToSavedView() {
-  await createItem(undefined)
+async function handleActionToSavedView() {
+  await executeAction(undefined)
 }
 </script>
 
 <template>
   <UiAppModal
     v-model:open="isOpen"
-    :title="t('contentLibrary.actions.copyToContentItem')"
+    :title="props.mode === 'move' ? t('publication.moveToContentLibrary') : t('contentLibrary.actions.copyToContentItem')"
     :ui="{ content: 'max-w-md' }"
   >
     <div class="space-y-4">
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        {{ t('contentLibrary.actions.copyPublicationToItemDescription', 'Select a target collection to create a new content item.') }}
+        {{ props.mode === 'move' 
+          ? t('contentLibrary.moveModal.toProject') 
+          : t('contentLibrary.actions.copyPublicationToItemDescription', 'Select a target project and collection to create a new content item.') 
+        }}
       </p>
 
       <div v-if="error" class="text-sm text-red-600 dark:text-red-400">
@@ -197,11 +270,25 @@ async function handleCopyToSavedView() {
 
       <div v-else class="space-y-3">
         <USelectMenu
-          :items="collectionOptions"
+          v-model="selectedProjectOption"
+          :items="projectOptions"
           value-key="value"
           label-key="label"
           searchable
           :loading="isLoading"
+          :placeholder="t('contentLibrary.moveModal.toProject')"
+        >
+          <template #leading>
+            <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
+          </template>
+        </USelectMenu>
+
+        <USelectMenu
+          :items="collectionOptions"
+          value-key="value"
+          label-key="label"
+          searchable
+          :loading="isLoading || isLoading"
           :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
           :placeholder="t('contentLibrary.bulk.searchGroups')"
           @update:model-value="handleSelectCollection"
@@ -223,11 +310,11 @@ async function handleCopyToSavedView() {
           <div v-else-if="selectedCollection.type === 'SAVED_VIEW'" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
             <UButton
               color="primary"
-              icon="i-heroicons-document-duplicate"
+              :icon="props.mode === 'move' ? 'i-heroicons-arrow-right-circle' : 'i-heroicons-document-duplicate'"
               :loading="isCreating"
-              @click="handleCopyToSavedView"
+              @click="handleActionToSavedView"
             >
-              {{ t('common.copy', 'Copy') }}
+              {{ props.mode === 'move' ? t('common.move') : t('common.copy') }}
             </UButton>
           </div>
         </div>

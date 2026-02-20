@@ -24,6 +24,9 @@ const route = useRoute()
 const isArchiveView = computed(() => route.query.archived === 'true')
 const authStore = useAuthStore()
 
+const isContentActionModalOpen = ref(false)
+const contentActionMode = ref<'copy' | 'move'>('copy')
+
 const thumbData = computed(() => {
   if (!props.publication.media || props.publication.media.length === 0) {
     return { first: null, totalCount: 0 }
@@ -130,6 +133,36 @@ function handleDelete(e: Event) {
           :title="t('common.delete')"
           @click="handleDelete"
         />
+        <UDropdownMenu
+          :items="[[
+            {
+              label: t('publication.copyToContentLibrary'),
+              icon: 'i-heroicons-arrow-down-on-square-stack',
+              click: () => {
+                contentActionMode = 'copy'
+                isContentActionModalOpen = true
+              }
+            },
+            {
+              label: t('publication.moveToContentLibrary'),
+              icon: 'i-heroicons-arrow-right-start-on-rectangle',
+              click: () => {
+                contentActionMode = 'move'
+                isContentActionModalOpen = true
+              }
+            }
+          ]]"
+          :popper="{ placement: 'bottom-end', strategy: 'fixed' }"
+        >
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-vertical"
+            size="xs"
+            class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            @click.stop
+          />
+        </UDropdownMenu>
       </div>
     </div>
 
@@ -197,7 +230,7 @@ function handleDelete(e: Event) {
               class="w-3 h-3 text-gray-400" 
             />
           </div>
-          <div v-if="publication.posts.length > 5" class="h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[9px] text-gray-500 font-medium">
+          <div v-if="publication.posts.length > 5" class="h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-100 dark:bg-gray-700 flex items-center justify-center text-[9px] text-gray-500 font-medium">
             +{{ publication.posts.length - 5 }}
           </div>
         </div>
@@ -209,5 +242,14 @@ function handleDelete(e: Event) {
         <span class="truncate">{{ publication.tags }}</span>
       </div>
     </CommonCardFooter>
+
+    <!-- Content Action Modal (Copy/Move to Content Library) -->
+    <ContentCreateItemFromPublicationModal
+      v-model:open="isContentActionModalOpen"
+      :publication-id="publication.id"
+      :scope="publication.projectId ? 'project' : 'personal'"
+      :project-id="publication.projectId || undefined"
+      :mode="contentActionMode"
+    />
   </div>
 </template>

@@ -120,6 +120,8 @@ const llmModalRef = ref<any>(null)
 const isDeleting = ref(false)
 const isDeleteModalOpen = ref(false)
 const isCopyModalOpen = ref(false)
+const isContentActionModalOpen = ref(false)
+const contentActionMode = ref<'copy' | 'move'>('copy')
 const copyProjectId = ref<string | undefined>(undefined)
 const isCopying = ref(false)
 
@@ -144,11 +146,34 @@ const normalizedPublicationMeta = computed<Record<string, any>>(() => {
 const moreActions = computed(() => [
   [
     {
+      label: t('publication.copyToContentLibrary'),
+      icon: 'i-heroicons-arrow-down-on-square-stack',
+      click: () => {
+        contentActionMode.value = 'copy'
+        isContentActionModalOpen.value = true
+      },
+      disabled: false,
+      class: ''
+    },
+    {
+      label: t('publication.moveToContentLibrary'),
+      icon: 'i-heroicons-arrow-right-start-on-rectangle',
+      click: () => {
+        contentActionMode.value = 'move'
+        isContentActionModalOpen.value = true
+      },
+      disabled: false,
+      class: ''
+    },
+    {
       label: t('publication.copyToProject'),
       icon: 'i-heroicons-document-duplicate',
       click: openCopyModal,
-      disabled: false
-    },
+      disabled: false,
+      class: ''
+    }
+  ],
+  [
     {
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
@@ -334,7 +359,7 @@ async function handleApplyLlm(data: {
             size="sm"
           />
           <template #item="{ item }">
-            <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
+            <div class="flex items-center gap-2 w-full truncate" :class="[(item as any).class || '', { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
               <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
               <span class="truncate">{{ item.label }}</span>
             </div>
@@ -517,7 +542,7 @@ async function handleApplyLlm(data: {
             <!-- Media Gallery -->
             <div v-if="currentPublication.media && currentPublication.media.length > 0" class="mt-10 mb-8">
               <MediaGallery 
-                :media="currentPublication.media" 
+                :media="(currentPublication.media as any)" 
                 :publication-id="currentPublication.id"
                 :editable="false"
                 @refresh="() => fetchPublication(publicationId)"
@@ -576,6 +601,16 @@ async function handleApplyLlm(data: {
         />
       </template>
     </UiAppModal>
+
+    <!-- Content Action Modal (Copy/Move to Content Library) -->
+    <ContentCreateItemFromPublicationModal
+      v-if="currentPublication"
+      v-model:open="isContentActionModalOpen"
+      :publication-id="currentPublication.id"
+      :scope="currentPublication.projectId ? 'project' : 'personal'"
+      :project-id="currentPublication.projectId || undefined"
+      :mode="contentActionMode"
+    />
 
     <!-- LLM Generator Modal -->
     <ModalsLlmGeneratorModal

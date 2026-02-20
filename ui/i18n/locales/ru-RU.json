@@ -535,7 +535,8 @@
       "toCollection": "В коллекцию",
       "toGroup": "В группу",
       "toProject": "В проект",
-      "toPersonal": "В личные"
+      "toPersonal": "В личные",
+      "personal": "Личные"
     },
     "savedView": {
       "persistSearch": {
@@ -1103,6 +1104,8 @@
     "clickToCreate": "Нажмите для создания поста в {channel}",
     "clickToScroll": "Нажмите для перехода к настройкам {channel}",
     "copyToProject": "Скопировать в проект",
+    "copyToContentLibrary": "Копировать в библиотеку контента",
+    "moveToContentLibrary": "Переместить в библиотеку контента",
     "create": "Создать публикацию",
     "createError": "Не удалось создать публикацию",
     "createModal": {

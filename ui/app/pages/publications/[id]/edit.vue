@@ -124,6 +124,9 @@ const isBulkScheduling = ref(false)
 const showLlmModal = ref(false)
 const llmModalRef = ref<{ onApplySuccess: () => void; onApplyError: () => void } | null>(null)
 
+const isContentActionModalOpen = ref(false)
+const contentActionMode = ref<'copy' | 'move'>('copy')
+
 // Social posting
 const { 
   publishPublication, 
@@ -205,7 +208,7 @@ watch(
     () => [currentPublication.value, route.query.openLlm],
     async ([pub, openLlm]) => {
         // Ensure the publication is loaded AND it's the correct one for the current route
-        if (pub && pub.id === publicationId.value && openLlm === 'true') {
+        if (pub && (pub as any).id === publicationId.value && openLlm === 'true') {
             // Wait for both publication data and route query to be stable
             await nextTick()
             
@@ -635,11 +638,34 @@ async function handleUpdateStatusOption(status: PublicationStatus) {
 const moreActions = computed(() => [
   [
     {
+      label: t('publication.copyToContentLibrary'),
+      icon: 'i-heroicons-arrow-down-on-square-stack',
+      click: () => {
+        contentActionMode.value = 'copy'
+        isContentActionModalOpen.value = true
+      },
+      disabled: false,
+      class: ''
+    },
+    {
+      label: t('publication.moveToContentLibrary'),
+      icon: 'i-heroicons-arrow-right-start-on-rectangle',
+      click: () => {
+        contentActionMode.value = 'move'
+        isContentActionModalOpen.value = true
+      },
+      disabled: false,
+      class: ''
+    },
+    {
       label: t('publication.copyToProject'),
       icon: 'i-heroicons-document-duplicate',
       click: openCopyModal,
-      disabled: false
-    },
+      disabled: false,
+      class: ''
+    }
+  ],
+  [
     {
       label: t('common.delete'),
       icon: 'i-heroicons-trash',
@@ -826,7 +852,7 @@ async function executePublish(force: boolean) {
             size="sm"
           />
           <template #item="{ item }">
-            <div class="flex items-center gap-2 w-full truncate" :class="[item.class, { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
+            <div class="flex items-center gap-2 w-full truncate" :class="[(item as any).class || '', { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
               <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
               <span class="truncate">{{ item.label }}</span>
             </div>
@@ -1294,7 +1320,7 @@ async function executePublish(force: boolean) {
         <!-- Media Gallery (always expanded, horizontal scroll) -->
         <MediaGallery
           v-if="currentPublication"
-          :media="currentPublication.media || []"
+          :media="(currentPublication.media as any) || []"
           :publication-id="currentPublication.id"
           :editable="!isLocked"
           :post-type="currentPublication.postType"
@@ -1354,7 +1380,7 @@ async function executePublish(force: boolean) {
       v-model:open="showLlmModal"
       :publication-id="currentPublication.id"
       :content="currentPublication.content || undefined"
-      :media="(currentPublication.media || []).map(m => m.media).filter(Boolean) as unknown as MediaItem[]"
+      :media="((currentPublication.media || []).map(m => m.media).filter(Boolean) as any)"
       :project-id="projectId || undefined"
       :publication-meta="normalizedPublicationMeta"
       :post-type="currentPublication.postType || undefined"
@@ -1376,6 +1402,15 @@ async function executePublish(force: boolean) {
       :publication="currentPublication"
       :project-id="projectId"
       @updated="() => fetchPublication(publicationId)"
+    />
+
+    <!-- Content Action Modal (Copy/Move to Content Library) -->
+    <ContentCreateItemFromPublicationModal
+      v-model:open="isContentActionModalOpen"
+      :publication-id="publicationId"
+      :scope="projectId ? 'project' : 'personal'"
+      :project-id="projectId || undefined"
+      :mode="contentActionMode"
     />
   </div>
 </template>

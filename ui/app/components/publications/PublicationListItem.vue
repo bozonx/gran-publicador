@@ -24,6 +24,9 @@ const route = useRoute()
 const isArchiveView = computed(() => route.query.archived === 'true')
 const authStore = useAuthStore()
 
+const isContentActionModalOpen = ref(false)
+const contentActionMode = ref<'copy' | 'move'>('copy')
+
 const thumbData = computed(() => {
   if (!props.publication.media || props.publication.media.length === 0) {
     return { first: null, totalCount: 0 }
@@ -127,6 +130,35 @@ function handleDelete(e: Event) {
             size="xs"
             @click="handleDelete"
           />
+          <UDropdownMenu
+            :items="[[
+              {
+                label: t('publication.copyToContentLibrary'),
+                icon: 'i-heroicons-arrow-down-on-square-stack',
+                click: () => {
+                  contentActionMode = 'copy'
+                  isContentActionModalOpen = true
+                }
+              },
+              {
+                label: t('publication.moveToContentLibrary'),
+                icon: 'i-heroicons-arrow-right-start-on-rectangle',
+                click: () => {
+                  contentActionMode = 'move'
+                  isContentActionModalOpen = true
+                }
+              }
+            ]]"
+            :popper="{ placement: 'bottom-end', strategy: 'fixed' }"
+          >
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-ellipsis-vertical"
+              size="xs"
+              @click.stop
+            />
+          </UDropdownMenu>
         </div>
       </div>
 
@@ -214,5 +246,14 @@ function handleDelete(e: Event) {
         </div>
       </div>
     </div>
+
+    <!-- Content Action Modal (Copy/Move to Content Library) -->
+    <ContentCreateItemFromPublicationModal
+      v-model:open="isContentActionModalOpen"
+      :publication-id="publication.id"
+      :scope="publication.projectId ? 'project' : 'personal'"
+      :project-id="publication.projectId || undefined"
+      :mode="contentActionMode"
+    />
   </div>
 </template>
