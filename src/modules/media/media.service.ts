@@ -289,8 +289,8 @@ export class MediaService {
 
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-    
-    // Allow replacing both FS and Telegram media. 
+
+    // Allow replacing both FS and Telegram media.
     // Replacing Telegram media will effectively convert it to FS.
     if (media.storageType !== StorageType.FS && media.storageType !== StorageType.TELEGRAM) {
       throw new BadRequestException('Only FS or Telegram media can be replaced');
@@ -676,7 +676,7 @@ export class MediaService {
       }
 
       const responseHeaders: Record<string, string> = {};
-      const skipHeaders = ['connection', 'keep-alive', 'transfer-encoding'];
+      const skipHeaders = ['connection', 'keep-alive', 'transfer-encoding', 'content-length'];
 
       for (const [key, value] of Object.entries(response.headers)) {
         if (!skipHeaders.includes(key.toLowerCase()) && typeof value === 'string') {
@@ -724,8 +724,11 @@ export class MediaService {
         throw new Error(`Media Storage returned ${response.statusCode}`);
 
       const responseHeaders: Record<string, string> = {};
+      const skipHeaders = ['connection', 'keep-alive', 'transfer-encoding', 'content-length'];
       for (const [key, value] of Object.entries(response.headers)) {
-        if (typeof value === 'string') responseHeaders[key] = value;
+        if (!skipHeaders.includes(key.toLowerCase()) && typeof value === 'string') {
+          responseHeaders[key] = value;
+        }
       }
 
       return {
@@ -921,16 +924,17 @@ export class MediaService {
 
         const telegramMimeType = downloadResponse.headers['content-type'] as string | undefined;
         const headers: Record<string, string> = {};
-        
+
         // Use provided mimeType or fallback to what Telegram sends
         const effectiveMimeType = mimeType || telegramMimeType;
         if (effectiveMimeType) {
           headers['Content-Type'] = effectiveMimeType;
         }
-        
+
         // Ensure we have a filename for Content-Disposition, especially for downloads
-        const effectiveFilename = filename || (download ? `telegram_file_${fileId.substring(0, 8)}` : undefined);
-        
+        const effectiveFilename =
+          filename || (download ? `telegram_file_${fileId.substring(0, 8)}` : undefined);
+
         if (effectiveFilename) {
           const disposition = download ? 'attachment' : 'inline';
           headers['Content-Disposition'] = `${disposition}; filename="${effectiveFilename}"`;
