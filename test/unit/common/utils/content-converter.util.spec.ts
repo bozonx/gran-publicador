@@ -1,3 +1,4 @@
+import { describe, it, expect } from '@jest/globals';
 import { ContentConverter } from '../../../../src/common/utils/content-converter.util.js';
 
 describe('ContentConverter', () => {
@@ -7,6 +8,12 @@ describe('ContentConverter', () => {
       const text = 'hello world';
       const entities: any[] = [{ type: 'bold', offset: 0, length: 5 }];
       expect(ContentConverter.telegramToMd(text, entities)).toBe('**hello** world');
+    });
+
+    it('should ignore underline and keep plain text', () => {
+      const text = 'hello world';
+      const entities: any[] = [{ type: 'underline', offset: 0, length: 5 }];
+      expect(ContentConverter.telegramToMd(text, entities)).toBe('hello world');
     });
 
     it('should convert spoiler to ||', () => {

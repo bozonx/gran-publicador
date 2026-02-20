@@ -63,7 +63,6 @@ export class ContentConverter {
           addTag(offset, offset + length, '_', '_', p, i);
           break;
         case 'underline':
-          addTag(offset, offset + length, '<u>', '</u>', p, i);
           break;
         case 'strikethrough':
           addTag(offset, offset + length, '~~', '~~', p, i);

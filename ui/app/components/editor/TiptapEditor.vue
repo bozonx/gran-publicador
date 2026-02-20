@@ -166,6 +166,7 @@ function buildExtensions(opts: { placeholder: string; maxLength?: number }) {
       },
     }),
     Markdown.configure({
+      html: true,
       transformPastedText: true,
       transformCopiedText: true,
       markedOptions: {
