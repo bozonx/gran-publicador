@@ -1496,6 +1496,13 @@
       "phaseSaving": "Saving to library...",
       "successMessage": "Video exported and saved to content library",
       "errorMessage": "Export failed"
+    },
+    "support": {
+      "title": "Browser Support",
+      "full": "Your browser fully supports all required technologies for video editing and export (H.264, AAC/Opus).",
+      "partial": "Your browser has limited support. Export in some formats may be unavailable (e.g., AAC or H.264 might be missing).",
+      "none": "Your browser does not support WebCodecs. Video editing and export are not possible. Please use a modern browser (Chrome, Edge).",
+      "formatError": "Unsupported format: {type}. WebAV editor requires MP4 (H.264/H.265). VP9/WebM are not yet supported."
     }
   }
 }

@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import {
+  BASE_VIDEO_CODEC_OPTIONS,
+  checkVideoCodecSupport,
+  checkAudioCodecSupport
+} from '~/utils/webcodecs'
 
 interface Props {
   src: string
@@ -22,6 +27,10 @@ const loadError = ref<string | null>(null)
 const isLoading = ref(true)
 const isPlaying = ref(false)
 const hasAudioTrack = ref(false)
+
+const { t } = useI18n()
+const supportStatus = ref<'full' | 'partial' | 'none' | null>(null)
+const showSupportBanner = ref(false)
 
 // Time in microseconds (WebAV uses µs internally)
 const currentTimeUs = ref(0)
@@ -63,6 +72,25 @@ async function initEditor() {
       import('@webav/av-cliper'),
     ])
 
+    // Initial check for WebCodecs and Codec support
+    const [videoSupport, audioSupport] = await Promise.all([
+      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS),
+      checkAudioCodecSupport([{ value: 'mp4a.40.2', label: 'AAC' }, { value: 'opus', label: 'Opus' }])
+    ])
+
+    const hasH264 = BASE_VIDEO_CODEC_OPTIONS.some(opt => videoSupport[opt.value])
+    const hasAAC = audioSupport['mp4a.40.2']
+    const hasOpus = audioSupport['opus']
+
+    if (!(globalThis as any).VideoEncoder) {
+      supportStatus.value = 'none'
+    } else if (hasH264 && (hasAAC || hasOpus)) {
+      supportStatus.value = 'full'
+      showSupportBanner.value = true
+    } else {
+      supportStatus.value = 'partial'
+    }
+
     const response = await fetch(props.src, {
       cache: 'no-store',
       headers: {
@@ -72,6 +100,9 @@ async function initEditor() {
     if (!response.ok) throw new Error(`Failed to fetch video: ${response.status}`)
 
     const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('webm') || contentType.includes('ogg')) {
+      throw new Error(t('videoEditor.support.formatError', { type: contentType }))
+    }
 
     // Download fully before passing to MP4Clip — streaming fetch can fail
     // with ERR_CONTENT_LENGTH_MISMATCH on large files or proxied responses
@@ -268,6 +299,28 @@ onBeforeUnmount(() => {
         color="neutral"
         size="sm"
         @click="emit('close')"
+      />
+    </div>
+
+    <!-- Support Banner -->
+    <div v-if="supportStatus && supportStatus !== 'full'" class="px-4 py-2 bg-gray-900 border-b border-gray-800">
+      <UAlert
+        :color="supportStatus === 'none' ? 'error' : 'warning'"
+        variant="soft"
+        :icon="supportStatus === 'none' ? 'i-heroicons-exclamation-circle' : 'i-heroicons-information-circle'"
+        :title="t('videoEditor.support.title')"
+        :description="t(`videoEditor.support.${supportStatus}`)"
+        :actions="[{ label: t('common.close'), variant: 'ghost', color: 'neutral', onClick: () => supportStatus = null }]"
+      />
+    </div>
+    <div v-else-if="supportStatus === 'full' && showSupportBanner" class="px-4 py-2 bg-gray-900 border-b border-gray-800">
+      <UAlert
+        color="success"
+        variant="soft"
+        icon="i-heroicons-check-circle"
+        :title="t('videoEditor.support.title')"
+        :description="t('videoEditor.support.full')"
+        :actions="[{ label: t('common.close'), variant: 'ghost', color: 'neutral', onClick: () => showSupportBanner = false }]"
       />
     </div>
 
