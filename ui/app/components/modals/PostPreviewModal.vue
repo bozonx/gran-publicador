@@ -20,11 +20,17 @@ const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
 
-const viewMode = ref<'md' | 'html'>('html')
+const sourceMode = ref<'preview' | 'snapshot'>('preview')
+const renderMode = ref<'html' | 'raw'>('html')
 
-const viewModeItems = computed<TabsItem[]>(() => [
+const sourceModeItems = computed<TabsItem[]>(() => [
+  { label: 'Предпросмотр', value: 'preview' },
+  { label: 'Снапшот', value: 'snapshot' },
+])
+
+const renderModeItems = computed<TabsItem[]>(() => [
   { label: 'HTML', value: 'html' },
-  { label: 'MD', value: 'md' },
+  { label: 'Сырой', value: 'raw' },
 ])
 
 const renderer = new marked.Renderer()
@@ -133,13 +139,26 @@ const previewContent = computed(() => {
   return preformatMarkdownForPlatform({ platform, markdown: md })
 })
 
-const previewHtml = computed(() => {
+const snapshotContent = computed(() => {
   const snapshot = props.post?.postingSnapshot
-  if (snapshot?.body && snapshot?.bodyFormat === 'html') {
-    return snapshot.body
+  if (!snapshot?.body) return ''
+  return snapshot.body
+})
+
+const selectedContent = computed(() => {
+  if (sourceMode.value === 'snapshot') return snapshotContent.value
+  return previewContent.value
+})
+
+const selectedHtml = computed(() => {
+  if (sourceMode.value === 'snapshot') {
+    const snapshot = props.post?.postingSnapshot
+    if (snapshot?.body && snapshot?.bodyFormat === 'html') {
+      return snapshot.body
+    }
   }
 
-  return marked.parse(previewContent.value) as string
+  return marked.parse(selectedContent.value) as string
 })
 </script>
 
@@ -170,25 +189,32 @@ const previewHtml = computed(() => {
             {{ snapshotState.hasSnapshot ? 'Snapshot' : 'No snapshot' }}
           </span>
         </div>
-
-        <UTabs
-          v-model="viewMode"
-          :items="viewModeItems"
-          :content="false"
-          class="shrink-0 mt-0.5"
-        />
       </div>
     </template>
 
+    <div class="flex flex-col gap-3 mb-3">
+      <UTabs
+        v-model="sourceMode"
+        :items="sourceModeItems"
+        :content="false"
+      />
+
+      <UTabs
+        v-model="renderMode"
+        :items="renderModeItems"
+        :content="false"
+      />
+    </div>
+
     <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
       <pre
-        v-if="viewMode === 'md'"
-        class="whitespace-pre-wrap font-sans text-sm text-gray-800 dark:text-gray-200"
-      >{{ previewContent }}</pre>
+        v-if="renderMode === 'raw'"
+        class="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200"
+      >{{ selectedContent }}</pre>
       <div
         v-else
         class="post-preview-html"
-        v-html="previewHtml"
+        v-html="selectedHtml"
       />
     </div>
 
