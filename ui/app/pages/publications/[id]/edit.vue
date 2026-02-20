@@ -22,7 +22,7 @@ definePageMeta({
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { fetchProject, currentProject } = useProjects()
+const { fetchProject, currentProject, projects, fetchProjects } = useProjects()
 const { validatePostContent } = useSocialMediaValidation()
 const { 
   fetchPublication, 
@@ -440,6 +440,11 @@ const isRelationsModalOpen = ref(false)
 function openDuplicateModal() {
     if (!currentPublication.value) return
     isDuplicateModalOpen.value = true
+}
+
+function handleDuplicateSuccess(id: string) {
+    isDuplicateModalOpen.value = false
+    router.push(`/publications/${id}/edit`)
 }
 
 function openProjectModal() {
