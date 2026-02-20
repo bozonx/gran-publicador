@@ -19,9 +19,14 @@ interface Props {
   prefilledContent?: string
   prefilledMediaIds?: any[]
   prefilledTags?: string[]
+  prefilledDescription?: string
+  prefilledAuthorComment?: string
+  prefilledMeta?: any
   prefilledNote?: string
   prefilledContentItemIds?: string[]
   prefilledUnsplashId?: string
+  prefilledAuthorSignatureId?: string
+  prefilledProjectTemplateId?: string
   isProjectLocked?: boolean
   isChannelLocked?: boolean
   isLanguageLocked?: boolean
@@ -68,8 +73,8 @@ const formData = reactive({
   language: props.preselectedLanguage || user.value?.language || locale.value,
   postType: props.preselectedPostType || 'POST' as PostType,
   channelIds: props.preselectedChannelIds || [] as string[],
-  authorSignatureId: '',
-  projectTemplateId: '',
+  authorSignatureId: props.prefilledAuthorSignatureId || '',
+  projectTemplateId: props.prefilledProjectTemplateId || '',
   deleteOriginalContent: false,
 })
 
@@ -130,17 +135,24 @@ watch(
     onInvalidate(() => { cancelled = true })
 
     if (newProjectId && newProjectId !== oldProjectId) {
-      isApplyingAutoChannelSelection.value = true
-      formData.channelIds = []
-      isApplyingAutoChannelSelection.value = false
+      // If we have preselected channels and this is the first load (oldProjectId is undefined),
+      // keep the preselected channels. Otherwise, clear them as the project changed.
+      const isFirstLoad = !oldProjectId
+      const hasPreselectedChannels = Boolean(props.preselectedChannelId || props.preselectedChannelIds?.length)
+
+      if (!isFirstLoad || !hasPreselectedChannels) {
+        isApplyingAutoChannelSelection.value = true
+        formData.channelIds = []
+        isApplyingAutoChannelSelection.value = false
+      }
 
       if (!props.preselectedChannelId) {
-        formData.authorSignatureId = ''
-        formData.projectTemplateId = ''
-        hasManualSignatureSelection.value = false
-        hasManualTemplateSelection.value = false
+        if (!props.prefilledAuthorSignatureId) formData.authorSignatureId = ''
+        if (!props.prefilledProjectTemplateId) formData.projectTemplateId = ''
+        hasManualSignatureSelection.value = Boolean(props.prefilledAuthorSignatureId)
+        hasManualTemplateSelection.value = Boolean(props.prefilledProjectTemplateId)
       }
-      hasManualChannelSelection.value = Boolean(props.preselectedChannelId || props.preselectedChannelIds?.length)
+      hasManualChannelSelection.value = hasPreselectedChannels
     }
 
     if (newProjectId) {
@@ -314,10 +326,13 @@ async function handleCreate() {
       postType: formData.postType,
       channelIds: formData.channelIds,
       title: props.prefilledTitle || '',
+      description: props.prefilledDescription || '',
+      authorComment: props.prefilledAuthorComment || '',
       content: props.prefilledContent || '',
       existingMediaIds: props.prefilledMediaIds || [],
       tags: props.prefilledTags || [],
       note: props.prefilledNote || '',
+      meta: props.prefilledMeta || {},
       contentItemIds: props.prefilledContentItemIds || [],
       unsplashId: props.prefilledUnsplashId || undefined,
       authorSignatureId: formData.authorSignatureId || undefined,

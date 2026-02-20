@@ -889,12 +889,19 @@ async function executePublish(force: boolean) {
       :project-id="projectId || undefined"
       :preselected-language="currentPublication.language"
       :preselected-post-type="currentPublication.postType as any"
+      :preselected-channel-ids="currentPublication.posts?.map((p: any) => p.channelId)"
       allow-project-selection
       :prefilled-title="currentPublication.title || ''"
+      :prefilled-description="currentPublication.description || ''"
+      :prefilled-author-comment="currentPublication.authorComment || ''"
       :prefilled-content="currentPublication.content || ''"
       :prefilled-tags="currentPublication.tags"
+      :prefilled-meta="normalizedPublicationMeta"
       :prefilled-note="currentPublication.note || ''"
       :prefilled-media-ids="currentPublication.media?.map((m: any) => ({ id: m.media?.id, hasSpoiler: m.hasSpoiler }))"
+      :prefilled-content-item-ids="currentPublication.contentItems?.map((ci: any) => ci.contentItemId)"
+      :prefilled-author-signature-id="currentPublication.authorSignatureId || undefined"
+      :prefilled-project-template-id="currentPublication.projectTemplateId || undefined"
       @success="handleDuplicateSuccess"
     />
 

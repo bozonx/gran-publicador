@@ -10,12 +10,17 @@ interface Props {
   preselectedChannelIds?: string[]
   allowProjectSelection?: boolean
   prefilledTitle?: string
+  prefilledDescription?: string
+  prefilledAuthorComment?: string
   prefilledContent?: string
   prefilledMediaIds?: any[]
   prefilledTags?: string[]
+  prefilledMeta?: any
   prefilledNote?: string
   prefilledContentItemIds?: string[]
   prefilledUnsplashId?: string
+  prefilledAuthorSignatureId?: string
+  prefilledProjectTemplateId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -53,12 +58,17 @@ function handleCancel() {
       :preselected-channel-ids="props.preselectedChannelIds"
       :allow-project-selection="props.allowProjectSelection"
       :prefilled-title="props.prefilledTitle"
+      :prefilled-description="props.prefilledDescription"
+      :prefilled-author-comment="props.prefilledAuthorComment"
       :prefilled-content="props.prefilledContent"
       :prefilled-media-ids="props.prefilledMediaIds"
       :prefilled-tags="props.prefilledTags"
+      :prefilled-meta="props.prefilledMeta"
       :prefilled-note="props.prefilledNote"
       :prefilled-content-item-ids="props.prefilledContentItemIds"
       :prefilled-unsplash-id="props.prefilledUnsplashId"
+      :prefilled-author-signature-id="props.prefilledAuthorSignatureId"
+      :prefilled-project-template-id="props.prefilledProjectTemplateId"
       @success="handleSuccess"
       @cancel="handleCancel"
     />
