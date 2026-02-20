@@ -143,25 +143,25 @@ watch(() => props.open, (next) => {
             <!-- Stats -->
             <div class="grid grid-cols-2 gap-3 pt-2">
               <div v-if="stats.views" class="flex flex-col gap-0.5">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Views</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{{ t('media.stats.views') }}</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ Number(stats.views).toLocaleString() }}
                 </span>
               </div>
               <div v-if="stats.downloads" class="flex flex-col gap-0.5">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Downloads</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{{ t('media.stats.downloads') }}</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ Number(stats.downloads).toLocaleString() }}
                 </span>
               </div>
               <div v-if="stats.likes" class="flex flex-col gap-0.5">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Likes</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{{ t('media.stats.likes') }}</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ Number(stats.likes).toLocaleString() }}
                 </span>
               </div>
               <div v-if="stats.width && stats.height" class="flex flex-col gap-0.5">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Size</span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{{ t('media.stats.size') }}</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ stats.width }} × {{ stats.height }}
                 </span>
@@ -170,7 +170,7 @@ watch(() => props.open, (next) => {
 
             <!-- Tags Section -->
             <div v-if="tags.length > 0" class="space-y-2 pt-2">
-              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Tags</span>
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{{ t('media.stats.tags') }}</span>
               <div class="flex flex-wrap gap-1.5">
                 <UBadge
                   v-for="tag in tags"
@@ -193,7 +193,7 @@ watch(() => props.open, (next) => {
                 variant="subtle"
                 @click="emit('add-to-library')"
               >
-                В библиотеку контента
+                {{ t('contentLibrary.toContentLibrary') }}
               </UButton>
               <UButton
                 block

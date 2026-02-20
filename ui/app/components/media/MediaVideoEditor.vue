@@ -197,6 +197,8 @@ async function exportTrimmed(options: ExportOptions): Promise<Blob> {
   const exportClip = new MP4Clip(exportStream)
   await exportClip.ready
 
+  const hasAudioTrack = !!exportClip.audio
+
   // Split at trim-in point; use the second part (after trim-in)
   const [, afterIn] = await exportClip.split(trimInUs.value)
   const clipToExport = trimInUs.value > 0 ? afterIn : exportClip
@@ -213,7 +215,7 @@ async function exportTrimmed(options: ExportOptions): Promise<Blob> {
     bgColor: '#000',
     videoCodec: options.videoCodec,
     bitrate: options.bitrate,
-    audio: options.audio ? undefined : false,
+    audio: options.audio && hasAudioTrack ? undefined : false,
   })
 
   await combinator.addSprite(sprite)

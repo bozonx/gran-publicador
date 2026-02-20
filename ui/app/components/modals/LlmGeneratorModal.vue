@@ -936,7 +936,7 @@ async function confirmResetChat() {
   if (content?.trim()) {
     nextTags.push({
       id: 'content:1',
-      label: 'Контент',
+      label: t('llm.publicationBlock'),
       promptText: `<source_content>\n${content.trim()}\n</source_content>`,
       kind: 'content',
       enabled: true,

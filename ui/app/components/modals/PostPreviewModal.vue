@@ -28,8 +28,8 @@ const renderMode = ref<'html' | 'md' | 'raw'>('html')
 const hasSnapshot = computed(() => !!props.post?.postingSnapshot?.body)
 
 const sourceModeItems = computed<TabsItem[]>(() => [
-  { label: 'Снапшот', value: 'snapshot' },
-  { label: 'Предпросмотр', value: 'preview' },
+  { label: t('post.snapshot'), value: 'snapshot' },
+  { label: t('post.preview'), value: 'preview' },
 ])
 
 watch(
@@ -49,13 +49,13 @@ const renderModeItems = computed<TabsItem[]>(() => {
     return [
       { label: 'HTML', value: 'html' },
       { label: 'MD', value: 'md' },
-      { label: 'Сырой', value: 'raw' },
+      { label: t('post.raw'), value: 'raw' },
     ]
   }
 
   return [
     { label: 'HTML', value: 'html' },
-    { label: 'Сырой', value: 'raw' },
+    { label: t('post.raw'), value: 'raw' },
   ]
 })
 

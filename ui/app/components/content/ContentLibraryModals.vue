@@ -226,7 +226,7 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
             class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             @click="handleOpenCreateItemFromPublicationModal"
           >
-            В библиотеку контента
+            {{ t('contentLibrary.toContentLibrary') }}
           </UButton>
 
           <UButton color="primary" @click="handleClosePublicationPreviewModal">

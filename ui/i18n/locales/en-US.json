@@ -125,7 +125,14 @@
     "selectHelp": "Signature content will be copied to each post by channel language",
     "selectTooltip": "Select a project signature. The appropriate language variant will be used for each channel.",
     "title": "Author Signatures",
-    "user_defined": "Custom Signatures"
+    "user_defined": "Custom Signatures",
+    "noLineBreaks": "Line breaks are not allowed",
+    "saved": "Signature saved",
+    "saveError": "Failed to save signature",
+    "deleted": "Signature deleted",
+    "deleteError": "Failed to delete signature",
+    "orderUpdated": "Order updated",
+    "orderError": "Failed to update order"
   },
   "channel": {
     "activate": "Activate",
@@ -397,7 +404,15 @@
       "list": "List"
     },
     "warning": "Warning",
-    "yes": "Yes"
+    "yes": "Yes",
+    "default": "Default",
+    "add": "Add",
+    "remove": "Remove",
+    "preview": "Preview",
+    "allLanguages": "All Languages",
+    "deleteError": "Failed to delete",
+    "disabled": "Disabled",
+    "done": "Done"
   },
   "contentLibrary": {
     "actions": {
@@ -431,7 +446,8 @@
       "toCollection": "To collection",
       "toGroup": "To group",
       "toPersonal": "Move to personal scope",
-      "toProject": "To project"
+      "toProject": "To project",
+      "personal": "Personal Library"
     },
     "badgeCountTooltip": "Total number of items",
     "block": "Block {index}",
@@ -527,6 +543,10 @@
         "publicationMediaVirtual": {
           "title": "Publications",
           "description": "Virtual library that shows media, text, and tags from your publications"
+        },
+        "unsplash": {
+          "title": "Unsplash",
+          "description": "Search and use images from Unsplash"
         }
       }
     },
@@ -561,6 +581,10 @@
       "relatedTags": "Related Tags",
       "licenseInfo": "Free to use under the {licenseLink}. Attribution is not required but appreciated.",
       "licenseLink": "Unsplash license"
+    },
+    "toContentLibrary": "To Content Library",
+    "groups": {
+      "title": "Groups"
     }
   },
   "dashboard": {
@@ -693,7 +717,8 @@
     "resetChatConfirm": "Are you sure you want to reset the chat? All history will be deleted.",
     "generateFields": "Generate fields",
     "generateFieldsTooltip": "Fields will be generated based on the last chat message",
-    "skipChat": "Skip chat"
+    "skipChat": "Skip chat",
+    "selectTemplateDescription": "Select a template for generating content"
   },
   "media": {
     "add": "Add Media",
@@ -745,7 +770,14 @@
     "uploadError": "Failed to upload file",
     "uploadFile": "Upload File",
     "uploading": "Uploading...",
-    "yamlHelp": "Additional metadata in YAML format"
+    "yamlHelp": "Additional metadata in YAML format",
+    "stats": {
+      "views": "Views",
+      "downloads": "Downloads",
+      "likes": "Likes",
+      "size": "Size",
+      "tags": "Tags"
+    }
   },
   "navigation": {
     "admin": "Administration",
@@ -863,7 +895,11 @@
     "excludeChannelHelp": "This template won't apply to this channel",
     "noChannelsForLanguage": "No channels for this language",
     "noEnabledBlocks": "No enabled blocks. Enable blocks on the Project collection.",
-    "blocksHint": "Enable or disable blocks and reorder them. Text fields are configured per channel in channel collections."
+    "blocksHint": "Enable or disable blocks and reorder them. Text fields are configured per channel in channel collections.",
+    "noTemplatesForLanguage": "No templates for this language",
+    "default": "Default",
+    "defaultHint": "Use this template by default for all publications",
+    "name": "Template Name"
   },
   "post": {
     "authorComment": "Author comment",
@@ -943,7 +979,12 @@
     "type_story": "Story",
     "type_video": "Video",
     "untitled": "Untitled",
-    "updateSuccess": "Post updated successfully"
+    "updateSuccess": "Post updated successfully",
+    "snapshot": "Snapshot",
+    "preview": "Preview",
+    "raw": "Raw",
+    "languageLabel": "Language",
+    "languageTooltip": "The language of the post"
   },
   "postStatus": {
     "failed": "Failed",
@@ -1212,8 +1253,11 @@
     "titlePlural": "Publications",
     "validation": {
       "contentOrMediaRequired": "Content or Media is required",
-      "fixMediaErrors": "Fix media validation errors before publishing"
-    }
+      "fixMediaErrors": "Fix media validation errors before publishing",
+      "draftBlocked": "Draft publications cannot be published. Please schedule it or change status to Ready."
+    },
+    "copyToContentLibrary": "Copy to Content Library",
+    "moveToContentLibrary": "Move to Content Library"
   },
   "publicationStatus": {
     "draft": "Draft",
