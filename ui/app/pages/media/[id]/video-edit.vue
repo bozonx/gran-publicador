@@ -11,6 +11,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const mediaId = computed(() => route.params.id as string)
+const projectId = computed(() => route.query.projectId as string | undefined)
 
 const { fetchMedia, isLoading: isMediaLoading } = useMedia()
 
@@ -60,6 +61,7 @@ function onEditorClose() {
       <MediaVideoEditor
         :src="source"
         :filename="media.filename"
+        :project-id="projectId"
         @close="onEditorClose"
       />
     </div>

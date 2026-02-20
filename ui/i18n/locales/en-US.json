@@ -1423,5 +1423,24 @@
     "url": "Enter a valid URL",
     "validationWarningTitle": "Warning: Validation Errors Detected",
     "yamlError": "YAML syntax error"
+  },
+  "videoEditor": {
+    "export": {
+      "title": "Export Video",
+      "filename": "Output filename",
+      "destination": "Save to",
+      "scopePersonal": "Personal library",
+      "scopeProject": "Project library",
+      "collection": "Collection",
+      "group": "Group",
+      "noCollection": "No collection (root)",
+      "noGroup": "No sub-group",
+      "confirm": "Export & Save",
+      "phaseEncoding": "Encoding video...",
+      "phaseUploading": "Uploading...",
+      "phaseSaving": "Saving to library...",
+      "successMessage": "Video exported and saved to content library",
+      "errorMessage": "Export failed"
+    }
   }
 }

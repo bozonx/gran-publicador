@@ -4,6 +4,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 interface Props {
   src: string
   filename?: string
+  projectId?: string
 }
 
 const props = defineProps<Props>()
@@ -11,6 +12,8 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'close'): void
 }>()
+
+const showExportModal = ref(false)
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const loadError = ref<string | null>(null)
@@ -25,10 +28,10 @@ const durationUs = ref(0)
 const trimInUs = ref(0)
 const trimOutUs = ref(0)
 
-// Export state
-const isExporting = ref(false)
-const exportProgress = ref(0)
-const exportError = ref<string | null>(null)
+function openExportModal() {
+  if (isLoading.value || !!loadError.value || durationUs.value === 0) return
+  showExportModal.value = true
+}
 
 const isTrimmed = computed(
   () => trimInUs.value > 0 || trimOutUs.value < durationUs.value,
@@ -176,71 +179,49 @@ function resetTrim() {
   trimOutUs.value = durationUs.value
 }
 
-async function exportTrimmed() {
-  if (!videoArrayBuffer || isExporting.value) return
+async function exportTrimmed(): Promise<Blob> {
+  if (!videoArrayBuffer) throw new Error('No video loaded')
 
-  isExporting.value = true
-  exportProgress.value = 0
-  exportError.value = null
+  const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
 
-  try {
-    const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
+  const trimDurationUs = trimOutUs.value - trimInUs.value
 
-    const trimDurationUs = trimOutUs.value - trimInUs.value
+  // Create a fresh clip from the stored buffer for export
+  const exportStream = new Blob([videoArrayBuffer], { type: 'video/mp4' }).stream()
+  const exportClip = new MP4Clip(exportStream)
+  await exportClip.ready
 
-    // Create a fresh clip from the stored buffer for export
-    const exportStream = new Blob([videoArrayBuffer], { type: 'video/mp4' }).stream()
-    const exportClip = new MP4Clip(exportStream)
-    await exportClip.ready
+  // Split at trim-in point; use the second part (after trim-in)
+  const [, afterIn] = await exportClip.split(trimInUs.value)
+  const clipToExport = trimInUs.value > 0 ? afterIn : exportClip
 
-    // Split at trim-in point; use the second part (after trim-in)
-    const [, afterIn] = await exportClip.split(trimInUs.value)
-    const clipToExport = trimInUs.value > 0 ? afterIn : exportClip
+  const sprite = new OffscreenSprite(clipToExport)
+  sprite.time.offset = 0
+  sprite.time.duration = trimDurationUs
 
-    const sprite = new OffscreenSprite(clipToExport)
-    sprite.time.offset = 0
-    sprite.time.duration = trimDurationUs
+  const { width, height } = exportClip.meta
 
-    const { width, height } = exportClip.meta
+  const combinator = new Combinator({
+    width: width || 1280,
+    height: height || 720,
+    bgColor: '#000',
+  })
 
-    const combinator = new Combinator({
-      width: width || 1280,
-      height: height || 720,
-      bgColor: '#000',
-    })
+  await combinator.addSprite(sprite)
 
-    await combinator.addSprite(sprite)
+  const chunks: ArrayBuffer[] = []
+  const reader = combinator.output().getReader()
 
-    const chunks: ArrayBuffer[] = []
-    const reader = combinator.output().getReader()
-
-    let done = false
-    while (!done) {
-      const result = await reader.read()
-      done = result.done
-      if (result.value) {
-        chunks.push(result.value.buffer as ArrayBuffer)
-        // Rough progress based on time — Combinator doesn't expose progress directly
-        exportProgress.value = Math.min(95, exportProgress.value + 2)
-      }
+  let done = false
+  while (!done) {
+    const result = await reader.read()
+    done = result.done
+    if (result.value) {
+      chunks.push(result.value.buffer as ArrayBuffer)
     }
-
-    exportProgress.value = 100
-
-    const blob = new Blob(chunks, { type: 'video/mp4' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    const baseName = (props.filename || 'video').replace(/\.[^.]+$/, '')
-    a.href = url
-    a.download = `${baseName}_trimmed.mp4`
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch (err: any) {
-    exportError.value = err?.message || 'Export failed'
-    console.error('[MediaVideoEditor] export error:', err)
-  } finally {
-    isExporting.value = false
   }
+
+  return new Blob(chunks, { type: 'video/mp4' })
 }
 
 onMounted(() => {
@@ -351,7 +332,7 @@ onBeforeUnmount(() => {
             color="neutral"
             size="xs"
             title="Reset trim"
-            :disabled="isLoading || !!loadError || isExporting"
+            :disabled="isLoading || !!loadError"
             @click="resetTrim"
           />
 
@@ -360,34 +341,21 @@ onBeforeUnmount(() => {
             variant="soft"
             color="primary"
             size="sm"
-            :disabled="isLoading || !!loadError || isExporting || durationUs === 0"
-            :loading="isExporting"
-            @click="exportTrimmed"
+            :disabled="isLoading || !!loadError || durationUs === 0"
+            @click="openExportModal"
           >
-            {{ isTrimmed ? 'Export' : 'Export' }}
+            Export
           </UButton>
         </div>
       </div>
 
-      <!-- Export progress -->
-      <div v-if="isExporting" class="flex flex-col gap-1">
-        <div class="flex items-center justify-between text-xs text-gray-400">
-          <span>Exporting...</span>
-          <span>{{ exportProgress }}%</span>
-        </div>
-        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            class="h-full bg-blue-500 rounded-full transition-all duration-300"
-            :style="{ width: `${exportProgress}%` }"
-          />
-        </div>
-      </div>
-
-      <!-- Export error -->
-      <div v-if="exportError" class="flex items-center gap-2 text-xs text-red-400">
-        <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 shrink-0" />
-        {{ exportError }}
-      </div>
+      <!-- Export modal -->
+      <MediaVideoExportModal
+        v-model:open="showExportModal"
+        :filename="props.filename"
+        :project-id="props.projectId"
+        :export-fn="exportTrimmed"
+      />
     </div>
   </div>
 </template>

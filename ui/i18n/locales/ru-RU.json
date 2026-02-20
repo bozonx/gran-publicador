@@ -1439,5 +1439,24 @@
     "url": "Введите корректный URL",
     "validationWarningTitle": "Внимание: обнаружены ошибки валидации",
     "yamlError": "Ошибка синтаксиса YAML"
+  },
+  "videoEditor": {
+    "export": {
+      "title": "Экспорт видео",
+      "filename": "Имя файла",
+      "destination": "Сохранить в",
+      "scopePersonal": "Личная библиотека",
+      "scopeProject": "Библиотека проекта",
+      "collection": "Коллекция",
+      "group": "Группа",
+      "noCollection": "Без коллекции (корень)",
+      "noGroup": "Без подгруппы",
+      "confirm": "Экспортировать и сохранить",
+      "phaseEncoding": "Кодирование видео...",
+      "phaseUploading": "Загрузка...",
+      "phaseSaving": "Сохранение в библиотеку...",
+      "successMessage": "Видео экспортировано и сохранено в библиотеку контента",
+      "errorMessage": "Ошибка экспорта"
+    }
   }
 }
