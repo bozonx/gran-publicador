@@ -638,38 +638,6 @@ function handleReset() {
         <UFormField v-if="state.status === 'SCHEDULED'" name="scheduledAt" :label="t('post.scheduledAt')" required>
           <UInput v-model="state.scheduledAt" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
         </UFormField>
-
-        <!-- Language -->
-        <UFormField name="language" required>
-          <template #label>
-            <div class="flex items-center gap-1.5">
-              <span>{{ t('post.languageLabel') }}</span>
-              <CommonInfoTooltip :text="t('post.languageTooltip')" />
-            </div>
-          </template>
-          <CommonLanguageSelect
-            v-model="state.language"
-            :disabled="isLocked"
-            mode="all"
-            searchable
-          />
-        </UFormField>
-
-
-        <!-- Post Type -->
-        <UFormField name="postType" required>
-          <template #label>
-            <div class="flex items-center gap-1.5">
-              <span>{{ t('post.postType') }}</span>
-              <CommonInfoTooltip :text="t('post.postTypeTooltip')" />
-            </div>
-          </template>
-          <PublicationsPublicationTypeSelect
-            v-model="state.postType"
-            :items="postTypeOptions"
-            :disabled="isEditMode"
-          />
-        </UFormField>
       </div>
 
       <!-- Main Content Section -->

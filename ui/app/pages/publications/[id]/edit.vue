@@ -431,10 +431,13 @@ const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplat
 const isDuplicateModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
 const isTemplateModalOpen = ref(false)
+const isLanguageModalOpen = ref(false)
 const newProjectId = ref<string | undefined>(undefined)
 const newTemplateId = ref<string | undefined>(undefined)
+const newLanguage = ref<string | undefined>(undefined)
 const isUpdatingProject = ref(false)
 const isUpdatingTemplate = ref(false)
+const isUpdatingLanguage = ref(false)
 const isRelationsModalOpen = ref(false)
 
 function openDuplicateModal() {
@@ -463,6 +466,10 @@ const filteredProjectTemplates = computed(() => {
         const typeMatch = !tpl.postType || tpl.postType === pubType
         return langMatch && typeMatch
     })
+})
+
+const templateOptions = computed(() => {
+    return filteredProjectTemplates.value.map(tpl => ({ value: tpl.id, label: tpl.name }))
 })
 
 const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
@@ -542,6 +549,33 @@ async function handleUpdateProject() {
         })
     } finally {
         isUpdatingProject.value = false
+    }
+}
+
+function openLanguageModal() {
+    if (!currentPublication.value) return
+    newLanguage.value = currentPublication.value.language
+    isLanguageModalOpen.value = true
+}
+
+async function handleUpdateLanguage() {
+    if (!currentPublication.value || !newLanguage.value) return
+    isUpdatingLanguage.value = true
+    try {
+        await updatePublication(currentPublication.value.id, {
+            language: newLanguage.value
+        })
+        isLanguageModalOpen.value = false
+        await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update language:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
+    } finally {
+        isUpdatingLanguage.value = false
     }
 }
 
@@ -889,6 +923,95 @@ async function executePublish(force: boolean) {
       @success="handleDuplicateSuccess"
     />
 
+    <!-- Project Change Modal -->
+    <UModal v-model:open="isProjectModalOpen">
+        <template #content>
+            <UCard class="w-full max-w-md mx-auto">
+                <template #header>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">{{ t('project.title') }}</h3>
+                        <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="isProjectModalOpen = false" />
+                    </div>
+                </template>
+                <div class="space-y-4 py-2">
+                    <UFormField :label="t('project.title')">
+                        <CommonProjectSelect
+                            v-model="newProjectId"
+                            class="w-full"
+                        />
+                    </UFormField>
+                </div>
+                <template #footer>
+                    <div class="flex justify-end gap-3">
+                        <UButton color="neutral" variant="ghost" @click="isProjectModalOpen = false">{{ t('common.cancel') }}</UButton>
+                        <UButton color="primary" :loading="isUpdatingProject" @click="handleUpdateProject">{{ t('common.save') }}</UButton>
+                    </div>
+                </template>
+            </UCard>
+        </template>
+    </UModal>
+
+    <!-- Language Change Modal -->
+    <UModal v-model:open="isLanguageModalOpen">
+        <template #content>
+            <UCard class="w-full max-w-md mx-auto">
+                <template #header>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">{{ t('common.language') }}</h3>
+                        <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="isLanguageModalOpen = false" />
+                    </div>
+                </template>
+                <div class="space-y-4 py-2">
+                    <UFormField :label="t('common.language')">
+                        <CommonLanguageSelect
+                            v-model="newLanguage"
+                            mode="all"
+                            searchable
+                            class="w-full"
+                        />
+                    </UFormField>
+                </div>
+                <template #footer>
+                    <div class="flex justify-end gap-3">
+                        <UButton color="neutral" variant="ghost" @click="isLanguageModalOpen = false">{{ t('common.cancel') }}</UButton>
+                        <UButton color="primary" :loading="isUpdatingLanguage" @click="handleUpdateLanguage">{{ t('common.save') }}</UButton>
+                    </div>
+                </template>
+            </UCard>
+        </template>
+    </UModal>
+
+    <!-- Template Change Modal -->
+    <UModal v-model:open="isTemplateModalOpen">
+        <template #content>
+            <UCard class="w-full max-w-md mx-auto">
+                <template #header>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">{{ t('projectTemplates.title', 'Publication Template') }}</h3>
+                        <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="isTemplateModalOpen = false" />
+                    </div>
+                </template>
+                <div class="space-y-4 py-2">
+                    <UFormField :label="t('projectTemplates.title', 'Publication Template')">
+                        <USelectMenu
+                            v-model="newTemplateId"
+                            :items="templateOptions"
+                            value-key="value"
+                            label-key="label"
+                            class="w-full"
+                        />
+                    </UFormField>
+                </div>
+                <template #footer>
+                    <div class="flex justify-end gap-3">
+                        <UButton color="neutral" variant="ghost" @click="isTemplateModalOpen = false">{{ t('common.cancel') }}</UButton>
+                        <UButton color="primary" :loading="isUpdatingTemplate" @click="handleUpdateTemplate(newTemplateId!)">{{ t('common.save') }}</UButton>
+                    </div>
+                </template>
+            </UCard>
+        </template>
+    </UModal>
+
     <!-- Status Change Modal removed in favor of button group -->
 
     <!-- Loading state -->
@@ -1022,6 +1145,15 @@ async function executePublish(force: boolean) {
                                     <span class="text-gray-900 dark:text-white font-medium text-base">
                                         {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
                                     </span>
+                                    <UButton
+                                        v-if="!isLocked"
+                                        icon="i-heroicons-pencil-square"
+                                        variant="ghost"
+                                        color="neutral"
+                                        size="xs"
+                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
+                                        @click="openLanguageModal"
+                                    />
                                 </div>
                             </div>
                         </div>
