@@ -4,6 +4,7 @@ import { SocialPostingBodyFormatter } from './utils/social-posting-body.formatte
 import { ContentConverter } from '../../common/utils/content-converter.util.js';
 import { formatTagsCsv } from '../../common/utils/tags.util.js';
 import { getPlatformConfig } from '@gran/shared/social-media-platforms';
+import { preformatMarkdownForPlatform } from '@gran/shared/social-posting/md-preformatter';
 import type {
   PostingSnapshot,
   PostingSnapshotMedia,
@@ -61,12 +62,12 @@ export class PostSnapshotBuilderService {
     const nowIso = now.toISOString();
 
     const publicationTagsString = formatTagsCsv(
-      publication.tagObjects?.map((t: any) => t?.name).filter(Boolean),
+      publication.tagObjects?.map((t: any) => t?.normalizedName || t?.name).filter(Boolean),
     );
 
     for (const post of posts) {
       const postTagsStringRaw = formatTagsCsv(
-        post.tagObjects?.map((t: any) => t?.name).filter(Boolean),
+        post.tagObjects?.map((t: any) => t?.normalizedName || t?.name).filter(Boolean),
       );
       const tagsString = postTagsStringRaw || publicationTagsString || null;
 
@@ -163,6 +164,11 @@ export class PostSnapshotBuilderService {
 
     let body = formatted.body;
     let bodyFormat: PostingSnapshot['bodyFormat'] = 'markdown';
+
+    body = preformatMarkdownForPlatform({
+      platform: channel.socialMedia,
+      markdown: body,
+    });
 
     const platformConfig = channel.socialMedia ? getPlatformConfig(channel.socialMedia) : undefined;
     const configuredBodyFormat = platformConfig?.features.bodyFormat;

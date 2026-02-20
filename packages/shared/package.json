@@ -66,6 +66,11 @@
       "types": "./src/social-posting/body-formatter.ts",
       "import": "./dist/social-posting/body-formatter.js",
       "default": "./dist/social-posting/body-formatter.js"
+    },
+    "./social-posting/md-preformatter": {
+      "types": "./src/social-posting/md-preformatter.ts",
+      "import": "./dist/social-posting/md-preformatter.js",
+      "default": "./dist/social-posting/md-preformatter.js"
     }
   }
 }

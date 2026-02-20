@@ -1,6 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { jest } from '@jest/globals';
-import { expect } from '@jest/globals';
+import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { PostSnapshotBuilderService } from '../../src/modules/social-posting/post-snapshot-builder.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { POSTING_SNAPSHOT_VERSION } from '../../src/modules/social-posting/interfaces/posting-snapshot.interface.js';
@@ -46,7 +45,10 @@ describe('PostSnapshotBuilderService', () => {
         projectId: 'proj-1',
         title: 'Test Title',
         content: 'Test content',
-        tags: 'tag1, tag2',
+        tagObjects: [
+          { name: 'tag1', normalizedName: 'tag1' },
+          { name: 'tag2', normalizedName: 'tag2' },
+        ],
         authorComment: 'Author note',
         postType: 'POST',
         language: 'ru-RU',
@@ -72,6 +74,7 @@ describe('PostSnapshotBuilderService', () => {
           tags: null,
           language: null,
           authorSignature: 'Author Sig',
+          tagObjects: [],
           channel: {
             socialMedia: 'telegram',
             language: 'ru-RU',
@@ -84,6 +87,7 @@ describe('PostSnapshotBuilderService', () => {
           tags: 'custom-tag',
           language: 'en-US',
           authorSignature: null,
+          tagObjects: [{ name: 'custom-tag', normalizedName: 'custom_tag' }],
           channel: {
             socialMedia: 'vk',
             language: 'en-US',
@@ -124,6 +128,7 @@ describe('PostSnapshotBuilderService', () => {
           platform: 'telegram',
           inputs: expect.objectContaining({
             content: 'Test content',
+            tags: expect.any(String),
           }),
           template: expect.objectContaining({
             resolution: expect.any(String),
@@ -176,6 +181,10 @@ describe('PostSnapshotBuilderService', () => {
         id: 'pub-1',
         projectId: 'proj-1',
         content: 'Text only',
+        tagObjects: [
+          { name: 'tag1', normalizedName: 'tag1' },
+          { name: 'tag2', normalizedName: 'tag2' },
+        ],
         media: [],
       });
 
@@ -186,6 +195,7 @@ describe('PostSnapshotBuilderService', () => {
           tags: null,
           language: null,
           authorSignature: null,
+          tagObjects: [],
           channel: {
             socialMedia: 'telegram',
             language: 'ru-RU',
@@ -209,6 +219,7 @@ describe('PostSnapshotBuilderService', () => {
         id: 'pub-1',
         projectId: 'proj-1',
         content: '**bold text**',
+        tagObjects: [],
         media: [],
       });
 
@@ -243,6 +254,7 @@ describe('PostSnapshotBuilderService', () => {
         id: 'pub-1',
         projectId: 'proj-1',
         content: '**bold text**',
+        tagObjects: [],
         media: [],
       });
 
@@ -253,6 +265,7 @@ describe('PostSnapshotBuilderService', () => {
           tags: null,
           language: null,
           authorSignature: null,
+          tagObjects: [],
           channel: {
             socialMedia: 'vk',
             language: 'ru-RU',

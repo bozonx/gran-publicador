@@ -52,6 +52,8 @@ const config: Config = {
           '<rootDir>/packages/shared/src/social-posting/tags-formatter',
         '^@gran/shared/social-posting/body-formatter$':
           '<rootDir>/packages/shared/src/social-posting/body-formatter',
+        '^@gran/shared/social-posting/md-preformatter$':
+          '<rootDir>/packages/shared/src/social-posting/md-preformatter',
         '^@gran/shared/utils/(.*)$': '<rootDir>/packages/shared/src/utils/$1',
         '^(\\.{1,2}/.*)\\.js$': '$1',
       },
@@ -84,6 +86,8 @@ const config: Config = {
           '<rootDir>/packages/shared/src/social-posting/tags-formatter',
         '^@gran/shared/social-posting/body-formatter$':
           '<rootDir>/packages/shared/src/social-posting/body-formatter',
+        '^@gran/shared/social-posting/md-preformatter$':
+          '<rootDir>/packages/shared/src/social-posting/md-preformatter',
         '^@gran/shared/utils/(.*)$': '<rootDir>/packages/shared/src/utils/$1',
         '^(\\.{1,2}/.*)\\.js$': '$1',
       },
