@@ -428,44 +428,23 @@ const { languageOptions } = useLanguages()
 const { typeOptions } = usePosts()
 const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
 
-const isTypeModalOpen = ref(false)
+const isDuplicateModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
 const isTemplateModalOpen = ref(false)
-const newPostType = ref<PostType>('POST')
 const newProjectId = ref<string | undefined>(undefined)
 const newTemplateId = ref<string | undefined>(undefined)
-const isUpdatingType = ref(false)
 const isUpdatingProject = ref(false)
 const isUpdatingTemplate = ref(false)
-const isCopyModalOpen = ref(false)
-const copyProjectId = ref<string | undefined>(undefined)
-const isCopying = ref(false)
 const isRelationsModalOpen = ref(false)
 
-function openCopyModal() {
+function openDuplicateModal() {
     if (!currentPublication.value) return
-    copyProjectId.value = currentPublication.value.projectId || undefined
-    isCopyModalOpen.value = true
+    isDuplicateModalOpen.value = true
 }
 
-async function handleCopyPublication() {
-    if (!currentPublication.value) return
-    isCopying.value = true
-    try {
-        const result = await copyPublication(currentPublication.value.id, copyProjectId.value || null)
-        isCopyModalOpen.value = false
-        // Redirect to new publication edit page
-        router.push(`/publications/${result.id}/edit`)
-    } catch (err: any) {
-        console.error('Failed to copy publication:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isCopying.value = false
-    }
+function handleDuplicateSuccess(id: string) {
+    isDuplicateModalOpen.value = false
+    router.push(`/publications/${id}/edit`)
 }
 
 const { projects, fetchProjects } = useProjects()
@@ -505,11 +484,32 @@ const displayStatusOptions = computed(() => {
     return options
 })
 
-function openTypeModal() {
+// Template editing
+async function handleUpdateTemplate(templateId: string) {
     if (!currentPublication.value) return
-    isTypeModalOpen.value = true
+    if (currentPublication.value.projectTemplateId === templateId) {
+        isTemplateModalOpen.value = false
+        return
+    }
+    newTemplateId.value = templateId
+    isUpdatingTemplate.value = true
+    try {
+        await updatePublication(currentPublication.value.id, {
+            projectTemplateId: templateId
+        })
+        isTemplateModalOpen.value = false
+        await fetchPublication(currentPublication.value.id)
+    } catch (err: any) {
+        console.error('Failed to update template:', err)
+        toast.add({
+            title: t('common.error'),
+            description: t('common.saveError'),
+            color: 'error'
+        })
+    } finally {
+        isUpdatingTemplate.value = false
+    }
 }
-
 function openProjectModal() {
     if (!currentPublication.value) return
     newProjectId.value = currentPublication.value.projectId || undefined
@@ -542,58 +542,6 @@ async function handleUpdateProject() {
         })
     } finally {
         isUpdatingProject.value = false
-    }
-}
-
-async function handleUpdateTypeOption(type: PostType) {
-    if (!currentPublication.value) return
-    if (currentPublication.value.postType === type) {
-        isTypeModalOpen.value = false
-        return
-    }
-    newPostType.value = type
-    isUpdatingType.value = true
-    try {
-        await updatePublication(currentPublication.value.id, {
-            postType: type
-        })
-        isTypeModalOpen.value = false
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update type:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingType.value = false
-    }
-}
-
-async function handleUpdateTemplate(templateId: string) {
-    if (!currentPublication.value) return
-    if (currentPublication.value.projectTemplateId === templateId) {
-        isTemplateModalOpen.value = false
-        return
-    }
-    newTemplateId.value = templateId
-    isUpdatingTemplate.value = true
-    try {
-        await updatePublication(currentPublication.value.id, {
-            projectTemplateId: templateId
-        })
-        isTemplateModalOpen.value = false
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update template:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingTemplate.value = false
     }
 }
 
@@ -658,9 +606,9 @@ const moreActions = computed(() => [
       class: ''
     },
     {
-      label: t('publication.copyToProject'),
+      label: t('common.duplicate', 'Duplicate'),
       icon: 'i-heroicons-document-duplicate',
-      click: openCopyModal,
+      click: openDuplicateModal,
       disabled: false,
       class: ''
     }
@@ -925,98 +873,21 @@ async function executePublish(force: boolean) {
       </template>
     </UiAppModal>
 
-    <!-- Post Type Change Modal -->
-    <UiAppModal v-if="isTypeModalOpen" v-model:open="isTypeModalOpen" :title="t('publication.changeType')">
-      <div class="space-y-2">
-        <UButton
-          v-for="option in supportedTypeOptions"
-          :key="option.value"
-          :label="option.label"
-          variant="soft"
-          :color="currentPublication?.postType === option.value ? 'primary' : 'neutral'"
-          class="w-full justify-start"
-          :loading="isUpdatingType && newPostType === option.value"
-          @click="handleUpdateTypeOption(option.value as PostType)"
-        />
-      </div>
-    </UiAppModal>
-
-    <!-- Template Change Modal -->
-    <UiAppModal v-if="isTemplateModalOpen" v-model:open="isTemplateModalOpen" :title="t('projectTemplates.title', 'Publication Template')">
-      <div class="space-y-2">
-        <UButton
-          v-for="tpl in filteredProjectTemplates"
-          :key="tpl.id"
-          :label="tpl.name"
-          :variant="currentPublication?.projectTemplateId === tpl.id ? 'soft' : 'ghost'"
-          :color="currentPublication?.projectTemplateId === tpl.id ? 'primary' : 'neutral'"
-          class="w-full justify-start"
-          :loading="isUpdatingTemplate && newTemplateId === tpl.id"
-          @click="handleUpdateTemplate(tpl.id)"
-        />
-        <div v-if="filteredProjectTemplates.length === 0" class="text-center py-4 text-gray-500 text-sm italic">
-            {{ t('projectTemplates.noTemplates', 'No templates available for this language') }}
-        </div>
-      </div>
-    </UiAppModal>
-
-    <!-- Project Change Modal -->
-    <UiAppModal v-if="isProjectModalOpen" v-model:open="isProjectModalOpen" :title="t('publication.changeProject')">
-      <UFormField :label="t('project.title')" required>
-         <USelectMenu
-            v-model="newProjectId"
-            :items="projectOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-            icon="i-heroicons-folder"
-        />
-      </UFormField>
-
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :label="t('common.cancel')"
-          @click="isProjectModalOpen = false"
-        />
-        <UButton
-          color="primary"
-          :label="t('common.save')"
-          :loading="isUpdatingProject"
-          @click="handleUpdateProject"
-        />
-      </template>
-    </UiAppModal>
-
-    <!-- Copy Project Modal -->
-    <UiAppModal v-if="isCopyModalOpen" v-model:open="isCopyModalOpen" :title="t('publication.copyToProject')">
-      <UFormField :label="t('project.title')" required>
-         <USelectMenu
-            v-model="copyProjectId"
-            :items="projectOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-            icon="i-heroicons-folder"
-        />
-      </UFormField>
-
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :label="t('common.cancel')"
-          @click="isCopyModalOpen = false"
-        />
-        <UButton
-          color="primary"
-          :label="t('common.confirm')"
-          :loading="isCopying"
-          @click="handleCopyPublication"
-        />
-      </template>
-    </UiAppModal>
+    <!-- Duplicate Publication Modal -->
+    <ModalsCreatePublicationModal
+      v-if="currentPublication"
+      v-model:open="isDuplicateModalOpen"
+      :project-id="projectId || undefined"
+      :preselected-language="currentPublication.language"
+      :preselected-post-type="currentPublication.postType as any"
+      allow-project-selection
+      :prefilled-title="currentPublication.title || ''"
+      :prefilled-content="currentPublication.content || ''"
+      :prefilled-tags="currentPublication.tags"
+      :prefilled-note="currentPublication.note || ''"
+      :prefilled-media-ids="currentPublication.media?.map((m: any) => ({ id: m.media?.id, hasSpoiler: m.hasSpoiler }))"
+      @success="handleDuplicateSuccess"
+    />
 
     <!-- Status Change Modal removed in favor of button group -->
 
@@ -1167,15 +1038,6 @@ async function executePublish(force: boolean) {
                                     <span class="text-gray-900 dark:text-white font-medium text-base">
                                         {{ typeOptions.find(t => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
                                     </span>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-pencil-square"
-                                        variant="ghost"
-                                        color="neutral"
-                                        size="xs"
-                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="openTypeModal"
-                                    />
                                 </div>
                             </div>
 

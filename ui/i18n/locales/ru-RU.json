@@ -328,6 +328,7 @@
     "custom": "Свой",
     "default": "По умолчанию",
     "danger_zone": "Опасная зона",
+    "duplicate": "Дублировать",
     "delete": "Удалить",
     "deleteForever": "Удалить навсегда",
     "description": "Описание",

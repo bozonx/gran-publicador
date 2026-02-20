@@ -1041,6 +1041,10 @@ export class PublicationsService {
           }
         : undefined;
 
+    if (data.postType !== undefined && data.postType !== publication.postType) {
+      throw new BadRequestException('Publication type cannot be changed after creation');
+    }
+
     if (publication.createdBy === userId) {
       await this.permissions.checkPermission(
         publication.projectId,

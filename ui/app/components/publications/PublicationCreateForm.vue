@@ -235,13 +235,13 @@ const postTypeOptions = computed(() => {
   })
 })
 
-watch([selectedPlatforms, () => formData.postType], () => {
-  const supported = getSupportedPostTypesIntersection(selectedPlatforms.value)
-  if (supported.length === 0) return
-  if (!supported.includes(formData.postType as any)) {
-    formData.postType = supported[0] as any
+// Automatically select the first supported postType if none is selected or current is invalid
+watch(postTypeOptions, (options) => {
+  const firstOption = options[0]
+  if (firstOption && (!formData.postType || !options.some(o => o.value === formData.postType))) {
+    formData.postType = firstOption.value as any
   }
-})
+}, { immediate: true })
 
 const signatureOptions = computed(() => {
   const userLang = user.value?.language || 'en-US'

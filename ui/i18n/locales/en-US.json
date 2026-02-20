@@ -327,6 +327,7 @@
     "current": "Current",
     "custom": "Custom",
     "danger_zone": "Danger Zone",
+    "duplicate": "Duplicate",
     "delete": "Delete",
     "deleteForever": "Delete forever",
     "description": "Description",
@@ -689,7 +690,10 @@
     "differentLanguage": "Different language",
     "skipDisabledNoContext": "Add context to skip chat",
     "resetChat": "Reset Chat",
-    "resetChatConfirm": "Are you sure you want to reset the chat? All history will be deleted."
+    "resetChatConfirm": "Are you sure you want to reset the chat? All history will be deleted.",
+    "generateFields": "Generate fields",
+    "generateFieldsTooltip": "Fields will be generated based on the last chat message",
+    "skipChat": "Skip chat"
   },
   "media": {
     "add": "Add Media",

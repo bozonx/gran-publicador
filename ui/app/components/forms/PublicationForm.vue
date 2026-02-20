@@ -109,14 +109,16 @@ const postTypeOptions = computed(() => {
   })
 })
 
-watch([selectedPlatforms, () => state.postType], () => {
-  if (isEditMode.value) return
-  const supported = getSupportedPostTypesIntersection(selectedPlatforms.value)
-  if (supported.length === 0) return
-  if (!supported.includes(state.postType as any)) {
-    state.postType = supported[0] as any
+const isEditMode = computed(() => !!props.publication?.id)
+const isLocked = computed(() => state.status === 'READY')
+
+// Automatically select the first supported postType if none is selected (for new publications)
+watch(postTypeOptions, (options) => {
+  const firstOption = options[0]
+  if (!isEditMode.value && firstOption && !state.postType) {
+    state.postType = firstOption.value as any
   }
-})
+}, { immediate: true })
 
 
 
@@ -279,8 +281,6 @@ const showValidationWarning = ref(false)
 const pendingSubmitData = ref<PublicationFormData | null>(null)
 const isLoading = ref(false)
 
-const isEditMode = computed(() => !!props.publication?.id)
-const isLocked = computed(() => state.status === 'READY')
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
 const isContentMissing = computed(() => {
     // Only show content/media requirement for non-DRAFT statuses
@@ -657,7 +657,7 @@ function handleReset() {
 
 
         <!-- Post Type -->
-        <UFormField v-if="!isEditMode" name="postType" required>
+        <UFormField name="postType" required>
           <template #label>
             <div class="flex items-center gap-1.5">
               <span>{{ t('post.postType') }}</span>
@@ -667,6 +667,7 @@ function handleReset() {
           <PublicationsPublicationTypeSelect
             v-model="state.postType"
             :items="postTypeOptions"
+            :disabled="isEditMode"
           />
         </UFormField>
       </div>
