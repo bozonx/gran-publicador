@@ -17,6 +17,10 @@ export interface FormatterParams {
 export abstract class AbstractPlatformFormatter {
   abstract format(params: FormatterParams): PostRequestDto;
 
+  protected encodePathSegment(value: string): string {
+    return encodeURIComponent(String(value ?? ''));
+  }
+
   protected getMediaSrc(
     media: any,
     mediaStorageUrl: string,
@@ -40,13 +44,13 @@ export abstract class AbstractPlatformFormatter {
       if (publicMediaBaseUrl && mediaService) {
         const token = mediaService.generatePublicToken(media.id);
         const baseUrl = publicMediaBaseUrl.replace(/\/$/, '');
-        return `${baseUrl}/media/p/${media.id}/${token}`;
+        return `${baseUrl}/media/p/${this.encodePathSegment(media.id)}/${this.encodePathSegment(token)}`;
       }
 
       // Fallback to direct URL from Media Storage microservice (internal)
       const fileId = media.storagePath;
       const baseUrl = mediaStorageUrl.replace(/\/$/, '');
-      return `${baseUrl}/files/${fileId}/download`;
+      return `${baseUrl}/files/${this.encodePathSegment(fileId)}/download`;
     }
 
     // Fallback

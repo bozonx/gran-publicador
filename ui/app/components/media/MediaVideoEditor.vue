@@ -303,7 +303,7 @@ onBeforeUnmount(() => {
     <!-- Timeline & controls -->
     <div class="shrink-0 border-t border-gray-800 px-4 py-3 flex flex-col gap-3">
       <!-- Trim timeline -->
-      <VideoTrimTimeline
+      <MediaVideoTrimTimeline
         :duration="durationUs"
         :current-time="currentTimeUs"
         :trim-in="trimInUs"
