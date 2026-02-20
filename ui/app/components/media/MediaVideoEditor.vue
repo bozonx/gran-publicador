@@ -21,6 +21,7 @@ const containerEl = ref<HTMLDivElement | null>(null)
 const loadError = ref<string | null>(null)
 const isLoading = ref(true)
 const isPlaying = ref(false)
+const hasAudioTrack = ref(false)
 
 // Time in microseconds (WebAV uses µs internally)
 const currentTimeUs = ref(0)
@@ -80,7 +81,8 @@ async function initEditor() {
     mp4Clip = new MP4Clip(stream)
     await mp4Clip.ready
 
-    const { width, height, duration } = mp4Clip.meta
+    const { width, height, duration, audioSampleRate } = mp4Clip.meta
+    hasAudioTrack.value = !!audioSampleRate
     durationUs.value = duration
     trimInUs.value = 0
     trimOutUs.value = duration
@@ -370,6 +372,7 @@ onBeforeUnmount(() => {
         :project-id="props.projectId"
         :collection-id="props.collectionId"
         :group-id="props.groupId"
+        :has-audio="hasAudioTrack"
         :export-fn="exportTrimmed"
       />
     </div>

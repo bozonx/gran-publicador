@@ -9,10 +9,7 @@ import ContentGroupSelectTree from '../content/ContentGroupSelectTree.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
-  resolveVideoCodecOptions,
-  BASE_AUDIO_CODEC_OPTIONS,
-  checkAudioCodecSupport,
-  resolveAudioCodecOptions
+  resolveVideoCodecOptions
 } from '~/utils/webcodecs'
 
 interface Props {
@@ -21,6 +18,7 @@ interface Props {
   projectId?: string
   collectionId?: string
   groupId?: string
+  hasAudio?: boolean
   /** Blob factory — called when user confirms; must return the exported MP4 blob */
   exportFn: (options: ExportOptions) => Promise<Blob>
 }
@@ -29,7 +27,6 @@ interface ExportOptions {
   videoCodec: string
   bitrate: number
   audio: boolean
-  audioCodec?: string
 }
 
 const props = defineProps<Props>()
@@ -71,13 +68,11 @@ async function loadProjects() {
 
 const videoCodec = ref('avc1.42E032')
 const bitrateMbps = ref<number>(5)
-const includeAudio = ref(true)
+const excludeAudio = ref(false)
 
-const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
-const audioCodecSupport = ref<Record<string, boolean>>({})
 const isLoadingCodecSupport = ref(false)
 
 // Collections data
@@ -187,7 +182,7 @@ watch(
     selectedProjectId.value = props.projectId || null
     videoCodec.value = 'avc1.42E032'
     bitrateMbps.value = 5
-    includeAudio.value = true
+    excludeAudio.value = !props.hasAudio
     exportProgress.value = 0
     exportError.value = null
     exportPhase.value = null
@@ -201,10 +196,6 @@ watch(
 
 const videoCodecOptions = computed(() =>
   resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
-)
-
-const audioCodecOptions = computed(() =>
-  resolveAudioCodecOptions(BASE_AUDIO_CODEC_OPTIONS, audioCodecSupport.value),
 )
 
 const bitrateBps = computed(() => {
@@ -232,21 +223,14 @@ async function loadCodecSupport() {
   if (isLoadingCodecSupport.value) return
   isLoadingCodecSupport.value = true
   try {
-    const [videoSupport, audioSupport] = await Promise.all([
-      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS),
-      checkAudioCodecSupport(BASE_AUDIO_CODEC_OPTIONS)
+    const [videoSupport] = await Promise.all([
+      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS)
     ])
     videoCodecSupport.value = videoSupport
-    audioCodecSupport.value = audioSupport
 
     if (videoCodecSupport.value[videoCodec.value] === false) {
       const firstSupported = BASE_VIDEO_CODEC_OPTIONS.find((opt) => videoCodecSupport.value[opt.value])
       if (firstSupported) videoCodec.value = firstSupported.value
-    }
-
-    if (audioCodecSupport.value[audioCodec.value] === false) {
-      const firstSupported = BASE_AUDIO_CODEC_OPTIONS.find((opt) => audioCodecSupport.value[opt.value])
-      if (firstSupported) audioCodec.value = firstSupported.value
     }
   } finally {
     isLoadingCodecSupport.value = false
@@ -269,8 +253,7 @@ async function handleConfirm() {
     const blob = await props.exportFn({
       videoCodec: videoCodec.value,
       bitrate: bitrateBps.value,
-      audio: includeAudio.value,
-      audioCodec: audioCodec.value,
+      audio: !excludeAudio.value,
     })
     exportProgress.value = 60
 
@@ -429,28 +412,24 @@ function handleCancel() {
         </UFormField>
 
         <label class="flex items-center gap-3 cursor-pointer">
-          <UCheckbox v-model="includeAudio" :disabled="isExporting" />
-          <span class="text-sm text-gray-700 dark:text-gray-200">{{ t('videoEditor.export.includeAudio') }}</span>
+          <UCheckbox v-model="excludeAudio" :disabled="isExporting || !props.hasAudio" />
+          <span class="text-sm text-gray-700 dark:text-gray-200">{{ t('videoEditor.export.excludeAudio') }}</span>
         </label>
 
         <UFormField
-          v-if="includeAudio"
-          :label="t('videoEditor.export.audioCodec')"
-          :help="t('videoEditor.export.audioCodecHelp')"
+          v-if="!excludeAudio"
+          :label="t('videoEditor.export.audioCodecStatic')"
+          :help="t('videoEditor.export.audioCodecStaticHelp')"
         >
-          <USelectMenu
-            :model-value="(audioCodecOptions.find(o => o.value === audioCodec) || audioCodec) as any"
-            @update:model-value="(v: any) => audioCodec = v?.value ?? v"
-            :items="audioCodecOptions"
-            value-key="value"
-            label-key="label"
-            :disabled="isExporting"
+          <UInput
+            disabled
+            :model-value="'AAC'"
             class="w-full"
           />
         </UFormField>
 
         <UFormField
-          v-if="includeAudio"
+          v-if="!excludeAudio"
           :label="t('videoEditor.export.audioBitrate')"
           :help="t('videoEditor.export.audioBitrateHelp')"
         >
