@@ -191,6 +191,7 @@ interface ExportOptions {
   videoCodec: string
   bitrate: number
   audio: boolean
+  audioCodec?: string
 }
 
 async function exportTrimmed(options: ExportOptions): Promise<Blob> {
@@ -205,7 +206,7 @@ async function exportTrimmed(options: ExportOptions): Promise<Blob> {
   const exportClip = new MP4Clip(exportStream)
   await exportClip.ready
 
-  const hasAudioTrack = !!exportClip.audio
+  const hasAudioTrack = !!exportClip.meta?.audioSampleRate
 
   // Split at trim-in point; use the second part (after trim-in)
   const [, afterIn] = await exportClip.split(trimInUs.value)

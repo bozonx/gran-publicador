@@ -3,9 +3,13 @@ export interface VideoCodecOption {
   label: string
 }
 
-export interface VideoCodecOptionResolved extends VideoCodecOption {
+export interface VideoCodecOptionResolved extends CodecOption {
   disabled: boolean
 }
+
+export type CodecOption = VideoCodecOption
+export type AudioCodecOption = CodecOption
+export type AudioCodecOptionResolved = VideoCodecOptionResolved
 
 export const BASE_VIDEO_CODEC_OPTIONS: readonly VideoCodecOption[] = [
   { value: 'avc1.42E032', label: 'H.264 (Baseline)' },
@@ -21,6 +25,20 @@ export interface CheckVideoCodecSupportOptions {
   width?: number
   height?: number
   framerate?: number
+  bitrate?: number
+}
+
+export const BASE_AUDIO_CODEC_OPTIONS: readonly AudioCodecOption[] = [
+  { value: 'aac', label: 'AAC' },
+  { value: 'mp3', label: 'MP3' },
+  { value: 'opus', label: 'Opus' },
+  { value: 'vorbis', label: 'Vorbis' },
+  { value: 'alac', label: 'ALAC' },
+]
+
+export interface CheckAudioCodecSupportOptions {
+  sampleRate?: number
+  numberOfChannels?: number
   bitrate?: number
 }
 
@@ -57,6 +75,36 @@ export async function checkVideoCodecSupport(
 }
 
 /**
+ * Checks which of the given codec options are supported by the current browser
+ * via the WebCodecs AudioEncoder API.
+ * Returns a map of codec string → supported boolean.
+ */
+export async function checkAudioCodecSupport(
+  codecs: readonly AudioCodecOption[],
+  {
+    sampleRate = 48000,
+    numberOfChannels = 2,
+    bitrate = 128_000,
+  }: CheckAudioCodecSupportOptions = {},
+): Promise<Record<string, boolean>> {
+  const encoder = (globalThis as any).AudioEncoder
+  if (!encoder?.isConfigSupported) return {}
+
+  const entries = await Promise.all(
+    codecs.map(async (opt) => {
+      try {
+        const result = await encoder.isConfigSupported({ codec: opt.value, sampleRate, numberOfChannels, bitrate })
+        return [opt.value, !!result?.supported] as const
+      } catch {
+        return [opt.value, false] as const
+      }
+    }),
+  )
+
+  return Object.fromEntries(entries)
+}
+
+/**
  * Merges codec options with a support map to produce options with `disabled` flag.
  * An option is disabled only when its support is explicitly `false`
  * (unknown / not yet checked = enabled).
@@ -65,6 +113,16 @@ export function resolveVideoCodecOptions(
   codecs: readonly VideoCodecOption[],
   support: Record<string, boolean>,
 ): VideoCodecOptionResolved[] {
+  return codecs.map((opt) => ({
+    ...opt,
+    disabled: support[opt.value] === false,
+  }))
+}
+
+export function resolveAudioCodecOptions(
+  codecs: readonly AudioCodecOption[],
+  support: Record<string, boolean>,
+): AudioCodecOptionResolved[] {
   return codecs.map((opt) => ({
     ...opt,
     disabled: support[opt.value] === false,

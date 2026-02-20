@@ -10,10 +10,14 @@ import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
   resolveVideoCodecOptions,
+  BASE_AUDIO_CODEC_OPTIONS,
+  checkAudioCodecSupport,
+  resolveAudioCodecOptions
 } from '~/utils/webcodecs'
 
 interface Props {
   open: boolean
+  filename?: string
   projectId?: string
   collectionId?: string
   groupId?: string
@@ -25,6 +29,7 @@ interface ExportOptions {
   videoCodec: string
   bitrate: number
   audio: boolean
+  audioCodec?: string
 }
 
 const props = defineProps<Props>()
@@ -72,6 +77,7 @@ const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
+const audioCodecSupport = ref<Record<string, boolean>>({})
 const isLoadingCodecSupport = ref(false)
 
 // Collections data
@@ -197,7 +203,9 @@ const videoCodecOptions = computed(() =>
   resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
 )
 
-const audioCodecOptions = computed(() => [{ value: 'aac', label: 'AAC' }])
+const audioCodecOptions = computed(() =>
+  resolveAudioCodecOptions(BASE_AUDIO_CODEC_OPTIONS, audioCodecSupport.value),
+)
 
 const bitrateBps = computed(() => {
   const value = Number(bitrateMbps.value)
@@ -224,11 +232,21 @@ async function loadCodecSupport() {
   if (isLoadingCodecSupport.value) return
   isLoadingCodecSupport.value = true
   try {
-    videoCodecSupport.value = await checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS)
+    const [videoSupport, audioSupport] = await Promise.all([
+      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS),
+      checkAudioCodecSupport(BASE_AUDIO_CODEC_OPTIONS)
+    ])
+    videoCodecSupport.value = videoSupport
+    audioCodecSupport.value = audioSupport
 
     if (videoCodecSupport.value[videoCodec.value] === false) {
       const firstSupported = BASE_VIDEO_CODEC_OPTIONS.find((opt) => videoCodecSupport.value[opt.value])
       if (firstSupported) videoCodec.value = firstSupported.value
+    }
+
+    if (audioCodecSupport.value[audioCodec.value] === false) {
+      const firstSupported = BASE_AUDIO_CODEC_OPTIONS.find((opt) => audioCodecSupport.value[opt.value])
+      if (firstSupported) audioCodec.value = firstSupported.value
     }
   } finally {
     isLoadingCodecSupport.value = false
@@ -252,6 +270,7 @@ async function handleConfirm() {
       videoCodec: videoCodec.value,
       bitrate: bitrateBps.value,
       audio: includeAudio.value,
+      audioCodec: audioCodec.value,
     })
     exportProgress.value = 60
 
