@@ -70,18 +70,12 @@ async function initEditor() {
     })
     if (!response.ok) throw new Error(`Failed to fetch video: ${response.status}`)
 
-    // Check content type — MP4Clip only supports H.264/H.265 in MP4 container
     const contentType = response.headers.get('content-type') || ''
-    if (contentType.includes('webm') || contentType.includes('ogg')) {
-      throw new Error(
-        `Unsupported format: ${contentType}. WebAV editor requires MP4 (H.264/H.265). VP9/WebM is not supported.`,
-      )
-    }
 
     // Download fully before passing to MP4Clip — streaming fetch can fail
     // with ERR_CONTENT_LENGTH_MISMATCH on large files or proxied responses
     videoArrayBuffer = await response.arrayBuffer()
-    const stream = new Blob([videoArrayBuffer], { type: 'video/mp4' }).stream()
+    const stream = new Blob([videoArrayBuffer], { type: contentType || 'video/mp4' }).stream()
 
     mp4Clip = new MP4Clip(stream)
     await mp4Clip.ready
