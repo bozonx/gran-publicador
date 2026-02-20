@@ -20,18 +20,28 @@ const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
 
-const sourceMode = ref<'preview' | 'snapshot'>('preview')
-const renderMode = ref<'html' | 'raw'>('html')
+const sourceMode = ref<'preview' | 'snapshot'>('snapshot')
+const renderMode = ref<'html' | 'md' | 'raw'>('html')
 
 const sourceModeItems = computed<TabsItem[]>(() => [
   { label: 'Предпросмотр', value: 'preview' },
   { label: 'Снапшот', value: 'snapshot' },
 ])
 
-const renderModeItems = computed<TabsItem[]>(() => [
-  { label: 'HTML', value: 'html' },
-  { label: 'Сырой', value: 'raw' },
-])
+const renderModeItems = computed<TabsItem[]>(() => {
+  if (sourceMode.value === 'preview') {
+    return [
+      { label: 'HTML', value: 'html' },
+      { label: 'MD', value: 'md' },
+      { label: 'Сырой', value: 'raw' },
+    ]
+  }
+
+  return [
+    { label: 'HTML', value: 'html' },
+    { label: 'Сырой', value: 'raw' },
+  ]
+})
 
 const renderer = new marked.Renderer()
 const originalLinkRenderer = renderer.link.bind(renderer)
@@ -54,22 +64,6 @@ const isOpen = computed({
 const previewTitle = computed(() => {
   if (!props.post?.channel && !props.post?.socialMedia) return ''
   return getSocialMediaDisplayName(props.post.channel?.socialMedia || props.post.socialMedia, t)
-})
-
-const snapshotState = computed(() => {
-  const snapshot = props.post?.postingSnapshot
-  const hasSnapshot = !!snapshot?.body
-  const createdAt = snapshot?.meta?.createdAt || props.post?.postingSnapshotCreatedAt || null
-  return { hasSnapshot, createdAt }
-})
-
-const snapshotBadgeTitle = computed(() => {
-  if (snapshotState.value.hasSnapshot) {
-    return snapshotState.value.createdAt
-      ? `Frozen snapshot is used for preview. Built at: ${snapshotState.value.createdAt}`
-      : 'Frozen snapshot is used for preview.'
-  }
-  return 'No frozen snapshot available. Preview is rendered dynamically and may differ from the final published result until the snapshot is built.'
 })
 
 function resolveTagsForPreview(): string[] {
@@ -145,20 +139,38 @@ const snapshotContent = computed(() => {
   return snapshot.body
 })
 
-const selectedContent = computed(() => {
-  if (sourceMode.value === 'snapshot') return snapshotContent.value
-  return previewContent.value
+const previewHtml = computed(() => {
+  return marked.parse(previewContent.value) as string
+})
+
+const snapshotHtml = computed(() => {
+  const snapshot = props.post?.postingSnapshot
+  if (!snapshot?.body) return ''
+
+  if (snapshot.bodyFormat === 'html') {
+    return snapshot.body
+  }
+
+  return marked.parse(snapshot.body) as string
 })
 
 const selectedHtml = computed(() => {
+  if (sourceMode.value === 'snapshot') return snapshotHtml.value
+  return previewHtml.value
+})
+
+const rawContent = computed(() => {
   if (sourceMode.value === 'snapshot') {
-    const snapshot = props.post?.postingSnapshot
-    if (snapshot?.body && snapshot?.bodyFormat === 'html') {
-      return snapshot.body
-    }
+    return snapshotContent.value
   }
 
-  return marked.parse(selectedContent.value) as string
+  return previewHtml.value
+})
+
+watch(sourceMode, () => {
+  if (sourceMode.value === 'snapshot' && renderMode.value === 'md') {
+    renderMode.value = 'html'
+  }
 })
 </script>
 
@@ -178,16 +190,6 @@ const selectedHtml = computed(() => {
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
             {{ t('post.previewTitle', 'Post Preview') }}: {{ previewTitle }}
           </h3>
-
-          <span
-            class="px-2 py-0.5 text-xs rounded border"
-            :class="snapshotState.hasSnapshot
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-900'
-              : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-900'"
-            :title="snapshotBadgeTitle"
-          >
-            {{ snapshotState.hasSnapshot ? 'Snapshot' : 'No snapshot' }}
-          </span>
         </div>
       </div>
     </template>
@@ -210,7 +212,13 @@ const selectedHtml = computed(() => {
       <pre
         v-if="renderMode === 'raw'"
         class="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200"
-      >{{ selectedContent }}</pre>
+      >{{ rawContent }}</pre>
+
+      <pre
+        v-else-if="renderMode === 'md'"
+        class="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200"
+      >{{ previewContent }}</pre>
+
       <div
         v-else
         class="post-preview-html"
