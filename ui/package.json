@@ -38,6 +38,7 @@
     "@vueuse/nuxt": "^14.2.1",
     "@webav/av-canvas": "^1.2.8",
     "@webav/av-cliper": "^1.2.8",
+    "opfs-tools": "^0.7.4",
     "filerobot-image-editor": "^4.8.1",
     "highlight.js": "^11.11.1",
     "isomorphic-dompurify": "^2.36.0",

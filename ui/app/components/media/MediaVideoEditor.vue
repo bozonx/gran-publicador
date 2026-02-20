@@ -58,7 +58,7 @@ function formatTime(sec: number): string {
 let avCanvas: any = null
 let videoSprite: any = null
 let mp4Clip: any = null
-let videoArrayBuffer: ArrayBuffer | null = null
+let opfsVideoFile: any = null
 let unsubscribers: Array<() => void> = []
 
 async function initEditor() {
@@ -67,9 +67,10 @@ async function initEditor() {
   loadError.value = null
 
   try {
-    const [{ AVCanvas }, { MP4Clip, VisibleSprite }] = await Promise.all([
+    const [{ AVCanvas }, { MP4Clip, VisibleSprite }, { tmpfile, write }] = await Promise.all([
       import('@webav/av-canvas'),
       import('@webav/av-cliper'),
+      import('opfs-tools'),
     ])
 
     // Initial check for WebCodecs and Codec support
@@ -104,12 +105,12 @@ async function initEditor() {
       throw new Error(t('videoEditor.support.formatError', { type: contentType }))
     }
 
-    // Download fully before passing to MP4Clip — streaming fetch can fail
-    // with ERR_CONTENT_LENGTH_MISMATCH on large files or proxied responses
-    videoArrayBuffer = await response.arrayBuffer()
-    const stream = new Blob([videoArrayBuffer], { type: contentType || 'video/mp4' }).stream()
+    // Write stream to OPFS tmp file — avoids holding the entire file in RAM.
+    // MP4Clip reads samples on-demand from OPFS instead of from an ArrayBuffer.
+    opfsVideoFile = tmpfile()
+    await write(opfsVideoFile, response.body!)
 
-    mp4Clip = new MP4Clip(stream)
+    mp4Clip = new MP4Clip(opfsVideoFile)
     await mp4Clip.ready
 
     const { width, height, duration, audioSampleRate } = mp4Clip.meta
@@ -222,15 +223,14 @@ interface ExportOptions {
 }
 
 async function exportTrimmed(options: ExportOptions): Promise<ReadableStream<Uint8Array>> {
-  if (!videoArrayBuffer) throw new Error('No video loaded')
+  if (!opfsVideoFile) throw new Error('No video loaded')
 
   const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
 
   const trimDurationUs = trimOutUs.value - trimInUs.value
 
-  // Create a fresh clip from the stored buffer for export
-  const exportStream = new Blob([videoArrayBuffer], { type: 'video/mp4' }).stream()
-  const exportClip = new MP4Clip(exportStream)
+  // Reuse the same OPFS file — no extra RAM allocation
+  const exportClip = new MP4Clip(opfsVideoFile)
   await exportClip.ready
 
   const hasAudioTrack = !!exportClip.meta?.audioSampleRate
@@ -270,7 +270,7 @@ onBeforeUnmount(() => {
   avCanvas = null
   mp4Clip = null
   videoSprite = null
-  videoArrayBuffer = null
+  opfsVideoFile = null
 })
 </script>
 
