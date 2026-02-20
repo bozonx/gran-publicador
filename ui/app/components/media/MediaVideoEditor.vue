@@ -221,7 +221,7 @@ interface ExportOptions {
   audioCodec?: string
 }
 
-async function exportTrimmed(options: ExportOptions): Promise<Blob> {
+async function exportTrimmed(options: ExportOptions): Promise<ReadableStream<Uint8Array>> {
   if (!videoArrayBuffer) throw new Error('No video loaded')
 
   const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
@@ -256,19 +256,7 @@ async function exportTrimmed(options: ExportOptions): Promise<Blob> {
 
   await combinator.addSprite(sprite)
 
-  const chunks: ArrayBuffer[] = []
-  const reader = combinator.output().getReader()
-
-  let done = false
-  while (!done) {
-    const result = await reader.read()
-    done = result.done
-    if (result.value) {
-      chunks.push(result.value.buffer as ArrayBuffer)
-    }
-  }
-
-  return new Blob(chunks, { type: 'video/mp4' })
+  return combinator.output() as unknown as ReadableStream<Uint8Array>
 }
 
 onMounted(() => {

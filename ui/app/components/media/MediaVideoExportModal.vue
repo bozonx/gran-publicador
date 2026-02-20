@@ -20,8 +20,8 @@ interface Props {
   collectionId?: string
   groupId?: string
   hasAudio?: boolean
-  /** Blob factory — called when user confirms; must return the exported MP4 blob */
-  exportFn: (options: ExportOptions) => Promise<Blob>
+  /** Stream factory — called when user confirms; must return the exported MP4 stream */
+  exportFn: (options: ExportOptions) => Promise<ReadableStream<Uint8Array>>
 }
 
 interface ExportOptions {
@@ -40,7 +40,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const api = useApi()
-const { uploadMedia } = useMedia()
+const { uploadMediaStream } = useMedia()
 const { listCollections } = useContentCollections()
 const toast = useToast()
 const { fetchProjects, isLoading: isLoadingProjects } = useProjects()
@@ -260,24 +260,23 @@ async function handleConfirm() {
 
     // Phase 1: encode
     exportPhase.value = 'encoding'
-    const blob = await props.exportFn({
+    const stream = await props.exportFn({
       videoCodec: videoCodec.value,
       bitrate: bitrateBps.value,
       audio: !excludeAudio.value,
       audioCodec: audioCodec.value,
     })
-    exportProgress.value = 60
+    exportProgress.value = 30
 
-    // Phase 2: upload media file
+    // Phase 2: upload media file as stream (no Blob buffering)
     exportPhase.value = 'uploading'
-    const file = new File([blob], outputFilename.value, { type: 'video/mp4' })
-    const uploadedMedia = await uploadMedia(
-      file,
-      (pct) => {
-        exportProgress.value = 60 + Math.round((pct / 100) * 30)
-      },
+    const uploadedMedia = await uploadMediaStream(
+      stream,
+      outputFilename.value,
+      'video/mp4',
       undefined,
       scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
+      (pct) => { exportProgress.value = 30 + Math.round((pct / 100) * 60) },
     )
     exportProgress.value = 90
 

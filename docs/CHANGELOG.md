@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Video Editor: streaming export upload**: exported video is now streamed directly to the server without buffering the result as a `Blob`/`File` in browser memory.
+  - New endpoint `POST /media/upload-stream` accepts raw body stream with metadata headers (`x-filename`, `x-mime-type`, `x-file-size`, `x-project-id`, `x-optimize`).
+  - `useMedia.uploadMediaStream()` composable function for streaming uploads via `fetch`.
+  - Fastify content-type parsers added for `video/*` and `application/octet-stream` to pass streams through without buffering.
+
 ### Changed
 - **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.
 

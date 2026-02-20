@@ -186,6 +186,73 @@ export class MediaController {
   }
 
   /**
+   * Upload file as raw stream (no multipart).
+   * Accepts metadata via headers: x-filename, x-mime-type, x-file-size, x-project-id, x-optimize.
+   * Streams the body directly to Media Storage without buffering.
+   */
+  @Post('upload-stream')
+  @UseGuards(JwtOrApiTokenGuard)
+  async uploadStream(@Req() req: UnifiedAuthRequest) {
+    const filename = req.headers['x-filename'] as string | undefined;
+    const mimetype =
+      (req.headers['x-mime-type'] as string | undefined) || 'application/octet-stream';
+
+    if (!filename) {
+      throw new BadRequestException('x-filename header is required');
+    }
+
+    const fileSizeHeader = req.headers['x-file-size'] as string | undefined;
+    let fileSizeBytes: number | undefined;
+    if (fileSizeHeader) {
+      const parsed = Number.parseInt(fileSizeHeader, 10);
+      if (Number.isFinite(parsed) && parsed > 0) fileSizeBytes = parsed;
+    }
+
+    let optimize: Record<string, any> | undefined;
+    const optimizeHeader = req.headers['x-optimize'] as string | undefined;
+    if (optimizeHeader) {
+      try {
+        optimize = JSON.parse(optimizeHeader);
+      } catch {
+        this.logger.warn('Failed to parse x-optimize header');
+      }
+    }
+
+    const projectIdHeader = req.headers['x-project-id'] as string | undefined;
+    if (!optimize && projectIdHeader) {
+      try {
+        optimize = await this.mediaService.getProjectOptimizationSettings(projectIdHeader);
+      } catch (error) {
+        this.logger.error(`Failed to load project optimization: ${(error as any).message}`);
+      }
+    }
+
+    this.logger.debug(
+      `Received stream upload: filename="${filename}", mimetype="${mimetype}", size=${fileSizeBytes ?? 'unknown'}`,
+    );
+
+    const { fileId, metadata } = await this.mediaService.uploadFileToStorage(
+      req.raw as any,
+      filename,
+      mimetype,
+      fileSizeBytes,
+      req.user.userId,
+      undefined,
+      optimize,
+    );
+
+    return this.mediaService.create({
+      type: getMediaTypeFromMime(metadata.mimeType),
+      storageType: StorageType.FS,
+      storagePath: fileId,
+      filename,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.size,
+      meta: metadata,
+    });
+  }
+
+  /**
    * Upload from URL endpoint.
    * Proxies the request to Media Storage.
    */

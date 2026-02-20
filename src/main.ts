@@ -131,6 +131,22 @@ async function bootstrap() {
     },
   );
 
+  // Pass video streams through without buffering (used by /media/upload-stream)
+  fastifyInstance.addContentTypeParser(
+    /^video\/.*$/,
+    (_req: unknown, payload: unknown, done: (err: Error | null, body?: unknown) => void) => {
+      done(null, payload);
+    },
+  );
+
+  // Pass generic binary streams through without buffering
+  fastifyInstance.addContentTypeParser(
+    'application/octet-stream',
+    (_req: unknown, payload: unknown, done: (err: Error | null, body?: unknown) => void) => {
+      done(null, payload);
+    },
+  );
+
   await app.listen(appConfig.port, appConfig.host);
 
   logger.log(
