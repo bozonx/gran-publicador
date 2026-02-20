@@ -431,13 +431,10 @@ const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplat
 const isDuplicateModalOpen = ref(false)
 const isProjectModalOpen = ref(false)
 const isTemplateModalOpen = ref(false)
-const isLanguageModalOpen = ref(false)
 const newProjectId = ref<string | undefined>(undefined)
 const newTemplateId = ref<string | undefined>(undefined)
-const newLanguage = ref<string | undefined>(undefined)
 const isUpdatingProject = ref(false)
 const isUpdatingTemplate = ref(false)
-const isUpdatingLanguage = ref(false)
 const isRelationsModalOpen = ref(false)
 
 function openDuplicateModal() {
@@ -445,82 +442,16 @@ function openDuplicateModal() {
     isDuplicateModalOpen.value = true
 }
 
-function handleDuplicateSuccess(id: string) {
-    isDuplicateModalOpen.value = false
-    router.push(`/publications/${id}/edit`)
-}
-
-const { projects, fetchProjects } = useProjects()
-const projectOptions = computed(() => {
-    return projects.value.map(p => ({
-        value: p.id,
-        label: p.name
-    }))
-})
-
-const filteredProjectTemplates = computed(() => {
-    const pubLang = currentPublication.value?.language
-    const pubType = currentPublication.value?.postType
-    return projectTemplates.value.filter((tpl) => {
-        const langMatch = !tpl.language || tpl.language === pubLang
-        const typeMatch = !tpl.postType || tpl.postType === pubType
-        return langMatch && typeMatch
-    })
-})
-
-const templateOptions = computed(() => {
-    return filteredProjectTemplates.value.map(tpl => ({ value: tpl.id, label: tpl.name }))
-})
-
-const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
-
-const displayStatusOptions = computed(() => {
-    const options = [
-        { value: 'DRAFT', label: t('publicationStatus.draft') },
-        { value: 'READY', label: t('publicationStatus.ready') }
-    ]
-    
-    if (currentPublication.value && !['DRAFT', 'READY'].includes(currentPublication.value.status)) {
-        options.push({
-            value: currentPublication.value.status,
-            label: statusOptions.value.find(s => s.value === currentPublication.value?.status)?.label || currentPublication.value.status,
-            isSystem: true
-        } as any)
-    }
-    
-    return options
-})
-
-// Template editing
-async function handleUpdateTemplate(templateId: string) {
-    if (!currentPublication.value) return
-    if (currentPublication.value.projectTemplateId === templateId) {
-        isTemplateModalOpen.value = false
-        return
-    }
-    newTemplateId.value = templateId
-    isUpdatingTemplate.value = true
-    try {
-        await updatePublication(currentPublication.value.id, {
-            projectTemplateId: templateId
-        })
-        isTemplateModalOpen.value = false
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update template:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingTemplate.value = false
-    }
-}
 function openProjectModal() {
     if (!currentPublication.value) return
     newProjectId.value = currentPublication.value.projectId || undefined
     isProjectModalOpen.value = true
+}
+
+function openTemplateModal() {
+    if (!currentPublication.value) return
+    newTemplateId.value = currentPublication.value.projectTemplateId || undefined
+    isTemplateModalOpen.value = true
 }
 
 async function handleUpdateProject() {
@@ -552,32 +483,71 @@ async function handleUpdateProject() {
     }
 }
 
-function openLanguageModal() {
+async function handleUpdateTemplate(templateId: string) {
     if (!currentPublication.value) return
-    newLanguage.value = currentPublication.value.language
-    isLanguageModalOpen.value = true
-}
-
-async function handleUpdateLanguage() {
-    if (!currentPublication.value || !newLanguage.value) return
-    isUpdatingLanguage.value = true
+    if (currentPublication.value.projectTemplateId === templateId) {
+        isTemplateModalOpen.value = false
+        return
+    }
+    newTemplateId.value = templateId
+    isUpdatingTemplate.value = true
     try {
         await updatePublication(currentPublication.value.id, {
-            language: newLanguage.value
+            projectTemplateId: templateId
         })
-        isLanguageModalOpen.value = false
+        isTemplateModalOpen.value = false
         await fetchPublication(currentPublication.value.id)
     } catch (err: any) {
-        console.error('Failed to update language:', err)
+        console.error('Failed to update template:', err)
         toast.add({
             title: t('common.error'),
             description: t('common.saveError'),
             color: 'error'
         })
     } finally {
-        isUpdatingLanguage.value = false
+        isUpdatingTemplate.value = false
     }
 }
+
+const projectOptions = computed(() => {
+    return projects.value.map(p => ({
+        value: p.id,
+        label: p.name
+    }))
+})
+
+const templateOptions = computed(() => {
+    return filteredProjectTemplates.value.map(tpl => ({ value: tpl.id, label: tpl.name }))
+})
+
+const filteredProjectTemplates = computed(() => {
+    const pubLang = currentPublication.value?.language
+    const pubType = currentPublication.value?.postType
+    return projectTemplates.value.filter((tpl) => {
+        const langMatch = !tpl.language || tpl.language === pubLang
+        const typeMatch = !tpl.postType || tpl.postType === pubType
+        return langMatch && typeMatch
+    })
+})
+
+const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
+
+const displayStatusOptions = computed(() => {
+    const options = [
+        { value: 'DRAFT', label: t('publicationStatus.draft') },
+        { value: 'READY', label: t('publicationStatus.ready') }
+    ]
+    
+    if (currentPublication.value && !['DRAFT', 'READY'].includes(currentPublication.value.status)) {
+        options.push({
+            value: currentPublication.value.status,
+            label: statusOptions.value.find(s => s.value === currentPublication.value?.status)?.label || currentPublication.value.status,
+            isSystem: true
+        } as any)
+    }
+    
+    return options
+})
 
 const newStatus = ref<PublicationStatus>('DRAFT')
 const isUpdatingStatus = ref(false)
@@ -924,93 +894,46 @@ async function executePublish(force: boolean) {
     />
 
     <!-- Project Change Modal -->
-    <UModal v-model:open="isProjectModalOpen">
-        <template #content>
-            <UCard class="w-full max-w-md mx-auto">
-                <template #header>
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold">{{ t('project.title') }}</h3>
-                        <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="isProjectModalOpen = false" />
-                    </div>
-                </template>
-                <div class="space-y-4 py-2">
-                    <UFormField :label="t('project.title')">
-                        <CommonProjectSelect
-                            v-model="newProjectId"
-                            class="w-full"
-                        />
-                    </UFormField>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-3">
-                        <UButton color="neutral" variant="ghost" @click="isProjectModalOpen = false">{{ t('common.cancel') }}</UButton>
-                        <UButton color="primary" :loading="isUpdatingProject" @click="handleUpdateProject">{{ t('common.save') }}</UButton>
-                    </div>
-                </template>
-            </UCard>
-        </template>
-    </UModal>
+    <UiAppModal
+      v-model:open="isProjectModalOpen"
+      :title="t('project.title')"
+      :ui="{ content: 'sm:max-w-md' }"
+    >
+      <div class="space-y-4">
+        <UFormField :label="t('project.title')">
+          <CommonProjectSelect v-model="newProjectId" class="w-full" />
+        </UFormField>
+      </div>
 
-    <!-- Language Change Modal -->
-    <UModal v-model:open="isLanguageModalOpen">
-        <template #content>
-            <UCard class="w-full max-w-md mx-auto">
-                <template #header>
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold">{{ t('common.language') }}</h3>
-                        <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="isLanguageModalOpen = false" />
-                    </div>
-                </template>
-                <div class="space-y-4 py-2">
-                    <UFormField :label="t('common.language')">
-                        <CommonLanguageSelect
-                            v-model="newLanguage"
-                            mode="all"
-                            searchable
-                            class="w-full"
-                        />
-                    </UFormField>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-3">
-                        <UButton color="neutral" variant="ghost" @click="isLanguageModalOpen = false">{{ t('common.cancel') }}</UButton>
-                        <UButton color="primary" :loading="isUpdatingLanguage" @click="handleUpdateLanguage">{{ t('common.save') }}</UButton>
-                    </div>
-                </template>
-            </UCard>
-        </template>
-    </UModal>
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isProjectModalOpen = false">{{ t('common.cancel') }}</UButton>
+        <UButton color="primary" :loading="isUpdatingProject" @click="handleUpdateProject">{{ t('common.save') }}</UButton>
+      </template>
+    </UiAppModal>
 
     <!-- Template Change Modal -->
-    <UModal v-model:open="isTemplateModalOpen">
-        <template #content>
-            <UCard class="w-full max-w-md mx-auto">
-                <template #header>
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold">{{ t('projectTemplates.title', 'Publication Template') }}</h3>
-                        <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="isTemplateModalOpen = false" />
-                    </div>
-                </template>
-                <div class="space-y-4 py-2">
-                    <UFormField :label="t('projectTemplates.title', 'Publication Template')">
-                        <USelectMenu
-                            v-model="newTemplateId"
-                            :items="templateOptions"
-                            value-key="value"
-                            label-key="label"
-                            class="w-full"
-                        />
-                    </UFormField>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-3">
-                        <UButton color="neutral" variant="ghost" @click="isTemplateModalOpen = false">{{ t('common.cancel') }}</UButton>
-                        <UButton color="primary" :loading="isUpdatingTemplate" @click="handleUpdateTemplate(newTemplateId!)">{{ t('common.save') }}</UButton>
-                    </div>
-                </template>
-            </UCard>
-        </template>
-    </UModal>
+    <UiAppModal
+      v-model:open="isTemplateModalOpen"
+      :title="t('projectTemplates.title', 'Publication Template')"
+      :ui="{ content: 'sm:max-w-md' }"
+    >
+      <div class="space-y-4">
+        <UFormField :label="t('projectTemplates.title', 'Publication Template')">
+          <USelectMenu
+            v-model="newTemplateId"
+            :items="templateOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
+
+      <template #footer>
+        <UButton color="neutral" variant="ghost" @click="isTemplateModalOpen = false">{{ t('common.cancel') }}</UButton>
+        <UButton color="primary" :loading="isUpdatingTemplate" :disabled="!newTemplateId" @click="handleUpdateTemplate(newTemplateId!)">{{ t('common.save') }}</UButton>
+      </template>
+    </UiAppModal>
 
     <!-- Status Change Modal removed in favor of button group -->
 
@@ -1135,44 +1058,6 @@ async function executePublish(force: boolean) {
                                 </div>
                             </div>
 
-                            <!-- Language -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('common.language') }}
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
-                                    </span>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-pencil-square"
-                                        variant="ghost"
-                                        color="neutral"
-                                        size="xs"
-                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="openLanguageModal"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Type and Language Row -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Type -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('post.postType') }}
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-document-duplicate" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ typeOptions.find(t => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
-                                    </span>
-                                </div>
-                            </div>
-
                             <!-- Template -->
                             <div>
                                 <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
@@ -1190,8 +1075,37 @@ async function executePublish(force: boolean) {
                                         color="neutral"
                                         size="xs"
                                         class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="isTemplateModalOpen = true"
+                                        @click="openTemplateModal"
                                     />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Type and Language Row -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Language -->
+                            <div>
+                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                    {{ t('common.language') }}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
+                                    <span class="text-gray-900 dark:text-white font-medium text-base">
+                                        {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Type -->
+                            <div>
+                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                    {{ t('post.postType') }}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <UIcon name="i-heroicons-document-duplicate" class="w-5 h-5 text-gray-400" />
+                                    <span class="text-gray-900 dark:text-white font-medium text-base">
+                                        {{ typeOptions.find(t => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
