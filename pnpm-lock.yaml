@@ -293,6 +293,12 @@ importers:
       '@vueuse/nuxt':
         specifier: ^14.2.0
         version: 14.2.0(magicast@0.5.2)(nuxt@4.3.0(@electric-sql/pglite@0.3.15)(@parcel/watcher@2.5.6)(@types/node@25.2.1)(@vue/compiler-sfc@3.5.27)(cac@6.7.14)(db0@0.3.4(@electric-sql/pglite@0.3.15)(mysql2@3.15.3))(eslint@9.39.2(jiti@2.6.1))(ioredis@5.9.2)(lightningcss@1.31.1)(magicast@0.5.2)(mysql2@3.15.3)(optionator@0.9.4)(rollup@4.57.1)(terser@5.46.0)(tsx@4.21.0)(typescript@5.9.3)(vite@7.3.1(@types/node@25.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
+      '@webav/av-canvas':
+        specifier: ^1.2.8
+        version: 1.2.8
+      '@webav/av-cliper':
+        specifier: ^1.2.8
+        version: 1.2.8
       filerobot-image-editor:
         specifier: ^4.8.1
         version: 4.8.1(@babel/core@7.29.0)(@types/react@19.2.9)(konva@10.2.0)(react-filerobot-image-editor@4.9.1(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@18.3.1(react@18.3.1))(react-konva@18.2.14(@types/react@19.2.9)(konva@10.2.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(styled-components@5.3.11(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)))(react-is@18.3.1)
@@ -4141,6 +4147,18 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
+  '@webav/av-canvas@1.2.8':
+    resolution: {integrity: sha512-j7wvlmdQcwSeMDPiOjfnw2LR/+F/yqYScs9dzwh8SHQre6nnnxS/eOPBghhgVx/RlqFk6VR4UYtnXlhfgnhWtA==}
+
+  '@webav/av-cliper@1.2.8':
+    resolution: {integrity: sha512-lxCXgP5AJsl+6xRo1puU5lTv7rAsxX9StQVK8xYdbg02p9FswCt76iTPqNxmlJ0ZfV1g+lmyNufLXu/qBAnJnA==}
+
+  '@webav/internal-utils@1.2.8':
+    resolution: {integrity: sha512-ZiEXl4U6PRqotkux0eTUdVn5zxbzXYm4Xfjt+HvH5bowwGSJVho/mmbPrdPf3ZRtfIu0aWCWa04LUDBQuY5ltA==}
+
+  '@webav/mp4box.js@0.5.7':
+    resolution: {integrity: sha512-KgScEtDpiLnWvj1Rj8Ri9fDWxTjfdNr7cmY/PT88EmttHh6cLxMAeyD/W8Vydes4z7qV/c5VDAaP4cTlaO0E9g==}
+
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
 
@@ -7058,6 +7076,9 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
+  opfs-tools@0.7.4:
+    resolution: {integrity: sha512-DJgQnXyPcCj3q8pKa8SjP4HfNBPffj8kO6W1nc2zQydTqu5G/AxOuIjmWnRxZ84nE1EOpzZzhj8MYCZP1jRR9A==}
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -8965,6 +8986,10 @@ packages:
   watchpack@2.5.1:
     resolution: {integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==}
     engines: {node: '>=10.13.0'}
+
+  wave-resampler@1.0.0:
+    resolution: {integrity: sha512-bE3rbpZXuKAV52Cd8/BeJvy82ZqEHK8pPWHrZ9JioaVVTBlmWbDC+u4p9blhFcf0Skepb4hlOAHc25XfqLC48g==}
+    engines: {node: '>=8'}
 
   wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
@@ -13404,6 +13429,24 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
+  '@webav/av-canvas@1.2.8':
+    dependencies:
+      '@webav/av-cliper': 1.2.8
+      '@webav/internal-utils': 1.2.8
+
+  '@webav/av-cliper@1.2.8':
+    dependencies:
+      '@webav/internal-utils': 1.2.8
+      '@webav/mp4box.js': 0.5.7
+      opfs-tools: 0.7.4
+      wave-resampler: 1.0.0
+
+  '@webav/internal-utils@1.2.8':
+    dependencies:
+      '@webav/mp4box.js': 0.5.7
+
+  '@webav/mp4box.js@0.5.7': {}
+
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
@@ -16993,6 +17036,8 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
+  opfs-tools@0.7.4: {}
+
   optionator@0.9.4:
     dependencies:
       deep-is: 0.1.4
@@ -19122,6 +19167,8 @@ snapshots:
     dependencies:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
+
+  wave-resampler@1.0.0: {}
 
   wcwidth@1.0.1:
     dependencies:

@@ -581,6 +581,29 @@ function handleEditMedia() {
   window.open(url, '_blank')
 }
 
+function handleEditVideo() {
+  if (!selectedMedia.value) return
+  const isVIDEO = (selectedMedia.value.type || '').toUpperCase() === 'VIDEO'
+  const isEditableStorage = ['FS', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
+
+  if (!isVIDEO || !isEditableStorage) {
+    toast.add({
+      title: t('common.error'),
+      description: t('media.editOnlyFSOrTelegramVideos', 'Only local or Telegram videos can be edited'),
+      color: 'error',
+    })
+    return
+  }
+
+  const mediaId = selectedMedia.value.id
+  const projectId = currentProject.value?.id
+  const url = projectId
+    ? `/media/${mediaId}/video-edit?projectId=${projectId}`
+    : `/media/${mediaId}/video-edit`
+
+  window.open(url, '_blank')
+}
+
 
 const transitionName = ref('slide-next')
 
@@ -1138,6 +1161,16 @@ const mediaValidation = computed(() => {
         color="neutral"
         size="sm"
         @click="handleEditMedia"
+      >
+        {{ t('common.edit', 'Edit') }}
+      </UButton>
+      <UButton
+        v-if="editable && selectedMedia?.type === 'VIDEO' && (selectedMedia?.storageType === 'FS' || selectedMedia?.storageType === 'TELEGRAM')"
+        icon="i-heroicons-film"
+        variant="ghost"
+        color="neutral"
+        size="sm"
+        @click="handleEditVideo"
       >
         {{ t('common.edit', 'Edit') }}
       </UButton>
