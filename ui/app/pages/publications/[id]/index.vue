@@ -119,11 +119,9 @@ const showLlmModal = ref(false)
 const llmModalRef = ref<any>(null)
 const isDeleting = ref(false)
 const isDeleteModalOpen = ref(false)
-const isCopyModalOpen = ref(false)
+const isDuplicateModalOpen = ref(false)
 const isContentActionModalOpen = ref(false)
 const contentActionMode = ref<'copy' | 'move'>('copy')
-const copyProjectId = ref<string | undefined>(undefined)
-const isCopying = ref(false)
 
 const isLocked = computed(() => !!currentPublication.value?.archivedAt || !!currentProject.value?.archivedAt)
 
@@ -166,9 +164,9 @@ const moreActions = computed(() => [
       class: ''
     },
     {
-      label: t('publication.copyToProject'),
+      label: t('common.duplicate', 'Duplicate'),
       icon: 'i-heroicons-document-duplicate',
-      click: openCopyModal,
+      click: openDuplicateModal,
       disabled: false,
       class: ''
     }
@@ -211,35 +209,16 @@ async function handleDelete() {
     }
 }
 
-function openCopyModal() {
-    fetchProjects()
-    isCopyModalOpen.value = true
+function openDuplicateModal() {
+    if (!currentPublication.value) return
+    isDuplicateModalOpen.value = true
 }
 
-const projectOptions = computed(() => projects.value?.map(p => ({ label: p.name, value: p.id })) || [])
-
-async function handleCopyPublication() {
-    if (!currentPublication.value || !copyProjectId.value) return
-    isCopying.value = true
-    try {
-        const result = await copyPublication(currentPublication.value.id, copyProjectId.value)
-        toast.add({
-            title: t('common.success'),
-            description: t('publication.copySuccess'),
-            color: 'success'
-        })
-        router.push(`/publications/${result.id}/edit`)
-    } catch (err: any) {
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isCopying.value = false
-        isCopyModalOpen.value = false
-    }
+function handleDuplicateSuccess(id: string) {
+    isDuplicateModalOpen.value = false
+    router.push(`/publications/${id}/edit`)
 }
+
 
 function onTagClick(tag: string) {
   router.push({
@@ -573,34 +552,28 @@ async function handleApplyLlm(data: {
       @confirm="handleDelete"
     />
 
-    <!-- Copy Project Modal -->
-    <UiAppModal v-if="isCopyModalOpen" v-model:open="isCopyModalOpen" :title="t('publication.copyToProject')">
-      <UFormField :label="t('project.title')" required>
-         <USelectMenu
-            v-model="copyProjectId"
-            :items="projectOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-            icon="i-heroicons-folder"
-        />
-      </UFormField>
-
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :label="t('common.cancel')"
-          @click="isCopyModalOpen = false"
-        />
-        <UButton
-          color="primary"
-          :label="t('common.confirm')"
-          :loading="isCopying"
-          @click="handleCopyPublication"
-        />
-      </template>
-    </UiAppModal>
+    <!-- Duplicate Publication Modal -->
+    <ModalsCreatePublicationModal
+      v-if="currentPublication"
+      v-model:open="isDuplicateModalOpen"
+      :project-id="currentPublication.projectId || undefined"
+      :preselected-language="currentPublication.language"
+      :preselected-post-type="currentPublication.postType as any"
+      :preselected-channel-ids="currentPublication.posts?.map((p: any) => p.channelId)"
+      allow-project-selection
+      :prefilled-title="currentPublication.title || ''"
+      :prefilled-description="currentPublication.description || ''"
+      :prefilled-author-comment="currentPublication.authorComment || ''"
+      :prefilled-content="currentPublication.content || ''"
+      :prefilled-tags="currentPublication.tags"
+      :prefilled-meta="normalizedPublicationMeta"
+      :prefilled-note="currentPublication.note || ''"
+      :prefilled-media-ids="currentPublication.media?.map((m: any) => ({ id: m.media?.id, hasSpoiler: m.hasSpoiler }))"
+      :prefilled-content-item-ids="currentPublication.contentItems?.map((ci: any) => ci.contentItemId)"
+      :prefilled-author-signature-id="currentPublication.authorSignatureId || undefined"
+      :prefilled-project-template-id="currentPublication.projectTemplateId || undefined"
+      @success="handleDuplicateSuccess"
+    />
 
     <!-- Content Action Modal (Copy/Move to Content Library) -->
     <ContentCreateItemFromPublicationModal

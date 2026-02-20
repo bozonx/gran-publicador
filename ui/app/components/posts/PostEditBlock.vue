@@ -663,7 +663,7 @@ async function executePublish() {
             
             <!-- Collapsed Preview info -->
             <div v-if="isCollapsed" class="space-y-1">
-                <div v-if="displayTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
+                <div v-if="overriddenTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
 
                      <!-- Author Signature -->
                      <UBadge
@@ -679,7 +679,7 @@ async function executePublish() {
 
                      <!-- Tags -->
                      <CommonTags
-                       :tags="displayTags"
+                       :tags="overriddenTags"
                        color="neutral"
                        variant="subtle"
                        size="xs"
@@ -688,7 +688,7 @@ async function executePublish() {
                 </div>
 
                 <!-- Content Preview -->
-                <p v-if="displayContent" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1 px-0.5" :class="{ 'text-primary-600 dark:text-primary-400 font-medium bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded border border-primary-100 dark:border-primary-800/20': isPostContentOverride }">
+                <p v-if="isPostContentOverride" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1 px-0.5" :class="{ 'text-primary-600 dark:text-primary-400 font-medium bg-primary-50 dark:bg-primary-900/10 px-2 py-1 rounded border border-primary-100 dark:border-primary-800/20': isPostContentOverride }">
                     {{ stripHtmlAndSpecialChars(displayContent) }}
                 </p>
             </div>
