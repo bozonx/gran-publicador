@@ -41,6 +41,7 @@ import {
 } from '../llm/constants/llm.constants.js';
 import { normalizeTags } from '../../common/utils/tags.util.js';
 import sanitizeHtml from 'sanitize-html';
+import { sanitizePublicationMarkdownForStorage } from '../../common/utils/publication-content-sanitizer.util.js';
 
 @Injectable()
 export class PublicationsService {
@@ -484,6 +485,8 @@ export class PublicationsService {
       ? await this.unsplashService.getPhoto(data.unsplashId)
       : null;
 
+    const sanitizedContent = sanitizePublicationMarkdownForStorage(data.content ?? '');
+
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
@@ -492,7 +495,7 @@ export class PublicationsService {
         title: data.title,
         description: data.description,
         authorComment: data.authorComment,
-        content: data.content,
+        content: sanitizedContent,
         meta: data.meta ?? {},
         media: {
           create: [
@@ -1181,6 +1184,10 @@ export class PublicationsService {
     // Validation: If content OR media is updating, we must check all posts that inherit this content/media
     const isMediaUpdating = data.media !== undefined || data.existingMediaIds !== undefined;
     const isContentUpdating = data.content !== undefined && data.content !== null;
+
+    if (data.content !== undefined) {
+      data.content = sanitizePublicationMarkdownForStorage(data.content ?? '');
+    }
 
     if (isContentUpdating || isMediaUpdating) {
       // Find posts that are not published
