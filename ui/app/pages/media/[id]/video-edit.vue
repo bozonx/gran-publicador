@@ -47,19 +47,6 @@ function onEditorClose() {
       This media cannot be edited.
     </div>
 
-    <div
-      v-else-if="media.mimeType && (media.mimeType.includes('webm') || media.mimeType.includes('ogg') || media.mimeType.includes('vp9'))"
-      class="flex flex-col items-center gap-3 text-center px-8"
-    >
-      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-yellow-400" />
-      <p class="text-gray-300 text-sm font-medium">Unsupported video format</p>
-      <p class="text-gray-500 text-xs max-w-sm">
-        The video editor requires MP4 with H.264 or H.265 codec.<br />
-        This file uses <span class="text-gray-300">{{ media.mimeType }}</span> which is not supported.
-      </p>
-      <UButton variant="ghost" color="neutral" size="sm" @click="onEditorClose">Close</UButton>
-    </div>
-
     <div v-else class="fixed inset-0">
       <MediaVideoEditor
         :src="source"
