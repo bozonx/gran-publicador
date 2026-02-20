@@ -48,6 +48,7 @@ interface Emits {
 interface Props {
   publicationId: string
   content?: string
+  title?: string
   media?: MediaItem[]
   projectId?: string
   publicationMeta?: Record<string, any>
@@ -56,7 +57,7 @@ interface Props {
   postChannels?: PostChannelInfo[]
 }
 
-const { publicationId, content, media, projectId, publicationMeta, postType, publicationLanguage, postChannels } = defineProps<Props>()
+const { publicationId, content, title, media, projectId, publicationMeta, postType, publicationLanguage, postChannels } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const toast = useToast()
@@ -458,11 +459,12 @@ watch(isOpen, async (open) => {
   if (open) {
     const nextTags: LlmContextTag[] = []
 
-    if (content?.trim()) {
+    if (content?.trim() || title?.trim()) {
+      const header = title?.trim() ? `# ${title.trim()}\n\n` : ''
       nextTags.push({
         id: 'content:1',
         label: t('llm.publicationBlock'),
-        promptText: `<source_content>\n${content.trim()}\n</source_content>`,
+        promptText: `<source_content>\n${header}${content?.trim() || ''}\n</source_content>`,
         kind: 'content',
         enabled: true,
       })
@@ -577,7 +579,7 @@ async function handleGenerate() {
         ...(isFirstMessage
           ? {
               context: {
-                content,
+                content: title?.trim() ? `# ${title.trim()}\n\n${content || ''}` : content,
                 mediaDescriptions,
                 contextLimitChars: contextLimit.value,
               },

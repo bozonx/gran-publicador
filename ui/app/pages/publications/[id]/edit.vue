@@ -1380,6 +1380,7 @@ async function executePublish(force: boolean) {
       v-model:open="showLlmModal"
       :publication-id="currentPublication.id"
       :content="currentPublication.content || undefined"
+      :title="currentPublication.title || undefined"
       :media="((currentPublication.media || []).map(m => m.media).filter(Boolean) as any)"
       :project-id="projectId || undefined"
       :publication-meta="normalizedPublicationMeta"

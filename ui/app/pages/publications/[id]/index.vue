@@ -619,6 +619,7 @@ async function handleApplyLlm(data: {
       v-model:open="showLlmModal"
       :publication-id="currentPublication.id"
       :content="currentPublication.content || undefined"
+      :title="currentPublication.title || undefined"
       :media="(currentPublication.media || []).map(m => m.media).filter(Boolean) as unknown as MediaItem[]"
       :project-id="currentPublication.projectId || undefined"
       :publication-meta="normalizedPublicationMeta"
