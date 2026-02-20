@@ -3,6 +3,11 @@ import { ref, computed, watch } from 'vue'
 import { useContentCollections, type ContentCollection } from '~/composables/useContentCollections'
 import { useMedia } from '~/composables/useMedia'
 import { useApi } from '~/composables/useApi'
+import {
+  BASE_VIDEO_CODEC_OPTIONS,
+  checkVideoCodecSupport,
+  resolveVideoCodecOptions,
+} from '~/utils/webcodecs'
 
 interface Props {
   open: boolean
@@ -48,6 +53,9 @@ const includeAudio = ref(true)
 
 const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
+
+const videoCodecSupport = ref<Record<string, boolean>>({})
+const isLoadingCodecSupport = ref(false)
 
 // Collections data
 const collections = ref<ContentCollection[]>([])
@@ -128,14 +136,13 @@ watch(
     exportPhase.value = null
     isExporting.value = false
     loadCollections()
+    loadCodecSupport()
   },
 )
 
-const videoCodecOptions = computed(() => [
-  { value: 'avc1.42E032', label: 'H.264 (Baseline)' },
-  { value: 'avc1.4D0032', label: 'H.264 (Main)' },
-  { value: 'avc1.640032', label: 'H.264 (High)' },
-])
+const videoCodecOptions = computed(() =>
+  resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
+)
 
 const audioCodecOptions = computed(() => [{ value: 'aac', label: 'AAC' }])
 
@@ -154,6 +161,21 @@ watch(selectedCollectionId, () => {
   selectedGroupId.value = null
 })
 
+async function loadCodecSupport() {
+  if (isLoadingCodecSupport.value) return
+  isLoadingCodecSupport.value = true
+  try {
+    videoCodecSupport.value = await checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS)
+
+    if (videoCodecSupport.value[videoCodec.value] === false) {
+      const firstSupported = BASE_VIDEO_CODEC_OPTIONS.find((opt) => videoCodecSupport.value[opt.value])
+      if (firstSupported) videoCodec.value = firstSupported.value
+    }
+  } finally {
+    isLoadingCodecSupport.value = false
+  }
+}
+
 async function handleConfirm() {
   if (isExporting.value) return
   isExporting.value = true
@@ -161,6 +183,10 @@ async function handleConfirm() {
   exportError.value = null
 
   try {
+    if (videoCodecSupport.value[videoCodec.value] === false) {
+      throw new Error('Selected video codec is not supported by this browser')
+    }
+
     // Phase 1: encode
     exportPhase.value = 'encoding'
     const blob = await props.exportFn({
@@ -254,7 +280,7 @@ function handleCancel() {
           <USelect
             v-model="videoCodec"
             :options="videoCodecOptions"
-            :disabled="isExporting"
+            :disabled="isExporting || isLoadingCodecSupport"
             class="w-full"
           />
         </UFormField>
