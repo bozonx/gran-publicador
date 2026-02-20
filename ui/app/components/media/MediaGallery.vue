@@ -59,6 +59,8 @@ interface Props {
   onReorder?: (reorderData: Array<{ id: string; order: number }>) => Promise<void>
   onUpdateLink?: (mediaLinkId: string, data: { hasSpoiler?: boolean; order?: number }) => Promise<void>
   onCopy?: (mediaLinkId: string) => Promise<void>
+  collectionId?: string
+  groupId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -597,9 +599,16 @@ function handleEditVideo() {
 
   const mediaId = selectedMedia.value.id
   const projectId = currentProject.value?.id
-  const url = projectId
-    ? `/media/${mediaId}/video-edit?projectId=${projectId}`
-    : `/media/${mediaId}/video-edit`
+  let url = `/media/${mediaId}/video-edit`
+  const params = new URLSearchParams()
+  if (projectId) params.set('projectId', projectId)
+  if (props.collectionId) params.set('collectionId', props.collectionId)
+  if (props.groupId) params.set('groupId', props.groupId)
+  
+  const queryString = params.toString()
+  if (queryString) {
+    url += `?${queryString}`
+  }
 
   window.open(url, '_blank')
 }

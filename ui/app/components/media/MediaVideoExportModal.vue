@@ -14,8 +14,9 @@ import {
 
 interface Props {
   open: boolean
-  filename?: string
   projectId?: string
+  collectionId?: string
+  groupId?: string
   /** Blob factory — called when user confirms; must return the exported MP4 blob */
   exportFn: (options: ExportOptions) => Promise<Blob>
 }
@@ -51,6 +52,7 @@ const scope = ref<'personal' | 'project'>('personal')
 const selectedProjectId = ref<string | null>(null)
 const selectedCollectionId = ref<string | null>(null)
 const selectedGroupId = ref<string | null>(null)
+const isInitialOpen = ref(true)
 
 const projects = ref<any[]>([])
 async function loadProjects() {
@@ -130,13 +132,38 @@ async function loadCollections() {
       scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
     )
     collections.value = result ?? []
-    // Reset selection when collections reload
-    selectedCollectionId.value = null
-    selectedGroupId.value = null
-    // Pre-select first top-level group
-    const firstGroup = collections.value.find((c) => c.type === 'GROUP' && !c.parentId)
-    if (firstGroup) selectedCollectionId.value = firstGroup.id
-  } catch {
+    
+    // Default selection logic
+    if (isInitialOpen.value) {
+      if (props.groupId) {
+        const group = collections.value.find(c => c.id === props.groupId)
+        if (group) {
+          selectedGroupId.value = group.id
+          // Find root parent collection
+          let root = group
+          const maxDepth = 10
+          let depth = 0
+          while (root.parentId && depth < maxDepth) {
+            const parent = collections.value.find(c => c.id === root.parentId)
+            if (!parent) break
+            root = parent
+            depth++
+          }
+          selectedCollectionId.value = root.id
+        }
+      } else if (props.collectionId) {
+        selectedCollectionId.value = props.collectionId
+      }
+      isInitialOpen.value = false
+    }
+
+    // If still no collection selected and we have collections, pick the first GROUP
+    if (!selectedCollectionId.value && collections.value.length > 0) {
+      const firstGroup = collections.value.find((c) => c.type === 'GROUP' && !c.parentId)
+      if (firstGroup) selectedCollectionId.value = firstGroup.id
+    }
+  } catch (err) {
+    console.error('Failed to load collections', err)
     collections.value = []
   } finally {
     isLoadingCollections.value = false
@@ -159,6 +186,7 @@ watch(
     exportError.value = null
     exportPhase.value = null
     isExporting.value = false
+    isInitialOpen.value = true
     loadProjects()
     loadCollections()
     loadCodecSupport()
@@ -301,6 +329,37 @@ function handleCancel() {
         />
       </UFormField>
 
+      <!-- Collection selector -->
+      <UFormField :label="t('videoEditor.export.collection')">
+        <USelectMenu
+          :model-value="(collectionOptions.find(o => o.value === selectedCollectionId) || selectedCollectionId) as any"
+          @update:model-value="(v: any) => selectedCollectionId = v?.value ?? v"
+          :items="collectionOptions"
+          value-key="value"
+          label-key="label"
+          searchable
+          :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
+          :placeholder="t('videoEditor.export.noCollection')"
+          :loading="isLoadingCollections"
+          :disabled="isExporting || isLoadingCollections"
+          class="w-full"
+        />
+      </UFormField>
+
+      <!-- Sub-group tree selector -->
+      <UFormField
+        v-if="selectedCollection?.type === 'GROUP' && subGroupTreeItems.length > 0"
+        :label="t('videoEditor.export.group')"
+      >
+        <div class="py-2.5 px-3 border border-gray-200 dark:border-gray-800 rounded-md max-h-60 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900">
+          <ContentGroupSelectTree
+            :items="subGroupTreeItems as any"
+            :selected-id="selectedGroupId"
+            @select="val => selectedGroupId = val"
+          />
+        </div>
+      </UFormField>
+
       <UFormField v-if="scope === 'project'" :label="t('contentLibrary.bulk.selectProject')">
         <USelectMenu
           :model-value="(projectOptions.find(o => o.value === selectedProjectId) || selectedProjectId) as any"
@@ -366,7 +425,7 @@ function handleCancel() {
             :items="audioCodecOptions"
             value-key="value"
             label-key="label"
-            :disabled="true"
+            :disabled="isExporting"
             class="w-full"
           />
         </UFormField>
@@ -382,42 +441,12 @@ function handleCancel() {
             inputmode="numeric"
             min="32"
             step="16"
-            :disabled="true"
+            :disabled="isExporting"
             class="w-full"
           />
         </UFormField>
       </div>
 
-      <!-- Collection selector -->
-      <UFormField :label="t('videoEditor.export.collection')">
-        <USelectMenu
-          :model-value="(collectionOptions.find(o => o.value === selectedCollectionId) || selectedCollectionId) as any"
-          @update:model-value="(v: any) => selectedCollectionId = v?.value ?? v"
-          :items="collectionOptions"
-          value-key="value"
-          label-key="label"
-          searchable
-          :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
-          :placeholder="t('videoEditor.export.noCollection')"
-          :loading="isLoadingCollections"
-          :disabled="isExporting || isLoadingCollections"
-          class="w-full"
-        />
-      </UFormField>
-
-      <!-- Sub-group tree selector -->
-      <UFormField
-        v-if="selectedCollection?.type === 'GROUP' && subGroupTreeItems.length > 0"
-        :label="t('videoEditor.export.group')"
-      >
-        <div class="py-2.5 px-3 border border-gray-200 dark:border-gray-800 rounded-md max-h-60 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900">
-          <ContentGroupSelectTree
-            :items="subGroupTreeItems as any"
-            :selected-id="selectedGroupId"
-            @select="val => selectedGroupId = val"
-          />
-        </div>
-      </UFormField>
 
       <!-- Progress -->
       <div v-if="isExporting" class="flex flex-col gap-2">

@@ -5,6 +5,8 @@ interface Props {
   src: string
   filename?: string
   projectId?: string
+  collectionId?: string
+  groupId?: string
 }
 
 const props = defineProps<Props>()
@@ -371,6 +373,8 @@ onBeforeUnmount(() => {
         v-model:open="showExportModal"
         :filename="props.filename"
         :project-id="props.projectId"
+        :collection-id="props.collectionId"
+        :group-id="props.groupId"
         :export-fn="exportTrimmed"
       />
     </div>

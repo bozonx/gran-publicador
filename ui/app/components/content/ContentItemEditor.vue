@@ -274,6 +274,7 @@ defineExpose({
         :on-reorder="onReorderMedia"
         :on-update-link="onUpdateLinkMedia"
         :on-copy="onCopyMedia"
+        :group-id="props.groupId"
       />
     </div>
 

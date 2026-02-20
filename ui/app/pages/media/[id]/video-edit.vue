@@ -13,6 +13,9 @@ const authStore = useAuthStore()
 const mediaId = computed(() => route.params.id as string)
 const projectId = computed(() => route.query.projectId as string | undefined)
 
+const collectionId = computed(() => route.query.collectionId as string | undefined)
+const groupId = computed(() => route.query.groupId as string | undefined)
+
 const { fetchMedia, isLoading: isMediaLoading } = useMedia()
 
 const media = ref<Awaited<ReturnType<typeof fetchMedia>>>(null)
@@ -62,6 +65,8 @@ function onEditorClose() {
         :src="source"
         :filename="media.filename"
         :project-id="projectId"
+        :collection-id="collectionId"
+        :group-id="groupId"
         @close="onEditorClose"
       />
     </div>
