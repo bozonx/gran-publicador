@@ -230,6 +230,7 @@ const prompt = ref('')
 const api = useApi()
 const activeChatController = ref<AbortController | null>(null)
 const isChatGenerating = ref(false)
+const isSkippingChat = ref(false)
 
 function getChatErrorDescription(err: any): string {
   const msg = String(err?.message || '')
@@ -372,6 +373,8 @@ function makeContextPromptBlock(tags: LlmContextTag[]): string {
 }
 
 function toggleContextTag(id: string) {
+  if (chatMessages.value.length > 0) return
+
   const tag = contextTags.value.find(t => t.id === id)
   if (tag) {
     tag.enabled = !tag.enabled
@@ -500,10 +503,28 @@ watch(isOpen, async (open) => {
         return m
       })
       metadata.value = savedChat?.model || null
+
+      // Restore context snapshot from the first message if available
+      if (chatMessages.value.length > 0) {
+        const firstMsg = chatMessages.value[0]
+        const snapshot = firstMsg?.contextSnapshot
+        if (Array.isArray(snapshot)) {
+          contextTags.value.forEach(tag => {
+            const saved = snapshot.find(s => s.id === tag.id)
+            if (saved) {
+              tag.enabled = saved.enabled ?? true
+            } else if (chatMessages.value.length > 0) {
+              // If there's a chat, any tag not in the first message's snapshot should be disabled
+              tag.enabled = false
+            }
+          })
+        }
+      }
     }
   } else {
     // Reset form when modal closes
     step.value = 1
+    isSkippingChat.value = false
     chatMessages.value = []
     prompt.value = ''
     fieldsResult.value = null
@@ -627,7 +648,11 @@ async function handleGenerate() {
 }
 
 function handleSkip() {
-  // Skip chat — use context as source text
+  // Skip chat — show context selection next
+  isSkippingChat.value = true
+}
+
+function handleConfirmSkipChat() {
   const contextText = makeContextPromptBlock(contextTags.value).trim()
   if (!contextText) {
     toast.add({
@@ -639,6 +664,7 @@ function handleSkip() {
   }
 
   step.value = 2
+  isSkippingChat.value = false
   pubSelectedFields.content = false
   initPostSelectedFields()
   handleFieldsGeneration(contextText)
@@ -992,9 +1018,10 @@ async function confirmResetChat() {
                 <div class="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
                   <UCheckbox
                     :model-value="ctx.enabled"
+                    :disabled="chatMessages.length > 0 || isSkippingChat"
                     @update:model-value="toggleContextTag(ctx.id)"
                   />
-                  <span class="text-xs truncate max-w-105">{{ ctx.label }}</span>
+                  <span class="text-xs truncate max-w-105" :class="{ 'opacity-50': chatMessages.length > 0 && !isSkippingChat }">{{ ctx.label }}</span>
                 </div>
                 <template #content>
                   <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
@@ -1006,8 +1033,32 @@ async function confirmResetChat() {
           </div>
         </div>
 
-        <!-- Chat Area -->
+        <!-- SKIP CHAT VIEW -->
+        <div v-else-if="isSkippingChat" class="flex flex-col flex-1 min-h-[300px] space-y-4">
+           <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 flex-1">
+              <h3 class="text-sm font-medium mb-4 text-gray-700 dark:text-gray-300">{{ t('llm.context') }}</h3>
+              <div class="flex flex-wrap gap-3">
+                 <div
+                   v-for="ctx in contextTags"
+                   :key="ctx.id"
+                   class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary transition-colors"
+                   @click="toggleContextTag(ctx.id)"
+                 >
+                    <UCheckbox
+                      :model-value="ctx.enabled"
+                      hide-details
+                      @click.stop
+                      @update:model-value="toggleContextTag(ctx.id)"
+                    />
+                    <span class="text-sm">{{ ctx.label }}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <!-- Chat Area (HIDDEN IF SKIPPING) -->
         <div 
+          v-if="!isSkippingChat"
           ref="chatContainer"
           class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/50 dark:bg-gray-950 p-4 space-y-4"
         >
@@ -1072,8 +1123,8 @@ async function confirmResetChat() {
           </div>
         </div>
 
-        <!-- Template Picker -->
-        <div class="mb-4">
+        <!-- Template Picker (HIDDEN IF SKIPPING) -->
+        <div v-if="!isSkippingChat" class="mb-4">
           <UButton
             block
             color="neutral"
@@ -1092,8 +1143,8 @@ async function confirmResetChat() {
           />
         </div>
 
-        <!-- Chat Input -->
-        <div class="relative mb-4">
+        <!-- Chat Input (HIDDEN IF SKIPPING) -->
+        <div v-if="!isSkippingChat" class="relative mb-4">
           <UTextarea
             ref="promptInputRef"
             v-model="prompt"
@@ -1152,8 +1203,8 @@ async function confirmResetChat() {
           </div>
         </div>
 
-        <!-- Metadata & Stats (Chat) -->
-        <div class="mt-2 flex items-center justify-between text-[10px] text-gray-400 px-1">
+        <!-- Metadata & Stats (Chat) (HIDDEN IF SKIPPING) -->
+        <div v-if="!isSkippingChat" class="mt-2 flex items-center justify-between text-[10px] text-gray-400 px-1">
            <div class="flex items-center gap-2">
               <span v-if="estimatedTokensValue">{{ t('llm.estimatedTokens', { count: estimatedTokensValue }) }}</span>
            </div>
@@ -1300,7 +1351,25 @@ async function confirmResetChat() {
             {{ t('llm.resetChat') }}
           </UButton>
         </div>
-        <div class="flex gap-2">
+        <div v-if="isSkippingChat" class="flex gap-2">
+           <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-left"
+            @click="isSkippingChat = false"
+          >
+            {{ t('common.back') }}
+          </UButton>
+          <UButton
+            color="primary"
+            class="min-w-[100px]"
+            :disabled="!hasContext"
+            @click="handleConfirmSkipChat"
+          >
+            {{ t('common.next') }}
+          </UButton>
+        </div>
+        <div v-else class="flex gap-2">
            <UTooltip :text="hasContext ? t('llm.skipDescription') : t('llm.skipDisabledNoContext')">
              <UButton
               color="neutral"
@@ -1308,17 +1377,17 @@ async function confirmResetChat() {
               :disabled="!hasContext"
               @click="handleSkip"
             >
-              {{ t('common.skip') }}
+              {{ t('llm.skipChat') }}
             </UButton>
            </UTooltip>
-          <UTooltip :text="t('llm.nextDescription')">
+          <UTooltip :text="t('llm.generateFieldsTooltip')">
             <UButton
               color="primary"
               class="min-w-[100px]"
               :disabled="!chatMessages.some(m => m.role === 'assistant')"
               @click="handleNext"
             >
-              {{ t('common.next') }}
+              {{ t('llm.generateFields') }}
             </UButton>
           </UTooltip>
         </div>
