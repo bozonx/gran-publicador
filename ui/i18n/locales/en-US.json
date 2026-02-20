@@ -940,6 +940,7 @@
     "notePlaceholder": "Notes for yourself...",
     "options": {
       "disableNotification": "Disable Notification",
+      "showCaptionAboveMedia": "Show caption above media",
       "title": "Platform Options"
     },
     "overrideHint": "Override default settings for this post",

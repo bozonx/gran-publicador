@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.
+
+### Added
+- **Telegram post option: caption above media**: added support for Telegram Bot API option `show_caption_above_media` (sent via `options` object to the social-media microservice).
+
+### Changed
 - **Content Library: removed Content Blocks**: Content items now store `text`, `meta` and `media` directly on `ContentItem`.
   - Removed `ContentBlock` / `ContentBlockMedia` models and all related endpoints.
   - Content merge now concatenates texts with `\n\n---\n\n` and merges media links.

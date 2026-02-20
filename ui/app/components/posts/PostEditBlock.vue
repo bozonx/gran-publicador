@@ -133,6 +133,22 @@ const formData = reactive({
   platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
 })
 
+watch(
+  () => selectedChannel.value?.socialMedia,
+  socialMedia => {
+    if (!socialMedia) return
+
+    if (!formData.platformOptions || typeof formData.platformOptions !== 'object') {
+      formData.platformOptions = {}
+    }
+
+    if (!formData.platformOptions[socialMedia] || typeof formData.platformOptions[socialMedia] !== 'object') {
+      formData.platformOptions[socialMedia] = {}
+    }
+  },
+  { immediate: true },
+)
+
 // Dirty state tracking
 const dirtyState = props.autosave
   ? null
@@ -858,8 +874,15 @@ async function executePublish() {
                     <UFormField :label="t('post.options.title', 'Platform Options')">
                         <div class="flex items-center gap-2 py-1">
                             <UCheckbox 
-                                v-model="formData.platformOptions.disableNotification" 
+                                v-model="formData.platformOptions.telegram.disableNotification" 
                                 :label="t('post.options.disableNotification')" 
+                                :disabled="isLocked"
+                            />
+                        </div>
+                        <div class="flex items-center gap-2 py-1">
+                            <UCheckbox 
+                                v-model="formData.platformOptions.telegram.show_caption_above_media" 
+                                :label="t('post.options.showCaptionAboveMedia')" 
                                 :disabled="isLocked"
                             />
                         </div>

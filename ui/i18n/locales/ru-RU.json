@@ -942,6 +942,7 @@
     "notePlaceholder": "Заметки для себя...",
     "options": {
       "disableNotification": "Без уведомления",
+      "showCaptionAboveMedia": "Текст над медиа",
       "title": "Опции платформы"
     },
     "overrideHint": "Переопределить настройки по умолчанию для этого поста",

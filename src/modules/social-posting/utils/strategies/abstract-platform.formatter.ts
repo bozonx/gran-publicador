@@ -132,10 +132,22 @@ export abstract class AbstractPlatformFormatter {
 
   protected applyCommonOptions(request: PostRequestDto, post: any): void {
     if (post.platformOptions) {
-      const opts =
+      const rawOpts =
         typeof post.platformOptions === 'string'
           ? JSON.parse(post.platformOptions)
           : post.platformOptions;
+
+      const platform = request.platform;
+      const opts =
+        rawOpts &&
+        typeof rawOpts === 'object' &&
+        platform &&
+        rawOpts[platform] &&
+        typeof rawOpts[platform] === 'object'
+          ? rawOpts[platform]
+          : null;
+
+      if (!opts) return;
 
       // Map specific known options
       // Support both camelCase and snake_case for disableNotification

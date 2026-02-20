@@ -71,15 +71,27 @@ describe('SocialPostingRequestFormatter', () => {
   });
 
   it('should handle platformOptions disableNotification', () => {
-    const paramsWithOpts = {
+    const paramsWithNamespacedOpts = {
       ...params,
       post: {
         ...mockPost,
-        platformOptions: { disableNotification: true },
+        platformOptions: { telegram: { disableNotification: true } },
       },
     };
-    const request = SocialPostingRequestFormatter.prepareRequest(paramsWithOpts);
+    const request = SocialPostingRequestFormatter.prepareRequest(paramsWithNamespacedOpts);
     expect(request.disableNotification).toBe(true);
+  });
+
+  it('should forward telegram show_caption_above_media into request.options', () => {
+    const paramsWithTelegramOptions = {
+      ...params,
+      post: {
+        ...mockPost,
+        platformOptions: { telegram: { show_caption_above_media: true } },
+      },
+    };
+    const request = SocialPostingRequestFormatter.prepareRequest(paramsWithTelegramOptions);
+    expect(request.options?.show_caption_above_media).toBe(true);
   });
 
   it('should handle single snapshot media mapping', () => {
