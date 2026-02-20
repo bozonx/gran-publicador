@@ -42,7 +42,12 @@ const saveButtonRef = ref<{ showSuccess: () => void; showError: () => void } | n
 const { t } = useI18n()
 const { updatePost, deletePost, createPost, isLoading, statusOptions: postStatusOptions } = usePosts()
 const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
-const { publishPost, isPublishing, canPublishPost } = useSocialPosting()
+const { publishPost, isPublishing, canPublishPost: baseCanPublishPost } = useSocialPosting()
+
+const canPublishPost = (post: any, pub: any) => {
+    if (pub?.status === 'DRAFT') return false
+    return baseCanPublishPost(post, pub)
+}
 const { getPostProblemLevel } = usePublications()
 const { getChannelProblemLevel } = useChannels()
 const { user } = useAuth()
@@ -970,7 +975,7 @@ async function executePublish() {
             />
             <UTooltip 
               v-if="!isCreating" 
-              :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!canPublishPost(props.post, props.publication) ? (!validationResult.isValid ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish')) : '')"
+              :text="props.publication?.archivedAt ? t('publication.archived_notice') : (!canPublishPost(props.post, props.publication) ? (props.publication?.status === 'DRAFT' ? t('publication.validation.draftBlocked') : (!validationResult.isValid ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish'))) : '')"
             >
               <UButton
                 :label="t('publication.publishNow')"
