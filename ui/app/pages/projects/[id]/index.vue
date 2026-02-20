@@ -535,7 +535,7 @@ async function handleDelete() {
 
         <!-- Published Section -->
         <PublicationsInfiniteBlock
-          :title="t('publication.filter.group.published')"
+          :title="t('publication.filter.published')"
           icon="i-heroicons-check-circle"
           icon-color="text-green-500"
           :publications="publishedPublications"

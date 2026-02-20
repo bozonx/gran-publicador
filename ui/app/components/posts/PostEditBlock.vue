@@ -122,6 +122,18 @@ const overriddenTags = computed(() => {
     return coerceTagsToArray(props.post?.tags)
 })
 
+const initPlatformOptions = (): Record<string, any> => {
+  const raw = props.post?.platformOptions
+  const opts: Record<string, any> = raw
+    ? (typeof raw === 'string' ? JSON.parse(raw) : { ...raw })
+    : {}
+  const socialMedia = props.post?.socialMedia || props.post?.channel?.socialMedia
+  if (socialMedia && (!opts[socialMedia] || typeof opts[socialMedia] !== 'object')) {
+    opts[socialMedia] = {}
+  }
+  return opts
+}
+
 const formData = reactive({
   channelId: '', 
   tags: coerceTagsToArray(props.post?.tags), // Empty array means use publication tags
@@ -130,24 +142,8 @@ const formData = reactive({
   content: props.post?.content || '',
   meta: (props.post?.meta && typeof props.post.meta === 'string' ? JSON.parse(props.post.meta) : (props.post?.meta || {})) as Record<string, any>,
   authorSignature: props.post?.authorSignature || '',
-  platformOptions: (props.post?.platformOptions ? (typeof props.post.platformOptions === 'string' ? JSON.parse(props.post.platformOptions) : props.post.platformOptions) : {}) as Record<string, any>
+  platformOptions: initPlatformOptions()
 })
-
-watch(
-  () => selectedChannel.value?.socialMedia,
-  socialMedia => {
-    if (!socialMedia) return
-
-    if (!formData.platformOptions || typeof formData.platformOptions !== 'object') {
-      formData.platformOptions = {}
-    }
-
-    if (!formData.platformOptions[socialMedia] || typeof formData.platformOptions[socialMedia] !== 'object') {
-      formData.platformOptions[socialMedia] = {}
-    }
-  },
-  { immediate: true },
-)
 
 // Dirty state tracking
 const dirtyState = props.autosave
@@ -209,6 +205,22 @@ const selectedChannel = computed(() => {
     }
     return props.post?.channel
 })
+
+watch(
+  () => selectedChannel.value?.socialMedia,
+  socialMedia => {
+    if (!socialMedia) return
+
+    if (!formData.platformOptions || typeof formData.platformOptions !== 'object') {
+      formData.platformOptions = {}
+    }
+
+    if (!formData.platformOptions[socialMedia] || typeof formData.platformOptions[socialMedia] !== 'object') {
+      formData.platformOptions[socialMedia] = {}
+    }
+  },
+  { immediate: true },
+)
 
 const publicationLanguage = computed(() => {
     return props.publication?.language || props.post?.publication?.language
@@ -437,7 +449,14 @@ watch(() => props.post, (newPost, oldPost) => {
     formData.content = newPost.content || ''
     formData.meta = (newPost.meta && typeof newPost.meta === 'string' ? JSON.parse(newPost.meta) : (newPost.meta || {}))
     formData.authorSignature = newPost.authorSignature || ''
-    formData.platformOptions = (newPost.platformOptions && typeof newPost.platformOptions === 'string' ? JSON.parse(newPost.platformOptions) : (newPost.platformOptions || {}))
+    const rawOpts = newPost.platformOptions && typeof newPost.platformOptions === 'string'
+      ? JSON.parse(newPost.platformOptions)
+      : (newPost.platformOptions ? { ...newPost.platformOptions } : {})
+    const sm = newPost.socialMedia || newPost.channel?.socialMedia
+    if (sm && (!rawOpts[sm] || typeof rawOpts[sm] !== 'object')) {
+      rawOpts[sm] = {}
+    }
+    formData.platformOptions = rawOpts
     
     // Save original state after update
     nextTick(() => {
@@ -870,7 +889,7 @@ async function executePublish() {
                     />
                 </UFormField>
 
-                <div v-if="selectedChannel?.socialMedia === 'telegram'" class="md:col-span-1">
+                <div v-if="selectedChannel?.socialMedia === 'telegram' && formData.platformOptions.telegram" class="md:col-span-1">
                     <UFormField :label="t('post.options.title', 'Platform Options')">
                         <div class="flex items-center gap-2 py-1">
                             <UCheckbox 
