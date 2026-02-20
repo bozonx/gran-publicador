@@ -216,6 +216,15 @@ const previewHtml = computed(() => {
 .post-preview-html :deep(ol) {
   margin: 0.5rem 0;
   padding-left: 1.25rem;
+  list-style-position: outside;
+}
+
+.post-preview-html :deep(ul) {
+  list-style-type: disc;
+}
+
+.post-preview-html :deep(ol) {
+  list-style-type: decimal;
 }
 
 .post-preview-html :deep(li) {
