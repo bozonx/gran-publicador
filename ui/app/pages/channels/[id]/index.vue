@@ -59,6 +59,7 @@ const {
 // Separate composable instance for failed posts (Problematic)
 const {
   posts: problemPosts,
+  totalCount: problemPostsTotal,
   isLoading: isProblemsLoading,
   fetchPostsByProject: fetchProblemPosts,
   setFilter: setProblemFilter,
@@ -67,10 +68,31 @@ const {
 // Separate composable instance for scheduled posts (Pending)
 const {
   posts: scheduledPosts,
+  totalCount: scheduledPostsTotal,
   isLoading: isScheduledLoading,
   fetchPostsByProject: fetchScheduledPosts,
   setFilter: setScheduledFilter,
 } = usePosts()
+
+const scheduledPage = ref(1)
+const problemsPage = ref(1)
+
+const hasMoreScheduled = computed(() => scheduledPosts.value.length < scheduledPostsTotal.value)
+const hasMoreProblems = computed(() => problemPosts.value.length < problemPostsTotal.value)
+
+async function loadMoreScheduled() {
+  if (isScheduledLoading.value || !hasMoreScheduled.value) return
+  scheduledPage.value++
+  setScheduledFilter({ page: scheduledPage.value })
+  await fetchScheduledPosts(projectId.value, { append: true })
+}
+
+async function loadMoreProblems() {
+  if (isProblemsLoading.value || !hasMoreProblems.value) return
+  problemsPage.value++
+  setProblemFilter({ page: problemsPage.value })
+  await fetchProblemPosts(projectId.value, { append: true })
+}
 
 const {
   publications: draftPublications,
@@ -195,19 +217,27 @@ onMounted(async () => {
         await resetAndFetchPosts()
         
         // Fetch failed posts (Problematic)
+        problemsPage.value = 1
         setProblemFilter({
             channelId: channelId.value,
             status: 'FAILED' as PostStatus,
-            limit: 5
+            limit: 5,
+            page: 1,
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
         })
         await fetchProblemPosts(projectId.value)
 
         // Fetch scheduled posts (Pending) - only those from ready/scheduled/processing publications
+        scheduledPage.value = 1
         setScheduledFilter({
             channelId: channelId.value,
             status: 'PENDING' as PostStatus,
             publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
-            limit: 5
+            limit: 5,
+            page: 1,
+            sortBy: 'scheduledAt',
+            sortOrder: 'asc'
         })
         await fetchScheduledPosts(projectId.value)
 
@@ -608,82 +638,36 @@ const channelProblems = computed(() => {
             <!-- Scheduled and Problems Columns -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <!-- Scheduled Column -->
-                <div class="app-card">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
-                            {{ t('publicationStatus.scheduled', 'Scheduled') }}
-                            <CommonCountBadge :count="scheduledPosts.length" />
-                        </h3>
-                        <UButton
-                            v-if="scheduledPosts.length > 5"
-                            variant="ghost"
-                            color="neutral"
-                            size="xs"
-                            icon="i-heroicons-arrow-right"
-                            trailing
-                            :to="`/publications?channelId=${channelId}&status=READY,SCHEDULED,PROCESSING`"
-                        >
-                            {{ t('common.viewAll') }}
-                        </UButton>
-                    </div>
-
-                    <div v-if="isScheduledLoading && !scheduledPosts.length" class="flex justify-center py-4">
-                        <UiLoadingSpinner size="sm" />
-                    </div>
-                    <div v-else-if="scheduledPosts.length > 0" class="grid grid-cols-1 gap-2">
-                        <PublicationsPublicationMiniItem
-                            v-for="post in scheduledPosts"
-                            :key="post.id"
-                            :publication="mapPostToPublication(post)"
-                            show-date
-                            date-type="scheduled"
-                        />
-                    </div>
-                    <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-                         {{ t('common.noData') }}
-                    </div>
-                </div>
+                <PublicationsInfiniteBlock
+                  :title="t('publicationStatus.scheduled')"
+                  icon="i-heroicons-clock"
+                  icon-color="text-sky-500"
+                  :publications="scheduledPosts.map(mapPostToPublication)"
+                  :total-count="scheduledPostsTotal"
+                  :loading="isScheduledLoading"
+                  :has-more="hasMoreScheduled"
+                  :view-all-to="`/publications?channelId=${channelId}&status=READY,SCHEDULED,PROCESSING&sortBy=scheduledAt&sortOrder=asc`"
+                  show-date
+                  date-type="scheduled"
+                  @load-more="loadMoreScheduled"
+                />
 
                 <!-- Problem Column -->
-                <div class="app-card">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
-                            {{ t('publication.filter.showIssuesOnly', 'Problems') }}
-                            <CommonCountBadge :count="problemPosts.length" color="error" />
-                        </h3>
-                        <UButton
-                            v-if="problemPosts.length > 5"
-                            variant="ghost"
-                            color="neutral"
-                            size="xs"
-                            icon="i-heroicons-arrow-right"
-                            trailing
-                            :to="`/publications?channelId=${channelId}&status=FAILED`"
-                        >
-                            {{ t('common.viewAll') }}
-                        </UButton>
-                    </div>
-
-                    <div v-if="isProblemsLoading && !problemPosts.length" class="flex justify-center py-4">
-                        <UiLoadingSpinner size="sm" />
-                    </div>
-                    <div v-else-if="problemPosts.length > 0" class="grid grid-cols-1 gap-2">
-                        <PublicationsPublicationMiniItem
-                            v-for="post in problemPosts"
-                            :key="post.id"
-                            :publication="mapPostToPublication(post)"
-                            show-status
-                            show-date
-                            date-type="scheduled"
-                            is-problematic
-                        />
-                    </div>
-                    <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-                         {{ t('common.noData') }}
-                    </div>
-                </div>
+                <PublicationsInfiniteBlock
+                  :title="t('publication.filter.showIssuesOnly')"
+                  icon="i-heroicons-exclamation-triangle"
+                  icon-color="text-red-500"
+                  :publications="problemPosts.map(mapPostToPublication)"
+                  :total-count="problemPostsTotal"
+                  :loading="isProblemsLoading"
+                  :has-more="hasMoreProblems"
+                  :view-all-to="`/publications?channelId=${channelId}&status=FAILED&sortBy=createdAt&sortOrder=desc`"
+                  show-status
+                  show-date
+                  date-type="scheduled"
+                  is-problematic
+                  @load-more="loadMoreProblems"
+                />
             </div>
 
             <!-- Posts Panel -->

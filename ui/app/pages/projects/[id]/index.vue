@@ -63,8 +63,53 @@ const {
   publications: publishedPublications,
   isLoading: isPublishedLoading,
   totalCount: publishedTotal,
-  fetchPublicationsByProject: fetchRecentPublished,
+  fetchPublicationsByProject: fetchPublished,
 } = usePublications()
+
+const scheduledOffset = ref(0)
+const problemsOffset = ref(0)
+const publishedOffset = ref(0)
+const LIMIT = 10
+
+const hasMoreScheduled = computed(() => scheduledPublications.value.length < scheduledTotal.value)
+const hasMoreProblems = computed(() => problemPublications.value.length < problemsTotal.value)
+const hasMorePublished = computed(() => publishedPublications.value.length < publishedTotal.value)
+
+async function loadMoreScheduled() {
+  if (isScheduledLoading.value || !hasMoreScheduled.value) return
+  scheduledOffset.value += LIMIT
+  await fetchScheduled(projectId.value, { 
+    status: 'SCHEDULED', 
+    limit: LIMIT, 
+    offset: scheduledOffset.value,
+    sortBy: 'byScheduled',
+    sortOrder: 'asc'
+  }, { append: true })
+}
+
+async function loadMoreProblems() {
+  if (isProblemsLoading.value || !hasMoreProblems.value) return
+  problemsOffset.value += LIMIT
+  await fetchProblems(projectId.value, { 
+    status: ['PARTIAL', 'FAILED', 'EXPIRED'], 
+    limit: LIMIT, 
+    offset: problemsOffset.value,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  }, { append: true })
+}
+
+async function loadMorePublished() {
+  if (isPublishedLoading.value || !hasMorePublished.value) return
+  publishedOffset.value += LIMIT
+  await fetchPublished(projectId.value, { 
+    status: 'PUBLISHED', 
+    limit: LIMIT, 
+    offset: publishedOffset.value,
+    sortBy: 'byPublished',
+    sortOrder: 'desc'
+  }, { append: true })
+}
 
 const {
   channels,
@@ -92,20 +137,32 @@ onUnmounted(() => {
 })
 
 async function initialFetch() {
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  scheduledOffset.value = 0
+  problemsOffset.value = 0
+  publishedOffset.value = 0
+  
   await Promise.all([
     fetchProject(projectId.value),
     fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
     fetchReady(projectId.value, { status: 'READY', limit: 5 }),
-    fetchRecentPublished(projectId.value, { 
+    fetchPublished(projectId.value, { 
       status: 'PUBLISHED', 
-      publishedAfter: yesterday,
-      limit: 10,
+      limit: LIMIT,
       sortBy: 'byPublished',
       sortOrder: 'desc'
     }),
-    fetchScheduled(projectId.value, { status: 'SCHEDULED', limit: 5 }),
-    fetchProblems(projectId.value, { status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: 5 }),
+    fetchScheduled(projectId.value, { 
+      status: 'SCHEDULED', 
+      limit: LIMIT,
+      sortBy: 'byScheduled',
+      sortOrder: 'asc'
+    }),
+    fetchProblems(projectId.value, { 
+      status: ['PARTIAL', 'FAILED', 'EXPIRED'], 
+      limit: LIMIT,
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    }),
     fetchChannels({ projectId: projectId.value, limit: 100 })
   ])
 }
@@ -444,123 +501,52 @@ async function handleDelete() {
         <!-- Scheduled and Problems Columns -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Scheduled Column -->
-          <div class="app-card p-4 sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
-                {{ t('publicationStatus.scheduled') }}
-                <CommonCountBadge :count="scheduledTotal" />
-              </h3>
-              <UButton
-                v-if="scheduledTotal > 5"
-                variant="ghost"
-                color="neutral"
-                size="xs"
-                icon="i-heroicons-arrow-right"
-                trailing
-                :to="`/publications?projectId=${projectId}&status=SCHEDULED`"
-              >
-                {{ t('common.viewAll') }}
-              </UButton>
-            </div>
-
-            <div v-if="isScheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
-              <UiLoadingSpinner size="sm" />
-            </div>
-            <div v-else-if="scheduledPublications.length > 0" class="grid grid-cols-1 gap-2">
-              <PublicationsPublicationMiniItem
-                v-for="pub in scheduledPublications"
-                :key="pub.id"
-                :publication="pub"
-                show-date
-                date-type="scheduled"
-              />
-            </div>
-            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-              {{ t('common.noData') }}
-            </div>
-          </div>
+          <PublicationsInfiniteBlock
+            :title="t('publicationStatus.scheduled')"
+            icon="i-heroicons-clock"
+            icon-color="text-sky-500"
+            :publications="scheduledPublications"
+            :total-count="scheduledTotal"
+            :loading="isScheduledLoading"
+            :has-more="hasMoreScheduled"
+            :view-all-to="`/publications?projectId=${projectId}&status=SCHEDULED&sortBy=byScheduled&sortOrder=asc`"
+            show-date
+            date-type="scheduled"
+            @load-more="loadMoreScheduled"
+          />
 
           <!-- Problem Column -->
-          <div class="app-card p-4 sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
-                {{ t('publication.filter.showIssuesOnly') }}
-                <CommonCountBadge :count="problemsTotal" color="error" />
-              </h3>
-              <UButton
-                v-if="problemsTotal > 5"
-                variant="ghost"
-                color="neutral"
-                size="xs"
-                icon="i-heroicons-arrow-right"
-                trailing
-                :to="`/publications?projectId=${projectId}&status=PARTIAL,FAILED,EXPIRED`"
-              >
-                {{ t('common.viewAll') }}
-              </UButton>
-            </div>
-
-            <div v-if="isProblemsLoading && !problemPublications.length" class="flex justify-center py-4">
-              <UiLoadingSpinner size="sm" />
-            </div>
-            <div v-else-if="problemPublications.length > 0" class="grid grid-cols-1 gap-2">
-              <PublicationsPublicationMiniItem
-                v-for="pub in problemPublications"
-                :key="pub.id"
-                :publication="pub"
-                show-status
-                show-date
-                date-type="scheduled"
-                is-problematic
-              />
-            </div>
-            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-              {{ t('common.noData') }}
-            </div>
-          </div>
+          <PublicationsInfiniteBlock
+            :title="t('publication.filter.showIssuesOnly')"
+            icon="i-heroicons-exclamation-triangle"
+            icon-color="text-red-500"
+            :publications="problemPublications"
+            :total-count="problemsTotal"
+            :loading="isProblemsLoading"
+            :has-more="hasMoreProblems"
+            :view-all-to="`/publications?projectId=${projectId}&status=PARTIAL,FAILED,EXPIRED&sortBy=createdAt&sortOrder=desc`"
+            show-status
+            show-date
+            date-type="scheduled"
+            is-problematic
+            @load-more="loadMoreProblems"
+          />
         </div>
 
-        <!-- Published in the last 24h Section -->
-        <div class="app-card p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
-              {{ t('dashboard.published_last_24h', 'Published last 24h') }}
-              <CommonCountBadge :count="publishedTotal" color="success" />
-            </h3>
-            <UButton
-              v-if="publishedTotal > 0"
-              :to="`/publications?projectId=${projectId}&status=PUBLISHED&sortBy=byPublished`"
-              variant="ghost"
-              size="xs"
-              color="primary"
-              icon="i-heroicons-arrow-right"
-              trailing
-            >
-              {{ t('common.viewAll') }}
-            </UButton>
-          </div>
-
-          <div v-if="isPublishedLoading && !publishedPublications.length" class="flex justify-center py-4">
-            <UiLoadingSpinner size="sm" />
-          </div>
-
-          <div v-else-if="publishedPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <PublicationsPublicationMiniItem
-              v-for="pub in publishedPublications"
-              :key="pub.id"
-              :publication="pub"
-              show-date
-              date-type="scheduled"
-            />
-          </div>
-
-          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-            {{ t('dashboard.no_published_last_24h', 'No publications were published in the last 24 hours') }}
-          </div>
-        </div>
+        <!-- Published Section -->
+        <PublicationsInfiniteBlock
+          :title="t('publication.filter.group.published')"
+          icon="i-heroicons-check-circle"
+          icon-color="text-green-500"
+          :publications="publishedPublications"
+          :total-count="publishedTotal"
+          :loading="isPublishedLoading"
+          :has-more="hasMorePublished"
+          :view-all-to="`/publications?projectId=${projectId}&status=PUBLISHED&sortBy=byPublished&sortOrder=desc`"
+          show-date
+          date-type="scheduled"
+          @load-more="loadMorePublished"
+        />
 
         <!-- Create Publication Modal (reused) -->
         <ModalsCreatePublicationModal
