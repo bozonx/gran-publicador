@@ -15,6 +15,10 @@ useHead({
 
 const newProjectName = ref('')
 
+onMounted(() => {
+  videoEditorStore.init()
+})
+
 async function createNewProject() {
   if (!newProjectName.value.trim()) return
   await videoEditorStore.createProject(newProjectName.value.trim())
@@ -67,9 +71,9 @@ async function createNewProject() {
     <!-- Projects List Screen -->
     <div 
       v-else-if="!videoEditorStore.currentProjectName" 
-      class="flex flex-col flex-1 bg-gray-950 p-8"
+      class="flex flex-col flex-1 bg-gray-950 p-8 overflow-y-auto"
     >
-      <div class="max-w-4xl w-full mx-auto space-y-8">
+      <div class="max-w-5xl w-full mx-auto space-y-8 pb-12">
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-white">{{ t('granVideoEditor.projects.title', 'Projects') }}</h1>
@@ -91,9 +95,30 @@ async function createNewProject() {
           {{ videoEditorStore.error }}
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Last Project Hero Section -->
+        <div 
+          v-if="videoEditorStore.lastProjectName && videoEditorStore.projects.includes(videoEditorStore.lastProjectName)"
+          class="bg-linear-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6"
+        >
+          <div class="space-y-2">
+            <span class="text-indigo-400 text-xs font-bold uppercase tracking-widest">
+              {{ t('granVideoEditor.projects.continueWorking', 'Continue Working') }}
+            </span>
+            <h2 class="text-3xl font-bold text-white">{{ videoEditorStore.lastProjectName }}</h2>
+          </div>
+          <UButton
+            size="xl"
+            color="primary"
+            class="px-8 shadow-lg shadow-indigo-500/20"
+            icon="i-heroicons-play"
+            :label="t('granVideoEditor.projects.openLast', 'Open Project')"
+            @click="videoEditorStore.openProject(videoEditorStore.lastProjectName)"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <!-- Create New Project Card -->
-          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col gap-4">
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col gap-4 shadow-xl">
             <h3 class="font-medium text-white">{{ t('granVideoEditor.projects.newProject', 'New Project') }}</h3>
             <UInput
               v-model="newProjectName"
@@ -102,7 +127,7 @@ async function createNewProject() {
             />
             <UButton
               color="primary"
-              variant="solid"
+              variant="soft"
               class="justify-center mt-auto"
               :loading="videoEditorStore.isLoading"
               :disabled="!newProjectName.trim()"
@@ -115,12 +140,14 @@ async function createNewProject() {
           <div
             v-for="project in videoEditorStore.projects"
             :key="project"
-            class="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col hover:border-indigo-500/50 hover:bg-gray-800/50 transition-colors cursor-pointer group"
+            class="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col hover:border-indigo-500/50 hover:bg-gray-800/80 transition-all cursor-pointer group shadow-lg"
             @click="videoEditorStore.openProject(project)"
           >
             <div class="flex items-center gap-3 mb-4">
-              <UIcon name="i-heroicons-film" class="w-6 h-6 text-indigo-400" />
-              <h3 class="font-medium text-white group-hover:text-indigo-300 transition-colors">{{ project }}</h3>
+              <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
+                <UIcon name="i-heroicons-film" class="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" />
+              </div>
+              <h3 class="font-medium text-white truncate group-hover:text-indigo-300 transition-colors">{{ project }}</h3>
             </div>
             <div class="mt-auto flex justify-end">
               <UButton
@@ -128,7 +155,7 @@ async function createNewProject() {
                 variant="ghost"
                 color="primary"
                 icon="i-heroicons-arrow-right"
-                class="opacity-0 group-hover:opacity-100 transition-opacity"
+                class="opacity-0 group-hover:opacity-100 transition-all translate-x-1 group-hover:translate-x-0"
                 :label="t('common.open', 'Open')"
               />
             </div>

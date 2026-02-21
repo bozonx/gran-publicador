@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 
 export const useVideoEditorStore = defineStore('videoEditor', () => {
   const workspaceHandle = ref<FileSystemDirectoryHandle | null>(null)
   const projectsHandle = ref<FileSystemDirectoryHandle | null>(null)
   const currentProjectName = ref<string | null>(null)
   const currentFileName = ref<string | null>(null)
+  const lastProjectName = useLocalStorage<string | null>('gran-editor-last-project', null)
   
   const projects = ref<string[]>([])
   const isLoading = ref(false)
@@ -13,26 +15,88 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window
 
+  // Helper to store handle in IndexedDB (as we can't put it in localStorage)
+  async function saveHandleToIndexedDB(handle: FileSystemDirectoryHandle) {
+    const request = indexedDB.open('GranVideoEditor', 1)
+    request.onupgradeneeded = (e: any) => {
+      const db = e.target.result
+      if (!db.objectStoreNames.contains('handles')) {
+        db.createObjectStore('handles')
+      }
+    }
+    return new Promise((resolve, reject) => {
+      request.onsuccess = (e: any) => {
+        const db = e.target.result
+        const tx = db.transaction('handles', 'readwrite')
+        const store = tx.objectStore('handles')
+        store.put(handle, 'workspace')
+        tx.oncomplete = () => resolve(true)
+        tx.onerror = () => reject(tx.error)
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async function getHandleFromIndexedDB(): Promise<FileSystemDirectoryHandle | null> {
+    const request = indexedDB.open('GranVideoEditor', 1)
+    request.onupgradeneeded = (e: any) => {
+      const db = e.target.result
+      if (!db.objectStoreNames.contains('handles')) {
+        db.createObjectStore('handles')
+      }
+    }
+    return new Promise((resolve, reject) => {
+      request.onsuccess = (e: any) => {
+        const db = e.target.result
+        const tx = db.transaction('handles', 'readonly')
+        const store = tx.objectStore('handles')
+        const getReq = store.get('workspace')
+        getReq.onsuccess = () => resolve(getReq.result || null)
+        getReq.onerror = () => reject(getReq.error)
+      }
+      request.onerror = () => resolve(null) // Database might not exist yet
+    })
+  }
+
+  async function init() {
+    if (!isApiSupported) return
+    try {
+      const handle = await getHandleFromIndexedDB()
+      if (handle) {
+        // Verify permission (browser might require user gesture for re-activation sometimes, 
+        // but often if it's stored in IDB it works or requires a simple prompt)
+        const options = { mode: 'readwrite' }
+        if ((await (handle as any).queryPermission(options)) === 'granted') {
+          await setupWorkspace(handle)
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore workspace handle:', e)
+    }
+  }
+
+  async function setupWorkspace(handle: FileSystemDirectoryHandle) {
+    workspaceHandle.value = handle
+    // Ensure base directories exist
+    const folders = ['proxies', 'thumbs', 'cache', 'projects']
+    for (const folder of folders) {
+      if (folder === 'projects') {
+        projectsHandle.value = await handle.getDirectoryHandle(folder, { create: true })
+      } else {
+        await handle.getDirectoryHandle(folder, { create: true })
+      }
+    }
+    await loadProjects()
+  }
+
   async function openWorkspace() {
     if (!isApiSupported) return
     error.value = null
     isLoading.value = true
     try {
-      // Prompt user to select directory
       const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' })
-      workspaceHandle.value = handle
-
-      // Ensure base directories exist
-      const folders = ['proxies', 'thumbs', 'cache', 'projects']
-      for (const folder of folders) {
-        if (folder === 'projects') {
-          projectsHandle.value = await handle.getDirectoryHandle(folder, { create: true })
-        } else {
-          await handle.getDirectoryHandle(folder, { create: true })
-        }
-      }
-
-      await loadProjects()
+      await setupWorkspace(handle)
+      await saveHandleToIndexedDB(handle)
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         error.value = e?.message ?? 'Failed to open workspace folder'
@@ -69,7 +133,6 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       return
     }
     
-    // Check if project exists
     if (projects.value.includes(name)) {
       error.value = 'Project already exists'
       return
@@ -79,7 +142,6 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     isLoading.value = true
     try {
       const projectDir = await projectsHandle.value.getDirectoryHandle(name, { create: true })
-      
       const sourcesDir = await projectDir.getDirectoryHandle('sources', { create: true })
       await sourcesDir.getDirectoryHandle('video', { create: true })
       await sourcesDir.getDirectoryHandle('audio', { create: true })
@@ -88,7 +150,6 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       const otioFileName = `${name}_001.otio`
       const otioFile = await projectDir.getFileHandle(otioFileName, { create: true })
       
-      // Initialize an empty OpenTimelineIO structure if needed
       const writable = await (otioFile as any).createWritable()
       await writable.write(`{
   "OTIO_SCHEMA": "Timeline.1",
@@ -116,7 +177,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       return
     }
     currentProjectName.value = name
-    currentFileName.value = `${name}_001.otio` // Just opening the first one by default for now
+    currentFileName.value = `${name}_001.otio`
+    lastProjectName.value = name
   }
 
   function resetWorkspace() {
@@ -126,6 +188,13 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     currentFileName.value = null
     projects.value = []
     error.value = null
+    // Clear IndexedDB
+    const request = indexedDB.open('GranVideoEditor', 1)
+    request.onsuccess = (e: any) => {
+      const db = e.target.result
+      const tx = db.transaction('handles', 'readwrite')
+      tx.objectStore('handles').delete('workspace')
+    }
   }
 
   return {
@@ -133,10 +202,12 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     projectsHandle,
     currentProjectName,
     currentFileName,
+    lastProjectName,
     projects,
     isLoading,
     error,
     isApiSupported,
+    init,
     openWorkspace,
     createProject,
     loadProjects,
@@ -144,3 +215,4 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     resetWorkspace,
   }
 })
+
