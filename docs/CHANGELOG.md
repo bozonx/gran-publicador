@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
   - Added Project tab in the left panel with project-level Export and Proxy settings.
   - Added persistent settings file `.gran/project.settings.json` per project; settings are loaded on project open and auto-saved on change.
   - Timeline export modal now uses project settings as defaults for resolution and encoding and allows overriding export resolution per export run.
+- **Gran Video Editor: editor settings**
+  - Added editor settings modal доступный из top bar.
+  - User/UI settings are stored in localStorage (open behavior).
+  - Workspace/system settings are stored in `.gran/editor.settings.json` (proxy storage limit and new project defaults).
 
 ### Changed
 - **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.

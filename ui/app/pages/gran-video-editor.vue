@@ -2,11 +2,13 @@
 import { useVideoEditorStore } from '~/stores/videoEditor'
 import { ref } from 'vue'
 import TimelineExportModal from '~/components/gran-video-editor/TimelineExportModal.vue'
+import EditorSettingsModal from '~/components/gran-video-editor/EditorSettingsModal.vue'
 
 const { t } = useI18n()
 const videoEditorStore = useVideoEditorStore()
 
 const isExportModalOpen = ref(false)
+const isEditorSettingsOpen = ref(false)
 
 definePageMeta({
   layout: 'editor',
@@ -192,6 +194,14 @@ async function createNewProject() {
         <div class="flex items-center gap-2">
           <UButton
             size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-heroicons-cog-6-tooth"
+            :title="t('videoEditor.settings.title', 'Editor settings')"
+            @click="isEditorSettingsOpen = true"
+          />
+          <UButton
+            size="xs"
             variant="soft"
             color="primary"
             icon="i-heroicons-arrow-down-tray"
@@ -217,6 +227,10 @@ async function createNewProject() {
       <TimelineExportModal
         v-model:open="isExportModalOpen"
         @exported="() => {}"
+      />
+
+      <EditorSettingsModal
+        v-model:open="isEditorSettingsOpen"
       />
     </template>
   </div>

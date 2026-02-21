@@ -10,10 +10,52 @@ export interface TimelineClip {
   fileHandle?: FileSystemFileHandle;
 }
 
+function normalizeWorkspaceSettings(raw: unknown): VideoEditorWorkspaceSettings {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      ...DEFAULT_WORKSPACE_SETTINGS,
+      defaults: { newProject: { ...DEFAULT_WORKSPACE_SETTINGS.defaults.newProject } },
+    };
+  }
+
+  const input = raw as Record<string, any>;
+  const defaultsInput = input.defaults ?? {};
+  const newProjectInput = defaultsInput.newProject ?? {};
+
+  const proxyStorageLimitBytes = Number(input.proxyStorageLimitBytes);
+  const width = Number(newProjectInput.width);
+  const height = Number(newProjectInput.height);
+  const fps = Number(newProjectInput.fps);
+
+  return {
+    proxyStorageLimitBytes:
+      Number.isFinite(proxyStorageLimitBytes) && proxyStorageLimitBytes > 0
+        ? Math.round(proxyStorageLimitBytes)
+        : DEFAULT_WORKSPACE_SETTINGS.proxyStorageLimitBytes,
+    defaults: {
+      newProject: {
+        width:
+          Number.isFinite(width) && width > 0
+            ? Math.round(width)
+            : DEFAULT_WORKSPACE_SETTINGS.defaults.newProject.width,
+        height:
+          Number.isFinite(height) && height > 0
+            ? Math.round(height)
+            : DEFAULT_WORKSPACE_SETTINGS.defaults.newProject.height,
+        fps:
+          Number.isFinite(fps) && fps > 0
+            ? Math.round(Math.min(240, Math.max(1, fps)))
+            : DEFAULT_WORKSPACE_SETTINGS.defaults.newProject.fps,
+      },
+    },
+  };
+}
+
 const DEFAULT_PROJECT_SETTINGS: VideoEditorProjectSettings = {
   export: {
     width: 1920,
     height: 1080,
+    fps: 30,
     encoding: {
       format: 'mp4',
       videoCodec: 'avc1.42E032',
@@ -27,11 +69,27 @@ const DEFAULT_PROJECT_SETTINGS: VideoEditorProjectSettings = {
   },
 };
 
+const DEFAULT_USER_SETTINGS: VideoEditorUserSettings = {
+  openBehavior: 'open_last_project',
+};
+
+const DEFAULT_WORKSPACE_SETTINGS: VideoEditorWorkspaceSettings = {
+  proxyStorageLimitBytes: 10 * 1024 * 1024 * 1024,
+  defaults: {
+    newProject: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+    },
+  },
+};
+
 function createDefaultProjectSettings(): VideoEditorProjectSettings {
   return {
     export: {
       width: DEFAULT_PROJECT_SETTINGS.export.width,
       height: DEFAULT_PROJECT_SETTINGS.export.height,
+      fps: DEFAULT_PROJECT_SETTINGS.export.fps,
       encoding: {
         format: DEFAULT_PROJECT_SETTINGS.export.encoding.format,
         videoCodec: DEFAULT_PROJECT_SETTINGS.export.encoding.videoCodec,
@@ -61,6 +119,7 @@ function normalizeProjectSettings(raw: unknown): VideoEditorProjectSettings {
   const bitrateMbps = Number(encodingInput.bitrateMbps);
   const audioBitrateKbps = Number(encodingInput.audioBitrateKbps);
   const proxyHeight = Number(proxyInput.height);
+  const fps = Number(exportInput.fps);
   const format = encodingInput.format;
 
   return {
@@ -73,6 +132,10 @@ function normalizeProjectSettings(raw: unknown): VideoEditorProjectSettings {
         Number.isFinite(height) && height > 0
           ? Math.round(height)
           : DEFAULT_PROJECT_SETTINGS.export.height,
+      fps:
+        Number.isFinite(fps) && fps > 0
+          ? Math.round(Math.min(240, Math.max(1, fps)))
+          : DEFAULT_PROJECT_SETTINGS.export.fps,
       encoding: {
         format: format === 'webm' || format === 'mkv' ? format : 'mp4',
         videoCodec:
@@ -103,6 +166,7 @@ export interface VideoEditorProjectSettings {
   export: {
     width: number;
     height: number;
+    fps: number;
     encoding: {
       format: 'mp4' | 'webm' | 'mkv';
       videoCodec: string;
@@ -116,12 +180,30 @@ export interface VideoEditorProjectSettings {
   };
 }
 
+export interface VideoEditorUserSettings {
+  openBehavior: 'open_last_project' | 'show_project_picker';
+}
+
+export interface VideoEditorWorkspaceSettings {
+  proxyStorageLimitBytes: number;
+  defaults: {
+    newProject: {
+      width: number;
+      height: number;
+      fps: number;
+    };
+  };
+}
+
 export const useVideoEditorStore = defineStore('videoEditor', () => {
   const workspaceHandle = ref<FileSystemDirectoryHandle | null>(null);
   const projectsHandle = ref<FileSystemDirectoryHandle | null>(null);
   const currentProjectName = ref<string | null>(null);
   const currentFileName = ref<string | null>(null);
   const lastProjectName = useLocalStorage<string | null>('gran-editor-last-project', null);
+  const userSettings = useLocalStorage<VideoEditorUserSettings>('gran-video-editor:user-settings', {
+    openBehavior: DEFAULT_USER_SETTINGS.openBehavior,
+  });
 
   const projects = ref<string[]>([]);
   const isLoading = ref(false);
@@ -138,6 +220,15 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const projectSettings = ref<VideoEditorProjectSettings>(createDefaultProjectSettings());
   const isLoadingProjectSettings = ref(false);
   let isPersistingProjectSettings = false;
+
+  const workspaceSettings = ref<VideoEditorWorkspaceSettings>({
+    ...DEFAULT_WORKSPACE_SETTINGS,
+    defaults: {
+      newProject: { ...DEFAULT_WORKSPACE_SETTINGS.defaults.newProject },
+    },
+  });
+  const isLoadingWorkspaceSettings = ref(false);
+  let isPersistingWorkspaceSettings = false;
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
@@ -219,6 +310,65 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     }
   }
 
+  async function ensureWorkspaceSettingsFile(options?: {
+    create?: boolean;
+  }): Promise<FileSystemFileHandle | null> {
+    if (!workspaceHandle.value) return null;
+    const granDir = await workspaceHandle.value.getDirectoryHandle('.gran', {
+      create: options?.create ?? false,
+    });
+    return await granDir.getFileHandle('editor.settings.json', {
+      create: options?.create ?? false,
+    });
+  }
+
+  async function loadWorkspaceSettings() {
+    if (!workspaceHandle.value) return;
+    isLoadingWorkspaceSettings.value = true;
+    try {
+      const settingsFileHandle = await ensureWorkspaceSettingsFile({ create: false });
+      if (!settingsFileHandle) {
+        workspaceSettings.value = normalizeWorkspaceSettings(null);
+        return;
+      }
+
+      const file = await settingsFileHandle.getFile();
+      const text = await file.text();
+      if (!text.trim()) {
+        workspaceSettings.value = normalizeWorkspaceSettings(null);
+        return;
+      }
+
+      workspaceSettings.value = normalizeWorkspaceSettings(JSON.parse(text));
+    } catch (e: any) {
+      if (e?.name === 'NotFoundError') {
+        workspaceSettings.value = normalizeWorkspaceSettings(null);
+        return;
+      }
+
+      console.warn('Failed to load workspace editor settings, fallback to defaults', e);
+      workspaceSettings.value = normalizeWorkspaceSettings(null);
+    } finally {
+      isLoadingWorkspaceSettings.value = false;
+    }
+  }
+
+  async function saveWorkspaceSettings() {
+    if (!workspaceHandle.value || isLoadingWorkspaceSettings.value) return;
+    isPersistingWorkspaceSettings = true;
+    try {
+      const settingsFileHandle = await ensureWorkspaceSettingsFile({ create: true });
+      if (!settingsFileHandle) return;
+      const writable = await (settingsFileHandle as any).createWritable();
+      await writable.write(`${JSON.stringify(workspaceSettings.value, null, 2)}\n`);
+      await writable.close();
+    } catch (e) {
+      console.warn('Failed to save workspace editor settings', e);
+    } finally {
+      isPersistingWorkspaceSettings = false;
+    }
+  }
+
   // Helper to store handle in IndexedDB (as we can't put it in localStorage)
   async function saveHandleToIndexedDB(handle: FileSystemDirectoryHandle) {
     const request = indexedDB.open('GranVideoEditor', 1);
@@ -284,6 +434,13 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
         const options = { mode: 'readwrite' };
         if ((await (handle as any).queryPermission(options)) === 'granted') {
           await setupWorkspace(handle);
+
+          if (userSettings.value.openBehavior === 'open_last_project') {
+            const candidate = lastProjectName.value;
+            if (candidate && projects.value.includes(candidate)) {
+              await openProject(candidate);
+            }
+          }
         }
       }
     } catch (e) {
@@ -303,6 +460,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       }
     }
     await loadProjects();
+    await loadWorkspaceSettings();
+    await saveWorkspaceSettings();
   }
 
   async function openWorkspace() {
@@ -313,6 +472,13 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
       await setupWorkspace(handle);
       await saveHandleToIndexedDB(handle);
+
+      if (userSettings.value.openBehavior === 'open_last_project') {
+        const candidate = lastProjectName.value;
+        if (candidate && projects.value.includes(candidate)) {
+          await openProject(candidate);
+        }
+      }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         error.value = e?.message ?? 'Failed to open workspace folder';
@@ -365,6 +531,28 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       await sourcesDir.getDirectoryHandle('images', { create: true });
       await sourcesDir.getDirectoryHandle('timelines', { create: true });
 
+      try {
+        const granDir = await projectDir.getDirectoryHandle('.gran', { create: true });
+        const settingsHandle = await granDir.getFileHandle('project.settings.json', {
+          create: true,
+        });
+        const initial = createDefaultProjectSettings();
+        const seeded: VideoEditorProjectSettings = {
+          ...initial,
+          export: {
+            ...initial.export,
+            width: workspaceSettings.value.defaults.newProject.width,
+            height: workspaceSettings.value.defaults.newProject.height,
+            fps: workspaceSettings.value.defaults.newProject.fps,
+          },
+        };
+        const writableSettings = await (settingsHandle as any).createWritable();
+        await writableSettings.write(`${JSON.stringify(seeded, null, 2)}\n`);
+        await writableSettings.close();
+      } catch (e) {
+        console.warn('Failed to create project settings file', e);
+      }
+
       const otioFileName = `${name}_001.otio`;
       const otioFile = await projectDir.getFileHandle(otioFileName, { create: true });
 
@@ -416,6 +604,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     projectSettings.value = createDefaultProjectSettings();
     isLoadingProjectSettings.value = false;
     isPersistingProjectSettings = false;
+    workspaceSettings.value = normalizeWorkspaceSettings(null);
+    isLoadingWorkspaceSettings.value = false;
+    isPersistingWorkspaceSettings = false;
     // Clear IndexedDB
     const request = indexedDB.open('GranVideoEditor', 1);
     request.onsuccess = (e: any) => {
@@ -430,6 +621,15 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     async () => {
       if (isLoadingProjectSettings.value || isPersistingProjectSettings) return;
       await saveProjectSettings();
+    },
+    { deep: true },
+  );
+
+  watch(
+    workspaceSettings,
+    async () => {
+      if (isLoadingWorkspaceSettings.value || isPersistingWorkspaceSettings) return;
+      await saveWorkspaceSettings();
     },
     { deep: true },
   );
@@ -450,8 +650,12 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     currentTime,
     duration,
     projectSettings,
+    userSettings,
+    workspaceSettings,
     loadProjectSettings,
     saveProjectSettings,
+    loadWorkspaceSettings,
+    saveWorkspaceSettings,
     getFileHandleByPath,
     init,
     openWorkspace,
