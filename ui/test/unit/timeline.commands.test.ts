@@ -6,21 +6,24 @@ import { createDefaultTimelineDocument } from '../../app/timeline/otioSerializer
 describe('timeline/commands', () => {
   it('adds clip sequentially to video track', () => {
     const doc = createDefaultTimelineDocument({ id: 'd1', name: 'Demo', fps: 25 });
+    const vTrackId = doc.tracks.find(t => t.kind === 'video')!.id;
 
     const r1 = applyTimelineCommand(doc, {
       type: 'add_clip_to_track',
-      trackKind: 'video',
+      trackId: vTrackId,
       name: 'A',
       path: 'sources/video/a.mp4',
       durationUs: 1_000_000,
+      sourceDurationUs: 1_000_000,
     });
 
     const r2 = applyTimelineCommand(r1.next, {
       type: 'add_clip_to_track',
-      trackKind: 'video',
+      trackId: vTrackId,
       name: 'B',
       path: 'sources/video/b.mp4',
       durationUs: 2_000_000,
+      sourceDurationUs: 2_000_000,
     });
 
     const v1 = r2.next.tracks.find(t => t.kind === 'video')!;
@@ -33,21 +36,24 @@ describe('timeline/commands', () => {
 
   it('denies overlap on move', () => {
     const doc = createDefaultTimelineDocument({ id: 'd1', name: 'Demo', fps: 25 });
+    const vTrackId = doc.tracks.find(t => t.kind === 'video')!.id;
 
     const r1 = applyTimelineCommand(doc, {
       type: 'add_clip_to_track',
-      trackKind: 'video',
+      trackId: vTrackId,
       name: 'A',
       path: 'sources/video/a.mp4',
       durationUs: 2_000_000,
+      sourceDurationUs: 2_000_000,
     });
 
     const r2 = applyTimelineCommand(r1.next, {
       type: 'add_clip_to_track',
-      trackKind: 'video',
+      trackId: vTrackId,
       name: 'B',
       path: 'sources/video/b.mp4',
       durationUs: 2_000_000,
+      sourceDurationUs: 2_000_000,
     });
 
     const v1 = r2.next.tracks.find(t => t.kind === 'video')!;
@@ -65,13 +71,15 @@ describe('timeline/commands', () => {
 
   it('trims clip end', () => {
     const doc = createDefaultTimelineDocument({ id: 'd1', name: 'Demo', fps: 25 });
+    const vTrackId = doc.tracks.find(t => t.kind === 'video')!.id;
 
     const r1 = applyTimelineCommand(doc, {
       type: 'add_clip_to_track',
-      trackKind: 'video',
+      trackId: vTrackId,
       name: 'A',
       path: 'sources/video/a.mp4',
       durationUs: 3_000_000,
+      sourceDurationUs: 3_000_000,
     });
 
     const v1 = r1.next.tracks.find(t => t.kind === 'video')!;

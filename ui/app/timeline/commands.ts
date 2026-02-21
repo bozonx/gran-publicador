@@ -1,10 +1,4 @@
-import type {
-  TimelineClipItem,
-  TimelineDocument,
-  TimelineTrack,
-  TimelineTrackItem,
-  TrackKind,
-} from './types';
+import type { TimelineClipItem, TimelineDocument, TimelineTrack, TimelineTrackItem } from './types';
 
 export interface TimelineCommandResult {
   next: TimelineDocument;
@@ -12,10 +6,11 @@ export interface TimelineCommandResult {
 
 export interface AddClipToTrackCommand {
   type: 'add_clip_to_track';
-  trackKind: TrackKind;
+  trackId: string;
   name: string;
   path: string;
   durationUs?: number;
+  sourceDurationUs?: number;
 }
 
 export interface RemoveItemCommand {
@@ -66,12 +61,6 @@ function assertNoOverlap(
   }
 }
 
-function getTrackByKind(doc: TimelineDocument, kind: TrackKind): TimelineTrack {
-  const t = doc.tracks.find(x => x.kind === kind);
-  if (!t) throw new Error('Track not found');
-  return t;
-}
-
 function getTrackById(doc: TimelineDocument, trackId: string): TimelineTrack {
   const t = doc.tracks.find(x => x.id === trackId);
   if (!t) throw new Error('Track not found');
@@ -90,13 +79,23 @@ function computeTrackEndUs(track: TimelineTrack): number {
   return end;
 }
 
+function clampInt(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  if (max < min) return min;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
 export function applyTimelineCommand(
   doc: TimelineDocument,
   cmd: TimelineCommand,
 ): TimelineCommandResult {
   if (cmd.type === 'add_clip_to_track') {
-    const track = getTrackByKind(doc, cmd.trackKind);
+    const track = getTrackById(doc, cmd.trackId);
     const durationUs = Math.max(0, Math.round(Number(cmd.durationUs ?? 0)));
+    const sourceDurationUs = Math.max(
+      0,
+      Math.round(Number(cmd.sourceDurationUs ?? cmd.durationUs ?? 0)),
+    );
     const startUs = computeTrackEndUs(track);
 
     assertNoOverlap(track, '', startUs, durationUs);
@@ -107,6 +106,7 @@ export function applyTimelineCommand(
       trackId: track.id,
       name: cmd.name,
       source: { path: cmd.path },
+      sourceDurationUs,
       timelineRange: { startUs, durationUs },
       sourceRange: { startUs: 0, durationUs },
     };
@@ -163,27 +163,55 @@ export function applyTimelineCommand(
     if (!item) return { next: doc };
     if (item.kind !== 'clip') return { next: doc };
 
-    const deltaUs = Math.max(0, Math.round(cmd.deltaUs));
-    const prevStartUs = Math.max(0, item.timelineRange.startUs);
-    const prevDurationUs = Math.max(0, item.timelineRange.durationUs);
+    const deltaUs = Math.round(Number(cmd.deltaUs));
 
-    const nextDurationUs = Math.max(0, prevDurationUs - deltaUs);
-    const nextStartUs =
-      cmd.edge === 'start' ? prevStartUs + (prevDurationUs - nextDurationUs) : prevStartUs;
+    const prevTimelineStartUs = Math.max(0, Math.round(item.timelineRange.startUs));
+    const prevTimelineDurationUs = Math.max(0, Math.round(item.timelineRange.durationUs));
 
-    const nextSourceStartUs =
-      cmd.edge === 'start'
-        ? Math.max(0, item.sourceRange.startUs + (prevDurationUs - nextDurationUs))
-        : item.sourceRange.startUs;
+    const prevSourceStartUs = Math.max(0, Math.round(item.sourceRange.startUs));
+    const prevSourceDurationUs = Math.max(0, Math.round(item.sourceRange.durationUs));
 
-    assertNoOverlap(track, item.id, nextStartUs, nextDurationUs);
+    const prevSourceEndUs = prevSourceStartUs + prevSourceDurationUs;
+    const maxSourceDurationUs = Math.max(0, Math.round(item.sourceDurationUs));
+
+    const minSourceStartUs = 0;
+    const maxSourceEndUs = maxSourceDurationUs;
+
+    let nextTimelineStartUs = prevTimelineStartUs;
+    let nextTimelineDurationUs = prevTimelineDurationUs;
+    let nextSourceStartUs = prevSourceStartUs;
+    let nextSourceEndUs = prevSourceEndUs;
+
+    if (cmd.edge === 'start') {
+      // deltaUs > 0 => move start right (trim in), deltaUs < 0 => move start left (extend)
+      const unclampedSourceStartUs = prevSourceStartUs + deltaUs;
+      nextSourceStartUs = clampInt(unclampedSourceStartUs, minSourceStartUs, prevSourceEndUs);
+      const appliedDeltaUs = nextSourceStartUs - prevSourceStartUs;
+
+      nextTimelineStartUs = Math.max(0, prevTimelineStartUs + appliedDeltaUs);
+      nextTimelineDurationUs = Math.max(0, prevTimelineDurationUs - appliedDeltaUs);
+      nextSourceEndUs = prevSourceEndUs;
+    } else {
+      // deltaUs > 0 => move end right (extend), deltaUs < 0 => move end left (trim out)
+      const unclampedSourceEndUs = prevSourceEndUs + deltaUs;
+      nextSourceEndUs = clampInt(unclampedSourceEndUs, prevSourceStartUs, maxSourceEndUs);
+      const appliedDeltaUs = nextSourceEndUs - prevSourceEndUs;
+
+      nextTimelineDurationUs = Math.max(0, prevTimelineDurationUs + appliedDeltaUs);
+      nextTimelineStartUs = prevTimelineStartUs;
+      nextSourceStartUs = prevSourceStartUs;
+    }
+
+    const nextSourceDurationUs = Math.max(0, nextSourceEndUs - nextSourceStartUs);
+
+    assertNoOverlap(track, item.id, nextTimelineStartUs, nextTimelineDurationUs);
 
     const nextItems: TimelineTrackItem[] = track.items.map(x =>
       x.id === item.id
         ? {
             ...x,
-            timelineRange: { startUs: nextStartUs, durationUs: nextDurationUs },
-            sourceRange: { startUs: nextSourceStartUs, durationUs: nextDurationUs },
+            timelineRange: { startUs: nextTimelineStartUs, durationUs: nextTimelineDurationUs },
+            sourceRange: { startUs: nextSourceStartUs, durationUs: nextSourceDurationUs },
           }
         : x,
     );

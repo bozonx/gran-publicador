@@ -72,6 +72,15 @@ describe('timeline/otioSerializer', () => {
             kind: 'Video',
             children: [
               {
+                OTIO_SCHEMA: 'Gap.1',
+                name: 'gap',
+                source_range: {
+                  OTIO_SCHEMA: 'TimeRange.1',
+                  start_time: { OTIO_SCHEMA: 'RationalTime.1', value: 0, rate: 1_000_000 },
+                  duration: { OTIO_SCHEMA: 'RationalTime.1', value: 4_000_000, rate: 1_000_000 },
+                },
+              },
+              {
                 OTIO_SCHEMA: 'Clip.1',
                 name: 'A',
                 media_reference: {
@@ -86,7 +95,7 @@ describe('timeline/otioSerializer', () => {
                 metadata: {
                   gran: {
                     id: 'clip_stable_a',
-                    timelineStartUs: 4_000_000,
+                    sourceDurationUs: 9_000_000,
                   },
                 },
               },
@@ -108,18 +117,24 @@ describe('timeline/otioSerializer', () => {
       name: 'fallback',
       fps: 25,
     });
-    const parsedItem = doc.tracks[0]!.items[0]!;
+    const parsedItem = doc.tracks[0]!.items.find(it => it.kind === 'clip');
+    expect(parsedItem?.kind).toBe('clip');
+    if (!parsedItem || parsedItem.kind !== 'clip') throw new Error('Expected clip item');
 
     expect(parsedItem.id).toBe('clip_stable_a');
     expect(parsedItem.timelineRange.startUs).toBe(4_000_000);
     expect(parsedItem.timelineRange.durationUs).toBe(1_500_000);
+    expect(parsedItem.sourceDurationUs).toBe(9_000_000);
 
     const text = serializeTimelineToOtio(doc);
     const again = parseTimelineFromOtio(text, { id: 'fallback2', name: 'fallback2', fps: 25 });
-    const roundtripItem = again.tracks[0]!.items[0]!;
+    const roundtripItem = again.tracks[0]!.items.find(it => it.kind === 'clip');
+    expect(roundtripItem?.kind).toBe('clip');
+    if (!roundtripItem || roundtripItem.kind !== 'clip') throw new Error('Expected clip item');
 
     expect(roundtripItem.id).toBe('clip_stable_a');
     expect(roundtripItem.timelineRange.startUs).toBe(4_000_000);
     expect(roundtripItem.timelineRange.durationUs).toBe(1_500_000);
+    expect(roundtripItem.sourceDurationUs).toBe(9_000_000);
   });
 });

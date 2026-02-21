@@ -7,11 +7,7 @@ const { t } = useI18n()
 const toast = useToast()
 const videoEditorStore = useVideoEditorStore()
 
-const videoTrack = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
-const audioTrack = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'audio') ?? null)
-
-const videoItems = computed(() => videoTrack.value?.items ?? [])
-const audioItems = computed(() => audioTrack.value?.items ?? [])
+const tracks = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined) ?? [])
 
 const PX_PER_SECOND = 10
 
@@ -126,11 +122,9 @@ function onGlobalMouseMove(e: MouseEvent) {
   }
 
   if (mode === 'trim_start') {
-    const maxDeltaUs = Math.max(0, dragAnchorDurationUs.value)
-    const trimmedDeltaUs = Math.min(maxDeltaUs, Math.max(0, deltaUs))
     try {
       videoEditorStore.applyTimeline(
-        { type: 'trim_item', trackId, itemId, edge: 'start', deltaUs: trimmedDeltaUs },
+        { type: 'trim_item', trackId, itemId, edge: 'start', deltaUs },
         { saveMode: 'none' },
       )
       hasPendingTimelinePersist.value = true
@@ -140,11 +134,9 @@ function onGlobalMouseMove(e: MouseEvent) {
   }
 
   if (mode === 'trim_end') {
-    const maxDeltaUs = Math.max(0, dragAnchorDurationUs.value)
-    const trimmedDeltaUs = Math.min(maxDeltaUs, Math.max(0, deltaUs))
     try {
       videoEditorStore.applyTimeline(
-        { type: 'trim_item', trackId, itemId, edge: 'end', deltaUs: trimmedDeltaUs },
+        { type: 'trim_item', trackId, itemId, edge: 'end', deltaUs },
         { saveMode: 'none' },
       )
       hasPendingTimelinePersist.value = true
@@ -173,14 +165,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('mouseup', onGlobalMouseUp)
 })
 
-async function onDrop(e: DragEvent, track: 'video' | 'audio') {
+async function onDrop(e: DragEvent, trackId: string) {
   const data = e.dataTransfer?.getData('application/json')
   if (data) {
     try {
       const parsed = JSON.parse(data)
       if (parsed.name && parsed.path) {
         await videoEditorStore.addClipToTimelineFromPath({
-          trackKind: track,
+          trackId,
           name: parsed.name,
           path: parsed.path,
         })
@@ -267,11 +259,12 @@ function stop() {
       <div class="w-28 shrink-0 border-r border-gray-700 flex flex-col">
         <div class="h-6 border-b border-gray-700 bg-gray-850" />
         <div class="flex flex-col divide-y divide-gray-700 flex-1">
-          <div class="flex items-center px-2 h-10 text-xs text-gray-500 font-medium">
-            {{ t('granVideoEditor.timeline.videoTrack', 'Video 1') }}
-          </div>
-          <div class="flex items-center px-2 h-10 text-xs text-gray-500 font-medium">
-            {{ t('granVideoEditor.timeline.audioTrack', 'Audio 1') }}
+          <div
+            v-for="track in tracks"
+            :key="track.id"
+            class="flex items-center px-2 h-10 text-xs text-gray-500 font-medium"
+          >
+            {{ track.name }}
           </div>
         </div>
       </div>
@@ -288,54 +281,24 @@ function stop() {
 
         <!-- Tracks -->
         <div class="flex flex-col divide-y divide-gray-700">
-          <!-- Video track -->
-          <div 
+          <div
+            v-for="track in tracks"
+            :key="track.id"
             class="h-10 flex items-center px-2 relative"
             @dragover.prevent
-            @drop.prevent="onDrop($event, 'video')"
+            @drop.prevent="onDrop($event, track.id)"
           >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700" v-if="videoItems.length === 0">
+              <span class="text-xs text-gray-700" v-if="track.items.length === 0">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
             </div>
-            <!-- Render items -->
-            <div 
-              v-for="item in videoItems" 
+
+            <div
+              v-for="item in track.items"
               :key="item.id"
-              class="absolute inset-y-1 bg-indigo-600 border border-indigo-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-indigo-500"
-              :style="{ left: `${2 + timeUsToPx(item.timelineRange.startUs)}px`, width: `${Math.max(30, timeUsToPx(item.timelineRange.durationUs))}px` }"
-              @mousedown="startMoveItem($event, item.trackId, item.id, item.timelineRange.startUs)"
-            >
-              <div
-                v-if="item.kind === 'clip'"
-                class="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
-                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'start', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
-              />
-              <span class="truncate" :title="item.kind === 'clip' ? item.name : 'gap'">{{ item.kind === 'clip' ? item.name : 'gap' }}</span>
-              <div
-                v-if="item.kind === 'clip'"
-                class="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
-                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'end', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
-              />
-            </div>
-          </div>
-          <!-- Audio track -->
-          <div 
-            class="h-10 flex items-center px-2 relative"
-            @dragover.prevent
-            @drop.prevent="onDrop($event, 'audio')"
-          >
-            <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700" v-if="audioItems.length === 0">
-                {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
-              </span>
-            </div>
-            <!-- Render items -->
-            <div 
-              v-for="item in audioItems" 
-              :key="item.id"
-              class="absolute inset-y-1 bg-teal-600 border border-teal-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-teal-500"
+              class="absolute inset-y-1 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer"
+              :class="track.kind === 'audio' ? 'bg-teal-600 border border-teal-400 hover:bg-teal-500' : 'bg-indigo-600 border border-indigo-400 hover:bg-indigo-500'"
               :style="{ left: `${2 + timeUsToPx(item.timelineRange.startUs)}px`, width: `${Math.max(30, timeUsToPx(item.timelineRange.durationUs))}px` }"
               @mousedown="startMoveItem($event, item.trackId, item.id, item.timelineRange.startUs)"
             >

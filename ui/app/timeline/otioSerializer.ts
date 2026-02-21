@@ -46,6 +46,7 @@ interface OtioTrack {
   name: string;
   kind: 'Video' | 'Audio';
   children: Array<OtioClip | OtioGap>;
+  metadata?: Record<string, unknown>;
 }
 
 interface OtioStack {
@@ -125,6 +126,17 @@ function parseTimelineStartUs(raw: any): number | null {
   return Math.round(value);
 }
 
+function parseItemSequenceDurationUs(child: any): number {
+  if (!child || typeof child !== 'object') return 0;
+  if (child.OTIO_SCHEMA === 'Gap.1') {
+    return Math.max(0, fromRationalTimeUs(child?.source_range?.duration));
+  }
+  if (child.OTIO_SCHEMA === 'Clip.1') {
+    return Math.max(0, fromRationalTimeUs(child?.source_range?.duration));
+  }
+  return 0;
+}
+
 function safeGranMetadata(raw: any): any {
   if (!raw || typeof raw !== 'object') return {};
   const gran = (raw as any).gran;
@@ -201,7 +213,8 @@ function parseClipItem(input: {
   const path =
     typeof otio.media_reference?.target_url === 'string' ? otio.media_reference.target_url : '';
   const granMeta = safeGranMetadata(otio.metadata);
-  const timelineStartUs = parseTimelineStartUs(granMeta?.timelineStartUs) ?? fallbackStartUs;
+  const timelineStartUs = fallbackStartUs;
+  const sourceDurationUs = Math.max(0, Math.round(Number(granMeta?.sourceDurationUs ?? 0)));
   const id = resolveStableItemId({
     prefix: 'clip',
     trackId,
@@ -222,6 +235,7 @@ function parseClipItem(input: {
     trackId,
     name,
     source: { path },
+    sourceDurationUs: sourceDurationUs > 0 ? sourceDurationUs : sourceRange.durationUs,
     timelineRange: { startUs: timelineStartUs, durationUs: sourceRange.durationUs },
     sourceRange,
   };
@@ -237,7 +251,7 @@ function parseGapItem(input: {
   const { trackId, otio, index, occupiedIds, fallbackStartUs } = input;
   const range = fromTimeRange(otio.source_range);
   const granMeta = safeGranMetadata(otio.metadata);
-  const timelineStartUs = parseTimelineStartUs(granMeta?.timelineStartUs) ?? fallbackStartUs;
+  const timelineStartUs = fallbackStartUs;
   const id = resolveStableItemId({
     prefix: 'gap',
     trackId,
@@ -277,22 +291,46 @@ export function createDefaultTimelineDocument(params: {
 
 export function serializeTimelineToOtio(doc: TimelineDocument): string {
   const tracks: OtioTrack[] = doc.tracks.map(t => {
-    const children: Array<OtioClip | OtioGap> = t.items.map(item => {
-      if (item.kind === 'gap') {
-        return {
+    const sortedItems = [...t.items].sort(
+      (a, b) => a.timelineRange.startUs - b.timelineRange.startUs,
+    );
+    const children: Array<OtioClip | OtioGap> = [];
+    let cursorUs = 0;
+    for (const item of sortedItems) {
+      const startUs = Math.max(0, Math.round(item.timelineRange.startUs));
+      const durationUs = Math.max(0, Math.round(item.timelineRange.durationUs));
+
+      if (startUs > cursorUs) {
+        const gapDurationUs = startUs - cursorUs;
+        children.push({
           OTIO_SCHEMA: 'Gap.1',
           name: 'gap',
-          source_range: toTimeRange({ startUs: 0, durationUs: item.timelineRange.durationUs }),
+          source_range: toTimeRange({ startUs: 0, durationUs: gapDurationUs }),
+          metadata: {
+            gran: {
+              id: `gap_${t.id}_${cursorUs}`,
+            },
+          },
+        });
+        cursorUs = startUs;
+      }
+
+      if (item.kind === 'gap') {
+        children.push({
+          OTIO_SCHEMA: 'Gap.1',
+          name: 'gap',
+          source_range: toTimeRange({ startUs: 0, durationUs }),
           metadata: {
             gran: {
               id: item.id,
-              timelineStartUs: item.timelineRange.startUs,
             },
           },
-        };
+        });
+        cursorUs += durationUs;
+        continue;
       }
 
-      return {
+      children.push({
         OTIO_SCHEMA: 'Clip.1',
         name: item.name,
         media_reference: {
@@ -303,17 +341,25 @@ export function serializeTimelineToOtio(doc: TimelineDocument): string {
         metadata: {
           gran: {
             id: item.id,
-            timelineStartUs: item.timelineRange.startUs,
+            sourceDurationUs: item.sourceDurationUs,
           },
         },
-      };
-    });
+      });
+      cursorUs += durationUs;
+    }
 
     return {
       OTIO_SCHEMA: 'Track.1',
       name: t.name,
       kind: trackKindToOtioKind(t.kind),
       children,
+      metadata: {
+        gran: {
+          id: t.id,
+          kind: t.kind,
+          name: t.name,
+        },
+      },
     };
   });
 
@@ -329,11 +375,7 @@ export function serializeTimelineToOtio(doc: TimelineDocument): string {
       gran: {
         docId: doc.id,
         timebase: doc.timebase,
-        tracks: doc.tracks.map(t => ({
-          id: t.id,
-          kind: t.kind,
-          name: t.name,
-        })),
+        tracks: doc.tracks.map(t => ({ id: t.id, kind: t.kind, name: t.name })),
       },
     },
   };
@@ -374,20 +416,27 @@ export function parseTimelineFromOtio(
   const trackMetas = Array.isArray(granMeta?.tracks) ? granMeta.tracks : [];
 
   const tracks: TimelineTrack[] = stackChildren.map((otioTrack: OtioTrack, trackIndex: number) => {
-    const meta = trackMetas[trackIndex] ?? {};
-    const id = coerceId(meta?.id, `${otioTrack.kind === 'Audio' ? 'a' : 'v'}${trackIndex + 1}`);
+    const legacyMeta = trackMetas[trackIndex] ?? {};
+    const trackGranMeta = safeGranMetadata(otioTrack.metadata);
+
+    const id = coerceId(
+      trackGranMeta?.id ?? legacyMeta?.id,
+      `${otioTrack.kind === 'Audio' ? 'a' : 'v'}${trackIndex + 1}`,
+    );
     const kind =
-      meta?.kind === 'audio' || meta?.kind === 'video'
-        ? meta.kind
-        : trackKindFromOtioKind(otioTrack.kind);
+      trackGranMeta?.kind === 'audio' || trackGranMeta?.kind === 'video'
+        ? trackGranMeta.kind
+        : legacyMeta?.kind === 'audio' || legacyMeta?.kind === 'video'
+          ? legacyMeta.kind
+          : trackKindFromOtioKind(otioTrack.kind);
     const name = coerceName(
-      meta?.name ?? otioTrack.name,
+      trackGranMeta?.name ?? legacyMeta?.name ?? otioTrack.name,
       kind === 'audio' ? `Audio ${trackIndex + 1}` : `Video ${trackIndex + 1}`,
     );
 
     const children = Array.isArray(otioTrack.children) ? otioTrack.children : [];
     const occupiedIds = new Set<string>();
-    let fallbackCursorUs = 0;
+    let cursorUs = 0;
 
     const rawItems: TimelineTrackItem[] = children.map((child: any, itemIndex: number) => {
       const item =
@@ -397,20 +446,17 @@ export function parseTimelineFromOtio(
               otio: child as OtioGap,
               index: itemIndex,
               occupiedIds,
-              fallbackStartUs: fallbackCursorUs,
+              fallbackStartUs: cursorUs,
             })
           : parseClipItem({
               trackId: id,
               otio: child as OtioClip,
               index: itemIndex,
               occupiedIds,
-              fallbackStartUs: fallbackCursorUs,
+              fallbackStartUs: cursorUs,
             });
 
-      fallbackCursorUs = Math.max(
-        fallbackCursorUs,
-        item.timelineRange.startUs + Math.max(0, item.timelineRange.durationUs),
-      );
+      cursorUs += parseItemSequenceDurationUs(child);
       return item;
     });
 

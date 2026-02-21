@@ -543,30 +543,82 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     }
   }
 
-  async function addClipToTimelineFromPath(input: {
-    trackKind: 'video' | 'audio';
-    name: string;
-    path: string;
-  }) {
+  async function addClipToTimelineFromPath(input: { trackId: string; name: string; path: string }) {
     const handle = await getFileHandleByPath(input.path);
     if (!handle) {
       error.value = 'Failed to access file handle';
       return;
     }
 
-    const durationUs = await computeMediaDurationUs(handle, input.trackKind);
+    const resolvedTrackKind = timelineDoc.value?.tracks.find(t => t.id === input.trackId)?.kind;
+    const trackKind =
+      resolvedTrackKind === 'audio' || resolvedTrackKind === 'video' ? resolvedTrackKind : null;
+    if (!trackKind) {
+      error.value = 'Track not found';
+      return;
+    }
+
+    const durationUs = await computeMediaDurationUs(handle, trackKind);
     if (!durationUs) {
       error.value = 'Failed to compute media duration';
       return;
     }
 
+    if (!timelineDoc.value) {
+      if (!currentProjectName.value) return;
+      timelineDoc.value = createDefaultTimelineDocument({
+        id: createTimelineDocId(currentProjectName.value),
+        name: currentProjectName.value,
+        fps: workspaceSettings.value.defaults.newProject.fps,
+      });
+    }
+
+    const targetTrack = timelineDoc.value.tracks.find(t => t.id === input.trackId);
+    if (!targetTrack) {
+      error.value = 'Track not found';
+      return;
+    }
+
     applyTimeline({
       type: 'add_clip_to_track',
-      trackKind: input.trackKind,
+      trackId: targetTrack.id,
       name: input.name,
       path: input.path,
       durationUs,
+      sourceDurationUs: durationUs,
     });
+  }
+
+  function hydrateClipSourceDurationFromMetadata(doc: TimelineDocument, cmd: TimelineCommand) {
+    if (cmd.type !== 'trim_item') return doc;
+
+    const track = doc.tracks.find(t => t.id === cmd.trackId);
+    if (!track) return doc;
+
+    const item = track.items.find(it => it.id === cmd.itemId);
+    if (!item) return doc;
+    if (item.kind !== 'clip') return doc;
+    if (!item.source?.path) return doc;
+
+    const meta = mediaMetadata.value[item.source.path];
+    const durationS = Number(meta?.duration);
+    if (!Number.isFinite(durationS) || durationS <= 0) return doc;
+    const durationUs = Math.floor(durationS * 1_000_000);
+    if (!Number.isFinite(durationUs) || durationUs <= 0) return doc;
+    if (item.sourceDurationUs === durationUs) return doc;
+
+    const nextTracks = doc.tracks.map(t =>
+      t.id !== track.id
+        ? t
+        : {
+            ...t,
+            items: t.items.map(it =>
+              it.id === item.id ? { ...it, sourceDurationUs: durationUs } : it,
+            ),
+          },
+    );
+
+    return { ...doc, tracks: nextTracks };
   }
 
   function applyTimeline(
@@ -584,7 +636,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
 
     try {
       const prev = timelineDoc.value;
-      const { next } = applyTimelineCommand(timelineDoc.value, cmd);
+      const hydrated = hydrateClipSourceDurationFromMetadata(timelineDoc.value, cmd);
+      const { next } = applyTimelineCommand(hydrated, cmd);
       if (next === prev) return;
 
       timelineDoc.value = next;

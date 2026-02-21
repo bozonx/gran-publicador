@@ -19,6 +19,7 @@ export interface TimelineClipItem {
   trackId: string;
   name: string;
   source: TimelineSourceRef;
+  sourceDurationUs: number;
   timelineRange: TimelineRange;
   sourceRange: TimelineRange;
 }
