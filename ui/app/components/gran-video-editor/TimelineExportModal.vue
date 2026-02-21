@@ -168,7 +168,12 @@ async function writeStreamToFile(stream: ReadableStream<Uint8Array>, fileHandle:
   }
 }
 
-async function exportTimelineToStream(options: ExportOptions): Promise<ReadableStream<Uint8Array>> {
+interface ExportStreamResult {
+  stream: ReadableStream<Uint8Array>
+  cleanup: () => Promise<void>
+}
+
+async function exportTimelineToStream(options: ExportOptions): Promise<ExportStreamResult> {
   const clips = videoEditorStore.timelineClips
   if (!clips.length) throw new Error('Timeline is empty')
 
@@ -192,17 +197,10 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ReadableS
   }
 
   try {
-    const combinator = new Combinator({
-      width: 1280,
-      height: 720,
-      bgColor: '#000',
-      videoCodec: options.videoCodec,
-      bitrate: options.bitrate,
-      audio: options.audio ? { codec: options.audioCodec || 'aac', bitrate: options.audioBitrate } : false,
-    } as any)
-
     let maxDurationUs = 0
     let hasAnyAudio = false
+
+    const spriteDefs: Array<{ mp4Clip: any; duration: number }> = []
 
     for (const clip of clips) {
       if (clip.track !== 'video' || !clip.fileHandle) continue
@@ -217,24 +215,37 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ReadableS
       if (mp4Clip.meta?.duration > maxDurationUs) maxDurationUs = mp4Clip.meta.duration
       if (mp4Clip.meta?.audioSampleRate) hasAnyAudio = true
 
-      const sprite = new OffscreenSprite(mp4Clip)
-      sprite.time.offset = 0
-      sprite.time.duration = mp4Clip.meta.duration
-      await combinator.addSprite(sprite)
+      spriteDefs.push({ mp4Clip, duration: mp4Clip.meta.duration })
     }
 
     if (maxDurationUs <= 0) throw new Error('No video clips to export')
 
-    if (!options.audio || !hasAnyAudio) {
-      // Keep as-is
+    const useAudio = options.audio && hasAnyAudio
+
+    const combinator = new Combinator({
+      width: 1280,
+      height: 720,
+      bgColor: '#000',
+      videoCodec: options.videoCodec,
+      bitrate: options.bitrate,
+      audio: useAudio ? { codec: options.audioCodec || 'aac', bitrate: options.audioBitrate } : false,
+    } as any)
+
+    for (const { mp4Clip, duration } of spriteDefs) {
+      const sprite = new OffscreenSprite(mp4Clip)
+      sprite.time.offset = 0
+      sprite.time.duration = duration
+      await combinator.addSprite(sprite)
     }
 
     const mp4Stream = combinator.output({ maxTime: maxDurationUs })
 
     if (options.format === 'mp4') {
-      return mp4Stream as unknown as ReadableStream<Uint8Array>
+      // Cleanup is deferred to the caller — OPFS files must stay alive until stream is consumed
+      return { stream: mp4Stream as unknown as ReadableStream<Uint8Array>, cleanup }
     }
 
+    // For WebM/MKV: fully buffer the MP4 stream into OPFS first, then re-encode
     const opfsMp4 = tmpfile()
     tmpFiles.push(opfsMp4)
     await write(opfsMp4, mp4Stream as any)
@@ -244,7 +255,7 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ReadableS
 
     const { exportToContainer } = await import('~/utils/video-webm-export')
 
-    return exportToContainer(exportClip, {
+    const stream = await exportToContainer(exportClip, {
       format: options.format,
       trimInUs: 0,
       trimOutUs: Math.max(1, Number(exportClip?.meta?.duration) || maxDurationUs),
@@ -252,8 +263,13 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ReadableS
       audioBitrate: options.audioBitrate,
       audio: options.audio,
     })
-  } finally {
+
+    // For WebM/MKV exportToContainer returns a fully-buffered stream, cleanup is safe immediately
     await cleanup()
+    return { stream, cleanup: async () => {} }
+  } catch (err) {
+    await cleanup()
+    throw err
   }
 }
 
@@ -358,7 +374,7 @@ async function handleConfirm() {
     if (!ok) return
 
     exportPhase.value = 'encoding'
-    const stream = await exportTimelineToStream({
+    const { stream, cleanup: cleanupTmp } = await exportTimelineToStream({
       format: outputFormat.value,
       videoCodec: videoCodec.value,
       bitrate: bitrateBps.value,
@@ -390,7 +406,11 @@ async function handleConfirm() {
       }
       throw e
     }
-    await writeStreamToFile(stream, fileHandle)
+    try {
+      await writeStreamToFile(stream, fileHandle)
+    } finally {
+      await cleanupTmp()
+    }
 
     exportProgress.value = 100
 
