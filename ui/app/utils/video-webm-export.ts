@@ -1,6 +1,7 @@
 import { Muxer, StreamTarget } from 'webm-muxer';
 
-export interface WebMExportOptions {
+export interface ContainerExportOptions {
+  format: 'webm' | 'mkv';
   trimInUs: number;
   trimOutUs: number;
   bitrate: number;
@@ -8,16 +9,32 @@ export interface WebMExportOptions {
   audio: boolean;
 }
 
+const FORMAT_CONFIG = {
+  webm: {
+    muxerType: 'webm' as const,
+    videoMuxCodec: 'V_VP9' as const,
+    audioMuxCodec: 'A_OPUS' as const,
+    videoEncCodec: 'vp09.00.10.08',
+  },
+  mkv: {
+    muxerType: 'matroska' as const,
+    videoMuxCodec: 'V_AV1' as const,
+    audioMuxCodec: 'A_OPUS' as const,
+    videoEncCodec: 'av01.0.05M.08',
+  },
+} as const;
+
 /**
- * Exports a trimmed segment from an MP4Clip to WebM (VP9 + Opus) using
- * the WebCodecs API directly, bypassing WebAV's Combinator.
+ * Exports a trimmed segment from an MP4Clip to WebM (VP9 + Opus) or MKV (AV1 + Opus)
+ * using the WebCodecs API directly, bypassing WebAV's Combinator.
  *
  * Returns a ReadableStream<Uint8Array> compatible with uploadMediaStream.
  */
-export async function exportToWebM(
+export async function exportToContainer(
   clip: any,
-  { trimInUs, trimOutUs, bitrate, audioBitrate, audio }: WebMExportOptions,
+  { format, trimInUs, trimOutUs, bitrate, audioBitrate, audio }: ContainerExportOptions,
 ): Promise<ReadableStream<Uint8Array>> {
+  const { muxerType, videoMuxCodec, audioMuxCodec, videoEncCodec } = FORMAT_CONFIG[format];
   const { width, height, audioSampleRate, audioChanCount } = clip.meta;
   const hasAudio = audio && !!audioSampleRate;
 
@@ -33,14 +50,14 @@ export async function exportToWebM(
   const exportClip = trimInUs > 0 ? clipFromIn : clip;
 
   // Decode the first sample to infer the real coded size. The MP4 container meta
-  // width/height may be different due to rotation/crop, which can make VP9 encoder
+  // width/height may be different due to rotation/crop, which can make the encoder
   // fail with OperationError on encode().
   const firstTick = await exportClip.tick(0);
   if (firstTick.video) {
     videoWidth = Math.ceil(firstTick.video.codedWidth / 2) * 2;
     videoHeight = Math.ceil(firstTick.video.codedHeight / 2) * 2;
     console.debug(
-      '[WebM export] First frame coded size:',
+      `[${format} export] First frame coded size:`,
       firstTick.video.codedWidth,
       firstTick.video.codedHeight,
     );
@@ -68,8 +85,9 @@ export async function exportToWebM(
     // Without it, the muxer may patch earlier byte offsets (e.g. duration in the header)
     // which is incompatible with a forward-only ReadableStream.
     streaming: true,
+    type: muxerType,
     video: {
-      codec: 'V_VP9',
+      codec: videoMuxCodec,
       width: videoWidth,
       height: videoHeight,
     },
@@ -78,7 +96,7 @@ export async function exportToWebM(
 
   if (hasAudio) {
     muxerOptions.audio = {
-      codec: 'A_OPUS',
+      codec: audioMuxCodec,
       numberOfChannels: channelCount,
       sampleRate,
     };
@@ -91,13 +109,13 @@ export async function exportToWebM(
   const videoEncoder = new VideoEncoder({
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta ?? undefined),
     error: e => {
-      console.error('[WebM export] VideoEncoder error:', e);
+      console.error(`[${format} export] VideoEncoder error:`, e);
       encoderError = e;
     },
   });
 
-  const vp9Config = {
-    codec: 'vp09.00.10.08',
+  const videoEncConfig = {
+    codec: videoEncCodec,
     width: videoWidth,
     height: videoHeight,
     bitrate,
@@ -105,19 +123,19 @@ export async function exportToWebM(
     latencyMode: 'quality' as const,
   };
 
-  const vp9Support = await VideoEncoder.isConfigSupported(vp9Config).catch(() => null);
-  if (!vp9Support?.supported) {
-    throw new Error('VP9 encoding is not supported by this browser for the selected resolution');
+  const videoSupport = await VideoEncoder.isConfigSupported(videoEncConfig).catch(() => null);
+  if (!videoSupport?.supported) {
+    throw new Error(`${format.toUpperCase()} video encoding is not supported by this browser`);
   }
 
-  videoEncoder.configure(vp9Config);
+  videoEncoder.configure(videoEncConfig);
 
   let audioEncoder: AudioEncoder | null = null;
   if (hasAudio) {
     audioEncoder = new AudioEncoder({
       output: (chunk, meta) => muxer.addAudioChunk(chunk, meta ?? undefined),
       error: e => {
-        console.error('[WebM export] AudioEncoder error:', e);
+        console.error(`[${format} export] AudioEncoder error:`, e);
         encoderError = e;
       },
     });
@@ -164,8 +182,8 @@ export async function exportToWebM(
     if (video) {
       if (videoEncoder.state === 'closed') throw new Error(`VideoEncoder closed: ${encoderError}`);
       const isKeyFrame = frameIndex % 150 === 0;
-      // Normalize pixel format via OffscreenCanvas — VP9 encoder requires I420/NV12/RGBA.
-      // H.264 High 4:2:2 profile produces I422 frames which VP9 rejects with OperationError.
+      // Normalize pixel format via OffscreenCanvas — VP9/AV1 encoders require I420/NV12/RGBA.
+      // H.264 High 4:2:2 profile produces I422 frames which they reject with OperationError.
       const normalized = normalizeFrame(video, videoWidth, videoHeight, currentTimeUs);
       video.close();
       videoEncoder.encode(normalized, { keyFrame: isKeyFrame });

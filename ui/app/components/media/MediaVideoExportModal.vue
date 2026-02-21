@@ -25,7 +25,7 @@ interface Props {
 }
 
 interface ExportOptions {
-  format: 'mp4' | 'webm'
+  format: 'mp4' | 'webm' | 'mkv'
   videoCodec: string
   bitrate: number
   audioBitrate: number
@@ -70,7 +70,7 @@ async function loadProjects() {
   }
 }
 
-const outputFormat = ref<'mp4' | 'webm'>('mp4')
+const outputFormat = ref<'mp4' | 'webm' | 'mkv'>('mp4')
 const videoCodec = ref('avc1.42E032')
 const bitrateMbps = ref<number>(5)
 const excludeAudio = ref(false)
@@ -81,6 +81,7 @@ const audioBitrateKbps = ref<number>(128)
 const formatOptions = [
   { value: 'mp4', label: 'MP4' },
   { value: 'webm', label: 'WebM (VP9 + Opus)' },
+  { value: 'mkv', label: 'MKV (AV1 + Opus)' },
 ]
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
@@ -208,7 +209,8 @@ watch(
 
 watch(outputFormat, (fmt) => {
   const base = outputFilename.value.replace(/\.[^.]+$/, '')
-  outputFilename.value = `${base}.${fmt}`
+  const ext = fmt === 'mkv' ? 'mkv' : fmt === 'webm' ? 'webm' : 'mp4'
+  outputFilename.value = `${base}.${ext}`
 })
 
 const videoCodecOptions = computed(() =>
@@ -285,7 +287,10 @@ async function handleConfirm() {
     })
     exportProgress.value = 30
 
-    const mimeType = outputFormat.value === 'webm' ? 'video/webm' : 'video/mp4'
+    const mimeType =
+      outputFormat.value === 'webm' ? 'video/webm'
+      : outputFormat.value === 'mkv' ? 'video/x-matroska'
+      : 'video/mp4'
 
     // Phase 2: upload media file as stream (no Blob buffering)
     exportPhase.value = 'uploading'
@@ -433,7 +438,7 @@ function handleCancel() {
           />
         </UFormField>
         <UFormField v-else :label="t('videoEditor.export.videoCodec')">
-          <UInput disabled model-value="VP9" class="w-full" />
+          <UInput disabled :model-value="outputFormat === 'mkv' ? 'AV1' : 'VP9'" class="w-full" />
         </UFormField>
 
         <UFormField
@@ -463,7 +468,7 @@ function handleCancel() {
         >
           <UInput
             disabled
-            :model-value="outputFormat === 'webm' ? 'Opus' : (audioCodec === 'opus' ? 'Opus' : 'AAC')"
+            :model-value="outputFormat === 'webm' || outputFormat === 'mkv' ? 'Opus' : (audioCodec === 'opus' ? 'Opus' : 'AAC')"
             class="w-full"
           />
         </UFormField>
