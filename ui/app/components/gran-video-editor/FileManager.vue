@@ -117,6 +117,41 @@ async function readDirectory(dirHandle: FileSystemDirectoryHandle, basePath = ''
   })
 }
 
+async function expandPersistedDirectories() {
+  const projectName = videoEditorStore.currentProjectName
+  if (!projectName) return
+
+  const expandedPaths = Object.keys(videoEditorStore.fileTreeExpandedPaths)
+  if (expandedPaths.length === 0) return
+
+  const sortedPaths = [...expandedPaths].sort((a, b) => a.length - b.length)
+
+  for (const path of sortedPaths) {
+    const parts = path.split('/').filter(Boolean)
+    if (parts.length === 0) continue
+
+    let currentList = rootEntries.value
+    let currentPath = ''
+    for (const part of parts) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part
+      const entry = currentList.find((e) => e.kind === 'directory' && e.name === part)
+      if (!entry) break
+
+      if (!entry.expanded) {
+        await toggleDirectory(entry)
+      } else if (entry.children === undefined) {
+        entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle, entry.path)
+      }
+
+      if (!videoEditorStore.isFileTreePathExpanded(currentPath)) {
+        videoEditorStore.setFileTreePathExpanded(currentPath, true)
+      }
+
+      currentList = entry.children ?? []
+    }
+  }
+}
+
 async function loadProjectDirectory() {
   if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) {
     rootEntries.value = []
@@ -128,11 +163,13 @@ async function loadProjectDirectory() {
   try {
     const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
     rootEntries.value = await readDirectory(projectDir)
-    
+
+    await expandPersistedDirectories()
+
     // Automatically expand the sources directory if present
     for (const entry of rootEntries.value) {
       if (entry.kind === 'directory' && entry.name === 'sources') {
-        await toggleDirectory(entry)
+        if (!entry.expanded) await toggleDirectory(entry)
       }
     }
   } catch (e: any) {
@@ -150,12 +187,21 @@ async function toggleDirectory(entry: FsEntry) {
   if (entry.kind !== 'directory') return
   error.value = null
   entry.expanded = !entry.expanded
+
+  if (entry.path) {
+    videoEditorStore.setFileTreePathExpanded(entry.path, entry.expanded)
+  }
+
   if (entry.expanded && entry.children === undefined) {
     try {
       entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle, entry.path)
     } catch (e: any) {
       error.value = e?.message ?? 'Failed to read folder'
       entry.expanded = false
+
+      if (entry.path) {
+        videoEditorStore.setFileTreePathExpanded(entry.path, false)
+      }
     }
   }
 }
@@ -514,6 +560,17 @@ async function createTimeline() {
               />
             </UFormField>
           </div>
+
+          <UFormField :label="t('videoEditor.projectSettings.exportFps', 'FPS')">
+            <UInput
+              v-model.number="videoEditorStore.projectSettings.export.fps"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              step="1"
+              class="w-full"
+            />
+          </UFormField>
 
           <MediaEncodingSettings
             v-model:output-format="videoEditorStore.projectSettings.export.encoding.format"
